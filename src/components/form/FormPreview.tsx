@@ -201,7 +201,7 @@ const FormPreview = ({
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
         }}
       >
-        {fields.length > 0 ? (
+        {fields && fields.length > 0 ? (
           <div className="space-y-4">
             {fields.map(field => renderField(field))}
           </div>

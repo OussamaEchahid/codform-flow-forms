@@ -13,7 +13,7 @@ export interface FieldStyle {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'email' | 'phone' | 'select' | 'checkbox' | 'radio' | 'textarea';
+  type: string;
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -51,7 +51,7 @@ export const createEmptyStep = (stepNumber: number): FormStep => {
 };
 
 // Create a new empty field
-export const createEmptyField = (type: FormField['type']): FormField => {
+export const createEmptyField = (type: string): FormField => {
   return {
     id: generateId(),
     type,

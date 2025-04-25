@@ -27,6 +27,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import FieldEditor from '@/components/form/FieldEditor';
+import { FormField } from '@/lib/form-utils';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -59,6 +61,14 @@ const FormBuilderPage = () => {
     label: string;
     required?: boolean;
     placeholder?: string;
+    style?: {
+      backgroundColor?: string;
+      color?: string;
+      fontSize?: string;
+      borderRadius?: string;
+      borderWidth?: string;
+      borderColor?: string;
+    };
   }>>([
     { type: 'title', id: 'title-1', label: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery' },
     { type: 'text', id: 'name-1', label: language === 'ar' ? 'الاسم الكامل' : 'Full name', required: true, placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name' },
@@ -71,6 +81,8 @@ const FormBuilderPage = () => {
   
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   
   useEffect(() => {
     if (formId) {
@@ -126,6 +138,12 @@ const FormBuilderPage = () => {
     
     setFormElements([...formElements, newElement]);
   };
+
+  const editElement = (index: number) => {
+    const element = formElements[index];
+    setCurrentEditingField(element as FormField);
+    setIsFieldEditorOpen(true);
+  };
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -147,6 +165,17 @@ const FormBuilderPage = () => {
       
       return arrayMove(items, oldIndex, newIndex);
     });
+  };
+  
+  const saveField = (updatedField: FormField) => {
+    const newElements = [...formElements];
+    const index = newElements.findIndex(el => el.id === updatedField.id);
+    if (index !== -1) {
+      newElements[index] = updatedField;
+      setFormElements(newElements);
+    }
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
   };
   
   if (!user) {
@@ -328,6 +357,7 @@ const FormBuilderPage = () => {
                             variant="ghost" 
                             size="sm"
                             className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
+                            onClick={() => editElement(index)}
                           >
                             <Edit size={16} />
                           </Button>
@@ -513,6 +543,15 @@ const FormBuilderPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Field Editor Dialog */}
+      {isFieldEditorOpen && currentEditingField && (
+        <FieldEditor
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => setIsFieldEditorOpen(false)}
+        />
+      )}
     </div>
   );
 };
