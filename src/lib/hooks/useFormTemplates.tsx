@@ -20,6 +20,7 @@ export interface FormData {
 export const useFormTemplates = () => {
   const [forms, setForms] = useState<FormData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<FormData | null>(null);
   const { user } = useAuth();
   
   const fetchForms = async () => {
@@ -76,10 +77,15 @@ export const useFormTemplates = () => {
       
       // Transform the returned data to ensure proper typing
       if (data && data.length > 0) {
-        return {
+        const newForm = {
           ...data[0],
           data: data[0].data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
         } as FormData;
+        
+        setSelectedTemplate(newForm);
+        // Refresh forms list
+        fetchForms();
+        return newForm;
       }
       return null;
     } catch (error: any) {
@@ -160,6 +166,32 @@ export const useFormTemplates = () => {
     }
   };
 
+  const getFormById = async (formId: string) => {
+    if (!user || !formId) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Transform the data to ensure proper typing
+      return {
+        ...data,
+        data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
+      } as FormData;
+    } catch (error: any) {
+      toast.error(`خطأ في جلب النموذج: ${error.message}`);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchForms();
@@ -169,11 +201,13 @@ export const useFormTemplates = () => {
   return {
     forms,
     isLoading,
+    selectedTemplate,
     fetchForms,
     createDefaultForm,
     createFormFromTemplate,
     saveForm,
     publishForm,
-    deleteForm
+    deleteForm,
+    getFormById
   };
 };

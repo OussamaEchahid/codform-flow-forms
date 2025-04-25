@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -34,6 +34,12 @@ const FormPreview = ({
   fields = [],
 }: FormPreviewProps) => {
   const { language } = useI18n();
+  const [key, setKey] = useState(0);
+  
+  // Force re-render when props change
+  useEffect(() => {
+    setKey(prevKey => prevKey + 1);
+  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields]);
   
   const renderField = (field: FormField) => {
     const fieldStyle = field.style || {};
@@ -51,12 +57,12 @@ const FormPreview = ({
             placeholder={field.placeholder}
             className="form-input"
             style={{
-              backgroundColor: fieldStyle.backgroundColor,
-              color: fieldStyle.color,
-              fontSize: fieldStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth,
-              borderColor: fieldStyle.borderColor,
+              backgroundColor: fieldStyle.backgroundColor || 'white',
+              color: fieldStyle.color || 'inherit',
+              fontSize: fieldStyle.fontSize || formStyle.fontSize,
+              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
+              borderWidth: fieldStyle.borderWidth || '1px',
+              borderColor: fieldStyle.borderColor || '#e2e8f0',
             }}
             disabled
           />
@@ -65,12 +71,12 @@ const FormPreview = ({
             placeholder={field.placeholder}
             className="form-input h-24"
             style={{
-              backgroundColor: fieldStyle.backgroundColor,
-              color: fieldStyle.color,
-              fontSize: fieldStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth,
-              borderColor: fieldStyle.borderColor,
+              backgroundColor: fieldStyle.backgroundColor || 'white',
+              color: fieldStyle.color || 'inherit',
+              fontSize: fieldStyle.fontSize || formStyle.fontSize,
+              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
+              borderWidth: fieldStyle.borderWidth || '1px',
+              borderColor: fieldStyle.borderColor || '#e2e8f0',
             }}
             disabled
           />
@@ -79,12 +85,12 @@ const FormPreview = ({
             className="form-select" 
             disabled
             style={{
-              backgroundColor: fieldStyle.backgroundColor,
-              color: fieldStyle.color,
-              fontSize: fieldStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth,
-              borderColor: fieldStyle.borderColor,
+              backgroundColor: fieldStyle.backgroundColor || 'white',
+              color: fieldStyle.color || 'inherit',
+              fontSize: fieldStyle.fontSize || formStyle.fontSize,
+              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
+              borderWidth: fieldStyle.borderWidth || '1px',
+              borderColor: fieldStyle.borderColor || '#e2e8f0',
             }}
           >
             <option value="">-- اختر --</option>
@@ -104,7 +110,10 @@ const FormPreview = ({
                 />
                 <label 
                   htmlFor={`check-${option}`}
-                  style={{ color: fieldStyle.color, fontSize: fieldStyle.fontSize }}
+                  style={{ 
+                    color: fieldStyle.color || 'inherit',
+                    fontSize: fieldStyle.fontSize || formStyle.fontSize
+                  }}
                 >
                   {option}
                 </label>
@@ -124,13 +133,28 @@ const FormPreview = ({
                 />
                 <label 
                   htmlFor={`radio-${option}`}
-                  style={{ color: fieldStyle.color, fontSize: fieldStyle.fontSize }}
+                  style={{ 
+                    color: fieldStyle.color || 'inherit',
+                    fontSize: fieldStyle.fontSize || formStyle.fontSize
+                  }}
                 >
                   {option}
                 </label>
               </div>
             ))}
           </div>
+        ) : field.type === 'submit' ? (
+          <button 
+            className="w-full text-white py-2 px-4 mt-4 flex justify-center items-center" 
+            style={{ 
+              backgroundColor: formStyle.primaryColor,
+              borderRadius: formStyle.borderRadius,
+              fontSize: formStyle.fontSize,
+            }}
+            disabled
+          >
+            {field.label}
+          </button>
         ) : null}
       </div>
     );
@@ -138,6 +162,7 @@ const FormPreview = ({
   
   return (
     <div 
+      key={key}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={{
         fontSize: formStyle.fontSize,
