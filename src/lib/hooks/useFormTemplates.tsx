@@ -51,19 +51,19 @@ export const useFormTemplates = () => {
     }
   };
 
-  const createDefaultForm = async () => {
+  const createFormFromTemplate = async (templateId: number) => {
     if (!user) return null;
     
     try {
-      const defaultTemplate = formTemplates[0];
+      const selectedTemplate = formTemplates.find(t => t.id === templateId) || formTemplates[0];
       
       const { data, error } = await supabase
         .from('forms')
         .insert([{
           user_id: user.id,
-          title: 'نموذج طلب منتج',
-          description: 'يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام',
-          data: defaultTemplate.data as unknown as Json, // Cast to unknown first, then to Json
+          title: selectedTemplate.title,
+          description: selectedTemplate.description,
+          data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
           is_published: false
         }])
         .select();
@@ -72,7 +72,7 @@ export const useFormTemplates = () => {
         throw error;
       }
       
-      toast.success('تم إنشاء نموذج افتراضي بنجاح');
+      toast.success(`تم إنشاء نموذج "${selectedTemplate.title}" بنجاح`);
       
       // Transform the returned data to ensure proper typing
       if (data && data.length > 0) {
@@ -86,6 +86,10 @@ export const useFormTemplates = () => {
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
     }
+  };
+
+  const createDefaultForm = async () => {
+    return createFormFromTemplate(1); // Use template ID 1 as default
   };
 
   const saveForm = async (formId: string, formData: any) => {
@@ -167,6 +171,7 @@ export const useFormTemplates = () => {
     isLoading,
     fetchForms,
     createDefaultForm,
+    createFormFromTemplate,
     saveForm,
     publishForm,
     deleteForm

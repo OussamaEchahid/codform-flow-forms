@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card } from '@/components/ui/card';
@@ -34,8 +35,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import FieldEditor from '@/components/form/FieldEditor';
-import { FormField } from '@/lib/form-utils';
-import { formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -52,12 +52,14 @@ const FormBuilderPage = () => {
     fontSize: '1rem',
     buttonStyle: 'rounded',
   });
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render for preview
   
   const {
     forms,
     isLoading,
     fetchForms,
     createDefaultForm,
+    createFormFromTemplate,
     saveForm,
     publishForm
   } = useFormTemplates();
@@ -91,6 +93,11 @@ const FormBuilderPage = () => {
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   
+  // Force re-render when formElements change
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [formElements]);
+  
   useEffect(() => {
     if (formId) {
       setActiveTab('editor');
@@ -119,13 +126,21 @@ const FormBuilderPage = () => {
     }, 1000);
   };
 
-  const handleSelectTemplate = (templateId: number) => {
+  const handleSelectTemplate = useCallback(async (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      toast.success(language === 'ar' ? `تم استخدام قالب ${template.title}` : `Using template ${template.title}`);
+      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+      
+      // Create a new form with the selected template
+      const newForm = await createFormFromTemplate(templateId);
+      if (newForm) {
+        // Navigate to the newly created form
+        navigate(`/form-builder/${newForm.id}`);
+      }
+      
       setIsTemplateDialogOpen(false);
     }
-  };
+  }, [language, createFormFromTemplate, navigate]);
   
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
@@ -154,6 +169,7 @@ const FormBuilderPage = () => {
     setFormElements(updatedElements);
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
     }, 100);
   };
 
@@ -163,10 +179,11 @@ const FormBuilderPage = () => {
     setIsFieldEditorOpen(true);
   };
   
+  // Configure sensors with lower activation constraint
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // 5px minimum drag distance
+        distance: 1, // Lower activation distance to make dragging more sensitive
       },
     }),
     useSensor(KeyboardSensor, {
@@ -190,6 +207,7 @@ const FormBuilderPage = () => {
 
     setTimeout(() => {
       setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
     }, 100);
   };
   
@@ -205,6 +223,7 @@ const FormBuilderPage = () => {
     
     setTimeout(() => {
       setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
     }, 100);
   };
   
@@ -227,13 +246,21 @@ const FormBuilderPage = () => {
                   {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
                 </p>
               </div>
-              <Button 
-                onClick={handleCreateForm} 
-                className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsTemplateDialogOpen(true)} 
+                  variant="outline"
+                >
+                  {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
+                </Button>
+                <Button 
+                  onClick={handleCreateForm} 
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+                </Button>
+              </div>
             </div>
             
             <FormList 
@@ -243,6 +270,13 @@ const FormBuilderPage = () => {
             />
           </div>
         </main>
+        
+        <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+          <FormTemplatesDialog 
+            onSelect={handleSelectTemplate} 
+            onClose={() => setIsTemplateDialogOpen(false)}
+          />
+        </Dialog>
       </div>
     );
   }
@@ -404,11 +438,14 @@ const FormBuilderPage = () => {
             
             <div className="border rounded-lg p-4 bg-gray-50">
               <FormPreview 
+                key={refreshKey} // Force re-render on formElements change
                 formTitle={language === 'ar' ? "املأ النموذج للدفع عند الاستلام" : "Fill the form for cash on delivery"}
                 currentStep={1}
                 totalSteps={1}
                 formStyle={formStyle}
+                fields={formElements as FormField[]}
               >
+                {/* Fallback content if no fields provided */}
                 <div className={`space-y-4 ${language === 'ar' ? 'text-right' : ''}`}>
                   <div className="form-control">
                     <label className="form-label">
@@ -498,13 +535,19 @@ const FormBuilderPage = () => {
                   id="primary-color"
                   type="color"
                   value={formStyle.primaryColor}
-                  onChange={(e) => setFormStyle({...formStyle, primaryColor: e.target.value})}
+                  onChange={(e) => {
+                    setFormStyle({...formStyle, primaryColor: e.target.value});
+                    setRefreshKey(prev => prev + 1);
+                  }}
                   className="w-10 h-10 rounded"
                 />
                 <input
                   type="text"
                   value={formStyle.primaryColor}
-                  onChange={(e) => setFormStyle({...formStyle, primaryColor: e.target.value})}
+                  onChange={(e) => {
+                    setFormStyle({...formStyle, primaryColor: e.target.value});
+                    setRefreshKey(prev => prev + 1);
+                  }}
                   className="flex-1 px-3 py-2 border rounded"
                 />
               </div>
@@ -517,7 +560,10 @@ const FormBuilderPage = () => {
               <select
                 id="border-radius"
                 value={formStyle.borderRadius}
-                onChange={(e) => setFormStyle({...formStyle, borderRadius: e.target.value})}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, borderRadius: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
                 className="px-3 py-2 border rounded"
               >
                 <option value="0">None</option>
@@ -535,7 +581,10 @@ const FormBuilderPage = () => {
               <select
                 id="font-size"
                 value={formStyle.fontSize}
-                onChange={(e) => setFormStyle({...formStyle, fontSize: e.target.value})}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, fontSize: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
                 className="px-3 py-2 border rounded"
               >
                 <option value="0.875rem">Small</option>
@@ -551,7 +600,10 @@ const FormBuilderPage = () => {
               <select
                 id="button-style"
                 value={formStyle.buttonStyle}
-                onChange={(e) => setFormStyle({...formStyle, buttonStyle: e.target.value})}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, buttonStyle: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
                 className="px-3 py-2 border rounded"
               >
                 <option value="rounded">Rounded</option>
