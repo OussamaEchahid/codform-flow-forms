@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   DialogContent,
@@ -8,11 +9,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formTemplates } from '@/lib/form-utils';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { User, Phone, MapPin, Mail, Package2, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import FormPreview from '@/components/form/FormPreview';
 
 interface FormTemplatesDialogProps {
   onSelect: (templateId: number) => void;
@@ -344,6 +345,12 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   };
 
   const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
+  const formPreviewStyle = {
+    primaryColor: currentTemplateIndex === 0 ? '#d97706' : 
+                  currentTemplateIndex === 1 ? '#3b82f6' : '#115e59',
+    borderRadius: currentTemplateIndex === 2 ? '0.75rem' : '0.375rem',
+    fontSize: '1rem'
+  };
 
   useEffect(() => {
     // Make sure current template index is valid
@@ -384,7 +391,20 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
             </div>
             <div className="col-span-2 border rounded relative overflow-hidden">
               <div className="max-h-[400px] overflow-auto p-2">
-                {templateImages[currentTemplateIndex]}
+                {currentTemplate && currentTemplate.data && currentTemplate.data.length > 0 ? (
+                  <FormPreview
+                    formTitle={currentTemplate.title}
+                    formDescription={currentTemplate.description}
+                    currentStep={1}
+                    totalSteps={currentTemplate.data.length}
+                    formStyle={formPreviewStyle}
+                    fields={currentTemplate.data.flatMap(step => step.fields)}
+                  >
+                    <div></div>
+                  </FormPreview>
+                ) : (
+                  templateImages[currentTemplateIndex]
+                )}
               </div>
             </div>
           </div>

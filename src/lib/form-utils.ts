@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -115,35 +116,86 @@ export const formTemplates: FormTemplate[] = [
             type: 'text',
             label: 'الاسم الكامل',
             placeholder: 'أدخل الاسم الكامل',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'phone',
             type: 'phone',
             label: 'رقم الهاتف',
             placeholder: 'أدخل رقم الهاتف',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'city',
             type: 'text',
             label: 'المدينة',
             placeholder: 'أدخل المدينة',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'address',
             type: 'textarea',
             label: 'العنوان',
             placeholder: 'أدخل العنوان التفصيلي',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'email',
             type: 'email',
             label: 'البريد الإلكتروني',
             placeholder: 'example@email.com',
-            required: false
+            required: false,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
+          },
+          {
+            id: 'submit-1',
+            type: 'submit',
+            label: 'تقديم الطلب (الدفع عند الاستلام)',
+            style: {
+              backgroundColor: '#d97706',
+              color: '#ffffff',
+              fontSize: '1rem',
+              borderRadius: '0.5rem'
+            }
           }
         ]
       }
@@ -165,35 +217,169 @@ export const formTemplates: FormTemplate[] = [
             type: 'text',
             label: 'الاسم الكامل',
             placeholder: 'أدخل الاسم الكامل',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'phone',
             type: 'phone',
             label: 'رقم الهاتف',
             placeholder: 'أدخل رقم الهاتف',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'city',
             type: 'text',
             label: 'المدينة',
             placeholder: 'أدخل المدينة',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'address',
             type: 'textarea',
             label: 'العنوان',
             placeholder: 'أدخل العنوان التفصيلي',
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.5rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
           },
           {
             id: 'delivery',
             type: 'radio',
             label: 'نوع التوصيل',
             options: ['توصيل مجاني', 'توصيل سريع'],
-            required: true
+            required: true,
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#333333',
+              fontSize: '1rem'
+            }
+          },
+          {
+            id: 'submit-1',
+            type: 'submit',
+            label: 'تقديم الطلب (الدفع عند الاستلام)',
+            style: {
+              backgroundColor: '#3b82f6',
+              color: '#ffffff',
+              fontSize: '1rem',
+              borderRadius: '0.5rem'
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 3,
+    title: 'نموذج الطلب المتميز',
+    description: 'نموذج طلب متميز مع تصميم أنيق',
+    steps: 1,
+    fields: 5,
+    data: [
+      {
+        id: '1',
+        title: 'طلب جديد',
+        fields: [
+          {
+            id: 'name',
+            type: 'text',
+            label: 'الاسم الكامل',
+            placeholder: 'أدخل الاسم الكامل',
+            required: true,
+            style: {
+              backgroundColor: '#f0f9ff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.75rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
+          },
+          {
+            id: 'phone',
+            type: 'phone',
+            label: 'رقم الهاتف',
+            placeholder: 'أدخل رقم الهاتف',
+            required: true,
+            style: {
+              backgroundColor: '#f0f9ff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.75rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
+          },
+          {
+            id: 'city',
+            type: 'text',
+            label: 'المدينة',
+            placeholder: 'أدخل المدينة',
+            required: true,
+            style: {
+              backgroundColor: '#f0f9ff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.75rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
+          },
+          {
+            id: 'address',
+            type: 'textarea',
+            label: 'العنوان',
+            placeholder: 'أدخل العنوان التفصيلي',
+            required: true,
+            style: {
+              backgroundColor: '#f0f9ff',
+              color: '#333333',
+              fontSize: '1rem',
+              borderRadius: '0.75rem',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0'
+            }
+          },
+          {
+            id: 'submit-1',
+            type: 'submit',
+            label: 'إكمال الطلب',
+            style: {
+              backgroundColor: '#115e59',
+              color: '#ffffff',
+              fontSize: '1rem',
+              borderRadius: '0.75rem'
+            }
           }
         ]
       }
