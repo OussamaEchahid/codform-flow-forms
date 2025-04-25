@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, Trash } from 'lucide-react';
 import FormPreview from './FormPreview';
+import { cn } from '@/lib/utils';
 
 // Define the form field types
 interface FormField {
