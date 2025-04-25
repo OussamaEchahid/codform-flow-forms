@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -19,13 +20,16 @@ import SortableField from './SortableField';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Copy, FileText, LayoutGrid, Plus, Settings, Trash } from 'lucide-react';
+import { Copy, FileText, LayoutGrid, Plus, Settings, Trash, Save, FileCheck } from 'lucide-react';
 import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
 import { FormField, FormStep, createEmptyField, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const availableFieldTypes: Array<{
   type: FormField['type'];
@@ -41,99 +45,47 @@ const availableFieldTypes: Array<{
   { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
 ];
 
-const FormBuilder: React.FC = () => {
-  const [formTitle, setFormTitle] = useState('نموذج طلب منتج');
-  const [formDescription, setFormDescription] = useState('يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام');
+interface FormBuilderProps {
+  initialFormData: FormData;
+}
+
+const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
+  const navigate = useNavigate();
+  const { saveForm, publishForm } = useFormTemplates();
+  const [formTitle, setFormTitle] = useState(initialFormData.title);
+  const [formDescription, setFormDescription] = useState(initialFormData.description || '');
+  const [formSteps, setFormSteps] = useState<FormStep[]>(initialFormData.data);
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  
-  const [formSteps, setFormSteps] = useState<FormStep[]>([
-    {
-      id: '1',
-      title: 'معلومات العميل',
-      fields: [
-        {
-          id: '1',
-          type: 'text',
-          label: 'الاسم الكامل',
-          placeholder: 'أدخل الاسم الكامل',
-          required: true
-        },
-        {
-          id: '2',
-          type: 'email',
-          label: 'البريد الإلكتروني',
-          placeholder: 'example@mail.com',
-          required: true
-        },
-        {
-          id: '3',
-          type: 'phone',
-          label: 'رقم الهاتف',
-          placeholder: '05xxxxxxxx',
-          required: true
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: 'عنوان التوصيل',
-      fields: [
-        {
-          id: '4',
-          type: 'text',
-          label: 'المدينة',
-          placeholder: 'أدخل المدينة',
-          required: true
-        },
-        {
-          id: '5',
-          type: 'text',
-          label: 'الحي',
-          placeholder: 'أدخل الحي',
-          required: true
-        },
-        {
-          id: '6',
-          type: 'textarea',
-          label: 'العنوان التفصيلي',
-          placeholder: 'أدخل العنوان التفصيلي',
-          required: true
-        }
-      ]
-    },
-    {
-      id: '3',
-      title: 'تفاصيل المنتج',
-      fields: [
-        {
-          id: '7',
-          type: 'select',
-          label: 'اللون',
-          options: ['أحمر', 'أزرق', 'أسود', 'أبيض'],
-          required: true
-        },
-        {
-          id: '8',
-          type: 'select',
-          label: 'الحجم',
-          options: ['صغير', 'متوسط', 'كبير'],
-          required: true
-        },
-        {
-          id: '9',
-          type: 'textarea',
-          label: 'ملاحظات إضافية',
-          placeholder: 'أدخل أي ملاحظات إضافية تتعلق بالطلب',
-          required: false
-        }
-      ]
-    }
-  ]);
-  
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [currentEditStep, setCurrentEditStep] = useState(0);
+  
+  const handleSaveForm = async () => {
+    setIsSaving(true);
+    const saved = await saveForm(initialFormData.id, {
+      title: formTitle,
+      description: formDescription,
+      data: formSteps
+    });
+    setIsSaving(false);
+    
+    if (saved) {
+      toast.success('تم حفظ النموذج بنجاح');
+    }
+  };
+
+  const handlePublishForm = async () => {
+    setIsPublishing(true);
+    const published = await publishForm(initialFormData.id, !initialFormData.is_published);
+    setIsPublishing(false);
+    
+    if (published) {
+      navigate('/form-builder');
+    }
+  };
   
   const addNewStep = () => {
     const newStep = {
@@ -326,26 +278,156 @@ const FormBuilder: React.FC = () => {
     setFormSteps(updatedSteps);
   };
 
+  const renderPreviewFields = (fields: FormField[]) => {
+    return (
+      <div className="space-y-4">
+        {fields.map(field => (
+          <div key={field.id} className="form-control text-right">
+            <label className="form-label">
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            
+            {field.type === 'text' || field.type === 'email' || field.type === 'phone' ? (
+              <input
+                type={field.type === 'email' ? 'email' : 'text'}
+                placeholder={field.placeholder}
+                className="form-input"
+                disabled
+              />
+            ) : field.type === 'textarea' ? (
+              <textarea
+                placeholder={field.placeholder}
+                className="form-input h-24"
+                disabled
+              />
+            ) : field.type === 'select' ? (
+              <select className="form-select" disabled>
+                <option value="">-- اختر --</option>
+                {field.options?.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            ) : field.type === 'checkbox' ? (
+              <div className="space-y-2">
+                {field.options?.map(option => (
+                  <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <input
+                      type="checkbox"
+                      id={`check-${option}`}
+                      className="form-checkbox"
+                      disabled
+                    />
+                    <label htmlFor={`check-${option}`}>{option}</label>
+                  </div>
+                ))}
+              </div>
+            ) : field.type === 'radio' ? (
+              <div className="space-y-2">
+                {field.options?.map(option => (
+                  <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <input
+                      type="radio"
+                      id={`radio-${option}`}
+                      name={`radio-${field.id}`}
+                      className="form-radio"
+                      disabled
+                    />
+                    <label htmlFor={`radio-${option}`}>{option}</label>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  const renderPreviewNavigation = () => {
+    return (
+      <div className="mt-6 flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+          disabled={currentPreviewStep === 1}
+        >
+          السابق
+        </Button>
+        
+        {currentPreviewStep < formSteps.length ? (
+          <Button
+            onClick={() => setCurrentPreviewStep(prev => Math.min(prev + 1, formSteps.length))}
+          >
+            التالي
+          </Button>
+        ) : (
+          <Button>
+            إرسال الطلب
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div className="lg:col-span-7 space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-right">منشئ النموذج</CardTitle>
-            
+          <CardHeader className="flex flex-row items-center justify-between p-4">
             <div className="flex gap-2">
-              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <FileText size={16} />
-                    قوالب النماذج
-                  </Button>
-                </DialogTrigger>
-                <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
-              </Dialog>
-              
-              <Button>حفظ النموذج</Button>
+              <Button 
+                variant="outline" 
+                onClick={handleSaveForm}
+                disabled={isSaving}
+                className="flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin">
+                      <svg className="h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </span>
+                    <span>جاري الحفظ</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    <span>حفظ</span>
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant={initialFormData.is_published ? "secondary" : "default"}
+                onClick={handlePublishForm}
+                disabled={isPublishing}
+                className="flex items-center gap-2"
+              >
+                {isPublishing ? (
+                  <span className="animate-spin">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                ) : (
+                  <FileCheck size={16} />
+                )}
+                <span>{initialFormData.is_published ? 'إلغاء النشر' : 'نشر النموذج'}</span>
+              </Button>
             </div>
+
+            <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <FileText size={16} />
+                  قوالب النماذج
+                </Button>
+              </DialogTrigger>
+              <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
+            </Dialog>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="steps">
