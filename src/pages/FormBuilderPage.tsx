@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -12,6 +11,7 @@ import { FormStep } from '@/lib/form-utils';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { Json } from '@/integrations/supabase/types';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -49,7 +49,7 @@ const FormBuilderPage = () => {
         // Transform the database data to match FormData type
         const formattedData: FormData = {
           ...data,
-          data: data.data as unknown as FormStep[]
+          data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
         };
         
         setCurrentForm(formattedData);

@@ -9,13 +9,17 @@ interface FormPreviewProps {
   formTitle?: string;
   formDescription?: string;
   children: React.ReactNode;
+  currentStep?: number;
+  totalSteps?: number;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
   className,
   formTitle = "تفاصيل التوصيل",
   formDescription,
-  children
+  children,
+  currentStep = 1,
+  totalSteps = 1
 }) => {
   return (
     <Card className={cn("w-full max-w-lg mx-auto p-6 shadow-lg", className)}>
@@ -24,6 +28,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           <h2 className="text-xl font-bold">{formTitle}</h2>
           {formDescription && (
             <p className="text-gray-600 mt-1">{formDescription}</p>
+          )}
+          {totalSteps > 1 && (
+            <div className="mt-3 text-sm text-gray-500">
+              الخطوة {currentStep} من {totalSteps}
+            </div>
           )}
         </div>
       )}

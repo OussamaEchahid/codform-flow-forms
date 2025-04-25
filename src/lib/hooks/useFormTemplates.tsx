@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormStep, formTemplates } from '@/lib/form-utils';
 import { useAuth } from '@/lib/auth';
+import { Json } from '@/integrations/supabase/types';
 
 export interface FormData {
   id: string;
@@ -38,7 +40,7 @@ export const useFormTemplates = () => {
       // Transform the data to ensure proper typing
       const formattedData: FormData[] = formsData?.map(form => ({
         ...form,
-        data: form.data as FormStep[]
+        data: form.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
       })) || [];
       
       setForms(formattedData);
@@ -61,7 +63,7 @@ export const useFormTemplates = () => {
           user_id: user.id,
           title: 'نموذج طلب منتج',
           description: 'يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام',
-          data: defaultTemplate.data as unknown as any, // Cast to any to avoid type issues with JSON
+          data: defaultTemplate.data as unknown as Json, // Cast to unknown first, then to Json
           is_published: false
         }])
         .select();
@@ -76,7 +78,7 @@ export const useFormTemplates = () => {
       if (data && data.length > 0) {
         return {
           ...data[0],
-          data: data[0].data as unknown as FormStep[]
+          data: data[0].data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
         } as FormData;
       }
       return null;
@@ -93,7 +95,7 @@ export const useFormTemplates = () => {
         .update({
           title: formData.title,
           description: formData.description,
-          data: formData.data as unknown as any, // Cast to any to avoid type issues with JSON
+          data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
           updated_at: new Date().toISOString()
         })
         .eq('id', formId)
