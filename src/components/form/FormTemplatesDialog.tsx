@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DialogContent,
   DialogHeader,
@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { User, Phone, MapPin, Mail, Package2, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface FormTemplatesDialogProps {
   onSelect: (templateId: number) => void;
@@ -335,7 +336,22 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
     );
   };
 
+  const handleSelectTemplate = () => {
+    const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
+    if (currentTemplate) {
+      toast.success(`تم اختيار قالب ${currentTemplate.title}`);
+      onSelect(currentTemplate.id);
+    }
+  };
+
   const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
+
+  useEffect(() => {
+    // تأكد من أن رقم القالب الحالي صالح
+    if (currentTemplateIndex >= formTemplates.length) {
+      setCurrentTemplateIndex(0);
+    }
+  }, [currentTemplateIndex]);
 
   return (
     <DialogContent className="max-w-3xl">
@@ -362,7 +378,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
                 variant="outline" 
                 size="sm"
                 className="w-full mt-3" 
-                onClick={() => onSelect(currentTemplate.id)}
+                onClick={handleSelectTemplate}
               >
                 استخدام القالب
               </Button>
