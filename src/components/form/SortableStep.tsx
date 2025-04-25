@@ -41,6 +41,7 @@ const SortableStep: React.FC<SortableStepProps> = ({
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 999 : 1,
+    position: 'relative' as const,
   };
 
   const handleEditClick = (e: React.MouseEvent) => {

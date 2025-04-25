@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -40,6 +41,14 @@ const FormBuilderPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t, language } = useI18n();
+  const { 
+    forms, 
+    isLoading, 
+    fetchForms, 
+    createDefaultForm, 
+    createFormFromTemplate 
+  } = useFormTemplates();
+  
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [currentForm, setCurrentForm] = useState<FormData | null>(null);
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
@@ -101,7 +110,7 @@ const FormBuilderPage = () => {
       fetchForms();
       setActiveTab('dashboard');
     }
-  }, [formId]);
+  }, [formId, fetchForms]);
 
   const handleCreateForm = async () => {
     const newForm = await createDefaultForm();
