@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
 import { GripVertical, Settings, Copy, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface SortableFieldProps {
   field: FormField;
