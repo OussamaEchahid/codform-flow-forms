@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog,
@@ -12,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ColorPicker, ArrowRight, FileText, LayoutGrid } from 'lucide-react';
+import { Palette, ArrowRight, FileText, LayoutGrid } from 'lucide-react';
 
 interface FieldEditorProps {
   field: FormFieldType;

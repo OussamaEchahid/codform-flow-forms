@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   DndContext,
@@ -488,7 +487,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             totalSteps={formSteps.length}
             formStyle={formStyle}
             fields={formSteps[currentPreviewStep - 1]?.fields}
-          />
+          >
+            <div></div>
+          </FormPreview>
           
           <div className="mt-4 flex justify-end">
             <div className="flex gap-2">
@@ -529,7 +530,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
         />
       )}
       
-      {/* Dialog for form styling */}
       <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogTitle className="text-right">تخصيص مظهر النموذج</DialogTitle>
