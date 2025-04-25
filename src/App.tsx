@@ -24,6 +24,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/forms" element={<Dashboard />} />
             <Route path="/form-builder" element={<FormBuilderPage />} />
             <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
             <Route path="*" element={<NotFound />} />
