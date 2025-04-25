@@ -113,7 +113,7 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
     
     // Safely access translations with type checking
     const langTranslations = translations[language] || {};
-    return (langTranslations as any)[key] || key;
+    return (langTranslations as Record<string, string>)[key] || key;
   };
 
   return (
