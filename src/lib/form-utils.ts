@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -19,6 +18,7 @@ export interface FormField {
   required?: boolean;
   options?: string[];
   style?: FieldStyle;
+  content?: string; // Add the content property to support text/html fields
 }
 
 export interface FormStep {

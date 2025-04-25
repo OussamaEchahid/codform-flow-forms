@@ -91,7 +91,14 @@ const FormBuilderPage = () => {
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   
-  // Force re-render when formElements change
+  const deleteElement = (index: number) => {
+    const updatedElements = [...formElements];
+    updatedElements.splice(index, 1);
+    setFormElements(updatedElements);
+    setSelectedElementIndex(null);
+    setRefreshKey(prev => prev + 1);
+  };
+  
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
@@ -129,10 +136,8 @@ const FormBuilderPage = () => {
     if (template) {
       toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
       
-      // Create a new form with the selected template
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
-        // Navigate to the newly created form
         navigate(`/form-builder/${newForm.id}`);
       }
       
@@ -178,11 +183,10 @@ const FormBuilderPage = () => {
     setIsFieldEditorOpen(true);
   };
   
-  // Configure sensors with lower activation constraint
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 1, // Lower activation distance to make dragging more sensitive
+        distance: 1,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -409,7 +413,6 @@ const FormBuilderPage = () => {
                               className="text-blue-500 p-1"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Create a copy and add it
                                 const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
                                 const updatedElements = [...formElements];
                                 updatedElements.splice(index + 1, 0, newElement);
@@ -472,14 +475,13 @@ const FormBuilderPage = () => {
             
             <div className="border rounded-lg p-4 bg-gray-50">
               <FormPreview 
-                key={refreshKey} // Force re-render on formElements change
+                key={refreshKey}
                 formTitle={language === 'ar' ? "املأ النموذج للدفع عند الاستلام" : "Fill the form for cash on delivery"}
                 currentStep={1}
                 totalSteps={1}
                 formStyle={formStyle}
                 fields={formElements as FormField[]}
               >
-                {/* Fallback content if no fields provided */}
                 <div className={`space-y-4 ${language === 'ar' ? 'text-right' : ''}`}>
                   <div className="form-control">
                     <label className="form-label">
