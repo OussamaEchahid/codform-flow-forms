@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +11,8 @@ export interface FormData {
   data: FormStep[];
   is_published: boolean;
   created_at: string;
+  user_id: string;
+  updated_at?: string;
 }
 
 export const useFormTemplates = () => {
@@ -24,7 +25,7 @@ export const useFormTemplates = () => {
     
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data: formsData, error } = await supabase
         .from('forms')
         .select('*')
         .eq('user_id', user.id)
@@ -35,9 +36,9 @@ export const useFormTemplates = () => {
       }
       
       // Transform the data to ensure proper typing
-      const formattedData: FormData[] = data?.map(form => ({
+      const formattedData: FormData[] = formsData?.map(form => ({
         ...form,
-        data: form.data as unknown as FormStep[]
+        data: form.data as FormStep[]
       })) || [];
       
       setForms(formattedData);
@@ -47,7 +48,7 @@ export const useFormTemplates = () => {
       setIsLoading(false);
     }
   };
-  
+
   const createDefaultForm = async () => {
     if (!user) return null;
     

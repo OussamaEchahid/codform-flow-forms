@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface FormField {
@@ -82,89 +81,99 @@ export const validateFormData = (formData: any, fields: FormField[]): boolean =>
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,
-    title: 'نموذج المتجر الأساسي',
-    description: 'نموذج بسيط للمتاجر الصغيرة والمتوسطة',
-    steps: 3,
-    fields: 12,
+    title: 'نموذج التوصيل الأساسي',
+    description: 'نموذج طلب بسيط للدفع عند الاستلام',
+    steps: 1,
+    fields: 5,
     data: [
       {
         id: '1',
-        title: 'معلومات العميل',
+        title: 'تفاصيل التوصيل',
         fields: [
           {
-            id: '1',
+            id: 'name',
             type: 'text',
             label: 'الاسم الكامل',
             placeholder: 'أدخل الاسم الكامل',
             required: true
           },
           {
-            id: '2',
-            type: 'email',
-            label: 'البريد الإلكتروني',
-            placeholder: 'example@mail.com',
+            id: 'phone',
+            type: 'phone',
+            label: 'رقم الهاتف',
+            placeholder: 'أدخل رقم الهاتف',
             required: true
           },
           {
-            id: '3',
-            type: 'phone',
-            label: 'رقم الهاتف',
-            placeholder: '05xxxxxxxx',
-            required: true
-          }
-        ]
-      },
-      {
-        id: '2',
-        title: 'عنوان التوصيل',
-        fields: [
-          {
-            id: '4',
+            id: 'city',
             type: 'text',
             label: 'المدينة',
             placeholder: 'أدخل المدينة',
             required: true
           },
           {
-            id: '5',
-            type: 'text',
-            label: 'الحي',
-            placeholder: 'أدخل الحي',
-            required: true
-          },
-          {
-            id: '6',
+            id: 'address',
             type: 'textarea',
-            label: 'العنوان التفصيلي',
+            label: 'العنوان',
             placeholder: 'أدخل العنوان التفصيلي',
             required: true
+          },
+          {
+            id: 'email',
+            type: 'email',
+            label: 'البريد الإلكتروني',
+            placeholder: 'example@email.com',
+            required: false
           }
         ]
-      },
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: 'نموذج التوصيل السريع',
+    description: 'نموذج مع خيارات التوصيل السريع',
+    steps: 1,
+    fields: 6,
+    data: [
       {
-        id: '3',
-        title: 'تفاصيل المنتج',
+        id: '1',
+        title: 'معلومات الطلب والتوصيل',
         fields: [
           {
-            id: '7',
-            type: 'select',
-            label: 'اللون',
-            options: ['أحمر', 'أزرق', 'أسود', 'أبيض'],
+            id: 'name',
+            type: 'text',
+            label: 'الاسم الكامل',
+            placeholder: 'أدخل الاسم الكامل',
             required: true
           },
           {
-            id: '8',
-            type: 'select',
-            label: 'الحجم',
-            options: ['صغير', 'متوسط', 'كبير'],
+            id: 'phone',
+            type: 'phone',
+            label: 'رقم الهاتف',
+            placeholder: 'أدخل رقم الهاتف',
             required: true
           },
           {
-            id: '9',
+            id: 'city',
+            type: 'text',
+            label: 'المدينة',
+            placeholder: 'أدخل المدينة',
+            required: true
+          },
+          {
+            id: 'address',
             type: 'textarea',
-            label: 'ملاحظات إضافية',
-            placeholder: 'أدخل أي ملاحظات إضافية تتعلق بالطلب',
-            required: false
+            label: 'العنوان',
+            placeholder: 'أدخل العنوان التفصيلي',
+            required: true
+          },
+          {
+            id: 'delivery',
+            type: 'radio',
+            label: 'نوع التوصيل',
+            options: ['توصيل مجاني', 'توصيل سريع'],
+            required: true
           }
         ]
       }
