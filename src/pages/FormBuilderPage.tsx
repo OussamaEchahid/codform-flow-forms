@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -10,7 +9,13 @@ import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import FormPreview from '@/components/form/FormPreview';
 import FormList from '@/components/form/FormList';
-import { Dialog } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogFooter,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import {
@@ -57,7 +62,6 @@ const FormBuilderPage = () => {
     publishForm
   } = useFormTemplates();
   
-  // Form builder state
   const [formElements, setFormElements] = useState<Array<{
     type: string;
     id: string;
@@ -123,7 +127,6 @@ const FormBuilderPage = () => {
     }
   };
   
-  // Available elements to add
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
     { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
@@ -149,7 +152,6 @@ const FormBuilderPage = () => {
     
     const updatedElements = [...formElements, newElement];
     setFormElements(updatedElements);
-    // Force preview update
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
     }, 100);
@@ -186,7 +188,6 @@ const FormBuilderPage = () => {
       return arrayMove(items, oldIndex, newIndex);
     });
 
-    // Force preview update
     setTimeout(() => {
       setSelectedElementIndex(null);
     }, 100);
@@ -202,7 +203,6 @@ const FormBuilderPage = () => {
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
     
-    // Force preview update
     setTimeout(() => {
       setSelectedElementIndex(null);
     }, 100);
@@ -252,7 +252,6 @@ const FormBuilderPage = () => {
       <AppSidebar />
       
       <main className="flex-1 overflow-auto">
-        {/* Header */}
         <div className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate('/forms')}>
@@ -293,9 +292,7 @@ const FormBuilderPage = () => {
           </div>
         </div>
         
-        {/* Form Builder */}
         <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
-          {/* Elements Panel */}
           <div className="col-span-2 border-r bg-white p-4">
             <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
@@ -327,7 +324,6 @@ const FormBuilderPage = () => {
             </div>
           </div>
           
-          {/* Form Editor */}
           <div className="col-span-6 bg-gray-50 p-6">
             <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
@@ -401,7 +397,6 @@ const FormBuilderPage = () => {
             </DndContext>
           </div>
           
-          {/* Preview */}
           <div className="col-span-4 border-l bg-white p-6">
             <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
@@ -484,7 +479,6 @@ const FormBuilderPage = () => {
         </div>
       </main>
       
-      {/* Style Dialog */}
       <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
         <DialogContent>
           <DialogTitle>
@@ -567,15 +561,14 @@ const FormBuilderPage = () => {
             </div>
           </div>
           
-          <div className="flex justify-end">
+          <DialogFooter>
             <Button onClick={() => setIsStyleDialogOpen(false)}>
               {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Templates Dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
           onSelect={handleSelectTemplate} 
@@ -583,7 +576,6 @@ const FormBuilderPage = () => {
         />
       </Dialog>
 
-      {/* Field Editor Dialog */}
       {isFieldEditorOpen && currentEditingField && (
         <FieldEditor
           field={currentEditingField}
