@@ -109,6 +109,7 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
 
   // Translation function
   const t = (key: string): string => {
+    // Type assertion to allow indexing with a string
     return translations[language][key as keyof typeof translations[typeof language]] || key;
   };
 
