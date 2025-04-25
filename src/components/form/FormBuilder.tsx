@@ -42,6 +42,7 @@ const availableFieldTypes: Array<{
   { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
   { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
   { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
+  { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
 ];
 
 interface FormBuilderProps {
@@ -62,6 +63,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentEditStep, setCurrentEditStep] = useState(0);
+  const [previewRefresh, setPreviewRefresh] = useState(0);
   const [formStyle, setFormStyle] = useState({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -101,6 +103,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     };
     setFormSteps([...formSteps, newStep]);
     setCurrentEditStep(formSteps.length);
+    setPreviewRefresh(prev => prev + 1);
   };
   
   const applyTemplate = (templateId: number) => {
@@ -110,6 +113,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
+      setPreviewRefresh(prev => prev + 1);
+      toast.success(`تم تطبيق قالب ${template.title} بنجاح`);
     }
   };
 
@@ -118,6 +123,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     const updatedSteps = [...formSteps];
     updatedSteps[currentEditStep].fields.push(newField);
     setFormSteps(updatedSteps);
+    setPreviewRefresh(prev => prev + 1);
   };
 
   const editField = (field: FormField) => {
@@ -137,6 +143,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
+    setPreviewRefresh(prev => prev + 1);
   };
 
   const deleteField = (fieldId: string) => {
@@ -144,6 +151,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     const stepIndex = currentEditStep;
     updatedSteps[stepIndex].fields = updatedSteps[stepIndex].fields.filter(f => f.id !== fieldId);
     setFormSteps(updatedSteps);
+    setPreviewRefresh(prev => prev + 1);
   };
 
   const duplicateField = (field: FormField) => {
@@ -159,10 +167,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     updatedSteps[stepIndex].fields.splice(fieldIndex + 1, 0, newField);
     setFormSteps(updatedSteps);
+    setPreviewRefresh(prev => prev + 1);
   };
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      }
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -175,8 +188,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setFormSteps((steps) => {
       const oldIndex = steps.findIndex((step) => step.id === active.id);
       const newIndex = steps.findIndex((step) => step.id === over.id);
-      return arrayMove(steps, oldIndex, newIndex);
+      const newSteps = arrayMove(steps, oldIndex, newIndex);
+      return newSteps;
     });
+    setPreviewRefresh(prev => prev + 1);
   };
 
   const handleDragEndFields = (event: DragEndEvent) => {
@@ -190,6 +205,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     currentStep.fields = arrayMove(currentStep.fields, oldIndex, newIndex);
     setFormSteps(updatedSteps);
+    setPreviewRefresh(prev => prev + 1);
   };
   
   const handleStyleChange = (key: string, value: string) => {
@@ -197,6 +213,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       ...formStyle,
       [key]: value
     });
+    setPreviewRefresh(prev => prev + 1);
   };
 
   return (
@@ -481,12 +498,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
           </div>
           
           <FormPreview 
+            key={previewRefresh}
             formTitle={formTitle}
             formDescription={formDescription}
             currentStep={currentPreviewStep}
             totalSteps={formSteps.length}
             formStyle={formStyle}
-            fields={formSteps[currentPreviewStep - 1]?.fields}
+            fields={formSteps[currentPreviewStep - 1]?.fields || []}
           >
             <div></div>
           </FormPreview>

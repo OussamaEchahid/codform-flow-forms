@@ -68,6 +68,7 @@ const FormBuilderPage = () => {
     label: string;
     required?: boolean;
     placeholder?: string;
+    content?: string;
     style?: {
       backgroundColor?: string;
       color?: string;
@@ -136,6 +137,19 @@ const FormBuilderPage = () => {
     if (template) {
       toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
       
+      if (activeTab === 'editor') {
+        const newElements = template.data.flatMap(step => 
+          step.fields.map(field => ({
+            ...field,
+            id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          }))
+        );
+        setFormElements(newElements);
+        setRefreshKey(prev => prev + 1);
+        setIsTemplateDialogOpen(false);
+        return;
+      }
+      
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
         navigate(`/form-builder/${newForm.id}`);
@@ -143,7 +157,7 @@ const FormBuilderPage = () => {
       
       setIsTemplateDialogOpen(false);
     }
-  }, [language, createFormFromTemplate, navigate]);
+  }, [language, createFormFromTemplate, navigate, activeTab]);
   
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
@@ -186,7 +200,7 @@ const FormBuilderPage = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 1,
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
