@@ -42,13 +42,12 @@ const FormPreview = ({
   }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields]);
   
   const renderField = (field: FormField) => {
-    const fieldStyle = field.style || {};
-    
     if (!field || !field.type) {
       console.warn('Invalid field:', field);
       return null;
     }
 
+    const fieldStyle = field.style || {};
     const commonInputStyle = {
       backgroundColor: fieldStyle.backgroundColor || 'white',
       color: fieldStyle.color || 'inherit',
@@ -58,229 +57,297 @@ const FormPreview = ({
       borderColor: fieldStyle.borderColor || '#e2e8f0',
     };
     
-    return (
-      <div key={field.id} className="form-control text-right mb-4">
-        {field.type !== 'submit' && field.type !== 'title' && field.type !== 'whatsapp' && field.type !== 'cart-items' && field.type !== 'cart-summary' && field.type !== 'image' && (
-          <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
-            {field.label}
-            {field.required && <span className="text-red-500 mr-1">*</span>}
-          </label>
-        )}
-        
-        {field.type === 'title' && (
-          <h2 className="text-xl font-bold mb-4 text-right" style={{ color: fieldStyle.color || 'inherit' }}>
+    switch (field.type) {
+      case 'title':
+        return (
+          <h2 key={field.id} className="text-xl font-bold mb-4 text-right" style={{ color: fieldStyle.color || 'inherit' }}>
             {field.label}
           </h2>
-        )}
+        );
         
-        {field.type === 'text' && (
-          <input
-            type="text"
-            placeholder={field.placeholder}
-            className="form-input w-full p-2 border"
-            style={commonInputStyle}
-            disabled
-          />
-        )}
-        
-        {field.type === 'email' && (
-          <input
-            type="email"
-            placeholder={field.placeholder || 'البريد الإلكتروني'}
-            className="form-input w-full p-2 border"
-            style={commonInputStyle}
-            disabled
-          />
-        )}
-        
-        {field.type === 'phone' && (
-          <input
-            type="tel"
-            placeholder={field.placeholder || 'رقم الهاتف'}
-            className="form-input w-full p-2 border"
-            style={commonInputStyle}
-            disabled
-          />
-        )}
-        
-        {field.type === 'textarea' && (
-          <textarea
-            placeholder={field.placeholder}
-            className="form-input h-24 w-full p-2 border"
-            style={commonInputStyle}
-            disabled
-          />
-        )}
-        
-        {field.type === 'select' && (
-          <select 
-            className="form-select w-full p-2 border" 
-            disabled
-            style={commonInputStyle}
-          >
-            <option value="">-- اختر --</option>
-            {field.options?.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        )}
-        
-        {field.type === 'checkbox' && (
-          <div className="space-y-2">
-            {field.options?.map(option => (
-              <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
-                <input
-                  type="checkbox"
-                  id={`check-${option}`}
-                  className="form-checkbox"
-                  disabled
-                />
-                <label 
-                  htmlFor={`check-${option}`}
-                  style={{ 
-                    color: fieldStyle.color || 'inherit',
-                    fontSize: fieldStyle.fontSize || formStyle.fontSize
-                  }}
-                >
-                  {option}
-                </label>
-              </div>
-            ))}
+      case 'text':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <input
+              type="text"
+              placeholder={field.placeholder}
+              className="form-input w-full p-2 border"
+              style={commonInputStyle}
+              disabled
+            />
           </div>
-        )}
+        );
         
-        {field.type === 'radio' && (
-          <div className="space-y-2">
-            {field.options?.map(option => (
-              <div key={option} className="flex items-center gap-2 justify-end">
-                <label 
-                  htmlFor={`radio-${option}`}
-                  style={{ 
-                    color: fieldStyle.color || 'inherit',
-                    fontSize: fieldStyle.fontSize || formStyle.fontSize
-                  }}
-                >
-                  {option}
-                </label>
-                <input
-                  type="radio"
-                  id={`radio-${option}`}
-                  name={`radio-${field.id}`}
-                  className="form-radio"
-                  disabled
-                />
-              </div>
-            ))}
+      case 'email':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <input
+              type="email"
+              placeholder={field.placeholder || 'البريد الإلكتروني'}
+              className="form-input w-full p-2 border"
+              style={commonInputStyle}
+              disabled
+            />
           </div>
-        )}
+        );
         
-        {field.type === 'submit' && (
-          <button 
-            className="w-full text-white py-2 px-4 mt-4 flex justify-center items-center" 
-            style={{ 
-              backgroundColor: formStyle.primaryColor,
-              borderRadius: formStyle.borderRadius,
-              fontSize: formStyle.fontSize,
-            }}
-            disabled
-          >
-            {field.label || 'إرسال'}
-          </button>
-        )}
+      case 'phone':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <input
+              type="tel"
+              placeholder={field.placeholder || 'رقم الهاتف'}
+              className="form-input w-full p-2 border"
+              style={commonInputStyle}
+              disabled
+            />
+          </div>
+        );
         
-        {field.type === 'cart-items' && (
-          <div className="border rounded-md p-3 bg-gray-50 mb-4">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="font-bold">{language === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:'} 120 ريال</span>
-              <span>2 × منتج</span>
-            </div>
-            <div className="py-2">
-              <div className="flex justify-between items-center py-1">
-                <span>60 ريال</span>
-                <span>1 × قميص أبيض</span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span>60 ريال</span>
-                <span>1 × قميص أسود</span>
-              </div>
+      case 'textarea':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <textarea
+              placeholder={field.placeholder}
+              className="form-input h-24 w-full p-2 border"
+              style={commonInputStyle}
+              disabled
+            />
+          </div>
+        );
+        
+      case 'select':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <select 
+              className="form-select w-full p-2 border" 
+              disabled
+              style={commonInputStyle}
+            >
+              <option value="">-- اختر --</option>
+              {field.options?.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+        );
+        
+      case 'checkbox':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <div className="space-y-2">
+              {field.options?.map(option => (
+                <div key={option} className="flex items-center gap-2 justify-end">
+                  <label 
+                    htmlFor={`check-${option}`}
+                    style={{ 
+                      color: fieldStyle.color || 'inherit',
+                      fontSize: fieldStyle.fontSize || formStyle.fontSize
+                    }}
+                  >
+                    {option}
+                  </label>
+                  <input
+                    type="checkbox"
+                    id={`check-${option}`}
+                    className="form-checkbox"
+                    disabled
+                  />
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        );
         
-        {field.type === 'cart-summary' && (
-          <div className="border-t border-gray-200 pt-3 mb-4">
-            <div className="flex justify-between py-1">
-              <span>0.00 ريال</span>
-              <span>{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span>0.00 ريال</span>
-              <span>{language === 'ar' ? 'الخصم' : 'Discount'}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span>0.00 ريال</span>
-              <span>{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
-            </div>
-            <div className="flex justify-between py-1 font-bold">
-              <span>0.00 ريال</span>
-              <span>{language === 'ar' ? 'المجموع' : 'Total'}</span>
+      case 'radio':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label}
+              {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+            <div className="space-y-2">
+              {field.options?.map(option => (
+                <div key={option} className="flex items-center gap-2 justify-end">
+                  <label 
+                    htmlFor={`radio-${option}`}
+                    style={{ 
+                      color: fieldStyle.color || 'inherit',
+                      fontSize: fieldStyle.fontSize || formStyle.fontSize
+                    }}
+                  >
+                    {option}
+                  </label>
+                  <input
+                    type="radio"
+                    id={`radio-${option}`}
+                    name={`radio-${field.id}`}
+                    className="form-radio"
+                    disabled
+                  />
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        );
+        
+      case 'submit':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <button 
+              className="w-full text-white py-2 px-4 mt-4 flex justify-center items-center" 
+              style={{ 
+                backgroundColor: formStyle.primaryColor,
+                borderRadius: formStyle.borderRadius,
+                fontSize: formStyle.fontSize,
+              }}
+              disabled
+            >
+              {field.label || 'إرسال'}
+            </button>
+          </div>
+        );
+        
+      case 'cart-items':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <div className="border rounded-md p-3 bg-gray-50 mb-4">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-bold">{language === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:'} 120 ريال</span>
+                <span>2 × منتج</span>
+              </div>
+              <div className="py-2">
+                <div className="flex justify-between items-center py-1">
+                  <span>60 ريال</span>
+                  <span>1 × قميص أبيض</span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span>60 ريال</span>
+                  <span>1 × قميص أسود</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'cart-summary':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <div className="border-t border-gray-200 pt-3">
+              <div className="flex justify-between py-1">
+                <span>0.00 ريال</span>
+                <span>{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>0.00 ريال</span>
+                <span>{language === 'ar' ? 'الخصم' : 'Discount'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>0.00 ريال</span>
+                <span>{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
+              </div>
+              <div className="flex justify-between py-1 font-bold">
+                <span>0.00 ريال</span>
+                <span>{language === 'ar' ? 'المجموع' : 'Total'}</span>
+              </div>
+            </div>
+          </div>
+        );
 
-        {field.type === 'whatsapp' && (
-          <button 
-            className="w-full py-2 px-4 mt-2 mb-4 flex justify-center items-center text-white" 
-            style={{ 
-              backgroundColor: '#25D366',
-              borderRadius: formStyle.borderRadius,
-              fontSize: formStyle.fontSize,
-            }}
-            disabled
-          >
-            {field.label || 'تواصل عبر واتساب'}
-          </button>
-        )}
-        
-        {field.type === 'image' && (
-          <div className="text-center py-4 border rounded bg-gray-50 mb-4">
-            <div className="text-gray-400">{field.label || 'صورة'}</div>
+      case 'whatsapp':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <button 
+              className="w-full py-2 px-4 mt-2 flex justify-center items-center text-white" 
+              style={{ 
+                backgroundColor: '#25D366',
+                borderRadius: formStyle.borderRadius,
+                fontSize: formStyle.fontSize,
+              }}
+              disabled
+            >
+              {field.label || 'تواصل عبر واتساب'}
+            </button>
           </div>
-        )}
+        );
         
-        {field.type === 'shipping' && (
-          <div className="space-y-2 mb-4">
-            <label className="block mb-2">{field.label || 'خيارات الشحن'}</label>
-            <div className="flex items-center justify-between border rounded p-2">
-              <div className="flex items-center">
-                <input type="radio" id="shipping-1" name={`shipping-${field.id}`} disabled className="ml-2" />
-                <label htmlFor="shipping-1">توصيل عادي</label>
+      case 'image':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <div className="text-center py-4 border rounded bg-gray-50">
+              <div className="text-gray-400">{field.label || 'صورة'}</div>
+            </div>
+          </div>
+        );
+        
+      case 'shipping':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+              {field.label || 'خيارات الشحن'}
+            </label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border rounded p-2">
+                <div className="flex items-center">
+                  <input type="radio" id="shipping-1" name={`shipping-${field.id}`} disabled className="ml-2" />
+                  <label htmlFor="shipping-1">توصيل عادي</label>
+                </div>
+                <span>0.00 ريال</span>
               </div>
-              <span>0.00 ريال</span>
-            </div>
-            <div className="flex items-center justify-between border rounded p-2">
-              <div className="flex items-center">
-                <input type="radio" id="shipping-2" name={`shipping-${field.id}`} disabled className="ml-2" />
-                <label htmlFor="shipping-2">توصيل سريع</label>
+              <div className="flex items-center justify-between border rounded p-2">
+                <div className="flex items-center">
+                  <input type="radio" id="shipping-2" name={`shipping-${field.id}`} disabled className="ml-2" />
+                  <label htmlFor="shipping-2">توصيل سريع</label>
+                </div>
+                <span>20.00 ريال</span>
               </div>
-              <span>20.00 ريال</span>
             </div>
           </div>
-        )}
+        );
         
-        {field.type === 'countdown' && (
-          <div className="bg-red-50 border border-red-200 rounded p-3 text-center mb-4">
-            <div className="text-sm text-red-700 mb-1">{field.label || 'العرض ينتهي خلال'}</div>
-            <div className="flex justify-center gap-2 text-red-700 font-bold">
-              <div className="bg-white px-2 py-1 rounded">01</div>:
-              <div className="bg-white px-2 py-1 rounded">23</div>:
-              <div className="bg-white px-2 py-1 rounded">45</div>:
-              <div className="bg-white px-2 py-1 rounded">30</div>
+      case 'countdown':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <div className="bg-red-50 border border-red-200 rounded p-3 text-center">
+              <div className="text-sm text-red-700 mb-1">{field.label || 'العرض ينتهي خلال'}</div>
+              <div className="flex justify-center gap-2 text-red-700 font-bold">
+                <div className="bg-white px-2 py-1 rounded">01</div>:
+                <div className="bg-white px-2 py-1 rounded">23</div>:
+                <div className="bg-white px-2 py-1 rounded">45</div>:
+                <div className="bg-white px-2 py-1 rounded">30</div>
+              </div>
             </div>
           </div>
-        )}
-      </div>
-    );
+        );
+        
+      default:
+        console.warn(`Unknown field type: ${field.type}`);
+        return null;
+    }
   };
   
   return (
@@ -351,7 +418,7 @@ const FormPreview = ({
       >
         {fields && fields.length > 0 ? (
           <div className="space-y-2">
-            {fields.map((field, index) => renderField(field))}
+            {fields.map(field => renderField(field))}
           </div>
         ) : (
           children

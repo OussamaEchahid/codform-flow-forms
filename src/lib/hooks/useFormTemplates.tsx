@@ -63,6 +63,8 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      toast.success(`تم اختيار قالب ${selectedTemplate.title}`);
+      
       const { data, error } = await supabase
         .from('forms')
         .insert([{

@@ -52,14 +52,13 @@ const SortableField: React.FC<SortableFieldProps> = ({
       )}
     >
       <div className="flex gap-2 items-center">
-        <button 
+        <div 
           {...attributes} 
           {...listeners} 
           className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded"
-          onClick={(e) => e.stopPropagation()}
         >
           <GripVertical size={16} className="text-gray-500" />
-        </button>
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 
@@ -88,7 +87,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
           variant="ghost" 
           size="sm" 
           onClick={(e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             e.stopPropagation();
             onDelete();
           }}

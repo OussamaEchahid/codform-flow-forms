@@ -56,14 +56,13 @@ const SortableStep: React.FC<SortableStepProps> = ({
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <button 
+          <div 
             {...attributes} 
             {...listeners} 
             className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded"
-            onClick={(e) => e.stopPropagation()}
           >
             <GripVertical size={16} className="text-gray-500" />
-          </button>
+          </div>
           <button 
             className="hover:bg-gray-100 p-1 rounded"
             onClick={(e) => {
