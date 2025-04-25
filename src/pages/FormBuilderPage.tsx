@@ -8,6 +8,7 @@ import FormList from '@/components/form/FormList';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
+import { FormStep } from '@/lib/form-utils';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -45,7 +46,13 @@ const FormBuilderPage = () => {
           return;
         }
         
-        setCurrentForm(data);
+        // Transform the database data to match FormData type
+        const formattedData: FormData = {
+          ...data,
+          data: data.data as unknown as FormStep[]
+        };
+        
+        setCurrentForm(formattedData);
         setActiveTab('editor');
         setIsLoading(false);
       } else {

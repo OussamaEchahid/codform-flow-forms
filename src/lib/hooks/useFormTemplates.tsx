@@ -34,7 +34,13 @@ export const useFormTemplates = () => {
         throw error;
       }
       
-      setForms(data || []);
+      // Transform the data to ensure proper typing
+      const formattedData: FormData[] = data?.map(form => ({
+        ...form,
+        data: form.data as unknown as FormStep[]
+      })) || [];
+      
+      setForms(formattedData);
     } catch (error: any) {
       toast.error(`خطأ في جلب النماذج: ${error.message}`);
     } finally {
@@ -50,15 +56,13 @@ export const useFormTemplates = () => {
       
       const { data, error } = await supabase
         .from('forms')
-        .insert([
-          {
-            user_id: user.id,
-            title: 'نموذج طلب منتج',
-            description: 'يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام',
-            data: defaultTemplate.data,
-            is_published: false
-          }
-        ])
+        .insert([{
+          user_id: user.id,
+          title: 'نموذج طلب منتج',
+          description: 'يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام',
+          data: defaultTemplate.data as unknown as any, // Cast to any to avoid type issues with JSON
+          is_published: false
+        }])
         .select();
       
       if (error) {
@@ -66,7 +70,15 @@ export const useFormTemplates = () => {
       }
       
       toast.success('تم إنشاء نموذج افتراضي بنجاح');
-      return data?.[0];
+      
+      // Transform the returned data to ensure proper typing
+      if (data && data.length > 0) {
+        return {
+          ...data[0],
+          data: data[0].data as unknown as FormStep[]
+        } as FormData;
+      }
+      return null;
     } catch (error: any) {
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
@@ -80,7 +92,7 @@ export const useFormTemplates = () => {
         .update({
           title: formData.title,
           description: formData.description,
-          data: formData.data,
+          data: formData.data as unknown as any, // Cast to any to avoid type issues with JSON
           updated_at: new Date().toISOString()
         })
         .eq('id', formId)
