@@ -42,6 +42,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
     zIndex: isDragging ? 999 : 1,
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onEdit();
+  };
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDuplicate();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete();
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -62,11 +80,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onEdit();
-          }}
+          onClick={handleEdit}
           className="hover:bg-gray-100"
         >
           <Settings size={16} />
@@ -74,11 +88,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDuplicate();
-          }}
+          onClick={handleDuplicate}
           className="hover:bg-gray-100"
         >
           <Copy size={16} />
@@ -86,11 +96,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete();
-          }}
+          onClick={handleDelete}
           className="hover:text-red-500 hover:bg-red-50"
         >
           <Trash size={16} />

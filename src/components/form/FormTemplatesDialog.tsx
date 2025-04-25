@@ -347,7 +347,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
 
   useEffect(() => {
-    // تأكد من أن رقم القالب الحالي صالح
+    // Make sure current template index is valid
     if (currentTemplateIndex >= formTemplates.length) {
       setCurrentTemplateIndex(0);
     }

@@ -203,6 +203,11 @@ export const useFormTemplates = () => {
         throw error;
       }
       
+      if (!data) {
+        toast.error('النموذج غير موجود');
+        return null;
+      }
+      
       // Transform the data to ensure proper typing
       return {
         ...data,

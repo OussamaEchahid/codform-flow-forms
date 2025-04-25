@@ -43,6 +43,22 @@ const SortableStep: React.FC<SortableStepProps> = ({
     zIndex: isDragging ? 999 : 1,
   };
 
+  const handleEditClick = (e: React.MouseEvent) => {
+    if (onEdit) {
+      e.preventDefault();
+      e.stopPropagation();
+      onEdit();
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    if (onDelete) {
+      e.preventDefault();
+      e.stopPropagation();
+      onDelete();
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -60,26 +76,19 @@ const SortableStep: React.FC<SortableStepProps> = ({
             {...attributes} 
             {...listeners} 
             className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded"
+            onClick={(e) => e.stopPropagation()}
           >
             <GripVertical size={16} className="text-gray-500" />
           </div>
           <button 
             className="hover:bg-gray-100 p-1 rounded"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (onEdit) onEdit();
-            }}
+            onClick={handleEditClick}
           >
             <Settings size={16} className="text-gray-500" />
           </button>
           <button 
             className="hover:bg-gray-100 p-1 rounded hover:text-red-500"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (onDelete) onDelete();
-            }}
+            onClick={handleDeleteClick}
           >
             <Trash size={16} className="text-gray-500" />
           </button>
