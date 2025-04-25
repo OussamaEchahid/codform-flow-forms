@@ -82,6 +82,16 @@ const FormPreview = ({
           </div>
         );
         
+      case 'text/html':
+        return (
+          <div key={field.id} className="form-control text-right mb-4">
+            <div 
+              className="p-3 border rounded-md bg-gray-50"
+              dangerouslySetInnerHTML={{ __html: field.content || field.label || '' }}
+            />
+          </div>
+        );
+        
       case 'email':
         return (
           <div key={field.id} className="form-control text-right mb-4">

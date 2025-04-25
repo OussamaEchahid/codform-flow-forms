@@ -1,10 +1,8 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Plus, Save, Trash, Copy, Edit, Eye, EyeOff, FileCheck } from 'lucide-react';
+import { ChevronDown, Plus, Save, Trash, Copy, Edit, FileCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -162,7 +160,8 @@ const FormBuilderPage = () => {
       type,
       id: `${type}-${Date.now()}`,
       label: language === 'ar' ? `${type} جديد` : `New ${type}`,
-      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`
+      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
     };
     
     const updatedElements = [...formElements, newElement];
@@ -393,10 +392,32 @@ const FormBuilderPage = () => {
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" className="text-red-500 p-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-500 p-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteElement(index);
+                              }}
+                            >
                               <Trash size={16} />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-blue-500 p-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-500 p-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Create a copy and add it
+                                const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
+                                const updatedElements = [...formElements];
+                                updatedElements.splice(index + 1, 0, newElement);
+                                setFormElements(updatedElements);
+                                setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+                                toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+                              }}
+                            >
                               <Copy size={16} />
                             </Button>
                             <span className="border-r h-4 mx-2"></span>
@@ -411,6 +432,15 @@ const FormBuilderPage = () => {
                             variant="ghost" 
                             size="sm"
                             className="bg-green-100 text-green-700 rounded-full p-1 h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
+                              const updatedElements = [...formElements];
+                              updatedElements.splice(index + 1, 0, newElement);
+                              setFormElements(updatedElements);
+                              setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+                              toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+                            }}
                           >
                             <Copy size={16} />
                           </Button>
@@ -418,7 +448,11 @@ const FormBuilderPage = () => {
                             variant="ghost" 
                             size="sm"
                             className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
-                            onClick={() => editElement(index)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              editElement(index);
+                            }}
                           >
                             <Edit size={16} />
                           </Button>
