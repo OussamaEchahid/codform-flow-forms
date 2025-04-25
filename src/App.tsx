@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import FormBuilderPage from "./pages/FormBuilderPage";
 import NotFound from "./pages/NotFound";
+import Orders from "./pages/Orders";  // Add this import
 
 const queryClient = new QueryClient();
 
@@ -24,7 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/orders" element={<Orders />} />
+            <Route path="/orders" element={<Orders />} />  {/* This route was already present */}
             <Route path="/forms" element={<Dashboard />} />
             <Route path="/form-builder" element={<FormBuilderPage />} />
             <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
