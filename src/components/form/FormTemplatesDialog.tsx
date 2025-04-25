@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { formTemplates } from '@/lib/form-utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 interface FormTemplatesDialogProps {
   onSelect: (templateId: number) => void;
@@ -20,6 +22,8 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   onSelect,
   onClose
 }) => {
+  const { language } = useI18n();
+
   return (
     <DialogContent className="max-w-3xl">
       <DialogHeader className="text-right">
@@ -31,7 +35,14 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-4">
         {formTemplates.map(template => (
-          <Card key={template.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+          <Card 
+            key={template.id} 
+            className={cn(
+              "overflow-hidden hover:shadow-lg transition-shadow cursor-pointer",
+              "border-2 hover:border-codform-purple"
+            )}
+            onClick={() => onSelect(template.id)}
+          >
             <div className="h-2 bg-gradient-to-r from-codform-purple to-codform-dark-purple"></div>
             <CardContent className="p-4">
               <div className="text-right mb-4">

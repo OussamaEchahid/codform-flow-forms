@@ -10,8 +10,9 @@ import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import FormPreview from '@/components/form/FormPreview';
 import FormList from '@/components/form/FormList';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
+import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import {
   DndContext,
   closestCenter,
@@ -29,6 +30,7 @@ import {
 } from '@dnd-kit/sortable';
 import FieldEditor from '@/components/form/FieldEditor';
 import { FormField } from '@/lib/form-utils';
+import { formTemplates } from '@/lib/form-utils';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -38,6 +40,7 @@ const FormBuilderPage = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [currentForm, setCurrentForm] = useState<FormData | null>(null);
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [formStyle, setFormStyle] = useState({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -111,6 +114,14 @@ const FormBuilderPage = () => {
       toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
     }, 1000);
   };
+
+  const handleSelectTemplate = (templateId: number) => {
+    const template = formTemplates.find(t => t.id === templateId);
+    if (template) {
+      toast.success(language === 'ar' ? `تم استخدام قالب ${template.title}` : `Using template ${template.title}`);
+      setIsTemplateDialogOpen(false);
+    }
+  };
   
   // Available elements to add
   const availableElements = [
@@ -136,7 +147,12 @@ const FormBuilderPage = () => {
       placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`
     };
     
-    setFormElements([...formElements, newElement]);
+    const updatedElements = [...formElements, newElement];
+    setFormElements(updatedElements);
+    // Force preview update
+    setTimeout(() => {
+      setSelectedElementIndex(updatedElements.length - 1);
+    }, 100);
   };
 
   const editElement = (index: number) => {
@@ -146,7 +162,11 @@ const FormBuilderPage = () => {
   };
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px minimum drag distance
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -165,6 +185,11 @@ const FormBuilderPage = () => {
       
       return arrayMove(items, oldIndex, newIndex);
     });
+
+    // Force preview update
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+    }, 100);
   };
   
   const saveField = (updatedField: FormField) => {
@@ -176,6 +201,11 @@ const FormBuilderPage = () => {
     }
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
+    
+    // Force preview update
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+    }, 100);
   };
   
   if (!user) {
@@ -244,6 +274,7 @@ const FormBuilderPage = () => {
             <Button 
               variant="outline"
               className="flex items-center gap-2"
+              onClick={() => setIsTemplateDialogOpen(true)}
             >
               {language === 'ar' ? 'قوالب النماذج' : 'Form Templates'}
             </Button>
@@ -542,6 +573,14 @@ const FormBuilderPage = () => {
             </Button>
           </div>
         </DialogContent>
+      </Dialog>
+
+      {/* Templates Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <FormTemplatesDialog 
+          onSelect={handleSelectTemplate} 
+          onClose={() => setIsTemplateDialogOpen(false)}
+        />
       </Dialog>
 
       {/* Field Editor Dialog */}
