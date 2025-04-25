@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormStep, formTemplates } from '@/lib/form-utils';
@@ -23,7 +23,7 @@ export const useFormTemplates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<FormData | null>(null);
   const { user } = useAuth();
   
-  const fetchForms = async () => {
+  const fetchForms = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -50,13 +50,18 @@ export const useFormTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const createFormFromTemplate = async (templateId: number) => {
+  const createFormFromTemplate = useCallback(async (templateId: number) => {
     if (!user) return null;
     
     try {
-      const selectedTemplate = formTemplates.find(t => t.id === templateId) || formTemplates[0];
+      const selectedTemplate = formTemplates.find(t => t.id === templateId);
+      
+      if (!selectedTemplate) {
+        toast.error('لم يتم العثور على القالب المحدد');
+        return null;
+      }
       
       const { data, error } = await supabase
         .from('forms')
@@ -84,7 +89,7 @@ export const useFormTemplates = () => {
         
         setSelectedTemplate(newForm);
         // Refresh forms list
-        fetchForms();
+        await fetchForms();
         return newForm;
       }
       return null;
@@ -92,13 +97,18 @@ export const useFormTemplates = () => {
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
     }
-  };
+  }, [user, fetchForms]);
 
-  const createDefaultForm = async () => {
+  const createDefaultForm = useCallback(async () => {
     return createFormFromTemplate(1); // Use template ID 1 as default
-  };
+  }, [createFormFromTemplate]);
 
   const saveForm = async (formId: string, formData: any) => {
+    if (!user) {
+      toast.error('يجب تسجيل الدخول لحفظ النموذج');
+      return false;
+    }
+    
     try {
       const { error } = await supabase
         .from('forms')
@@ -125,6 +135,11 @@ export const useFormTemplates = () => {
   };
 
   const publishForm = async (formId: string, isPublished: boolean) => {
+    if (!user) {
+      toast.error('يجب تسجيل الدخول لنشر النموذج');
+      return false;
+    }
+    
     try {
       const { error } = await supabase
         .from('forms')
@@ -146,6 +161,11 @@ export const useFormTemplates = () => {
   };
 
   const deleteForm = async (formId: string) => {
+    if (!user) {
+      toast.error('يجب تسجيل الدخول لحذف النموذج');
+      return false;
+    }
+    
     try {
       const { error } = await supabase
         .from('forms')
@@ -196,7 +216,7 @@ export const useFormTemplates = () => {
     if (user) {
       fetchForms();
     }
-  }, [user]);
+  }, [user, fetchForms]);
 
   return {
     forms,

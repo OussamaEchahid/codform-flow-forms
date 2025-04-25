@@ -44,61 +44,68 @@ const FormPreview = ({
   const renderField = (field: FormField) => {
     const fieldStyle = field.style || {};
     
+    if (!field || !field.type) {
+      console.warn('Invalid field:', field);
+      return null;
+    }
+
+    const commonInputStyle = {
+      backgroundColor: fieldStyle.backgroundColor || 'white',
+      color: fieldStyle.color || 'inherit',
+      fontSize: fieldStyle.fontSize || formStyle.fontSize,
+      borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
+      borderWidth: fieldStyle.borderWidth || '1px',
+      borderColor: fieldStyle.borderColor || '#e2e8f0',
+    };
+    
     return (
       <div key={field.id} className="form-control text-right mb-4">
-        <label className="form-label" style={{ color: fieldStyle.color }}>
-          {field.label}
-          {field.required && <span className="text-red-500 mr-1">*</span>}
-        </label>
+        {field.type !== 'submit' && field.type !== 'title' && (
+          <label className="form-label" style={{ color: fieldStyle.color }}>
+            {field.label}
+            {field.required && <span className="text-red-500 mr-1">*</span>}
+          </label>
+        )}
         
-        {field.type === 'text' || field.type === 'email' || field.type === 'phone' ? (
+        {field.type === 'title' && (
+          <h2 className="text-xl font-bold mb-4 text-right" style={{ color: fieldStyle.color || 'inherit' }}>
+            {field.label}
+          </h2>
+        )}
+        
+        {(field.type === 'text' || field.type === 'email' || field.type === 'phone') && (
           <input
             type={field.type === 'email' ? 'email' : 'text'}
             placeholder={field.placeholder}
-            className="form-input"
-            style={{
-              backgroundColor: fieldStyle.backgroundColor || 'white',
-              color: fieldStyle.color || 'inherit',
-              fontSize: fieldStyle.fontSize || formStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth || '1px',
-              borderColor: fieldStyle.borderColor || '#e2e8f0',
-            }}
+            className="form-input w-full"
+            style={commonInputStyle}
             disabled
           />
-        ) : field.type === 'textarea' ? (
+        )}
+        
+        {field.type === 'textarea' && (
           <textarea
             placeholder={field.placeholder}
-            className="form-input h-24"
-            style={{
-              backgroundColor: fieldStyle.backgroundColor || 'white',
-              color: fieldStyle.color || 'inherit',
-              fontSize: fieldStyle.fontSize || formStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth || '1px',
-              borderColor: fieldStyle.borderColor || '#e2e8f0',
-            }}
+            className="form-input h-24 w-full"
+            style={commonInputStyle}
             disabled
           />
-        ) : field.type === 'select' ? (
+        )}
+        
+        {field.type === 'select' && (
           <select 
-            className="form-select" 
+            className="form-select w-full" 
             disabled
-            style={{
-              backgroundColor: fieldStyle.backgroundColor || 'white',
-              color: fieldStyle.color || 'inherit',
-              fontSize: fieldStyle.fontSize || formStyle.fontSize,
-              borderRadius: fieldStyle.borderRadius || formStyle.borderRadius,
-              borderWidth: fieldStyle.borderWidth || '1px',
-              borderColor: fieldStyle.borderColor || '#e2e8f0',
-            }}
+            style={commonInputStyle}
           >
             <option value="">-- اختر --</option>
             {field.options?.map(option => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-        ) : field.type === 'checkbox' ? (
+        )}
+        
+        {field.type === 'checkbox' && (
           <div className="space-y-2">
             {field.options?.map(option => (
               <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -120,7 +127,9 @@ const FormPreview = ({
               </div>
             ))}
           </div>
-        ) : field.type === 'radio' ? (
+        )}
+        
+        {field.type === 'radio' && (
           <div className="space-y-2">
             {field.options?.map(option => (
               <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -143,7 +152,9 @@ const FormPreview = ({
               </div>
             ))}
           </div>
-        ) : field.type === 'submit' ? (
+        )}
+        
+        {field.type === 'submit' && (
           <button 
             className="w-full text-white py-2 px-4 mt-4 flex justify-center items-center" 
             style={{ 
@@ -155,7 +166,46 @@ const FormPreview = ({
           >
             {field.label}
           </button>
-        ) : null}
+        )}
+        
+        {field.type === 'cart-items' && (
+          <div className="border rounded-md p-3 bg-gray-50">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="font-bold">{language === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:'} 120 ريال</span>
+              <span>2 × منتج</span>
+            </div>
+            <div className="py-2">
+              <div className="flex justify-between items-center py-1">
+                <span>60 ريال</span>
+                <span>1 × قميص أبيض</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span>60 ريال</span>
+                <span>1 × قميص أسود</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {field.type === 'whatsapp' && (
+          <button 
+            className="w-full py-2 px-4 mt-2 flex justify-center items-center text-white" 
+            style={{ 
+              backgroundColor: '#25D366',
+              borderRadius: formStyle.borderRadius,
+              fontSize: formStyle.fontSize,
+            }}
+            disabled
+          >
+            {field.label || 'تواصل عبر واتساب'}
+          </button>
+        )}
+        
+        {field.type === 'image' && (
+          <div className="text-center py-4 border rounded bg-gray-50">
+            {field.label || 'صورة'}
+          </div>
+        )}
       </div>
     );
   };
@@ -228,7 +278,7 @@ const FormPreview = ({
       >
         {fields && fields.length > 0 ? (
           <div className="space-y-4">
-            {fields.map(field => renderField(field))}
+            {fields.map((field, index) => renderField(field))}
           </div>
         ) : (
           children

@@ -27,12 +27,34 @@ const SortableField: React.FC<SortableFieldProps> = ({
     transform,
     transition,
     isDragging
-  } = useSortable({ id: field.id });
+  } = useSortable({ 
+    id: field.id,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+  };
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDuplicate();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
   };
 
   return (
@@ -40,27 +62,31 @@ const SortableField: React.FC<SortableFieldProps> = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex justify-between items-center p-3 border rounded-lg",
+        "flex justify-between items-center p-3 border rounded-lg mb-3",
         isDragging ? "shadow-lg" : ""
       )}
     >
       <div className="flex gap-2 items-center">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+        <button 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded"
+        >
           <GripVertical size={16} className="text-gray-500" />
         </button>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
+        <Button variant="ghost" size="sm" onClick={handleEdit}>
           <Settings size={16} />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onDuplicate}>
+        <Button variant="ghost" size="sm" onClick={handleDuplicate}>
           <Copy size={16} />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete}>
+        <Button variant="ghost" size="sm" onClick={handleDelete} className="hover:text-red-500">
           <Trash size={16} />
         </Button>
       </div>
       
       <div className="text-right">
-        <div className="font-medium">{field.label}</div>
+        <div className="font-medium">{field.label || "حقل بدون عنوان"}</div>
         <div className="text-sm text-gray-500">
           {field.required ? 'مطلوب' : 'اختياري'} | {field.type}
         </div>
