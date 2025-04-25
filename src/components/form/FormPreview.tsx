@@ -60,8 +60,8 @@ const FormPreview = ({
     
     return (
       <div key={field.id} className="form-control text-right mb-4">
-        {field.type !== 'submit' && field.type !== 'title' && (
-          <label className="form-label" style={{ color: fieldStyle.color }}>
+        {field.type !== 'submit' && field.type !== 'title' && field.type !== 'whatsapp' && field.type !== 'cart-items' && field.type !== 'cart-summary' && field.type !== 'image' && (
+          <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
             {field.label}
             {field.required && <span className="text-red-500 mr-1">*</span>}
           </label>
@@ -73,11 +73,31 @@ const FormPreview = ({
           </h2>
         )}
         
-        {(field.type === 'text' || field.type === 'email' || field.type === 'phone') && (
+        {field.type === 'text' && (
           <input
-            type={field.type === 'email' ? 'email' : 'text'}
+            type="text"
             placeholder={field.placeholder}
-            className="form-input w-full"
+            className="form-input w-full p-2 border"
+            style={commonInputStyle}
+            disabled
+          />
+        )}
+        
+        {field.type === 'email' && (
+          <input
+            type="email"
+            placeholder={field.placeholder || 'البريد الإلكتروني'}
+            className="form-input w-full p-2 border"
+            style={commonInputStyle}
+            disabled
+          />
+        )}
+        
+        {field.type === 'phone' && (
+          <input
+            type="tel"
+            placeholder={field.placeholder || 'رقم الهاتف'}
+            className="form-input w-full p-2 border"
             style={commonInputStyle}
             disabled
           />
@@ -86,7 +106,7 @@ const FormPreview = ({
         {field.type === 'textarea' && (
           <textarea
             placeholder={field.placeholder}
-            className="form-input h-24 w-full"
+            className="form-input h-24 w-full p-2 border"
             style={commonInputStyle}
             disabled
           />
@@ -94,7 +114,7 @@ const FormPreview = ({
         
         {field.type === 'select' && (
           <select 
-            className="form-select w-full" 
+            className="form-select w-full p-2 border" 
             disabled
             style={commonInputStyle}
           >
@@ -132,14 +152,7 @@ const FormPreview = ({
         {field.type === 'radio' && (
           <div className="space-y-2">
             {field.options?.map(option => (
-              <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
-                <input
-                  type="radio"
-                  id={`radio-${option}`}
-                  name={`radio-${field.id}`}
-                  className="form-radio"
-                  disabled
-                />
+              <div key={option} className="flex items-center gap-2 justify-end">
                 <label 
                   htmlFor={`radio-${option}`}
                   style={{ 
@@ -149,6 +162,13 @@ const FormPreview = ({
                 >
                   {option}
                 </label>
+                <input
+                  type="radio"
+                  id={`radio-${option}`}
+                  name={`radio-${field.id}`}
+                  className="form-radio"
+                  disabled
+                />
               </div>
             ))}
           </div>
@@ -164,12 +184,12 @@ const FormPreview = ({
             }}
             disabled
           >
-            {field.label}
+            {field.label || 'إرسال'}
           </button>
         )}
         
         {field.type === 'cart-items' && (
-          <div className="border rounded-md p-3 bg-gray-50">
+          <div className="border rounded-md p-3 bg-gray-50 mb-4">
             <div className="flex justify-between items-center py-2 border-b">
               <span className="font-bold">{language === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:'} 120 ريال</span>
               <span>2 × منتج</span>
@@ -186,10 +206,31 @@ const FormPreview = ({
             </div>
           </div>
         )}
+        
+        {field.type === 'cart-summary' && (
+          <div className="border-t border-gray-200 pt-3 mb-4">
+            <div className="flex justify-between py-1">
+              <span>0.00 ريال</span>
+              <span>{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span>0.00 ريال</span>
+              <span>{language === 'ar' ? 'الخصم' : 'Discount'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span>0.00 ريال</span>
+              <span>{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
+            </div>
+            <div className="flex justify-between py-1 font-bold">
+              <span>0.00 ريال</span>
+              <span>{language === 'ar' ? 'المجموع' : 'Total'}</span>
+            </div>
+          </div>
+        )}
 
         {field.type === 'whatsapp' && (
           <button 
-            className="w-full py-2 px-4 mt-2 flex justify-center items-center text-white" 
+            className="w-full py-2 px-4 mt-2 mb-4 flex justify-center items-center text-white" 
             style={{ 
               backgroundColor: '#25D366',
               borderRadius: formStyle.borderRadius,
@@ -202,8 +243,40 @@ const FormPreview = ({
         )}
         
         {field.type === 'image' && (
-          <div className="text-center py-4 border rounded bg-gray-50">
-            {field.label || 'صورة'}
+          <div className="text-center py-4 border rounded bg-gray-50 mb-4">
+            <div className="text-gray-400">{field.label || 'صورة'}</div>
+          </div>
+        )}
+        
+        {field.type === 'shipping' && (
+          <div className="space-y-2 mb-4">
+            <label className="block mb-2">{field.label || 'خيارات الشحن'}</label>
+            <div className="flex items-center justify-between border rounded p-2">
+              <div className="flex items-center">
+                <input type="radio" id="shipping-1" name={`shipping-${field.id}`} disabled className="ml-2" />
+                <label htmlFor="shipping-1">توصيل عادي</label>
+              </div>
+              <span>0.00 ريال</span>
+            </div>
+            <div className="flex items-center justify-between border rounded p-2">
+              <div className="flex items-center">
+                <input type="radio" id="shipping-2" name={`shipping-${field.id}`} disabled className="ml-2" />
+                <label htmlFor="shipping-2">توصيل سريع</label>
+              </div>
+              <span>20.00 ريال</span>
+            </div>
+          </div>
+        )}
+        
+        {field.type === 'countdown' && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-center mb-4">
+            <div className="text-sm text-red-700 mb-1">{field.label || 'العرض ينتهي خلال'}</div>
+            <div className="flex justify-center gap-2 text-red-700 font-bold">
+              <div className="bg-white px-2 py-1 rounded">01</div>:
+              <div className="bg-white px-2 py-1 rounded">23</div>:
+              <div className="bg-white px-2 py-1 rounded">45</div>:
+              <div className="bg-white px-2 py-1 rounded">30</div>
+            </div>
           </div>
         )}
       </div>
@@ -277,7 +350,7 @@ const FormPreview = ({
         }}
       >
         {fields && fields.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {fields.map((field, index) => renderField(field))}
           </div>
         ) : (

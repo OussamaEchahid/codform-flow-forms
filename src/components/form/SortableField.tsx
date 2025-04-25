@@ -43,16 +43,19 @@ const SortableField: React.FC<SortableFieldProps> = ({
   };
 
   const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onEdit();
   };
 
   const handleDuplicate = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onDuplicate();
   };
 
   const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onDelete();
   };
@@ -74,13 +77,28 @@ const SortableField: React.FC<SortableFieldProps> = ({
         >
           <GripVertical size={16} className="text-gray-500" />
         </button>
-        <Button variant="ghost" size="sm" onClick={handleEdit}>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleEdit}
+          className="hover:bg-gray-100"
+        >
           <Settings size={16} />
         </Button>
-        <Button variant="ghost" size="sm" onClick={handleDuplicate}>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleDuplicate}
+          className="hover:bg-gray-100"
+        >
           <Copy size={16} />
         </Button>
-        <Button variant="ghost" size="sm" onClick={handleDelete} className="hover:text-red-500">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleDelete} 
+          className="hover:text-red-500 hover:bg-red-50"
+        >
           <Trash size={16} />
         </Button>
       </div>

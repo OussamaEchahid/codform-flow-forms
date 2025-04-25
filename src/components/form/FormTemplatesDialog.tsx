@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formTemplates } from '@/lib/form-utils';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { User, Phone, MapPin, Mail, Package2, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -367,7 +367,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
                 استخدام القالب
               </Button>
             </div>
-            <div className="col-span-2 border rounded relative">
+            <div className="col-span-2 border rounded relative overflow-hidden">
               <div className="max-h-[400px] overflow-auto p-2">
                 {templateImages[currentTemplateIndex]}
               </div>
@@ -388,7 +388,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
               {templateImages.map((_, index) => (
                 <div 
                   key={index}
-                  className={`w-2 h-2 rounded-full ${currentTemplateIndex === index ? 'bg-codform-purple' : 'bg-gray-300'}`}
+                  className={`w-2 h-2 rounded-full cursor-pointer ${currentTemplateIndex === index ? 'bg-codform-purple' : 'bg-gray-300'}`}
                   onClick={() => setCurrentTemplateIndex(index)}
                 />
               ))}

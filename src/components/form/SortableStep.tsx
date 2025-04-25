@@ -43,6 +43,18 @@ const SortableStep: React.FC<SortableStepProps> = ({
     zIndex: isDragging ? 999 : 1,
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onEdit) onEdit();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onDelete) onDelete();
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -66,19 +78,13 @@ const SortableStep: React.FC<SortableStepProps> = ({
           </button>
           <button 
             className="hover:bg-gray-100 p-1 rounded"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onEdit) onEdit();
-            }}
+            onClick={handleEdit}
           >
             <Settings size={16} className="text-gray-500" />
           </button>
           <button 
             className="hover:bg-gray-100 p-1 rounded hover:text-red-500"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onDelete) onDelete();
-            }}
+            onClick={handleDelete}
           >
             <Trash size={16} className="text-gray-500" />
           </button>
