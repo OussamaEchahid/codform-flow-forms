@@ -50,18 +50,7 @@ const FormBuilderPage = () => {
     fontSize: '1rem',
     buttonStyle: 'rounded',
   });
-  const [refreshKey, setRefreshKey] = useState(0); // Force re-render for preview
-  
-  const {
-    forms,
-    isLoading,
-    fetchForms,
-    createDefaultForm,
-    createFormFromTemplate,
-    saveForm,
-    publishForm
-  } = useFormTemplates();
-  
+  const [refreshKey, setRefreshKey] = useState(0);
   const [formElements, setFormElements] = useState<Array<{
     type: string;
     id: string;
@@ -86,12 +75,13 @@ const FormBuilderPage = () => {
     { type: 'cart-items', id: 'cart-1', label: language === 'ar' ? 'المنتج' : 'Product item' },
     { type: 'submit', id: 'submit-1', label: language === 'ar' ? 'شراء بالدفع عند الاستلام' : 'Buy with Cash on Delivery' }
   ]);
-  
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  
+  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formDescription, setFormDescription] = useState('');
+
   const deleteElement = (index: number) => {
     const updatedElements = [...formElements];
     updatedElements.splice(index, 1);
@@ -99,11 +89,11 @@ const FormBuilderPage = () => {
     setSelectedElementIndex(null);
     setRefreshKey(prev => prev + 1);
   };
-  
+
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
-  
+
   useEffect(() => {
     if (formId) {
       setActiveTab('editor');
@@ -112,18 +102,18 @@ const FormBuilderPage = () => {
       setActiveTab('dashboard');
     }
   }, [formId]);
-  
+
   const handleCreateForm = async () => {
     const newForm = await createDefaultForm();
     if (newForm) {
       navigate(`/form-builder/${newForm.id}`);
     }
   };
-  
+
   const handleSelectForm = (formId: string) => {
     navigate(`/form-builder/${formId}`);
   };
-  
+
   const handleSave = () => {
     setIsSaving(true);
     setTimeout(() => {
@@ -144,7 +134,12 @@ const FormBuilderPage = () => {
             id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
           }))
         );
+        
+        setFormTitle(template.title);
+        setFormDescription(template.description);
+        
         setFormElements(newElements);
+        
         setRefreshKey(prev => prev + 1);
         setIsTemplateDialogOpen(false);
         return;
@@ -158,7 +153,7 @@ const FormBuilderPage = () => {
       setIsTemplateDialogOpen(false);
     }
   }, [language, createFormFromTemplate, navigate, activeTab]);
-  
+
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
     { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
@@ -173,7 +168,7 @@ const FormBuilderPage = () => {
     { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
     { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
   ];
-  
+
   const addElement = (type: string) => {
     const newElement = {
       type,
@@ -196,7 +191,7 @@ const FormBuilderPage = () => {
     setCurrentEditingField(element as FormField);
     setIsFieldEditorOpen(true);
   };
-  
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -227,7 +222,7 @@ const FormBuilderPage = () => {
       setRefreshKey(prev => prev + 1);
     }, 100);
   };
-  
+
   const saveField = (updatedField: FormField) => {
     const newElements = [...formElements];
     const index = newElements.findIndex(el => el.id === updatedField.id);
@@ -243,11 +238,11 @@ const FormBuilderPage = () => {
       setRefreshKey(prev => prev + 1);
     }, 100);
   };
-  
+
   if (!user) {
     return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
   }
-  
+
   if (activeTab === 'dashboard') {
     return (
       <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -297,7 +292,7 @@ const FormBuilderPage = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
@@ -490,76 +485,14 @@ const FormBuilderPage = () => {
             <div className="border rounded-lg p-4 bg-gray-50">
               <FormPreview 
                 key={refreshKey}
-                formTitle={language === 'ar' ? "املأ النموذج للدفع عند الاستلام" : "Fill the form for cash on delivery"}
+                formTitle={formTitle}
+                formDescription={formDescription}
                 currentStep={1}
                 totalSteps={1}
                 formStyle={formStyle}
                 fields={formElements as FormField[]}
               >
-                <div className={`space-y-4 ${language === 'ar' ? 'text-right' : ''}`}>
-                  <div className="form-control">
-                    <label className="form-label">
-                      {language === 'ar' ? 'الاسم الكامل' : 'Full name'}
-                      <span className="text-red-500 mr-1">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
-                      className="form-input"
-                      style={{ borderRadius: formStyle.borderRadius }}
-                    />
-                  </div>
-                  
-                  <div className="form-control">
-                    <label className="form-label">
-                      {language === 'ar' ? 'رقم الهاتف' : 'Phone number'}
-                      <span className="text-red-500 mr-1">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'رقم الهاتف' : 'Phone number'}
-                      className="form-input"
-                      style={{ borderRadius: formStyle.borderRadius }}
-                    />
-                  </div>
-                  
-                  <div className="form-control">
-                    <label className="form-label">
-                      {language === 'ar' ? 'المدينة' : 'City'}
-                      <span className="text-red-500 mr-1">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'المدينة' : 'City'}
-                      className="form-input"
-                      style={{ borderRadius: formStyle.borderRadius }}
-                    />
-                  </div>
-                  
-                  <div className="form-control">
-                    <label className="form-label">
-                      {language === 'ar' ? 'العنوان' : 'Address'}
-                      <span className="text-red-500 mr-1">*</span>
-                    </label>
-                    <textarea
-                      placeholder={language === 'ar' ? 'العنوان' : 'address'}
-                      className="form-input h-24"
-                      style={{ borderRadius: formStyle.borderRadius }}
-                    />
-                  </div>
-                  
-                  <div className="mt-4">
-                    <button 
-                      className="w-full text-white py-2 px-4 flex justify-center items-center" 
-                      style={{ 
-                        backgroundColor: formStyle.primaryColor,
-                        borderRadius: formStyle.borderRadius
-                      }}
-                    >
-                      {language === 'ar' ? 'شراء بالدفع عند الاستلام' : 'Buy with Cash on Delivery'}
-                    </button>
-                  </div>
-                </div>
+                <div></div>
               </FormPreview>
             </div>
           </div>
