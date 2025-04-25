@@ -1,39 +1,52 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
-import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, Plus, Save, Trash, Copy, Edit, FileCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
-import { Dialog } from '@/components/ui/dialog';
+import FormPreview from '@/components/form/FormPreview';
+import FormList from '@/components/form/FormList';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogFooter,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import FieldEditor from '@/components/form/FieldEditor';
 import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
-import FormBuilderHeader from '@/components/form-builder/FormBuilderHeader';
-import FormBuilderContent from '@/components/form-builder/FormBuilderContent';
-import FormBuilderSidebar from '@/components/form-builder/FormBuilderSidebar';
-
-const availableFieldTypes = [
-  { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
-  { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
-  { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
-  { type: 'textarea', label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
-];
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { language } = useI18n();
+  const { t, language } = useI18n();
   const { 
     forms, 
     isLoading, 
     fetchForms, 
     createDefaultForm, 
-    createFormFromTemplate,
-    saveForm,
-    publishForm
+    createFormFromTemplate 
   } = useFormTemplates();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
@@ -73,20 +86,22 @@ const FormBuilderPage = () => {
   ]);
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [formDescription, setFormDescription] = useState('');
-  const [formSteps, setFormSteps] = useState<FormStep[]>([
-    {
-      id: '1',
-      title: 'Step 1',
-      fields: []
-    }
-  ]);
-  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
-  const [currentEditStep, setCurrentEditStep] = useState(0);
+
+  const deleteElement = (index: number) => {
+    const updatedElements = [...formElements];
+    updatedElements.splice(index, 1);
+    setFormElements(updatedElements);
+    setSelectedElementIndex(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [formElements]);
 
   useEffect(() => {
     if (formId) {
@@ -104,6 +119,10 @@ const FormBuilderPage = () => {
     }
   };
 
+  const handleSelectForm = (formId: string) => {
+    navigate(`/form-builder/${formId}`);
+  };
+
   const handleSave = () => {
     setIsSaving(true);
     setTimeout(() => {
@@ -112,71 +131,487 @@ const FormBuilderPage = () => {
     }, 1000);
   };
 
-  const handlePublish = () => {
-    setIsPublishing(true);
-    setTimeout(() => {
-      setIsPublishing(false);
-      toast.success(language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully');
-    }, 1000);
-  };
-
   const handleSelectTemplate = useCallback(async (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
       toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
       
-      setActiveTab('editor');
+      if (activeTab === 'editor') {
+        const newElements = template.data.flatMap(step => 
+          step.fields.map(field => ({
+            ...field,
+            id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          }))
+        );
+        
+        setFormTitle(template.title);
+        setFormDescription(template.description);
+        
+        setFormElements(newElements);
+        
+        setRefreshKey(prev => prev + 1);
+        setIsTemplateDialogOpen(false);
+        return;
+      }
+      
+      const newForm = await createFormFromTemplate(templateId);
+      if (newForm) {
+        navigate(`/form-builder/${newForm.id}`);
+      }
+      
       setIsTemplateDialogOpen(false);
     }
-  }, [language, activeTab]);
+  }, [language, createFormFromTemplate, navigate, activeTab]);
+
+  const availableElements = [
+    { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
+    { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
+    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
+    { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
+    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
+    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
+    { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
+    { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
+    { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
+    { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
+    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
+  ];
+
+  const addElement = (type: string) => {
+    const newElement = {
+      type,
+      id: `${type}-${Date.now()}`,
+      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+    };
+    
+    const updatedElements = [...formElements, newElement];
+    setFormElements(updatedElements);
+    setTimeout(() => {
+      setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const editElement = (index: number) => {
+    const element = formElements[index];
+    setCurrentEditingField(element as FormField);
+    setIsFieldEditorOpen(true);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    setFormElements((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      
+      return arrayMove(items, oldIndex, newIndex);
+    });
+
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const saveField = (updatedField: FormField) => {
+    const newElements = [...formElements];
+    const index = newElements.findIndex(el => el.id === updatedField.id);
+    if (index !== -1) {
+      newElements[index] = updatedField;
+      setFormElements(newElements);
+    }
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
+    
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
 
   if (!user) {
-    return <div className="text-center py-8">
-      {language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}
-    </div>;
+    return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
+  }
+
+  if (activeTab === 'dashboard') {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB]">
+        <AppSidebar />
+        <main className="flex-1 p-8">
+          <div className="max-w-[1400px] mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  {language === 'ar' ? 'النماذج' : 'Forms'}
+                </h1>
+                <p className="text-gray-600">
+                  {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsTemplateDialogOpen(true)} 
+                  variant="outline"
+                >
+                  {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
+                </Button>
+                <Button 
+                  onClick={handleCreateForm} 
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+                </Button>
+              </div>
+            </div>
+            
+            <FormList 
+              forms={forms} 
+              isLoading={isLoading}
+              onSelectForm={handleSelectForm}
+            />
+          </div>
+        </main>
+        
+        <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+          <FormTemplatesDialog 
+            onSelect={handleSelectTemplate} 
+            onClose={() => setIsTemplateDialogOpen(false)}
+          />
+        </Dialog>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
-      <main className="flex-1">
-        <FormBuilderHeader
-          onSave={handleSave}
-          onPublish={handlePublish}
-          onStyleClick={() => setIsStyleDialogOpen(true)}
-          onTemplateClick={() => setIsTemplateDialogOpen(true)}
-          isSaving={isSaving}
-          isPublishing={isPublishing}
-          isPublished={currentForm?.is_published || false}
-        />
-        
-        <div className="grid grid-cols-12 gap-6 p-6">
-          <FormBuilderContent
-            steps={formSteps}
-            currentEditStep={currentEditStep}
-            onStepSelect={setCurrentEditStep}
-            onAddStep={() => {}}
-            availableFieldTypes={availableFieldTypes}
-            onAddField={() => {}}
-            formTitle={formTitle}
-            formDescription={formDescription}
-            onTitleChange={setFormTitle}
-            onDescriptionChange={setFormDescription}
-            formStyle={formStyle}
-            onStyleChange={() => {}}
-          />
+      
+      <main className="flex-1 overflow-auto">
+        <div className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate('/forms')}>
+              {language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
+            </Button>
+            <div className="h-4 w-[1px] bg-gray-300"></div>
+            <div className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full flex items-center gap-2">
+              <span>{language === 'ar' ? 'نموذج كـ نافذة منبثقة' : 'Form as popup'}</span>
+            </div>
+          </div>
           
-          <FormBuilderSidebar
-            formTitle={formTitle}
-            formDescription={formDescription}
-            currentStep={currentPreviewStep}
-            totalSteps={formSteps.length}
-            formStyle={formStyle}
-            fields={[]}
-            onStepChange={setCurrentPreviewStep}
-          />
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsStyleDialogOpen(true)}
+            >
+              {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setIsTemplateDialogOpen(true)}
+            >
+              {language === 'ar' ? 'قوالب النماذج' : 'Form Templates'}
+            </Button>
+            <Button 
+              className="flex items-center gap-2 bg-[#9b87f5] hover:bg-[#7E69AB]" 
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+              ) : (
+                <Save size={18} />
+              )}
+              {language === 'ar' ? 'حفظ' : 'Save'}
+            </Button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
+          <div className="col-span-2 border-r bg-white p-4">
+            <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
+            </h3>
+            
+            <div className="space-y-2">
+              {availableElements.map((element) => (
+                <div 
+                  key={element.type}
+                  className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
+                >
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="p-1" 
+                    onClick={() => addElement(element.type)}
+                  >
+                    <Plus size={16} />
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span>{element.label}</span>
+                    <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
+                      {element.icon}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="col-span-6 bg-gray-50 p-6">
+            <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+            </h2>
+            
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={formElements.map(el => el.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-md border">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">
+                        {language === 'ar' ? 'تنسيق النموذج العام' : 'Global form styling'}
+                      </h3>
+                      <Button variant="ghost" size="sm">
+                        <ChevronDown size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {formElements.map((element, index) => (
+                    <div 
+                      key={element.id}
+                      className={`bg-white p-4 rounded-md border ${selectedElementIndex === index ? 'ring-2 ring-[#9b87f5]' : ''}`}
+                      onClick={() => setSelectedElementIndex(index)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-500 p-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteElement(index);
+                              }}
+                            >
+                              <Trash size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-500 p-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
+                                const updatedElements = [...formElements];
+                                updatedElements.splice(index + 1, 0, newElement);
+                                setFormElements(updatedElements);
+                                setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+                                toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+                              }}
+                            >
+                              <Copy size={16} />
+                            </Button>
+                            <span className="border-r h-4 mx-2"></span>
+                            <span className="font-medium">
+                              {element.label} {language === 'ar' ? 'إعدادات' : 'configuration'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="bg-green-100 text-green-700 rounded-full p-1 h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
+                              const updatedElements = [...formElements];
+                              updatedElements.splice(index + 1, 0, newElement);
+                              setFormElements(updatedElements);
+                              setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+                              toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+                            }}
+                          >
+                            <Copy size={16} />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              editElement(index);
+                            }}
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+          
+          <div className="col-span-4 border-l bg-white p-6">
+            <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+            </h3>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <FormPreview 
+                key={refreshKey}
+                formTitle={formTitle}
+                formDescription={formDescription}
+                currentStep={1}
+                totalSteps={1}
+                formStyle={formStyle}
+                fields={formElements as FormField[]}
+              >
+                <div></div>
+              </FormPreview>
+            </div>
+          </div>
         </div>
       </main>
+      
+      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
+        <DialogContent>
+          <DialogTitle>
+            {language === 'ar' ? 'تخصيص مظهر النموذج' : 'Customize Form Style'}
+          </DialogTitle>
+          <DialogDescription>
+            {language === 'ar' ? 'قم بتخصيص مظهر النموذج لتناسب هويتك التجارية' : 'Customize the form appearance to match your brand identity'}
+          </DialogDescription>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <label htmlFor="primary-color" className="text-sm font-medium">
+                {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="primary-color"
+                  type="color"
+                  value={formStyle.primaryColor}
+                  onChange={(e) => {
+                    setFormStyle({...formStyle, primaryColor: e.target.value});
+                    setRefreshKey(prev => prev + 1);
+                  }}
+                  className="w-10 h-10 rounded"
+                />
+                <input
+                  type="text"
+                  value={formStyle.primaryColor}
+                  onChange={(e) => {
+                    setFormStyle({...formStyle, primaryColor: e.target.value});
+                    setRefreshKey(prev => prev + 1);
+                  }}
+                  className="flex-1 px-3 py-2 border rounded"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <label htmlFor="border-radius" className="text-sm font-medium">
+                {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
+              </label>
+              <select
+                id="border-radius"
+                value={formStyle.borderRadius}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, borderRadius: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
+                className="px-3 py-2 border rounded"
+              >
+                <option value="0">None</option>
+                <option value="0.25rem">Small</option>
+                <option value="0.5rem">Medium</option>
+                <option value="1rem">Large</option>
+                <option value="9999px">Round</option>
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <label htmlFor="font-size" className="text-sm font-medium">
+                {language === 'ar' ? 'حجم الخط' : 'Font Size'}
+              </label>
+              <select
+                id="font-size"
+                value={formStyle.fontSize}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, fontSize: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
+                className="px-3 py-2 border rounded"
+              >
+                <option value="0.875rem">Small</option>
+                <option value="1rem">Medium</option>
+                <option value="1.125rem">Large</option>
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <label htmlFor="button-style" className="text-sm font-medium">
+                {language === 'ar' ? 'نمط الأزرار' : 'Button Style'}
+              </label>
+              <select
+                id="button-style"
+                value={formStyle.buttonStyle}
+                onChange={(e) => {
+                  setFormStyle({...formStyle, buttonStyle: e.target.value});
+                  setRefreshKey(prev => prev + 1);
+                }}
+                className="px-3 py-2 border rounded"
+              >
+                <option value="rounded">Rounded</option>
+                <option value="square">Square</option>
+                <option value="pill">Pill</option>
+              </select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsStyleDialogOpen(false)}>
+              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
@@ -188,7 +623,7 @@ const FormBuilderPage = () => {
       {isFieldEditorOpen && currentEditingField && (
         <FieldEditor
           field={currentEditingField}
-          onSave={() => {}}
+          onSave={saveField}
           onClose={() => setIsFieldEditorOpen(false)}
         />
       )}
