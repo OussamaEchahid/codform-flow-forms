@@ -20,13 +20,13 @@ import SortableField from './SortableField';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Copy, FileText, LayoutGrid, Plus, Settings, Trash, Save, FileCheck } from 'lucide-react';
+import { Copy, FileText, LayoutGrid, Plus, Settings, Trash, Save, FileCheck, Palette } from 'lucide-react';
 import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
 import { FormField, FormStep, createEmptyField, formTemplates } from '@/lib/form-utils';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -58,10 +58,17 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentEditStep, setCurrentEditStep] = useState(0);
+  const [formStyle, setFormStyle] = useState({
+    primaryColor: '#9b87f5',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    buttonStyle: 'rounded',
+  });
   
   const handleSaveForm = async () => {
     setIsSaving(true);
@@ -155,98 +162,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setFormSteps(updatedSteps);
   };
   
-  const renderPreviewFields = (fields: FormField[]) => {
-    return (
-      <div className="space-y-4">
-        {fields.map(field => (
-          <div key={field.id} className="form-control text-right">
-            <label className="form-label">
-              {field.label}
-              {field.required && <span className="text-red-500 mr-1">*</span>}
-            </label>
-            
-            {field.type === 'text' || field.type === 'email' || field.type === 'phone' ? (
-              <input
-                type={field.type === 'email' ? 'email' : 'text'}
-                placeholder={field.placeholder}
-                className="form-input"
-                disabled
-              />
-            ) : field.type === 'textarea' ? (
-              <textarea
-                placeholder={field.placeholder}
-                className="form-input h-24"
-                disabled
-              />
-            ) : field.type === 'select' ? (
-              <select className="form-select" disabled>
-                <option value="">-- اختر --</option>
-                {field.options?.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            ) : field.type === 'checkbox' ? (
-              <div className="space-y-2">
-                {field.options?.map(option => (
-                  <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <input
-                      type="checkbox"
-                      id={`check-${option}`}
-                      className="form-checkbox"
-                      disabled
-                    />
-                    <label htmlFor={`check-${option}`}>{option}</label>
-                  </div>
-                ))}
-              </div>
-            ) : field.type === 'radio' ? (
-              <div className="space-y-2">
-                {field.options?.map(option => (
-                  <div key={option} className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <input
-                      type="radio"
-                      id={`radio-${option}`}
-                      name={`radio-${field.id}`}
-                      className="form-radio"
-                      disabled
-                    />
-                    <label htmlFor={`radio-${option}`}>{option}</label>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  const renderPreviewNavigation = () => {
-    return (
-      <div className="mt-6 flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
-          disabled={currentPreviewStep === 1}
-        >
-          السابق
-        </Button>
-        
-        {currentPreviewStep < formSteps.length ? (
-          <Button
-            onClick={() => setCurrentPreviewStep(prev => Math.min(prev + 1, formSteps.length))}
-          >
-            التالي
-          </Button>
-        ) : (
-          <Button>
-            إرسال الطلب
-          </Button>
-        )}
-      </div>
-    );
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -276,6 +191,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     currentStep.fields = arrayMove(currentStep.fields, oldIndex, newIndex);
     setFormSteps(updatedSteps);
+  };
+  
+  const handleStyleChange = (key: string, value: string) => {
+    setFormStyle({
+      ...formStyle,
+      [key]: value
+    });
   };
 
   return (
@@ -327,15 +249,26 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
               </Button>
             </div>
 
-            <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <FileText size={16} />
-                  قوالب النماذج
-                </Button>
-              </DialogTrigger>
-              <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
-            </Dialog>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsStyleDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Palette size={16} />
+                تخصيص المظهر
+              </Button>
+              
+              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <FileText size={16} />
+                    قوالب النماذج
+                  </Button>
+                </DialogTrigger>
+                <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
+              </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="steps">
@@ -460,8 +393,80 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
               </TabsContent>
               
               <TabsContent value="design" className="mt-6">
-                <div className="text-center text-gray-500 py-8">
-                  <p>خيارات التصميم ستكون متاحة قريبًا</p>
+                <div className="space-y-4 text-right">
+                  <div className="form-control">
+                    <label className="form-label">اللون الرئيسي</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={formStyle.primaryColor}
+                        onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                        className="h-8 w-8 rounded"
+                      />
+                      <input
+                        type="text"
+                        value={formStyle.primaryColor}
+                        onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                        className="flex-1 form-input"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-control">
+                    <label className="form-label">استدارة الحواف</label>
+                    <select
+                      className="form-select"
+                      value={formStyle.borderRadius}
+                      onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
+                    >
+                      <option value="0">بدون استدارة</option>
+                      <option value="0.25rem">استدارة خفيفة</option>
+                      <option value="0.5rem">استدارة متوسطة</option>
+                      <option value="1rem">استدارة كبيرة</option>
+                      <option value="9999px">دائري</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-control">
+                    <label className="form-label">حجم الخط</label>
+                    <select
+                      className="form-select"
+                      value={formStyle.fontSize}
+                      onChange={(e) => handleStyleChange('fontSize', e.target.value)}
+                    >
+                      <option value="0.875rem">صغير</option>
+                      <option value="1rem">متوسط</option>
+                      <option value="1.125rem">كبير</option>
+                      <option value="1.25rem">كبير جداً</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-control">
+                    <label className="form-label">نمط الأزرار</label>
+                    <select
+                      className="form-select"
+                      value={formStyle.buttonStyle}
+                      onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
+                    >
+                      <option value="rounded">مستدير</option>
+                      <option value="square">مربع</option>
+                      <option value="pill">كبسولي</option>
+                    </select>
+                  </div>
+                  
+                  <div className="mt-4 grid grid-cols-5 gap-2">
+                    {['#9b87f5', '#2563eb', '#10b981', '#f59e0b', '#ef4444'].map(color => (
+                      <div
+                        key={color}
+                        className={cn(
+                          "h-8 rounded cursor-pointer transition-all",
+                          formStyle.primaryColor === color ? "ring-2 ring-offset-2" : ""
+                        )}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleStyleChange('primaryColor', color)}
+                      />
+                    ))}
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -481,14 +486,38 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             formDescription={formDescription}
             currentStep={currentPreviewStep}
             totalSteps={formSteps.length}
-          >
-            {currentPreviewStep <= formSteps.length && (
-              <>
-                {renderPreviewFields(formSteps[currentPreviewStep - 1].fields)}
-                {renderPreviewNavigation()}
-              </>
-            )}
-          </FormPreview>
+            formStyle={formStyle}
+            fields={formSteps[currentPreviewStep - 1]?.fields}
+          />
+          
+          <div className="mt-4 flex justify-end">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+                disabled={currentPreviewStep === 1}
+              >
+                السابق
+              </Button>
+              
+              {currentPreviewStep < formSteps.length ? (
+                <Button 
+                  variant="default"
+                  style={{ backgroundColor: formStyle.primaryColor }}
+                  onClick={() => setCurrentPreviewStep(prev => Math.min(prev + 1, formSteps.length))}
+                >
+                  التالي
+                </Button>
+              ) : (
+                <Button 
+                  variant="default"
+                  style={{ backgroundColor: formStyle.primaryColor }}
+                >
+                  إرسال الطلب
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       
@@ -499,6 +528,95 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
           onClose={() => setIsFieldEditorOpen(false)}
         />
       )}
+      
+      {/* Dialog for form styling */}
+      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="text-right">تخصيص مظهر النموذج</DialogTitle>
+          
+          <div className="space-y-4 py-4 text-right">
+            <div className="form-control">
+              <label className="form-label">اللون الرئيسي</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={formStyle.primaryColor}
+                  onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                  className="h-8 w-8 rounded"
+                />
+                <input
+                  type="text"
+                  value={formStyle.primaryColor}
+                  onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                  className="flex-1 form-input"
+                />
+              </div>
+            </div>
+            
+            <div className="form-control">
+              <label className="form-label">استدارة الحواف</label>
+              <select
+                className="form-select"
+                value={formStyle.borderRadius}
+                onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
+              >
+                <option value="0">بدون استدارة</option>
+                <option value="0.25rem">استدارة خفيفة</option>
+                <option value="0.5rem">استدارة متوسطة</option>
+                <option value="1rem">استدارة كبيرة</option>
+                <option value="9999px">دائري</option>
+              </select>
+            </div>
+            
+            <div className="form-control">
+              <label className="form-label">حجم الخط</label>
+              <select
+                className="form-select"
+                value={formStyle.fontSize}
+                onChange={(e) => handleStyleChange('fontSize', e.target.value)}
+              >
+                <option value="0.875rem">صغير</option>
+                <option value="1rem">متوسط</option>
+                <option value="1.125rem">كبير</option>
+                <option value="1.25rem">كبير جداً</option>
+              </select>
+            </div>
+            
+            <div className="form-control">
+              <label className="form-label">نمط الأزرار</label>
+              <select
+                className="form-select"
+                value={formStyle.buttonStyle}
+                onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
+              >
+                <option value="rounded">مستدير</option>
+                <option value="square">مربع</option>
+                <option value="pill">كبسولي</option>
+              </select>
+            </div>
+            
+            <div className="mt-4 grid grid-cols-5 gap-2">
+              {['#9b87f5', '#2563eb', '#10b981', '#f59e0b', '#ef4444'].map(color => (
+                <div
+                  key={color}
+                  className={cn(
+                    "h-8 rounded cursor-pointer transition-all",
+                    formStyle.primaryColor === color ? "ring-2 ring-offset-2" : ""
+                  )}
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleStyleChange('primaryColor', color)}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsStyleDialogOpen(false)}>
+              حفظ التغييرات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

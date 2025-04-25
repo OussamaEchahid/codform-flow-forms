@@ -1,4 +1,15 @@
+
 import { toast } from "sonner";
+
+export interface FieldStyle {
+  backgroundColor?: string;
+  color?: string;
+  fontSize?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  borderColor?: string;
+  padding?: string;
+}
 
 export interface FormField {
   id: string;
@@ -7,6 +18,7 @@ export interface FormField {
   placeholder?: string;
   required?: boolean;
   options?: string[];
+  style?: FieldStyle;
 }
 
 export interface FormStep {
@@ -45,7 +57,15 @@ export const createEmptyField = (type: FormField['type']): FormField => {
     type,
     label: 'حقل جديد',
     placeholder: '',
-    required: false
+    required: false,
+    style: {
+      backgroundColor: '#ffffff',
+      color: '#333333',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      borderWidth: '1px',
+      borderColor: '#e2e8f0'
+    }
   };
 };
 
