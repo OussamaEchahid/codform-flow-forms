@@ -3,32 +3,37 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, Trash } from 'lucide-react';
+import { Copy, FileText, LayoutGrid, Plus, Settings, Trash } from 'lucide-react';
 import FormPreview from './FormPreview';
+import FormTemplatesDialog from './FormTemplatesDialog';
+import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
+import { FormField, FormStep, createEmptyField, formTemplates } from '@/lib/form-utils';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 
-// Define the form field types
-interface FormField {
-  id: string;
-  type: 'text' | 'email' | 'phone' | 'select' | 'checkbox' | 'radio' | 'textarea';
+// Define the list of available field types and their labels in Arabic
+const availableFieldTypes: Array<{
+  type: FormField['type'];
   label: string;
-  placeholder?: string;
-  required?: boolean;
-  options?: string[]; // For select, checkbox, radio
-}
-
-// Define the form step type
-interface FormStep {
-  id: string;
-  title: string;
-  fields: FormField[];
-}
+  icon: React.ReactNode;
+}> = [
+  { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
+  { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
+  { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
+  { type: 'textarea', label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
+  { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
+  { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
+  { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
+];
 
 const FormBuilder: React.FC = () => {
-  // Sample initial form data
+  // State variables
   const [formTitle, setFormTitle] = useState('نموذج طلب منتج');
   const [formDescription, setFormDescription] = useState('يرجى تعبئة النموذج التالي لطلب المنتج والدفع عند الاستلام');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   
   // Sample form steps
   const [formSteps, setFormSteps] = useState<FormStep[]>([
@@ -128,6 +133,64 @@ const FormBuilder: React.FC = () => {
     setCurrentEditStep(formSteps.length);
   };
   
+  const applyTemplate = (templateId: number) => {
+    const template = formTemplates.find(t => t.id === templateId);
+    if (template) {
+      setFormSteps(template.data);
+      setFormTitle(template.title);
+      setFormDescription(template.description);
+      setIsTemplateDialogOpen(false);
+    }
+  };
+
+  const addFieldToStep = (type: FormField['type']) => {
+    const newField = createEmptyField(type);
+    const updatedSteps = [...formSteps];
+    updatedSteps[currentEditStep].fields.push(newField);
+    setFormSteps(updatedSteps);
+  };
+
+  const editField = (field: FormField) => {
+    setCurrentEditingField(field);
+    setIsFieldEditorOpen(true);
+  };
+
+  const saveField = (updatedField: FormField) => {
+    const updatedSteps = [...formSteps];
+    const stepIndex = currentEditStep;
+    const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === updatedField.id);
+    
+    if (fieldIndex !== -1) {
+      updatedSteps[stepIndex].fields[fieldIndex] = updatedField;
+      setFormSteps(updatedSteps);
+    }
+    
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
+  };
+
+  const deleteField = (fieldId: string) => {
+    const updatedSteps = [...formSteps];
+    const stepIndex = currentEditStep;
+    updatedSteps[stepIndex].fields = updatedSteps[stepIndex].fields.filter(f => f.id !== fieldId);
+    setFormSteps(updatedSteps);
+  };
+
+  const duplicateField = (field: FormField) => {
+    const newField = {
+      ...field,
+      id: `${field.id}-copy`,
+      label: `${field.label} (نسخة)`
+    };
+    
+    const updatedSteps = [...formSteps];
+    const stepIndex = currentEditStep;
+    const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === field.id);
+    
+    updatedSteps[stepIndex].fields.splice(fieldIndex + 1, 0, newField);
+    setFormSteps(updatedSteps);
+  };
+  
   const renderPreviewFields = (fields: FormField[]) => {
     return (
       <div className="space-y-4">
@@ -225,8 +288,22 @@ const FormBuilder: React.FC = () => {
       {/* Form Builder Panel */}
       <div className="lg:col-span-7 space-y-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-right">منشئ النموذج</CardTitle>
+            
+            <div className="flex gap-2">
+              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <FileText size={16} />
+                    قوالب النماذج
+                  </Button>
+                </DialogTrigger>
+                <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
+              </Dialog>
+              
+              <Button>حفظ النموذج</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="steps">
@@ -237,39 +314,105 @@ const FormBuilder: React.FC = () => {
               </TabsList>
               
               <TabsContent value="steps" className="mt-6">
-                <div className="space-y-4">
-                  {formSteps.map((step, index) => (
-                    <div 
-                      key={step.id} 
-                      className={cn(
-                        "p-4 border rounded-lg cursor-pointer transition-all",
-                        currentEditStep === index 
-                          ? "border-codform-purple bg-codform-light-purple" 
-                          : "border-gray-200 hover:border-gray-300"
-                      )}
-                      onClick={() => setCurrentEditStep(index)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <Settings size={16} className="text-gray-500 mr-2" />
-                          <Trash size={16} className="text-gray-500" />
-                        </div>
-                        <div className="text-right">
-                          <h3 className="font-medium">{step.title}</h3>
-                          <p className="text-sm text-gray-500">{step.fields.length} حقول</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left panel: Steps and Fields */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-right">خطوات النموذج</h3>
+                    {formSteps.map((step, index) => (
+                      <div 
+                        key={step.id} 
+                        className={cn(
+                          "p-4 border rounded-lg cursor-pointer transition-all",
+                          currentEditStep === index 
+                            ? "border-codform-purple bg-codform-light-purple" 
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                        onClick={() => setCurrentEditStep(index)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Settings size={16} className="text-gray-500" />
+                            <Trash size={16} className="text-gray-500" />
+                          </div>
+                          <div className="text-right">
+                            <h3 className="font-medium">{step.title}</h3>
+                            <p className="text-sm text-gray-500">{step.fields.length} حقول</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                    
+                    <Button 
+                      variant="outline"
+                      className="w-full flex items-center justify-center gap-2"
+                      onClick={addNewStep}
+                    >
+                      <Plus size={16} />
+                      إضافة خطوة جديدة
+                    </Button>
+                  </div>
                   
-                  <Button 
-                    variant="outline"
-                    className="w-full flex items-center justify-center gap-2"
-                    onClick={addNewStep}
-                  >
-                    <Plus size={16} />
-                    إضافة خطوة جديدة
-                  </Button>
+                  {/* Right panel: Add Fields */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-right">إضافة حقول</h3>
+                    {availableFieldTypes.map((fieldType) => (
+                      <div 
+                        key={fieldType.type} 
+                        className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => addFieldToStep(fieldType.type)}
+                      >
+                        <Button variant="ghost" size="sm" className="p-0">
+                          <Plus size={16} />
+                        </Button>
+                        <div className="flex items-center gap-2 text-right">
+                          <span>{fieldType.label}</span>
+                          {fieldType.icon}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Field List */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-3 text-right">
+                    حقول الخطوة: {formSteps[currentEditStep]?.title}
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {formSteps[currentEditStep]?.fields.map((field) => (
+                      <div 
+                        key={field.id}
+                        className="flex justify-between items-center p-3 border rounded-lg"
+                      >
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => editField(field)}>
+                            <Settings size={16} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => duplicateField(field)}>
+                            <Copy size={16} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => deleteField(field.id)}>
+                            <Trash size={16} />
+                          </Button>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="font-medium">{field.label}</div>
+                          <div className="text-sm text-gray-500">
+                            {field.required ? 'مطلوب' : 'اختياري'} | {field.type}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {formSteps[currentEditStep]?.fields.length === 0 && (
+                      <div className="text-center py-8 text-gray-500 border rounded-lg">
+                        <p>لا توجد حقول في هذه الخطوة</p>
+                        <p className="text-sm">أضف حقولًا من القائمة أعلاه</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
               
@@ -309,7 +452,11 @@ const FormBuilder: React.FC = () => {
       {/* Form Preview Panel */}
       <div className="lg:col-span-5">
         <div className="sticky top-6">
-          <h3 className="text-lg font-medium mb-4 text-right">معاينة النموذج</h3>
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-sm text-gray-500">معاينة مباشرة</div>
+            <h3 className="text-lg font-medium text-right">معاينة النموذج</h3>
+          </div>
+          
           <FormPreview 
             formTitle={formTitle}
             formDescription={formDescription}
@@ -325,6 +472,15 @@ const FormBuilder: React.FC = () => {
           </FormPreview>
         </div>
       </div>
+      
+      {/* Field Editor Dialog */}
+      {isFieldEditorOpen && currentEditingField && (
+        <FieldEditor
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => setIsFieldEditorOpen(false)}
+        />
+      )}
     </div>
   );
 };
