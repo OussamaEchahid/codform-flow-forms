@@ -34,6 +34,7 @@ export interface FormTemplate {
   description: string;
   steps: number;
   fields: number;
+  primaryColor?: string; // Add primary color to template
   data: FormStep[];
 }
 
@@ -106,6 +107,7 @@ export const formTemplates: FormTemplate[] = [
     description: 'نموذج طلب بسيط للدفع عند الاستلام',
     steps: 1,
     fields: 5,
+    primaryColor: '#d97706', // Brown color for template 1
     data: [
       {
         id: '1',
@@ -191,7 +193,7 @@ export const formTemplates: FormTemplate[] = [
             type: 'submit',
             label: 'تقديم الطلب (الدفع عند الاستلام)',
             style: {
-              backgroundColor: '#d97706',
+              backgroundColor: '#d97706', // Match the template's primary color
               color: '#ffffff',
               fontSize: '1rem',
               borderRadius: '0.5rem'
@@ -207,6 +209,7 @@ export const formTemplates: FormTemplate[] = [
     description: 'نموذج مع خيارات التوصيل السريع',
     steps: 1,
     fields: 6,
+    primaryColor: '#3b82f6', // Blue color for template 2
     data: [
       {
         id: '1',
@@ -289,7 +292,7 @@ export const formTemplates: FormTemplate[] = [
             type: 'submit',
             label: 'تقديم الطلب (الدفع عند الاستلام)',
             style: {
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#3b82f6', // Match the template's primary color
               color: '#ffffff',
               fontSize: '1rem',
               borderRadius: '0.5rem'
@@ -305,6 +308,7 @@ export const formTemplates: FormTemplate[] = [
     description: 'نموذج طلب متميز مع تصميم أنيق',
     steps: 1,
     fields: 5,
+    primaryColor: '#115e59', // Teal color for template 3
     data: [
       {
         id: '1',
@@ -375,7 +379,7 @@ export const formTemplates: FormTemplate[] = [
             type: 'submit',
             label: 'إكمال الطلب',
             style: {
-              backgroundColor: '#115e59',
+              backgroundColor: '#115e59', // Match the template's primary color
               color: '#ffffff',
               fontSize: '1rem',
               borderRadius: '0.75rem'
