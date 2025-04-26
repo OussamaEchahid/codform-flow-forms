@@ -1,20 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Plus, Save, Trash, Copy, Edit, FileCheck } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
-import FormPreview from '@/components/form/FormPreview';
-import FormList from '@/components/form/FormList';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription,
-  DialogFooter,
-  DialogTitle
-} from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import {
@@ -27,13 +19,21 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  arrayMove,
 } from '@dnd-kit/sortable';
 import FieldEditor from '@/components/form/FieldEditor';
 import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
+import FormList from '@/components/form/FormList';
+
+// Import refactored components
+import FormHeader from '@/components/form/builder/FormHeader';
+import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
+import FormElementList from '@/components/form/builder/FormElementList';
+import FormElementEditor from '@/components/form/builder/FormElementEditor';
+import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -63,22 +63,7 @@ const FormBuilderPage = () => {
     };
   });
   const [refreshKey, setRefreshKey] = useState(0);
-  const [formElements, setFormElements] = useState<Array<{
-    type: string;
-    id: string;
-    label: string;
-    required?: boolean;
-    placeholder?: string;
-    content?: string;
-    style?: {
-      backgroundColor?: string;
-      color?: string;
-      fontSize?: string;
-      borderRadius?: string;
-      borderWidth?: string;
-      borderColor?: string;
-    };
-  }>>([
+  const [formElements, setFormElements] = useState<Array<FormField>>([
     { type: 'title', id: 'title-1', label: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery' },
     { type: 'text', id: 'name-1', label: language === 'ar' ? 'الاسم الكامل' : 'Full name', required: true, placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name' },
     { type: 'phone', id: 'phone-1', label: language === 'ar' ? 'رقم الهاتف' : 'Phone number', required: true, placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number' },
@@ -93,6 +78,7 @@ const FormBuilderPage = () => {
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [formDescription, setFormDescription] = useState('');
+  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
 
   const deleteElement = (index: number) => {
     const updatedElements = [...formElements];
@@ -212,7 +198,7 @@ const FormBuilderPage = () => {
 
   const editElement = (index: number) => {
     const element = formElements[index];
-    setCurrentEditingField(element as FormField);
+    setCurrentEditingField(element);
     setIsFieldEditorOpen(true);
   };
 
@@ -263,6 +249,34 @@ const FormBuilderPage = () => {
     }, 100);
   };
 
+  const handleStyleChange = (key: string, value: string) => {
+    setFormStyle({
+      ...formStyle,
+      [key]: value
+    });
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleSaveStyle = () => {
+    setIsStyleDialogOpen(false);
+    localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+  };
+
+  const duplicateElement = (index: number) => {
+    const element = formElements[index];
+    const newElement = {
+      ...element,
+      id: `${element.id}-copy-${Date.now()}`
+    };
+    
+    const updatedElements = [...formElements];
+    updatedElements.splice(index + 1, 0, newElement);
+    setFormElements(updatedElements);
+    
+    setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+  };
+
   if (!user) {
     return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
   }
@@ -272,43 +286,40 @@ const FormBuilderPage = () => {
       <AppSidebar />
       
       {activeTab === 'dashboard' ? (
-        <div className="flex min-h-screen bg-[#F8F9FB]">
-          <AppSidebar />
-          <main className="flex-1 p-8">
-            <div className="max-w-[1400px] mx-auto">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">
-                    {language === 'ar' ? 'النماذج' : 'Forms'}
-                  </h1>
-                  <p className="text-gray-600">
-                    {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => setIsTemplateDialogOpen(true)} 
-                    variant="outline"
-                  >
-                    {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
-                  </Button>
-                  <Button 
-                    onClick={handleCreateForm} 
-                    className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-                  </Button>
-                </div>
+        <div className="flex-1 p-8">
+          <div className="max-w-[1400px] mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  {language === 'ar' ? 'النماذج' : 'Forms'}
+                </h1>
+                <p className="text-gray-600">
+                  {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
+                </p>
               </div>
-              
-              <FormList 
-                forms={forms} 
-                isLoading={isLoading}
-                onSelectForm={handleSelectForm}
-              />
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsTemplateDialogOpen(true)} 
+                  variant="outline"
+                >
+                  {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
+                </Button>
+                <Button 
+                  onClick={handleCreateForm} 
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+                </Button>
+              </div>
             </div>
-          </main>
+            
+            <FormList 
+              forms={forms} 
+              isLoading={isLoading}
+              onSelectForm={handleSelectForm}
+            />
+          </div>
           
           <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
             <FormTemplatesDialog 
@@ -319,76 +330,22 @@ const FormBuilderPage = () => {
         </div>
       ) : (
         <main className="flex-1 overflow-auto">
-          <div className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate('/forms')}>
-                {language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
-              </Button>
-              <div className="h-4 w-[1px] bg-gray-300"></div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full flex items-center gap-2">
-                <span>{language === 'ar' ? 'نموذج كـ نافذة منبثقة' : 'Form as popup'}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsStyleDialogOpen(true)}
-              >
-                {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
-              </Button>
-              <Button 
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => setIsTemplateDialogOpen(true)}
-              >
-                {language === 'ar' ? 'قوالب النماذج' : 'Form Templates'}
-              </Button>
-              <Button 
-                className="flex items-center gap-2 bg-[#9b87f5] hover:bg-[#7E69AB]" 
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                ) : (
-                  <Save size={18} />
-                )}
-                {language === 'ar' ? 'حفظ' : 'Save'}
-              </Button>
-            </div>
-          </div>
+          <FormHeader 
+            onSave={handleSave}
+            onPublish={() => {}}
+            onStyleOpen={() => setIsStyleDialogOpen(true)}
+            onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+            isSaving={isSaving}
+            isPublishing={false}
+            isPublished={false}
+          />
           
           <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
             <div className="col-span-2 border-r bg-white p-4">
-              <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
-              </h3>
-              
-              <div className="space-y-2">
-                {availableElements.map((element) => (
-                  <div 
-                    key={element.type}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
-                  >
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="p-1" 
-                      onClick={() => addElement(element.type)}
-                    >
-                      <Plus size={16} />
-                    </Button>
-                    
-                    <div className="flex items-center gap-2">
-                      <span>{element.label}</span>
-                      <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
-                        {element.icon}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <FormElementList 
+                availableElements={availableElements}
+                onAddElement={addElement}
+              />
             </div>
             
             <div className="col-span-6 bg-gray-50 p-6">
@@ -405,231 +362,42 @@ const FormBuilderPage = () => {
                   items={formElements.map(el => el.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-md border">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">
-                          {language === 'ar' ? 'تنسيق النموذج العام' : 'Global form styling'}
-                        </h3>
-                        <Button variant="ghost" size="sm">
-                          <ChevronDown size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {formElements.map((element, index) => (
-                      <div 
-                        key={element.id}
-                        className={`bg-white p-4 rounded-md border ${selectedElementIndex === index ? 'ring-2 ring-[#9b87f5]' : ''}`}
-                        onClick={() => setSelectedElementIndex(index)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-500 p-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteElement(index);
-                                }}
-                              >
-                                <Trash size={16} />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-blue-500 p-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
-                                  const updatedElements = [...formElements];
-                                  updatedElements.splice(index + 1, 0, newElement);
-                                  setFormElements(updatedElements);
-                                  setTimeout(() => setRefreshKey(prev => prev + 1), 100);
-                                  toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
-                                }}
-                              >
-                                <Copy size={16} />
-                              </Button>
-                              <span className="border-r h-4 mx-2"></span>
-                              <span className="font-medium">
-                                {element.label} {language === 'ar' ? 'إعدادات' : 'configuration'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="bg-green-100 text-green-700 rounded-full p-1 h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newElement = {...element, id: `${element.id}-copy-${Date.now()}`};
-                                const updatedElements = [...formElements];
-                                updatedElements.splice(index + 1, 0, newElement);
-                                setFormElements(updatedElements);
-                                setTimeout(() => setRefreshKey(prev => prev + 1), 100);
-                                toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
-                              }}
-                            >
-                              <Copy size={16} />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                editElement(index);
-                              }}
-                            >
-                              <Edit size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <FormElementEditor
+                    elements={formElements}
+                    selectedIndex={selectedElementIndex}
+                    onSelectElement={setSelectedElementIndex}
+                    onEditElement={editElement}
+                    onDeleteElement={deleteElement}
+                    onDuplicateElement={duplicateElement}
+                  />
                 </SortableContext>
               </DndContext>
             </div>
             
             <div className="col-span-4 border-l bg-white p-6">
-              <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
-              </h3>
-              
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <FormPreview 
-                  key={refreshKey}
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  currentStep={1}
-                  totalSteps={1}
-                  formStyle={formStyle}
-                  fields={formElements as FormField[]}
-                >
-                  <div></div>
-                </FormPreview>
-              </div>
+              <FormPreviewPanel
+                formTitle={formTitle}
+                formDescription={formDescription}
+                currentStep={currentPreviewStep}
+                totalSteps={1}
+                formStyle={formStyle}
+                fields={formElements}
+                onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+                onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
+                refreshKey={refreshKey}
+              />
             </div>
           </div>
         </main>
       )}
       
-      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
-        <DialogContent>
-          <DialogTitle>
-            {language === 'ar' ? 'تخصيص مظهر النموذج' : 'Customize Form Style'}
-          </DialogTitle>
-          <DialogDescription>
-            {language === 'ar' ? 'قم بتخصيص مظهر النموذج لتناسب هويتك التجارية' : 'Customize the form appearance to match your brand identity'}
-          </DialogDescription>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="primary-color" className="text-sm font-medium">
-                {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="primary-color"
-                  type="color"
-                  value={formStyle.primaryColor}
-                  onChange={(e) => {
-                    setFormStyle({...formStyle, primaryColor: e.target.value});
-                    setRefreshKey(prev => prev + 1);
-                  }}
-                  className="w-10 h-10 rounded"
-                />
-                <input
-                  type="text"
-                  value={formStyle.primaryColor}
-                  onChange={(e) => {
-                    setFormStyle({...formStyle, primaryColor: e.target.value});
-                    setRefreshKey(prev => prev + 1);
-                  }}
-                  className="flex-1 px-3 py-2 border rounded"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="border-radius" className="text-sm font-medium">
-                {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
-              </label>
-              <select
-                id="border-radius"
-                value={formStyle.borderRadius}
-                onChange={(e) => {
-                  setFormStyle({...formStyle, borderRadius: e.target.value});
-                  setRefreshKey(prev => prev + 1);
-                }}
-                className="px-3 py-2 border rounded"
-              >
-                <option value="0">None</option>
-                <option value="0.25rem">Small</option>
-                <option value="0.5rem">Medium</option>
-                <option value="1rem">Large</option>
-                <option value="9999px">Round</option>
-              </select>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="font-size" className="text-sm font-medium">
-                {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-              </label>
-              <select
-                id="font-size"
-                value={formStyle.fontSize}
-                onChange={(e) => {
-                  setFormStyle({...formStyle, fontSize: e.target.value});
-                  setRefreshKey(prev => prev + 1);
-                }}
-                className="px-3 py-2 border rounded"
-              >
-                <option value="0.875rem">Small</option>
-                <option value="1rem">Medium</option>
-                <option value="1.125rem">Large</option>
-              </select>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="button-style" className="text-sm font-medium">
-                {language === 'ar' ? 'نمط الأزرار' : 'Button Style'}
-              </label>
-              <select
-                id="button-style"
-                value={formStyle.buttonStyle}
-                onChange={(e) => {
-                  setFormStyle({...formStyle, buttonStyle: e.target.value});
-                  setRefreshKey(prev => prev + 1);
-                }}
-                className="px-3 py-2 border rounded"
-              >
-                <option value="rounded">Rounded</option>
-                <option value="square">Square</option>
-                <option value="pill">Pill</option>
-              </select>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              onClick={() => {
-                setIsStyleDialogOpen(false);
-                localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
-              }}
-            >
-              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormStyleEditor
+        isOpen={isStyleDialogOpen}
+        onOpenChange={setIsStyleDialogOpen}
+        formStyle={formStyle}
+        onStyleChange={handleStyleChange}
+        onSave={handleSaveStyle}
+      />
 
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
@@ -650,3 +418,6 @@ const FormBuilderPage = () => {
 };
 
 export default FormBuilderPage;
+
+// Need to add Dialog import
+import { Dialog } from '@/components/ui/dialog';
