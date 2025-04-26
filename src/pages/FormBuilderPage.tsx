@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -27,13 +26,15 @@ import {
 import FieldEditor from '@/components/form/FieldEditor';
 import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
 import FormList from '@/components/form/FormList';
-
-// Import refactored components
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormElementList from '@/components/form/builder/FormElementList';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
+import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import { useShopify } from '@/hooks/useShopify';
+import { ShopifyFormData } from '@/lib/shopify/types';
+import { Dialog } from '@/components/ui/dialog';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -79,6 +80,9 @@ const FormBuilderPage = () => {
   const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [formDescription, setFormDescription] = useState('');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
+  const [isShopifyConnected, setIsShopifyConnected] = useState(false);
+
+  const shopifyIntegration = useShopify();
 
   const deleteElement = (index: number) => {
     const updatedElements = [...formElements];
@@ -277,6 +281,23 @@ const FormBuilderPage = () => {
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
   };
 
+  const handleShopifyIntegration = async (settings: ShopifyFormData) => {
+    try {
+      await shopifyIntegration.syncFormWithShopify(settings);
+      toast.success(
+        language === 'ar' 
+          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+          : 'Shopify settings saved successfully'
+      );
+    } catch (error) {
+      toast.error(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'Error saving Shopify settings'
+      );
+    }
+  };
+
   if (!user) {
     return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
   }
@@ -413,11 +434,18 @@ const FormBuilderPage = () => {
           onClose={() => setIsFieldEditorOpen(false)}
         />
       )}
+
+      {activeTab === 'editor' && (
+        <div className="mt-6">
+          <ShopifyIntegration
+            formId={formId || ''}
+            onSave={handleShopifyIntegration}
+            isConnected={isShopifyConnected}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 export default FormBuilderPage;
-
-// Need to add Dialog import
-import { Dialog } from '@/components/ui/dialog';
