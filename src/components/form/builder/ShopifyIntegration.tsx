@@ -17,17 +17,20 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
+import { Loader } from 'lucide-react';
 
 interface ShopifyIntegrationProps {
   formId: string;
   onSave: (settings: ShopifyFormData) => void;
   isConnected: boolean;
+  isSyncing?: boolean;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formId,
   onSave,
   isConnected,
+  isSyncing = false,
 }) => {
   const { language } = useI18n();
   const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
@@ -85,9 +88,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         <Button
           onClick={handleSave}
           className="w-full"
-          disabled={!isConnected}
+          disabled={!isConnected || isSyncing}
         >
-          {language === 'ar' ? 'حفظ التكامل' : 'Save Integration'}
+          {isSyncing ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              {language === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...'}
+            </>
+          ) : (
+            language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
+          )}
         </Button>
 
         {!isConnected && (
@@ -97,6 +107,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               : 'You need to connect to Shopify first'}
           </p>
         )}
+
+        <div className="mt-4">
+          <p className="text-sm text-gray-500">
+            {language === 'ar'
+              ? 'سيتم مزامنة النموذج تلقائياً عند تحديث المنتجات في متجرك'
+              : 'The form will automatically sync when products are updated in your store'}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

@@ -97,8 +97,88 @@ class ShopifyAPI {
   }
 
   async syncFormData(formData: ShopifyFormData): Promise<void> {
-    // This would be implemented when we have the Shopify app backend set up
-    console.log('Syncing form data with Shopify...', formData);
+    const mutation = `
+      mutation createAppExtension($input: AppExtensionInput!) {
+        appExtensionCreate(input: $input) {
+          appExtension {
+            id
+            title
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      input: {
+        type: 'CHECKOUT_POST_PURCHASE',
+        title: 'Form Integration',
+        config: JSON.stringify(formData),
+      },
+    };
+
+    try {
+      await this.fetchAPI(mutation, variables);
+      console.log('Form synced with Shopify successfully');
+    } catch (error) {
+      console.error('Error syncing form with Shopify:', error);
+      throw error;
+    }
+  }
+
+  async verifyConnection(): Promise<boolean> {
+    try {
+      const query = `
+        query {
+          shop {
+            name
+          }
+        }
+      `;
+      await this.fetchAPI(query);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async setupAutoSync(formData: ShopifyFormData): Promise<void> {
+    const mutation = `
+      mutation createWebhook($topic: WebhookSubscriptionTopic!, $callbackUrl: URL!) {
+        webhookSubscriptionCreate(
+          topic: $topic,
+          webhookSubscription: {
+            callbackUrl: $callbackUrl,
+            format: JSON
+          }
+        ) {
+          webhookSubscription {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    try {
+      // Setup webhooks for product updates
+      await this.fetchAPI(mutation, {
+        topic: 'PRODUCTS_UPDATE',
+        callbackUrl: `https://${window.location.host}/api/shopify-webhook`,
+      });
+      
+      // Initial sync
+      await this.syncFormData(formData);
+    } catch (error) {
+      console.error('Error setting up auto-sync:', error);
+      throw error;
+    }
   }
 }
 
