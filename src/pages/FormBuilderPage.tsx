@@ -143,7 +143,12 @@ const FormBuilderPage = () => {
       const templateStyle = storedStyle ? JSON.parse(storedStyle) : null;
       
       if (templateStyle) {
-        setFormStyle(templateStyle);
+        setFormStyle({
+          primaryColor: template.primaryColor || templateStyle.primaryColor,
+          borderRadius: templateStyle.borderRadius,
+          fontSize: templateStyle.fontSize,
+          buttonStyle: templateStyle.buttonStyle
+        });
       }
       
       if (activeTab === 'editor') {
@@ -388,7 +393,7 @@ const FormBuilderPage = () => {
             
             <div className="col-span-6 bg-gray-50 p-6">
               <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'تحرير ��ترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+                {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
               </h2>
               
               <DndContext 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   DialogContent,
@@ -151,7 +152,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
     // Template 2 - Blue theme
     <div key="template-2" className="border rounded-lg overflow-hidden bg-white">
       <div className="p-4 bg-blue-500 text-white text-center">
-        {language === 'ar' ? 'الرجاء إدخال معلوماتك ل��طلب' : 'To order, please enter your information here'}
+        {language === 'ar' ? 'الرجاء إدخال معلوماتك للطلب' : 'To order, please enter your information here'}
       </div>
       <div className="p-4">
         <div className="space-y-3 mb-4">
@@ -344,7 +345,13 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   const handleSelectTemplate = () => {
     const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
     if (currentTemplate) {
-      const templateStyle = templateColors[currentTemplateIndex] || templateColors[0];
+      const templateStyle = {
+        primaryColor: currentTemplate.primaryColor || templateColors[currentTemplateIndex].primaryColor,
+        borderRadius: templateColors[currentTemplateIndex].borderRadius,
+        fontSize: templateColors[currentTemplateIndex].fontSize,
+        buttonStyle: templateColors[currentTemplateIndex].buttonStyle
+      };
+      
       toast.success(`تم اختيار قالب ${currentTemplate.title}`);
       onSelect(currentTemplate.id);
       
@@ -353,7 +360,14 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   };
 
   const currentTemplate = formTemplates[currentTemplateIndex] || formTemplates[0];
-  const formPreviewStyle = templateColors[currentTemplateIndex] || templateColors[0];
+  
+  // Use the primary color from the current template
+  const formPreviewStyle = {
+    primaryColor: currentTemplate.primaryColor || templateColors[currentTemplateIndex].primaryColor,
+    borderRadius: templateColors[currentTemplateIndex].borderRadius,
+    fontSize: templateColors[currentTemplateIndex].fontSize,
+    buttonStyle: templateColors[currentTemplateIndex].buttonStyle
+  };
 
   useEffect(() => {
     if (currentTemplateIndex >= formTemplates.length) {
@@ -393,20 +407,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
             </div>
             <div className="col-span-2 border rounded relative overflow-hidden">
               <div className="max-h-[400px] overflow-auto p-2">
-                {currentTemplate && currentTemplate.data && currentTemplate.data.length > 0 ? (
-                  <FormPreview
-                    formTitle={currentTemplate.title}
-                    formDescription={currentTemplate.description}
-                    currentStep={1}
-                    totalSteps={currentTemplate.data.length}
-                    formStyle={formPreviewStyle}
-                    fields={currentTemplate.data.flatMap(step => step.fields)}
-                  >
-                    <div></div>
-                  </FormPreview>
-                ) : (
-                  templateImages[currentTemplateIndex]
-                )}
+                {currentTemplateIndex !== null && templateImages[currentTemplateIndex]}
               </div>
             </div>
           </div>

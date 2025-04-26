@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -34,7 +33,7 @@ export interface FormTemplate {
   description: string;
   steps: number;
   fields: number;
-  primaryColor?: string; // Add primary color to template
+  primaryColor: string; // Change to required property to ensure it's always set
   data: FormStep[];
 }
 
