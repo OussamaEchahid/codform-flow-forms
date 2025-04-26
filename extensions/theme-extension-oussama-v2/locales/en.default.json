@@ -1,0 +1,14 @@
+{
+  "codform-button": {
+    "button_text": "Create COD Form",
+    "description_text": "Click here to create a Cash on Delivery form for this product"
+  },
+  "ratings": {
+    "stars": {
+      "label": "Star Rating"
+    },
+    "home": {
+      "recommendationText": "Recommended by our customers"
+    }
+  }
+}

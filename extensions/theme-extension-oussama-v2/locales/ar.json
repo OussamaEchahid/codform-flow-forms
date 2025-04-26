@@ -1,0 +1,14 @@
+{
+  "codform-button": {
+    "button_text": "إنشاء نموذج الدفع عند الاستلام",
+    "description_text": "انقر هنا لإنشاء نموذج الدفع عند الاستلام لهذا المنتج"
+  },
+  "ratings": {
+    "stars": {
+      "label": "تقييم النجوم"
+    },
+    "home": {
+      "recommendationText": "موصى به من قبل عملائنا"
+    }
+  }
+}

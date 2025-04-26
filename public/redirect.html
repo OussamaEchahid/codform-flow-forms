@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جاري التوجيه - CODFORM</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f6f6f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        h1 {
+            color: #5c6ac4;
+            margin-bottom: 20px;
+        }
+        p {
+            margin-bottom: 30px;
+            color: #637381;
+            line-height: 1.5;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #5c6ac4;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .button {
+            background-color: #5c6ac4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover {
+            background-color: #4959bd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>جاري التوجيه إلى لوحة التحكم</h1>
+        <div class="loader"></div>
+        <p>يرجى الانتظار بينما يتم توجيهك إلى لوحة التحكم الخاصة بك...</p>
+        <a href="/dashboard" class="button" id="redirectButton">الانتقال الآن</a>
+    </div>
+
+    <script>
+        // استخراج معلمات URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop = urlParams.get('shop');
+        const hmac = urlParams.get('hmac');
+        const host = urlParams.get('host');
+        const session = urlParams.get('session');
+        const timestamp = urlParams.get('timestamp');
+        
+        // بناء عنوان URL للتوجيه
+        let redirectUrl = '/dashboard';
+        const params = [];
+        
+        if (shop) params.push(`shop=${encodeURIComponent(shop)}`);
+        if (hmac) params.push(`hmac=${encodeURIComponent(hmac)}`);
+        if (host) params.push(`host=${encodeURIComponent(host)}`);
+        if (session) params.push(`session=${encodeURIComponent(session)}`);
+        if (timestamp) params.push(`timestamp=${encodeURIComponent(timestamp)}`);
+        
+        if (params.length > 0) {
+            redirectUrl += '?' + params.join('&');
+        }
+        
+        // تحديث الرابط
+        document.getElementById('redirectButton').href = redirectUrl;
+        
+        // التوجيه التلقائي بعد ثانيتين
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 2000);
+        
+        console.log('Redirecting to:', redirectUrl);
+    </script>
+</body>
+</html>

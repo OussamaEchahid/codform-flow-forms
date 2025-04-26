@@ -1,0 +1,41 @@
+{% schema %}
+{
+  "name": "CODFORM FORM",
+  "target": "section",
+  "stylesheet": "codform.css",
+  "javascript": "codform.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "عنوان النموذج",
+      "default": "نموذج الدفع عند الاستلام"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "نص الزر",
+      "default": "إرسال الطلب"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="codform-container">
+  <h2>{{ block.settings.title }}</h2>
+  <form id="codform-payment-form" class="codform-form">
+    <div class="form-group">
+      <label for="fullName">الاسم الكامل</label>
+      <input type="text" id="fullName" name="fullName" required>
+    </div>
+    <div class="form-group">
+      <label for="phone">رقم الهاتف</label>
+      <input type="tel" id="phone" name="phone" required>
+    </div>
+    <div class="form-group">
+      <label for="address">العنوان</label>
+      <textarea id="address" name="address" required></textarea>
+    </div>
+    <button type="submit" class="codform-submit-btn">{{ block.settings.button_text }}</button>
+  </form>
+</div>

@@ -1,0 +1,40 @@
+<div class="codform-button-container" style="margin: 20px 0; text-align: center;">
+  <a href="https://leasing-cassette-trace-blink.trycloudflare.com/dashboard?shop={{ shop.domain }}&product={{ product.id }}" 
+     target="_blank" 
+     class="codform-button" 
+     style="display: inline-block; padding: 12px 24px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+    {{ block.settings.button_text }}
+  </a>
+  {% if block.settings.show_description %}
+    <p style="margin-top: 10px; font-size: 14px; color: #666;">
+      {{ block.settings.description_text }}
+    </p>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "CODFORM - نماذج الدفع عند الاستلام",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "نص الزر",
+      "default": "إنشاء نموذج الدفع عند الاستلام"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "إظهار الوصف",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "description_text",
+      "label": "نص الوصف",
+      "default": "انقر هنا لإنشاء نموذج الدفع عند الاستلام لهذا المنتج"
+    }
+  ]
+}
+{% endschema %}
