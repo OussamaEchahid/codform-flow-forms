@@ -26,10 +26,10 @@ export default function Index() {
     if (shop) {
       window.location.href = `/auth?shop=${shop}`;
     } else {
-      toast.success('تم الاتصال بنجاح');
       navigate('/dashboard');
     }
   }, [navigate]);
   
   return null;
 }
+

@@ -25,7 +25,11 @@ api_version = "2025-04"
 scopes = "write_products,read_orders,write_orders"
 
 [auth]
-redirect_urls = [ "https://codform-flow-forms.lovable.app/auth/callback" ]
+redirect_urls = [
+  "https://codform-flow-forms.lovable.app/auth/callback",
+  "https://codform-flow-forms.lovable.app/auth"
+]
 
 [pos]
 embedded = false
+
