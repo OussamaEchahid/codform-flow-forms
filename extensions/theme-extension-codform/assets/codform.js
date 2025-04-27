@@ -1,4 +1,8 @@
-// CODFORM - نماذج الدفع عند الاستلام
+// تحديث عنوان API في ملف JavaScript
+window.CODFormApp = (function() {
+  const API_URL = 'https://codform-flow-forms.lovable.app/api';
+  
+  // CODFORM - نماذج الدفع عند الاستلام
 
 (function() {
   // Initialize CODFORM when the DOM is loaded
@@ -306,4 +310,5 @@
     const error = container.querySelector('.codform-error');
     if (error) error.style.display = 'none';
   }
+})();
 })();

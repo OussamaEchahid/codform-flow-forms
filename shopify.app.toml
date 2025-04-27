@@ -4,7 +4,7 @@
 client_id = "7e4608874bbcc38afa1953948da28407"
 name = "CODFORM - نماذج الدفع عند الاستلام"
 handle = "codform-flow-forms"
-application_url = "https://leasing-cassette-trace-blink.trycloudflare.com/"
+application_url = "https://codform-flow-forms.lovable.app"
 embedded = false
 
 [build]
@@ -22,11 +22,11 @@ api_version = "2025-04"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products,read_orders,write_orders"
 
 [auth]
-redirect_urls = [ "https://leasing-cassette-trace-blink.trycloudflare.com/auth/callback" ]
+redirect_urls = [ "https://codform-flow-forms.lovable.app/auth/callback" ]
 
 [pos]
 embedded = false
+

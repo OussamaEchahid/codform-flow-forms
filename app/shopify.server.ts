@@ -1,4 +1,3 @@
-
 import "@shopify/shopify-app-remix/adapters/node";
 import {
   ApiVersion,
@@ -13,14 +12,13 @@ const shopify = shopifyApp({
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
   apiVersion: ApiVersion.January25,
   scopes: process.env.SCOPES?.split(",") || ["write_products", "read_orders", "write_orders"],
-  appUrl: process.env.SHOPIFY_APP_URL || "https://leasing-cassette-trace-blink.trycloudflare.com/",
+  appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: false,
   hooks: {
     afterAuth: async ({ session }) => {
-      // بعد المصادقة، توجيه المستخدم إلى لوحة التحكم
       return {
         status: 302,
         headers: {
