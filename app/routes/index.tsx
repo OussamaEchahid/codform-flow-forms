@@ -10,9 +10,11 @@ export async function loader({ request }) {
   
   if (shopifyReferrer) {
     console.log("Redirecting to auth with shop:", shopifyReferrer);
+    // إذا كان هناك متجر في الـ URL، قم بتوجيه المستخدم إلى مسار المصادقة
     return redirect(`/auth?shop=${shopifyReferrer}`);
   }
   
+  // إذا لم يكن هناك متجر، قم بتوجيه المستخدم إلى لوحة التحكم
   return redirect('/dashboard');
 }
 
@@ -22,12 +24,16 @@ export default function Index() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
+    const authError = params.get("auth_error");
+    
+    if (authError) {
+      toast.error('حدث خطأ في المصادقة مع Shopify. يرجى المحاولة مرة أخرى.');
+    }
     
     if (shop) {
       console.log("Shop detected in URL, redirecting to auth:", shop);
       window.location.href = `/auth?shop=${shop}`;
     } else {
-      toast.success('تم التوجيه إلى لوحة التحكم بنجاح');
       navigate('/dashboard');
     }
   }, [navigate]);

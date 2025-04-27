@@ -9,11 +9,11 @@ export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
     console.log("Authentication successful for shop:", session.shop);
     
-    // بعد المصادقة، قم بالتوجيه إلى لوحة التحكم مع معلومة نجاح الاتصال بشوبيفاي
+    // بعد المصادقة الناجحة، قم بالتوجيه مباشرة إلى لوحة التحكم مع معلومة نجاح الاتصال
     return redirect("/dashboard?shopify_connected=true");
   } catch (error) {
     console.error("Authentication error:", error);
-    // في حالة وجود خطأ في المصادقة، قم بالتوجيه إلى الصفحة الرئيسية مع رسالة خطأ
+    // في حالة وجود خطأ في المصادقة، أعد توجيه المستخدم إلى الصفحة الرئيسية
     return redirect("/?auth_error=true");
   }
 };

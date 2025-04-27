@@ -12,47 +12,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const handleAuth = () => {
-      // Get URL parameters - important for Shopify redirects
+      // التحقق من معلمات Shopify في عنوان URL
       const params = new URLSearchParams(window.location.search);
       const shop = params.get("shop");
-      const hmac = params.get("hmac"); // Shopify HMAC parameter
-      const timestamp = params.get("timestamp"); // Shopify timestamp parameter
+      const shopifyConnected = params.get("shopify_connected");
+      const hmac = params.get("hmac");
+      const timestamp = params.get("timestamp");
+      const authError = params.get("auth_error");
 
-      // If we have shop-related parameters, we're in a Shopify OAuth flow
+      // عرض إشعارات لحالات الاتصال بـ Shopify
+      if (shopifyConnected === "true") {
+        toast.success('تم الاتصال بمتجر Shopify بنجاح');
+      }
+      
+      if (authError === "true") {
+        toast.error('حدث خطأ في الاتصال بمتجر Shopify');
+      }
+
+      // إذا كان هناك معلمات Shopify، فنحن في تدفق مصادقة Shopify
       if (shop || hmac || timestamp) {
         console.log("Shopify auth parameters detected:", { shop, hmac, timestamp });
         
-        // If we're on the root path with shop parameters, redirect to auth
+        // إذا كنا في المسار الجذر مع معلمات متجر، قم بالتوجيه إلى المصادقة
         if (location.pathname === '/') {
           window.location.href = `/auth?${params.toString()}`;
           return;
         }
         
-        // Don't interrupt the Shopify auth flow
-        if (location.pathname.startsWith('/auth')) {
+        // لا تقاطع تدفق المصادقة إذا كنا في مسار المصادقة
+        if (location.pathname.startsWith('/auth') || location.pathname.startsWith('/shopify')) {
           console.log("In auth flow, not redirecting");
+          setAuthChecked(true);
           return;
         }
       }
 
-      // Regular app authentication logic
+      // منطق المصادقة العادي للتطبيق
       if (user) {
-        // User is logged in
+        // المستخدم مسجل الدخول
         if (location.pathname === '/auth') {
           console.log("User logged in but on auth page, redirecting to dashboard");
           navigate('/dashboard');
-          toast.success('تم تسجيل الدخول بنجاح');
-        } else if (location.pathname === '/') {
-          console.log("User logged in and on root, redirecting to dashboard");
-          navigate('/dashboard');
-          toast.success('تم التوجيه إلى لوحة التحكم');
         }
       } else {
-        // User is not logged in
-        if (location.pathname === '/dashboard' || location.pathname.startsWith('/form-builder')) {
-          console.log("User not logged in but on protected page, redirecting to auth");
+        // المستخدم غير مسجل الدخول
+        // السماح بالوصول إلى الصفحة الرئيسية دون تسجيل الدخول
+        if (location.pathname !== '/' && 
+            !location.pathname.startsWith('/auth') && 
+            !location.pathname.startsWith('/shopify')) {
+          // توجيه المستخدم إلى المصادقة إذا كان يحاول الوصول إلى صفحات محمية
+          console.log("User not logged in accessing protected page, redirecting to auth");
           navigate('/auth');
-          toast.error('يرجى تسجيل الدخول أولاً');
         }
       }
       
@@ -61,6 +71,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     handleAuth();
   }, [user, navigate, location.pathname]);
+
+  // لا تعرض أي شيء حتى نتحقق من حالة المصادقة
+  if (!authChecked && !location.pathname.startsWith('/auth') && !location.pathname.startsWith('/shopify')) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ user, session }}>

@@ -21,11 +21,11 @@ const shopify = shopifyApp({
   hooks: {
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
-      // Redirect to dashboard after successful authentication
+      // بعد المصادقة الناجحة، قم بتوجيه المستخدم إلى لوحة التحكم
       return {
         status: 302,
         headers: {
-          Location: "/dashboard?shopify_connected=true",
+          Location: `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}`,
         },
       };
     }
