@@ -2,9 +2,9 @@
 import { redirect } from "@remix-run/node";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'sonner';
 
 export async function loader({ request }) {
-  // إذا كان هناك معلمة shop، قم بالتوجيه إلى مسار المصادقة
   const url = new URL(request.url);
   const shopifyReferrer = url.searchParams.get("shop");
   
@@ -13,26 +13,23 @@ export async function loader({ request }) {
     return redirect(`/auth?shop=${shopifyReferrer}`);
   }
   
-  // خلاف ذلك، عرض المكون
-  return null;
+  return redirect('/dashboard');
 }
 
 export default function Index() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // التحقق مما إذا كان هناك معلمة shop في العنوان
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
     
     if (shop) {
-      // التأكد من استخدام العنوان الكامل بدلاً من التوجيه النسبي
-      console.log("Client-side redirect to auth with shop:", shop);
       window.location.href = `/auth?shop=${shop}`;
+    } else {
+      toast.success('تم الاتصال بنجاح');
+      navigate('/dashboard');
     }
   }, [navigate]);
   
-  // استيراد وعرض المكون الأصلي Index
-  const OriginalIndex = require("../../src/pages/Index").default;
-  return <OriginalIndex />;
+  return null;
 }

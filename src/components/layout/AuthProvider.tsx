@@ -9,16 +9,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // إذا كان المستخدم على صفحة المصادقة وهو مسجل الدخول بالفعل، أعد توجيهه إلى لوحة التحكم
     if (user && window.location.pathname === '/auth') {
       navigate('/dashboard');
       toast.success('تم تسجيل الدخول بنجاح');
     }
     
-    // إذا كان المستخدم على صفحة لوحة التحكم أو بناء النماذج وهو غير مسجل الدخول، أعد توجيهه إلى صفحة المصادقة
     if (!user && (window.location.pathname === '/dashboard' || window.location.pathname.startsWith('/form-builder'))) {
       navigate('/auth');
       toast.error('يرجى تسجيل الدخول أولاً');
+    }
+
+    if (user && window.location.pathname === '/') {
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 

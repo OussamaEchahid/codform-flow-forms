@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -10,19 +9,34 @@ import {
   Gift,
   ImageIcon,
   Globe,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 const AppSidebar = () => {
   const { t, language, setLanguage } = useI18n();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success(t('logoutSuccess'));
+      navigate('/auth');
+    } catch (error) {
+      toast.error(t('logoutError'));
+    }
+  };
 
   const navItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
@@ -84,6 +98,16 @@ const AppSidebar = () => {
                 </NavLink>
               </li>
             ))}
+            
+            <li>
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 px-4 py-2 rounded-lg transition-colors text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]"
+              >
+                <LogOut size={20} />
+                <span>{t('logout')}</span>
+              </button>
+            </li>
           </ul>
         </nav>
       </div>
