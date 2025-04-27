@@ -36,7 +36,7 @@ const Dashboard = () => {
             <p className="text-gray-600">The Best Performing Cash On Delivery Form in Shopify</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 hover:shadow-lg transition-all duration-300">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-purple-100">
@@ -74,7 +74,7 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <Card className="p-6 hover:shadow-lg transition-all duration-300">
               <h3 className="text-lg font-semibold mb-4">Orders</h3>
               <div className="h-[300px]">
