@@ -15,6 +15,7 @@ export async function loader({ request }) {
   }
   
   // إذا لم يكن هناك متجر، قم بتوجيه المستخدم إلى لوحة التحكم
+  // هذا سيسمح لنا بالتحكم في المزيد من المنطق في لوحة التحكم
   return redirect('/dashboard');
 }
 
@@ -32,9 +33,11 @@ export default function Index() {
     
     if (shop) {
       console.log("Shop detected in URL, redirecting to auth:", shop);
+      // توجيه مباشر إلى مسار المصادقة مع متغير المتجر
       window.location.href = `/auth?shop=${shop}`;
     } else {
-      navigate('/dashboard');
+      // بدون معلمات متجر، انتقل إلى لوحة التحكم
+      navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
   

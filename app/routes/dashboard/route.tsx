@@ -1,11 +1,12 @@
 
 import { LoaderFunctionArgs, json } from "@remix-run/node";
 import { authenticate } from "../../shopify.server";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const shopifyConnected = url.searchParams.get("shopify_connected");
+  const shop = url.searchParams.get("shop");
+  
   try {
     // محاولة المصادقة مع Shopify
     const { admin, session } = await authenticate.admin(request);
@@ -16,29 +17,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       shop: session.shop 
     });
   } catch (error) {
-    console.log("Not authenticated with Shopify, allowing access anyway");
+    console.log("Not authenticated with Shopify, checking if coming from auth flow");
+    
+    // إذا كنا قادمين من مسار المصادقة مع معلمات متجر ناجحة
+    if (shopifyConnected === "true" && shop) {
+      return json({ 
+        shopifyConnected: true,
+        shop: shop
+      });
+    }
+    
     // حتى لو لم تكن هناك جلسة Shopify، نسمح بالوصول إلى لوحة التحكم
     return json({ 
       shopifyConnected: false
     }, { status: 200 });
   }
 };
-
-export default function ShopifyDashboard() {
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shopifyConnected = params.get("shopify_connected");
-    const shop = params.get("shop");
-    
-    if (shopifyConnected === "true" && shop) {
-      toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
-    }
-    
-    // توجيه المستخدم إلى لوحة التحكم الأصلية
-    navigate("/dashboard", { replace: true });
-  }, [navigate]);
-  
-  return null;
-}

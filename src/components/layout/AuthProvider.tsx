@@ -22,7 +22,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // عرض إشعارات لحالات الاتصال بـ Shopify
       if (shopifyConnected === "true") {
-        toast.success('تم الاتصال بمتجر Shopify بنجاح');
+        toast.success(shop ? `تم الاتصال بمتجر ${shop} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
+        
+        // إزالة معلمات URL بعد عرض الإشعار
+        if (window.history.replaceState) {
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
       }
       
       if (authError === "true") {
@@ -47,6 +53,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // اتصال Shopify - لا تحتاج إلى تسجيل الدخول
+      if (shopifyConnected === "true" || location.pathname.startsWith('/dashboard')) {
+        console.log("Shopify connection detected or in dashboard, no login required");
+        setAuthChecked(true);
+        return;
+      }
+
       // منطق المصادقة العادي للتطبيق
       if (user) {
         // المستخدم مسجل الدخول
@@ -57,10 +70,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         // المستخدم غير مسجل الدخول
         // السماح بالوصول إلى الصفحة الرئيسية دون تسجيل الدخول
+        // وأيضًا السماح بالوصول إلى لوحة التحكم إذا كان هناك اتصال بشوبيفاي
         if (location.pathname !== '/' && 
             !location.pathname.startsWith('/auth') && 
-            !location.pathname.startsWith('/shopify')) {
-          // توجيه المستخدم إلى المصادقة إذا كان يحاول الوصول إلى صفحات محمية
+            !location.pathname.startsWith('/shopify') &&
+            !location.pathname.startsWith('/dashboard')) {
+          // توجيه المستخدم إلى المصادقة إذا كان يحاول الوصول إلى صفحات محمية أخرى غير لوحة التحكم
           console.log("User not logged in accessing protected page, redirecting to auth");
           navigate('/auth');
         }

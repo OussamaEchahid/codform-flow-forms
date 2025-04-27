@@ -34,12 +34,10 @@ const ShopifyRedirect = () => {
     // تحديث حالة التوجيه
     setStatus(`جاري توجيهك إلى المصادقة مع متجر ${shop}...`);
     
-    // إضافة تأخير قصير قبل التوجيه للسماح بعرض الحالة
+    // إضافة تأخير قصير قبل التوجيه للسماح بعرض الحالة ثم استخدام window.location للتأكد من إعادة تحميل الصفحة
     const redirectTimer = setTimeout(() => {
-      // استخدام window.location.href بدلاً من navigate للتأكد من إعادة تحميل الصفحة بالكامل
-      // الحفاظ على جميع المعلمات الأصلية في URL
       window.location.href = `/auth?${params.toString()}`;
-    }, 1000);
+    }, 500);
     
     return () => clearTimeout(redirectTimer);
   }, [location, navigate]);
@@ -61,15 +59,6 @@ const ShopifyRedirect = () => {
             <p className="mb-4">سيتم توجيهك تلقائيًا خلال لحظات...</p>
           </>
         )}
-        
-        <div className="mt-6 text-gray-500 text-sm">
-          <p>إذا لم يتم التوجيه تلقائيًا، يمكنك:</p>
-          <div className="flex justify-center gap-4 mt-2">
-            <a href="/auth" className="text-purple-600 underline hover:text-purple-800">الانتقال إلى صفحة المصادقة</a>
-            <span>|</span>
-            <a href="/dashboard" className="text-purple-600 underline hover:text-purple-800">الانتقال إلى لوحة التحكم</a>
-          </div>
-        </div>
       </div>
     </div>
   );
