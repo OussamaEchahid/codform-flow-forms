@@ -20,10 +20,12 @@ const shopify = shopifyApp({
   isEmbeddedApp: false,
   hooks: {
     afterAuth: async ({ session }) => {
+      console.log("Authentication completed successfully for shop:", session.shop);
+      // Redirect to dashboard after successful authentication
       return {
         status: 302,
         headers: {
-          Location: "/dashboard",
+          Location: "/dashboard?shopify_connected=true",
         },
       };
     }

@@ -27,9 +27,10 @@ scopes = "write_products,read_orders,write_orders"
 [auth]
 redirect_urls = [
   "https://codform-flow-forms.lovable.app/auth/callback",
-  "https://codform-flow-forms.lovable.app/auth"
+  "https://codform-flow-forms.lovable.app/auth",
+  "https://codform-flow-forms.lovable.app/shopify",
+  "https://codform-flow-forms.lovable.app"
 ]
 
 [pos]
 embedded = false
-

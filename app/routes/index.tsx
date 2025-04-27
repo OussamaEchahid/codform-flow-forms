@@ -24,12 +24,13 @@ export default function Index() {
     const shop = params.get("shop");
     
     if (shop) {
+      console.log("Shop detected in URL, redirecting to auth:", shop);
       window.location.href = `/auth?shop=${shop}`;
     } else {
+      toast.success('تم التوجيه إلى لوحة التحكم بنجاح');
       navigate('/dashboard');
     }
   }, [navigate]);
   
   return null;
 }
-
