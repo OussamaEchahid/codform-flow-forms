@@ -10,18 +10,16 @@ import { toast } from 'sonner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const [searchParams] = useSearchParams();
-  const [shopInfo, setShopInfo] = useState<{ shopifyConnected: boolean; shop?: string } | null>(null);
   
   useEffect(() => {
-    const shopifyConnected = searchParams.get("shopify_connected");
-    const shop = searchParams.get("shop");
+    const shopifyConnectedParam = searchParams.get("shopify_connected");
+    const shopParam = searchParams.get("shop");
     
-    if (shopifyConnected === "true") {
-      setShopInfo({ shopifyConnected: true, shop });
-      toast.success(shop ? `تم الاتصال بمتجر ${shop} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
+    if (shopifyConnectedParam === "true") {
+      toast.success(shopParam ? `تم الاتصال بمتجر ${shopParam} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
       
       if (window.history.replaceState) {
         const newUrl = window.location.pathname;
@@ -30,17 +28,17 @@ const Dashboard = () => {
     }
   }, [searchParams]);
 
+  if (!shopifyConnected) {
+    return <div className="text-center py-8">
+      {language === 'ar' ? 'يتم تحميل بيانات المتجر...' : 'Loading store data...'}
+    </div>;
+  }
+
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
     date: `${i + 1}/4`,
     orders: Math.floor(Math.random() * 10),
     revenue: Math.floor(Math.random() * 1000),
   }));
-
-  if (!user && !shopInfo?.shopifyConnected) {
-    return <div className="text-center py-8">
-      {language === 'ar' ? 'يتم تحميل بيانات المتجر...' : 'Loading store data...'}
-    </div>;
-  }
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -51,9 +49,9 @@ const Dashboard = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">CODFORM</h1>
             <p className="text-gray-600">The Best Performing Cash On Delivery Form in Shopify</p>
-            {shopInfo?.shop && (
+            {shop && (
               <p className="text-sm text-purple-600 mt-1">
-                {language === 'ar' ? `متصل بمتجر: ${shopInfo.shop}` : `Connected to store: ${shopInfo.shop}`}
+                {language === 'ar' ? `متصل بمتجر: ${shop}` : `Connected to store: ${shop}`}
               </p>
             )}
           </div>
