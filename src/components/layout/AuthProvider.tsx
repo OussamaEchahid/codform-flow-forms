@@ -8,7 +8,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const [authState, setAuthState] = useState({
     shopifyConnected: false,
-    shop: undefined as string | undefined
+    shop: undefined as string | undefined,
+    user: undefined as any
   });
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -23,7 +24,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (shopifyConnected === "true") {
         setAuthState({
           shopifyConnected: true,
-          shop: shop || undefined
+          shop: shop || undefined,
+          user: { id: 'shopify-user' } // Add mock user to maintain compatibility
         });
         
         toast.success(shop ? `تم الاتصال بمتجر ${shop} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
