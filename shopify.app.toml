@@ -29,4 +29,3 @@ redirect_urls = [ "https://codform-flow-forms.lovable.app/auth/callback" ]
 
 [pos]
 embedded = false
-
