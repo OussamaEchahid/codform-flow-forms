@@ -49,12 +49,28 @@
       max-height: 150px;
       overflow-y: auto;
       direction: ltr;
+      display: none;
     }
     .logo {
       font-size: 24px;
       font-weight: bold;
       margin-bottom: 1rem;
       color: #7c3aed;
+    }
+    .button {
+      display: inline-block;
+      background-color: #7c3aed;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-top: 16px;
+    }
+    .button:hover {
+      background-color: #6d28d9;
     }
   </style>
 </head>
@@ -65,10 +81,26 @@
     <div class="loader"></div>
     <p>سيتم توجيهك تلقائيًا إلى لوحة التحكم خلال لحظات...</p>
     <p id="shopInfo"></p>
+    <div id="manualRedirect" style="display: none; margin-top: 20px;">
+      <p>إذا لم تتم إعادة توجيهك تلقائياً، يرجى النقر على الزر أدناه</p>
+      <a href="/dashboard" class="button">الانتقال إلى لوحة التحكم</a>
+    </div>
     <div class="debug" id="debug"></div>
   </div>
 
   <script>
+    // عرض زر التوجيه اليدوي بعد فترة
+    setTimeout(function() {
+      document.getElementById('manualRedirect').style.display = 'block';
+    }, 5000);
+
+    // تمكين وضع التصحيح من خلال معلمة URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const debug = urlParams.get('debug') === 'true';
+    if (debug) {
+      document.getElementById('debug').style.display = 'block';
+    }
+    
     // دالة لتسجيل معلومات التشخيص
     function logDebug(message) {
       const debugElem = document.getElementById('debug');
@@ -76,7 +108,9 @@
         const now = new Date();
         const timestamp = now.toLocaleTimeString();
         debugElem.innerHTML += `<div>[${timestamp}] ${message}</div>`;
-        debugElem.style.display = "block";
+        if (debug) {
+          debugElem.style.display = "block";
+        }
       }
     }
     
@@ -85,9 +119,12 @@
     const shop = params.get("shop");
     const hmac = params.get("hmac");
     const code = params.get("code");
+    const state = params.get("state");
     
     // إظهار معلومات المتجر
     const shopInfo = document.getElementById('shopInfo');
+    
+    logDebug(`معلمات URL: ${window.location.search}`);
     
     if (shop) {
       shopInfo.textContent = "المتجر: " + shop;
@@ -95,9 +132,8 @@
       
       // حفظ معلومات المتجر في localStorage
       try {
-        localStorage.setItem('shopify_store', shop);
-        localStorage.setItem('shopify_connected', 'true');
-        logDebug('تم حفظ معلومات المتجر في localStorage');
+        localStorage.setItem('shopify_temp_store', shop);
+        logDebug('تم حفظ معلومات المتجر المؤقتة في localStorage');
       } catch (e) {
         logDebug(`خطأ في حفظ البيانات: ${e.message}`);
       }
@@ -105,10 +141,10 @@
       // تحديد المسار المستهدف بناءً على المعلمات المتوفرة
       let targetPath;
       
-      if (code) {
-        // إذا كان لدينا رمز التفويض، فهذا يعني أننا في مرحلة المصادقة الثانية
+      if (code || hmac) {
+        // إذا كان لدينا رمز التفويض أو hmac، فهذا يعني أننا في مرحلة المصادقة
         targetPath = `/auth?${params.toString()}`;
-        logDebug(`تم اكتشاف رمز التفويض، التوجيه إلى: ${targetPath}`);
+        logDebug(`تم اكتشاف معلمات مصادقة، التوجيه إلى: ${targetPath}`);
       } else {
         // إذا كان لدينا فقط متجر، توجيه إلى مسار المصادقة
         targetPath = `/shopify?shop=${encodeURIComponent(shop)}`;
@@ -129,8 +165,10 @@
       }, 1500);
     }
     
-    // عرض نافذة التشخيص
-    document.getElementById('debug').style.display = "block";
+    // عرض نافذة التشخيص إذا كانت ممكنة
+    if (debug) {
+      document.getElementById('debug').style.display = "block";
+    }
   </script>
 </body>
 </html>

@@ -22,18 +22,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const shopifyConnected = params.get("shopify_connected");
       const hmac = params.get("hmac");
       const timestamp = params.get("timestamp");
+      const authSuccess = params.get("auth_success");
 
-      // حفظ بيانات متجر Shopify في localStorage للاستمرارية
+      // استعادة بيانات متجر Shopify من localStorage
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
+      // بيانات متجر مؤقتة (أثناء المصادقة)
+      const tempShop = localStorage.getItem('shopify_temp_store');
 
       console.log('معلمات المصادقة:', { 
-        shop, shopifyConnected, hmac, 
-        savedShop, savedConnected,
+        shop, shopifyConnected, hmac, authSuccess,
+        savedShop, savedConnected, tempShop,
         pathname: location.pathname
       });
 
-      // التحقق من وجود معلمات جديدة من شوبيفاي أو بيانات مخزنة
+      // إذا كان هناك معلمة متجر وكود تفويض في URL، توجيه إلى مسار المصادقة
+      if ((shop || tempShop) && (hmac || location.pathname.startsWith('/auth'))) {
+        // المستخدم في عملية المصادقة، اتركه لعملية المصادقة
+        console.log('في عملية المصادقة، عدم التدخل...');
+        setAuthChecked(true);
+        return;
+      }
+
+      // التحقق من وجود معلمات جديدة من شوبيفاي من المصادقة الناجحة
       if (shopifyConnected === "true" && shop) {
         console.log('تم اكتشاف اتصال جديد بـ Shopify:', shop);
         
@@ -47,18 +58,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('shopify_store', shop);
         localStorage.setItem('shopify_connected', 'true');
         
-        // إظهار رسالة نجاح
-        toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+        // إزالة أي بيانات مؤقتة
+        localStorage.removeItem('shopify_temp_store');
         
-        // إزالة معلمات URL من العنوان
-        if (window.history.replaceState) {
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, newUrl);
+        // إظهار رسالة نجاح
+        if (authSuccess === "true") {
+          toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
         }
         
-        // توجيه المستخدم إلى لوحة التحكم إذا لم يكن موجودًا فيها بالفعل
-        if (location.pathname !== '/dashboard') {
-          navigate('/dashboard');
+        // إزالة معلمات URL من العنوان إذا كنا في لوحة التحكم
+        if (location.pathname === '/dashboard' && window.history.replaceState) {
+          window.history.replaceState({}, document.title, '/dashboard');
         }
       } 
       // استعادة حالة الاتصال السابقة من localStorage إذا كانت متوفرة
@@ -70,6 +80,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           shop: savedShop,
           user: { id: 'shopify-user' }
         });
+      }
+      // إذا كان لدينا معلومات متجر مؤقتة ولكن لم تكتمل المصادقة بعد
+      else if (tempShop && location.pathname === '/dashboard') {
+        console.log('بيانات متجر مؤقتة موجودة، ولكن المصادقة لم تكتمل:', tempShop);
+        
+        // إذا كنا على صفحة لوحة التحكم، عرض رسالة للمستخدم
+        toast.error("لم تكتمل عملية المصادقة مع Shopify. يرجى المحاولة مرة أخرى.");
+        localStorage.removeItem('shopify_temp_store');
       }
 
       // السماح بالوصول إلى لوحة التحكم على أي حال (مع أو بدون مصادقة)

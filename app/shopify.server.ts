@@ -22,7 +22,7 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // إضافة المزيد من معلمات URL للتوجيه
+      // تحسين معلمات URL للتوجيه بعد المصادقة
       return {
         status: 302,
         headers: {

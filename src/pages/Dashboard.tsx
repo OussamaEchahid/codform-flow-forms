@@ -23,11 +23,13 @@ const Dashboard = () => {
     const shopParam = searchParams.get("shop");
     const authSuccess = searchParams.get("auth_success");
     
+    console.log("Dashboard params:", { shopifyConnectedParam, shopParam, authSuccess });
+    
     // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
     if (shopifyConnectedParam === "true" && shopParam) {
-      const message = authSuccess 
-        ? `تم المصادقة والاتصال بمتجر ${shopParam} بنجاح` 
-        : `تم الاتصال بمتجر ${shopParam} بنجاح`;
+      const message = language === 'ar'
+        ? `تم الاتصال بمتجر ${shopParam} بنجاح`
+        : `Successfully connected to store ${shopParam}`;
         
       toast.success(message);
       
@@ -44,7 +46,7 @@ const Dashboard = () => {
         localStorage.setItem(firstVisitKey, 'false');
       }
     }
-  }, [searchParams]);
+  }, [searchParams, language]);
 
   // إنشاء بيانات عشوائية للرسوم البيانية
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
@@ -52,6 +54,11 @@ const Dashboard = () => {
     orders: Math.floor(Math.random() * 10),
     revenue: Math.floor(Math.random() * 1000),
   }));
+
+  // التوجيه إلى صفحة Shopify
+  const handleConnectShopify = () => {
+    navigate('/shopify');
+  };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -95,7 +102,7 @@ const Dashboard = () => {
                 <div>
                   <h3 className="text-xl font-bold mb-2">اتصل بـ Shopify</h3>
                   <p className="mb-4">لم يتم اكتشاف اتصال بـ Shopify. يرجى توصيل متجرك للاستفادة من جميع الميزات.</p>
-                  <Button onClick={() => window.location.href = '/shopify'} className="bg-yellow-600">
+                  <Button onClick={handleConnectShopify} className="bg-yellow-600">
                     اتصل بـ Shopify الآن
                   </Button>
                 </div>
