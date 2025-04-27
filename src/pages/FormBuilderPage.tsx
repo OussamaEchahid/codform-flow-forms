@@ -440,7 +440,7 @@ const FormBuilderPage = () => {
           <ShopifyIntegration
             formId={formId || ''}
             onSave={handleShopifyIntegration}
-            isConnected={isShopifyConnected}
+            isSyncing={shopifyIntegration.isSyncing}
           />
         </div>
       )}

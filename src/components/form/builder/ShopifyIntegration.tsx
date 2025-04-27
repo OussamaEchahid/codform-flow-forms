@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,7 +21,7 @@ import { Loader } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 
-interface ShopifyIntegrationProps {
+export interface ShopifyIntegrationProps {
   formId: string;
   onSave: (settings: ShopifyFormData) => void;
   isSyncing?: boolean;

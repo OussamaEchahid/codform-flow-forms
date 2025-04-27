@@ -18,7 +18,8 @@ export const useShopify = () => {
         setIsLoading(true);
         setError(null);
         try {
-          const api = createShopifyAPI(shop);
+          // Fix: Pass both shop (accessToken) and shopDomain as required parameters
+          const api = createShopifyAPI(shop, shop);
           const fetchedProducts = await api.getProducts();
           setProducts(fetchedProducts);
         } catch (err) {
@@ -40,7 +41,8 @@ export const useShopify = () => {
     setIsSyncing(true);
     setError(null);
     try {
-      const api = createShopifyAPI(shop);
+      // Fix: Pass both shop (accessToken) and shopDomain as required parameters
+      const api = createShopifyAPI(shop, shop);
       await api.setupAutoSync(formData);
       toast.success('تم مزامنة النموذج مع Shopify بنجاح');
     } catch (err) {

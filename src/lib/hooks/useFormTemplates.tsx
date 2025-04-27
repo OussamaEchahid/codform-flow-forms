@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -74,17 +73,13 @@ export const useFormTemplates = () => {
         description: selectedTemplate.description,
         data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
         is_published: false,
-        shop_id: shop // استخدام shop_id بدلاً من user_id
+        shop_id: shop || '',
+        user_id: user?.id || '' // Ensure user_id is always included
       };
-      
-      // إضافة user_id للتوافق مع النظام القديم إذا كان موجوداً
-      if (user?.id) {
-        (formData as any).user_id = user.id;
-      }
       
       const { data, error } = await supabase
         .from('forms')
-        .insert([formData])
+        .insert(formData) // Don't wrap in array for a single row
         .select();
       
       if (error) {
@@ -93,7 +88,6 @@ export const useFormTemplates = () => {
       
       toast.success(`تم إنشاء نموذج "${selectedTemplate.title}" بنجاح`);
       
-      // Transform the returned data to ensure proper typing
       if (data && data.length > 0) {
         const newForm = {
           ...data[0],
@@ -101,7 +95,6 @@ export const useFormTemplates = () => {
         } as FormData;
         
         setSelectedTemplate(newForm);
-        // Refresh forms list
         await fetchForms();
         return newForm;
       }
@@ -128,7 +121,8 @@ export const useFormTemplates = () => {
         description: formData.description,
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
-        shop_id: shop
+        shop_id: shop,
+        user_id: user?.id || '' // Ensure user_id is included in updates
       };
       
       const { error } = await supabase
@@ -218,7 +212,6 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Transform the data to ensure proper typing
       return {
         ...data,
         data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
@@ -230,7 +223,6 @@ export const useFormTemplates = () => {
   };
 
   useEffect(() => {
-    // نقوم بتحميل النماذج عندما يكون لدينا معرف متجر Shopify أو مستخدم
     if (shop || user) {
       fetchForms();
     }
