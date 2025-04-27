@@ -1,3 +1,4 @@
+
 import "@shopify/shopify-app-remix/adapters/node";
 import {
   ApiVersion,
@@ -18,10 +19,14 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   isEmbeddedApp: false,
   hooks: {
-    afterAuth: async ({ session, admin, request }) => {
-      // Redirect to dashboard after authentication
-      const redirectUrl = new URL("/dashboard", request.url);
-      return Response.redirect(redirectUrl);
+    afterAuth: async ({ session }) => {
+      // بعد المصادقة، توجيه المستخدم إلى لوحة التحكم
+      return {
+        status: 302,
+        headers: {
+          Location: "/dashboard",
+        },
+      };
     }
   },
   future: {

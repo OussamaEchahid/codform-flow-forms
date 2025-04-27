@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -6,24 +7,24 @@ const ShopifyRedirect = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get the shop parameter from the URL
+    // الحصول على معلمة shop من العنوان
     const params = new URLSearchParams(location.search);
     const shop = params.get("shop");
 
-    // Determine where to redirect based on the current path
+    // تحديد مكان التوجيه بناءً على المسار الحالي
     if (location.pathname.includes("/auth")) {
-      // If we're on the auth path, redirect to Shopify auth
+      // إذا كنا على مسار المصادقة، قم بالتوجيه إلى مصادقة Shopify
       window.location.href = `/auth?shop=${shop}`;
-    } else if (location.pathname.includes("/dashboard")) {
-      // If we're on the dashboard path, redirect to the dashboard
+    } else if (location.pathname.includes("/dashboard") || location.pathname === "/shopify" || location.pathname === "/shopify/dashboard") {
+      // إذا كنا على مسار لوحة التحكم أو مسار Shopify، قم بالتوجيه إلى لوحة التحكم
       navigate("/dashboard");
     } else {
-      // For any other Shopify-related path, check if we have a shop parameter
+      // لأي مسار آخر متعلق بـ Shopify، تحقق مما إذا كان لدينا معلمة shop
       if (shop) {
-        // If we have a shop parameter, redirect to auth
+        // إذا كان لدينا معلمة shop، قم بالتوجيه إلى المصادقة
         window.location.href = `/auth?shop=${shop}`;
       } else {
-        // Otherwise, redirect to the home page
+        // خلاف ذلك، قم بالتوجيه إلى الصفحة الرئيسية
         navigate("/");
       }
     }

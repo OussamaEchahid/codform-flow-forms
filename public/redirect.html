@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -45,17 +46,17 @@
   </div>
 
   <script>
-    // Check if this page is being loaded from Shopify
+    // التحقق مما إذا كانت هذه الصفحة تُحمل من Shopify
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
     
-    // Redirect to the appropriate location
+    // توجيه المستخدم إلى الموقع المناسب
     window.onload = function() {
       if (shop) {
-        // If coming from Shopify, redirect to auth
+        // إذا كان المستخدم قادمًا من Shopify، قم بالتوجيه إلى المصادقة
         window.location.href = `/auth?shop=${shop}`;
       } else {
-        // Otherwise redirect to dashboard
+        // خلاف ذلك، قم بالتوجيه إلى لوحة التحكم
         window.location.href = "/dashboard";
       }
     };
