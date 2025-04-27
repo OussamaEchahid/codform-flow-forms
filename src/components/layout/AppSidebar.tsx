@@ -32,7 +32,11 @@ const AppSidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white border-l min-h-screen p-4 flex flex-col">
+    <aside className="fixed right-0 top-0 bottom-0 w-64 bg-white shadow-lg min-h-screen p-4 flex flex-col z-10">
+      <div className="mb-8 text-center">
+        <h2 className="font-bold text-xl">CODFORM</h2>
+      </div>
+      
       <nav className="flex-1">
         <ul className="space-y-2">
           {menuItems.map((item) => (
