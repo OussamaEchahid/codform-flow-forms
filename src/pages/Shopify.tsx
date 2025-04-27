@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { AlertCircle, ShoppingBag, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// إضافة مكون منفصل لعرض بيانات التشخيص
+// Debug panel component
 const DebugPanel = ({ data }: { data: any }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -29,7 +31,7 @@ const DebugPanel = ({ data }: { data: any }) => {
   );
 };
 
-// مكون لعرض حالة الاتصال
+// Connection status component
 const ConnectionStatus = ({ 
   isConnected, 
   shop, 
@@ -72,7 +74,7 @@ const ConnectionStatus = ({
   return null;
 };
 
-// المكون الرئيسي
+// Main component
 const Shopify = () => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -81,113 +83,79 @@ const Shopify = () => {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
-
-  // وظيفة مساعدة لتنظيف نطاق المتجر
-  const cleanShopDomain = (domain: string): string => {
-    let cleanDomain = domain.trim();
-    
-    try {
-      // إذا كان يحتوي على بروتوكول، خذ فقط اسم النطاق
-      if (cleanDomain.startsWith('http')) {
-        const url = new URL(cleanDomain);
-        cleanDomain = url.hostname;
-      }
-      
-      // تأكد من أنه ينتهي بـ myshopify.com
-      if (!cleanDomain.endsWith('myshopify.com')) {
-        if (!cleanDomain.includes('.')) {
-          cleanDomain = `${cleanDomain}.myshopify.com`;
-        }
-      }
-    } catch (e) {
-      console.error("Error cleaning domain:", e);
-    }
-    
-    return cleanDomain;
-  };
+  const [authStarted, setAuthStarted] = useState(false);
 
   useEffect(() => {
-    // التحقق من معلمات المتجر في عنوان URL
-    const params = new URLSearchParams(location.search);
-    const shopParam = params.get("shop");
+    const checkAuth = async () => {
+      // Check for Shopify connection in Supabase
+      const { data: shopifyStores } = await supabase
+        .from('shopify_stores')
+        .select('*')
+        .limit(1)
+        .single();
 
-    if (shopParam) {
-      const debug = { 
-        shopParam, 
-        shopifyConnected, 
-        shop, 
-        url: window.location.href,
-        fullUrl: window.location.href,
-        origin: window.location.origin,
-        search: location.search,
-        allParams: Object.fromEntries(params.entries()),
-        referrer: document.referrer || "none",
-        userAgent: navigator.userAgent,
-      };
-      setDebugInfo(debug);
-      console.log("Shopify page parameters:", debug);
-      
-      // لدينا معلمة متجر، ابدأ عملية المصادقة
-      setIsProcessing(true);
-      console.log("Starting authentication for shop:", shopParam);
-      
-      // تنظيف نطاق المتجر
-      const cleanedShop = cleanShopDomain(shopParam);
-      console.log("Cleaned shop domain:", cleanedShop);
-      
-      // حفظ المتجر مؤقتًا في localStorage
-      localStorage.setItem('shopify_temp_store', cleanedShop);
-      
-      // تأخير قصير قبل إعادة التوجيه لتجنب شروط السباق
-      const redirectTimer = setTimeout(() => {
-        // بناء عنوان URL لمصادقة تطبيق Shopify مباشرة
-        const encodedShop = encodeURIComponent(cleanedShop);
-        console.log("Redirecting to Shopify OAuth with shop:", encodedShop);
-        
-        // تنسيق عنوان URL المصادقة بشكل صحيح
-        // استخدام عنوان URL مباشر للتعامل من جانب الخادم
-        const authUrl = `/auth?shop=${encodedShop}`;
-        console.log("Full server auth URL:", window.location.origin + authUrl);
-        
-        // استخدم استبدال لتجنب إنشاء إدخال محفوظات المتصفح
-        window.location.replace(authUrl);
-      }, 500);
-      
-      return () => clearTimeout(redirectTimer);
-    }
-  }, [location.search, navigate, shop, shopifyConnected]);
+      if (shopifyStores) {
+        // Store was found, update localStorage
+        localStorage.setItem('shopify_store', shopifyStores.shop);
+        localStorage.setItem('shopify_connected', 'true');
+        setDebugInfo(prev => ({ ...prev, shopifyStores }));
+      }
 
-  const handleConnectShopify = () => {
-    // عند النقر على زر "الاتصال بشوبيفاي"، اطلب من المستخدم إدخال نطاق المتجر
-    const shopDomain = window.prompt(language === 'ar' 
-      ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
-      : "Enter your Shopify store domain (example: your-store.myshopify.com)"
+      // Check URL params
+      const params = new URLSearchParams(location.search);
+      const shopParam = params.get("shop");
+      const shopifySuccess = params.get("shopify_success");
+
+      if (shopifySuccess === "true" && shopParam) {
+        toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+        localStorage.setItem('shopify_store', shopParam);
+        localStorage.setItem('shopify_connected', 'true');
+        navigate('/dashboard');
+      }
+    };
+
+    checkAuth();
+  }, [location.search, navigate]);
+
+  const handleConnectShopify = async () => {
+    const shopDomain = window.prompt(
+      language === 'ar' 
+        ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
+        : "Enter your Shopify store domain (example: your-store.myshopify.com)"
     );
     
     if (!shopDomain) return;
     
-    // تنظيف نطاق المتجر
-    const cleanedDomain = cleanShopDomain(shopDomain);
-    
-    // التحقق من صحة تنسيق النطاق
-    if (!cleanedDomain.includes('.')) {
-      setError(language === 'ar'
-        ? "يرجى إدخال دومين متجر Shopify صالح (مثال: your-store.myshopify.com)"
-        : "Please enter a valid Shopify store domain (example: your-store.myshopify.com)"
+    try {
+      setIsProcessing(true);
+      setAuthStarted(true);
+      
+      const response = await fetch(
+        `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(shopDomain)}`, 
+        { method: 'GET' }
       );
-      return;
+      
+      const data = await response.json();
+      setDebugInfo({ response: data, shopDomain });
+      
+      if (data.redirect) {
+        // Store temporary info
+        localStorage.setItem('shopify_temp_store', shopDomain);
+        
+        console.log("Redirecting to Shopify OAuth:", data.redirect);
+        // Redirect to Shopify for authentication
+        window.location.href = data.redirect;
+      } else if (data.error) {
+        setError(data.error);
+        toast.error(data.error);
+      }
+    } catch (err) {
+      console.error("Error starting Shopify auth:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال بـ Shopify");
+      toast.error("فشل الاتصال بـ Shopify. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setIsProcessing(false);
     }
-    
-    // حفظ المتجر مؤقتًا وإعادة توجيه المستخدم مباشرة إلى OAuth
-    localStorage.setItem('shopify_temp_store', cleanedDomain);
-    
-    console.log("Starting OAuth for shop:", cleanedDomain);
-    setIsProcessing(true);
-    
-    // تنسيق عنوان URL المصادقة بشكل صحيح
-    const authUrl = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
-    console.log("Full auth URL:", window.location.origin + authUrl);
-    window.location.href = authUrl;
   };
 
   return (
@@ -266,9 +234,22 @@ const Shopify = () => {
                   size="lg"
                   className="bg-purple-600 hover:bg-purple-700"
                   onClick={handleConnectShopify}
+                  disabled={isProcessing || authStarted}
                 >
-                  {language === 'ar' ? 'اتصل بـ Shopify الآن' : 'Connect to Shopify'}
+                  {isProcessing 
+                    ? (language === 'ar' ? 'جارٍ الاتصال...' : 'Connecting...') 
+                    : (language === 'ar' ? 'اتصل بـ Shopify الآن' : 'Connect to Shopify')}
                 </Button>
+                
+                {authStarted && !isProcessing && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="text-amber-700">
+                      {language === 'ar'
+                        ? 'تم بدء عملية المصادقة. إذا لم يتم إعادة توجيهك تلقائيًا، يرجى التحقق من النافذة المنبثقة.'
+                        : 'Authentication process started. If you were not redirected automatically, please check for popup windows.'}
+                    </p>
+                  </div>
+                )}
               </div>
             </Card>
           )}
@@ -331,18 +312,13 @@ const Shopify = () => {
                 </li>
                 <li>
                   {language === 'ar'
-                    ? 'تحقق من تكوين عناوين إعادة التوجيه في حساب شركاء Shopify الخاص بك'
-                    : 'Check redirect URL configuration in your Shopify Partners account'}
+                    ? 'تحقق من السماح بالنوافذ المنبثقة في متصفحك'
+                    : 'Ensure popups are allowed in your browser'}
                 </li>
                 <li>
                   {language === 'ar'
                     ? 'حاول مسح ذاكرة التخزين المؤقت للمتصفح وملفات تعريف الارتباط'
                     : 'Try clearing your browser cache and cookies'}
-                </li>
-                <li>
-                  {language === 'ar'
-                    ? 'تأكد من السماح بالنوافذ المنبثقة في متصفحك'
-                    : 'Ensure popups are allowed in your browser'}
                 </li>
               </ul>
             </div>
