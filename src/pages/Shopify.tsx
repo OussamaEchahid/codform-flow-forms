@@ -88,17 +88,17 @@ const Shopify = () => {
   useEffect(() => {
     const checkAuth = async () => {
       // Check for Shopify connection in Supabase
-      const { data: shopifyStores } = await supabase
-        .from('shopify_stores')
-        .select('*')
+      // Use a raw query instead of strongly typed query since types are not updated yet
+      const { data: shopifyStore, error } = await supabase
+        .rpc('get_shopify_stores')
         .limit(1)
         .single();
 
-      if (shopifyStores) {
+      if (shopifyStore) {
         // Store was found, update localStorage
-        localStorage.setItem('shopify_store', shopifyStores.shop);
+        localStorage.setItem('shopify_store', shopifyStore.shop);
         localStorage.setItem('shopify_connected', 'true');
-        setDebugInfo(prev => ({ ...prev, shopifyStores }));
+        setDebugInfo(prev => ({ ...prev, shopifyStore }));
       }
 
       // Check URL params

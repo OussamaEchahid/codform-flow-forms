@@ -42,22 +42,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         // Check if we have a shop in Supabase
-        const { data: shopifyStore } = await supabase
-          .from('shopify_stores')
-          .select('*')
+        // Use a raw query instead of strongly typed query since types are not updated yet
+        const { data: shopifyStores } = await supabase
+          .rpc('get_shopify_stores')
           .limit(1)
-          .maybeSingle();
+          .single();
 
-        if (shopifyStore) {
-          console.log('Found Shopify store in database:', shopifyStore.shop);
+        if (shopifyStores) {
+          console.log('Found Shopify store in database:', shopifyStores);
           setAuthState({
             shopifyConnected: true,
-            shop: shopifyStore.shop,
+            shop: shopifyStores.shop,
             user: { id: 'shopify-user' }
           });
           
           // Update localStorage
-          localStorage.setItem('shopify_store', shopifyStore.shop);
+          localStorage.setItem('shopify_store', shopifyStores.shop);
           localStorage.setItem('shopify_connected', 'true');
           
           setAuthChecked(true);
