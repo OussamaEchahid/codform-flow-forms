@@ -8,34 +8,35 @@ export const loader = async ({ request }) => {
   const shop = url.searchParams.get("shop");
   
   try {
-    // محاولة المصادقة مع Shopify
+    // Try to authenticate with Shopify
     const { session } = await authenticate.admin(request);
     console.log("Authentication successful for shop:", session.shop);
     
-    // بعد المصادقة الناجحة، قم بتوجيه المستخدم مباشرة إلى لوحة التحكم
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}`);
+    // After successful authentication, redirect user directly to dashboard
+    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`);
   } catch (error) {
-    console.error("Authentication error:", error);
+    console.log("Authentication error:", error.message);
     
-    // إذا كان هناك متجر في العنوان، فهذا يعني أننا في بداية عملية المصادقة
+    // If we have a shop in the URL, it means we're at the beginning of the auth process
     if (shop) {
       try {
-        // بدء تدفق المصادقة مع Shopify
+        // Start the Shopify auth flow
+        console.log("Starting authentication flow for shop:", shop);
         return await login(request);
       } catch (loginError) {
         console.error("Login error:", loginError);
       }
     }
     
-    // في حالة وجود خطأ في المصادقة ولا يوجد متجر، أعد توجيه المستخدم إلى الصفحة الرئيسية
+    // In case of auth error and no shop, redirect user to the home page
     return redirect("/?auth_error=true");
   }
 };
 
-// استيراد وظيفة login
+// Import the login function
 import { login } from "../shopify.server";
 
-// هذه الوظيفة تعالج العمليات التي تتم بعد مصادقة شوبيفاي
+// This function handles post-auth processes by Shopify
 export const action = async ({ request }) => {
   try {
     const { session } = await authenticate.admin(request);

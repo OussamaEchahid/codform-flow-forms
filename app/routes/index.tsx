@@ -10,9 +10,11 @@ export async function loader({ request }) {
   
   console.log("Root route accessed with params:", { shopifyReferrer, hmac, code, timestamp });
   
-  // إذا كان هناك معلمة متجر شوبيفاي، قم بتوجيه المستخدم إلى مسار ShopifyRedirect أولاً
+  // If we have a shop parameter, first redirect to the shopify page
   if (shopifyReferrer) {
     console.log("Redirecting to /shopify with shop parameter");
+    
+    // Make sure to include all URL parameters in the redirect
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
     if (hmac) params.set("hmac", hmac);
@@ -22,14 +24,14 @@ export async function loader({ request }) {
     return redirect(`/shopify?${params.toString()}`);
   }
   
-  // إذا كان هناك معلمات شوبيفاي أخرى (hmac، code)، توجيه إلى مسار المصادقة
+  // If we have other Shopify auth parameters (hmac, code), redirect to auth route
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
     return redirect(`/auth?${params.toString()}`);
   }
   
-  // في الحالات الأخرى، توجيه المستخدم إلى لوحة التحكم
+  // For all other cases, redirect to dashboard
   console.log("No Shopify parameters found, redirecting to dashboard");
   return redirect('/dashboard');
 }

@@ -14,6 +14,7 @@ import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
+import Auth from "@/pages/Auth";
 
 // Components
 import { Toaster } from "sonner";
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/shopify" element={<Shopify />} />
                 <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
+                <Route path="/auth/*" element={<Auth />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster position="top-center" />

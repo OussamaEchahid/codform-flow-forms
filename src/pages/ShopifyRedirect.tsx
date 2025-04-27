@@ -9,60 +9,60 @@ const ShopifyRedirect = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("جاري التوجيه...");
   const [error, setError] = useState<string | null>(null);
+  const [debug, setDebug] = useState<any>({});
 
   useEffect(() => {
-    // الحصول على معلمات URL من العنوان
+    // Get URL parameters
     const params = new URLSearchParams(location.search);
     const shop = params.get("shop");
     const hmac = params.get("hmac");
     const code = params.get("code");
     const timestamp = params.get("timestamp");
     
-    console.log("معلمات الصفحة:", { shop, hmac, code, timestamp });
+    // Update debug info
+    setDebug({ shop, hmac, code, timestamp, url: window.location.href });
+    console.log("ShopifyRedirect parameters:", { shop, hmac, code, timestamp, url: window.location.href });
     
-    // التحقق من وجود معلمة متجر
+    // Check for shop parameter
     if (!shop) {
-      // إذا لم تكن هناك معلمة متجر، تحقق من وجود متجر مخزن سابقاً
+      // If we don't have a shop parameter, check for a previously stored shop
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
       
-      console.log("البيانات المخزنة:", { savedShop, savedConnected });
+      console.log("Stored data:", { savedShop, savedConnected });
       
       if (savedShop && savedConnected === 'true') {
-        // إذا كان لدينا بيانات متجر مخزنة، توجيه إلى لوحة التحكم مباشرة
-        console.log("استخدام بيانات متجر مخزنة للتوجيه...");
+        // If we have stored shop data, redirect to dashboard directly
+        console.log("Using stored shop data for redirect...");
         navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
         return;
       }
       
-      // إذا لم تكن هناك معلمة متجر ولا بيانات مخزنة، أظهر خطأ
+      // If we don't have a shop parameter or stored data, show error
       setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
       setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
       return;
     }
     
-    // تحديث حالة التوجيه
+    // Update redirect status
     setStatus(`جاري توجيهك للمصادقة مع متجر ${shop}...`);
     
-    // إضافة سجل للتأكد من معلمات المصادقة الموجودة
-    console.log("معلمات Shopify:", { shop, hmac, code, timestamp });
-    
-    // حفظ بيانات المتجر في localStorage مؤقتاً لاستخدامها في حالة انقطاع عملية المصادقة
+    // Store shop info in localStorage temporarily for use if auth flow is interrupted
     try {
       localStorage.setItem('shopify_temp_store', shop);
-      console.log("تم حفظ معلومات المتجر المؤقتة:", shop);
+      console.log("Temp shop info saved:", shop);
     } catch (e) {
-      console.error("خطأ في حفظ البيانات المؤقتة:", e);
+      console.error("Error saving temp data:", e);
     }
     
-    // إذا كان لدينا معلمات المصادقة مثل hmac أو code، نستمر في عملية المصادقة
+    // If we have auth parameters (hmac or code), continue auth flow
     if (hmac || code) {
-      console.log("معلمات مصادقة وجدت، توجيه إلى مسار المصادقة...");
-      // توجيه المستخدم إلى مسار المصادقة الرسمي مع جميع المعلمات
+      console.log("Auth parameters found, redirecting to auth path...");
+      // Redirect user to the official auth path with all parameters
       window.location.href = `/auth?${params.toString()}`;
     } else {
-      console.log("بدء عملية المصادقة الجديدة للمتجر:", shop);
-      // إذا لدينا فقط معلمة المتجر، نبدأ عملية المصادقة من الصفر
+      console.log("Starting new auth flow for shop:", shop);
+      // If we only have the shop parameter, start auth from scratch
       const shopParam = encodeURIComponent(shop);
       window.location.href = `/auth?shop=${shopParam}`;
     }
@@ -82,6 +82,11 @@ const ShopifyRedirect = () => {
             <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
               {error}
             </div>
+            {/* Debug information */}
+            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
+              <p className="font-bold mb-2">معلومات التصحيح:</p>
+              <pre>{JSON.stringify(debug, null, 2)}</pre>
+            </div>
             <button 
               onClick={() => navigate('/dashboard')} 
               className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
@@ -96,6 +101,10 @@ const ShopifyRedirect = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
             </div>
             <p className="mb-4">سيتم توجيهك تلقائيًا خلال لحظات...</p>
+            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
+              <p className="font-bold mb-2">معلومات التصحيح:</p>
+              <pre>{JSON.stringify(debug, null, 2)}</pre>
+            </div>
           </>
         )}
       </div>

@@ -32,7 +32,12 @@ const Shopify = () => {
       
       // تأخير قصير قبل التوجيه
       const redirectTimer = setTimeout(() => {
-        window.location.href = `/auth?shop=${encodeURIComponent(shopParam)}`;
+        // Make sure we're encoding the shop parameter correctly
+        const encodedShop = encodeURIComponent(shopParam);
+        console.log("Redirecting to auth with shop:", encodedShop);
+        
+        // Correctly format the auth URL, ensuring it matches the route in app/routes/auth.$.tsx
+        window.location.href = `/auth?shop=${encodedShop}`;
       }, 1000);
       
       return () => clearTimeout(redirectTimer);
@@ -70,8 +75,11 @@ const Shopify = () => {
       }
     }
     
-    // حفظ المتجر مؤقتاً وتوجيه المستخدم
+    // حفظ المتجر مؤقتاً وتوجيه المستخدم إلى مسار المصادقة
     localStorage.setItem('shopify_temp_store', formattedDomain);
+    
+    // Directly construct and navigate to the auth URL
+    console.log("Redirecting to auth with shop:", formattedDomain);
     window.location.href = `/auth?shop=${encodeURIComponent(formattedDomain)}`;
   };
 

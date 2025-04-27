@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const handleShopifyAuth = async () => {
-      // التحقق من وجود معلمات التوجيه من Shopify
+      // Check for Shopify redirect parameters
       const params = new URLSearchParams(window.location.search);
       const shop = params.get("shop");
       const shopifyConnected = params.get("shopify_connected");
@@ -24,31 +24,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const timestamp = params.get("timestamp");
       const authSuccess = params.get("auth_success");
 
-      // استعادة بيانات متجر Shopify من localStorage
+      // Retrieve Shopify store data from localStorage
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
-      // بيانات متجر مؤقتة (أثناء المصادقة)
+      // Temporary store data (during auth)
       const tempShop = localStorage.getItem('shopify_temp_store');
 
-      console.log('معلمات المصادقة:', { 
+      console.log('Auth parameters:', { 
         shop, shopifyConnected, hmac, authSuccess,
         savedShop, savedConnected, tempShop,
-        pathname: location.pathname
+        pathname: location.pathname,
+        search: location.search
       });
 
-      // إذا كان هناك معلمة متجر وكود تفويض في URL، توجيه إلى مسار المصادقة
+      // If we have a shop parameter and authorization code in URL, let the auth flow proceed
       if ((shop || tempShop) && (hmac || location.pathname.startsWith('/auth'))) {
-        // المستخدم في عملية المصادقة، اتركه لعملية المصادقة
-        console.log('في عملية المصادقة، عدم التدخل...');
+        // User is in auth process, let it continue
+        console.log('In auth process, not interfering...');
         setAuthChecked(true);
         return;
       }
 
-      // التحقق من وجود معلمات جديدة من شوبيفاي من المصادقة الناجحة
+      // Check for new Shopify parameters from successful auth
       if (shopifyConnected === "true" && shop) {
-        console.log('تم اكتشاف اتصال جديد بـ Shopify:', shop);
+        console.log('New Shopify connection detected:', shop);
         
-        // تحديث حالة المصادقة وحفظها في localStorage
+        // Update auth state and save to localStorage
         setAuthState({
           shopifyConnected: true,
           shop: shop,
@@ -58,22 +59,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('shopify_store', shop);
         localStorage.setItem('shopify_connected', 'true');
         
-        // إزالة أي بيانات مؤقتة
+        // Remove any temporary data
         localStorage.removeItem('shopify_temp_store');
         
-        // إظهار رسالة نجاح
+        // Show success message
         if (authSuccess === "true") {
-          toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+          toast.success(`Connected to store ${shop} successfully`);
         }
         
-        // إزالة معلمات URL من العنوان إذا كنا في لوحة التحكم
+        // Remove URL parameters if we're on dashboard
         if (location.pathname === '/dashboard' && window.history.replaceState) {
           window.history.replaceState({}, document.title, '/dashboard');
         }
       } 
-      // استعادة حالة الاتصال السابقة من localStorage إذا كانت متوفرة
+      // Restore previous connection state from localStorage if available
       else if (savedConnected === 'true' && savedShop) {
-        console.log('استعادة اتصال Shopify مخزن:', savedShop);
+        console.log('Restoring saved Shopify connection:', savedShop);
         
         setAuthState({
           shopifyConnected: true,
@@ -81,23 +82,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user: { id: 'shopify-user' }
         });
       }
-      // إذا كان لدينا معلومات متجر مؤقتة ولكن لم تكتمل المصادقة بعد
+      // If we have temporary store info but auth didn't complete
       else if (tempShop && location.pathname === '/dashboard') {
-        console.log('بيانات متجر مؤقتة موجودة، ولكن المصادقة لم تكتمل:', tempShop);
+        console.log('Temp store data exists, but auth didn\'t complete:', tempShop);
         
-        // إذا كنا على صفحة لوحة التحكم، عرض رسالة للمستخدم
-        toast.error("لم تكتمل عملية المصادقة مع Shopify. يرجى المحاولة مرة أخرى.");
+        // If on dashboard, show message to user
+        toast.error("Shopify authentication was not completed. Please try again.");
         localStorage.removeItem('shopify_temp_store');
       }
 
-      // السماح بالوصول إلى لوحة التحكم على أي حال (مع أو بدون مصادقة)
+      // Allow access to dashboard in any case (with or without auth)
       setAuthChecked(true);
     };
 
     handleShopifyAuth();
   }, [location.pathname, location.search, navigate]);
 
-  // عرض حالة التحميل حتى يتم التحقق من المصادقة
+  // Show loading state until auth is checked
   if (!authChecked) {
     return (
       <div className="flex items-center justify-center h-screen">

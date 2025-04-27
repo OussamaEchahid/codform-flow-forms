@@ -22,11 +22,11 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // تحسين معلمات URL للتوجيه بعد المصادقة
+      // Make sure to include more parameters for better state tracking
       return {
         status: 302,
         headers: {
-          Location: `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`,
+          Location: `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`,
         },
       };
     }
