@@ -22,8 +22,7 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // بعد المصادقة الناجحة، قم بتوجيه المستخدم إلى لوحة التحكم
-      // مع إرسال معلومات المتجر والإشارة إلى نجاح الاتصال
+      // بعد المصادقة الناجحة، قم بتوجيه المستخدم مباشرة إلى لوحة التحكم
       return {
         status: 302,
         headers: {

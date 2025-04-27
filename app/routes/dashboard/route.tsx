@@ -15,7 +15,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     console.log("Successfully authenticated with Shopify for shop:", session.shop);
     
-    // جلسة صالحة، إرجاع معلومات المتجر
+    // إذا كانت المصادقة ناجحة، ارجع معلومات المتجر
     return json({ 
       shopifyConnected: true,
       shop: session.shop 
@@ -33,6 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
     
     // حتى لو لم تكن هناك جلسة Shopify، نسمح بالوصول إلى لوحة التحكم
+    // هذا يتيح للمستخدم رؤية لوحة التحكم بدون تسجيل الدخول
     console.log("Allowing access to dashboard without Shopify session");
     return json({ 
       shopifyConnected: false

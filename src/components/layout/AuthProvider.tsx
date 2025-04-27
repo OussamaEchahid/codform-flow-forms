@@ -54,16 +54,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // اتصال Shopify - لا تحتاج إلى تسجيل الدخول
-      if (shopifyConnected === "true" || location.pathname === '/dashboard') {
-        console.log("Shopify connection detected or in dashboard, no login required");
-        setAuthChecked(true);
-        return;
-      }
-
-      // المستخدم في لوحة التحكم - السماح بالوصول بغض النظر عن حالة المصادقة
-      if (location.pathname.startsWith('/dashboard')) {
-        console.log("User is in dashboard path, allow access without authentication");
+      // السماح دائمًا بالوصول إلى لوحة التحكم - سواء كان المستخدم مسجل دخوله أم لا
+      // هذا ضروري لضمان عمل تدفق Shopify بشكل صحيح
+      if (location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard')) {
+        console.log("User is accessing dashboard, allowing access");
         setAuthChecked(true);
         return;
       }
@@ -80,14 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // للصفحات الأخرى المحمية، تحقق من حالة المصادقة
-      if (!user && 
-          !location.pathname.startsWith('/auth') && 
-          !location.pathname.startsWith('/shopify')) {
-        console.log("User not logged in accessing protected page:", location.pathname);
-        navigate('/auth');
-      }
-      
       setAuthChecked(true);
     };
 
@@ -95,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, navigate, location.pathname]);
 
   // لا تعرض أي شيء حتى نتحقق من حالة المصادقة
-  if (!authChecked && !location.pathname.startsWith('/auth') && !location.pathname.startsWith('/shopify')) {
+  if (!authChecked) {
     return null;
   }
 
