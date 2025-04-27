@@ -27,9 +27,10 @@ const Auth = () => {
           code, 
           timestamp, 
           url: window.location.href,
-          pathname: window.location.pathname 
+          pathname: window.location.pathname,
+          fullUrl: window.location.href 
         });
-        console.log("Auth page parameters:", { 
+        console.log("Auth page loaded with parameters:", { 
           shop, 
           hmac, 
           code, 
@@ -71,8 +72,8 @@ const Auth = () => {
         // Store temporary shop information for use if auth flow is interrupted
         localStorage.setItem('shopify_temp_store', shop);
         
-        // We now need to make a server-side request to complete authentication
-        // The server will redirect back to dashboard with an auth session
+        // Now make a direct request to the server-side auth endpoint
+        console.log("Redirecting to server auth endpoint with shop:", shop);
         
         // Build auth URL with all query parameters
         const authParams = new URLSearchParams();
@@ -81,13 +82,13 @@ const Auth = () => {
         if (code) authParams.set("code", code);
         if (timestamp) authParams.set("timestamp", timestamp);
         
-        console.log("Redirecting to server auth endpoint with params:", authParams.toString());
+        // Use window.location.replace to ensure a full page reload to the server route
+        // This is crucial for Remix server-side auth handling
+        const serverAuthUrl = `/auth?${authParams.toString()}`;
+        console.log("Server auth URL:", window.location.origin + serverAuthUrl);
         
-        // Redirect to server auth endpoint 
-        // Using relative path to ensure correct base URL
-        const authPath = `/auth?${authParams.toString()}`;
-        console.log("Full auth path:", window.location.origin + authPath);
-        window.location.href = authPath;
+        // Explicitly doing a full browser navigation, not a React Router navigation
+        window.location.replace(serverAuthUrl);
       } catch (err) {
         console.error("Auth error:", err);
         setError("حدث خطأ أثناء المصادقة");

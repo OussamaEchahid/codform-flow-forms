@@ -3,7 +3,7 @@ import { authenticate } from "../shopify.server";
 import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
-  console.log("Auth route hit with URL:", request.url);
+  console.log("Server Auth route hit with URL:", request.url);
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
   
@@ -45,13 +45,19 @@ export const loader = async ({ request }) => {
     console.log("Authentication successful for shop:", session.shop);
     
     // After successful authentication, redirect user directly to dashboard
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`);
+    // Add crucial state tracking parameters
+    const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`;
+    console.log("Redirecting to:", redirectUrl);
+    return redirect(redirectUrl);
   } catch (error) {
     console.log("Authentication error:", error.message);
     
     // If we have a shop in the URL, it means we're at the beginning of the auth process
     if (shop) {
       try {
+        // Import login function
+        const { login } = await import("../shopify.server");
+        
         // Start Shopify authentication flow
         console.log("Starting authentication flow for shop:", shop);
         return await login(request);
@@ -66,9 +72,6 @@ export const loader = async ({ request }) => {
     return redirect("/?auth_error=true");
   }
 };
-
-// Import login function
-import { login } from "../shopify.server";
 
 // This function handles post-authentication operations by Shopify
 export const action = async ({ request }) => {

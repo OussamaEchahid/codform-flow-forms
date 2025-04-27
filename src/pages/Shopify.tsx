@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -54,7 +53,7 @@ const Shopify = () => {
         fullUrl: window.location.href,
         origin: window.location.origin
       });
-      console.log("Page parameters:", { 
+      console.log("Shopify page parameters:", { 
         shopParam, 
         shopifyConnected, 
         shop, 
@@ -78,12 +77,12 @@ const Shopify = () => {
       const redirectTimer = setTimeout(() => {
         // Make sure to properly encode shop parameter
         const encodedShop = encodeURIComponent(cleanedShop);
-        console.log("Redirecting to auth with shop:", encodedShop);
+        console.log("Redirecting directly to server auth with shop:", encodedShop);
         
-        // Format auth URL correctly - using direct URL construction to avoid issues
+        // Format auth URL correctly - using direct URL and window.location.replace for server-side processing
         const authUrl = `/auth?shop=${encodedShop}`;
-        console.log("Full auth URL:", window.location.origin + authUrl);
-        window.location.href = authUrl;
+        console.log("Full server auth URL:", window.location.origin + authUrl);
+        window.location.replace(authUrl);
       }, 1000);
       
       return () => clearTimeout(redirectTimer);
@@ -117,16 +116,16 @@ const Shopify = () => {
       return;
     }
     
-    // Save shop temporarily and redirect user to auth path
+    // Save shop temporarily and redirect user directly to server auth path
     localStorage.setItem('shopify_temp_store', cleanedDomain);
     
-    // Build and redirect to auth URL directly
-    console.log("Redirecting to auth with shop:", cleanedDomain);
+    // Build and redirect to server auth URL directly
+    console.log("Redirecting directly to server auth with shop:", cleanedDomain);
     
-    // Format auth URL correctly - using direct URL construction to avoid issues
+    // Format auth URL correctly - using window.location.replace for server-side handling
     const authUrl = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
-    console.log("Full auth URL:", window.location.origin + authUrl);
-    window.location.href = authUrl;
+    console.log("Full server auth URL:", window.location.origin + authUrl);
+    window.location.replace(authUrl);
   };
 
   return (

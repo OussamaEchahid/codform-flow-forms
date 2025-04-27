@@ -7,8 +7,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopifyConnected = url.searchParams.get("shopify_connected");
   const shop = url.searchParams.get("shop");
   const authSuccess = url.searchParams.get("auth_success");
+  const sessionId = url.searchParams.get("session_id");
   
-  console.log("Dashboard route accessed with params:", { shopifyConnected, shop, authSuccess });
+  console.log("Dashboard route accessed with params:", { 
+    shopifyConnected, 
+    shop, 
+    authSuccess,
+    sessionId,
+    fullUrl: request.url
+  });
   
   try {
     // Try to authenticate with Shopify
@@ -20,7 +27,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({ 
       shopifyConnected: true,
       shop: session.shop,
-      sessionFound: true
+      sessionFound: true,
+      sessionId: session.id
     });
   } catch (error) {
     console.log("Not authenticated with Shopify, checking if coming from auth flow");
@@ -31,7 +39,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return json({ 
         shopifyConnected: true,
         shop: shop,
-        fromAuthFlow: true
+        fromAuthFlow: true,
+        sessionId: sessionId
       });
     }
     

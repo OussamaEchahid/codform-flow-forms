@@ -22,7 +22,7 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // Include more parameters for better state tracking
+      // Use a more direct approach with absolute URLs for redirection
       const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
       console.log("Redirecting to:", redirectUrl);
       

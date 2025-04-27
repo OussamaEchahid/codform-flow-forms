@@ -32,9 +32,9 @@ export async function loader({ request }) {
     }
   }
   
-  // If we have a shop parameter, first redirect user to auth page
+  // If we have a shop parameter, first redirect user directly to auth page
   if (shopifyReferrer) {
-    console.log("Redirecting to auth with shop parameter:", shopifyReferrer);
+    console.log("Redirecting directly to auth with shop parameter:", shopifyReferrer);
     
     // Make sure to include all URL parameters in the redirect
     const params = new URLSearchParams();
@@ -43,6 +43,7 @@ export async function loader({ request }) {
     if (timestamp) params.set("timestamp", timestamp);
     if (code) params.set("code", code);
     
+    // Redirect directly to server auth endpoint - this is the critical change
     return redirect(`/auth?${params.toString()}`);
   }
   
