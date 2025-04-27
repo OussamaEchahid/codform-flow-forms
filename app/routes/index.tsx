@@ -9,6 +9,7 @@ export async function loader({ request }) {
   const shopifyReferrer = url.searchParams.get("shop");
   
   if (shopifyReferrer) {
+    console.log("Redirecting to auth with shop:", shopifyReferrer);
     return redirect(`/auth?shop=${shopifyReferrer}`);
   }
   
@@ -25,7 +26,8 @@ export default function Index() {
     const shop = params.get("shop");
     
     if (shop) {
-      // إعادة التوجيه إلى مسار المصادقة إذا كان هناك معلمة shop
+      // التأكد من استخدام العنوان الكامل بدلاً من التوجيه النسبي
+      console.log("Client-side redirect to auth with shop:", shop);
       window.location.href = `/auth?shop=${shop}`;
     }
   }, [navigate]);

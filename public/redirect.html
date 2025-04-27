@@ -36,6 +36,16 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .debug {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-align: left;
+      font-size: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -43,6 +53,8 @@
     <h1>جاري التوجيه إلى لوحة التحكم</h1>
     <div class="loader"></div>
     <p>سيتم توجيهك تلقائيًا إلى لوحة التحكم خلال لحظات...</p>
+    <p id="shopInfo"></p>
+    <div class="debug" id="debug"></div>
   </div>
 
   <script>
@@ -50,16 +62,32 @@
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
     
-    // توجيه المستخدم إلى الموقع المناسب
-    window.onload = function() {
-      if (shop) {
-        // إذا كان المستخدم قادمًا من Shopify، قم بالتوجيه إلى المصادقة
-        window.location.href = `/auth?shop=${shop}`;
-      } else {
-        // خلاف ذلك، قم بالتوجيه إلى لوحة التحكم
+    // إظهار معلومات التشخيص
+    const shopInfo = document.getElementById('shopInfo');
+    const debugInfo = document.getElementById('debug');
+    
+    if (shop) {
+      shopInfo.textContent = "المتجر: " + shop;
+      
+      // التوجيه مع تعيين معلمة كاملة العنوان
+      const redirectUrl = new URL("/auth", window.location.origin);
+      redirectUrl.searchParams.append("shop", shop);
+      
+      // توجيه المستخدم إلى مسار المصادقة
+      debugInfo.textContent = "توجيه إلى: " + redirectUrl.toString();
+      debugInfo.style.display = "block";
+      
+      // تأخير قصير للسماح بعرض المعلومات
+      setTimeout(() => {
+        window.location.href = redirectUrl.toString();
+      }, 1000);
+    } else {
+      // إذا لم تكن هناك معلمة shop، قم بالتوجيه إلى لوحة التحكم
+      shopInfo.textContent = "لم يتم توفير معلمة متجر - التوجيه إلى لوحة التحكم";
+      setTimeout(() => {
         window.location.href = "/dashboard";
-      }
-    };
+      }, 1000);
+    }
   </script>
 </body>
 </html>
