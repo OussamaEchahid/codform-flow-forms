@@ -22,6 +22,8 @@
       background-color: white;
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 90%;
+      width: 500px;
     }
     .loader {
       border: 4px solid #f3f3f3;
@@ -44,12 +46,21 @@
       border-radius: 4px;
       text-align: left;
       font-size: 12px;
-      display: none;
+      max-height: 150px;
+      overflow-y: auto;
+      direction: ltr;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      color: #7c3aed;
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="logo">CODFORM</div>
     <h1>جاري التوجيه إلى لوحة التحكم</h1>
     <div class="loader"></div>
     <p>سيتم توجيهك تلقائيًا إلى لوحة التحكم خلال لحظات...</p>
@@ -58,36 +69,68 @@
   </div>
 
   <script>
-    // التحقق مما إذا كانت هذه الصفحة تُحمل من Shopify
+    // دالة لتسجيل معلومات التشخيص
+    function logDebug(message) {
+      const debugElem = document.getElementById('debug');
+      if (debugElem) {
+        const now = new Date();
+        const timestamp = now.toLocaleTimeString();
+        debugElem.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        debugElem.style.display = "block";
+      }
+    }
+    
+    // التحقق من معلمات URL وحفظها في localStorage
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
+    const hmac = params.get("hmac");
+    const code = params.get("code");
     
-    // إظهار معلومات التشخيص
+    // إظهار معلومات المتجر
     const shopInfo = document.getElementById('shopInfo');
-    const debugInfo = document.getElementById('debug');
     
     if (shop) {
       shopInfo.textContent = "المتجر: " + shop;
+      logDebug(`تم اكتشاف متجر: ${shop}`);
       
-      // التوجيه مع تعيين معلمة كاملة العنوان
-      const redirectUrl = new URL("/auth", window.location.origin);
-      redirectUrl.searchParams.append("shop", shop);
+      // حفظ معلومات المتجر في localStorage
+      try {
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+        logDebug('تم حفظ معلومات المتجر في localStorage');
+      } catch (e) {
+        logDebug(`خطأ في حفظ البيانات: ${e.message}`);
+      }
       
-      // توجيه المستخدم إلى مسار المصادقة
-      debugInfo.textContent = "توجيه إلى: " + redirectUrl.toString();
-      debugInfo.style.display = "block";
+      // تحديد المسار المستهدف بناءً على المعلمات المتوفرة
+      let targetPath;
+      
+      if (code) {
+        // إذا كان لدينا رمز التفويض، فهذا يعني أننا في مرحلة المصادقة الثانية
+        targetPath = `/auth?${params.toString()}`;
+        logDebug(`تم اكتشاف رمز التفويض، التوجيه إلى: ${targetPath}`);
+      } else {
+        // إذا كان لدينا فقط متجر، توجيه إلى مسار المصادقة
+        targetPath = `/shopify?shop=${encodeURIComponent(shop)}`;
+        logDebug(`توجيه إلى مسار Shopify: ${targetPath}`);
+      }
       
       // تأخير قصير للسماح بعرض المعلومات
       setTimeout(() => {
-        window.location.href = redirectUrl.toString();
-      }, 1000);
+        logDebug(`جاري التوجيه الآن إلى: ${targetPath}`);
+        window.location.href = targetPath;
+      }, 1500);
     } else {
       // إذا لم تكن هناك معلمة shop، قم بالتوجيه إلى لوحة التحكم
       shopInfo.textContent = "لم يتم توفير معلمة متجر - التوجيه إلى لوحة التحكم";
+      logDebug('لم يتم العثور على معلمة shop، توجيه إلى لوحة التحكم');
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1000);
+      }, 1500);
     }
+    
+    // عرض نافذة التشخيص
+    document.getElementById('debug').style.display = "block";
   </script>
 </body>
 </html>

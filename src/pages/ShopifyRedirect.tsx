@@ -15,6 +15,7 @@ const ShopifyRedirect = () => {
     const shop = params.get("shop");
     const hmac = params.get("hmac");
     const code = params.get("code");
+    const timestamp = params.get("timestamp");
     
     if (!shop) {
       setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
@@ -22,20 +23,22 @@ const ShopifyRedirect = () => {
       return;
     }
     
-    // التحقق مما إذا كنا في مرحلة المصادقة الأولى أو الثانية
-    if (code) {
-      // نحن في مرحلة المصادقة الثانية مع رمز التفويض
-      console.log("تم الحصول على رمز التفويض، جاري إكمال المصادقة...");
-      setStatus("تم الحصول على رمز التفويض، جاري إكمال المصادقة...");
-    }
-    
-    console.log("توجيه إلى مسار المصادقة مع متجر:", shop);
+    // إضافة سجل للتأكد من معلمات المصادقة الموجودة
+    console.log("معلمات Shopify:", { shop, hmac, code, timestamp });
     
     // تحديث حالة التوجيه
     setStatus(`جاري توجيهك إلى المصادقة مع متجر ${shop}...`);
     
-    // إضافة تأخير قصير قبل التوجيه للسماح بعرض الحالة ثم استخدام window.location للتأكد من إعادة تحميل الصفحة
+    // إذا كان لدينا معلمات Shopify كاملة، أعد توجيه المستخدم مباشرة إلى لوحة التحكم
+    if (shop && (hmac || code)) {
+      console.log("معلمات مصادقة كاملة، توجيه مباشر إلى لوحة التحكم مع معلمات");
+      window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}`;
+      return;
+    }
+    
+    // إذا لم تكن هناك معلمات مصادقة كاملة، أرسل المستخدم إلى مسار المصادقة
     const redirectTimer = setTimeout(() => {
+      console.log("توجيه إلى مسار المصادقة...");
       window.location.href = `/auth?${params.toString()}`;
     }, 500);
     

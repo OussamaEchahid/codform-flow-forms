@@ -1,39 +1,52 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShoppingCart, Target, DollarSign } from 'lucide-react';
+import { ShoppingCart, Target, DollarSign, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const [searchParams] = useSearchParams();
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
   
   useEffect(() => {
+    // التحقق من معلمات URL للتوجيه من شوبيفاي
     const shopifyConnectedParam = searchParams.get("shopify_connected");
     const shopParam = searchParams.get("shop");
+    const authSuccess = searchParams.get("auth_success");
     
-    if (shopifyConnectedParam === "true") {
-      toast.success(shopParam ? `تم الاتصال بمتجر ${shopParam} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
+    // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
+    if (shopifyConnectedParam === "true" && shopParam) {
+      const message = authSuccess 
+        ? `تم المصادقة والاتصال بمتجر ${shopParam} بنجاح` 
+        : `تم الاتصال بمتجر ${shopParam} بنجاح`;
+        
+      toast.success(message);
       
+      // إزالة معلمات URL من العنوان
       if (window.history.replaceState) {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
+      
+      // تعيين علامة الزيارة الأولى
+      const firstVisitKey = `first_visit_${shopParam}`;
+      if (!localStorage.getItem(firstVisitKey)) {
+        setIsFirstVisit(true);
+        localStorage.setItem(firstVisitKey, 'false');
+      }
     }
   }, [searchParams]);
 
-  if (!shopifyConnected) {
-    return <div className="text-center py-8">
-      {language === 'ar' ? 'يتم تحميل بيانات المتجر...' : 'Loading store data...'}
-    </div>;
-  }
-
+  // إنشاء بيانات عشوائية للرسوم البيانية
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
     date: `${i + 1}/4`,
     orders: Math.floor(Math.random() * 10),
@@ -56,7 +69,41 @@ const Dashboard = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          {isFirstVisit && (
+            <Card className="p-6 mb-8 border-purple-300 border-2 bg-purple-50">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-purple-100">
+                  <AlertCircle className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">مرحباً بك في CODFORM! 🎉</h3>
+                  <p className="mb-4">لقد تم اتصال متجر Shopify الخاص بك بنجاح. الآن يمكنك البدء في إنشاء نماذج الدفع عند الاستلام.</p>
+                  <Button onClick={() => navigate('/forms')} className="bg-purple-600">
+                    ابدأ بإنشاء نموذج جديد
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {!shopifyConnected && (
+            <Card className="p-6 mb-8 border-yellow-300 border-2 bg-yellow-50">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-yellow-100">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">اتصل بـ Shopify</h3>
+                  <p className="mb-4">لم يتم اكتشاف اتصال بـ Shopify. يرجى توصيل متجرك للاستفادة من جميع الميزات.</p>
+                  <Button onClick={() => window.location.href = '/shopify'} className="bg-yellow-600">
+                    اتصل بـ Shopify الآن
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 hover:shadow-lg transition-all duration-300">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-purple-100">
@@ -94,7 +141,7 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <Card className="p-6 hover:shadow-lg transition-all duration-300">
               <h3 className="text-lg font-semibold mb-4">Orders</h3>
               <div className="h-[300px]">
