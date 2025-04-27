@@ -7,17 +7,17 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
   
-  // تنظيف رابط المتجر إذا كان يحتوي على بروتوكول
+  // Clean up the shop URL if it contains protocol
   if (shop) {
     try {
-      // إذا كان يبدأ بـ http:// أو https://، نأخذ اسم النطاق فقط
+      // If it starts with http:// or https://, take only the domain name
       if (shop.startsWith('http')) {
         const shopUrl = new URL(shop);
         shop = shopUrl.hostname;
         console.log("Cleaned shop parameter:", shop);
       }
       
-      // التأكد من أن المتجر ينتهي بـ myshopify.com
+      // Make sure the shop ends with myshopify.com
       if (!shop.endsWith('myshopify.com')) {
         console.log("Shop domain does not end with myshopify.com:", shop);
         if (!shop.includes('.')) {
@@ -33,42 +33,44 @@ export const loader = async ({ request }) => {
   console.log("Processing auth for shop:", shop);
   
   try {
-    // محاولة المصادقة مع Shopify
+    // Replace shop parameter in URL with cleaned value
+    if (url.searchParams.has("shop") && shop) {
+      url.searchParams.set("shop", shop);
+      // Create a new request with updated URL
+      request = new Request(url.toString(), request);
+    }
+
+    // Try to authenticate with Shopify
     const { session } = await authenticate.admin(request);
     console.log("Authentication successful for shop:", session.shop);
     
-    // بعد نجاح المصادقة، إعادة توجيه المستخدم مباشرة إلى لوحة التحكم
+    // After successful authentication, redirect user directly to dashboard
     return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`);
   } catch (error) {
     console.log("Authentication error:", error.message);
     
-    // إذا كان لدينا متجرًا في العنوان، فهذا يعني أننا في بداية عملية المصادقة
+    // If we have a shop in the URL, it means we're at the beginning of the auth process
     if (shop) {
       try {
-        // بدء عملية مصادقة Shopify
+        // Start Shopify authentication flow
         console.log("Starting authentication flow for shop:", shop);
-        
-        // استبدل معلمة المتجر في URL بالقيمة المنظفة
-        if (url.searchParams.has("shop")) {
-          url.searchParams.set("shop", shop);
-          request = new Request(url.toString(), request);
-        }
-        
         return await login(request);
       } catch (loginError) {
         console.error("Login error:", loginError);
+        // On login error, provide detailed information
+        return redirect(`/?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop)}`);
       }
     }
     
-    // في حالة خطأ المصادقة وعدم وجود متجر، إعادة توجيه المستخدم إلى الصفحة الرئيسية
+    // In case of auth error and no shop, redirect user to the home page
     return redirect("/?auth_error=true");
   }
 };
 
-// استيراد دالة تسجيل الدخول
+// Import login function
 import { login } from "../shopify.server";
 
-// تتعامل هذه الدالة مع عمليات ما بعد المصادقة بواسطة Shopify
+// This function handles post-authentication operations by Shopify
 export const action = async ({ request }) => {
   try {
     const { session } = await authenticate.admin(request);

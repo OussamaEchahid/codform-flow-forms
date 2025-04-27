@@ -13,32 +13,54 @@ const Auth = () => {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // الحصول على معلمات URL
+        // Get URL parameters
         const url = new URL(window.location.href);
         let shop = url.searchParams.get("shop");
         const hmac = url.searchParams.get("hmac");
         const code = url.searchParams.get("code");
         const timestamp = url.searchParams.get("timestamp");
 
-        // تخزين معلومات التصحيح
-        setDebugInfo({ originalShop: shop, hmac, code, timestamp, url: window.location.href });
-        console.log("Auth page parameters:", { shop, hmac, code, timestamp, url: window.location.href });
+        // Store debug information
+        setDebugInfo({ 
+          originalShop: shop, 
+          hmac, 
+          code, 
+          timestamp, 
+          url: window.location.href,
+          pathname: window.location.pathname 
+        });
+        console.log("Auth page parameters:", { 
+          shop, 
+          hmac, 
+          code, 
+          timestamp, 
+          url: window.location.href,
+          pathname: window.location.pathname 
+        });
 
-        // تنظيف معلمة المتجر إذا كانت تحتوي على البروتوكول الكامل
+        // Clean up the shop parameter if it contains full protocol
         if (shop) {
           try {
-            // إذا كان يبدأ بـ http:// أو https://، نأخذ اسم النطاق فقط
+            // If it starts with http:// or https://, take only the domain name
             if (shop.startsWith('http')) {
               const shopUrl = new URL(shop);
               shop = shopUrl.hostname;
               console.log("Cleaned shop parameter:", shop);
+            }
+            
+            // Make sure the shop ends with myshopify.com
+            if (!shop.endsWith('myshopify.com')) {
+              if (!shop.includes('.')) {
+                shop = `${shop}.myshopify.com`;
+                console.log("Added myshopify.com to shop:", shop);
+              }
             }
           } catch (e) {
             console.error("Error cleaning shop URL:", e);
           }
         }
 
-        // إذا لم يكن لدينا معلمة متجر، نعيد توجيه المستخدم إلى لوحة التحكم
+        // If we don't have a shop parameter, redirect user to dashboard
         if (!shop) {
           console.error("Missing shop parameter in auth flow");
           setError("معلمة المتجر مفقودة في عملية المصادقة");
@@ -46,13 +68,13 @@ const Auth = () => {
           return;
         }
 
-        // تخزين معلومات المتجر المؤقتة في حالة الحاجة إليها لاحقًا
+        // Store temporary shop information for use if auth flow is interrupted
         localStorage.setItem('shopify_temp_store', shop);
         
-        // علينا الآن إجراء طلب من جانب الخادم لإكمال المصادقة
-        // سيعيد الخادم التوجيه مرة أخرى إلى لوحة التحكم مع جلسة مصادقة
+        // We now need to make a server-side request to complete authentication
+        // The server will redirect back to dashboard with an auth session
         
-        // بناء عنوان URL للمصادقة مع جميع معلمات الاستعلام
+        // Build auth URL with all query parameters
         const authParams = new URLSearchParams();
         authParams.set("shop", shop);
         if (hmac) authParams.set("hmac", hmac);
@@ -60,7 +82,12 @@ const Auth = () => {
         if (timestamp) authParams.set("timestamp", timestamp);
         
         console.log("Redirecting to server auth endpoint with params:", authParams.toString());
-        window.location.href = `/auth?${authParams.toString()}`;
+        
+        // Redirect to server auth endpoint 
+        // Using relative path to ensure correct base URL
+        const authPath = `/auth?${authParams.toString()}`;
+        console.log("Full auth path:", window.location.origin + authPath);
+        window.location.href = authPath;
       } catch (err) {
         console.error("Auth error:", err);
         setError("حدث خطأ أثناء المصادقة");

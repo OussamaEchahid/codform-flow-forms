@@ -20,12 +20,30 @@ const ShopifyRedirect = () => {
     const timestamp = params.get("timestamp");
     
     // Update debug info
-    setDebug({ shop, hmac, code, timestamp, url: window.location.href });
-    console.log("ShopifyRedirect parameters:", { shop, hmac, code, timestamp, url: window.location.href });
+    setDebug({ 
+      shop, 
+      hmac, 
+      code, 
+      timestamp, 
+      url: window.location.href,
+      fullPath: window.location.href,
+      origin: window.location.origin,
+      pathname: window.location.pathname
+    });
+    console.log("ShopifyRedirect parameters:", { 
+      shop, 
+      hmac, 
+      code, 
+      timestamp, 
+      url: window.location.href,
+      fullPath: window.location.href,
+      origin: window.location.origin,
+      pathname: window.location.pathname
+    });
     
     // Check for shop parameter
     if (!shop) {
-      // If we don't have a shop parameter, check for a previously stored shop
+      // If we don't have a shop parameter, check for previously stored shop
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
       
@@ -44,13 +62,31 @@ const ShopifyRedirect = () => {
       return;
     }
     
+    // Clean shop domain if necessary
+    let cleanedShop = shop;
+    if (shop.startsWith('http')) {
+      try {
+        const shopUrl = new URL(shop);
+        cleanedShop = shopUrl.hostname;
+        console.log("Cleaned shop URL:", cleanedShop);
+      } catch (e) {
+        console.error("Error cleaning shop URL:", e);
+      }
+    }
+    
+    // Make sure it ends with myshopify.com
+    if (!cleanedShop.endsWith('myshopify.com') && !cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+      console.log("Added myshopify.com to shop:", cleanedShop);
+    }
+    
     // Update redirect status
-    setStatus(`جاري توجيهك للمصادقة مع متجر ${shop}...`);
+    setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
     
     // Store shop info in localStorage temporarily for use if auth flow is interrupted
     try {
-      localStorage.setItem('shopify_temp_store', shop);
-      console.log("Temp shop info saved:", shop);
+      localStorage.setItem('shopify_temp_store', cleanedShop);
+      console.log("Temp shop info saved:", cleanedShop);
     } catch (e) {
       console.error("Error saving temp data:", e);
     }
@@ -58,13 +94,23 @@ const ShopifyRedirect = () => {
     // If we have auth parameters (hmac or code), continue auth flow
     if (hmac || code) {
       console.log("Auth parameters found, redirecting to auth path...");
-      // Redirect user to the official auth path with all parameters
-      window.location.href = `/auth?${params.toString()}`;
+      // Create new params with cleaned shop
+      const newParams = new URLSearchParams();
+      newParams.set("shop", cleanedShop);
+      if (hmac) newParams.set("hmac", hmac);
+      if (code) newParams.set("code", code);
+      if (timestamp) newParams.set("timestamp", timestamp);
+      
+      // Redirect to auth path with absolute URL to avoid navigation issues
+      const authUrl = `/auth?${newParams.toString()}`;
+      console.log("Full auth URL:", window.location.origin + authUrl);
+      window.location.href = authUrl;
     } else {
-      console.log("Starting new auth flow for shop:", shop);
-      // If we only have the shop parameter, start auth from scratch
-      const shopParam = encodeURIComponent(shop);
-      window.location.href = `/auth?shop=${shopParam}`;
+      console.log("Starting new auth flow for shop:", cleanedShop);
+      // If we only have shop parameter, start auth from scratch
+      const authUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}`;
+      console.log("Full auth URL:", window.location.origin + authUrl);
+      window.location.href = authUrl;
     }
   }, [location, navigate]);
 

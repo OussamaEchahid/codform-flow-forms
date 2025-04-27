@@ -10,42 +10,50 @@ export async function loader({ request }) {
   
   console.log("Root route accessed with params:", { shopifyReferrer, hmac, code, timestamp });
   
-  // تنظيف رابط المتجر إذا كان يحتوي على البروتوكول
+  // Clean up shop URL if it contains protocol
   if (shopifyReferrer) {
     try {
-      // إذا كان يبدأ بـ http:// أو https://، نأخذ اسم النطاق فقط
+      // If it starts with http:// or https://, take only the domain name
       if (shopifyReferrer.startsWith('http')) {
         const shopUrl = new URL(shopifyReferrer);
         shopifyReferrer = shopUrl.hostname;
         console.log("Cleaned shop parameter:", shopifyReferrer);
+      }
+      
+      // Make sure it ends with myshopify.com
+      if (!shopifyReferrer.endsWith('myshopify.com')) {
+        if (!shopifyReferrer.includes('.')) {
+          shopifyReferrer = `${shopifyReferrer}.myshopify.com`;
+          console.log("Added myshopify.com to shop:", shopifyReferrer);
+        }
       }
     } catch (e) {
       console.error("Error cleaning shop URL:", e);
     }
   }
   
-  // إذا كان لدينا معلمة متجر، نقوم أولاً بتوجيه المستخدم إلى صفحة shopify
+  // If we have a shop parameter, first redirect user to auth page
   if (shopifyReferrer) {
-    console.log("Redirecting to /shopify with shop parameter:", shopifyReferrer);
+    console.log("Redirecting to auth with shop parameter:", shopifyReferrer);
     
-    // تأكد من تضمين جميع معلمات عنوان URL في إعادة التوجيه
+    // Make sure to include all URL parameters in the redirect
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
     if (hmac) params.set("hmac", hmac);
     if (timestamp) params.set("timestamp", timestamp);
     if (code) params.set("code", code);
     
-    return redirect(`/shopify?${params.toString()}`);
+    return redirect(`/auth?${params.toString()}`);
   }
   
-  // إذا كان لدينا معلمات مصادقة Shopify أخرى (hmac، code)، نقوم بإعادة التوجيه إلى مسار المصادقة
+  // If we have other Shopify auth parameters (hmac, code), redirect to auth path
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
     return redirect(`/auth?${params.toString()}`);
   }
   
-  // لجميع الحالات الأخرى، قم بإعادة التوجيه إلى لوحة التحكم
+  // For all other cases, redirect to dashboard
   console.log("No Shopify parameters found, redirecting to dashboard");
   return redirect('/dashboard');
 }

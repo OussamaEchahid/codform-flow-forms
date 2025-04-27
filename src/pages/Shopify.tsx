@@ -16,18 +16,18 @@ const Shopify = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
 
-  // دالة مساعدة لتنظيف عنوان المتجر
+  // Helper function to clean shop domain
   const cleanShopDomain = (domain: string): string => {
     let cleanDomain = domain.trim();
     
     try {
-      // إذا كان يحتوي على بروتوكول، نأخذ اسم النطاق فقط
+      // If it contains protocol, take only the domain name
       if (cleanDomain.startsWith('http')) {
         const url = new URL(cleanDomain);
         cleanDomain = url.hostname;
       }
       
-      // التأكد من أنه ينتهي بـ myshopify.com
+      // Make sure it ends with myshopify.com
       if (!cleanDomain.endsWith('myshopify.com')) {
         if (!cleanDomain.includes('.')) {
           cleanDomain = `${cleanDomain}.myshopify.com`;
@@ -41,47 +41,63 @@ const Shopify = () => {
   };
 
   useEffect(() => {
-    // التحقق من وجود معلمات متجر في URL
+    // Check for shop parameters in URL
     const params = new URLSearchParams(location.search);
     const shopParam = params.get("shop");
 
     if (shopParam) {
-      setDebugInfo({ shopParam, shopifyConnected, shop, url: window.location.href });
-      console.log("معلمات الصفحة:", { shopParam, shopifyConnected, shop, url: window.location.href });
+      setDebugInfo({ 
+        shopParam, 
+        shopifyConnected, 
+        shop, 
+        url: window.location.href,
+        fullUrl: window.location.href,
+        origin: window.location.origin
+      });
+      console.log("Page parameters:", { 
+        shopParam, 
+        shopifyConnected, 
+        shop, 
+        url: window.location.href,
+        fullUrl: window.location.href,
+        origin: window.location.origin
+      });
       
-      // لدينا معلمة متجر، نبدأ عملية المصادقة
+      // We have a shop parameter, start authentication process
       setIsProcessing(true);
-      console.log("بدء المصادقة للمتجر:", shopParam);
+      console.log("Starting authentication for shop:", shopParam);
       
-      // تنظيف عنوان المتجر
+      // Clean shop domain
       const cleanedShop = cleanShopDomain(shopParam);
-      console.log("عنوان المتجر المنظف:", cleanedShop);
+      console.log("Cleaned shop domain:", cleanedShop);
       
-      // حفظ المتجر مؤقتاً في localStorage
+      // Save shop temporarily in localStorage
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
-      // تأخير قصير قبل التوجيه
+      // Short delay before redirecting
       const redirectTimer = setTimeout(() => {
-        // التأكد من ترميز معلمة المتجر بشكل صحيح
+        // Make sure to properly encode shop parameter
         const encodedShop = encodeURIComponent(cleanedShop);
-        console.log("التوجيه إلى المصادقة مع متجر:", encodedShop);
+        console.log("Redirecting to auth with shop:", encodedShop);
         
-        // تنسيق عنوان المصادقة بشكل صحيح
-        window.location.href = `/auth?shop=${encodedShop}`;
+        // Format auth URL correctly - using direct URL construction to avoid issues
+        const authUrl = `/auth?shop=${encodedShop}`;
+        console.log("Full auth URL:", window.location.origin + authUrl);
+        window.location.href = authUrl;
       }, 1000);
       
       return () => clearTimeout(redirectTimer);
     } else if (shopifyConnected && shop) {
-      // المتجر متصل بالفعل
-      console.log("المتجر متصل بالفعل:", shop);
+      // Store is already connected
+      console.log("Store already connected:", shop);
     } else {
-      // لا توجد معلمات متجر ولا اتصال سابق
-      console.log("لا توجد معلمات متجر أو اتصال سابق");
+      // No shop parameters and no previous connection
+      console.log("No shop parameters or previous connection");
     }
   }, [location.search, navigate, shop, shopifyConnected]);
 
   const handleConnectShopify = () => {
-    // عند النقر على زر الاتصال بـ Shopify، نطلب من المستخدم إدخال دومين المتجر
+    // When clicking on Connect to Shopify button, ask user to enter store domain
     const shopDomain = window.prompt(language === 'ar' 
       ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
       : "Enter your Shopify store domain (example: your-store.myshopify.com)"
@@ -89,10 +105,10 @@ const Shopify = () => {
     
     if (!shopDomain) return;
     
-    // تنظيف عنوان المتجر
+    // Clean shop domain
     const cleanedDomain = cleanShopDomain(shopDomain);
     
-    // التحقق من تنسيق الدومين
+    // Validate domain format
     if (!cleanedDomain.endsWith('myshopify.com') && !cleanedDomain.includes('.')) {
       setError(language === 'ar'
         ? "يرجى إدخال دومين متجر Shopify صالح (مثال: your-store.myshopify.com)"
@@ -101,12 +117,16 @@ const Shopify = () => {
       return;
     }
     
-    // حفظ المتجر مؤقتاً وتوجيه المستخدم إلى مسار المصادقة
+    // Save shop temporarily and redirect user to auth path
     localStorage.setItem('shopify_temp_store', cleanedDomain);
     
-    // بناء وتوجيه إلى عنوان المصادقة مباشرة
-    console.log("التوجيه إلى المصادقة مع متجر:", cleanedDomain);
-    window.location.href = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
+    // Build and redirect to auth URL directly
+    console.log("Redirecting to auth with shop:", cleanedDomain);
+    
+    // Format auth URL correctly - using direct URL construction to avoid issues
+    const authUrl = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
+    console.log("Full auth URL:", window.location.origin + authUrl);
+    window.location.href = authUrl;
   };
 
   return (
