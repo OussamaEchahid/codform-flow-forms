@@ -21,16 +21,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     errorMessage,
     timestamp,
     allParams: Object.fromEntries(url.searchParams.entries()),
-    fullUrl: request.url
+    fullUrl: request.url,
+    headers: Object.fromEntries(request.headers.entries())
   });
   
   try {
-    // Try to authenticate with Shopify
+    // محاولة المصادقة مع Shopify
     const { admin, session } = await authenticate.admin(request);
     
     console.log("Successfully authenticated with Shopify for shop:", session.shop);
     
-    // If authentication is successful, return store information
+    // إذا كانت المصادقة ناجحة، قم بإعادة معلومات المتجر
     return json({ 
       shopifyConnected: true,
       shop: session.shop,
@@ -47,7 +48,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   } catch (error) {
     console.log("Not authenticated with Shopify, checking if coming from auth flow");
     
-    // If we're coming from auth path with successful shop parameters
+    // إذا كنا آتين من مسار المصادقة مع معلمات متجر ناجحة
     if (shopifyConnected === "true" && shop) {
       console.log("Coming from successful auth flow with shop:", shop);
       return json({ 
@@ -66,13 +67,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       });
     }
     
-    // Check if there was an authentication error
+    // تحقق مما إذا كان هناك خطأ في المصادقة
     if (authError === "true") {
       console.log("Authentication error detected:", errorMessage);
       return json({ 
         shopifyConnected: false,
         authError: true,
-        errorMessage: errorMessage || "Unknown authentication error",
+        errorMessage: errorMessage || "خطأ مصادقة غير معروف",
+        errorDetails: error instanceof Error ? error.message : "Unknown error",
         noSession: true,
         timestamp: Date.now()
       }, { 
@@ -85,8 +87,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       });
     }
     
-    // Even if there's no Shopify session, allow access to dashboard
-    // This allows user to see dashboard without login
+    // حتى إذا لم تكن هناك جلسة Shopify، اسمح بالوصول إلى لوحة التحكم
+    // هذا يسمح للمستخدم بمشاهدة لوحة التحكم بدون تسجيل الدخول
     console.log("Allowing access to dashboard without Shopify session");
     return json({ 
       shopifyConnected: false,

@@ -12,28 +12,33 @@ const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
   apiVersion: ApiVersion.January25,
-  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_orders", "write_orders"],
+  // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
+  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes"],
   appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
+  // تعديل هذا الإعداد ليكون false حتى يعمل التطبيق بشكل مستقل
   isEmbeddedApp: false,
   hooks: {
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // Ensure we have the session
+      // تأكد من وجود الجلسة
       if (!session || !session.shop) {
         console.error("Missing session or shop in afterAuth hook");
         return {
           status: 302,
           headers: {
             Location: `/dashboard?auth_error=true&error=session_missing`,
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
           },
         };
       }
       
-      // Add more debugging information to the redirect
+      // إضافة المزيد من معلومات التصحيح للتوجيه
       const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
       console.log("Redirecting to:", redirectUrl);
       

@@ -13,20 +13,21 @@ export async function loader({ request }) {
   console.log("Root route accessed with params:", { 
     shopifyReferrer, hmac, code, timestamp, state, host,
     allParams: Object.fromEntries(url.searchParams.entries()),
-    fullUrl: request.url
+    fullUrl: request.url,
+    headers: Object.fromEntries(request.headers.entries())
   });
   
-  // Clean up shop URL if it contains protocol
+  // تنظيف عنوان URL للمتجر إذا كان يحتوي على بروتوكول
   if (shopifyReferrer) {
     try {
-      // If it starts with http:// or https://, take only the domain name
+      // إذا كان يبدأ بـ http:// أو https://، خذ فقط اسم النطاق
       if (shopifyReferrer.startsWith('http')) {
         const shopUrl = new URL(shopifyReferrer);
         shopifyReferrer = shopUrl.hostname;
         console.log("Cleaned shop parameter:", shopifyReferrer);
       }
       
-      // Make sure it ends with myshopify.com
+      // تأكد من أنه ينتهي بـ myshopify.com
       if (!shopifyReferrer.endsWith('myshopify.com')) {
         if (!shopifyReferrer.includes('.')) {
           shopifyReferrer = `${shopifyReferrer}.myshopify.com`;
@@ -38,11 +39,11 @@ export async function loader({ request }) {
     }
   }
   
-  // If we have a shop parameter, first redirect user directly to auth page
+  // إذا كان لدينا معلمة متجر، أولاً قم بإعادة توجيه المستخدم مباشرة إلى صفحة المصادقة
   if (shopifyReferrer) {
     console.log("Redirecting directly to auth with shop parameter:", shopifyReferrer);
     
-    // Make sure to include all URL parameters in the redirect
+    // تأكد من تضمين جميع معلمات عنوان URL في إعادة التوجيه
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
     if (hmac) params.set("hmac", hmac);
@@ -51,7 +52,7 @@ export async function loader({ request }) {
     if (state) params.set("state", state);
     if (host) params.set("host", host);
     
-    // Redirect directly to server auth endpoint with all parameters
+    // توجيه مباشر إلى نقطة النهاية للمصادقة على الخادم مع جميع المعلمات
     return redirect(`/auth?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -61,7 +62,7 @@ export async function loader({ request }) {
     });
   }
   
-  // If we have other Shopify auth parameters (hmac, code), redirect to auth path
+  // إذا كان لدينا معلمات مصادقة Shopify أخرى (hmac، code)، قم بإعادة التوجيه إلى مسار المصادقة
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
@@ -74,7 +75,7 @@ export async function loader({ request }) {
     });
   }
   
-  // For all other cases, redirect to dashboard
+  // لجميع الحالات الأخرى، قم بإعادة التوجيه إلى لوحة التحكم
   console.log("No Shopify parameters found, redirecting to dashboard");
   return redirect('/dashboard');
 }

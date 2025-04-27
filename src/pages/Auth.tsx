@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const Auth = () => {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get URL parameters
+        // الحصول على معلمات عنوان URL
         const url = new URL(window.location.href);
         let shop = url.searchParams.get("shop");
         const hmac = url.searchParams.get("hmac");
@@ -22,7 +23,7 @@ const Auth = () => {
         const state = url.searchParams.get("state");
         const host = url.searchParams.get("host");
 
-        // Store debug information
+        // تخزين معلومات التصحيح
         setDebugInfo({ 
           originalShop: shop, 
           hmac, 
@@ -36,7 +37,9 @@ const Auth = () => {
           origin: window.location.origin,
           fullUrl: window.location.href,
           fullPath: window.location.href,
-          referrer: document.referrer || "none"
+          referrer: document.referrer || "none",
+          userAgent: navigator.userAgent,
+          cookies: document.cookie,
         });
         
         console.log("Auth page loaded with parameters:", { 
@@ -52,17 +55,17 @@ const Auth = () => {
           referrer: document.referrer || "none"
         });
 
-        // Clean up the shop parameter if it contains full protocol
+        // تنظيف معلمة المتجر إذا كانت تحتوي على بروتوكول كامل
         if (shop) {
           try {
-            // If it starts with http:// or https://, take only the domain name
+            // إذا كان يبدأ بـ http:// أو https://، خذ فقط اسم النطاق
             if (shop.startsWith('http')) {
               const shopUrl = new URL(shop);
               shop = shopUrl.hostname;
               console.log("Cleaned shop parameter:", shop);
             }
             
-            // Make sure the shop ends with myshopify.com
+            // تأكد من أن المتجر ينتهي بـ myshopify.com
             if (!shop.endsWith('myshopify.com')) {
               if (!shop.includes('.')) {
                 shop = `${shop}.myshopify.com`;
@@ -74,7 +77,7 @@ const Auth = () => {
           }
         }
 
-        // If we don't have a shop parameter, try to extract from pathname
+        // إذا لم يكن لدينا معلمة متجر، حاول استخراجها من مسار عنوان URL
         if (!shop && window.location.pathname.includes('/auth/')) {
           const pathParts = window.location.pathname.split('/');
           for (let i = 0; i < pathParts.length; i++) {
@@ -89,7 +92,7 @@ const Auth = () => {
           }
         }
 
-        // If we still don't have a shop parameter, check if we have it in localStorage
+        // إذا ما زلنا لا نملك معلمة متجر، تحقق مما إذا كانت موجودة في localStorage
         if (!shop) {
           const tempShop = localStorage.getItem('shopify_temp_store');
           if (tempShop) {
@@ -98,7 +101,7 @@ const Auth = () => {
           }
         }
 
-        // If we still don't have a shop parameter, redirect user to dashboard
+        // إذا كنا ما زلنا لا نملك معلمة متجر، قم بإعادة توجيه المستخدم إلى لوحة التحكم
         if (!shop) {
           console.error("Missing shop parameter in auth flow");
           setError("معلمة المتجر مفقودة في عملية المصادقة");
@@ -106,15 +109,11 @@ const Auth = () => {
           return;
         }
 
-        // Store temporary shop information for use if auth flow is interrupted
+        // تخزين معلومات المتجر المؤقتة لاستخدامها إذا تم قطع تدفق المصادقة
         localStorage.setItem('shopify_temp_store', shop);
         
-        // Now construct the direct Shopify OAuth URL instead of using our server
-        // This is to bypass any potential issues with our server auth endpoint
-        let shopifyAuthUrl;
-        
         if (code && hmac) {
-          // We're in the second step of OAuth, redirect directly to server auth endpoint
+          // نحن في الخطوة الثانية من OAuth، قم بإعادة التوجيه مباشرة إلى نقطة نهاية المصادقة على الخادم
           console.log("OAuth callback detected, redirecting to server auth endpoint");
           const authParams = new URLSearchParams();
           authParams.set("shop", shop);
@@ -124,20 +123,56 @@ const Auth = () => {
           if (state) authParams.set("state", state);
           if (host) authParams.set("host", host);
           
-          // Use absolute URL to ensure proper handling
+          // استخدم عنوان URL مطلقًا لضمان المعالجة المناسبة
           const serverAuthUrl = `${window.location.origin}/auth?${authParams.toString()}`;
           console.log("Redirecting to server auth URL:", serverAuthUrl);
-          window.location.href = serverAuthUrl;
+          
+          // استخدم XMLHttpRequest بدلاً من الانتقال المباشر للتحقق من الاستجابة
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', serverAuthUrl, true);
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              console.log("Auth response status:", xhr.status);
+              console.log("Auth response headers:", xhr.getAllResponseHeaders());
+              
+              // بعد استلام الاستجابة، قم بالانتقال
+              window.location.href = serverAuthUrl;
+            }
+          };
+          xhr.onerror = function(e) {
+            console.error("Auth request error:", e);
+            setError("حدث خطأ أثناء الاتصال بخادم المصادقة");
+            setIsLoading(false);
+          };
+          xhr.send();
         } else {
-          // We're in the first step of OAuth, direct to server auth endpoint
+          // نحن في الخطوة الأولى من OAuth، توجيه مباشر إلى نقطة نهاية المصادقة على الخادم
           console.log("Starting OAuth flow for shop:", shop);
           const authParams = new URLSearchParams();
           authParams.set("shop", shop);
           
-          // Use absolute URL to ensure proper handling
+          // استخدم عنوان URL مطلقًا لضمان المعالجة المناسبة
           const serverAuthUrl = `${window.location.origin}/auth?${authParams.toString()}`;
           console.log("Redirecting to server auth URL:", serverAuthUrl);
-          window.location.href = serverAuthUrl;
+          
+          // استخدم XMLHttpRequest بدلاً من الانتقال المباشر للتحقق من الاستجابة
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', serverAuthUrl, true);
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              console.log("Auth response status:", xhr.status);
+              console.log("Auth response headers:", xhr.getAllResponseHeaders());
+              
+              // بعد استلام الاستجابة، قم بالانتقال
+              window.location.href = serverAuthUrl;
+            }
+          };
+          xhr.onerror = function(e) {
+            console.error("Auth request error:", e);
+            setError("حدث خطأ أثناء الاتصال بخادم المصادقة");
+            setIsLoading(false);
+          };
+          xhr.send();
         }
       } catch (err) {
         console.error("Auth error:", err);
@@ -153,9 +188,15 @@ const Auth = () => {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-lg bg-red-100">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+          </div>
           <h1 className="text-2xl font-bold mb-4">خطأ في المصادقة</h1>
           <div className="mb-6 text-red-600">{error}</div>
           <div className="mb-4 p-4 bg-gray-100 rounded text-left text-xs max-h-40 overflow-auto">
+            <p className="font-bold mb-2">معلومات التصحيح:</p>
             <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
           </div>
           <button
@@ -178,6 +219,7 @@ const Auth = () => {
         </div>
         <p>الرجاء الانتظار بينما نقوم بمصادقة متجر Shopify الخاص بك...</p>
         <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs max-h-40 overflow-auto">
+          <p className="font-bold mb-2">معلومات التصحيح:</p>
           <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
         </div>
       </div>

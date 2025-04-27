@@ -12,68 +12,79 @@ const ShopifyRedirect = () => {
   const [debug, setDebug] = useState<any>({});
 
   useEffect(() => {
-    // Get URL parameters
+    // الحصول على معلمات عنوان URL
     const params = new URLSearchParams(location.search);
-    const shop = params.get("shop");
+    let shop = params.get("shop");
     const hmac = params.get("hmac");
     const code = params.get("code");
     const timestamp = params.get("timestamp");
+    const state = params.get("state"); // إضافة معلمة state
+    const host = params.get("host"); // إضافة معلمة host
     
-    // Update debug info
-    setDebug({ 
+    // تحديث معلومات التصحيح
+    const debugInfo = { 
       shop, 
       hmac, 
       code, 
-      timestamp, 
+      timestamp,
+      state,
+      host,
       url: window.location.href,
       fullPath: window.location.href,
       origin: window.location.origin,
       pathname: window.location.pathname,
-      referrer: document.referrer || "none"
-    });
-    console.log("ShopifyRedirect parameters:", { 
-      shop, 
-      hmac, 
-      code, 
-      timestamp, 
-      url: window.location.href,
-      fullPath: window.location.href,
-      origin: window.location.origin,
-      pathname: window.location.pathname,
-      referrer: document.referrer || "none"
-    });
+      referrer: document.referrer || "none",
+      userAgent: navigator.userAgent,
+      cookies: document.cookie,
+    };
     
-    // Check for shop parameter
+    setDebug(debugInfo);
+    console.log("ShopifyRedirect parameters:", debugInfo);
+    
+    // التحقق من معلمة المتجر
     if (!shop) {
-      // If we don't have a shop parameter, check for previously stored shop
+      // إذا لم يكن لدينا معلمة متجر، تحقق من المتجر المخزن مسبقًا
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
-      // Check for temporary shop during auth
+      // تحقق من المتجر المؤقت أثناء المصادقة
       const tempShop = localStorage.getItem('shopify_temp_store');
       
       console.log("Stored data:", { savedShop, savedConnected, tempShop });
       
       if (savedShop && savedConnected === 'true') {
-        // If we have stored shop data, redirect to dashboard directly
+        // إذا كان لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
         console.log("Using stored shop data for redirect...");
         navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
         return;
       }
       
       if (tempShop) {
-        // If we have temporary shop data, try to continue auth flow
+        // إذا كان لدينا بيانات متجر مؤقتة، حاول متابعة تدفق المصادقة
         console.log("Using temporary shop data to continue auth:", tempShop);
-        window.location.href = `/auth?shop=${encodeURIComponent(tempShop)}`;
+        // استخدام XMLHttpRequest للتحقق من حالة الاتصال قبل التوجيه
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/auth?shop=${encodeURIComponent(tempShop)}`, true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            console.log("Auth check response status:", xhr.status);
+            window.location.href = `/auth?shop=${encodeURIComponent(tempShop)}`;
+          }
+        };
+        xhr.onerror = function() {
+          setStatus("خطأ: فشل الاتصال بالخادم");
+          setError("تعذر الاتصال بخادم المصادقة. يرجى المحاولة مرة أخرى لاحقًا.");
+        };
+        xhr.send();
         return;
       }
       
-      // If we don't have a shop parameter or stored data, show error
+      // إذا لم يكن لدينا معلمة متجر أو بيانات مخزنة، أظهر خطأً
       setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
       setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
       return;
     }
     
-    // Clean shop domain if necessary
+    // تنظيف نطاق المتجر إذا لزم الأمر
     let cleanedShop = shop;
     if (shop.startsWith('http')) {
       try {
@@ -85,16 +96,16 @@ const ShopifyRedirect = () => {
       }
     }
     
-    // Make sure it ends with myshopify.com
+    // تأكد من أنه ينتهي بـ myshopify.com
     if (!cleanedShop.endsWith('myshopify.com') && !cleanedShop.includes('.')) {
       cleanedShop = `${cleanedShop}.myshopify.com`;
       console.log("Added myshopify.com to shop:", cleanedShop);
     }
     
-    // Update redirect status
+    // تحديث حالة إعادة التوجيه
     setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
     
-    // Store shop info in localStorage for use if auth flow is interrupted
+    // تخزين معلومات المتجر في localStorage للاستخدام إذا تم قطع تدفق المصادقة
     try {
       localStorage.setItem('shopify_temp_store', cleanedShop);
       console.log("Temp shop info saved:", cleanedShop);
@@ -102,16 +113,33 @@ const ShopifyRedirect = () => {
       console.error("Error saving temp data:", e);
     }
     
-    // Direct the user straight to server auth route
+    // توجيه المستخدم مباشرة إلى مسار المصادقة الخاص بالخادم
     const authParams = new URLSearchParams();
     authParams.set("shop", cleanedShop);
     if (hmac) authParams.set("hmac", hmac); 
     if (code) authParams.set("code", code);
     if (timestamp) authParams.set("timestamp", timestamp);
+    if (state) authParams.set("state", state);
+    if (host) authParams.set("host", host);
     
     const authUrl = `/auth?${authParams.toString()}`;
     console.log("Redirecting to server auth route:", window.location.origin + authUrl);
-    window.location.href = authUrl;
+    
+    // استخدام XMLHttpRequest للتحقق من حالة الاتصال قبل التوجيه
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', authUrl, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        console.log("Auth response status:", xhr.status);
+        console.log("Auth response headers:", xhr.getAllResponseHeaders());
+        window.location.href = authUrl;
+      }
+    };
+    xhr.onerror = function() {
+      setStatus("خطأ: فشل الاتصال بالخادم");
+      setError("تعذر الاتصال بخادم المصادقة. يرجى المحاولة مرة أخرى لاحقًا.");
+    };
+    xhr.send();
   }, [location, navigate]);
 
   return (
