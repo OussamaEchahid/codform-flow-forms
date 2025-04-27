@@ -22,7 +22,19 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
+      // Ensure we have the session
+      if (!session || !session.shop) {
+        console.error("Missing session or shop in afterAuth hook");
+        return {
+          status: 302,
+          headers: {
+            Location: `/dashboard?auth_error=true&error=session_missing`,
+          },
+        };
+      }
+      
       // Use a more direct approach with absolute URLs for redirection
+      // Include all necessary parameters for the client-side application
       const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
       console.log("Redirecting to:", redirectUrl);
       
@@ -30,6 +42,9 @@ const shopify = shopifyApp({
         status: 302,
         headers: {
           Location: redirectUrl,
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
       };
     }

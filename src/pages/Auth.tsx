@@ -19,15 +19,21 @@ const Auth = () => {
         const hmac = url.searchParams.get("hmac");
         const code = url.searchParams.get("code");
         const timestamp = url.searchParams.get("timestamp");
+        const state = url.searchParams.get("state");
+        const host = url.searchParams.get("host");
 
         // Store debug information
         setDebugInfo({ 
           originalShop: shop, 
           hmac, 
           code, 
-          timestamp, 
+          timestamp,
+          state,
+          host,
           url: window.location.href,
           pathname: window.location.pathname,
+          search: window.location.search,
+          origin: window.location.origin,
           fullUrl: window.location.href 
         });
         console.log("Auth page loaded with parameters:", { 
@@ -35,8 +41,11 @@ const Auth = () => {
           hmac, 
           code, 
           timestamp, 
+          state,
+          host,
           url: window.location.href,
-          pathname: window.location.pathname 
+          pathname: window.location.pathname,
+          search: window.location.search
         });
 
         // Clean up the shop parameter if it contains full protocol
@@ -61,11 +70,26 @@ const Auth = () => {
           }
         }
 
-        // If we don't have a shop parameter, redirect user to dashboard
+        // If we don't have a shop parameter, try to extract from pathname
+        if (!shop && window.location.pathname.includes('/auth/')) {
+          const pathParts = window.location.pathname.split('/');
+          for (let i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] === 'auth' && i+1 < pathParts.length) {
+              const possibleShop = pathParts[i+1];
+              if (possibleShop && possibleShop.includes('.')) {
+                shop = possibleShop;
+                console.log("Extracted shop from path:", shop);
+                break;
+              }
+            }
+          }
+        }
+
+        // If we still don't have a shop parameter, redirect user to dashboard
         if (!shop) {
           console.error("Missing shop parameter in auth flow");
           setError("معلمة المتجر مفقودة في عملية المصادقة");
-          navigate("/dashboard");
+          setIsLoading(false);
           return;
         }
 
@@ -81,6 +105,8 @@ const Auth = () => {
         if (hmac) authParams.set("hmac", hmac);
         if (code) authParams.set("code", code);
         if (timestamp) authParams.set("timestamp", timestamp);
+        if (state) authParams.set("state", state);
+        if (host) authParams.set("host", host);
         
         // Use window.location.replace to ensure a full page reload to the server route
         // This is crucial for Remix server-side auth handling

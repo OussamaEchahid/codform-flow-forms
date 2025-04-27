@@ -8,12 +8,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = url.searchParams.get("shop");
   const authSuccess = url.searchParams.get("auth_success");
   const sessionId = url.searchParams.get("session_id");
+  const authError = url.searchParams.get("auth_error");
+  const errorMessage = url.searchParams.get("error");
   
   console.log("Dashboard route accessed with params:", { 
     shopifyConnected, 
     shop, 
     authSuccess,
     sessionId,
+    authError,
+    errorMessage,
+    allParams: Object.fromEntries(url.searchParams.entries()),
     fullUrl: request.url
   });
   
@@ -29,6 +34,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       shop: session.shop,
       sessionFound: true,
       sessionId: session.id
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      }
     });
   } catch (error) {
     console.log("Not authenticated with Shopify, checking if coming from auth flow");
@@ -40,7 +51,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         shopifyConnected: true,
         shop: shop,
         fromAuthFlow: true,
-        sessionId: sessionId
+        sessionId: sessionId,
+        authSuccess: authSuccess === "true"
+      }, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        }
+      });
+    }
+    
+    // Check if there was an authentication error
+    if (authError === "true") {
+      console.log("Authentication error detected:", errorMessage);
+      return json({ 
+        shopifyConnected: false,
+        authError: true,
+        errorMessage: errorMessage || "Unknown authentication error",
+        noSession: true
+      }, { 
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        }
       });
     }
     
@@ -50,6 +86,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({ 
       shopifyConnected: false,
       noSession: true
-    }, { status: 200 });
+    }, { 
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      }
+    });
   }
 };

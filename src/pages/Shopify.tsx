@@ -51,7 +51,9 @@ const Shopify = () => {
         shop, 
         url: window.location.href,
         fullUrl: window.location.href,
-        origin: window.location.origin
+        origin: window.location.origin,
+        search: location.search,
+        allParams: Object.fromEntries(params.entries())
       });
       console.log("Shopify page parameters:", { 
         shopParam, 
@@ -59,7 +61,9 @@ const Shopify = () => {
         shop, 
         url: window.location.href,
         fullUrl: window.location.href,
-        origin: window.location.origin
+        origin: window.location.origin,
+        search: location.search,
+        allParams: Object.fromEntries(params.entries())
       });
       
       // We have a shop parameter, start authentication process
@@ -82,6 +86,8 @@ const Shopify = () => {
         // Format auth URL correctly - using direct URL and window.location.replace for server-side processing
         const authUrl = `/auth?shop=${encodedShop}`;
         console.log("Full server auth URL:", window.location.origin + authUrl);
+        
+        // Use replace instead of href to ensure we don't create browser history entry
         window.location.replace(authUrl);
       }, 1000);
       
@@ -108,7 +114,7 @@ const Shopify = () => {
     const cleanedDomain = cleanShopDomain(shopDomain);
     
     // Validate domain format
-    if (!cleanedDomain.endsWith('myshopify.com') && !cleanedDomain.includes('.')) {
+    if (!cleanedDomain.includes('.')) {
       setError(language === 'ar'
         ? "يرجى إدخال دومين متجر Shopify صالح (مثال: your-store.myshopify.com)"
         : "Please enter a valid Shopify store domain (example: your-store.myshopify.com)"
@@ -121,6 +127,7 @@ const Shopify = () => {
     
     // Build and redirect to server auth URL directly
     console.log("Redirecting directly to server auth with shop:", cleanedDomain);
+    setIsProcessing(true);
     
     // Format auth URL correctly - using window.location.replace for server-side handling
     const authUrl = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;

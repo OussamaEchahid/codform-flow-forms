@@ -7,8 +7,13 @@ export async function loader({ request }) {
   const hmac = url.searchParams.get("hmac");
   const timestamp = url.searchParams.get("timestamp");
   const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const host = url.searchParams.get("host");
   
-  console.log("Root route accessed with params:", { shopifyReferrer, hmac, code, timestamp });
+  console.log("Root route accessed with params:", { 
+    shopifyReferrer, hmac, code, timestamp, state, host,
+    allParams: Object.fromEntries(url.searchParams.entries())
+  });
   
   // Clean up shop URL if it contains protocol
   if (shopifyReferrer) {
@@ -42,16 +47,30 @@ export async function loader({ request }) {
     if (hmac) params.set("hmac", hmac);
     if (timestamp) params.set("timestamp", timestamp);
     if (code) params.set("code", code);
+    if (state) params.set("state", state);
+    if (host) params.set("host", host);
     
-    // Redirect directly to server auth endpoint - this is the critical change
-    return redirect(`/auth?${params.toString()}`);
+    // Redirect directly to server auth endpoint with all parameters
+    return redirect(`/auth?${params.toString()}`, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      }
+    });
   }
   
   // If we have other Shopify auth parameters (hmac, code), redirect to auth path
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
-    return redirect(`/auth?${params.toString()}`);
+    return redirect(`/auth?${params.toString()}`, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      }
+    });
   }
   
   // For all other cases, redirect to dashboard

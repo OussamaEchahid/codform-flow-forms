@@ -7,6 +7,17 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
   
+  // تسجيل جميع المعلمات للتصحيح
+  console.log("Auth route parameters:", {
+    shop,
+    hmac: url.searchParams.get("hmac"),
+    code: url.searchParams.get("code"),
+    timestamp: url.searchParams.get("timestamp"),
+    host: url.searchParams.get("host"),
+    state: url.searchParams.get("state"),
+    allParams: Object.fromEntries(url.searchParams.entries())
+  });
+  
   // Clean up the shop URL if it contains protocol
   if (shop) {
     try {
@@ -46,9 +57,16 @@ export const loader = async ({ request }) => {
     
     // After successful authentication, redirect user directly to dashboard
     // Add crucial state tracking parameters
-    const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}`;
+    const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
     console.log("Redirecting to:", redirectUrl);
-    return redirect(redirectUrl);
+    
+    return redirect(redirectUrl, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      }
+    });
   } catch (error) {
     console.log("Authentication error:", error.message);
     
@@ -64,12 +82,12 @@ export const loader = async ({ request }) => {
       } catch (loginError) {
         console.error("Login error:", loginError);
         // On login error, provide detailed information
-        return redirect(`/?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop)}`);
+        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop || '')}`);
       }
     }
     
     // In case of auth error and no shop, redirect user to the home page
-    return redirect("/?auth_error=true");
+    return redirect("/dashboard?auth_error=true&error=no_shop_parameter");
   }
 };
 
@@ -77,9 +95,9 @@ export const loader = async ({ request }) => {
 export const action = async ({ request }) => {
   try {
     const { session } = await authenticate.admin(request);
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}`);
+    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true`);
   } catch (error) {
     console.error("Authentication action error:", error);
-    return redirect("/?auth_error=true");
+    return redirect("/dashboard?auth_error=true");
   }
 };
