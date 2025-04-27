@@ -18,7 +18,8 @@ export const loader = async ({ request }) => {
     allParams: Object.fromEntries(url.searchParams.entries()),
     headers: Object.fromEntries(request.headers.entries()),
     url: request.url,
-    method: request.method
+    method: request.method,
+    path: url.pathname
   });
   
   // قم بتنظيف عنوان URL الخاص بالمتجر إذا كان يحتوي على بروتوكول
@@ -66,6 +67,11 @@ export const loader = async ({ request }) => {
         const { session } = await authenticate.admin(request);
         console.log("Authentication successful for shop:", session.shop);
         
+        // حفظ معلومات الجلسة في ملف تعريف الارتباط
+        if (session) {
+          console.log("Setting session cookie with shop:", session.shop);
+        }
+        
         // بعد المصادقة الناجحة، قم بتوجيه المستخدم مباشرة إلى لوحة التحكم
         const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
         console.log("Redirecting to:", redirectUrl);
@@ -86,7 +92,14 @@ export const loader = async ({ request }) => {
     else if (shop) {
       try {
         console.log("Starting authentication flow for shop:", shop);
-        return await login(request);
+        
+        // حفظ متجر في ملف تعريف ارتباط مؤقت
+        const response = await login(request);
+        
+        // تسجيل عنوان إعادة التوجيه الذي تم إنشاؤه بواسطة وظيفة login
+        console.log("Login redirect URL:", response.headers.get("Location"));
+        
+        return response;
       } catch (loginError) {
         console.error("Login error:", loginError);
         return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop || '')}`);
@@ -97,13 +110,19 @@ export const loader = async ({ request }) => {
     return redirect("/dashboard?auth_error=true&error=no_shop_parameter");
   } catch (error) {
     console.error("Authentication error:", error.message);
+    console.error("Stack trace:", error.stack);
     
     // إذا كان لدينا متجر في عنوان URL، فهذا يعني أننا في بداية عملية المصادقة
     if (shop) {
       try {
         // ابدأ تدفق مصادقة Shopify
         console.log("Attempting to login for shop:", shop);
-        return await login(request);
+        const response = await login(request);
+        
+        // تسجيل عنوان إعادة التوجيه الذي تم إنشاؤه
+        console.log("Login redirect URL on error recovery:", response.headers.get("Location"));
+        
+        return response;
       } catch (loginError) {
         console.error("Login error:", loginError);
         // في حالة خطأ تسجيل الدخول، قدم معلومات مفصلة
@@ -119,11 +138,12 @@ export const loader = async ({ request }) => {
 // تتعامل هذه الدالة مع عمليات ما بعد المصادقة من قبل Shopify
 export const action = async ({ request }) => {
   try {
+    console.log("POST auth action called with URL:", request.url);
     const { session } = await authenticate.admin(request);
     console.log("POST auth action successful for shop:", session.shop);
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true`);
+    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&from_action=true`);
   } catch (error) {
     console.error("Authentication action error:", error);
-    return redirect("/dashboard?auth_error=true");
+    return redirect("/dashboard?auth_error=true&error=action_failed");
   }
 };

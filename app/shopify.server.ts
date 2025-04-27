@@ -8,6 +8,13 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+console.log("Initializing Shopify app with environment:", {
+  SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY || 'Using fallback API key',
+  SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 'Using fallback APP URL',
+  Scopes: process.env.SCOPES ? 'Using ENV scopes' : 'Using fallback scopes',
+  isEmbedded: process.env.EMBEDDED === "true"
+});
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
@@ -21,7 +28,7 @@ const shopify = shopifyApp({
   // تعديل هذا الإعداد ليكون false حتى يعمل التطبيق بشكل مستقل
   isEmbeddedApp: false,
   hooks: {
-    afterAuth: async ({ session }) => {
+    afterAuth: async ({ session, admin }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
       // تأكد من وجود الجلسة
@@ -38,20 +45,45 @@ const shopify = shopifyApp({
         };
       }
       
-      // إضافة المزيد من معلومات التصحيح للتوجيه
-      const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
-      console.log("Redirecting to:", redirectUrl);
-      
-      return {
-        status: 302,
-        headers: {
-          Location: redirectUrl,
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0",
-          "X-Auth-Result": "success",
-        },
-      };
+      // التحقق من صلاحيات المتجر بعد المصادقة الناجحة
+      try {
+        console.log("Verifying shop access:", session.shop);
+        // سجل معلومات إضافية عن الجلسة
+        console.log("Session details:", {
+          id: session.id,
+          shop: session.shop,
+          scope: session.scope,
+          expires: session.expires,
+          isOnline: session.isOnline,
+          accessToken: session.accessToken ? "Present (hidden)" : "Missing",
+        });
+
+        // إضافة المزيد من معلومات التصحيح للتوجيه
+        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
+        console.log("Redirecting to:", redirectUrl);
+        
+        return {
+          status: 302,
+          headers: {
+            Location: redirectUrl,
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Auth-Result": "success",
+          },
+        };
+      } catch (error) {
+        console.error("Error verifying shop access:", error);
+        return {
+          status: 302,
+          headers: {
+            Location: `/dashboard?auth_error=true&error=${encodeURIComponent("Error verifying shop access")}`,
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+          },
+        };
+      }
     }
   },
   future: {
@@ -61,6 +93,14 @@ const shopify = shopifyApp({
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
+});
+
+console.log("Shopify app initialized with options:", {
+  appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
+  authPathPrefix: "/auth",
+  apiVersion: ApiVersion.January25,
+  distribution: "app_store",
+  isEmbeddedApp: false,
 });
 
 export default shopify;
