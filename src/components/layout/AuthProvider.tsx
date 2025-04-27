@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from 'react';
 import { AuthContext } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -26,6 +27,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const timestamp = params.get("timestamp");
         const authSuccess = params.get("auth_success");
 
+        // Get saved Shopify data from localStorage
+        const savedShop = localStorage.getItem('shopify_store');
+        const savedConnected = localStorage.getItem('shopify_connected');
+        const tempShop = localStorage.getItem('shopify_temp_store');
+
         // Log auth parameters for debugging
         console.log('Auth parameters:', { 
           shop, shopifyConnected, shopifySuccess, hmac, authSuccess,
@@ -35,19 +41,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Check if we have a shop in Supabase
         const { data: shopifyStore, error } = await supabase
-          .rpc('get_shopify_stores')
+          .rpc('get_user_shop')
           .single();
 
         if (shopifyStore) {
           console.log('Found Shopify store in database:', shopifyStore);
           setAuthState({
             shopifyConnected: true,
-            shop: shopifyStore.shop,
+            shop: shopifyStore,
             user: { id: 'shopify-user' }
           });
           
           // Update localStorage
-          localStorage.setItem('shopify_store', shopifyStore.shop);
+          localStorage.setItem('shopify_store', shopifyStore);
           localStorage.setItem('shopify_connected', 'true');
           
           setAuthChecked(true);

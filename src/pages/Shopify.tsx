@@ -86,12 +86,12 @@ const Shopify = () => {
       try {
         // Check for Shopify store in Supabase
         const { data: shopifyStore, error } = await supabase
-          .rpc('get_shopify_stores')
+          .rpc('get_user_shop')
           .single();
 
         if (shopifyStore) {
           // Store was found, update localStorage
-          localStorage.setItem('shopify_store', shopifyStore.shop);
+          localStorage.setItem('shopify_store', shopifyStore);
           localStorage.setItem('shopify_connected', 'true');
           setDebugInfo(prev => ({ ...prev, shopifyStore }));
         }
