@@ -13,7 +13,6 @@ import FormBuilderPage from "./pages/FormBuilderPage";
 import NotFound from "./pages/NotFound";
 import Orders from "./pages/Orders";
 import ShopifyRedirect from "./pages/ShopifyRedirect";
-import SettingsPage from "./pages/SettingsPage";  // إضافة المسار الجديد
 
 const queryClient = new QueryClient();
 
@@ -36,7 +35,6 @@ const App = () => (
               <Route path="/shopify" element={<ShopifyRedirect />} />
               <Route path="/shopify/auth" element={<ShopifyRedirect />} />
               <Route path="/shopify/dashboard" element={<ShopifyRedirect />} />
-              <Route path="/settings" element={<SettingsPage />} />  {/* مسار الإعدادات الجديد */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
