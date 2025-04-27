@@ -33,8 +33,7 @@ const shopify = shopifyApp({
         };
       }
       
-      // Use a more direct approach with absolute URLs for redirection
-      // Include all necessary parameters for the client-side application
+      // Add more debugging information to the redirect
       const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
       console.log("Redirecting to:", redirectUrl);
       
@@ -43,8 +42,9 @@ const shopify = shopifyApp({
         headers: {
           Location: redirectUrl,
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
+          "Pragma": "no-cache",
+          "Expires": "0",
+          "X-Auth-Result": "success",
         },
       };
     }

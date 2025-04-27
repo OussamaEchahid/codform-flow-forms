@@ -34,8 +34,11 @@ const Auth = () => {
           pathname: window.location.pathname,
           search: window.location.search,
           origin: window.location.origin,
-          fullUrl: window.location.href 
+          fullUrl: window.location.href,
+          fullPath: window.location.href,
+          referrer: document.referrer || "none"
         });
+        
         console.log("Auth page loaded with parameters:", { 
           shop, 
           hmac, 
@@ -45,7 +48,8 @@ const Auth = () => {
           host,
           url: window.location.href,
           pathname: window.location.pathname,
-          search: window.location.search
+          search: window.location.search,
+          referrer: document.referrer || "none"
         });
 
         // Clean up the shop parameter if it contains full protocol
@@ -85,6 +89,15 @@ const Auth = () => {
           }
         }
 
+        // If we still don't have a shop parameter, check if we have it in localStorage
+        if (!shop) {
+          const tempShop = localStorage.getItem('shopify_temp_store');
+          if (tempShop) {
+            shop = tempShop;
+            console.log("Retrieved shop from localStorage:", shop);
+          }
+        }
+
         // If we still don't have a shop parameter, redirect user to dashboard
         if (!shop) {
           console.error("Missing shop parameter in auth flow");
@@ -96,25 +109,36 @@ const Auth = () => {
         // Store temporary shop information for use if auth flow is interrupted
         localStorage.setItem('shopify_temp_store', shop);
         
-        // Now make a direct request to the server-side auth endpoint
-        console.log("Redirecting to server auth endpoint with shop:", shop);
+        // Now construct the direct Shopify OAuth URL instead of using our server
+        // This is to bypass any potential issues with our server auth endpoint
+        let shopifyAuthUrl;
         
-        // Build auth URL with all query parameters
-        const authParams = new URLSearchParams();
-        authParams.set("shop", shop);
-        if (hmac) authParams.set("hmac", hmac);
-        if (code) authParams.set("code", code);
-        if (timestamp) authParams.set("timestamp", timestamp);
-        if (state) authParams.set("state", state);
-        if (host) authParams.set("host", host);
-        
-        // Use window.location.replace to ensure a full page reload to the server route
-        // This is crucial for Remix server-side auth handling
-        const serverAuthUrl = `/auth?${authParams.toString()}`;
-        console.log("Server auth URL:", window.location.origin + serverAuthUrl);
-        
-        // Explicitly doing a full browser navigation, not a React Router navigation
-        window.location.replace(serverAuthUrl);
+        if (code && hmac) {
+          // We're in the second step of OAuth, redirect directly to server auth endpoint
+          console.log("OAuth callback detected, redirecting to server auth endpoint");
+          const authParams = new URLSearchParams();
+          authParams.set("shop", shop);
+          if (hmac) authParams.set("hmac", hmac);
+          if (code) authParams.set("code", code);
+          if (timestamp) authParams.set("timestamp", timestamp);
+          if (state) authParams.set("state", state);
+          if (host) authParams.set("host", host);
+          
+          // Use absolute URL to ensure proper handling
+          const serverAuthUrl = `${window.location.origin}/auth?${authParams.toString()}`;
+          console.log("Redirecting to server auth URL:", serverAuthUrl);
+          window.location.href = serverAuthUrl;
+        } else {
+          // We're in the first step of OAuth, direct to server auth endpoint
+          console.log("Starting OAuth flow for shop:", shop);
+          const authParams = new URLSearchParams();
+          authParams.set("shop", shop);
+          
+          // Use absolute URL to ensure proper handling
+          const serverAuthUrl = `${window.location.origin}/auth?${authParams.toString()}`;
+          console.log("Redirecting to server auth URL:", serverAuthUrl);
+          window.location.href = serverAuthUrl;
+        }
       } catch (err) {
         console.error("Auth error:", err);
         setError("حدث خطأ أثناء المصادقة");

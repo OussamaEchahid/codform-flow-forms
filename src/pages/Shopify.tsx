@@ -53,7 +53,8 @@ const Shopify = () => {
         fullUrl: window.location.href,
         origin: window.location.origin,
         search: location.search,
-        allParams: Object.fromEntries(params.entries())
+        allParams: Object.fromEntries(params.entries()),
+        referrer: document.referrer || "none"
       });
       console.log("Shopify page parameters:", { 
         shopParam, 
@@ -63,7 +64,8 @@ const Shopify = () => {
         fullUrl: window.location.href,
         origin: window.location.origin,
         search: location.search,
-        allParams: Object.fromEntries(params.entries())
+        allParams: Object.fromEntries(params.entries()),
+        referrer: document.referrer || "none"
       });
       
       // We have a shop parameter, start authentication process
@@ -77,27 +79,22 @@ const Shopify = () => {
       // Save shop temporarily in localStorage
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
-      // Short delay before redirecting
+      // Short delay before redirecting to avoid race conditions
       const redirectTimer = setTimeout(() => {
-        // Make sure to properly encode shop parameter
+        // Build the Shopify app auth URL directly
         const encodedShop = encodeURIComponent(cleanedShop);
-        console.log("Redirecting directly to server auth with shop:", encodedShop);
+        console.log("Redirecting to Shopify OAuth with shop:", encodedShop);
         
-        // Format auth URL correctly - using direct URL and window.location.replace for server-side processing
+        // Format auth URL correctly
+        // Using direct URL for server-side handling
         const authUrl = `/auth?shop=${encodedShop}`;
         console.log("Full server auth URL:", window.location.origin + authUrl);
         
-        // Use replace instead of href to ensure we don't create browser history entry
+        // Use replace to avoid creating browser history entry
         window.location.replace(authUrl);
-      }, 1000);
+      }, 500);
       
       return () => clearTimeout(redirectTimer);
-    } else if (shopifyConnected && shop) {
-      // Store is already connected
-      console.log("Store already connected:", shop);
-    } else {
-      // No shop parameters and no previous connection
-      console.log("No shop parameters or previous connection");
     }
   }, [location.search, navigate, shop, shopifyConnected]);
 
@@ -122,17 +119,16 @@ const Shopify = () => {
       return;
     }
     
-    // Save shop temporarily and redirect user directly to server auth path
+    // Save shop temporarily and redirect user directly to OAuth
     localStorage.setItem('shopify_temp_store', cleanedDomain);
     
-    // Build and redirect to server auth URL directly
-    console.log("Redirecting directly to server auth with shop:", cleanedDomain);
+    console.log("Starting OAuth for shop:", cleanedDomain);
     setIsProcessing(true);
     
-    // Format auth URL correctly - using window.location.replace for server-side handling
+    // Format auth URL correctly
     const authUrl = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
-    console.log("Full server auth URL:", window.location.origin + authUrl);
-    window.location.replace(authUrl);
+    console.log("Full auth URL:", window.location.origin + authUrl);
+    window.location.href = authUrl;
   };
 
   return (

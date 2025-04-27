@@ -1,5 +1,5 @@
 
-import { authenticate } from "../shopify.server";
+import { authenticate, login } from "../shopify.server";
 import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
@@ -7,7 +7,7 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
   
-  // تسجيل جميع المعلمات للتصحيح
+  // Log all parameters for debugging
   console.log("Auth route parameters:", {
     shop,
     hmac: url.searchParams.get("hmac"),
@@ -51,33 +51,54 @@ export const loader = async ({ request }) => {
       request = new Request(url.toString(), request);
     }
 
-    // Try to authenticate with Shopify
-    const { session } = await authenticate.admin(request);
-    console.log("Authentication successful for shop:", session.shop);
+    const code = url.searchParams.get("code");
+    const hmac = url.searchParams.get("hmac");
     
-    // After successful authentication, redirect user directly to dashboard
-    // Add crucial state tracking parameters
-    const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
-    console.log("Redirecting to:", redirectUrl);
-    
-    return redirect(redirectUrl, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
+    // If we have code and hmac, we're in OAuth callback
+    if (code && hmac) {
+      console.log("OAuth callback detected with code and hmac");
+      // Try to authenticate with Shopify
+      try {
+        const { session } = await authenticate.admin(request);
+        console.log("Authentication successful for shop:", session.shop);
+        
+        // After successful authentication, redirect user directly to dashboard
+        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
+        console.log("Redirecting to:", redirectUrl);
+        
+        return redirect(redirectUrl, {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+          }
+        });
+      } catch (authError) {
+        console.error("Authentication error:", authError);
+        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(authError.message)}&shop=${encodeURIComponent(shop || '')}`);
       }
-    });
+    } 
+    // If we only have shop, start OAuth flow
+    else if (shop) {
+      try {
+        console.log("Starting authentication flow for shop:", shop);
+        return await login(request);
+      } catch (loginError) {
+        console.error("Login error:", loginError);
+        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop || '')}`);
+      }
+    }
+    
+    // In case of no shop parameter
+    return redirect("/dashboard?auth_error=true&error=no_shop_parameter");
   } catch (error) {
-    console.log("Authentication error:", error.message);
+    console.error("Authentication error:", error.message);
     
     // If we have a shop in the URL, it means we're at the beginning of the auth process
     if (shop) {
       try {
-        // Import login function
-        const { login } = await import("../shopify.server");
-        
         // Start Shopify authentication flow
-        console.log("Starting authentication flow for shop:", shop);
+        console.log("Attempting to login for shop:", shop);
         return await login(request);
       } catch (loginError) {
         console.error("Login error:", loginError);
@@ -87,7 +108,7 @@ export const loader = async ({ request }) => {
     }
     
     // In case of auth error and no shop, redirect user to the home page
-    return redirect("/dashboard?auth_error=true&error=no_shop_parameter");
+    return redirect("/dashboard?auth_error=true&error=authentication_failed");
   }
 };
 

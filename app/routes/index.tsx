@@ -12,7 +12,8 @@ export async function loader({ request }) {
   
   console.log("Root route accessed with params:", { 
     shopifyReferrer, hmac, code, timestamp, state, host,
-    allParams: Object.fromEntries(url.searchParams.entries())
+    allParams: Object.fromEntries(url.searchParams.entries()),
+    fullUrl: request.url
   });
   
   // Clean up shop URL if it contains protocol
@@ -54,8 +55,8 @@ export async function loader({ request }) {
     return redirect(`/auth?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
+        "Pragma": "no-cache",
+        "Expires": "0",
       }
     });
   }
@@ -67,8 +68,8 @@ export async function loader({ request }) {
     return redirect(`/auth?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
+        "Pragma": "no-cache",
+        "Expires": "0",
       }
     });
   }

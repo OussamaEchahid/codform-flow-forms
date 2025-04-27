@@ -28,7 +28,8 @@ const ShopifyRedirect = () => {
       url: window.location.href,
       fullPath: window.location.href,
       origin: window.location.origin,
-      pathname: window.location.pathname
+      pathname: window.location.pathname,
+      referrer: document.referrer || "none"
     });
     console.log("ShopifyRedirect parameters:", { 
       shop, 
@@ -38,7 +39,8 @@ const ShopifyRedirect = () => {
       url: window.location.href,
       fullPath: window.location.href,
       origin: window.location.origin,
-      pathname: window.location.pathname
+      pathname: window.location.pathname,
+      referrer: document.referrer || "none"
     });
     
     // Check for shop parameter
@@ -46,13 +48,22 @@ const ShopifyRedirect = () => {
       // If we don't have a shop parameter, check for previously stored shop
       const savedShop = localStorage.getItem('shopify_store');
       const savedConnected = localStorage.getItem('shopify_connected');
+      // Check for temporary shop during auth
+      const tempShop = localStorage.getItem('shopify_temp_store');
       
-      console.log("Stored data:", { savedShop, savedConnected });
+      console.log("Stored data:", { savedShop, savedConnected, tempShop });
       
       if (savedShop && savedConnected === 'true') {
         // If we have stored shop data, redirect to dashboard directly
         console.log("Using stored shop data for redirect...");
         navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
+        return;
+      }
+      
+      if (tempShop) {
+        // If we have temporary shop data, try to continue auth flow
+        console.log("Using temporary shop data to continue auth:", tempShop);
+        window.location.href = `/auth?shop=${encodeURIComponent(tempShop)}`;
         return;
       }
       
@@ -83,7 +94,7 @@ const ShopifyRedirect = () => {
     // Update redirect status
     setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
     
-    // Store shop info in localStorage temporarily for use if auth flow is interrupted
+    // Store shop info in localStorage for use if auth flow is interrupted
     try {
       localStorage.setItem('shopify_temp_store', cleanedShop);
       console.log("Temp shop info saved:", cleanedShop);
@@ -91,27 +102,16 @@ const ShopifyRedirect = () => {
       console.error("Error saving temp data:", e);
     }
     
-    // If we have auth parameters (hmac or code), continue auth flow
-    if (hmac || code) {
-      console.log("Auth parameters found, redirecting to auth path...");
-      // Create new params with cleaned shop
-      const newParams = new URLSearchParams();
-      newParams.set("shop", cleanedShop);
-      if (hmac) newParams.set("hmac", hmac);
-      if (code) newParams.set("code", code);
-      if (timestamp) newParams.set("timestamp", timestamp);
-      
-      // Redirect to auth path with absolute URL to avoid navigation issues
-      const authUrl = `/auth?${newParams.toString()}`;
-      console.log("Full auth URL:", window.location.origin + authUrl);
-      window.location.href = authUrl;
-    } else {
-      console.log("Starting new auth flow for shop:", cleanedShop);
-      // If we only have shop parameter, start auth from scratch
-      const authUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}`;
-      console.log("Full auth URL:", window.location.origin + authUrl);
-      window.location.href = authUrl;
-    }
+    // Direct the user straight to server auth route
+    const authParams = new URLSearchParams();
+    authParams.set("shop", cleanedShop);
+    if (hmac) authParams.set("hmac", hmac); 
+    if (code) authParams.set("code", code);
+    if (timestamp) authParams.set("timestamp", timestamp);
+    
+    const authUrl = `/auth?${authParams.toString()}`;
+    console.log("Redirecting to server auth route:", window.location.origin + authUrl);
+    window.location.href = authUrl;
   }, [location, navigate]);
 
   return (
