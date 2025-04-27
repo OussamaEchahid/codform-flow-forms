@@ -1,7 +1,0 @@
-name = "CODFORM - نماذج الدفع عند الاستلام"
-type = "theme"
-handle = "theme-extension-codform"
-
-[[metafields]]
-namespace = "codform"
-key = "settings"

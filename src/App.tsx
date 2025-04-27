@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import FormBuilderPage from "./pages/FormBuilderPage";
 import NotFound from "./pages/NotFound";
 import Orders from "./pages/Orders";
+import ShopifyRedirect from "./pages/ShopifyRedirect";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,9 @@ const App = () => (
               <Route path="/forms" element={<FormBuilderPage />} />
               <Route path="/form-builder" element={<FormBuilderPage />} />
               <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
+              <Route path="/shopify" element={<ShopifyRedirect />} />
+              <Route path="/shopify/auth" element={<ShopifyRedirect />} />
+              <Route path="/shopify/dashboard" element={<ShopifyRedirect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

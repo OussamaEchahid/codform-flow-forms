@@ -1,8 +1,9 @@
-# Welcome to your Lovable project
+# CODFORM - نماذج الدفع عند الاستلام
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/bdd609f7-47cd-46ca-b52a-70c677d421c9
+**Shopify App URL**: https://codform-flow-forms.lovable.app/
 
 ## How can I edit this code?
 
@@ -59,6 +60,51 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Shopify App Framework
+- Remix
+
+## Shopify Integration
+
+This project includes Shopify integration for creating Cash on Delivery (COD) forms that can be embedded in Shopify stores.
+
+### Running the Shopify App
+
+To run the Shopify app locally:
+
+```sh
+# Install dependencies
+npm install
+
+# Start the Shopify app development server
+npm run shopify:dev
+```
+
+### Deploying to Shopify
+
+To deploy the app to Shopify:
+
+```sh
+# Build the app
+npm run shopify:build
+
+# Deploy the app
+npm run shopify:deploy
+```
+
+### Shopify Extensions
+
+This project includes the following Shopify extensions:
+
+1. **Theme Extension**: Adds a COD form block that can be added to product pages
+2. **Admin Action Extension**: Adds a button to the product details page in the Shopify admin to configure COD forms
+
+### Connecting to a Shopify Store
+
+1. Go to the Shopify Partners dashboard
+2. Create a new app or use the existing app
+3. Set the app URL to your deployed app URL
+4. Set the redirect URL to `<your-app-url>/auth/callback`
+5. Install the app in your Shopify store
 
 ## How can I deploy this project?
 
