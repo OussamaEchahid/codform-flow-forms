@@ -1,12 +1,9 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Settings, LayoutGrid, LogOut } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
-import { Button } from '@/components/ui/button';
+import { Home, ShoppingCart, Settings, LayoutGrid } from 'lucide-react';
 
 const AppSidebar = () => {
   const location = useLocation();
-  const { signOut } = useAuth();
 
   const menuItems = [
     { 
@@ -32,12 +29,8 @@ const AppSidebar = () => {
   ];
 
   return (
-    <aside className="fixed right-0 top-0 bottom-0 w-64 bg-white shadow-lg min-h-screen p-4 flex flex-col z-10">
-      <div className="mb-8 text-center">
-        <h2 className="font-bold text-xl">CODFORM</h2>
-      </div>
-      
-      <nav className="flex-1">
+    <aside className="w-64 bg-white border-l min-h-screen p-4">
+      <nav>
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <li key={item.path}>
@@ -58,18 +51,6 @@ const AppSidebar = () => {
           ))}
         </ul>
       </nav>
-      
-      {/* زر تسجيل الخروج في أسفل الشريط الجانبي */}
-      <div className="mt-auto pt-4 border-t">
-        <Button 
-          variant="outline" 
-          className="w-full flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-          onClick={signOut}
-        >
-          <LogOut className="ml-2" size={18} />
-          تسجيل الخروج
-        </Button>
-      </div>
     </aside>
   );
 };

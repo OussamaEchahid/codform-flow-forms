@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { user, session, signOut } = useInitAuth();
+  const { user, session } = useInitAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, session, signOut }}>
+    <AuthContext.Provider value={{ user, session }}>
       {children}
     </AuthContext.Provider>
   );
