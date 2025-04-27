@@ -1,0 +1,18 @@
+{
+  "name": "CODFORM Admin Action",
+  "extension": {
+    "button": "Configure COD Form",
+    "modal": {
+      "title": "Configure Cash on Delivery Form",
+      "description": "Configure the Cash on Delivery form for this product",
+      "save": "Save",
+      "cancel": "Cancel",
+      "enable": "Enable Cash on Delivery form",
+      "select_form": "Select form",
+      "loading": "Loading forms...",
+      "no_forms": "No forms available. Please create a form first.",
+      "manage_forms": "Manage Forms",
+      "refresh_forms": "Refresh Forms"
+    }
+  }
+}

@@ -1,0 +1,159 @@
+/* CODFORM - نماذج الدفع عند الاستلام */
+
+.codform-container {
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.codform-header {
+  margin-bottom: 20px;
+  text-align: right;
+}
+
+.codform-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.codform-header p {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.codform-form {
+  margin-top: 20px;
+}
+
+.codform-field {
+  margin-bottom: 16px;
+}
+
+.codform-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.codform-field input[type="text"],
+.codform-field input[type="email"],
+.codform-field input[type="tel"],
+.codform-field input[type="number"],
+.codform-field textarea,
+.codform-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.codform-field input:focus,
+.codform-field textarea:focus,
+.codform-field select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.codform-checkbox-container {
+  display: flex;
+  align-items: center;
+}
+
+.codform-checkbox-container input[type="checkbox"] {
+  margin-left: 8px;
+}
+
+.codform-help-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.codform-required {
+  color: #ef4444;
+}
+
+.codform-submit-button {
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.codform-submit-button:hover {
+  background-color: #6d28d9;
+}
+
+.codform-submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.codform-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.codform-success, .codform-error {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.codform-success-icon {
+  background-color: #10b981;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 20px;
+}
+
+.codform-error-icon {
+  background-color: #ef4444;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 20px;
+}
+
+.codform-button {
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background-color 0.2s;
+}
+
+.codform-button:hover {
+  background-color: #6d28d9;
+}

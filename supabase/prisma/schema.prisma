@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+}
+
+model Form {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fields      String // JSON string of form fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  shopId      String?  // Optional Shopify shop ID
+  isActive    Boolean  @default(true)
+  submissions Submission[]
+}
+
+model Submission {
+  id        String   @id @default(uuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id])
+  data      String   // JSON string of form submission data
+  createdAt DateTime @default(now())
+  status    String   @default("pending") // pending, approved, rejected
+  shopId    String?  // Optional Shopify shop ID
+  orderId   String?  // Optional Shopify order ID
+}
