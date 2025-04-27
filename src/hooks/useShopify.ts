@@ -3,38 +3,22 @@ import { useState, useEffect } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth';
 
-export const useShopify = (accessToken?: string, shopDomain?: string) => {
+export const useShopify = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { shop, shopifyConnected } = useAuth();
 
   useEffect(() => {
-    if (accessToken && shopDomain) {
-      const verifyConnection = async () => {
-        try {
-          const api = createShopifyAPI(accessToken, shopDomain);
-          const isVerified = await api.verifyConnection();
-          setIsConnected(isVerified);
-        } catch (err) {
-          setIsConnected(false);
-          setError('Failed to verify Shopify connection');
-        }
-      };
-
-      verifyConnection();
-    }
-  }, [accessToken, shopDomain]);
-
-  useEffect(() => {
-    if (accessToken && shopDomain && isConnected) {
+    if (shopifyConnected && shop) {
       const fetchProducts = async () => {
         setIsLoading(true);
         setError(null);
         try {
-          const api = createShopifyAPI(accessToken, shopDomain);
+          const api = createShopifyAPI(shop);
           const fetchedProducts = await api.getProducts();
           setProducts(fetchedProducts);
         } catch (err) {
@@ -46,21 +30,21 @@ export const useShopify = (accessToken?: string, shopDomain?: string) => {
 
       fetchProducts();
     }
-  }, [accessToken, shopDomain, isConnected]);
+  }, [shopifyConnected, shop]);
 
   const syncFormWithShopify = async (formData: ShopifyFormData) => {
-    if (!accessToken || !shopDomain) {
-      throw new Error('Shopify credentials not provided');
+    if (!shopifyConnected || !shop) {
+      throw new Error('Shopify connection not established');
     }
 
     setIsSyncing(true);
     setError(null);
     try {
-      const api = createShopifyAPI(accessToken, shopDomain);
+      const api = createShopifyAPI(shop);
       await api.setupAutoSync(formData);
-      toast.success('Form synced with Shopify successfully');
+      toast.success('تم مزامنة النموذج مع Shopify بنجاح');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to sync form data';
+      const errorMessage = err instanceof Error ? err.message : 'فشل في مزامنة بيانات النموذج';
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -74,7 +58,7 @@ export const useShopify = (accessToken?: string, shopDomain?: string) => {
     isLoading,
     error,
     syncFormWithShopify,
-    isConnected,
+    isConnected: !!shopifyConnected,
     isSyncing
   };
 };

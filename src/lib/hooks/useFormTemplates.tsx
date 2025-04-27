@@ -14,6 +14,7 @@ export interface FormData {
   is_published: boolean;
   created_at: string;
   user_id: string;
+  shop_id?: string;
   updated_at?: string;
 }
 
@@ -21,18 +22,23 @@ export const useFormTemplates = () => {
   const [forms, setForms] = useState<FormData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<FormData | null>(null);
-  const { user } = useAuth();
+  const { user, shop } = useAuth();
   
   const fetchForms = useCallback(async () => {
-    if (!user) return;
-    
     try {
       setIsLoading(true);
-      const { data: formsData, error } = await supabase
+      
+      let query = supabase
         .from('forms')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+        
+      // إذا كان لدينا معرف متجر Shopify، نقوم بتصفية النماذج حسب المتجر
+      if (shop) {
+        query = query.eq('shop_id', shop);
+      }
+      
+      const { data: formsData, error } = await query;
       
       if (error) {
         throw error;
@@ -50,11 +56,9 @@ export const useFormTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [shop]);
 
   const createFormFromTemplate = useCallback(async (templateId: number) => {
-    if (!user) return null;
-    
     try {
       const selectedTemplate = formTemplates.find(t => t.id === templateId);
       
@@ -65,15 +69,22 @@ export const useFormTemplates = () => {
       
       toast.success(`تم اختيار قالب ${selectedTemplate.title}`);
       
+      const formData = {
+        title: selectedTemplate.title,
+        description: selectedTemplate.description,
+        data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
+        is_published: false,
+        shop_id: shop // استخدام shop_id بدلاً من user_id
+      };
+      
+      // إضافة user_id للتوافق مع النظام القديم إذا كان موجوداً
+      if (user?.id) {
+        (formData as any).user_id = user.id;
+      }
+      
       const { data, error } = await supabase
         .from('forms')
-        .insert([{
-          user_id: user.id,
-          title: selectedTemplate.title,
-          description: selectedTemplate.description,
-          data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
-          is_published: false
-        }])
+        .insert([formData])
         .select();
       
       if (error) {
@@ -99,29 +110,31 @@ export const useFormTemplates = () => {
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
     }
-  }, [user, fetchForms]);
+  }, [shop, user, fetchForms]);
 
   const createDefaultForm = useCallback(async () => {
     return createFormFromTemplate(1); // Use template ID 1 as default
   }, [createFormFromTemplate]);
 
   const saveForm = async (formId: string, formData: any) => {
-    if (!user) {
-      toast.error('يجب تسجيل الدخول لحفظ النموذج');
+    if (!shop) {
+      toast.error('يجب توصيل متجر Shopify لحفظ النموذج');
       return false;
     }
     
     try {
+      const updateData = {
+        title: formData.title,
+        description: formData.description,
+        data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
+        updated_at: new Date().toISOString(),
+        shop_id: shop
+      };
+      
       const { error } = await supabase
         .from('forms')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', formId)
-        .eq('user_id', user?.id);
+        .update(updateData)
+        .eq('id', formId);
       
       if (error) {
         throw error;
@@ -137,8 +150,8 @@ export const useFormTemplates = () => {
   };
 
   const publishForm = async (formId: string, isPublished: boolean) => {
-    if (!user) {
-      toast.error('يجب تسجيل الدخول لنشر النموذج');
+    if (!shop) {
+      toast.error('يجب توصيل متجر Shopify لنشر النموذج');
       return false;
     }
     
@@ -146,8 +159,7 @@ export const useFormTemplates = () => {
       const { error } = await supabase
         .from('forms')
         .update({ is_published: isPublished })
-        .eq('id', formId)
-        .eq('user_id', user?.id);
+        .eq('id', formId);
       
       if (error) {
         throw error;
@@ -163,8 +175,8 @@ export const useFormTemplates = () => {
   };
 
   const deleteForm = async (formId: string) => {
-    if (!user) {
-      toast.error('يجب تسجيل الدخول لحذف النموذج');
+    if (!shop) {
+      toast.error('يجب توصيل متجر Shopify لحذف النموذج');
       return false;
     }
     
@@ -172,8 +184,7 @@ export const useFormTemplates = () => {
       const { error } = await supabase
         .from('forms')
         .delete()
-        .eq('id', formId)
-        .eq('user_id', user?.id);
+        .eq('id', formId);
       
       if (error) {
         throw error;
@@ -189,14 +200,13 @@ export const useFormTemplates = () => {
   };
 
   const getFormById = async (formId: string) => {
-    if (!user || !formId) return null;
+    if (!formId) return null;
     
     try {
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('id', formId)
-        .eq('user_id', user.id)
         .single();
       
       if (error) {
@@ -220,10 +230,11 @@ export const useFormTemplates = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    // نقوم بتحميل النماذج عندما يكون لدينا معرف متجر Shopify أو مستخدم
+    if (shop || user) {
       fetchForms();
     }
-  }, [user, fetchForms]);
+  }, [shop, user, fetchForms]);
 
   return {
     forms,

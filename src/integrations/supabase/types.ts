@@ -15,6 +15,7 @@ export type Database = {
           data: Json
           form_id: string
           id: string
+          shop_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           data: Json
           form_id: string
           id?: string
+          shop_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -29,6 +31,7 @@ export type Database = {
           data?: Json
           form_id?: string
           id?: string
+          shop_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -48,6 +51,7 @@ export type Database = {
           description: string | null
           id: string
           is_published: boolean | null
+          shop_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -58,6 +62,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean | null
+          shop_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -68,6 +73,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean | null
+          shop_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -106,7 +112,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_shop: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

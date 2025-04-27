@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,27 +18,35 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
 import { Loader } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { toast } from 'sonner';
 
 interface ShopifyIntegrationProps {
   formId: string;
   onSave: (settings: ShopifyFormData) => void;
-  isConnected: boolean;
   isSyncing?: boolean;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formId,
   onSave,
-  isConnected,
   isSyncing = false,
 }) => {
   const { language } = useI18n();
+  const { shopifyConnected, shop } = useAuth();
   const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
 
   const handleSave = () => {
+    if (!shopifyConnected || !shop) {
+      toast.error(language === 'ar' 
+        ? 'يجب عليك الاتصال بـ Shopify أولاً'
+        : 'You need to connect to Shopify first');
+      return;
+    }
+
     onSave({
       formId,
-      shopDomain: '', // This will be set when connected to Shopify
+      shopDomain: shop,
       settings: {
         position,
         style: {
@@ -63,49 +71,70 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">
-            {language === 'ar' ? 'موقع النموذج' : 'Form Position'}
-          </label>
-          <Select value={position} onValueChange={(value: any) => setPosition(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="product-page">
-                {language === 'ar' ? 'صفحة المنتج' : 'Product Page'}
-              </SelectItem>
-              <SelectItem value="cart-page">
-                {language === 'ar' ? 'صفحة السلة' : 'Cart Page'}
-              </SelectItem>
-              <SelectItem value="checkout">
-                {language === 'ar' ? 'صفحة الدفع' : 'Checkout'}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {shopifyConnected ? (
+          <>
+            <div className="bg-green-50 rounded p-3 mb-4 border border-green-200">
+              <p className="text-green-700 text-sm">
+                {language === 'ar' 
+                  ? `أنت متصل بمتجر: ${shop}`
+                  : `Connected to store: ${shop}`}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {language === 'ar' ? 'موقع النموذج' : 'Form Position'}
+              </label>
+              <Select value={position} onValueChange={(value: any) => setPosition(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="product-page">
+                    {language === 'ar' ? 'صفحة المنتج' : 'Product Page'}
+                  </SelectItem>
+                  <SelectItem value="cart-page">
+                    {language === 'ar' ? 'صفحة السلة' : 'Cart Page'}
+                  </SelectItem>
+                  <SelectItem value="checkout">
+                    {language === 'ar' ? 'صفحة الدفع' : 'Checkout'}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <Button
-          onClick={handleSave}
-          className="w-full"
-          disabled={!isConnected || isSyncing}
-        >
-          {isSyncing ? (
-            <>
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
-              {language === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...'}
-            </>
-          ) : (
-            language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
-          )}
-        </Button>
-
-        {!isConnected && (
-          <p className="text-sm text-red-500">
-            {language === 'ar' 
-              ? 'يجب عليك الاتصال بـ Shopify أولاً'
-              : 'You need to connect to Shopify first'}
-          </p>
+            <Button
+              onClick={handleSave}
+              className="w-full"
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  {language === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...'}
+                </>
+              ) : (
+                language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
+              )}
+            </Button>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 rounded p-3 border border-yellow-200">
+              <p className="text-yellow-700 text-sm">
+                {language === 'ar' 
+                  ? 'أنت غير متصل بـ Shopify. قم بتسجيل الدخول لاستخدام هذه الميزة.'
+                  : 'You are not connected to Shopify. Sign in to use this feature.'}
+              </p>
+            </div>
+            
+            <Button 
+              variant="secondary"
+              className="w-full"
+              onClick={() => window.location.href = '/shopify'}
+            >
+              {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
+            </Button>
+          </div>
         )}
 
         <div className="mt-4">
