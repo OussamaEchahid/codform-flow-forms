@@ -1,3 +1,4 @@
+
 import {
   Button,
   Text,
@@ -10,6 +11,7 @@ import {
   useApi,
   reactExtension,
 } from '@shopify/ui-extensions-react/admin';
+import { useState, useEffect } from 'react';
 
 // The target used here must match the target used in the extension's shopify.extension.toml file
 export default reactExtension(
