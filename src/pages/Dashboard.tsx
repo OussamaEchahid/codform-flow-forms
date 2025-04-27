@@ -1,17 +1,34 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ShoppingCart, Target, DollarSign } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, language } = useI18n();
+  const [searchParams] = useSearchParams();
+  const [shopInfo, setShopInfo] = useState<{ shopifyConnected: boolean; shop?: string } | null>(null);
+  
+  useEffect(() => {
+    const shopifyConnected = searchParams.get("shopify_connected");
+    const shop = searchParams.get("shop");
+    
+    if (shopifyConnected === "true") {
+      setShopInfo({ shopifyConnected: true, shop });
+      toast.success(shop ? `تم الاتصال بمتجر ${shop} بنجاح` : 'تم الاتصال بمتجر Shopify بنجاح');
+      
+      if (window.history.replaceState) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, [searchParams]);
 
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
     date: `${i + 1}/4`,
@@ -19,9 +36,9 @@ const Dashboard = () => {
     revenue: Math.floor(Math.random() * 1000),
   }));
 
-  if (!user) {
+  if (!user && !shopInfo?.shopifyConnected) {
     return <div className="text-center py-8">
-      {language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى لوحة التحكم' : 'Please login to access the dashboard'}
+      {language === 'ar' ? 'يتم تحميل بيانات المتجر...' : 'Loading store data...'}
     </div>;
   }
 
@@ -34,6 +51,11 @@ const Dashboard = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">CODFORM</h1>
             <p className="text-gray-600">The Best Performing Cash On Delivery Form in Shopify</p>
+            {shopInfo?.shop && (
+              <p className="text-sm text-purple-600 mt-1">
+                {language === 'ar' ? `متصل بمتجر: ${shopInfo.shop}` : `Connected to store: ${shopInfo.shop}`}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-6 mb-8">

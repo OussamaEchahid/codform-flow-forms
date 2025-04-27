@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    const handleAuth = () => {
+    const handleAuth = async () => {
       // التحقق من معلمات Shopify في عنوان URL
       const params = new URLSearchParams(window.location.search);
       const shop = params.get("shop");
@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // إذا كنا في المسار الجذر مع معلمات متجر، قم بالتوجيه إلى المصادقة
         if (location.pathname === '/') {
+          console.log("Redirecting to auth with shop params");
           window.location.href = `/auth?${params.toString()}`;
           return;
         }
@@ -54,31 +55,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // اتصال Shopify - لا تحتاج إلى تسجيل الدخول
-      if (shopifyConnected === "true" || location.pathname.startsWith('/dashboard')) {
+      if (shopifyConnected === "true" || location.pathname === '/dashboard') {
         console.log("Shopify connection detected or in dashboard, no login required");
         setAuthChecked(true);
         return;
       }
 
-      // منطق المصادقة العادي للتطبيق
-      if (user) {
-        // المستخدم مسجل الدخول
-        if (location.pathname === '/auth') {
-          console.log("User logged in but on auth page, redirecting to dashboard");
-          navigate('/dashboard');
-        }
-      } else {
-        // المستخدم غير مسجل الدخول
-        // السماح بالوصول إلى الصفحة الرئيسية دون تسجيل الدخول
-        // وأيضًا السماح بالوصول إلى لوحة التحكم إذا كان هناك اتصال بشوبيفاي
-        if (location.pathname !== '/' && 
-            !location.pathname.startsWith('/auth') && 
-            !location.pathname.startsWith('/shopify') &&
-            !location.pathname.startsWith('/dashboard')) {
-          // توجيه المستخدم إلى المصادقة إذا كان يحاول الوصول إلى صفحات محمية أخرى غير لوحة التحكم
-          console.log("User not logged in accessing protected page, redirecting to auth");
-          navigate('/auth');
-        }
+      // المستخدم في لوحة التحكم - السماح بالوصول بغض النظر عن حالة المصادقة
+      if (location.pathname.startsWith('/dashboard')) {
+        console.log("User is in dashboard path, allow access without authentication");
+        setAuthChecked(true);
+        return;
+      }
+
+      // السماح بالوصول إلى الصفحة الرئيسية دون تسجيل الدخول
+      if (location.pathname === '/') {
+        setAuthChecked(true);
+        return;
+      }
+
+      // السماح بالوصول إلى صفحات المصادقة بغض النظر عن حالة تسجيل الدخول
+      if (location.pathname.startsWith('/auth') || location.pathname.startsWith('/shopify')) {
+        setAuthChecked(true);
+        return;
+      }
+
+      // للصفحات الأخرى المحمية، تحقق من حالة المصادقة
+      if (!user && 
+          !location.pathname.startsWith('/auth') && 
+          !location.pathname.startsWith('/shopify')) {
+        console.log("User not logged in accessing protected page:", location.pathname);
+        navigate('/auth');
       }
       
       setAuthChecked(true);

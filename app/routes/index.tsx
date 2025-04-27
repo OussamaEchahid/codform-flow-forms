@@ -1,8 +1,5 @@
 
 import { redirect } from "@remix-run/node";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from 'sonner';
 
 export async function loader({ request }) {
   const url = new URL(request.url);
@@ -19,27 +16,4 @@ export async function loader({ request }) {
   return redirect('/dashboard');
 }
 
-export default function Index() {
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shop = params.get("shop");
-    const authError = params.get("auth_error");
-    
-    if (authError) {
-      toast.error('حدث خطأ في المصادقة مع Shopify. يرجى المحاولة مرة أخرى.');
-    }
-    
-    if (shop) {
-      console.log("Shop detected in URL, redirecting to auth:", shop);
-      // توجيه مباشر إلى مسار المصادقة مع متغير المتجر
-      window.location.href = `/auth?shop=${shop}`;
-    } else {
-      // بدون معلمات متجر، انتقل إلى لوحة التحكم
-      navigate('/dashboard', { replace: true });
-    }
-  }, [navigate]);
-  
-  return null;
-}
+// لا نحتاج إلى مكون واجهة مستخدم لأننا نقوم بالتوجيه مباشرة

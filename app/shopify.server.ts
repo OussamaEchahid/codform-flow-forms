@@ -22,8 +22,6 @@ const shopify = shopifyApp({
     afterAuth: async ({ session }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
       
-      // تخزين معلومات المتجر في قاعدة البيانات يمكن أن يتم هنا
-      
       // بعد المصادقة الناجحة، قم بتوجيه المستخدم إلى لوحة التحكم
       // مع إرسال معلومات المتجر والإشارة إلى نجاح الاتصال
       return {
