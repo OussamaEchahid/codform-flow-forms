@@ -14,29 +14,59 @@ const Shopify = () => {
   const { shopifyConnected, shop } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>({});
+
+  // دالة مساعدة لتنظيف عنوان المتجر
+  const cleanShopDomain = (domain: string): string => {
+    let cleanDomain = domain.trim();
+    
+    try {
+      // إذا كان يحتوي على بروتوكول، نأخذ اسم النطاق فقط
+      if (cleanDomain.startsWith('http')) {
+        const url = new URL(cleanDomain);
+        cleanDomain = url.hostname;
+      }
+      
+      // التأكد من أنه ينتهي بـ myshopify.com
+      if (!cleanDomain.endsWith('myshopify.com')) {
+        if (!cleanDomain.includes('.')) {
+          cleanDomain = `${cleanDomain}.myshopify.com`;
+        }
+      }
+    } catch (e) {
+      console.error("Error cleaning domain:", e);
+    }
+    
+    return cleanDomain;
+  };
 
   useEffect(() => {
     // التحقق من وجود معلمات متجر في URL
     const params = new URLSearchParams(location.search);
     const shopParam = params.get("shop");
 
-    console.log("معلمات الصفحة:", { shopParam, shopifyConnected, shop });
-    
     if (shopParam) {
+      setDebugInfo({ shopParam, shopifyConnected, shop, url: window.location.href });
+      console.log("معلمات الصفحة:", { shopParam, shopifyConnected, shop, url: window.location.href });
+      
       // لدينا معلمة متجر، نبدأ عملية المصادقة
       setIsProcessing(true);
       console.log("بدء المصادقة للمتجر:", shopParam);
       
+      // تنظيف عنوان المتجر
+      const cleanedShop = cleanShopDomain(shopParam);
+      console.log("عنوان المتجر المنظف:", cleanedShop);
+      
       // حفظ المتجر مؤقتاً في localStorage
-      localStorage.setItem('shopify_temp_store', shopParam);
+      localStorage.setItem('shopify_temp_store', cleanedShop);
       
       // تأخير قصير قبل التوجيه
       const redirectTimer = setTimeout(() => {
-        // Make sure we're encoding the shop parameter correctly
-        const encodedShop = encodeURIComponent(shopParam);
-        console.log("Redirecting to auth with shop:", encodedShop);
+        // التأكد من ترميز معلمة المتجر بشكل صحيح
+        const encodedShop = encodeURIComponent(cleanedShop);
+        console.log("التوجيه إلى المصادقة مع متجر:", encodedShop);
         
-        // Correctly format the auth URL, ensuring it matches the route in app/routes/auth.$.tsx
+        // تنسيق عنوان المصادقة بشكل صحيح
         window.location.href = `/auth?shop=${encodedShop}`;
       }, 1000);
       
@@ -59,28 +89,24 @@ const Shopify = () => {
     
     if (!shopDomain) return;
     
-    // التحقق من تنسيق الدومين الصحيح
-    let formattedDomain = shopDomain.trim();
+    // تنظيف عنوان المتجر
+    const cleanedDomain = cleanShopDomain(shopDomain);
     
-    // التأكد من أن الدومين ينتهي بـ myshopify.com
-    if (!formattedDomain.includes('myshopify.com')) {
-      if (!formattedDomain.includes('.')) {
-        formattedDomain = `${formattedDomain}.myshopify.com`;
-      } else {
-        setError(language === 'ar'
-          ? "يرجى إدخال دومين متجر Shopify صالح (مثال: your-store.myshopify.com)"
-          : "Please enter a valid Shopify store domain (example: your-store.myshopify.com)"
-        );
-        return;
-      }
+    // التحقق من تنسيق الدومين
+    if (!cleanedDomain.endsWith('myshopify.com') && !cleanedDomain.includes('.')) {
+      setError(language === 'ar'
+        ? "يرجى إدخال دومين متجر Shopify صالح (مثال: your-store.myshopify.com)"
+        : "Please enter a valid Shopify store domain (example: your-store.myshopify.com)"
+      );
+      return;
     }
     
     // حفظ المتجر مؤقتاً وتوجيه المستخدم إلى مسار المصادقة
-    localStorage.setItem('shopify_temp_store', formattedDomain);
+    localStorage.setItem('shopify_temp_store', cleanedDomain);
     
-    // Directly construct and navigate to the auth URL
-    console.log("Redirecting to auth with shop:", formattedDomain);
-    window.location.href = `/auth?shop=${encodeURIComponent(formattedDomain)}`;
+    // بناء وتوجيه إلى عنوان المصادقة مباشرة
+    console.log("التوجيه إلى المصادقة مع متجر:", cleanedDomain);
+    window.location.href = `/auth?shop=${encodeURIComponent(cleanedDomain)}`;
   };
 
   return (
@@ -111,6 +137,9 @@ const Shopify = () => {
                     {language === 'ar' ? 'جاري بدء عملية المصادقة مع متجر Shopify...' : 'Starting authentication process with Shopify...'}
                   </p>
                 </div>
+              </div>
+              <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
+                <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
               </div>
             </Card>
           )}

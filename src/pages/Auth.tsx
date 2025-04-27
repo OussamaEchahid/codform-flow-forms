@@ -8,42 +8,62 @@ const Auth = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>({});
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get URL parameters
+        // الحصول على معلمات URL
         const url = new URL(window.location.href);
-        const shop = url.searchParams.get("shop");
+        let shop = url.searchParams.get("shop");
         const hmac = url.searchParams.get("hmac");
         const code = url.searchParams.get("code");
         const timestamp = url.searchParams.get("timestamp");
 
-        console.log("Auth page parameters:", { shop, hmac, code, timestamp });
+        // تخزين معلومات التصحيح
+        setDebugInfo({ originalShop: shop, hmac, code, timestamp, url: window.location.href });
+        console.log("Auth page parameters:", { shop, hmac, code, timestamp, url: window.location.href });
 
-        // If we don't have a shop parameter, we redirect to the dashboard
+        // تنظيف معلمة المتجر إذا كانت تحتوي على البروتوكول الكامل
+        if (shop) {
+          try {
+            // إذا كان يبدأ بـ http:// أو https://، نأخذ اسم النطاق فقط
+            if (shop.startsWith('http')) {
+              const shopUrl = new URL(shop);
+              shop = shopUrl.hostname;
+              console.log("Cleaned shop parameter:", shop);
+            }
+          } catch (e) {
+            console.error("Error cleaning shop URL:", e);
+          }
+        }
+
+        // إذا لم يكن لدينا معلمة متجر، نعيد توجيه المستخدم إلى لوحة التحكم
         if (!shop) {
           console.error("Missing shop parameter in auth flow");
-          setError("Missing shop parameter in auth flow");
+          setError("معلمة المتجر مفقودة في عملية المصادقة");
           navigate("/dashboard");
           return;
         }
 
-        // Store temp shop info in case we need it later
+        // تخزين معلومات المتجر المؤقتة في حالة الحاجة إليها لاحقًا
         localStorage.setItem('shopify_temp_store', shop);
         
-        // We now need to make a server-side request to complete the authentication
-        // The server will redirect back to the dashboard with the authenticated session
-        // Since we're using Shopify App Bridge in a browser environment, 
-        // we'll do a full page redirect to the auth endpoint
+        // علينا الآن إجراء طلب من جانب الخادم لإكمال المصادقة
+        // سيعيد الخادم التوجيه مرة أخرى إلى لوحة التحكم مع جلسة مصادقة
         
-        // Construct the auth URL with all query parameters
-        const authParams = new URLSearchParams(window.location.search);
+        // بناء عنوان URL للمصادقة مع جميع معلمات الاستعلام
+        const authParams = new URLSearchParams();
+        authParams.set("shop", shop);
+        if (hmac) authParams.set("hmac", hmac);
+        if (code) authParams.set("code", code);
+        if (timestamp) authParams.set("timestamp", timestamp);
+        
+        console.log("Redirecting to server auth endpoint with params:", authParams.toString());
         window.location.href = `/auth?${authParams.toString()}`;
-        
       } catch (err) {
         console.error("Auth error:", err);
-        setError("Authentication error occurred");
+        setError("حدث خطأ أثناء المصادقة");
         setIsLoading(false);
       }
     };
@@ -55,13 +75,16 @@ const Auth = () => {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Error</h1>
+          <h1 className="text-2xl font-bold mb-4">خطأ في المصادقة</h1>
           <div className="mb-6 text-red-600">{error}</div>
+          <div className="mb-4 p-4 bg-gray-100 rounded text-left text-xs max-h-40 overflow-auto">
+            <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
           <button
             onClick={() => navigate("/dashboard")}
             className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
           >
-            Return to Dashboard
+            العودة إلى لوحة التحكم
           </button>
         </div>
       </div>
@@ -71,11 +94,14 @@ const Auth = () => {
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">Processing Authentication</h1>
+        <h1 className="text-2xl font-bold mb-4">معالجة المصادقة</h1>
         <div className="flex justify-center mb-6">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
         </div>
-        <p>Please wait while we authenticate your Shopify store...</p>
+        <p>الرجاء الانتظار بينما نقوم بمصادقة متجر Shopify الخاص بك...</p>
+        <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs max-h-40 overflow-auto">
+          <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+        </div>
       </div>
     </div>
   );

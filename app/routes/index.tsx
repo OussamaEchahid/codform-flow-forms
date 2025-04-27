@@ -3,18 +3,32 @@ import { redirect } from "@remix-run/node";
 
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const shopifyReferrer = url.searchParams.get("shop");
+  let shopifyReferrer = url.searchParams.get("shop");
   const hmac = url.searchParams.get("hmac");
   const timestamp = url.searchParams.get("timestamp");
   const code = url.searchParams.get("code");
   
   console.log("Root route accessed with params:", { shopifyReferrer, hmac, code, timestamp });
   
-  // If we have a shop parameter, first redirect to the shopify page
+  // تنظيف رابط المتجر إذا كان يحتوي على البروتوكول
   if (shopifyReferrer) {
-    console.log("Redirecting to /shopify with shop parameter");
+    try {
+      // إذا كان يبدأ بـ http:// أو https://، نأخذ اسم النطاق فقط
+      if (shopifyReferrer.startsWith('http')) {
+        const shopUrl = new URL(shopifyReferrer);
+        shopifyReferrer = shopUrl.hostname;
+        console.log("Cleaned shop parameter:", shopifyReferrer);
+      }
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // إذا كان لدينا معلمة متجر، نقوم أولاً بتوجيه المستخدم إلى صفحة shopify
+  if (shopifyReferrer) {
+    console.log("Redirecting to /shopify with shop parameter:", shopifyReferrer);
     
-    // Make sure to include all URL parameters in the redirect
+    // تأكد من تضمين جميع معلمات عنوان URL في إعادة التوجيه
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
     if (hmac) params.set("hmac", hmac);
@@ -24,14 +38,14 @@ export async function loader({ request }) {
     return redirect(`/shopify?${params.toString()}`);
   }
   
-  // If we have other Shopify auth parameters (hmac, code), redirect to auth route
+  // إذا كان لدينا معلمات مصادقة Shopify أخرى (hmac، code)، نقوم بإعادة التوجيه إلى مسار المصادقة
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
     return redirect(`/auth?${params.toString()}`);
   }
   
-  // For all other cases, redirect to dashboard
+  // لجميع الحالات الأخرى، قم بإعادة التوجيه إلى لوحة التحكم
   console.log("No Shopify parameters found, redirecting to dashboard");
   return redirect('/dashboard');
 }
