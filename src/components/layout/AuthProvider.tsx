@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect, useState } from 'react';
 import { AuthContext } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -27,37 +26,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const timestamp = params.get("timestamp");
         const authSuccess = params.get("auth_success");
 
-        // Retrieve Shopify store data from localStorage
-        const savedShop = localStorage.getItem('shopify_store');
-        const savedConnected = localStorage.getItem('shopify_connected');
-        
-        // Temporary store data (during auth)
-        const tempShop = localStorage.getItem('shopify_temp_store');
-
+        // Log auth parameters for debugging
         console.log('Auth parameters:', { 
           shop, shopifyConnected, shopifySuccess, hmac, authSuccess,
-          savedShop, savedConnected, tempShop,
           pathname: location.pathname,
           search: location.search
         });
 
         // Check if we have a shop in Supabase
-        // Use a raw query instead of strongly typed query since types are not updated yet
-        const { data: shopifyStores } = await supabase
+        const { data: shopifyStore, error } = await supabase
           .rpc('get_shopify_stores')
-          .limit(1)
           .single();
 
-        if (shopifyStores) {
-          console.log('Found Shopify store in database:', shopifyStores);
+        if (shopifyStore) {
+          console.log('Found Shopify store in database:', shopifyStore);
           setAuthState({
             shopifyConnected: true,
-            shop: shopifyStores.shop,
+            shop: shopifyStore.shop,
             user: { id: 'shopify-user' }
           });
           
           // Update localStorage
-          localStorage.setItem('shopify_store', shopifyStores.shop);
+          localStorage.setItem('shopify_store', shopifyStore.shop);
           localStorage.setItem('shopify_connected', 'true');
           
           setAuthChecked(true);
@@ -138,7 +128,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Error checking auth state:", error);
       } finally {
-        // Allow access to dashboard in any case (with or without auth)
         setAuthChecked(true);
       }
     };

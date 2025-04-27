@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -9,7 +8,6 @@ import { AlertCircle, ShoppingBag, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Debug panel component
 const DebugPanel = ({ data }: { data: any }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -31,7 +29,6 @@ const DebugPanel = ({ data }: { data: any }) => {
   );
 };
 
-// Connection status component
 const ConnectionStatus = ({ 
   isConnected, 
   shop, 
@@ -74,7 +71,6 @@ const ConnectionStatus = ({
   return null;
 };
 
-// Main component
 const Shopify = () => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -87,30 +83,32 @@ const Shopify = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Check for Shopify connection in Supabase
-      // Use a raw query instead of strongly typed query since types are not updated yet
-      const { data: shopifyStore, error } = await supabase
-        .rpc('get_shopify_stores')
-        .limit(1)
-        .single();
+      try {
+        // Check for Shopify store in Supabase
+        const { data: shopifyStore, error } = await supabase
+          .rpc('get_shopify_stores')
+          .single();
 
-      if (shopifyStore) {
-        // Store was found, update localStorage
-        localStorage.setItem('shopify_store', shopifyStore.shop);
-        localStorage.setItem('shopify_connected', 'true');
-        setDebugInfo(prev => ({ ...prev, shopifyStore }));
-      }
+        if (shopifyStore) {
+          // Store was found, update localStorage
+          localStorage.setItem('shopify_store', shopifyStore.shop);
+          localStorage.setItem('shopify_connected', 'true');
+          setDebugInfo(prev => ({ ...prev, shopifyStore }));
+        }
 
-      // Check URL params
-      const params = new URLSearchParams(location.search);
-      const shopParam = params.get("shop");
-      const shopifySuccess = params.get("shopify_success");
+        // Check URL params
+        const params = new URLSearchParams(location.search);
+        const shopParam = params.get("shop");
+        const shopifySuccess = params.get("shopify_success");
 
-      if (shopifySuccess === "true" && shopParam) {
-        toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
-        localStorage.setItem('shopify_store', shopParam);
-        localStorage.setItem('shopify_connected', 'true');
-        navigate('/dashboard');
+        if (shopifySuccess === "true" && shopParam) {
+          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+          localStorage.setItem('shopify_store', shopParam);
+          localStorage.setItem('shopify_connected', 'true');
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        console.error("Error checking auth:", err);
       }
     };
 
