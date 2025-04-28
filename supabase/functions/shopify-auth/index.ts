@@ -6,13 +6,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
 
-// The Shopify app credentials
+// The Shopify app credentials - استخدام Deno.env بدلاً من process.env
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-// Our app's URL - تحديث هنا
+// Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
-// تحديثات جديدة: عناوين إعادة التوجيه الدقيقة وفقًا للتكوين في ملف shopify.app.toml
+// تحديث عنوان URL لإعادة التوجيه ليطابق ما هو مضاف في shopify.app.toml
 const AUTH_CALLBACK_URL = `${APP_URL}/api/shopify-callback`;
 
 // Initialize Supabase client
@@ -96,7 +96,7 @@ serve(async (req) => {
           created_at: new Date().toISOString()
         });
         
-        // إنشاء رابط المصادقة مع الرابط الصحيح المضاف للقائمة البيضاء
+        // إنشاء رابط المصادقة
         const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content&redirect_uri=${encodeURIComponent(AUTH_CALLBACK_URL)}&state=${state}`;
         
         console.log("Generated auth URL:", authUrl);
@@ -122,8 +122,6 @@ serve(async (req) => {
     
     // Code is provided - complete the OAuth flow
     if (code && hmac) {
-      // Verify hmac if needed
-      
       // Exchange code for access token
       const accessTokenResponse = await fetch(
         `https://${cleanedShop}/admin/oauth/access_token`,

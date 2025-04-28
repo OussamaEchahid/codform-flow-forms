@@ -40,7 +40,6 @@ const ShopifyRedirect = () => {
           search: window.location.search,
           origin: window.location.origin,
           fullUrl: window.location.href,
-          fullPath: window.location.href,
           referrer: document.referrer || "none",
           userAgent: navigator.userAgent,
           cookies: document.cookie,
@@ -113,7 +112,7 @@ const ShopifyRedirect = () => {
           // استدعاء Supabase Edge Function للتحقق من الرمز
           try {
             const callbackResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}`,
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}&state=${state || ""}`,
               { method: 'GET' }
             );
             
@@ -131,7 +130,13 @@ const ShopifyRedirect = () => {
               localStorage.removeItem('shopify_temp_store');
               
               toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-              navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
+              
+              // التحقق مما إذا كان هناك عنوان إعادة توجيه من الاستجابة
+              if (callbackResult.redirect) {
+                window.location.href = callbackResult.redirect;
+              } else {
+                navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
+              }
             } else {
               setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
               setIsLoading(false);
@@ -203,7 +208,8 @@ const ShopifyRedirect = () => {
   const handleDirectAuth = () => {
     const shop = localStorage.getItem('shopify_temp_store');
     if (shop) {
-      const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}`;
+      // باستخدام عنوان URL المباشر مع معلمات إضافية لتجنب مشكلات ذاكرة التخزين المؤقت
+      const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
       window.location.href = directAuthUrl;
     } else {
       toast.error("لا توجد معلومات متجر متاحة للاستخدام");

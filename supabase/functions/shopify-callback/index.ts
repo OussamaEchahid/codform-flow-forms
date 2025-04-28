@@ -6,9 +6,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
 
-// The Shopify app credentials
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407";
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3";
+// The Shopify app credentials - استخدام Deno.env بدلاً من process.env
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
+const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
@@ -79,6 +79,8 @@ serve(async (req) => {
     );
     
     if (!accessTokenResponse.ok) {
+      const errorText = await accessTokenResponse.text();
+      console.error("Access token error response:", errorText);
       throw new Error(`Failed to get access token: ${accessTokenResponse.statusText}`);
     }
     
@@ -86,7 +88,7 @@ serve(async (req) => {
     console.log("Token data received:", { ...tokenData, access_token: "REDACTED" });
     
     // Store the token in Supabase
-    await supabase
+    const { error: storeError } = await supabase
       .from('shopify_stores')
       .upsert({
         shop,
@@ -94,26 +96,46 @@ serve(async (req) => {
         scope: tokenData.scope,
         updated_at: new Date().toISOString()
       }, { onConflict: 'shop' });
+      
+    if (storeError) {
+      console.error("Error storing token:", storeError);
+      throw new Error("Failed to store token");
+    }
     
-    // Redirect back to our app
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...headers,
-        "Location": `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`
+    console.log("Redirecting back to app:", `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`);
+    
+    // Redirect back to our app with JSON response
+    return new Response(
+      JSON.stringify({
+        success: true,
+        shop,
+        redirect: `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`
+      }),
+      { 
+        status: 200, 
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        }
       }
-    });
+    );
     
   } catch (error) {
     console.error("Error in Shopify callback:", error);
     
-    // Redirect with error
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...headers,
-        "Location": `${APP_URL}/dashboard?shopify_error=true&error=${encodeURIComponent(error.message || "Unknown error")}`
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        errorDetails: error instanceof Error ? error.stack : undefined
+      }),
+      { 
+        status: 500, 
+        headers: {
+          ...headers,
+          "Content-Type": "application/json"
+        }
       }
-    });
+    );
   }
 });
