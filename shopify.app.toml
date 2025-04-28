@@ -4,7 +4,7 @@
 client_id = "7e4608874bbcc38afa1953948da28407"
 name = "CODFORM - نماذج الدفع عند الاستلام"
 handle = "codform-flow-forms"
-application_url = "https://codform-flow-forms.lovable.app/dashboard"
+application_url = "https://codform-flow-forms.lovable.app"
 embedded = false
 
 [build]
