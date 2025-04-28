@@ -10,8 +10,10 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-// Our app's URL
+// Our app's URL - تحديث هنا
 const APP_URL = "https://codform-flow-forms.lovable.app";
+// تحديثات جديدة: عناوين إعادة التوجيه الدقيقة وفقًا للتكوين في ملف shopify.app.toml
+const AUTH_CALLBACK_URL = `${APP_URL}/api/shopify-callback`;
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -94,20 +96,25 @@ serve(async (req) => {
           created_at: new Date().toISOString()
         });
         
-        // Redirect to Shopify OAuth
-        const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content&redirect_uri=${APP_URL}/api/shopify-callback&state=${state}`;
+        // إنشاء رابط المصادقة مع الرابط الصحيح المضاف للقائمة البيضاء
+        const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content&redirect_uri=${encodeURIComponent(AUTH_CALLBACK_URL)}&state=${state}`;
         
         console.log("Generated auth URL:", authUrl);
         
         return new Response(JSON.stringify({
           redirect: authUrl,
           shop: cleanedShop,
-          state
+          state,
+          appUrl: APP_URL,
+          callbackUrl: AUTH_CALLBACK_URL
         }), { headers });
       } catch (error) {
         console.error("Error saving auth state:", error);
         return new Response(
-          JSON.stringify({ error: "Error initiating authentication" }),
+          JSON.stringify({ 
+            error: "Error initiating authentication",
+            details: error instanceof Error ? error.message : "Unknown error"
+          }),
           { status: 500, headers }
         );
       }
@@ -173,7 +180,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in Shopify auth function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Internal server error",
+        stack: error instanceof Error ? error.stack : undefined
+      }),
       { status: 500, headers }
     );
   }

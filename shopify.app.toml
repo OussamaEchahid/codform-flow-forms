@@ -33,6 +33,7 @@ redirect_urls = [
   "https://codform-flow-forms.lovable.app/auth",
   "https://codform-flow-forms.lovable.app/shopify",
   "https://codform-flow-forms.lovable.app/dashboard",
+  "https://codform-flow-forms.lovable.app/api/shopify-callback",
   "https://codform-flow-forms.lovable.app"
 ]
 
