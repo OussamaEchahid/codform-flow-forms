@@ -102,7 +102,7 @@ const Shopify = () => {
         const shopifySuccess = params.get("shopify_success");
 
         if (shopifySuccess === "true" && shopParam) {
-          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+          toast.success(`تم الات��ال بمتجر ${shopParam} بنجاح`);
           localStorage.setItem('shopify_store', shopParam);
           localStorage.setItem('shopify_connected', 'true');
           navigate('/dashboard');
