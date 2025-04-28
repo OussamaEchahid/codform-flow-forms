@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import { AlertCircle, ShoppingBag, CheckCircle } from 'lucide-react';
+import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -80,6 +81,7 @@ const Shopify = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [authStarted, setAuthStarted] = useState(false);
+  const [popupWindow, setPopupWindow] = useState<Window | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -102,7 +104,7 @@ const Shopify = () => {
         const shopifySuccess = params.get("shopify_success");
 
         if (shopifySuccess === "true" && shopParam) {
-          toast.success(`تم الات��ال بمتجر ${shopParam} بنجاح`);
+          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
           localStorage.setItem('shopify_store', shopParam);
           localStorage.setItem('shopify_connected', 'true');
           navigate('/dashboard');
@@ -114,6 +116,49 @@ const Shopify = () => {
 
     checkAuth();
   }, [location.search, navigate]);
+
+  // إضافة تحقق للنافذة المنبثقة
+  useEffect(() => {
+    if (popupWindow && popupWindow.closed) {
+      console.log("Popup window was closed");
+      setIsProcessing(false);
+      
+      // تحقق من localStorage بعد إغلاق النافذة المنبثقة
+      const connected = localStorage.getItem('shopify_connected');
+      const storeUrl = localStorage.getItem('shopify_store');
+      
+      if (connected === 'true' && storeUrl) {
+        toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+        navigate('/dashboard');
+      } else {
+        setError('تم إغلاق نافذة المصادقة قبل إكمال العملية. يرجى المحاولة مرة أخرى.');
+      }
+      
+      setPopupWindow(null);
+    }
+    
+    // تحقق كل ثانية من حالة النافذة المنبثقة
+    const checkPopupInterval = popupWindow ? setInterval(() => {
+      if (popupWindow.closed) {
+        clearInterval(checkPopupInterval);
+        setIsProcessing(false);
+        setPopupWindow(null);
+        
+        // تحقق من localStorage مرة أخرى
+        const connected = localStorage.getItem('shopify_connected');
+        const storeUrl = localStorage.getItem('shopify_store');
+        
+        if (connected === 'true' && storeUrl) {
+          toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+          navigate('/dashboard');
+        }
+      }
+    }, 1000) : null;
+    
+    return () => {
+      if (checkPopupInterval) clearInterval(checkPopupInterval);
+    };
+  }, [popupWindow, navigate]);
 
   const handleConnectShopify = async () => {
     const shopDomain = window.prompt(
@@ -127,11 +172,16 @@ const Shopify = () => {
     try {
       setIsProcessing(true);
       setAuthStarted(true);
+      setError(null);
       
       const response = await fetch(
         `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(shopDomain)}`, 
         { method: 'GET' }
       );
+      
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
       
       const data = await response.json();
       setDebugInfo({ response: data, shopDomain });
@@ -141,17 +191,70 @@ const Shopify = () => {
         localStorage.setItem('shopify_temp_store', shopDomain);
         
         console.log("Redirecting to Shopify OAuth:", data.redirect);
-        // Redirect to Shopify for authentication
-        window.location.href = data.redirect;
+        
+        // تحسين فتح النافذة المنبثقة
+        const width = 1000;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        // فتح النافذة المنبثقة مع المزيد من الخيارات
+        const popup = window.open(
+          data.redirect,
+          "ShopifyAuth", 
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
+        );
+        
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          // فشل في فتح النافذة المنبثقة
+          setError("تم حظر النوافذ المنبثقة. الرجاء السماح بالنوافذ المنبثقة وإعادة المحاولة.");
+          setIsProcessing(false);
+        } else {
+          // تم فتح النافذة المنبثقة بنجاح
+          setPopupWindow(popup);
+          // محاولة تركيز النافذة المنبثقة
+          popup.focus();
+        }
       } else if (data.error) {
         setError(data.error);
         toast.error(data.error);
+        setIsProcessing(false);
       }
     } catch (err) {
       console.error("Error starting Shopify auth:", err);
       setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال بـ Shopify");
       toast.error("فشل الاتصال بـ Shopify. يرجى المحاولة مرة أخرى.");
-    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // طريقة بديلة للاتصال بدون نافذة منبثقة
+  const handleDirectConnect = () => {
+    const shopDomain = window.prompt(
+      language === 'ar' 
+        ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
+        : "Enter your Shopify store domain (example: your-store.myshopify.com)"
+    );
+    
+    if (!shopDomain) return;
+    
+    try {
+      setIsProcessing(true);
+      setAuthStarted(true);
+      setError(null);
+      
+      // تخزين معلومات المتجر مؤقتًا
+      localStorage.setItem('shopify_temp_store', shopDomain);
+      
+      // توجيه مباشر إلى الخادم
+      const authUrl = `/auth?shop=${encodeURIComponent(shopDomain)}`;
+      console.log("Redirecting directly to:", authUrl);
+      
+      // توجيه مباشر بدون نافذة منبثقة
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error("Error during direct connect:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال المباشر");
       setIsProcessing(false);
     }
   };
@@ -228,23 +331,36 @@ const Shopify = () => {
                   }
                 </p>
                 
-                <Button 
-                  size="lg"
-                  className="bg-purple-600 hover:bg-purple-700"
-                  onClick={handleConnectShopify}
-                  disabled={isProcessing || authStarted}
-                >
-                  {isProcessing 
-                    ? (language === 'ar' ? 'جارٍ الاتصال...' : 'Connecting...') 
-                    : (language === 'ar' ? 'اتصل بـ Shopify الآن' : 'Connect to Shopify')}
-                </Button>
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <Button 
+                    size="lg"
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={handleConnectShopify}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing 
+                      ? (language === 'ar' ? 'جارٍ الاتصال...' : 'Connecting...') 
+                      : (language === 'ar' ? 'اتصل بـ Shopify (نافذة منبثقة)' : 'Connect with Popup')}
+                  </Button>
+                  
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    className="border-purple-300"
+                    onClick={handleDirectConnect}
+                    disabled={isProcessing}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {language === 'ar' ? 'اتصل مباشرة (صفحة كاملة)' : 'Direct Connect (Full Page)'}
+                  </Button>
+                </div>
                 
                 {authStarted && !isProcessing && (
                   <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
                     <p className="text-amber-700">
                       {language === 'ar'
-                        ? 'تم بدء عملية المصادقة. إذا لم يتم إعادة توجيهك تلقائيًا، يرجى التحقق من النافذة المنبثقة.'
-                        : 'Authentication process started. If you were not redirected automatically, please check for popup windows.'}
+                        ? 'تم بدء عملية المصادقة. إذا لم يتم إعادة توجيهك تلقائيًا، يرجى التحقق من النافذة المنبثقة أو تجربة خيار الاتصال المباشر.'
+                        : 'Authentication process started. If you were not redirected automatically, please check for popup windows or try the direct connect option.'}
                     </p>
                   </div>
                 )}
@@ -260,7 +376,7 @@ const Shopify = () => {
             <div className="space-y-4 text-gray-700">
               <p>
                 {language === 'ar' 
-                  ? '1. انقر على زر "اتصل بـ Shopify الآن" أعلاه'
+                  ? '1. انقر على زر "اتصل بـ Shopify" أعلاه'
                   : '1. Click the "Connect to Shopify" button above'
                 }
               </p>
@@ -315,8 +431,18 @@ const Shopify = () => {
                 </li>
                 <li>
                   {language === 'ar'
+                    ? 'إذا لم تعمل النافذة المنبثقة، جرب خيار "الاتصال المباشر" بدلاً من ذلك'
+                    : 'If popup windows do not work, try the "Direct Connect" option instead'}
+                </li>
+                <li>
+                  {language === 'ar'
                     ? 'حاول مسح ذاكرة التخزين المؤقت للمتصفح وملفات تعريف الارتباط'
                     : 'Try clearing your browser cache and cookies'}
+                </li>
+                <li>
+                  {language === 'ar'
+                    ? 'تحقق من سجل وحدة التحكم في المتصفح للحصول على أي أخطاء'
+                    : 'Check your browser console for any errors'}
                 </li>
               </ul>
             </div>
