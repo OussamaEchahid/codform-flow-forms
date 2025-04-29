@@ -5,6 +5,32 @@ import { toast } from "sonner";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// تنظيف نطاق المتجر
+function cleanShopDomain(shop: string): string {
+  let cleanedShop = shop.trim();
+  
+  // إزالة البروتوكول إذا كان موجودًا
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+      console.log("تنظيف عنوان متجر:", cleanedShop);
+    } catch (e) {
+      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
+    }
+  }
+  
+  // التأكد من أنه ينتهي بـ myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+      console.log("إضافة .myshopify.com للمتجر:", cleanedShop);
+    }
+  }
+  
+  return cleanedShop;
+}
+
 const ShopifyRedirect = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,15 +45,17 @@ const ShopifyRedirect = () => {
       try {
         // الحصول على معلمات عنوان URL
         const params = new URLSearchParams(location.search);
-        let shop = params.get("shop");
+        let shopParam = params.get("shop");
         const hmac = params.get("hmac");
         const code = params.get("code");
         const timestamp = params.get("timestamp");
         const state = params.get("state");
         const host = params.get("host");
         
+        // تنظيف معلمة المتجر والاحتفاظ بالقيمة الأصلية للتشخيص
+        const originalShop = shopParam;
+        
         // تحديث معلومات التصحيح
-        const originalShop = shop;
         const debugInfo = { 
           originalShop,
           hmac, 
@@ -50,7 +78,7 @@ const ShopifyRedirect = () => {
         console.log("ShopifyRedirect parameters:", debugInfo);
         
         // التحقق من معلمة المتجر
-        if (!shop) {
+        if (!shopParam) {
           // إذا لم يكن لدينا معلمة متجر، تحقق من المتجر المخزن مسبقًا
           const savedShop = localStorage.getItem('shopify_store');
           const savedConnected = localStorage.getItem('shopify_connected');
@@ -68,8 +96,8 @@ const ShopifyRedirect = () => {
           
           if (tempShop) {
             // استخدام بيانات المتجر المؤقتة
-            shop = tempShop;
-            console.log("Using temporary shop data to continue auth:", shop);
+            shopParam = tempShop;
+            console.log("Using temporary shop data to continue auth:", shopParam);
           } else {
             // إذا لم يكن لدينا معلمة متجر أو بيانات مخزنة، أظهر خطأً
             setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
@@ -79,23 +107,9 @@ const ShopifyRedirect = () => {
           }
         }
         
-        // تنظيف نطاق المتجر إذا لزم الأمر
-        let cleanedShop = shop;
-        if (shop.startsWith('http')) {
-          try {
-            const shopUrl = new URL(shop);
-            cleanedShop = shopUrl.hostname;
-            console.log("Cleaned shop URL:", cleanedShop);
-          } catch (e) {
-            console.error("Error cleaning shop URL:", e);
-          }
-        }
-        
-        // تأكد من أنه ينتهي بـ myshopify.com
-        if (!cleanedShop.endsWith('myshopify.com') && !cleanedShop.includes('.')) {
-          cleanedShop = `${cleanedShop}.myshopify.com`;
-          console.log("Added myshopify.com to shop:", cleanedShop);
-        }
+        // تنظيف نطاق المتجر
+        let cleanedShop = cleanShopDomain(shopParam);
+        console.log("Cleaned shop domain:", cleanedShop);
         
         // تخزين معلومات المتجر في localStorage للاستخدام إذا تم قطع تدفق المصادقة
         try {
@@ -181,7 +195,7 @@ const ShopifyRedirect = () => {
               setRetryCount(prev => prev + 1);
               
               // استخدام URL مباشر للمصادقة بعد الفشل في استخدام Edge Function
-              const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}`;
+              const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
               console.log("Trying direct auth URL as fallback:", directAuthUrl);
               
               // استخدام تأخير بسيط قبل إعادة توجيه

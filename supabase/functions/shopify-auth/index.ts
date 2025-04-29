@@ -50,7 +50,7 @@ function generateNonce(): string {
 serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
-  const shop = url.searchParams.get("shop");
+  let shop = url.searchParams.get("shop");
   const hmac = url.searchParams.get("hmac");
   const code = url.searchParams.get("code");
   
@@ -81,6 +81,7 @@ serve(async (req) => {
       );
     }
     
+    // تنظيف عنوان المتجر من أي بروتوكول
     const cleanedShop = cleanShopDomain(shop);
     console.log("Cleaned shop domain:", cleanedShop);
     

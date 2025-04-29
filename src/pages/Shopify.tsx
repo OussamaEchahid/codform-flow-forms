@@ -9,6 +9,32 @@ import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// تنظيف نطاق المتجر
+function cleanShopDomain(shop: string): string {
+  let cleanedShop = shop.trim();
+  
+  // إزالة البروتوكول إذا كان موجودًا
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+      console.log("تنظيف عنوان متجر:", cleanedShop);
+    } catch (e) {
+      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
+    }
+  }
+  
+  // التأكد من أنه ينتهي بـ myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+      console.log("إضافة .myshopify.com للمتجر:", cleanedShop);
+    }
+  }
+  
+  return cleanedShop;
+}
+
 const DebugPanel = ({ data }: { data: any }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -86,19 +112,19 @@ const Shopify = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check for Shopify store in Supabase
+        // التحقق من وجود متجر Shopify في Supabase
         const { data: shopifyStore, error } = await supabase
           .rpc('get_user_shop')
           .single();
 
         if (shopifyStore) {
-          // Store was found, update localStorage
+          // تم العثور على المتجر، تحديث localStorage
           localStorage.setItem('shopify_store', shopifyStore);
           localStorage.setItem('shopify_connected', 'true');
           setDebugInfo(prev => ({ ...prev, shopifyStore }));
         }
 
-        // Check URL params
+        // التحقق من معلمات URL
         const params = new URLSearchParams(location.search);
         const shopParam = params.get("shop");
         const shopifySuccess = params.get("shopify_success");
@@ -110,7 +136,7 @@ const Shopify = () => {
           navigate('/dashboard');
         }
       } catch (err) {
-        console.error("Error checking auth:", err);
+        console.error("خطأ في التحقق من المصادقة:", err);
       }
     };
 
@@ -120,7 +146,7 @@ const Shopify = () => {
   // إضافة تحقق للنافذة المنبثقة
   useEffect(() => {
     if (popupWindow && popupWindow.closed) {
-      console.log("Popup window was closed");
+      console.log("تم إغلاق النافذة المنبثقة");
       setIsProcessing(false);
       
       // تحقق من localStorage بعد إغلاق النافذة المنبثقة
@@ -161,7 +187,8 @@ const Shopify = () => {
   }, [popupWindow, navigate]);
 
   const handleConnectShopify = async () => {
-    const shopDomain = window.prompt(
+    // طلب تحسين: استخدام طريقة عارض بدلاً من prompt 
+    let shopDomain = window.prompt(
       language === 'ar' 
         ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
         : "Enter your Shopify store domain (example: your-store.myshopify.com)"
@@ -174,23 +201,26 @@ const Shopify = () => {
       setAuthStarted(true);
       setError(null);
       
+      // تنظيف عنوان URL للمتجر من أي بروتوكولات
+      shopDomain = cleanShopDomain(shopDomain);
+      
       const response = await fetch(
         `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(shopDomain)}`, 
         { method: 'GET' }
       );
       
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw new Error(`فشل الطلب برمز الحالة ${response.status}`);
       }
       
       const data = await response.json();
       setDebugInfo({ response: data, shopDomain });
       
       if (data.redirect) {
-        // Store temporary info
+        // تخزين المعلومات المؤقتة
         localStorage.setItem('shopify_temp_store', shopDomain);
         
-        console.log("Redirecting to Shopify OAuth:", data.redirect);
+        console.log("إعادة التوجيه إلى مصادقة Shopify:", data.redirect);
         
         // تحسين فتح النافذة المنبثقة
         const width = 1000;
@@ -209,6 +239,27 @@ const Shopify = () => {
           // فشل في فتح النافذة المنبثقة
           setError("تم حظر النوافذ المنبثقة. الرجاء السماح بالنوافذ المنبثقة وإعادة المحاولة.");
           setIsProcessing(false);
+          
+          // يمكن محاولة الفتح التلقائي مرة أخرى بعد إخبار المستخدم
+          setTimeout(() => {
+            const confirmRetry = window.confirm("تم حظر النوافذ المنبثقة. هل تريد المحاولة مرة أخرى؟ تأكد من السماح بالنوافذ المنبثقة في متصفحك.");
+            if (confirmRetry) {
+              // محاولة فتح النافذة مرة أخرى
+              const retryPopup = window.open(
+                data.redirect,
+                "ShopifyAuth", 
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
+              );
+              
+              if (retryPopup) {
+                setPopupWindow(retryPopup);
+                retryPopup.focus();
+              } else {
+                // إذا فشلت المحاولة الثانية، اقترح الاتصال المباشر
+                setError("لا يزال يتم حظر النوافذ المنبثقة. يرجى استخدام خيار 'الاتصال المباشر' بدلاً من ذلك.");
+              }
+            }
+          }, 500);
         } else {
           // تم فتح النافذة المنبثقة بنجاح
           setPopupWindow(popup);
@@ -221,7 +272,7 @@ const Shopify = () => {
         setIsProcessing(false);
       }
     } catch (err) {
-      console.error("Error starting Shopify auth:", err);
+      console.error("خطأ في بدء مصادقة Shopify:", err);
       setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال بـ Shopify");
       toast.error("فشل الاتصال بـ Shopify. يرجى المحاولة مرة أخرى.");
       setIsProcessing(false);
@@ -230,7 +281,7 @@ const Shopify = () => {
 
   // طريقة بديلة للاتصال بدون نافذة منبثقة
   const handleDirectConnect = () => {
-    const shopDomain = window.prompt(
+    let shopDomain = window.prompt(
       language === 'ar' 
         ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
         : "Enter your Shopify store domain (example: your-store.myshopify.com)"
@@ -243,17 +294,21 @@ const Shopify = () => {
       setAuthStarted(true);
       setError(null);
       
+      // تنظيف عنوان URL للمتجر
+      shopDomain = cleanShopDomain(shopDomain);
+      console.log("تم تنظيف عنوان المتجر:", shopDomain);
+      
       // تخزين معلومات المتجر مؤقتًا
       localStorage.setItem('shopify_temp_store', shopDomain);
       
-      // توجيه مباشر إلى الخادم
-      const authUrl = `/auth?shop=${encodeURIComponent(shopDomain)}`;
-      console.log("Redirecting directly to:", authUrl);
+      // توجيه مباشر إلى ShopifyRedirect بدلاً من Auth مباشرة
+      const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
+      console.log("التوجيه مباشرة إلى:", redirectUrl);
       
       // توجيه مباشر بدون نافذة منبثقة
-      window.location.href = authUrl;
+      navigate(redirectUrl);
     } catch (err) {
-      console.error("Error during direct connect:", err);
+      console.error("خطأ أثناء الاتصال المباشر:", err);
       setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال المباشر");
       setIsProcessing(false);
     }

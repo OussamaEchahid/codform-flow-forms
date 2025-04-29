@@ -16,9 +16,33 @@ const APP_URL = "https://codform-flow-forms.lovable.app";
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Function to clean shop domain
+function cleanShopDomain(shop: string): string {
+  let cleanedShop = shop.trim();
+  
+  // Remove protocol if present
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // Ensure it ends with myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+    }
+  }
+  
+  return cleanedShop;
+}
+
 serve(async (req) => {
   const url = new URL(req.url);
-  const shop = url.searchParams.get("shop");
+  let shop = url.searchParams.get("shop");
   const hmac = url.searchParams.get("hmac");
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -33,6 +57,10 @@ serve(async (req) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
   };
   
   // Handle preflight
@@ -48,19 +76,24 @@ serve(async (req) => {
       );
     }
     
+    // تنظيف عنوان المتجر
+    shop = cleanShopDomain(shop);
+    console.log("Cleaned shop domain for callback:", shop);
+    
     // Verify state if needed
     if (state) {
-      const { data: authRecord } = await supabase
+      const { data: authRecord, error } = await supabase
         .from('shopify_auth')
         .select('*')
         .eq('state', state)
         .single();
       
+      if (error) {
+        console.error("Error finding state record:", error);
+      }
+      
       if (!authRecord) {
-        return new Response(
-          JSON.stringify({ error: "Invalid state parameter" }), 
-          { status: 400, headers }
-        );
+        console.warn("No matching state record found for state:", state);
       }
     }
     
@@ -81,7 +114,7 @@ serve(async (req) => {
     if (!accessTokenResponse.ok) {
       const errorText = await accessTokenResponse.text();
       console.error("Access token error response:", errorText);
-      throw new Error(`Failed to get access token: ${accessTokenResponse.statusText}`);
+      throw new Error(`Failed to get access token: ${accessTokenResponse.statusText}. Response: ${errorText}`);
     }
     
     const tokenData = await accessTokenResponse.json();
@@ -99,42 +132,37 @@ serve(async (req) => {
       
     if (storeError) {
       console.error("Error storing token:", storeError);
-      throw new Error("Failed to store token");
+      throw new Error(`Failed to store token: ${storeError.message}`);
     }
     
-    console.log("Redirecting back to app:", `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`);
+    // Redirect URL back to the app's dashboard with success parameter
+    const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`;
+    console.log("Redirecting back to app:", redirectUrl);
     
-    // Redirect back to our app with JSON response
+    // Return JSON with success and redirect URL
     return new Response(
       JSON.stringify({
         success: true,
         shop,
-        redirect: `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`
+        redirect: redirectUrl
       }),
-      { 
-        status: 200, 
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        }
-      }
+      { headers }
     );
-    
   } catch (error) {
     console.error("Error in Shopify callback:", error);
     
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorDetails = error instanceof Error ? error.stack : undefined;
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error",
-        errorDetails: error instanceof Error ? error.stack : undefined
+        error: errorMessage,
+        errorDetails,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
-        headers: {
-          ...headers,
-          "Content-Type": "application/json"
-        }
+        headers
       }
     );
   }
