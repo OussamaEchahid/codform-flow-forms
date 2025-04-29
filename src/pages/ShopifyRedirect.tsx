@@ -2,29 +2,27 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// تنظيف نطاق المتجر
+// Clean the shop domain
 function cleanShopDomain(shop: string): string {
   let cleanedShop = shop.trim();
   
-  // إزالة البروتوكول إذا كان موجودًا
+  // Remove protocol if present
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
       cleanedShop = url.hostname;
-      console.log("تنظيف عنوان متجر:", cleanedShop);
     } catch (e) {
-      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
+      console.error("Error cleaning shop URL:", e);
     }
   }
   
-  // التأكد من أنه ينتهي بـ myshopify.com
+  // Ensure it ends with myshopify.com
   if (!cleanedShop.endsWith('myshopify.com')) {
     if (!cleanedShop.includes('.')) {
       cleanedShop = `${cleanedShop}.myshopify.com`;
-      console.log("إضافة .myshopify.com للمتجر:", cleanedShop);
     }
   }
   
@@ -43,7 +41,7 @@ const ShopifyRedirect = () => {
   useEffect(() => {
     const redirectToAuthEndpoint = async () => {
       try {
-        // الحصول على معلمات عنوان URL
+        // Get URL parameters
         const params = new URLSearchParams(location.search);
         let shopParam = params.get("shop");
         const hmac = params.get("hmac");
@@ -55,7 +53,7 @@ const ShopifyRedirect = () => {
         // تنظيف معلمة المتجر والاحتفاظ بالقيمة الأصلية للتشخيص
         const originalShop = shopParam;
         
-        // تحديث معلومات التصحيح
+        // Update debug info
         const debugInfo = { 
           originalShop,
           hmac, 
@@ -77,29 +75,29 @@ const ShopifyRedirect = () => {
         setDebug(debugInfo);
         console.log("ShopifyRedirect parameters:", debugInfo);
         
-        // التحقق من معلمة المتجر
+        // Check for shop parameter
         if (!shopParam) {
-          // إذا لم يكن لدينا معلمة متجر، تحقق من المتجر المخزن مسبقًا
+          // If no shop parameter, check for previously stored shop
           const savedShop = localStorage.getItem('shopify_store');
           const savedConnected = localStorage.getItem('shopify_connected');
-          // تحقق من المتجر المؤقت أثناء المصادقة
+          // Check for temp shop during auth
           const tempShop = localStorage.getItem('shopify_temp_store');
           
           console.log("Stored data:", { savedShop, savedConnected, tempShop });
           
           if (savedShop && savedConnected === 'true') {
-            // إذا كان لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
+            // If we have stored shop data, redirect directly to dashboard
             console.log("Using stored shop data for redirect...");
             navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
             return;
           }
           
           if (tempShop) {
-            // استخدام بيانات المتجر المؤقتة
+            // Use temporary shop data
             shopParam = tempShop;
             console.log("Using temporary shop data to continue auth:", shopParam);
           } else {
-            // إذا لم يكن لدينا معلمة متجر أو بيانات مخزنة، أظهر خطأً
+            // If no shop parameter or stored data, show error
             setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
             setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
             setIsLoading(false);
@@ -107,11 +105,11 @@ const ShopifyRedirect = () => {
           }
         }
         
-        // تنظيف نطاق المتجر
+        // Clean shop domain
         let cleanedShop = cleanShopDomain(shopParam);
         console.log("Cleaned shop domain:", cleanedShop);
         
-        // تخزين معلومات المتجر في localStorage للاستخدام إذا تم قطع تدفق المصادقة
+        // Store shop info in localStorage for use if auth flow is interrupted
         try {
           localStorage.setItem('shopify_temp_store', cleanedShop);
           console.log("Temp shop info saved:", cleanedShop);
@@ -119,14 +117,14 @@ const ShopifyRedirect = () => {
           console.error("Error saving temp data:", e);
         }
         
-        // إذا كان لدينا رمز ومعلمة hmac، فهذا يعني أننا في استدعاء إعادة التوجيه بعد المصادقة
+        // If we have code and hmac, we're in the callback redirect after auth
         if (code && hmac) {
           setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
           
-          // استدعاء Supabase Edge Function للتحقق من الرمز
           try {
+            // Call Supabase Edge Function to complete the auth
             const callbackResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}&state=${state || ""}`,
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
               { method: 'GET' }
             );
             
@@ -138,14 +136,14 @@ const ShopifyRedirect = () => {
             const callbackResult = await callbackResponse.json();
             
             if (callbackResult.success) {
-              // حفظ بيانات المتجر في localStorage
+              // Save shop data in localStorage
               localStorage.setItem('shopify_store', cleanedShop);
               localStorage.setItem('shopify_connected', 'true');
               localStorage.removeItem('shopify_temp_store');
               
               toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
               
-              // التحقق مما إذا كان هناك عنوان إعادة توجيه من الاستجابة
+              // Check if there's a redirect URL from the response
               if (callbackResult.redirect) {
                 window.location.href = callbackResult.redirect;
               } else {
@@ -161,11 +159,11 @@ const ShopifyRedirect = () => {
             setIsLoading(false);
           }
         } else {
-          // توجيه المستخدم مباشرة إلى مسار المصادقة الخاص بالخادم
+          // Redirect the user directly to the server auth path
           setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
           
-          // استخدام Edge Function مباشرة للحصول على عنوان URL للمصادقة
           try {
+            // Use Edge Function directly to get auth URL
             const authResponse = await fetch(
               `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}`, 
               { method: 'GET' }
@@ -182,7 +180,7 @@ const ShopifyRedirect = () => {
             if (authData.redirect) {
               console.log("Redirecting to Shopify OAuth:", authData.redirect);
               
-              // توجيه مباشر إلى عنوان URL للمصادقة
+              // Direct redirect to auth URL
               window.location.href = authData.redirect;
             } else {
               throw new Error("لم يتم استلام عنوان URL للمصادقة من الخادم");
@@ -190,15 +188,15 @@ const ShopifyRedirect = () => {
           } catch (e) {
             console.error("Error getting auth URL:", e);
             
-            // في حالة الفشل، حاول مرة أخرى باستخدام النهج المباشر إذا لم نصل إلى الحد الأقصى للمحاولات
+            // If failed, try again with direct approach if we haven't reached max retries
             if (retryCount < 3) {
               setRetryCount(prev => prev + 1);
               
-              // استخدام URL مباشر للمصادقة بعد الفشل في استخدام Edge Function
+              // Use direct auth URL after failing to use Edge Function
               const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
               console.log("Trying direct auth URL as fallback:", directAuthUrl);
               
-              // استخدام تأخير بسيط قبل إعادة توجيه
+              // Use slight delay before redirect
               setTimeout(() => {
                 window.location.href = directAuthUrl;
               }, 500);
@@ -218,15 +216,27 @@ const ShopifyRedirect = () => {
     redirectToAuthEndpoint();
   }, [location, navigate, retryCount]);
   
-  // إضافة طريقة بديلة للتوجيه المباشر
+  // Direct auth alternative method
   const handleDirectAuth = () => {
     const shop = localStorage.getItem('shopify_temp_store');
     if (shop) {
-      // باستخدام عنوان URL المباشر مع معلمات إضافية لتجنب مشكلات ذاكرة التخزين المؤقت
+      // Using direct URL with additional params to avoid caching issues
       const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
       window.location.href = directAuthUrl;
     } else {
       toast.error("لا توجد معلومات متجر متاحة للاستخدام");
+    }
+  };
+
+  // Handle retry with direct approach
+  const handleRetryDirectly = () => {
+    // Try the Remix auth endpoint directly
+    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop || 'bestform-app.myshopify.com';
+    if (shop) {
+      // Using URL with timestamp to avoid caching
+      window.location.href = `/auth?shop=${encodeURIComponent(cleanShopDomain(shop))}&_t=${Date.now()}`;
+    } else {
+      navigate('/shopify');
     }
   };
 
@@ -245,13 +255,22 @@ const ShopifyRedirect = () => {
               {error}
             </div>
             
-            {/* خيارات الاسترداد */}
+            {/* Recovery options */}
             <div className="mb-6 space-y-3">
               <Button 
                 className="w-full"
                 onClick={handleDirectAuth}
               >
                 محاولة الاتصال مباشرة
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={handleRetryDirectly}
+                className="w-full flex items-center justify-center"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                محاولة الاتصال باستخدام مسار Node.js
               </Button>
               
               <Button 

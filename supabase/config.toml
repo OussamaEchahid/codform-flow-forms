@@ -2,9 +2,10 @@
 project_id = "nhqrngdzuatdnfkihtud"
 
 [api]
-# الإعدادات الخاصة بـ Edge Functions
+# Edge Functions settings
 [functions.shopify-auth]
 verify_jwt = false
 
 [functions.shopify-callback]
 verify_jwt = false
+

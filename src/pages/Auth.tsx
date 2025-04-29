@@ -12,63 +12,67 @@ const Auth = () => {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    let shop = searchParams.get('shop');
-    
-    // تسجيل معلومات التشخيص
-    const debugInfo = {
-      shop,
-      fullUrl: window.location.href,
-      pathname: window.location.pathname,
-      search: window.location.search,
-      origin: window.location.origin,
-      authParams: Object.fromEntries(searchParams.entries()),
-      referrer: document.referrer || "none",
-      userAgent: navigator.userAgent,
+    const processAuth = async () => {
+      const searchParams = new URLSearchParams(location.search);
+      let shop = searchParams.get('shop');
+      
+      // Log diagnostic info
+      const debugInfo = {
+        shop,
+        fullUrl: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        origin: window.location.origin,
+        authParams: Object.fromEntries(searchParams.entries()),
+        referrer: document.referrer || "none",
+        userAgent: navigator.userAgent,
+      };
+      
+      setDebug(debugInfo);
+      console.log("Auth page loaded with params:", debugInfo);
+      
+      // Clean Shopify store URL if it contains a protocol
+      if (shop) {
+        if (shop.startsWith('http')) {
+          try {
+            const url = new URL(shop);
+            shop = url.hostname;
+            console.log("Cleaned shop URL:", shop);
+          } catch (e) {
+            console.error("Error cleaning shop URL:", e);
+          }
+        }
+        
+        // Ensure the address ends with myshopify.com
+        if (!shop.endsWith('myshopify.com')) {
+          if (!shop.includes('.')) {
+            shop = `${shop}.myshopify.com`;
+            console.log("Added myshopify.com suffix:", shop);
+          }
+        }
+        
+        // Save temporary store in localStorage
+        try {
+          localStorage.setItem('shopify_temp_store', shop);
+          console.log("Saved temporary shop:", shop);
+        } catch (e) {
+          console.error("Error saving temp shop:", e);
+        }
+        
+        // Redirect to ShopifyRedirect with the cleaned parameter
+        const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
+        console.log("Redirecting to:", redirectUrl);
+        navigate(redirectUrl);
+      } else {
+        // If there's no shop parameter, show error
+        setError("لم يتم توفير معلمة متجر Shopify. يرجى العودة واتباع الخطوات الصحيحة لتثبيت التطبيق.");
+      }
     };
     
-    setDebug(debugInfo);
-    console.log("Auth page loaded with params:", debugInfo);
-    
-    // تنظيف عنوان متجر Shopify إذا كان يحتوي على بروتوكول
-    if (shop) {
-      if (shop.startsWith('http')) {
-        try {
-          const url = new URL(shop);
-          shop = url.hostname;
-          console.log("Cleaned shop URL:", shop);
-        } catch (e) {
-          console.error("Error cleaning shop URL:", e);
-        }
-      }
-      
-      // التأكد من أن العنوان ينتهي بـ myshopify.com
-      if (!shop.endsWith('myshopify.com')) {
-        if (!shop.includes('.')) {
-          shop = `${shop}.myshopify.com`;
-          console.log("Added myshopify.com suffix:", shop);
-        }
-      }
-      
-      // حفظ متجر مؤقت في localStorage
-      try {
-        localStorage.setItem('shopify_temp_store', shop);
-        console.log("Saved temporary shop:", shop);
-      } catch (e) {
-        console.error("Error saving temp shop:", e);
-      }
-      
-      // إعادة توجيه إلى ShopifyRedirect مع المعلمة المنظفة
-      const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
-      console.log("Redirecting to:", redirectUrl);
-      navigate(redirectUrl);
-    } else {
-      // إذا لم يكن هناك معلمة متجر، أظهر خطأ
-      setError("لم يتم توفير معلمة متجر Shopify. يرجى العودة واتباع الخطوات الصحيحة لتثبيت التطبيق.");
-    }
+    processAuth();
   }, [location, navigate]);
   
-  // تحسين مع إضافة تعامل مع الأخطاء
+  // Improved with better error handling
   const handleBackToShopify = () => {
     navigate('/shopify');
   };
@@ -77,7 +81,7 @@ const Auth = () => {
     navigate('/dashboard');
   };
   
-  // إذا كان هناك خطأ، أظهر رسالة خطأ وأزرار للتنقل
+  // If there's an error, show error message and navigation buttons
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
