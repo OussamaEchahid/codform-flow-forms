@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { FormStep } from '@/lib/form-utils';
+import { Json } from '@/integrations/supabase/types';
 
 interface FormData {
   id: string;
@@ -43,8 +44,14 @@ export default function FormAPI() {
           throw new Error('Form not found');
         }
 
+        // Properly cast the data to FormData with correct type for the 'data' field
+        const formData: FormData = {
+          ...data,
+          data: data.data as unknown as FormStep[]
+        };
+
         // Return the form data as JSON
-        setForm(data as FormData);
+        setForm(formData);
       } catch (error: any) {
         setError(error.message || 'Error fetching form');
       } finally {

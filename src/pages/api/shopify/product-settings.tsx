@@ -28,8 +28,8 @@ export default function ProductSettingsAPI() {
           throw new Error('Shop not authenticated');
         }
 
-        // Store the settings in a metadata table
-        // Note: You need to create this table if it doesn't exist
+        // Since we're inserting into a table that may not be in the types yet,
+        // we'll use a more generic approach with type assertions
         const { error } = await supabase
           .from('shopify_product_settings')
           .upsert({
@@ -38,7 +38,7 @@ export default function ProductSettingsAPI() {
             form_id: requestBody.formId,
             enabled: requestBody.enabled,
             updated_at: new Date().toISOString()
-          }, {
+          } as any, {
             onConflict: 'shop_id,product_id'
           });
 
