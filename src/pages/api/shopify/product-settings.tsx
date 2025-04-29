@@ -28,10 +28,10 @@ export default function ProductSettingsAPI() {
           throw new Error('Shop not authenticated');
         }
 
-        // Use a more generic approach to work with tables that might not be in the type definitions
-        // We'll use the raw query method instead which accepts any table name
+        // Use a direct SQL query that works with any schema version
+        // This avoids TypeScript errors with newly added RPC functions
         const { error } = await supabase.rpc(
-          'insert_product_setting', 
+          'insert_product_setting' as any, 
           {
             p_shop_id: shop,
             p_product_id: requestBody.productId,
