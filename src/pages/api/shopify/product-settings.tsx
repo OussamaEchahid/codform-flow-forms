@@ -28,19 +28,17 @@ export default function ProductSettingsAPI() {
           throw new Error('Shop not authenticated');
         }
 
-        // Since we're inserting into a table that may not be in the types yet,
-        // we'll use a more generic approach with type assertions
-        const { error } = await supabase
-          .from('shopify_product_settings')
-          .upsert({
-            shop_id: shop,
-            product_id: requestBody.productId,
-            form_id: requestBody.formId,
-            enabled: requestBody.enabled,
-            updated_at: new Date().toISOString()
-          } as any, {
-            onConflict: 'shop_id,product_id'
-          });
+        // Use a more generic approach to work with tables that might not be in the type definitions
+        // We'll use the raw query method instead which accepts any table name
+        const { error } = await supabase.rpc(
+          'insert_product_setting', 
+          {
+            p_shop_id: shop,
+            p_product_id: requestBody.productId,
+            p_form_id: requestBody.formId,
+            p_enabled: requestBody.enabled
+          }
+        );
 
         if (error) {
           throw error;

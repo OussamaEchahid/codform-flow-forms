@@ -128,6 +128,48 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_product_settings: {
+        Row: {
+          enabled: boolean
+          form_id: string
+          id: string
+          product_id: string
+          shop_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          form_id: string
+          id?: string
+          product_id: string
+          shop_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          form_id?: string
+          id?: string
+          product_id?: string
+          shop_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_product_settings_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopify_product_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shopify_stores"
+            referencedColumns: ["shop"]
+          },
+        ]
+      }
       shopify_stores: {
         Row: {
           access_token: string
