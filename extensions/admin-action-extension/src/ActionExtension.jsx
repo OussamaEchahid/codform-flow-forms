@@ -26,6 +26,7 @@ function Extension() {
   const [forms, setForms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
+  const [error, setError] = useState(null);
   
   // Get the product ID from the data
   const productId = data?.product?.id;
@@ -39,17 +40,19 @@ function Extension() {
   // Load forms from the CODFORM API
   const loadForms = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Replace with your actual API endpoint
       const response = await fetch('https://codform-flow-forms.lovable.app/api/forms');
       if (!response.ok) {
-        throw new Error('Failed to load forms');
+        throw new Error(`فشل في تحميل النماذج: ${response.status}`);
       }
       const data = await response.json();
       setForms(data);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error loading forms:', error);
+      setError(error.message || 'فشل في تحميل النماذج');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -70,14 +73,43 @@ function Extension() {
   // Save settings to storage
   const saveSettings = async () => {
     try {
+      if (!productId) {
+        throw new Error('لم يتم العثور على معرف المنتج');
+      }
+      
       await storage.write(`codform_settings_${productId}`, {
         formId: selectedForm,
         enabled: isEnabled,
         productId: productId,
+        updatedAt: new Date().toISOString()
       });
+      
+      // Notify the app about the change via API
+      try {
+        const notifyResponse = await fetch('https://codform-flow-forms.lovable.app/api/shopify/product-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productId: productId,
+            formId: selectedForm,
+            enabled: isEnabled,
+          }),
+        });
+        
+        if (!notifyResponse.ok) {
+          console.warn('Failed to notify app about settings change, but settings were saved locally');
+        }
+      } catch (notifyError) {
+        console.warn('Error notifying app:', notifyError);
+        // Continue anyway as the local settings were saved
+      }
+      
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error saving settings:', error);
+      alert(`فشل في حفظ الإعدادات: ${error.message}`);
     }
   };
   
@@ -152,7 +184,11 @@ function Extension() {
               <Text>جاري تحميل النماذج...</Text>
             )}
             
-            {isEnabled && forms.length === 0 && !isLoading && (
+            {error && (
+              <Text appearance="critical">{error}</Text>
+            )}
+            
+            {isEnabled && forms.length === 0 && !isLoading && !error && (
               <Text>لا توجد نماذج متاحة. يرجى إنشاء نموذج أولاً.</Text>
             )}
             

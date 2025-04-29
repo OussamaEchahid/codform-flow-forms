@@ -1,10 +1,11 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
   هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
 {% endcomment %}
 
-<div id="codform-container" class="codform-container" data-product-id="{{ product.id }}">
+<div id="codform-container" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}">
   <div class="codform-header">
     <h3>{{ block.settings.title }}</h3>
     <p>{{ block.settings.description }}</p>
@@ -13,7 +14,7 @@
   <div class="codform-form-container">
     <div id="codform-form-loader" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p>جاري تحميل النموذج...</p>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
     </div>
     
     <div id="codform-form" class="codform-form" style="display: none;">
@@ -51,6 +52,12 @@
       "id": "description",
       "label": "وصف النموذج",
       "default": "يرجى ملء النموذج التالي لطلب الدفع عند الاستلام"
+    },
+    {
+      "type": "text",
+      "id": "loading_text",
+      "label": "نص التحميل",
+      "default": "جاري تحميل النموذج..."
     },
     {
       "type": "text",
@@ -195,13 +202,83 @@
   .codform-button:hover {
     background-color: #6d28d9;
   }
+  
+  .codform-form .codform-field {
+    margin-bottom: 16px;
+  }
+  
+  .codform-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  
+  .codform-form input[type="text"],
+  .codform-form input[type="email"],
+  .codform-form input[type="tel"],
+  .codform-form input[type="number"],
+  .codform-form select,
+  .codform-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    background-color: white;
+    margin-bottom: 4px;
+    direction: rtl;
+  }
+  
+  .codform-form .codform-help-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  
+  .codform-form .codform-required {
+    color: #ef4444;
+  }
+  
+  .codform-form .codform-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .codform-form .codform-checkbox-container input {
+    width: auto;
+  }
+  
+  .codform-submit-button {
+    background-color: #7c3aed;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: background-color 0.2s;
+    width: 100%;
+  }
+  
+  .codform-submit-button:hover {
+    background-color: #6d28d9;
+  }
+  
+  .codform-form.codform-loading .codform-submit-button {
+    opacity: 0.7;
+    pointer-events: none;
+  }
 </style>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const formId = {{ block.settings.form_id | json }};
-    const productId = {{ product.id | json }};
-    const shopDomain = {{ shop.domain | json }};
+    const formContainer = document.getElementById('codform-container');
+    if (!formContainer) return;
+    
+    const formId = formContainer.dataset.formId;
+    const productId = formContainer.dataset.productId;
+    const shopDomain = window.Shopify ? window.Shopify.shop : null;
     
     if (!formId) {
       console.error('CODFORM: No form ID provided');
@@ -214,11 +291,14 @@
     loadForm(formId, productId, shopDomain);
     
     // Retry button event listener
-    document.getElementById('codform-retry').addEventListener('click', function() {
-      document.getElementById('codform-error').style.display = 'none';
-      document.getElementById('codform-form-loader').style.display = 'flex';
-      loadForm(formId, productId, shopDomain);
-    });
+    const retryButton = document.getElementById('codform-retry');
+    if (retryButton) {
+      retryButton.addEventListener('click', function() {
+        document.getElementById('codform-error').style.display = 'none';
+        document.getElementById('codform-form-loader').style.display = 'flex';
+        loadForm(formId, productId, shopDomain);
+      });
+    }
   });
   
   function loadForm(formId, productId, shopDomain) {
@@ -237,13 +317,18 @@
       })
       .catch(error => {
         console.error('CODFORM: Error loading form', error);
-        document.getElementById('codform-form-loader').style.display = 'none';
-        document.getElementById('codform-error').style.display = 'block';
+        const formLoader = document.getElementById('codform-form-loader');
+        const errorElement = document.getElementById('codform-error');
+        
+        if (formLoader) formLoader.style.display = 'none';
+        if (errorElement) errorElement.style.display = 'block';
       });
   }
   
   function renderForm(formData, productId, shopDomain) {
     const formContainer = document.getElementById('codform-form');
+    if (!formContainer) return;
+    
     formContainer.innerHTML = ''; // Clear any existing content
     
     // Create form element
@@ -255,13 +340,13 @@
     const productIdField = document.createElement('input');
     productIdField.type = 'hidden';
     productIdField.name = 'productId';
-    productIdField.value = productId;
+    productIdField.value = productId || '';
     form.appendChild(productIdField);
     
     const shopDomainField = document.createElement('input');
     shopDomainField.type = 'hidden';
     shopDomainField.name = 'shopDomain';
-    shopDomainField.value = shopDomain;
+    shopDomainField.value = shopDomain || '';
     form.appendChild(shopDomainField);
     
     // Render form fields based on formData

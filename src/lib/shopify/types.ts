@@ -4,7 +4,6 @@ export interface ShopifyProduct {
   title: string;
   handle: string;
   price: string;
-  compareAtPrice: string | null;
   images: string[];
   variants: ShopifyVariant[];
 }
@@ -18,14 +17,29 @@ export interface ShopifyVariant {
 
 export interface ShopifyOrder {
   id: string;
-  orderNumber: string;
-  totalPrice: string;
-  createdAt: string;
-  customer?: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
+  name: string;
+  total_price: string;
+  created_at: string;
+  items: ShopifyLineItem[];
+  customer?: ShopifyCustomer;
+}
+
+export interface ShopifyLineItem {
+  id: string;
+  product_id: string;
+  variant_id: string;
+  title: string;
+  quantity: number;
+  price: string;
+  total: string;
+}
+
+export interface ShopifyCustomer {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
 }
 
 export interface ShopifyFormData {
@@ -38,5 +52,6 @@ export interface ShopifyFormData {
       fontSize: string;
       borderRadius: string;
     };
+    products?: string[];
   };
 }

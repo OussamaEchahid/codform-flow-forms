@@ -20,6 +20,7 @@ import { ShopifyFormData } from '@/lib/shopify/types';
 import { Loader } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
+import { useShopify } from '@/hooks/useShopify';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -35,7 +36,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { language } = useI18n();
   const { shopifyConnected, shop } = useAuth();
   const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
-
+  const { products, isLoading: loadingProducts } = useShopify();
+  const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
+  
   const handleSave = () => {
     if (!shopifyConnected || !shop) {
       toast.error(language === 'ar' 
@@ -54,6 +57,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           fontSize: '16px',
           borderRadius: '4px',
         },
+        products: selectedProducts
       },
     });
   };
@@ -102,9 +106,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </Select>
             </div>
 
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">
+                {language === 'ar' ? 'تذكير هام' : 'Important Reminder'}
+              </p>
+              <div className="text-xs text-gray-600 bg-blue-50 rounded p-3 border border-blue-100">
+                {language === 'ar'
+                  ? 'بعد حفظ التكامل، يجب عليك الذهاب إلى محرر موضوعات متجرك في شوبيفاي وإضافة بلوك "نموذج الدفع عند الاستلام" في قالب المنتج.'
+                  : 'After saving the integration, you need to go to your Shopify theme editor and add the "Cash on Delivery Form" block in your product template.'}
+              </div>
+            </div>
+
             <Button
               onClick={handleSave}
-              className="w-full"
+              className="w-full mt-4"
               disabled={isSyncing}
             >
               {isSyncing ? (
