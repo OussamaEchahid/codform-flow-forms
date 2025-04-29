@@ -10,6 +10,7 @@ import { AuthProvider } from "@/components/layout/AuthProvider";
 import Dashboard from "@/pages/Dashboard";
 import Index from "@/pages/Index";
 import FormBuilderPage from "@/pages/FormBuilderPage";
+import Forms from "@/pages/Forms"; // نستورد صفحة النماذج الجديدة
 import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
@@ -32,7 +33,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/forms" element={<Dashboard />} />
+                <Route path="/forms" element={<Forms />} /> {/* تغيير هذا المسار ليوجه إلى مكون النماذج الجديد */}
                 <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/shopify" element={<Shopify />} />
