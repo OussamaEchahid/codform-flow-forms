@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
+import { Dialog } from '@/components/ui/dialog';
 
 const Forms = () => {
   const { user } = useAuth();
@@ -23,16 +24,23 @@ const Forms = () => {
     createFormFromTemplate 
   } = useFormTemplates();
   
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   
   useEffect(() => {
     fetchForms();
   }, [fetchForms]);
 
   const handleCreateForm = async () => {
-    const newForm = await createDefaultForm();
-    if (newForm) {
-      navigate(`/form-builder/${newForm.id}`);
+    try {
+      const newForm = await createDefaultForm();
+      if (newForm) {
+        navigate(`/form-builder/${newForm.id}`);
+      } else {
+        toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء النموذج' : 'Error creating form');
+      }
+    } catch (error: any) {
+      console.error("Form creation error:", error);
+      toast.error(`${language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Form creation error'}: ${error.message}`);
     }
   };
 
@@ -41,9 +49,17 @@ const Forms = () => {
   };
 
   const handleSelectTemplate = async (templateId: number) => {
-    const newForm = await createFormFromTemplate(templateId);
-    if (newForm) {
-      navigate(`/form-builder/${newForm.id}`);
+    try {
+      const newForm = await createFormFromTemplate(templateId);
+      if (newForm) {
+        navigate(`/form-builder/${newForm.id}`);
+        toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
+      } else {
+        toast.error(language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form');
+      }
+    } catch (error: any) {
+      console.error("Template selection error:", error);
+      toast.error(`${language === 'ar' ? 'خطأ في اختيار القالب' : 'Template selection error'}: ${error.message}`);
     }
     setIsTemplateDialogOpen(false);
   };
@@ -88,13 +104,28 @@ const Forms = () => {
             isLoading={isLoading}
             onSelectForm={handleSelectForm}
           />
+          
+          {forms.length === 0 && !isLoading && (
+            <div className="text-center p-10 border rounded-lg bg-white">
+              <p className="text-gray-500 mb-2">
+                {language === 'ar' ? 'لا توجد نماذج متاحة' : 'No forms available'}
+              </p>
+              <p className="text-sm text-gray-400">
+                {language === 'ar' 
+                  ? 'أنشئ نموذجًا جديدًا أو استخدم قالبًا للبدء' 
+                  : 'Create a new form or use a template to get started'}
+              </p>
+            </div>
+          )}
         </div>
         
-        <FormTemplatesDialog 
-          open={isTemplateDialogOpen}
-          onSelect={handleSelectTemplate} 
-          onClose={() => setIsTemplateDialogOpen(false)}
-        />
+        <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+          <FormTemplatesDialog 
+            open={isTemplateDialogOpen}
+            onSelect={handleSelectTemplate} 
+            onClose={() => setIsTemplateDialogOpen(false)}
+          />
+        </Dialog>
       </div>
     </div>
   );

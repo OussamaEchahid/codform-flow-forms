@@ -1,9 +1,11 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormStep, formTemplates } from '@/lib/form-utils';
 import { useAuth } from '@/lib/auth';
 import { Json } from '@/integrations/supabase/types';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface FormData {
   id: string;
@@ -52,6 +54,7 @@ export const useFormTemplates = () => {
       setForms(formattedData);
     } catch (error: any) {
       toast.error(`خطأ في جلب النماذج: ${error.message}`);
+      console.error("Error fetching forms:", error);
     } finally {
       setIsLoading(false);
     }
@@ -66,23 +69,27 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      toast.success(`تم اختيار قالب ${selectedTemplate.title}`);
+      // Generate a valid UUID for user_id if not available
+      const userId = user?.id || uuidv4();
       
       const formData = {
         title: selectedTemplate.title,
         description: selectedTemplate.description,
         data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
         is_published: false,
-        shop_id: shop || '',
-        user_id: user?.id || '' // Ensure user_id is always included
+        shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
+        user_id: userId // Use the generated or actual user ID
       };
+      
+      console.log("Creating form with data:", formData);
       
       const { data, error } = await supabase
         .from('forms')
-        .insert(formData) // Don't wrap in array for a single row
+        .insert(formData)
         .select();
       
       if (error) {
+        console.error("Error creating form:", error);
         throw error;
       }
       
@@ -100,6 +107,7 @@ export const useFormTemplates = () => {
       }
       return null;
     } catch (error: any) {
+      console.error("Error in createFormFromTemplate:", error);
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
     }
@@ -110,19 +118,14 @@ export const useFormTemplates = () => {
   }, [createFormFromTemplate]);
 
   const saveForm = async (formId: string, formData: any) => {
-    if (!shop) {
-      toast.error('يجب توصيل متجر Shopify لحفظ النموذج');
-      return false;
-    }
-    
     try {
       const updateData = {
         title: formData.title,
         description: formData.description,
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
-        shop_id: shop,
-        user_id: user?.id || '' // Ensure user_id is included in updates
+        shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
+        user_id: user?.id || uuidv4() // Generate a valid UUID if user ID is not available
       };
       
       const { error } = await supabase
@@ -131,6 +134,7 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
+        console.error("Error saving form:", error);
         throw error;
       }
       
@@ -144,11 +148,6 @@ export const useFormTemplates = () => {
   };
 
   const publishForm = async (formId: string, isPublished: boolean) => {
-    if (!shop) {
-      toast.error('يجب توصيل متجر Shopify لنشر النموذج');
-      return false;
-    }
-    
     try {
       const { error } = await supabase
         .from('forms')
@@ -156,6 +155,7 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
+        console.error("Error publishing form:", error);
         throw error;
       }
       
@@ -169,11 +169,6 @@ export const useFormTemplates = () => {
   };
 
   const deleteForm = async (formId: string) => {
-    if (!shop) {
-      toast.error('يجب توصيل متجر Shopify لحذف النموذج');
-      return false;
-    }
-    
     try {
       const { error } = await supabase
         .from('forms')
@@ -181,6 +176,7 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
+        console.error("Error deleting form:", error);
         throw error;
       }
       
@@ -204,6 +200,7 @@ export const useFormTemplates = () => {
         .single();
       
       if (error) {
+        console.error("Error getting form by ID:", error);
         throw error;
       }
       
@@ -223,10 +220,8 @@ export const useFormTemplates = () => {
   };
 
   useEffect(() => {
-    if (shop || user) {
-      fetchForms();
-    }
-  }, [shop, user, fetchForms]);
+    fetchForms();
+  }, [fetchForms]);
 
   return {
     forms,
