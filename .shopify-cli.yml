@@ -1,3 +1,9 @@
 
 app:
   directory: ./
+  api_key: "7e4608874bbcc38afa1953948da28407"  # استخدام API key من ملف shopify.app.toml
+  force_cli_home: true  # يجبر CLI على استخدام مجلد المشروع الحالي
+
+build:
+  automatically_update_urls_on_dev: true
+  dev_store_url: "bestform-app.myshopify.com"  # استخدام متجر الاختبار الافتراضي
