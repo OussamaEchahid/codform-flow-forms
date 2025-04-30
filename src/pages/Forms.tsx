@@ -32,10 +32,13 @@ const Forms = () => {
 
   const handleCreateForm = async () => {
     try {
+      console.log("Creating default form...");
       const newForm = await createDefaultForm();
       if (newForm) {
+        console.log("New form created:", newForm);
         navigate(`/form-builder/${newForm.id}`);
       } else {
+        console.error("Form creation failed: no form returned");
         toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء النموذج' : 'Error creating form');
       }
     } catch (error: any) {
@@ -50,11 +53,14 @@ const Forms = () => {
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
+      console.log("Selected template ID:", templateId);
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
+        console.log("New form created from template:", newForm);
         navigate(`/form-builder/${newForm.id}`);
         toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
       } else {
+        console.error("Template form creation failed: no form returned");
         toast.error(language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form');
       }
     } catch (error: any) {

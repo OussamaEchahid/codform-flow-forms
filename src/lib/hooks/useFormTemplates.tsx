@@ -70,7 +70,11 @@ export const useFormTemplates = () => {
       }
       
       // Generate a valid UUID for user_id if not available
-      const userId = user?.id || uuidv4();
+      const userId = user?.id && user.id !== 'shopify-user' 
+        ? user.id 
+        : uuidv4();
+      
+      console.log("Creating form with user ID:", userId);
       
       const formData = {
         title: selectedTemplate.title,
@@ -119,13 +123,18 @@ export const useFormTemplates = () => {
 
   const saveForm = async (formId: string, formData: any) => {
     try {
+      // Generate a valid UUID for user_id if not available
+      const userId = user?.id && user.id !== 'shopify-user' 
+        ? user.id 
+        : uuidv4();
+        
       const updateData = {
         title: formData.title,
         description: formData.description,
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
         shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
-        user_id: user?.id || uuidv4() // Generate a valid UUID if user ID is not available
+        user_id: userId // Use generated or actual user ID
       };
       
       const { error } = await supabase
