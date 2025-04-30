@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
+  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -16,11 +16,13 @@ import { toast } from 'sonner';
 import FormPreview from '@/components/form/FormPreview';
 
 interface FormTemplatesDialogProps {
+  open: boolean; // Add the open prop to the interface
   onSelect: (templateId: number) => void;
   onClose: () => void;
 }
 
 const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({ 
+  open,
   onSelect,
   onClose
 }) => {
@@ -376,78 +378,82 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
   }, [currentTemplateIndex]);
 
   return (
-    <DialogContent className="max-w-3xl">
-      <DialogHeader className="text-right">
-        <DialogTitle>قوالب النماذج</DialogTitle>
-        <DialogDescription>
-          اختر أحد قوالب النماذج الجاهزة لبدء إنشاء نموذجك
-        </DialogDescription>
-      </DialogHeader>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) onClose();
+    }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader className="text-right">
+          <DialogTitle>قوالب النماذج</DialogTitle>
+          <DialogDescription>
+            اختر أحد قوالب النماذج الجاهزة لبدء إنشاء نموذجك
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="my-4">
-        <div className="relative border-2 rounded-lg p-4">
-          <div className="h-2 bg-gradient-to-r from-codform-purple to-codform-dark-purple absolute top-0 left-0 right-0 rounded-t-lg"></div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            <div className="text-right mb-4 col-span-1">
-              <h3 className="font-semibold text-lg">{currentTemplate.title}</h3>
-              <p className="text-sm text-gray-600">{currentTemplate.description}</p>
-              <div className="flex justify-between text-sm text-gray-500 mt-2">
-                <span>{currentTemplate.fields} حقول</span>
-                <span>{currentTemplate.steps} خطوات</span>
+        <div className="my-4">
+          <div className="relative border-2 rounded-lg p-4">
+            <div className="h-2 bg-gradient-to-r from-codform-purple to-codform-dark-purple absolute top-0 left-0 right-0 rounded-t-lg"></div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+              <div className="text-right mb-4 col-span-1">
+                <h3 className="font-semibold text-lg">{currentTemplate.title}</h3>
+                <p className="text-sm text-gray-600">{currentTemplate.description}</p>
+                <div className="flex justify-between text-sm text-gray-500 mt-2">
+                  <span>{currentTemplate.fields} حقول</span>
+                  <span>{currentTemplate.steps} خطوات</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full mt-3" 
+                  onClick={handleSelectTemplate}
+                >
+                  استخدام القالب
+                </Button>
+              </div>
+              <div className="col-span-2 border rounded relative overflow-hidden">
+                <div className="max-h-[400px] overflow-auto p-2">
+                  {currentTemplateIndex !== null && templateImages[currentTemplateIndex]}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-center items-center gap-4 mt-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full bg-white" 
+                onClick={handlePrevTemplate}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex gap-1">
+                {templateImages.map((_, index) => (
+                  <div 
+                    key={index}
+                    className={`w-2 h-2 rounded-full cursor-pointer ${currentTemplateIndex === index ? 'bg-codform-purple' : 'bg-gray-300'}`}
+                    onClick={() => setCurrentTemplateIndex(index)}
+                  />
+                ))}
               </div>
               <Button 
                 variant="outline" 
-                size="sm"
-                className="w-full mt-3" 
-                onClick={handleSelectTemplate}
+                size="icon" 
+                className="rounded-full bg-white" 
+                onClick={handleNextTemplate}
               >
-                استخدام القالب
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <div className="col-span-2 border rounded relative overflow-hidden">
-              <div className="max-h-[400px] overflow-auto p-2">
-                {currentTemplateIndex !== null && templateImages[currentTemplateIndex]}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-center items-center gap-4 mt-4">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full bg-white" 
-              onClick={handlePrevTemplate}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex gap-1">
-              {templateImages.map((_, index) => (
-                <div 
-                  key={index}
-                  className={`w-2 h-2 rounded-full cursor-pointer ${currentTemplateIndex === index ? 'bg-codform-purple' : 'bg-gray-300'}`}
-                  onClick={() => setCurrentTemplateIndex(index)}
-                />
-              ))}
-            </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full bg-white" 
-              onClick={handleNextTemplate}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
-      </div>
 
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          إلغاء
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            إلغاء
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
