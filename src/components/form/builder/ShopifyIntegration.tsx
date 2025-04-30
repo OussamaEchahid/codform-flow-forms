@@ -38,6 +38,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
   const { products, isLoading: loadingProducts } = useShopify();
   const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
+  const [blockId, setBlockId] = React.useState<string>('');
+  
+  // Generate a random block ID if not already set
+  React.useEffect(() => {
+    if (!blockId) {
+      const randomId = Math.random().toString(36).substring(2, 10);
+      setBlockId(`codform-${randomId}`);
+    }
+  }, [blockId]);
   
   const handleSave = () => {
     if (!shopifyConnected || !shop) {
@@ -57,7 +66,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           fontSize: '16px',
           borderRadius: '4px',
         },
-        products: selectedProducts
+        products: selectedProducts,
+        blockId: blockId
       },
     });
   };
@@ -108,12 +118,42 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
             <div className="mt-4">
               <p className="text-sm font-medium mb-2">
+                {language === 'ar' ? 'معرف كتلة Shopify' : 'Shopify Block ID'}
+              </p>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={blockId}
+                  onChange={(e) => setBlockId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder={language === 'ar' ? 'معرف كتلة شوبيفاي' : 'Shopify block ID'}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const newId = `codform-${Math.random().toString(36).substring(2, 10)}`;
+                    setBlockId(newId);
+                  }}
+                >
+                  {language === 'ar' ? 'توليد' : 'Generate'}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {language === 'ar'
+                  ? 'هذا المعرف مطلوب للمساعدة في تتبع النماذج المختلفة في متجرك'
+                  : 'This ID is required to help track different forms in your store'}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">
                 {language === 'ar' ? 'تذكير هام' : 'Important Reminder'}
               </p>
               <div className="text-xs text-gray-600 bg-blue-50 rounded p-3 border border-blue-100">
                 {language === 'ar'
-                  ? 'بعد حفظ التكامل، يجب عليك الذهاب إلى محرر موضوعات متجرك في شوبيفاي وإضافة بلوك "نموذج الدفع عند الاستلام" في قالب المنتج.'
-                  : 'After saving the integration, you need to go to your Shopify theme editor and add the "Cash on Delivery Form" block in your product template.'}
+                  ? 'بعد حفظ التكامل، يجب عليك الذهاب إلى محرر موضوعات متجرك في شوبيفاي وإضافة بلوك "نموذج الدفع عند الاستلام" في قالب المنتج. تأكد من تعيين نفس معرف النموذج الذي اخترته في إعدادات البلوك.'
+                  : 'After saving the integration, you need to go to your Shopify theme editor and add the "Cash on Delivery Form" block in your product template. Make sure to set the same form ID you selected in the block settings.'}
               </div>
             </div>
 

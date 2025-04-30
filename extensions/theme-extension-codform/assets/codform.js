@@ -1,25 +1,29 @@
-// تحديث عنوان API في ملف JavaScript
-window.CODFormApp = (function() {
-  const API_URL = 'https://codform-flow-forms.lovable.app/api';
-  
-  // CODFORM - نماذج الدفع عند الاستلام
+
+// CODFORM - نماذج الدفع عند الاستلام
 
 (function() {
+  const API_URL = 'https://codform-flow-forms.lovable.app/api';
+  
   // Initialize CODFORM when the DOM is loaded
   document.addEventListener('DOMContentLoaded', function() {
+    console.log('CODFORM: Script loaded');
     initCODFORM();
   });
   
   function initCODFORM() {
     const codformContainers = document.querySelectorAll('.codform-container');
+    console.log('CODFORM: Found containers:', codformContainers.length);
     
     if (codformContainers.length === 0) {
+      console.log('CODFORM: No containers found');
       return;
     }
     
     codformContainers.forEach(container => {
       const formId = container.getAttribute('data-form-id');
       const productId = container.getAttribute('data-product-id');
+      
+      console.log('CODFORM: Container found with formId:', formId, 'productId:', productId);
       
       if (!formId) {
         console.error('CODFORM: No form ID provided');
@@ -43,17 +47,26 @@ window.CODFormApp = (function() {
   }
   
   function loadForm(container, formId, productId) {
-    // Replace with your actual API endpoint
-    const apiUrl = 'https://codform-flow-forms.lovable.app/api/forms/' + formId;
+    console.log('CODFORM: Loading form', formId);
+    const apiUrl = API_URL + '/forms/' + formId;
     
-    fetch(apiUrl)
+    fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors'
+    })
       .then(response => {
+        console.log('CODFORM: API Response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to load form');
+          throw new Error('Failed to load form: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
+        console.log('CODFORM: Form data received:', data);
         renderForm(container, data, productId);
       })
       .catch(error => {
@@ -64,8 +77,12 @@ window.CODFormApp = (function() {
   
   function renderForm(container, formData, productId) {
     const formContainer = container.querySelector('.codform-form');
-    if (!formContainer) return;
+    if (!formContainer) {
+      console.error('CODFORM: Form container not found');
+      return;
+    }
     
+    console.log('CODFORM: Rendering form');
     formContainer.innerHTML = ''; // Clear any existing content
     
     // Create form element
@@ -214,9 +231,12 @@ window.CODFormApp = (function() {
     formContainer.appendChild(form);
     hideLoader(container);
     showForm(container);
+    
+    console.log('CODFORM: Form rendered successfully');
   }
   
   function submitForm(container, form, formId) {
+    console.log('CODFORM: Submitting form', formId);
     const formData = new FormData(form);
     const data = {};
     
@@ -225,6 +245,8 @@ window.CODFormApp = (function() {
       data[key] = value;
     });
     
+    console.log('CODFORM: Form data to submit:', data);
+    
     // Show loading state
     form.classList.add('codform-loading');
     const submitButton = form.querySelector('.codform-submit-button');
@@ -232,26 +254,29 @@ window.CODFormApp = (function() {
     submitButton.disabled = true;
     submitButton.textContent = 'جاري الإرسال...';
     
-    // Replace with your actual API endpoint
-    const apiUrl = 'https://codform-flow-forms.lovable.app/api/submissions';
+    const apiUrl = API_URL + '/submissions';
     
     fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       },
+      mode: 'cors',
       body: JSON.stringify({
         formId: formId,
         data: data
       }),
     })
       .then(response => {
+        console.log('CODFORM: Submit response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to submit form');
+          throw new Error('Failed to submit form: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
+        console.log('CODFORM: Form submitted successfully:', data);
         // Show success message
         hideForm(container);
         showSuccess(container);
@@ -310,5 +335,4 @@ window.CODFormApp = (function() {
     const error = container.querySelector('.codform-error');
     if (error) error.style.display = 'none';
   }
-})();
 })();

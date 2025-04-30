@@ -273,12 +273,17 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    console.log('CODFORM: Initializing form');
     const formContainer = document.getElementById('codform-container');
-    if (!formContainer) return;
+    if (!formContainer) {
+      console.error('CODFORM: Container not found');
+      return;
+    }
     
     const formId = formContainer.dataset.formId;
     const productId = formContainer.dataset.productId;
-    const shopDomain = window.Shopify ? window.Shopify.shop : null;
+    
+    console.log('CODFORM: Form ID:', formId, 'Product ID:', productId);
     
     if (!formId) {
       console.error('CODFORM: No form ID provided');
@@ -288,7 +293,7 @@
     }
     
     // Load the form from CODFORM API
-    loadForm(formId, productId, shopDomain);
+    loadForm(formId, productId);
     
     // Retry button event listener
     const retryButton = document.getElementById('codform-retry');
@@ -296,24 +301,34 @@
       retryButton.addEventListener('click', function() {
         document.getElementById('codform-error').style.display = 'none';
         document.getElementById('codform-form-loader').style.display = 'flex';
-        loadForm(formId, productId, shopDomain);
+        loadForm(formId, productId);
       });
     }
   });
   
-  function loadForm(formId, productId, shopDomain) {
-    // Replace with your actual API endpoint
+  function loadForm(formId, productId) {
+    console.log('CODFORM: Loading form', formId);
+    // API URL with CORS headers enabled
     const apiUrl = 'https://codform-flow-forms.lovable.app/api/forms/' + formId;
     
-    fetch(apiUrl)
+    fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors'
+    })
       .then(response => {
+        console.log('CODFORM: API Response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to load form');
+          throw new Error('Failed to load form: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        renderForm(data, productId, shopDomain);
+        console.log('CODFORM: Form data received:', data);
+        renderForm(data, productId);
       })
       .catch(error => {
         console.error('CODFORM: Error loading form', error);
@@ -325,10 +340,14 @@
       });
   }
   
-  function renderForm(formData, productId, shopDomain) {
+  function renderForm(formData, productId) {
     const formContainer = document.getElementById('codform-form');
-    if (!formContainer) return;
+    if (!formContainer) {
+      console.error('CODFORM: Form container not found');
+      return;
+    }
     
+    console.log('CODFORM: Rendering form');
     formContainer.innerHTML = ''; // Clear any existing content
     
     // Create form element
@@ -346,7 +365,7 @@
     const shopDomainField = document.createElement('input');
     shopDomainField.type = 'hidden';
     shopDomainField.name = 'shopDomain';
-    shopDomainField.value = shopDomain || '';
+    shopDomainField.value = window.Shopify ? window.Shopify.shop : '';
     form.appendChild(shopDomainField);
     
     // Render form fields based on formData
@@ -472,9 +491,12 @@
     formContainer.appendChild(form);
     document.getElementById('codform-form-loader').style.display = 'none';
     formContainer.style.display = 'block';
+    
+    console.log('CODFORM: Form rendered successfully');
   }
   
   function submitForm(form, formId) {
+    console.log('CODFORM: Submitting form', formId);
     const formData = new FormData(form);
     const data = {};
     
@@ -483,6 +505,8 @@
       data[key] = value;
     });
     
+    console.log('CODFORM: Form data to submit:', data);
+    
     // Show loading state
     form.classList.add('codform-loading');
     const submitButton = form.querySelector('.codform-submit-button');
@@ -490,26 +514,30 @@
     submitButton.disabled = true;
     submitButton.textContent = 'جاري الإرسال...';
     
-    // Replace with your actual API endpoint
+    // API URL with CORS headers enabled
     const apiUrl = 'https://codform-flow-forms.lovable.app/api/submissions';
     
     fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       },
+      mode: 'cors',
       body: JSON.stringify({
         formId: formId,
         data: data
       }),
     })
       .then(response => {
+        console.log('CODFORM: Submit response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to submit form');
+          throw new Error('Failed to submit form: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
+        console.log('CODFORM: Form submitted successfully:', data);
         // Show success message
         document.getElementById('codform-form').style.display = 'none';
         document.getElementById('codform-success').style.display = 'block';
