@@ -282,7 +282,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                     قوالب النماذج
                   </Button>
                 </DialogTrigger>
-                <FormTemplatesDialog onSelect={applyTemplate} onClose={() => setIsTemplateDialogOpen(false)} />
+                <FormTemplatesDialog 
+                  open={isTemplateDialogOpen}
+                  onSelect={applyTemplate} 
+                  onClose={() => setIsTemplateDialogOpen(false)} 
+                />
               </Dialog>
             </div>
           </CardHeader>

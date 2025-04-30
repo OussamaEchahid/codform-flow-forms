@@ -344,6 +344,7 @@ const FormBuilderPage = () => {
           
           <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
             <FormTemplatesDialog 
+              open={isTemplateDialogOpen}
               onSelect={handleSelectTemplate} 
               onClose={() => setIsTemplateDialogOpen(false)}
             />
@@ -422,6 +423,7 @@ const FormBuilderPage = () => {
 
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
+          open={isTemplateDialogOpen}
           onSelect={handleSelectTemplate} 
           onClose={() => setIsTemplateDialogOpen(false)}
         />
