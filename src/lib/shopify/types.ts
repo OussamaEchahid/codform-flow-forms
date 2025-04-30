@@ -53,5 +53,6 @@ export interface ShopifyFormData {
       borderRadius: string;
     };
     products?: string[];
+    blockId?: string; // Add the blockId field to the settings type
   };
 }
