@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -71,24 +70,29 @@ export const useShopify = () => {
     setError(null);
     try {
       console.log(`Fetching products for shop: ${shop}`);
-      // الحصول على رمز وصول المتجر
+      // Get store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token, created_at, updated_at')
+        .select('access_token, updated_at, created_at')
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error('Store access token error:', storeError || 'No access token found');
+      if (storeError || !storeData) {
+        console.error('Store access token error:', storeError || 'No store data found');
         throw new Error('Could not retrieve store access token');
+      }
+      
+      const accessToken = storeData.access_token;
+      if (!accessToken) {
+        throw new Error('Access token not found in store data');
       }
       
       console.log('Access token retrieved successfully');
       console.log('Token age:', new Date(storeData.updated_at || storeData.created_at));
 
-      // إنشاء مثيل API بالرمز ونطاق المتجر
+      // Create API instance with token and store scope
       try {
-        const api = createShopifyAPI(storeData.access_token, shop);
+        const api = createShopifyAPI(accessToken, shop);
         
         // Verify connection first
         try {
@@ -140,22 +144,27 @@ export const useShopify = () => {
         console.log('Will attempt to normalize in the API client');
       }
       
-      // الحصول على رمز وصول المتجر
+      // Get store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token, created_at, updated_at')
+        .select('access_token, updated_at, created_at')
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error('Store access token error:', storeError || 'No access token found');
+      if (storeError || !storeData) {
+        console.error('Store access token error:', storeError || 'No store data found');
         throw new Error('Could not retrieve store access token');
+      }
+      
+      const accessToken = storeData.access_token;
+      if (!accessToken) {
+        throw new Error('Access token not found in store data');
       }
       
       console.log('Retrieved store access token successfully');
       console.log('Token age:', new Date(storeData.updated_at || storeData.created_at));
 
-      // حفظ إعدادات المنتج في قاعدة البيانات أولاً
+      // Save product settings to database first
       try {
         // استخدام معرف المنتج من الإعدادات أو استخدام قيمة افتراضية
         const productId = formData.settings.products?.[0] || 'default-product';
@@ -188,10 +197,10 @@ export const useShopify = () => {
         throw apiError instanceof Error ? apiError : new Error('Unknown error saving product settings');
       }
 
-      // إنشاء مثيل API بالرمز ونطاق المتجر
+      // Create API instance with token and store scope
       try {
         console.log(`Creating API instance for shop: ${shop}`);
-        const api = createShopifyAPI(storeData.access_token, shop);
+        const api = createShopifyAPI(accessToken, shop);
         
         // First verify the connection is working
         console.log('Verifying connection to Shopify API before sync...');
@@ -209,7 +218,7 @@ export const useShopify = () => {
           throw verifyError;
         }
         
-        // مزامنة النموذج مع شوبيفاي
+        // Sync form with Shopify
         console.log('Setting up auto sync with Shopify');
         await api.setupAutoSync(formData);
         console.log('Auto-sync completed successfully');
@@ -224,7 +233,7 @@ export const useShopify = () => {
         throw new Error(syncError instanceof Error ? syncError.message : 'Failed to set up auto-sync with Shopify');
       }
       
-      // حفظ ارتباط النموذج بالمتجر
+      // Save form-shop association
       console.log('Updating form-shop association in database');
       const { error: formUpdateError } = await supabase
         .from('forms')
@@ -233,7 +242,7 @@ export const useShopify = () => {
         
       if (formUpdateError) {
         console.error('Form update error:', formUpdateError);
-        // نستمر على الرغم من هذا الخطأ، لأنه غير حاسم
+        // Continue despite this error, as it's not critical
         console.log('Continuing despite form update error');
       }
 

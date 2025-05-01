@@ -1,9 +1,9 @@
-
 import { ReactNode, useEffect, useState } from 'react';
-import { AuthContext } from '@/lib/auth';
+import { useAuth } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { AuthContext } from '@/lib/auth';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -151,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={authState}>
+    <AuthContext.Provider value={authState as any}>
       {children}
     </AuthContext.Provider>
   );
