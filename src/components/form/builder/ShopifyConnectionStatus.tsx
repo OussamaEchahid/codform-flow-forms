@@ -28,7 +28,7 @@ const ShopifyConnectionStatus = () => {
         shopifyConnected, 
         shop,
         isConnected,
-        isTokenVerified
+        isTokenVerified: isTokenVerified || false
       });
       
       // If the token was already verified during auth, no need to show warning

@@ -1,6 +1,4 @@
-
 import { ReactNode, useEffect, useState } from 'react';
-import { useAuth } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
