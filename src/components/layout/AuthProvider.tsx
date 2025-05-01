@@ -99,6 +99,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Clear any temporary data
             localStorage.removeItem('shopify_temp_store');
             
+            // Show toast only in certain cases
+            if (shopifySuccess === "true" || authSuccess === "true") {
+              toast.success(`تم الاتصال بمتجر ${shopToUse} بنجاح`, { id: 'shopify-success' });
+            }
+            
             setAuthChecked(true);
             return;
           } else {
@@ -124,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             // If on dashboard page, show warning
             if (location.pathname === '/dashboard') {
-              toast.error('لم يتم العثور على رمز الوصول في قاعدة البيانات. يرجى إعادة الاتصال.');
+              toast.error('لم يتم العثور على رمز الوصول في قاعدة البيانات. يرجى إعادة الاتصال.', { id: 'token-error' });
               setAuthState({
                 shopifyConnected: false,
                 shop: undefined,
@@ -150,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('shopify_temp_store');
             
             // Show success message if not already shown
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`, { id: 'shopify-success' });
             
             // Remove URL parameters if we're on dashboard
             if (location.pathname === '/dashboard' && window.history.replaceState) {
@@ -188,6 +193,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               shop: undefined,
               user: undefined
             });
+            
+            if (location.pathname === '/forms' || location.pathname === '/dashboard') {
+              toast.error('انتهت صلاحية الاتصال بـ Shopify. يرجى إعادة الاتصال.', { id: 'connection-expired' });
+            }
           }
         } else {
           // If no connection information found, set state to not connected
@@ -199,11 +208,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         // If we have temporary store info but auth didn't complete
-        if (tempShop && location.pathname === '/dashboard' && !authState.shopifyConnected) {
+        if (tempShop && (location.pathname === '/dashboard' || location.pathname === '/forms') && !authState.shopifyConnected) {
           console.log('Temporary store data exists, but auth didn\'t complete:', tempShop);
           
-          // If on dashboard, show message to user
-          toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.");
+          // Show message to user
+          toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.", { id: 'auth-incomplete' });
           localStorage.removeItem('shopify_temp_store');
         }
       } catch (error) {
@@ -216,24 +225,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     handleAuth();
   }, [location.pathname, location.search, navigate]);
   
+  // Function to refresh connection status
+  const refreshShopifyConnection = () => {
+    console.log("Refreshing Shopify connection state");
+    
+    // Clear local storage state
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_temp_store');
+    
+    // Reset auth state
+    setAuthState({
+      shopifyConnected: false,
+      shop: undefined,
+      user: undefined
+    });
+    
+    setIsTokenVerified(false);
+  };
+  
   // Context object with refresh function
   const authContextValue: AuthContextType = {
     ...authState,
-    refreshShopifyConnection: async () => {
-      console.log("Refreshing Shopify connection state");
-      
-      // Clear local storage state
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      
-      setAuthState({
-        shopifyConnected: false,
-        shop: undefined,
-        user: undefined
-      });
-      
-      setIsTokenVerified(false);
-    },
+    refreshShopifyConnection,
     isTokenVerified
   };
 
@@ -252,3 +266,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

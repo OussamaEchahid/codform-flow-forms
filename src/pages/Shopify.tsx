@@ -44,10 +44,14 @@ export default function Shopify() {
       const savedShop = localStorage.getItem('shopify_store');
       if (savedShop) {
         console.log("Already connected to Shopify, redirecting to dashboard");
+        toast.success(
+          `متصل بالفعل بمتجر ${savedShop}`,
+          { id: 'already-connected' }
+        );
         navigate('/dashboard');
       }
     }
-  }, [shopifyConnected, navigate]);
+  }, [shopifyConnected, navigate, toast]);
 
   const handleConnect = async (method: 'direct' | 'embedded') => {
     if (!shop.trim()) {
@@ -166,4 +170,4 @@ export default function Shopify() {
       </Card>
     </div>
   );
-}
+};

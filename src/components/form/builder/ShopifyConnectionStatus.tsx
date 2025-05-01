@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnectionStatus = () => {
   const { shopifyConnected, shop, refreshShopifyConnection, isTokenVerified } = useAuth();
-  const { isConnected, manualReconnect, verifyShopifyConnection } = useShopify();
+  const { manualReconnect, verifyShopifyConnection } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
@@ -27,7 +27,6 @@ const ShopifyConnectionStatus = () => {
       console.log('Connection indicators:', { 
         shopifyConnected, 
         shop,
-        isConnected,
         isTokenVerified: isTokenVerified || false
       });
       
@@ -56,8 +55,22 @@ const ShopifyConnectionStatus = () => {
           }
           
           console.log('Found store data in database, token exists:', !!storeData.access_token);
-          setShowWarning(false);
           
+          // Verify the connection using the API
+          if (verifyShopifyConnection) {
+            const isValid = await verifyShopifyConnection();
+            if (!isValid) {
+              console.log('Token exists but API connection failed, showing warning');
+              setShowWarning(true);
+              setConnectionChecked(true);
+              return;
+            } else {
+              console.log('API connection verified successfully');
+              setShowWarning(false);
+            }
+          } else {
+            setShowWarning(false);
+          }
         } catch (error) {
           console.error('Error checking store token:', error);
           setShowWarning(true);
@@ -73,7 +86,7 @@ const ShopifyConnectionStatus = () => {
     // Run initial check
     initialCheck();
     
-  }, [shopifyConnected, shop, isConnected, isTokenVerified, verifyShopifyConnection]);
+  }, [shopifyConnected, shop, isTokenVerified, verifyShopifyConnection]);
   
   // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
@@ -81,7 +94,7 @@ const ShopifyConnectionStatus = () => {
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
-        : 'Already redirecting, please wait...');
+        : 'Already redirecting, please wait...', { id: 'redirect-wait' });
       return;
     }
     
@@ -90,7 +103,7 @@ const ShopifyConnectionStatus = () => {
     if (timeSinceLastAttempt < 10000) {
       toast.info(language === 'ar' 
         ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} ثواني...` 
-        : `Reconnect attempted recently, please wait ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} seconds...`);
+        : `Reconnect attempted recently, please wait ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} seconds...`, { id: 'reconnect-wait' });
       return;
     }
     
@@ -112,7 +125,21 @@ const ShopifyConnectionStatus = () => {
     // Use the manualReconnect function from useShopify if available
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
-      manualReconnect();
+      const reconnectSuccess = manualReconnect();
+      
+      // If manualReconnect returned false, it means it didn't initiate a redirect
+      if (!reconnectSuccess) {
+        console.log('manualReconnect failed, falling back to direct navigation');
+        // Show message to user
+        toast.info(language === 'ar' 
+          ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
+          : 'Redirecting to connect to Shopify...', { id: 'redirect-info' });
+        
+        // Use direct path for more reliable navigation, with a short delay
+        setTimeout(() => {
+          window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random()}`;
+        }, 500);
+      }
     } else {
       // Fallback to previous implementation if manualReconnect not available
       console.log('Using fallback reconnect implementation');
@@ -120,7 +147,7 @@ const ShopifyConnectionStatus = () => {
       // Show message to user
       toast.info(language === 'ar' 
         ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-        : 'Redirecting to connect to Shopify...');
+        : 'Redirecting to connect to Shopify...', { id: 'redirect-info' });
       
       // Use direct path for more reliable navigation, with a short delay
       setTimeout(() => {
@@ -160,7 +187,7 @@ const ShopifyConnectionStatus = () => {
           </div>
         ) : (
           <>
-            <RefreshCw className="h-5 w-5 ml-2" />
+            <RefreshCw className="h-5 w-5 mr-2" />
             {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
           </>
         )}
