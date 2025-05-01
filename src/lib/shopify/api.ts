@@ -1,4 +1,3 @@
-
 import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
@@ -39,7 +38,6 @@ class ShopifyAPI {
           shop: normalizedShopDomain,
           accessToken: this.accessToken
         }),
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -221,9 +219,15 @@ class ShopifyAPI {
         query {
           shop {
             name
+            email
             primaryDomain {
               url
               host
+            }
+            plan {
+              displayName
+              partnerDevelopment
+              shopifyPlus
             }
           }
         }
@@ -239,6 +243,7 @@ class ShopifyAPI {
       
       console.log('Connection verified successfully, shop name:', result.shop.name);
       console.log('Shop domain info:', result.shop.primaryDomain || 'No domain info');
+      console.log('Shop plan info:', result.shop.plan || 'No plan info');
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);

@@ -1,26 +1,27 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { NextApiRequest, NextApiResponse } from 'next';
 
 /**
  * Shopify API Proxy Endpoint
  * This endpoint serves as a proxy between the frontend and the Shopify API
  * to avoid CORS issues with direct API calls from the browser.
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed, only POST requests are accepted' });
-  }
-
+export async function POST(request: Request) {
   try {
     // Extract the required data from the request body
-    const { shop, accessToken, query, variables } = req.body;
+    const body = await request.json();
+    const { shop, accessToken, query, variables } = body;
 
     if (!shop || !accessToken || !query) {
-      return res.status(400).json({ 
-        error: 'Missing required parameters: shop, accessToken, and query are required' 
-      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required parameters: shop, accessToken, and query are required' 
+        }), 
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Ensure shop domain is formatted correctly
@@ -47,19 +48,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const data = await response.json();
       
       // Return the Shopify response data
-      return res.status(response.status).json(data);
+      return new Response(
+        JSON.stringify(data),
+        { 
+          status: response.status,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     } catch (fetchError) {
       console.error('Error making request to Shopify API:', fetchError);
-      return res.status(500).json({ 
-        error: 'Failed to communicate with Shopify API',
-        details: fetchError instanceof Error ? fetchError.message : 'Unknown error'
-      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to communicate with Shopify API',
+          details: fetchError instanceof Error ? fetchError.message : 'Unknown error'
+        }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
   } catch (error) {
     console.error('Error in Shopify proxy handler:', error);
-    return res.status(500).json({ 
-      error: 'Server error processing request',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Server error processing request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
+}
+
+export function GET() {
+  return new Response(
+    JSON.stringify({ message: 'This endpoint only accepts POST requests' }),
+    { 
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
 }
