@@ -55,7 +55,7 @@ export default function Shopify() {
       if (savedShop) {
         console.log("Already connected to Shopify, redirecting to dashboard");
         
-        toast.success(`متصل بالفعل بمتجر ${savedShop}`);
+        toast(`متصل بالفعل بمتجر ${savedShop}`);
         
         navigate('/dashboard');
       }
@@ -139,9 +139,7 @@ export default function Shopify() {
         }
       } else {
         // التدفق المضمّن - سيتم تنفيذه لاحقًا
-        toast({
-          description: "سيتم دعم تدفق التطبيق المضمّن قريبًا"
-        });
+        toast("سيتم دعم تدفق التطبيق المضمّن قريبًا");
       }
     } catch (err) {
       console.error("Connection error:", err);
