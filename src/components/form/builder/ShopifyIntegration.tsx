@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,6 +59,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
+  // Adding local isRedirecting state
+  const [localIsRedirecting, setLocalIsRedirecting] = useState(false);
   
   // التحقق الأولي من الاتصال عند تحميل المكون
   useEffect(() => {
@@ -91,7 +94,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   }, [shopifyError, shopifyConnected, shop]);
   
   const handleSave = async () => {
-    if (isRedirecting) {
+    if (isRedirecting || localIsRedirecting) {
       toast.error(language === 'ar' 
         ? 'يرجى الانتظار حتى تكتمل عملية إعادة الاتصال'
         : 'Please wait until reconnection is complete');
@@ -151,15 +154,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // وظيفة معدلة للاتصال اليدوي
   const handleManualReconnect = () => {
     // منع النقرات المتكررة
-    if (isRedirecting) {
+    if (isRedirecting || localIsRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
         : 'Already redirecting, please wait...');
       return;
     }
     
-    // تعيين حالة التوجيه
-    setIsRedirecting(true);
+    // تعيين حالة التوجيه المحلية
+    setLocalIsRedirecting(true);
     
     // إزالة كافة البيانات المخزنة محليًا
     localStorage.removeItem('shopify_store');
@@ -187,7 +190,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   // عنصر واجهة المستخدم المحسن لحالة الاتصال
   const renderConnectionStatus = () => {
-    if (isRedirecting) {
+    if (isRedirecting || localIsRedirecting) {
       return (
         <Alert className="bg-blue-50 border-blue-200 mb-4">
           <div className="flex items-center">
@@ -237,9 +240,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               size="lg"
               onClick={handleManualReconnect} 
               className="bg-red-500 hover:bg-red-600 text-white px-6 py-3"
-              disabled={isRedirecting}
+              disabled={isRedirecting || localIsRedirecting}
             >
-              {isRedirecting ? (
+              {(isRedirecting || localIsRedirecting) ? (
                 <Loader className="h-5 w-5 mr-2 animate-spin" />
               ) : (
                 <RefreshCw className="h-5 w-5 mr-2" />
@@ -345,14 +348,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button
               onClick={handleSave}
               className="w-full mt-4"
-              disabled={isSaving || isSyncing || isRedirecting}
+              disabled={isSaving || isSyncing || isRedirecting || localIsRedirecting}
             >
               {(isSaving || isSyncing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                 </>
-              ) : isRedirecting ? (
+              ) : (isRedirecting || localIsRedirecting) ? (
                 language === 'ar' ? 'جارٍ إعادة الاتصال...' : 'Reconnecting...'
               ) : (
                 language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
@@ -376,9 +379,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 variant="default"
                 className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700"
                 onClick={handleManualReconnect}
-                disabled={isRedirecting}
+                disabled={isRedirecting || localIsRedirecting}
               >
-                {isRedirecting ? (
+                {(isRedirecting || localIsRedirecting) ? (
                   <Loader className="h-5 w-5 mr-2 animate-spin" />
                 ) : (
                   <RefreshCw className="h-5 w-5 mr-2" />

@@ -15,6 +15,7 @@ const Forms = () => {
   const navigate = useNavigate();
   const [isPageReady, setIsPageReady] = useState(false);
   const [showConnectWarning, setShowConnectWarning] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // إلغاء كامل لآلية إعادة التوجيه التلقائي
   useEffect(() => {
@@ -37,6 +38,16 @@ const Forms = () => {
   
   // التعامل مع النقر اليدوي على زر "الاتصال بـ Shopify"
   const handleConnectShopify = () => {
+    // منع النقرات المتكررة
+    if (isRedirecting) {
+      toast.info(language === 'ar' 
+        ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
+        : 'Already redirecting, please wait...');
+      return;
+    }
+    
+    setIsRedirecting(true);
+    
     // مسح كافة البيانات المخزنة محليًا للتأكد من عدم وجود بيانات قديمة
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
@@ -87,9 +98,19 @@ const Forms = () => {
             onClick={handleConnectShopify}
             className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-md text-lg font-medium"
             size="lg"
+            disabled={isRedirecting}
           >
-            <RefreshCw className="h-5 w-5 mr-2" />
-            {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+            {isRedirecting ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
+              </div>
+            ) : (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2" />
+                {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+              </>
+            )}
           </Button>
           <p className="mt-4 text-sm">{language === 'ar' 
             ? 'سيتم مسح بيانات الاتصال السابقة وتوجيهك إلى صفحة Shopify للبدء من جديد' 
