@@ -19,9 +19,15 @@ export default function ProductSettingsAPI() {
     async function handleSettings() {
       try {
         console.log('Processing product settings request');
-        // تسجيل بيانات الطلب المستلمة
-        const requestBodyText = document.body.innerText;
-        console.log('Raw request body:', requestBodyText);
+        
+        // تحليل البيانات الواردة من النموذج
+        let requestBodyText = '';
+        try {
+          requestBodyText = document.body.innerText;
+          console.log('Raw request body:', requestBodyText);
+        } catch (e) {
+          console.error('Error reading request body:', e);
+        }
         
         // محاولة تحليل البيانات
         let requestBody: ProductSettings;
@@ -41,11 +47,9 @@ export default function ProductSettingsAPI() {
         const shopId = shop || 'default-shop';
         console.log('Using shop ID:', shopId);
 
-        // استخدام SQL المباشر الذي يعمل مع أي إصدار من المخطط
-        // هذا يتجنب أخطاء TypeScript مع وظائف RPC المضافة حديثًا
+        // استخدام Supabase للإدخال/التحديث
         let result;
         try {
-          // Use the old approach with a POST request directly to avoid the TypeScript error
           result = await supabase.from('shopify_product_settings').upsert(
             {
               shop_id: shopId,
@@ -87,10 +91,18 @@ export default function ProductSettingsAPI() {
     }
   }, [shop]);
 
-  // هذا المكون يعمل كنقطة نهاية API، لذلك يعيد JSON
+  // تحويل الاستجابة إلى JSON وتعيين نوع المحتوى المناسب
   useEffect(() => {
     if (!isLoading) {
-      document.body.innerHTML = JSON.stringify(response, null, 2);
+      // تعيين نوع المحتوى إلى application/json بشكل صريح
+      document.querySelector('head')?.insertAdjacentHTML('beforeend', 
+        `<meta http-equiv="Content-Type" content="application/json; charset=utf-8">`);
+      
+      // التأكد من أن الاستجابة هي JSON فقط
+      document.body.innerHTML = '';
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(response, null, 2);
+      document.body.appendChild(pre);
     }
   }, [isLoading, response]);
 
