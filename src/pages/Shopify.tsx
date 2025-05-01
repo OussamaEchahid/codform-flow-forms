@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
-import { ShopifyIcon, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { ShopifyIcon } from "@/components/icons/ShopifyIcon";
 import { useAuth } from "@/lib/auth";
 
 export default function Shopify() {
