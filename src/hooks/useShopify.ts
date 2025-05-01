@@ -17,12 +17,8 @@ export const useShopify = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'verifying' | 'connected' | 'disconnected'>('verifying');
   
-  // CRITICAL: Prevent any auto-redirects to avoid loops
-  const [redirectionDisabled] = useState(true);
-  
   // Reset redirect state on page change
   useEffect(() => {
-    // Reset redirect state when hook loads
     setIsRedirecting(false);
     console.log('useShopify hook initialized with shop:', shop);
     
@@ -49,14 +45,14 @@ export const useShopify = () => {
     console.error('Shopify authentication error:', errorMessage);
     setConnectionStatus('disconnected');
     
-    // Always log the error but NEVER automatically redirect
+    // Log the error but don't auto-redirect
     if (errorMessage.includes('authentication error') || 
         errorMessage.includes('token is invalid') || 
         errorMessage.includes('token has expired') || 
         errorMessage.includes('HTML instead of JSON')) {
       
-      console.log('Authentication error detected. NOT auto-redirecting - manual reconnection required');
-      toast.error('تم اكتشاف مشكلة في الاتصال بـ Shopify. يرجى استخدام زر إعادة الاتصال للحل.', {
+      console.log('Authentication error detected. Manual reconnection required');
+      toast.error('تم اكتشاف مشكلة في الاتصال بـ Shopify. يرجى إعادة الاتصال.', {
         duration: 7000,
       });
       
@@ -66,8 +62,9 @@ export const useShopify = () => {
     return false;
   }, []);
 
-  // New function to directly verify Shopify connection by testing API
+  // وظيفة للتحقق من اتصال Shopify عن طريق اختبار API
   const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
+    console.log("verifyShopifyConnection called");
     if (!shopifyConnected || !shop) {
       console.log('Cannot verify connection: shop not connected');
       return false;
@@ -75,7 +72,7 @@ export const useShopify = () => {
 
     try {
       console.log(`Verifying connection for shop: ${shop}`);
-      // Get store access token
+      // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
         .select('access_token, updated_at')
@@ -92,13 +89,12 @@ export const useShopify = () => {
         return false;
       }
       
-      // Create API instance and verify connection
-      const api = createShopifyAPI(storeData.access_token, shop);
-      
       try {
+        // تكوين مثيل API واختبار الاتصال بشكل مباشر
+        const api = createShopifyAPI(storeData.access_token, shop);
         const result = await api.verifyConnection();
         console.log('Connection verification result:', result);
-        return result;
+        return !!result;
       } catch (error) {
         console.error('Connection verification failed:', error);
         return false;
@@ -109,16 +105,17 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected]);
 
-  // Manual reconnect function with countermeasures against redirection loops
+  // إعادة اتصال يدوية مع إجراءات مضادة لحلقات إعادة التوجيه
   const manualReconnect = useCallback(() => {
-    // Check for too many redirect attempts in session
+    console.log('Manual reconnect triggered');
+    // التحقق من وجود محاولات إعادة توجيه كثيرة في الجلسة
     const redirectAttempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
     if (redirectAttempts > 5) {
       toast.error('تم اكتشاف الكثير من محاولات إعادة التوجيه. يرجى تحديث الصفحة وإعادة المحاولة لاحقًا.');
       return false;
     }
     
-    // Prevent rapid reconnection attempts
+    // منع محاولات إعادة اتصال سريعة
     if (isRedirecting) {
       console.log('Already attempting to redirect, ignoring duplicate request');
       return false;
@@ -127,14 +124,14 @@ export const useShopify = () => {
     setIsRedirecting(true);
     console.log('Manual reconnect initiated');
     
-    // Clear ALL stored data to ensure a fresh start
+    // مسح جميع البيانات المخزنة لضمان بداية جديدة
     localStorage.clear();
     sessionStorage.clear();
     
-    // Reset redirect counter
+    // إعادة تعيين عداد إعادة التوجيه
     sessionStorage.setItem('shopify_redirect_attempts', '1');
     
-    // Explicitly clear Shopify connection data
+    // مسح بيانات اتصال Shopify بشكل صريح
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_reconnect_attempts');
@@ -142,17 +139,18 @@ export const useShopify = () => {
     localStorage.removeItem('shopify_last_redirect_time');
     localStorage.removeItem('shopify_temp_store');
     
-    // Update auth context if available
+    // تحديث سياق المصادقة إذا كان متاحًا
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // Use window.location for more reliable navigation with timestamp and random values
+    // استخدام window.location لتنقل أكثر موثوقية مع الطابع الزمني وقيم عشوائية
     setTimeout(() => {
       console.log('Redirecting to /shopify with forced reconnect parameters');
-      window.location.href = `/shopify?reconnect=manual&force=true&ts=${Date.now()}&r=${Math.random()}`;
+      const randomStr = Math.random().toString(36).substring(7);
+      window.location.href = `/shopify?reconnect=manual&force=true&ts=${Date.now()}&r=${randomStr}`;
       
-      // Reset redirect state after some time in case navigation fails
+      // إعادة تعيين حالة إعادة التوجيه بعد مرور بعض الوقت في حالة فشل التنقل
       setTimeout(() => {
         setIsRedirecting(false);
       }, 5000);
@@ -160,7 +158,7 @@ export const useShopify = () => {
     
     return true;
   }, [refreshShopifyConnection, isRedirecting]);
-  
+
   // Product fetching function with improved error handling
   const fetchProducts = useCallback(async () => {
     // Skip product fetching if redirecting
@@ -252,12 +250,11 @@ export const useShopify = () => {
     products,
     isLoading,
     error,
-    syncFormWithShopify,  // Now it's properly typed
+    syncFormWithShopify,
     fetchProducts,
     isConnected: connectionStatus === 'connected',
     isSyncing,
     isRedirecting,
-    redirectionDisabled,
     manualReconnect,
     verifyShopifyConnection,
     connectionStatus

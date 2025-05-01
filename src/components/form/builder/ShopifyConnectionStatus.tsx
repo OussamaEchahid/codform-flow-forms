@@ -17,80 +17,69 @@ const ShopifyConnectionStatus = () => {
   const [showWarning, setShowWarning] = useState(false);
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   const [connectionChecked, setConnectionChecked] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   
-  useEffect(() => {
-    // Initial connection check
-    const initialCheck = async () => {
-      console.log('ShopifyConnectionStatus: Running initial connection check');
+  // وظيفة للتحقق من الاتصال بـ Shopify باستخدام API
+  const checkConnection = async () => {
+    if (!shop) {
+      console.log('ShopifyConnectionStatus: No shop to verify');
+      setShowWarning(true);
+      setConnectionChecked(true);
+      return;
+    }
+
+    setIsVerifying(true);
+    console.log(`ShopifyConnectionStatus: Verifying connection for shop: ${shop}`);
+    
+    try {
+      // 1. التحقق من وجود رمز وصول صالح في قاعدة البيانات
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('access_token, updated_at')
+        .eq('shop', shop)
+        .maybeSingle();
       
-      // Log current connection status variables for debugging
-      console.log('Connection indicators:', { 
-        shopifyConnected, 
-        shop,
-        isTokenVerified: isTokenVerified || false
-      });
-      
-      // If the token was already verified during auth, no need to show warning
-      if (isTokenVerified) {
-        console.log('Token already verified by AuthProvider, no need to show warning');
-        setShowWarning(false);
+      if (storeError || !storeData || !storeData.access_token) {
+        console.log('ShopifyConnectionStatus: No valid token found in database');
+        setShowWarning(true);
         setConnectionChecked(true);
+        setIsVerifying(false);
         return;
       }
       
-      // First check if there's actually a store token in Supabase
-      if (shop) {
-        try {
-          const { data: storeData, error: storeError } = await supabase
-            .from('shopify_stores')
-            .select('access_token, updated_at')
-            .eq('shop', shop)
-            .maybeSingle();
-            
-          if (storeError || !storeData || !storeData.access_token) {
-            console.log('Missing or invalid store data in database', { storeError, hasStoreData: !!storeData });
-            setShowWarning(true);
-            setConnectionChecked(true);
-            return;
-          }
-          
-          console.log('Found store data in database, token exists:', !!storeData.access_token);
-          
-          // Verify the connection using the API
-          if (verifyShopifyConnection) {
-            const isValid = await verifyShopifyConnection();
-            if (!isValid) {
-              console.log('Token exists but API connection failed, showing warning');
-              setShowWarning(true);
-              setConnectionChecked(true);
-              return;
-            } else {
-              console.log('API connection verified successfully');
-              setShowWarning(false);
-            }
-          } else {
-            setShowWarning(false);
-          }
-        } catch (error) {
-          console.error('Error checking store token:', error);
-          setShowWarning(true);
-        }
-      } else {
-        // No shop value means no connection
-        setShowWarning(true);
-      }
+      console.log('ShopifyConnectionStatus: Found token in database, verifying with API');
       
+      // 2. التحقق من الاتصال باستخدام API
+      if (verifyShopifyConnection) {
+        const isConnected = await verifyShopifyConnection();
+        console.log('ShopifyConnectionStatus: API verification result:', isConnected);
+        
+        setShowWarning(!isConnected);
+        setConnectionChecked(true);
+        setIsVerifying(false);
+      } else {
+        console.log('ShopifyConnectionStatus: verifyShopifyConnection function not available');
+        // لم يتم توفير وظيفة التحقق، نفترض أن الاتصال صالح
+        setShowWarning(false);
+        setConnectionChecked(true);
+        setIsVerifying(false);
+      }
+    } catch (error) {
+      console.error('ShopifyConnectionStatus: Error during connection check:', error);
+      setShowWarning(true);
       setConnectionChecked(true);
-    };
-    
-    // Run initial check
-    initialCheck();
-    
-  }, [shopifyConnected, shop, isTokenVerified, verifyShopifyConnection]);
+      setIsVerifying(false);
+    }
+  };
   
-  // Handle manual connection button click with improved reliability
+  // فحص الاتصال عند بدء التشغيل
+  useEffect(() => {
+    checkConnection();
+  }, [shop, shopifyConnected, isTokenVerified, verifyShopifyConnection]);
+  
+  // معالجة نقرة زر إعادة الاتصال
   const handleConnectShopify = () => {
-    // Prevent multiple clicks or reconnects within 10 seconds
+    // منع النقرات المتعددة أو إعادة الاتصال خلال 10 ثوان
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
@@ -98,7 +87,7 @@ const ShopifyConnectionStatus = () => {
       return;
     }
     
-    // Prevent reconnect attempts if we had one in the last 10 seconds
+    // منع محاولات إعادة الاتصال إذا كان لدينا واحدة في آخر 10 ثوان
     const timeSinceLastAttempt = Date.now() - lastReconnectAttempt;
     if (timeSinceLastAttempt < 10000) {
       toast.info(language === 'ar' 
@@ -110,54 +99,53 @@ const ShopifyConnectionStatus = () => {
     setIsRedirecting(true);
     setLastReconnectAttempt(Date.now());
     
-    // Clear ALL storage data first
-    localStorage.clear(); 
-    sessionStorage.clear();
-    
-    // Reset Shopify reconnect attempts counter
+    // مسح جميع بيانات التخزين أولاً
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_temp_store');
     sessionStorage.removeItem('shopify_redirect_attempts');
     
-    // Clear connection flags in Auth context
+    // إعادة تعيين علامات الاتصال في سياق المصادقة
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // Use the manualReconnect function from useShopify if available
+    // استخدام وظيفة إعادة الاتصال اليدوية من useShopify إذا كانت متاحة
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
       const reconnectSuccess = manualReconnect();
       
-      // If manualReconnect returned false, it means it didn't initiate a redirect
+      // إذا أعادت manualReconnect قيمة false، فهذا يعني أنها لم تبدأ إعادة توجيه
       if (!reconnectSuccess) {
         console.log('manualReconnect failed, falling back to direct navigation');
-        // Show message to user
+        // عرض رسالة للمستخدم
         toast.info(language === 'ar' 
           ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
           : 'Redirecting to connect to Shopify...');
         
-        // Use direct path for more reliable navigation, with a short delay
+        // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
         setTimeout(() => {
-          window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random()}`;
+          window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
         }, 500);
       }
     } else {
-      // Fallback to previous implementation if manualReconnect not available
+      // الاعتماد على التنفيذ السابق إذا كانت manualReconnect غير متاحة
       console.log('Using fallback reconnect implementation');
       
-      // Show message to user
+      // عرض رسالة للمستخدم
       toast.info(language === 'ar' 
         ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
         : 'Redirecting to connect to Shopify...');
       
-      // Use direct path for more reliable navigation, with a short delay
+      // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
       setTimeout(() => {
-        window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random()}`;
+        window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
       }, 500);
     }
   };
 
-  // Don't show anything if we're connected or warning is hidden or connection hasn't been checked yet
-  if ((!showWarning && connectionChecked) || !connectionChecked) {
+  // لا تظهر أي شيء إذا كنا متصلين أو لم يتم فحص الاتصال بعد
+  if ((connectionChecked && !showWarning) || isVerifying || !connectionChecked) {
     return null;
   }
   

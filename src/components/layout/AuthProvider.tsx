@@ -15,13 +15,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [authChecked, setAuthChecked] = useState(false);
   const [isTokenVerified, setIsTokenVerified] = useState(false);
+  const [isAuthCheckInProgress, setIsAuthCheckInProgress] = useState(false);
 
   // Function to verify connection with Supabase
   const verifyShopifyConnection = async (shopDomain: string) => {
     if (!shopDomain) return false;
 
     try {
-      console.log(`Verifying connection for shop: ${shopDomain}`);
+      console.log(`AuthProvider: Verifying connection for shop: ${shopDomain}`);
       // Get store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
@@ -48,9 +49,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // الحماية ضد عمليات فحص متعددة متزامنة
+    if (isAuthCheckInProgress || authChecked) {
+      return;
+    }
+
+    // عملية فحص بيانات المصادقة
     const handleAuth = async () => {
+      setIsAuthCheckInProgress(true);
       try {
-        // Check for Shopify redirect parameters
+        // فحص معلمات إعادة التوجيه من Shopify
         const params = new URLSearchParams(window.location.search);
         const shop = params.get("shop");
         const shopifyConnected = params.get("shopify_connected");
@@ -59,22 +67,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const timestamp = params.get("timestamp");
         const authSuccess = params.get("auth_success");
 
-        // Get saved Shopify data from localStorage
+        // الحصول على بيانات Shopify المحفوظة من التخزين المحلي
         const savedShop = localStorage.getItem('shopify_store');
         const savedConnected = localStorage.getItem('shopify_connected');
         const tempShop = localStorage.getItem('shopify_temp_store');
 
-        // Log auth parameters for debugging
-        console.log('Auth parameters:', { 
+        // تسجيل معلمات المصادقة لتصحيح الأخطاء
+        console.log('AuthProvider: Auth parameters:', { 
           shop, shopifyConnected, shopifySuccess, hmac, authSuccess,
           pathname: location.pathname,
           search: location.search,
           savedShop,
           savedConnected,
-          tempShop
+          tempShop,
+          currentState: authState
         });
 
-        // Check if we have a valid token in Supabase for the shop
+        // التحقق مما إذا كان لدينا رمز صالح في Supabase للمتجر
         let tokenValid = false;
         let shopToUse = shop || savedShop || tempShop;
         
@@ -85,30 +94,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('Found valid Shopify token in database for:', shopToUse);
             setIsTokenVerified(true);
             
-            // Set connection state
+            // تعيين حالة الاتصال
             setAuthState({
               shopifyConnected: true,
               shop: shopToUse,
               user: { id: 'shopify-user' }
             });
             
-            // Update localStorage to match database state
+            // تحديث التخزين المحلي ليتطابق مع حالة قاعدة البيانات
             localStorage.setItem('shopify_store', shopToUse);
             localStorage.setItem('shopify_connected', 'true');
             
-            // Clear any temporary data
+            // مسح أي بيانات مؤقتة
             localStorage.removeItem('shopify_temp_store');
             
-            // Show toast only in certain cases
-            if (shopifySuccess === "true" || authSuccess === "true") {
+            // عرض رسالة فقط في حالات معينة
+            if ((shopifySuccess === "true" || authSuccess === "true") && 
+                (location.pathname === '/dashboard' || location.pathname === '/shopify-redirect' || location.pathname.includes('/api/shopify-callback'))) {
               toast.success(`تم الاتصال بمتجر ${shopToUse} بنجاح`);
             }
             
             setAuthChecked(true);
+            setIsAuthCheckInProgress(false);
             return;
           } else {
             console.log('No valid token found in database for shop:', shopToUse);
-            // If we have local storage data but no valid token, clear local storage
+            // إذا كان لدينا بيانات تخزين محلية ولكن لا يوجد رمز صالح، قم بمسح التخزين المحلي
             if (savedShop === shopToUse && savedConnected === 'true') {
               console.log('Clearing invalid local storage data');
               localStorage.removeItem('shopify_store');
@@ -117,17 +128,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        // Check for Shopify success parameters if database check failed
+        // التحقق من معلمات نجاح Shopify إذا فشل فحص قاعدة البيانات
         if ((shopifySuccess === "true" || shopifyConnected === "true") && shop) {
           console.log('Shopify connection success from URL parameters:', shop);
           
-          // Double check with database again to make sure
+          // تحقق مرة أخرى مع قاعدة البيانات للتأكد
           const isValid = await verifyShopifyConnection(shop);
               
           if (!isValid) {
             console.log('Token not found in database despite success parameter');
             
-            // If on dashboard page, show warning
+            // إذا كنا في صفحة لوحة التحكم، اعرض تحذيرًا
             if (location.pathname === '/dashboard') {
               toast.error('لم يتم العثور على رمز الوصول في قاعدة البيانات. يرجى إعادة الاتصال.');
               setAuthState({
@@ -136,6 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 user: undefined
               });
               setAuthChecked(true);
+              setIsAuthCheckInProgress(false);
               return;
             }
           } else {
@@ -151,26 +163,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('shopify_store', shop);
             localStorage.setItem('shopify_connected', 'true');
             
-            // Remove any temporary data
+            // إزالة أي بيانات مؤقتة
             localStorage.removeItem('shopify_temp_store');
             
-            // Show success message if not already shown
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+            // عرض رسالة نجاح إذا لم يتم عرضها بالفعل
+            if (location.pathname === '/dashboard' || location.pathname === '/shopify-redirect') {
+              toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+            }
             
-            // Remove URL parameters if we're on dashboard
+            // إزالة معلمات URL إذا كنا في لوحة التحكم
             if (location.pathname === '/dashboard' && window.history.replaceState) {
               window.history.replaceState({}, document.title, '/dashboard');
             }
             
             setAuthChecked(true);
+            setIsAuthCheckInProgress(false);
             return;
           }
         }
-        // Restore previous connection state from localStorage if available
+        // استعادة حالة الاتصال السابقة من التخزين المحلي إذا كان متاحًا
         else if (savedConnected === 'true' && savedShop && !tokenValid) {
           console.log('Restoring saved Shopify connection from localStorage:', savedShop);
           
-          // Double check with database again if we have a valid token
+          // تحقق مرة أخرى مع قاعدة البيانات إذا كان لدينا رمز صالح
           const isValid = await verifyShopifyConnection(savedShop);
               
           if (isValid) {
@@ -187,7 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('shopify_store');
             localStorage.removeItem('shopify_connected');
             
-            // Update state to not connected
+            // تحديث الحالة إلى غير متصل
             setAuthState({
               shopifyConnected: false,
               shop: undefined,
@@ -199,7 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           }
         } else {
-          // If no connection information found, set state to not connected
+          // إذا لم يتم العثور على معلومات الاتصال، قم بتعيين الحالة إلى غير متصل
           setAuthState({
             shopifyConnected: false,
             shop: undefined,
@@ -207,11 +222,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
         }
         
-        // If we have temporary store info but auth didn't complete
+        // إذا كان لدينا معلومات مخزن مؤقتة ولكن المصادقة لم تكتمل
         if (tempShop && (location.pathname === '/dashboard' || location.pathname === '/forms') && !authState.shopifyConnected) {
           console.log('Temporary store data exists, but auth didn\'t complete:', tempShop);
           
-          // Show message to user
+          // عرض رسالة للمستخدم
           toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.");
           localStorage.removeItem('shopify_temp_store');
         }
@@ -219,22 +234,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error checking auth state:", error);
       } finally {
         setAuthChecked(true);
+        setIsAuthCheckInProgress(false);
       }
     };
 
     handleAuth();
-  }, [location.pathname, location.search, navigate]);
+  }, [location.pathname, location.search, navigate, authChecked, isAuthCheckInProgress, authState]);
   
-  // Function to refresh connection status
+  // وظيفة لتحديث حالة الاتصال
   const refreshShopifyConnection = () => {
     console.log("Refreshing Shopify connection state");
     
-    // Clear local storage state
+    // مسح حالة التخزين المحلي
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
     
-    // Reset auth state
+    // إعادة تعيين حالة المصادقة
     setAuthState({
       shopifyConnected: false,
       shop: undefined,
@@ -242,16 +258,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     
     setIsTokenVerified(false);
+    setAuthChecked(false); // إعادة التحقق من حالة المصادقة
   };
   
-  // Context object with refresh function
+  // كائن السياق مع وظيفة التحديث
   const authContextValue: AuthContextType = {
     ...authState,
     refreshShopifyConnection,
     isTokenVerified
   };
 
-  // Show loading state until auth is checked
+  // عرض حالة التحميل حتى يتم التحقق من المصادقة
   if (!authChecked) {
     return (
       <div className="flex items-center justify-center h-screen">
