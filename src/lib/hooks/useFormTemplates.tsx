@@ -22,6 +22,21 @@ export interface FormData {
   updated_at?: string;
 }
 
+// Define a type that matches what's returned from the database
+interface DbFormData {
+  id: string;
+  title: string;
+  description: string;
+  data: Json;
+  is_published: boolean;
+  created_at: string;
+  user_id: string;
+  shop_id?: string;
+  updated_at?: string;
+  sectionConfig?: Json;
+  style?: Json;
+}
+
 export const useFormTemplates = () => {
   const [forms, setForms] = useState<FormData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,10 +64,10 @@ export const useFormTemplates = () => {
       }
       
       // Transform the data to ensure proper typing
-      const formattedData: FormData[] = formsData?.map(form => ({
+      const formattedData: FormData[] = formsData?.map((form: DbFormData) => ({
         ...form,
         data: form.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
-        sectionConfig: form.sectionConfig as FormSectionConfig || { sections: [], layout: 'vertical' },
+        sectionConfig: form.sectionConfig as unknown as FormSectionConfig || { sections: [], layout: 'vertical' },
         style: form.style as { [key: string]: string | number } || {}
       })) || [];
       
@@ -231,12 +246,14 @@ export const useFormTemplates = () => {
       
       // Transform the returned data to match our expected FormData structure
       // Add default values for properties that might not exist in the database
+      const formData: DbFormData = data as DbFormData;
+      
       return {
-        ...data,
-        data: data.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+        ...formData,
+        data: formData.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
         // Add default values for properties that might not exist in the database
-        sectionConfig: data.sectionConfig || { sections: [], layout: 'vertical' },
-        style: data.style || {},
+        sectionConfig: formData.sectionConfig as unknown as FormSectionConfig || { sections: [], layout: 'vertical' },
+        style: formData.style as { [key: string]: string | number } || {},
       } as FormData;
     } catch (error: any) {
       toast.error(`خطأ في جلب النموذج: ${error.message}`);
@@ -303,42 +320,7 @@ export const useFormTemplates = () => {
     fetchForms,
     createDefaultForm,
     createFormFromTemplate,
-    saveForm: async (formId: string, formData: any) => {
-      try {
-        // Generate a valid UUID for user_id if not available
-        const userId = user?.id && user.id !== 'shopify-user' 
-          ? user.id 
-          : uuidv4();
-            
-        const updateData = {
-          title: formData.title,
-          description: formData.description,
-          data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
-          updated_at: new Date().toISOString(),
-          shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
-          user_id: userId, // Use generated or actual user ID
-          style: formData.style || {},
-          sectionConfig: formData.sectionConfig || { sections: [], layout: 'vertical' }
-        };
-        
-        const { error } = await supabase
-          .from('forms')
-          .update(updateData)
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error saving form:", error);
-          throw error;
-        }
-        
-        toast.success('تم حفظ النموذج بنجاح');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ في حفظ النموذج: ${error.message}`);
-        return false;
-      }
-    },
+    saveForm,
     publishForm,
     deleteForm,
     getFormById,
