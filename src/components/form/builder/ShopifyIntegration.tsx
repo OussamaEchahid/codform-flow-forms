@@ -62,7 +62,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Adding local isRedirecting state
   const [localIsRedirecting, setLocalIsRedirecting] = useState(false);
   
-  // التحقق الأولي من الاتصال عند تحميل المكون
+  // Initial connection check when component loads
   useEffect(() => {
     if (!hasCheckedConnection) {
       if (shopifyConnected && shop) {
@@ -74,7 +74,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   }, [shopifyConnected, shop, hasCheckedConnection]);
   
-  // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
+  // Generate random block ID if not already present
   React.useEffect(() => {
     if (!blockId) {
       const randomId = Math.random().toString(36).substring(2, 10);
@@ -82,7 +82,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   }, [blockId]);
 
-  // التعامل مع حالات الخطأ المختلفة
+  // Handle different error cases
   useEffect(() => {
     if (shopifyError) {
       console.error('Shopify error detected:', shopifyError);
@@ -112,7 +112,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setIsSaving(true);
       setSaveError(null);
       
-      // تسجيل بيانات النموذج للتصحيح
+      // Log form data for debugging
       const formData = {
         formId,
         shopDomain: shop,
@@ -130,7 +130,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       console.log('Saving Shopify integration with data:', formData);
       
-      // استدعاء وظيفة الحفظ المقدمة من المكون الأب
+      // Call the save function provided by the parent component
       await onSave(formData);
       
       toast.success(language === 'ar' 
@@ -151,9 +151,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
   
-  // وظيفة معدلة للاتصال اليدوي
+  // Modified manual reconnect function to prevent redirect loops
   const handleManualReconnect = () => {
-    // منع النقرات المتكررة
+    // Prevent multiple clicks
     if (isRedirecting || localIsRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
@@ -161,10 +161,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    // تعيين حالة التوجيه المحلية
+    // Set local redirecting state
     setLocalIsRedirecting(true);
     
-    // إزالة كافة البيانات المخزنة محليًا
+    // Remove all locally stored data
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_reconnect_attempts');
@@ -172,23 +172,28 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     localStorage.removeItem('shopify_last_redirect_time');
     localStorage.removeItem('shopify_temp_store');
     
-    // تحديث سياق المصادقة
+    // Update auth context
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // عرض رسالة للمستخدم
+    // Show message to user
     toast.info(language === 'ar'
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // إضافة تأخير قبل التوجيه لتجنب مشاكل التوجيه السريع
+    // Use window.location for more robust navigation and to break potential redirect loops
     setTimeout(() => {
-      navigate('/shopify');
+      window.location.href = '/shopify';
+      
+      // Reset local state after longer timeout
+      setTimeout(() => {
+        setLocalIsRedirecting(false);
+      }, 3000);
     }, 1500);
   };
 
-  // عنصر واجهة المستخدم المحسن لحالة الاتصال
+  // Enhanced UI component for connection status
   const renderConnectionStatus = () => {
     if (isRedirecting || localIsRedirecting) {
       return (
@@ -274,7 +279,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* عرض حالة الاتصال بشكل أكبر والأكثر فعالية */}
+        {/* Larger and more effective connection status display */}
         <div className="mb-6">
           {renderConnectionStatus()}
         </div>

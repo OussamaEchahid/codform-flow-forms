@@ -17,17 +17,16 @@ const Forms = () => {
   const [showConnectWarning, setShowConnectWarning] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // إلغاء كامل لآلية إعادة التوجيه التلقائي
+  // CRITICAL CHANGE: Completely disable any automatic redirects, only show manual button
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setIsPageReady(true);
       
-      // إذا كان المستخدم متصل بالفعل، فلا نعرض أي تحذيرات
+      // Only show the manual connect button if needed, no auto redirects
       if (shopifyConnected && shop) {
         setShowConnectWarning(false);
         console.log('Connected to Shopify shop:', shop);
       } else {
-        // إظهار التحذير للاتصال اليدوي فقط
         setShowConnectWarning(true);
         console.log('Not connected to Shopify, showing manual connect button');
       }
@@ -36,9 +35,9 @@ const Forms = () => {
     return () => clearTimeout(timeoutId);
   }, [language, shopifyConnected, shop]);
   
-  // التعامل مع النقر اليدوي على زر "الاتصال بـ Shopify"
+  // Handle manual connection button click
   const handleConnectShopify = () => {
-    // منع النقرات المتكررة
+    // Prevent multiple clicks
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
@@ -48,7 +47,7 @@ const Forms = () => {
     
     setIsRedirecting(true);
     
-    // مسح كافة البيانات المخزنة محليًا للتأكد من عدم وجود بيانات قديمة
+    // Clear all locally stored data to ensure clean reconnection
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_reconnect_attempts');
@@ -56,15 +55,16 @@ const Forms = () => {
     localStorage.removeItem('shopify_last_redirect_time');
     localStorage.removeItem('shopify_temp_store');
     
-    // عرض رسالة للمستخدم
+    // Show message to user
     toast.info(language === 'ar' 
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // التوجيه إلى صفحة الاتصال بـ Shopify بعد تأخير قصير
+    // Add a longer delay to prevent rapid redirections
     setTimeout(() => {
-      navigate('/shopify');
-    }, 1000);
+      // CRITICAL CHANGE: Use a direct path to the Shopify connection page, not through hooks
+      window.location.href = '/shopify'; // Use direct location change to break any potential redirect loops
+    }, 1500);
   };
 
   if (!isPageReady) {

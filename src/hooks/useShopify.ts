@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -16,113 +15,69 @@ export const useShopify = () => {
   const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [redirectionDisabled, setRedirectionDisabled] = useState(false); // جديد: لمنع التوجيه المستمر
-  const [authRetryCount, setAuthRetryCount] = useState(0); // جديد: لتتبع عدد محاولات إعادة الاتصال
+  const [redirectionDisabled, setRedirectionDisabled] = useState(true); // CRITICAL: Default to disabled to prevent loops
+  const [authRetryCount, setAuthRetryCount] = useState(0);
+  const [lastRedirectTime, setLastRedirectTime] = useState(0);
 
-  // تحقق من حالة التوجيه عند تغيير الصفحة
+  // Check redirect state on page change and completely disable auto-redirects
   useEffect(() => {
-    // إعادة تعيين حالة التوجيه عند تحميل الهوك
+    // Reset redirect state when hook loads
     setIsRedirecting(false);
     
-    // بعد محاولات متعددة فاشلة، تعطيل إعادة التوجيه التلقائي
-    if (authRetryCount > 2 && !redirectionDisabled) {
-      console.log('تم تعطيل إعادة التوجيه التلقائي بعد محاولات متعددة فاشلة');
-      setRedirectionDisabled(true);
-    }
+    // Permanently disable auto-redirects
+    setRedirectionDisabled(true);
+    console.log('Auto-redirects are now permanently disabled to prevent infinite loops');
     
-    // فحص وجود تخزين مؤقت لتجنب الحلقة المتكررة
-    const lastRedirectTime = localStorage.getItem('shopify_last_redirect_time');
-    if (lastRedirectTime) {
-      const timeSinceLastRedirect = Date.now() - parseInt(lastRedirectTime);
-      // منع إعادة توجيه متكررة خلال 10 ثوانٍ
-      if (timeSinceLastRedirect < 10000) {
-        console.log('تم منع إعادة توجيه متكررة، مر', timeSinceLastRedirect, 'مللي ثانية منذ آخر توجيه');
-        setRedirectionDisabled(true);
-        setTimeout(() => setRedirectionDisabled(false), 10000 - timeSinceLastRedirect);
-      }
+    // Check for redirect throttling from localStorage
+    const storedRedirectTime = localStorage.getItem('shopify_last_redirect_time');
+    if (storedRedirectTime) {
+      const timeSinceLastRedirect = Date.now() - parseInt(storedRedirectTime);
+      setLastRedirectTime(parseInt(storedRedirectTime));
+      console.log('Time since last redirect attempt:', timeSinceLastRedirect, 'ms');
     }
-  }, [authRetryCount]);
+  }, []);
 
-  // جلب المنتجات عندما يتغير اتصال المتجر
+  // Fetch products when shop connection changes
   useEffect(() => {
-    // نتجاهل استدعاء الداتا إذا كنا في حالة إعادة توجيه
+    // Skip data fetching if we're redirecting
     if (!isRedirecting && shopifyConnected && shop) {
       fetchProducts();
     } else if (!shopifyConnected) {
-      // إعادة تعيين المنتجات عند قطع الاتصال
+      // Reset products when disconnected
       setProducts([]);
     }
   }, [shopifyConnected, shop, isRedirecting]);
 
-  // Helper function to handle authentication errors
+  // Helper function to handle authentication errors - CRITICAL: NEVER auto-redirect
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
     
-    // تجنب الدخول في حلقة إعادة توجيه متكررة
-    if (isRedirecting) {
-      console.log('Already redirecting, skipping additional redirect');
-      return true;
-    }
-    
-    // تجنب التوجيه في حالة تعطيله
-    if (redirectionDisabled) {
-      console.log('Redirection disabled due to multiple failures. Showing error only.');
-      toast.error('فشل الاتصال بـ Shopify. يرجى النقر على زر إعادة الاتصال يدويًا.', { duration: 5000 });
-      return true;
-    }
-    
-    // Check for specific authentication error patterns
-    const isAuthError = 
-      errorMessage.includes('authentication error') || 
-      errorMessage.includes('token is invalid') || 
-      errorMessage.includes('token has expired') || 
-      errorMessage.includes('HTML instead of JSON');
-    
-    if (isAuthError) {
-      setIsRedirecting(true);
-      setAuthRetryCount(prev => prev + 1); // زيادة عداد المحاولات
+    // Always log the error but NEVER automatically redirect
+    if (errorMessage.includes('authentication error') || 
+        errorMessage.includes('token is invalid') || 
+        errorMessage.includes('token has expired') || 
+        errorMessage.includes('HTML instead of JSON')) {
       
-      // تسجيل وقت التوجيه لمنع التكرار
-      localStorage.setItem('shopify_last_redirect_time', Date.now().toString());
-      
-      toast.error('يجب تجديد اتصال Shopify. جاري إعادة التوجيه...', {
-        duration: 5000,
-        onDismiss: () => setIsRedirecting(false) // إعادة تعيين الحالة بعد إغلاق الإشعار
+      console.log('Authentication error detected. NOT auto-redirecting due to potential redirect loops');
+      toast.error('يجب تجديد اتصال Shopify. يرجى النقر على زر إعادة الاتصال يدويًا.', {
+        duration: 7000,
       });
       
-      // مسح بيانات الاتصال المخزنة
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      
-      // تحديث سياق المصادقة
-      if (refreshShopifyConnection) {
-        refreshShopifyConnection();
-      }
-      
-      // إضافة تأخير قبل إعادة التوجيه
-      setTimeout(() => {
-        console.log('إعادة توجيه إلى صفحة الاتصال بـ Shopify');
-        navigate('/shopify');
-        // إعادة تعيين الحالة بعد التوجيه
-        setTimeout(() => {
-          setIsRedirecting(false);
-        }, 1000);
-      }, 2000);
-      
+      // Return true to indicate this was handled as an auth error
       return true;
     }
     return false;
-  }, [navigate, refreshShopifyConnection, isRedirecting, redirectionDisabled, setAuthRetryCount]);
+  }, []);
 
-  // دالة جلب المنتجات مع تحسينات لتجنب حلقات التوجيه
+  // Product fetching function with improvements to avoid redirect loops
   const fetchProducts = useCallback(async () => {
-    // منع جلب المنتجات إذا كنا في حالة إعادة توجيه
+    // Skip product fetching if redirecting
     if (isRedirecting) {
       console.log('Skipping fetchProducts due to ongoing redirect');
       return;
     }
     
-    // تحقق من حالة الاتصال بالمتجر
+    // Check shop connection status
     if (!shopifyConnected || !shop) {
       console.log('Shopify connection not established, skipping fetch');
       setError('Shopify connection not established');
@@ -169,7 +124,7 @@ export const useShopify = () => {
         try {
           await api.verifyConnection();
           console.log('Connection verified successfully');
-          // إعادة تعيين عداد المحاولات عند نجاح الاتصال
+          // Reset retry counter on successful connection
           setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Verification error:', verifyError.message);
@@ -198,9 +153,9 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
-  // باقي الدالات مع تحسينات بسيطة
+  // Form sync function with improvements
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
-    // منع المزامنة إذا كنا في حالة إعادة توجيه
+    // Skip sync if redirecting
     if (isRedirecting) {
       console.log('Skipping syncFormWithShopify due to ongoing redirect');
       toast.error('يرجى الانتظار حتى يتم إعادة الاتصال بـ Shopify');
@@ -255,15 +210,15 @@ export const useShopify = () => {
 
       // Save product settings to database first
       try {
-        // استخدام معرف المنتج من الإعدادات أو استخدام قيمة افتراضية
+        // Use product ID from settings or default value
         const productId = formData.settings.products?.[0] || 'default-product';
         
-        // التأكد من أن معرف النموذج صالح قبل الإرسال
+        // Ensure form ID is valid before sending
         if (!formData.formId) {
           throw new Error('Form ID is missing or invalid');
         }
         
-        // إعداد بيانات الطلب
+        // Prepare request data
         const requestData: ProductSettingsRequest = {
           productId: productId,
           formId: formData.formId,
@@ -273,7 +228,7 @@ export const useShopify = () => {
         
         console.log('Saving product settings data:', requestData);
         
-        // استدعاء وظيفة حفظ إعدادات المنتج
+        // Call product settings save function
         const result = await saveProductSettings(shop, requestData);
         
         console.log('Product settings result:', result);
@@ -296,7 +251,7 @@ export const useShopify = () => {
         try {
           await api.verifyConnection();
           console.log('Connection verification successful');
-          // إعادة تعيين عداد المحاولات عند نجاح الاتصال
+          // Reset retry counter on successful connection
           setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Connection verification failed:', verifyError);
@@ -346,25 +301,27 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected, handleAuthError, isRedirecting, setAuthRetryCount]);
+  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
-  // وظيفة جديدة للتحكم اليدوي في إعادة الاتصال
+  // Manual reconnect function - Use window.location for more reliable navigation
   const manualReconnect = useCallback(() => {
-    // مسح بيانات الاتصال المخزنة
+    // Clear stored connection data
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.setItem('shopify_last_redirect_time', Date.now().toString());
     
-    // تحديث سياق المصادقة
+    // Update auth context if available
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // إعادة توجيه المستخدم إلى صفحة إعادة الاتصال
-    navigate('/shopify');
+    // Use window.location for more reliable navigation and to break potential redirect loops
+    setTimeout(() => {
+      window.location.href = '/shopify';
+    }, 1000);
     
     return true;
-  }, [navigate, refreshShopifyConnection]);
+  }, [refreshShopifyConnection]);
 
   return {
     products,
@@ -376,7 +333,7 @@ export const useShopify = () => {
     isSyncing,
     isRedirecting,
     redirectionDisabled,
-    manualReconnect,  // إتاحة وظيفة إعادة الاتصال اليدوي
-    authRetryCount
+    manualReconnect,
+    authRetryCount,
   };
 };
