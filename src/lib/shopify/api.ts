@@ -16,24 +16,29 @@ class ShopifyAPI {
       ? this.shopDomain 
       : `${this.shopDomain}.myshopify.com`;
     
-    const url = `https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`;
-    console.log(`Making API request to: ${url}`);
+    // Instead of direct API call, use our proxy endpoint
+    const url = `/api/shopify-proxy`;
+    console.log(`Making API request through proxy to Shopify GraphQL API`);
     
     try {
       // Add extra logging for debugging
-      console.log('Request headers:', {
-        ContentType: 'application/json',
-        AccessToken: this.accessToken ? 'Present (hidden)' : 'Missing',
-        Query: query.substring(0, 50) + '...' // Log part of the query for debugging
+      console.log('Request details:', {
+        shopDomain: normalizedShopDomain,
+        query: query.substring(0, 50) + '...', // Log part of the query for debugging
+        accessTokenPresent: this.accessToken ? true : false
       });
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': this.accessToken,
         },
-        body: JSON.stringify({ query, variables }),
+        body: JSON.stringify({ 
+          query,
+          variables,
+          shop: normalizedShopDomain,
+          accessToken: this.accessToken
+        }),
         credentials: 'include',
       });
 
