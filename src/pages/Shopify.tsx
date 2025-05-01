@@ -46,7 +46,6 @@ export default function Shopify() {
         toast({
           title: `متصل بالفعل بمتجر ${savedShop}`,
           variant: "default",
-          id: 'already-connected'
         });
         navigate('/dashboard');
       }
