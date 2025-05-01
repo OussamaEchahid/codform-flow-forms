@@ -74,7 +74,7 @@ export const useShopify = () => {
       // Get store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token, updated_at, created_at')
+        .select('access_token, updated_at')
         .eq('shop', shop)
         .single();
       
@@ -88,15 +88,15 @@ export const useShopify = () => {
         throw new Error('No store data found');
       }
       
-      // Safely access properties
+      // Make sure storeData has the access_token property
       const accessToken = storeData.access_token;
       if (!accessToken) {
         throw new Error('Access token not found in store data');
       }
       
       console.log('Access token retrieved successfully');
-      // Safely access date properties with fallbacks
-      const updateTime = storeData.updated_at || storeData.created_at || new Date().toISOString();
+      // Get the update time with fallback to current time
+      const updateTime = storeData.updated_at || new Date().toISOString();
       console.log('Token age:', new Date(updateTime));
 
       // Create API instance with token and store scope
@@ -156,7 +156,7 @@ export const useShopify = () => {
       // Get store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token, updated_at, created_at')
+        .select('access_token, updated_at')
         .eq('shop', shop)
         .single();
       
@@ -177,8 +177,8 @@ export const useShopify = () => {
       }
       
       console.log('Retrieved store access token successfully');
-      // Safely access date properties with fallbacks
-      const updateTime = storeData.updated_at || storeData.created_at || new Date().toISOString();
+      // Get the update time with fallback to current time
+      const updateTime = storeData.updated_at || new Date().toISOString();
       console.log('Token age:', new Date(updateTime));
 
       // Save product settings to database first
