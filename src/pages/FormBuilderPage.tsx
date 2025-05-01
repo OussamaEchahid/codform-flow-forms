@@ -171,7 +171,7 @@ const FormBuilderPage = () => {
       
       <div className="flex-1">
         {showEditor ? (
-          <FormBuilderEditor formId={formId} />
+          <FormBuilderEditor />
         ) : (
           <FormBuilderDashboard />
         )}
