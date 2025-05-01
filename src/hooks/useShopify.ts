@@ -59,11 +59,13 @@ export const useShopify = () => {
 
   const syncFormWithShopify = async (formData: ShopifyFormData) => {
     if (!shopifyConnected || !shop) {
+      toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
     }
 
     setIsSyncing(true);
     setError(null);
+    
     try {
       console.log('Starting Shopify sync with data:', formData);
       
@@ -81,12 +83,7 @@ export const useShopify = () => {
       
       console.log('Retrieved store access token successfully');
 
-      // إنشاء مثيل API بالرمز ونطاق المتجر
-      const api = createShopifyAPI(storeData.access_token, shop);
-      
-      // حفظ إعدادات المنتج في قاعدة البيانات
-      console.log('Saving product settings for productId:', formData.settings.products?.[0] || 'default');
-      
+      // حفظ إعدادات المنتج في قاعدة البيانات أولاً
       try {
         // استخدام معرف المنتج من الإعدادات أو استخدام قيمة افتراضية
         const productId = formData.settings.products?.[0] || 'default-product';
@@ -104,9 +101,9 @@ export const useShopify = () => {
           blockId: formData.settings.blockId
         };
         
-        console.log('Sending product settings data:', requestData);
+        console.log('Saving product settings data:', requestData);
         
-        // استدعاء وظيفة حفظ إعدادات المنتج مباشرة بدلاً من استخدام fetch
+        // استدعاء وظيفة حفظ إعدادات المنتج
         const result = await saveProductSettings(shop, requestData);
         
         console.log('Product settings result:', result);
@@ -115,17 +112,21 @@ export const useShopify = () => {
           throw new Error(result.error);
         }
       } catch (apiError) {
-        console.error('API request error:', apiError);
-        throw apiError instanceof Error ? apiError : new Error('Unknown API error');
+        console.error('Product settings save error:', apiError);
+        throw apiError instanceof Error ? apiError : new Error('Unknown error saving product settings');
       }
 
-      // مزامنة النموذج مع شوبيفاي
-      console.log('Setting up auto sync with Shopify');
+      // إنشاء مثيل API بالرمز ونطاق المتجر
       try {
+        const api = createShopifyAPI(storeData.access_token, shop);
+        
+        // مزامنة النموذج مع شوبيفاي
+        console.log('Setting up auto sync with Shopify');
         await api.setupAutoSync(formData);
+        console.log('Auto-sync completed successfully');
       } catch (syncError) {
         console.error('Auto-sync error:', syncError);
-        throw new Error('Failed to set up auto-sync with Shopify');
+        throw new Error(syncError instanceof Error ? syncError.message : 'Failed to set up auto-sync with Shopify');
       }
       
       // حفظ ارتباط النموذج بالمتجر

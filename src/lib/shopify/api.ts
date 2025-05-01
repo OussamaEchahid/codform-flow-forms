@@ -137,12 +137,14 @@ class ShopifyAPI {
 
   async syncFormData(formData: ShopifyFormData): Promise<void> {
     console.log('Syncing form data with Shopify');
+    
+    // تحسين استعلام GraphQL لدعم الإعدادات المحددة
     const mutation = `
-      mutation createAppExtension($input: AppExtensionInput!) {
-        appExtensionCreate(input: $input) {
-          appExtension {
+      mutation createScriptTag($input: ScriptTagInput!) {
+        scriptTagCreate(input: $input) {
+          scriptTag {
             id
-            title
+            src
           }
           userErrors {
             field
@@ -152,25 +154,36 @@ class ShopifyAPI {
       }
     `;
 
+    // إعداد مصدر السكريبت مع البيانات المطلوبة
+    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}`;
+    
     const variables = {
       input: {
-        type: 'CHECKOUT_POST_PURCHASE',
-        title: 'Form Integration',
-        config: JSON.stringify(formData),
+        src: scriptSrc,
+        displayScope: "ALL",
       },
     };
 
     try {
-      const result = await this.fetchAPI(mutation, variables);
-      console.log('Form synced with Shopify successfully', result);
+      console.log('Creating script tag with variables:', variables);
       
-      if (result.appExtensionCreate.userErrors && result.appExtensionCreate.userErrors.length > 0) {
-        const errors = result.appExtensionCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Errors creating app extension: ${errors}`);
+      const result = await this.fetchAPI(mutation, variables);
+      console.log('Script tag creation result:', result);
+      
+      if (result?.scriptTagCreate?.userErrors && result.scriptTagCreate.userErrors.length > 0) {
+        const errors = result.scriptTagCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+        throw new Error(`Errors creating script tag: ${errors}`);
       }
+      
+      // التحقق من وجود scriptTag في النتيجة
+      if (!result?.scriptTagCreate?.scriptTag?.id) {
+        throw new Error('Failed to create script tag: No script tag ID returned');
+      }
+      
+      console.log('Form script tag created successfully with ID:', result.scriptTagCreate.scriptTag.id);
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
-      throw error;
+      throw new Error(`Failed to sync form with Shopify: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -194,53 +207,59 @@ class ShopifyAPI {
   }
 
   async setupAutoSync(formData: ShopifyFormData): Promise<void> {
-    console.log('Setting up auto-sync with Shopify');
-    const mutation = `
-      mutation createWebhook($topic: WebhookSubscriptionTopic!, $callbackUrl: URL!) {
-        webhookSubscriptionCreate(
-          topic: $topic,
-          webhookSubscription: {
-            callbackUrl: $callbackUrl,
-            format: JSON
-          }
-        ) {
-          webhookSubscription {
-            id
-          }
-          userErrors {
-            field
-            message
+    console.log('Setting up auto-sync with Shopify', { formData });
+    try {
+      // أولاً، قم بإنشاء سكريبت للتكامل مع النموذج
+      await this.syncFormData(formData);
+      
+      // ثم قم بإعداد webhook للتحديثات المستقبلية (اختياري)
+      // استخدام استعلام GraphQL لإنشاء webhook
+      const mutation = `
+        mutation createWebhook($topic: WebhookSubscriptionTopic!, $callbackUrl: URL!) {
+          webhookSubscriptionCreate(
+            topic: $topic,
+            webhookSubscription: {
+              callbackUrl: $callbackUrl,
+              format: JSON
+            }
+          ) {
+            webhookSubscription {
+              id
+            }
+            userErrors {
+              field
+              message
+            }
           }
         }
-      }
-    `;
-
-    try {
-      // Setup webhooks for product updates
+      `;
+      
+      // تحديد عنوان استدعاء webhook
       const callbackUrl = typeof window !== 'undefined' 
         ? `https://${window.location.host}/api/shopify-webhook` 
-        : `https://codform-flow-forms.lovable.app/api/shopify-webhook`;
-
-      console.log(`Using callback URL: ${callbackUrl}`);
-      
+        : 'https://codform-flow-forms.lovable.app/api/shopify-webhook';
+        
+      console.log(`Using webhook callback URL: ${callbackUrl}`);
+        
+      // إنشاء webhook للتحديثات على المنتجات
       const result = await this.fetchAPI(mutation, {
         topic: 'PRODUCTS_UPDATE',
         callbackUrl: callbackUrl,
       });
-      
+        
       console.log('Webhook subscription result:', result);
-      
-      if (result.webhookSubscriptionCreate.userErrors && result.webhookSubscriptionCreate.userErrors.length > 0) {
+        
+      // التحقق من وجود أخطاء
+      if (result?.webhookSubscriptionCreate?.userErrors && result.webhookSubscriptionCreate.userErrors.length > 0) {
         const errors = result.webhookSubscriptionCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+        // نحن نعتبر أخطاء webhook كتحذيرات فقط ولا نوقف العملية
         console.warn(`Warnings setting up webhook: ${errors}`);
       }
-      
-      // Initial sync
-      await this.syncFormData(formData);
+        
       console.log('Auto-sync setup completed successfully');
     } catch (error) {
       console.error('Error setting up auto-sync:', error);
-      throw error;
+      throw new Error(`Failed to set up auto-sync with Shopify: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

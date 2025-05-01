@@ -11,8 +11,13 @@ export async function saveProductSettings(
   requestBody: ProductSettingsRequest
 ): Promise<ProductSettingsResponse> {
   try {
-    console.log('Processing product settings request');
-    console.log('Request body:', requestBody);
+    console.log('Processing product settings request:', {
+      shopId,
+      productId: requestBody.productId,
+      formId: requestBody.formId,
+      blockId: requestBody.blockId,
+      enabled: requestBody.enabled
+    });
     
     if (!requestBody.productId || !requestBody.formId) {
       console.error('البيانات المطلوبة غير موجودة: productId أو formId');
@@ -22,10 +27,10 @@ export async function saveProductSettings(
     }
 
     console.log('Using shop ID:', shopId);
-
-    // استخدام Supabase للإدخال/التحديث
+    
+    // التحقق من وجود عمود block_id في الجدول قبل المتابعة
     try {
-      // التحقق من وجود جميع الأعمدة في الجدول
+      // التحقق من وجود الجدول وأعمدته
       const { data: tableInfo, error: tableError } = await supabase
         .from('shopify_product_settings')
         .select('*')
@@ -37,6 +42,8 @@ export async function saveProductSettings(
           error: `خطأ في التحقق من بنية الجدول: ${tableError.message || 'خطأ غير معروف'}`
         };
       }
+      
+      console.log('Table structure verified successfully');
 
       // بناء كائن البيانات بعناية
       const settingsData: any = {
@@ -50,7 +57,10 @@ export async function saveProductSettings(
       if (requestBody.blockId !== undefined && requestBody.blockId !== null) {
         settingsData.block_id = requestBody.blockId;
       }
+      
+      console.log('Preparing to insert/update settings with data:', settingsData);
 
+      // استخدام supabase للإدراج/التحديث
       const result = await supabase.from('shopify_product_settings').upsert(
         settingsData,
         { 
