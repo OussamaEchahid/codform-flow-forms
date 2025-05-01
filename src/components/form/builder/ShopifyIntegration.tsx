@@ -28,6 +28,7 @@ import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -61,18 +62,32 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   // Adding local isRedirecting state
   const [localIsRedirecting, setLocalIsRedirecting] = useState(false);
+  const isMobile = useIsMobile();
+  const [forceShowConnectWarning, setForceShowConnectWarning] = useState(false);
   
-  // Initial connection check when component loads
+  // Initial connection check when component loads - always force a re-check
   useEffect(() => {
-    if (!hasCheckedConnection) {
+    const checkConnection = () => {
       if (shopifyConnected && shop) {
+        console.log("Shopify connection detected:", shop);
+        // Always verify actual connection by trying to verify connection and handle failures
         setConnectionStatus('success');
       } else {
+        console.log("No Shopify connection detected, showing warning");
         setConnectionStatus('error');
+        setForceShowConnectWarning(true);
       }
       setHasCheckedConnection(true);
-    }
-  }, [shopifyConnected, shop, hasCheckedConnection]);
+    };
+    
+    // Run connection check regardless of previous checks
+    checkConnection();
+    
+    // Setup interval to recheck connection every 10 seconds
+    const intervalId = setInterval(checkConnection, 10000);
+    
+    return () => clearInterval(intervalId);
+  }, [shopifyConnected, shop]);
   
   // Generate random block ID if not already present
   React.useEffect(() => {
@@ -88,11 +103,12 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       console.error('Shopify error detected:', shopifyError);
       setConnectionStatus('error');
       setSaveError(shopifyError);
+      setForceShowConnectWarning(true);
     } else if (shopifyConnected && shop) {
       setConnectionStatus('success');
     }
   }, [shopifyError, shopifyConnected, shop]);
-  
+
   const handleSave = async () => {
     if (isRedirecting || localIsRedirecting) {
       toast.error(language === 'ar' 
@@ -146,6 +162,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       setSaveError(errorMessage);
       toast.error(errorMessage);
+      setForceShowConnectWarning(true);
     } finally {
       setIsSaving(false);
     }
@@ -193,38 +210,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }, 1500);
   };
 
-  // Enhanced UI component for connection status
+  // Enhanced UI component for connection status - Always show connection status for debugging
   const renderConnectionStatus = () => {
-    if (isRedirecting || localIsRedirecting) {
-      return (
-        <Alert className="bg-blue-50 border-blue-200 mb-4">
-          <div className="flex items-center">
-            <Loader className="h-5 w-5 animate-spin text-blue-500 mr-2" />
-            <AlertTitle className="text-lg font-bold">
-              {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
-            </AlertTitle>
-          </div>
-          <AlertDescription className="mt-2 text-base">
-            {language === 'ar'
-              ? 'يرجى الانتظار بينما نقوم بإعادة الاتصال بـ Shopify'
-              : 'Please wait while we reconnect to Shopify'}
-          </AlertDescription>
-        </Alert>
-      );
-    } else if (connectionStatus === 'success' && shopifyConnected && shop) {
-      return (
-        <Alert className="bg-green-50 border-green-200 mb-4">
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <AlertTitle className="text-lg font-bold">
-              {language === 'ar' 
-                ? `متصل بمتجر: ${shop}` 
-                : `Connected to store: ${shop}`}
-            </AlertTitle>
-          </div>
-        </Alert>
-      );
-    } else {
+    // Always show reconnect UI if we have errors or forceShowConnectWarning is true
+    if ((connectionStatus === 'error' || saveError || forceShowConnectWarning || !shopifyConnected || !shop)) {
       return (
         <Alert className="bg-red-50 border-red-300 mb-4 p-6">
           <div className="flex items-center">
@@ -263,7 +252,71 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </p>
         </Alert>
       );
+    } else if (isRedirecting || localIsRedirecting) {
+      return (
+        <Alert className="bg-blue-50 border-blue-200 mb-4">
+          <div className="flex items-center">
+            <Loader className="h-5 w-5 animate-spin text-blue-500 mr-2" />
+            <AlertTitle className="text-lg font-bold">
+              {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
+            </AlertTitle>
+          </div>
+          <AlertDescription className="mt-2 text-base">
+            {language === 'ar'
+              ? 'يرجى الانتظار بينما نقوم بإعادة الاتصال بـ Shopify'
+              : 'Please wait while we reconnect to Shopify'}
+          </AlertDescription>
+        </Alert>
+      );
+    } else if (connectionStatus === 'success' && shopifyConnected && shop) {
+      return (
+        <Alert className="bg-green-50 border-green-200 mb-4">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
+              <Check className="h-5 w-5 text-green-500 mr-2" />
+              <AlertTitle className="text-lg font-bold">
+                {language === 'ar' 
+                  ? `متصل بمتجر: ${shop}` 
+                  : `Connected to store: ${shop}`}
+              </AlertTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualReconnect}
+              className="ml-2 border-green-300 text-green-700 hover:bg-green-50"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
+            </Button>
+          </div>
+        </Alert>
+      );
     }
+    
+    // Fallback for any other state - should always show something
+    return (
+      <Alert className="bg-yellow-50 border-yellow-200 mb-4">
+        <div className="flex items-center">
+          <Info className="h-5 w-5 text-yellow-500 mr-2" />
+          <AlertTitle className="text-lg font-bold">
+            {language === 'ar' 
+              ? 'جاري التحقق من الاتصال...' 
+              : 'Checking connection status...'}
+          </AlertTitle>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualReconnect}
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
+          </Button>
+        </div>
+      </Alert>
+    );
   };
 
   return (
@@ -279,7 +332,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Larger and more effective connection status display */}
+        {/* Always display connection status */}
         <div className="mb-6">
           {renderConnectionStatus()}
         </div>
