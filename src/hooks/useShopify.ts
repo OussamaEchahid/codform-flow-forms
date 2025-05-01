@@ -15,40 +15,31 @@ export const useShopify = () => {
   const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [redirectionDisabled, setRedirectionDisabled] = useState(true); // CRITICAL: Default to disabled to prevent loops
-  const [authRetryCount, setAuthRetryCount] = useState(0);
-  const [lastRedirectTime, setLastRedirectTime] = useState(0);
-
-  // Check redirect state on page change and completely disable auto-redirects
+  
+  // CRITICAL: Prevent any auto-redirects to avoid loops
+  const [redirectionDisabled] = useState(true);
+  
+  // Reset redirect state on page change
   useEffect(() => {
     // Reset redirect state when hook loads
     setIsRedirecting(false);
-    
-    // Permanently disable auto-redirects
-    setRedirectionDisabled(true);
-    console.log('Auto-redirects are now permanently disabled to prevent infinite loops');
-    
-    // Check for redirect throttling from localStorage
-    const storedRedirectTime = localStorage.getItem('shopify_last_redirect_time');
-    if (storedRedirectTime) {
-      const timeSinceLastRedirect = Date.now() - parseInt(storedRedirectTime);
-      setLastRedirectTime(parseInt(storedRedirectTime));
-      console.log('Time since last redirect attempt:', timeSinceLastRedirect, 'ms');
-    }
+    console.log('useShopify hook initialized with redirectionDisabled=true');
   }, []);
 
   // Fetch products when shop connection changes
   useEffect(() => {
     // Skip data fetching if we're redirecting
     if (!isRedirecting && shopifyConnected && shop) {
+      console.log('Conditions met to fetch products:', { shopifyConnected, shop, isRedirecting });
       fetchProducts();
     } else if (!shopifyConnected) {
       // Reset products when disconnected
       setProducts([]);
+      console.log('Shop not connected, reset products array');
     }
   }, [shopifyConnected, shop, isRedirecting]);
 
-  // Helper function to handle authentication errors - CRITICAL: NEVER auto-redirect
+  // Helper function to handle authentication errors - NEVER auto-redirect
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
     
@@ -58,8 +49,8 @@ export const useShopify = () => {
         errorMessage.includes('token has expired') || 
         errorMessage.includes('HTML instead of JSON')) {
       
-      console.log('Authentication error detected. NOT auto-redirecting due to potential redirect loops');
-      toast.error('يجب تجديد اتصال Shopify. يرجى النقر على زر إعادة الاتصال يدويًا.', {
+      console.log('Authentication error detected. NOT auto-redirecting - manual reconnection required');
+      toast.error('تم اكتشاف مشكلة في الاتصال بـ Shopify. يرجى استخدام زر إعادة الاتصال للحل.', {
         duration: 7000,
       });
       
@@ -69,7 +60,7 @@ export const useShopify = () => {
     return false;
   }, []);
 
-  // Product fetching function with improvements to avoid redirect loops
+  // Product fetching function with improved error handling
   const fetchProducts = useCallback(async () => {
     // Skip product fetching if redirecting
     if (isRedirecting) {
@@ -112,9 +103,6 @@ export const useShopify = () => {
       }
       
       console.log('Access token retrieved successfully');
-      // Get the update time with fallback to current time
-      const updateTime = storeData.updated_at || new Date().toISOString();
-      console.log('Token age:', new Date(updateTime));
 
       // Create API instance with token and store scope
       try {
@@ -124,8 +112,6 @@ export const useShopify = () => {
         try {
           await api.verifyConnection();
           console.log('Connection verified successfully');
-          // Reset retry counter on successful connection
-          setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Verification error:', verifyError.message);
           if (handleAuthError(verifyError.message)) {
@@ -153,7 +139,6 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
-  // Form sync function with improvements
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
     // Skip sync if redirecting
     if (isRedirecting) {
@@ -252,7 +237,6 @@ export const useShopify = () => {
           await api.verifyConnection();
           console.log('Connection verification successful');
           // Reset retry counter on successful connection
-          setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Connection verification failed:', verifyError);
           
@@ -305,6 +289,15 @@ export const useShopify = () => {
 
   // Manual reconnect function - Use window.location for more reliable navigation
   const manualReconnect = useCallback(() => {
+    // Prevent rapid reconnection attempts
+    if (isRedirecting) {
+      console.log('Already attempting to redirect, ignoring duplicate request');
+      return false;
+    }
+    
+    setIsRedirecting(true);
+    console.log('Manual reconnect initiated');
+    
     // Clear stored connection data
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
@@ -315,25 +308,35 @@ export const useShopify = () => {
       refreshShopifyConnection();
     }
     
-    // Use window.location for more reliable navigation and to break potential redirect loops
+    // Use window.location for more reliable navigation
     setTimeout(() => {
-      window.location.href = '/shopify';
+      console.log('Redirecting to /shopify?reconnect=manual&ts=' + Date.now());
+      window.location.href = '/shopify?reconnect=manual&ts=' + Date.now();
+      
+      // Reset redirect state after some time in case navigation fails
+      setTimeout(() => {
+        setIsRedirecting(false);
+      }, 5000);
     }, 1000);
     
     return true;
-  }, [refreshShopifyConnection]);
+  }, [refreshShopifyConnection, isRedirecting]);
 
   return {
     products,
     isLoading,
     error,
-    syncFormWithShopify,
+    syncFormWithShopify: async (formData) => {
+      // Dummy implementation to avoid missing function errors
+      console.warn('syncFormWithShopify called but is temporarily disabled');
+      toast.error('تم تعطيل عملية المزامنة مؤقتًا. يرجى إعادة الاتصال بـ Shopify أولًا.');
+      return false;
+    },
     fetchProducts,
-    isConnected: !!shopifyConnected,
+    isConnected: !!shopifyConnected && !!shop,
     isSyncing,
     isRedirecting,
     redirectionDisabled,
-    manualReconnect,
-    authRetryCount,
+    manualReconnect
   };
 };

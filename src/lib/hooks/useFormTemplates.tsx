@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -222,6 +221,8 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      console.log('Retrieved form data:', data);
+      
       // Transform the returned data to match our expected FormData structure
       // Note: We need to add sectionConfig and style even if they don't exist in the database
       return {
@@ -244,20 +245,23 @@ export const useFormTemplates = () => {
         return false;
       }
 
-      // Make API call to update the form data
-      const response = await fetch(`/api/forms/${formId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedFormData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update form');
+      console.log('Updating form data for ID:', formId);
+      console.log('Update payload:', updatedFormData);
+      
+      // Directly update the form in Supabase instead of using API
+      const { data, error } = await supabase
+        .from('forms')
+        .update(updatedFormData)
+        .eq('id', formId)
+        .select();
+      
+      if (error) {
+        console.error('Error updating form directly in Supabase:', error);
+        toast.error(`فشل في تحديث النموذج: ${error.message}`);
+        return false;
       }
-
-      const data = await response.json();
+      
+      console.log('Form updated successfully:', data);
       
       // Update the local state
       setForms(currentForms => 
@@ -266,9 +270,11 @@ export const useFormTemplates = () => {
         )
       );
       
-      return data;
+      toast.success('تم تحديث النموذج بنجاح');
+      return true;
     } catch (error) {
       console.error('Error updating form data:', error);
+      toast.error('حدث خطأ أثناء تحديث النموذج');
       return false;
     }
   };

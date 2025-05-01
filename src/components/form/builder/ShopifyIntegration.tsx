@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -168,7 +167,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
   
-  // Modified manual reconnect function to prevent redirect loops
+  // Modified manual reconnect function to prevent redirect loops and add reconnection timestamp
   const handleManualReconnect = () => {
     // Prevent multiple clicks
     if (isRedirecting || localIsRedirecting) {
@@ -178,8 +177,24 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
+    // Check if we've tried to reconnect recently
+    const lastReconnectTime = parseInt(localStorage.getItem('shopify_last_reconnect_time') || '0');
+    const timeSinceLastReconnect = Date.now() - lastReconnectTime;
+    
+    // Allow reconnection attempts only every 30 seconds
+    if (timeSinceLastReconnect < 30000) {
+      const secondsRemaining = Math.ceil((30000 - timeSinceLastReconnect) / 1000);
+      toast.info(language === 'ar'
+        ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${secondsRemaining} ثانية...`
+        : `Reconnection attempted recently, please wait ${secondsRemaining} seconds...`);
+      return;
+    }
+    
     // Set local redirecting state
     setLocalIsRedirecting(true);
+    
+    // Store reconnect attempt timestamp
+    localStorage.setItem('shopify_last_reconnect_time', Date.now().toString());
     
     // Remove all locally stored data
     localStorage.removeItem('shopify_store');
@@ -200,8 +215,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       : 'Redirecting to connect to Shopify...');
     
     // Use window.location for more robust navigation and to break potential redirect loops
+    // Add a timestamp query parameter to bust cache and ensure we get a fresh page
     setTimeout(() => {
-      window.location.href = '/shopify';
+      window.location.href = '/shopify?reconnect=integration&ts=' + Date.now();
       
       // Reset local state after longer timeout
       setTimeout(() => {

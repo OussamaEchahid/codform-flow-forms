@@ -12,22 +12,38 @@ const ShopifyConnectionStatus = () => {
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   
   useEffect(() => {
-    // Always check connection status
-    setShowWarning(!shopifyConnected || !shop);
+    // Check connection status on mount
+    const initialCheck = () => {
+      const shouldShowWarning = !shopifyConnected || !shop;
+      setShowWarning(shouldShowWarning);
+      console.log('ShopifyConnectionStatus initial check:', { shopifyConnected, shop, shouldShowWarning });
+    };
     
-    // Force a check every 5 seconds
+    initialCheck();
+    
+    // Re-check every 10 seconds, but don't show too many warnings in succession
     const intervalId = setInterval(() => {
-      setShowWarning(!shopifyConnected || !shop);
-    }, 5000);
+      const shouldShowWarning = !shopifyConnected || !shop;
+      setShowWarning(shouldShowWarning);
+      
+      // Log connection state for debugging
+      console.log('ShopifyConnectionStatus interval check:', { 
+        shopifyConnected, 
+        shop, 
+        shouldShowWarning,
+        timeSinceLastReconnect: Date.now() - lastReconnectAttempt
+      });
+    }, 10000);
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop]);
+  }, [shopifyConnected, shop, lastReconnectAttempt]);
   
   // Handle manual connection button click
   const handleConnectShopify = () => {
-    // Prevent multiple clicks
+    // Prevent multiple clicks or reconnects within 30 seconds
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
@@ -35,7 +51,17 @@ const ShopifyConnectionStatus = () => {
       return;
     }
     
+    // Prevent reconnect attempts if we had one in the last 30 seconds
+    const timeSinceLastAttempt = Date.now() - lastReconnectAttempt;
+    if (timeSinceLastAttempt < 30000) {
+      toast.info(language === 'ar' 
+        ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${Math.ceil((30000 - timeSinceLastAttempt)/1000)} ثواني...` 
+        : `Reconnect attempted recently, please wait ${Math.ceil((30000 - timeSinceLastAttempt)/1000)} seconds...`);
+      return;
+    }
+    
     setIsRedirecting(true);
+    setLastReconnectAttempt(Date.now());
     
     // Clear all locally stored data to ensure clean reconnection
     localStorage.removeItem('shopify_store');
@@ -57,8 +83,13 @@ const ShopifyConnectionStatus = () => {
     
     // Add a longer delay to prevent rapid redirections
     setTimeout(() => {
-      // CRITICAL CHANGE: Use direct location change to break any potential redirect loops
-      window.location.href = '/shopify';
+      // Use direct path for more reliable navigation
+      window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
+      
+      // Reset redirect state after a timeout in case navigation fails
+      setTimeout(() => {
+        setIsRedirecting(false);
+      }, 5000);
     }, 1500);
   };
   
