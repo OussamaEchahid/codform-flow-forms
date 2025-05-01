@@ -11,10 +11,22 @@ class ShopifyAPI {
   }
 
   private async fetchAPI(query: string, variables = {}) {
-    const url = `https://${this.shopDomain}/admin/api/2024-01/graphql.json`;
+    // Ensure shop domain is formatted correctly
+    const normalizedShopDomain = this.shopDomain.includes('myshopify.com') 
+      ? this.shopDomain 
+      : `${this.shopDomain}.myshopify.com`;
+    
+    const url = `https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`;
     console.log(`Making API request to: ${url}`);
     
     try {
+      // Add extra logging for debugging
+      console.log('Request headers:', {
+        ContentType: 'application/json',
+        AccessToken: this.accessToken ? 'Present (hidden)' : 'Missing',
+        Query: query.substring(0, 50) + '...' // Log part of the query for debugging
+      });
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -22,7 +34,6 @@ class ShopifyAPI {
           'X-Shopify-Access-Token': this.accessToken,
         },
         body: JSON.stringify({ query, variables }),
-        // Add timeout and credentials
         credentials: 'include',
       });
 
@@ -191,21 +202,48 @@ class ShopifyAPI {
   }
 
   async verifyConnection(): Promise<boolean> {
-    console.log('Verifying Shopify connection');
+    console.log('Verifying Shopify connection for shop:', this.shopDomain);
+    
+    // Make sure shop domain is properly formatted
+    const normalizedShopDomain = this.shopDomain.includes('myshopify.com') 
+      ? this.shopDomain 
+      : `${this.shopDomain}.myshopify.com`;
+    
+    console.log('Using normalized shop domain for verification:', normalizedShopDomain);
+    
     try {
       const query = `
         query {
           shop {
             name
+            primaryDomain {
+              url
+              host
+            }
           }
         }
       `;
+      
+      console.log('Sending verification query to Shopify API');
       const result = await this.fetchAPI(query);
+      
+      if (!result || !result.shop || !result.shop.name) {
+        console.error('Invalid verification response:', result);
+        throw new Error('Invalid response from Shopify API');
+      }
+      
       console.log('Connection verified successfully, shop name:', result.shop.name);
+      console.log('Shop domain info:', result.shop.primaryDomain || 'No domain info');
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);
-      return false;
+      
+      // Provide more detailed error message
+      const errorMessage = error instanceof Error 
+        ? `Verification error: ${error.message}` 
+        : 'Unknown verification error';
+      
+      throw new Error(`Could not verify connection to Shopify API: ${errorMessage}`);
     }
   }
 
@@ -215,9 +253,12 @@ class ShopifyAPI {
     try {
       // Step 1: First verify connection to ensure API token works
       console.log('Verifying Shopify connection before sync...');
-      const isConnected = await this.verifyConnection();
-      if (!isConnected) {
-        throw new Error('Could not verify connection to Shopify API');
+      try {
+        await this.verifyConnection();
+        console.log('Connection verified successfully');
+      } catch (verificationError) {
+        console.error('Connection verification failed:', verificationError);
+        throw verificationError; // Rethrow to be caught by outer try/catch
       }
       
       // Step 2: Create script tag for the form
@@ -244,5 +285,12 @@ export const createShopifyAPI = (accessToken: string, shopDomain: string) => {
     throw new Error('Invalid shop domain provided');
   }
   
-  return new ShopifyAPI(accessToken, shopDomain);
+  // Normalize shop domain
+  const normalizedShopDomain = shopDomain.includes('myshopify.com') 
+    ? shopDomain 
+    : `${shopDomain}.myshopify.com`;
+  
+  console.log('Using normalized shop domain:', normalizedShopDomain);
+  
+  return new ShopifyAPI(accessToken, normalizedShopDomain);
 };

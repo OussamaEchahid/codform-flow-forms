@@ -73,6 +73,13 @@ export const useShopify = () => {
     
     try {
       console.log('Starting Shopify sync with data:', formData);
+      console.log('Using shop domain:', shop);
+      
+      // Validate shop format
+      if (!shop.includes('myshopify.com')) {
+        console.warn('Shop domain might not be properly formatted:', shop);
+        console.log('Will attempt to normalize in the API client');
+      }
       
       // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
@@ -86,7 +93,7 @@ export const useShopify = () => {
         throw new Error('Could not retrieve store access token');
       }
       
-      console.log('Retrieved store access token successfully');
+      console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
 
       // حفظ إعدادات المنتج في قاعدة البيانات أولاً
       try {
