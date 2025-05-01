@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
-import { ExternalLink, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { ShopifyIcon } from "@/components/icons/ShopifyIcon";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -35,6 +34,7 @@ export default function Shopify() {
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_temp_store');
       localStorage.removeItem('shopify_last_connect_time');
+      localStorage.removeItem('shopify_reconnect_attempts');
       
       // إعادة تعيين حالة الاتصال في سياق المصادقة
       if (refreshShopifyConnection) {
@@ -55,10 +55,7 @@ export default function Shopify() {
       if (savedShop) {
         console.log("Already connected to Shopify, redirecting to dashboard");
         
-        toast({
-          title: `متصل بالفعل بمتجر ${savedShop}`,
-          variant: "success"
-        });
+        toast.success(`متصل بالفعل بمتجر ${savedShop}`);
         
         navigate('/dashboard');
       }
@@ -142,9 +139,8 @@ export default function Shopify() {
         }
       } else {
         // التدفق المضمّن - سيتم تنفيذه لاحقًا
-        toast({
-          title: "قريبا",
-          description: "سيتم دعم تدفق التطبيق المضمّن قريبًا",
+        toast("قريبا", {
+          description: "سيتم دعم تدفق التطبيق المضمّن قريبًا"
         });
       }
     } catch (err) {
