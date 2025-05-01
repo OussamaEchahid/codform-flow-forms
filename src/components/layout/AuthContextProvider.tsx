@@ -1,6 +1,7 @@
 
 import { ReactNode } from 'react';
-import { AuthProvider, useAuth as useAuthHook } from '@/lib/auth';
+import { useAuth as useAuthHook } from '@/lib/auth';
+import { AuthProvider } from '@/components/layout/AuthProvider';
 
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const authProps = AuthProvider({ children });

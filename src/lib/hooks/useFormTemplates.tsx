@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -56,14 +55,12 @@ export const useFormTemplates = () => {
   const [error, setError] = useState<string | null>(null);
   const [forms, setForms] = useState<FormData[]>([]);
 
-  // Function to clear form cache when needed
   const clearFormCache = useCallback(() => {
     console.log('Clearing form cache');
     formCache.clear();
     return Promise.resolve();
   }, []);
 
-  // Function to fetch all forms
   const fetchForms = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -94,7 +91,6 @@ export const useFormTemplates = () => {
     }
   }, []);
 
-  // Get a form by ID with caching
   const getFormById = useCallback(async (formId: string): Promise<FormData | null> => {
     setIsLoading(true);
     setError(null);
@@ -170,7 +166,6 @@ export const useFormTemplates = () => {
     }
   }, []);
   
-  // Create a default form
   const createDefaultForm = useCallback(async (): Promise<FormData | null> => {
     setIsLoading(true);
     setError(null);
@@ -220,7 +215,6 @@ export const useFormTemplates = () => {
     }
   }, [fetchForms]);
   
-  // Create form from template
   const createFormFromTemplate = useCallback(async (templateId: number): Promise<FormData | null> => {
     setIsLoading(true);
     setError(null);
@@ -274,7 +268,7 @@ export const useFormTemplates = () => {
     }
   }, [fetchForms]);
   
-  // Save form
+  // Rename saveForm to keep the same function name as used in FormBuilderEditor
   const saveForm = useCallback(async (formId: string, formData: Partial<FormData>): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
@@ -309,7 +303,6 @@ export const useFormTemplates = () => {
     }
   }, []);
   
-  // Publish/unpublish form
   const publishForm = useCallback(async (formId: string, isPublished: boolean): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
@@ -347,7 +340,6 @@ export const useFormTemplates = () => {
     }
   }, [fetchForms]);
   
-  // Delete form
   const deleteForm = useCallback(async (formId: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);

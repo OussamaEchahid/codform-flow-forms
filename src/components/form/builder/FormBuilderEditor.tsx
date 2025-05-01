@@ -9,16 +9,17 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { ShopifyFormData } from '@/lib/shopify/types';
 import { useShopify } from '@/hooks/useShopify';
+import FormBuilderShopify from './FormBuilderShopify';
 
 const FormBuilderEditor = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getFormById, updateForm } = useFormTemplates();
+  const { getFormById, fetchForms, saveForm } = useFormTemplates();
   const { t } = useI18n();
   const [formData, setFormData] = useState<any>(null);
   const [formTitle, setFormTitle] = useState<string>('');
-  const [formComponents, setFormComponents] = useState<any[]>([]);
+  const [formFields, setFormFields] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { syncFormWithShopify, isSyncing } = useShopify();
@@ -32,11 +33,14 @@ const FormBuilderEditor = () => {
         setFormData(form);
         setFormTitle(form.title || '');
         try {
-          const components = typeof form.components === 'string' ? JSON.parse(form.components) : form.components;
-          setFormComponents(components);
+          // Parse form data from the "data" field instead of "components"
+          const formDataFields = typeof form.data === 'string' 
+            ? JSON.parse(form.data) 
+            : form.data || [];
+          setFormFields(formDataFields);
         } catch (error) {
-          console.error('Error parsing form components:', error);
-          setFormComponents([]);
+          console.error('Error parsing form data:', error);
+          setFormFields([]);
         }
       } else {
         toast.error(t('form.not_found'));
@@ -55,7 +59,7 @@ const FormBuilderEditor = () => {
   }, [fetchFormData]);
 
   const handleFormChange = useCallback((form: any) => {
-    setFormComponents(form.components);
+    setFormFields(form.fields || []);
   }, []);
 
   const handleShopifyIntegration = async (settings: ShopifyFormData) => {
@@ -90,11 +94,13 @@ const FormBuilderEditor = () => {
       const updatedForm = {
         ...formData,
         title: formTitle,
-        components: JSON.stringify(formComponents),
-        modified: new Date().toISOString(),
-        modifiedBy: user.id,
+        data: JSON.stringify(formFields),
+        updated_at: new Date().toISOString(),
+        user_id: user.id,
       };
-      await updateForm(formId, updatedForm);
+      
+      // Use saveForm instead of updateForm
+      await saveForm(formId, updatedForm);
       setFormData(updatedForm);
       toast.success(t('form.save_success'));
     } catch (error) {
@@ -103,7 +109,7 @@ const FormBuilderEditor = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [formId, user, formTitle, formComponents, formData, updateForm, t]);
+  }, [formId, user, formTitle, formFields, formData, saveForm, t]);
 
   if (isLoading) {
     return <div className="text-center py-8">{t('form.loading')}</div>;
@@ -137,7 +143,7 @@ const FormBuilderEditor = () => {
 
       {/* Main Content */}
       <div className="flex flex-1 bg-[#F8F9FB]">
-        {/* Simplified content area */}
+        {/* Main editor area */}
         <div className="flex-1 p-6">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">{t('form.builder_placeholder')}</h2>
@@ -159,6 +165,15 @@ const FormBuilderEditor = () => {
             {/* Form components will be rendered here in the future */}
             <div className="border-2 border-dashed border-gray-300 rounded-md p-8 text-center">
               <p className="text-gray-500">{t('form.drag_components_here') || "Drag form components here"}</p>
+            </div>
+            
+            {/* Shopify Integration */}
+            <div className="mt-6 border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">{t('shopify.integration') || 'Shopify Integration'}</h3>
+              <FormBuilderShopify 
+                onShopifyIntegration={handleShopifyIntegration}
+                isSyncing={isSyncing}
+              />
             </div>
             
             <div className="mt-6 flex justify-end">
