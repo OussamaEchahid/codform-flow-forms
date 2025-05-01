@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +43,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
   const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
-  const { products, isLoading: loadingProducts, error: shopifyError } = useShopify();
+  const { products, isLoading: loadingProducts, error: shopifyError, isRedirecting } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -53,7 +52,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   
   // Check for connection issues
   useEffect(() => {
-    if (shopifyError) {
+    if (isRedirecting) {
+      setConnectionStatus('checking');
+    } else if (shopifyError) {
       console.error('Shopify error detected:', shopifyError);
       
       // Check if it's an authentication error
@@ -66,7 +67,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         setSaveError(shopifyError);
       }
     }
-  }, [shopifyError]);
+  }, [shopifyError, isRedirecting]);
   
   // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
   React.useEffect(() => {
@@ -78,14 +79,23 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   // التحقق من حالة الاتصال بالمتجر
   React.useEffect(() => {
-    if (shopifyConnected && shop) {
+    if (isRedirecting) {
+      setConnectionStatus('checking');
+    } else if (shopifyConnected && shop) {
       setConnectionStatus('success');
     } else {
       setConnectionStatus('idle');
     }
-  }, [shopifyConnected, shop]);
+  }, [shopifyConnected, shop, isRedirecting]);
   
   const handleSave = async () => {
+    if (isRedirecting) {
+      toast.error(language === 'ar' 
+        ? 'يرجى الانتظار حتى تكتمل عملية إعادة الاتصال'
+        : 'Please wait until reconnection is complete');
+      return;
+    }
+    
     if (!shopifyConnected || !shop) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
@@ -140,6 +150,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   };
   
   const handleReconnect = () => {
+    // منع إعادة الاتصال المتكرر
+    if (isRedirecting) {
+      toast.info(language === 'ar' 
+        ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
+        : 'Already redirecting, please wait...');
+      return;
+    }
+    
     // Clear connection state
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
@@ -150,13 +168,18 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   };
 
   const renderConnectionStatus = () => {
-    if (connectionStatus === 'checking') {
+    if (isRedirecting || connectionStatus === 'checking') {
       return (
         <Alert className="bg-blue-50 border-blue-200 mb-4">
           <Loader className="h-4 w-4 animate-spin text-blue-500 mr-2" />
           <AlertTitle>
             {language === 'ar' ? 'جاري التحقق من الاتصال...' : 'Verifying connection...'}
           </AlertTitle>
+          <AlertDescription className="mt-2">
+            {language === 'ar'
+              ? 'يرجى الانتظار بينما نتحقق من اتصالك بـ Shopify'
+              : 'Please wait while we verify your connection to Shopify'}
+          </AlertDescription>
         </Alert>
       );
     } else if (connectionStatus === 'success') {
@@ -184,8 +207,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               size="sm"
               onClick={handleReconnect} 
               className="bg-white"
+              disabled={isRedirecting}
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              {isRedirecting ? (
+                <Loader className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
             </Button>
           </div>
@@ -279,13 +307,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button
               onClick={handleSave}
               className="w-full mt-4"
-              disabled={isSaving || isSyncing || connectionStatus === 'error'}
+              disabled={isSaving || isSyncing || isRedirecting || connectionStatus === 'error'}
             >
               {(isSaving || isSyncing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                 </>
+              ) : isRedirecting ? (
+                language === 'ar' ? 'جارٍ إعادة الاتصال...' : 'Reconnecting...'
               ) : connectionStatus === 'error' ? (
                 language === 'ar' ? 'يجب إعادة الاتصال أولاً' : 'Reconnect Required'
               ) : (

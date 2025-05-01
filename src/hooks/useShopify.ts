@@ -15,6 +15,7 @@ export const useShopify = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // جلب المنتجات عندما يتغير اتصال المتجر
   useEffect(() => {
@@ -30,6 +31,12 @@ export const useShopify = () => {
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
     
+    // التحقق من أننا لسنا في حالة إعادة توجيه بالفعل لتجنب الحلقة
+    if (isRedirecting) {
+      console.log('Already redirecting, skipping additional redirect');
+      return true;
+    }
+    
     // Check for specific authentication error patterns
     const isAuthError = 
       errorMessage.includes('authentication error') || 
@@ -38,30 +45,43 @@ export const useShopify = () => {
       errorMessage.includes('HTML instead of JSON');
     
     if (isAuthError) {
+      setIsRedirecting(true);
+      
       toast.error('Shopify connection needs to be refreshed. Redirecting to reconnect...', {
         duration: 5000,
+        onDismiss: () => setIsRedirecting(false) // إعادة تعيين الحالة بعد إغلاق الإشعار
       });
       
-      // Clear stored connection data
+      // مسح بيانات الاتصال المخزنة
       localStorage.removeItem('shopify_store');
       localStorage.removeItem('shopify_connected');
       
-      // Refresh the auth context
+      // تحديث سياق المصادقة
       if (refreshShopifyConnection) {
         refreshShopifyConnection();
       }
       
-      // Redirect to reconnect page after a short delay
+      // إضافة تأخير قبل إعادة التوجيه
       setTimeout(() => {
         navigate('/shopify');
+        // إعادة تعيين الحالة بعد التوجيه
+        setTimeout(() => {
+          setIsRedirecting(false);
+        }, 1000);
       }, 2000);
       
       return true;
     }
     return false;
-  }, [navigate, refreshShopifyConnection]);
+  }, [navigate, refreshShopifyConnection, isRedirecting]);
 
   const fetchProducts = useCallback(async () => {
+    // منع جلب المنتجات إذا كنا في حالة إعادة توجيه
+    if (isRedirecting) {
+      console.log('Skipping fetchProducts due to ongoing redirect');
+      return;
+    }
+    
     if (!shopifyConnected || !shop) {
       setError('Shopify connection not established');
       return;
@@ -132,9 +152,16 @@ export const useShopify = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [shop, shopifyConnected, handleAuthError]);
+  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
+    // منع المزامنة إذا كنا في حالة إعادة توجيه
+    if (isRedirecting) {
+      console.log('Skipping syncFormWithShopify due to ongoing redirect');
+      toast.error('يرجى الانتظار حتى يتم إعادة الاتصال بـ Shopify');
+      return;
+    }
+    
     if (!shopifyConnected || !shop) {
       toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
@@ -272,7 +299,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected, handleAuthError]);
+  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
   return {
     products,
@@ -281,6 +308,7 @@ export const useShopify = () => {
     syncFormWithShopify,
     fetchProducts,
     isConnected: !!shopifyConnected,
-    isSyncing
+    isSyncing,
+    isRedirecting
   };
 };
