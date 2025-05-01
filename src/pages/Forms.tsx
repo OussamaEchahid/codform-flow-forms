@@ -6,51 +6,62 @@ import { useI18n } from '@/lib/i18n';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const Forms = () => {
-  const { user, shopifyConnected } = useAuth();
+  const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
   const [isPageReady, setIsPageReady] = useState(false);
   const [showConnectWarning, setShowConnectWarning] = useState(false);
   
-  // أضف تأخيرًا صغيرًا للتأكد من تحديث حالة المصادقة
+  // تعطيل إعادة التوجيه التلقائي وبدلاً من ذلك إظهار زر للاتصال اليدوي
   useEffect(() => {
-    let checkShop = localStorage.getItem('shopify_store');
-    let checkConnected = localStorage.getItem('shopify_connected');
-    
     const timeoutId = setTimeout(() => {
       setIsPageReady(true);
       
-      // التحقق مما إذا كانت هناك مشكلة متكررة في الاتصال
-      const reconnectAttempts = localStorage.getItem('shopify_reconnect_attempts') || '0';
-      const attempts = parseInt(reconnectAttempts);
-      
-      // إذا تم اكتشاف أكثر من 3 محاولات خلال وقت قصير، نعرض تحذيرًا بدلاً من إعادة التوجيه
-      if (attempts > 3) {
-        const lastTime = localStorage.getItem('shopify_last_connect_time') || '0';
-        const timeSince = Date.now() - parseInt(lastTime);
+      // تمكين رسالة الاتصال اليدوي عند الضرورة
+      if (shopifyConnected && shop) {
+        // إذا كانت هناك بيانات اتصال، نفترض أنها صالحة ولا نظهر أي تحذير
+        setShowConnectWarning(false);
+      } else {
+        // فقط في حالة عدم وجود بيانات اتصال، أظهر تحذيرًا للاتصال اليدوي
+        const reconnectAttempts = localStorage.getItem('shopify_reconnect_attempts') || '0';
+        const attempts = parseInt(reconnectAttempts);
         
-        // إذا كان هناك عدة محاولات في أقل من دقيقة
-        if (timeSince < 60000) {
-          setShowConnectWarning(true);
+        // تعيين علامة للإشارة إلى أن هناك حاجة للاتصال اليدوي
+        setShowConnectWarning(true);
+        
+        // تجنب عرض نفس الإشعار عدة مرات
+        if (attempts === 0) {
           toast.warning(language === 'ar'
-            ? 'هناك مشكلة في الاتصال بـ Shopify. يرجى النقر على زر الاتصال يدويًا.'
+            ? 'يبدو أن هناك مشكلة في الاتصال بـ Shopify. يرجى النقر على زر الاتصال يدويًا.'
             : 'There is an issue with the Shopify connection. Please click connect button manually.');
-        } else {
-          // إعادة تعيين العداد بعد مرور وقت كافٍ
-          localStorage.setItem('shopify_reconnect_attempts', '0');
+          
+          // زيادة عداد المحاولات
+          localStorage.setItem('shopify_reconnect_attempts', '1');
         }
       }
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [language]);
+  }, [language, shopifyConnected, shop]);
   
   // التعامل مع النقر اليدوي على زر "الاتصال بـ Shopify"
   const handleConnectShopify = () => {
-    // تسجيل محاولة الاتصال
+    // إعادة تعيين البيانات المخزنة قبل الانتقال
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_reconnect_attempts');
+    localStorage.removeItem('shopify_last_connect_time');
+    localStorage.removeItem('shopify_last_redirect_time');
+    localStorage.removeItem('shopify_temp_store');
+    
+    // تحديث وقت آخر محاولة اتصال
     localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+    
+    // التوجيه إلى صفحة الاتصال بـ Shopify
     navigate('/shopify');
   };
 
@@ -72,15 +83,25 @@ const Forms = () => {
       
       {showConnectWarning && (
         <div className="fixed top-0 left-0 right-0 p-4 bg-yellow-100 text-yellow-800 z-50 text-center">
-          <p className="mb-2">{language === 'ar' 
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <AlertCircle className="h-5 w-5" /> 
+            <p className="font-bold">{language === 'ar' 
+              ? 'تحذير: مشكلة في الاتصال بـ Shopify' 
+              : 'Warning: Shopify connection issue'}</p>
+          </div>
+          <p className="mb-3">{language === 'ar' 
             ? 'هناك مشكلة في الاتصال بـ Shopify. قم بالنقر على الزر أدناه لإعادة الاتصال يدويًا.' 
             : 'There is an issue with the Shopify connection. Click the button below to reconnect manually.'}</p>
-          <button 
+          <Button 
             onClick={handleConnectShopify}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded-md text-sm"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md"
           >
-            {language === 'ar' ? 'اتصال بـ Shopify' : 'Connect to Shopify'}
-          </button>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+          </Button>
+          <p className="mt-3 text-xs">{language === 'ar' 
+            ? 'ملاحظة: سيتم مسح بيانات الاتصال السابقة وبدء عملية اتصال جديدة' 
+            : 'Note: Previous connection data will be cleared and a new connection process will start'}</p>
         </div>
       )}
       
