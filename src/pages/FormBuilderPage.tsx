@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -15,20 +15,43 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
+  const navigate = useNavigate();
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
-  const { fetchForms } = useFormTemplates();
+  const { fetchForms, getFormById } = useFormTemplates();
   const isMobile = useIsMobile();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [pageReady, setPageReady] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   // Determine which component to show based on presence of formId
   const showEditor = !!formId;
   
   useEffect(() => {
     console.log("FormBuilderPage mounted with formId:", formId);
+    
+    const validateForm = async () => {
+      if (formId) {
+        try {
+          const form = await getFormById(formId);
+          if (!form) {
+            console.error("Form validation failed: Form not found");
+            setFormError(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+            setTimeout(() => navigate('/forms'), 3000);
+          } else {
+            console.log("Form validation successful:", form);
+            setFormError(null);
+          }
+        } catch (err) {
+          console.error("Error validating form:", err);
+          setFormError(language === 'ar' ? 'خطأ في التحقق من النموذج' : 'Error validating form');
+        }
+      }
+    };
+    
     // Just set the page as ready after a short initialization period
     const timeoutId = setTimeout(() => {
+      validateForm();
       setPageReady(true);
     }, 300);
     
@@ -37,7 +60,7 @@ const FormBuilderPage = () => {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [showEditor, fetchForms, formId]);
+  }, [showEditor, fetchForms, formId, getFormById, navigate, language]);
 
   // Handle manual connection button click
   const handleConnectShopify = () => {
@@ -79,6 +102,28 @@ const FormBuilderPage = () => {
     return (
       <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
+  }
+
+  if (formError) {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB] justify-center items-center">
+        <div className="bg-white shadow rounded-lg p-8 w-full max-w-md text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-xl font-medium mb-2 text-red-600">
+            {language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error Loading Form'}
+          </h3>
+          <p className="text-gray-700 mb-4">
+            {formError}
+          </p>
+          <Button 
+            onClick={() => navigate('/forms')}
+            className="bg-[#9b87f5] hover:bg-[#8a74e8]"
+          >
+            {language === 'ar' ? 'العودة إلى النماذج' : 'Return to Forms'}
+          </Button>
+        </div>
       </div>
     );
   }

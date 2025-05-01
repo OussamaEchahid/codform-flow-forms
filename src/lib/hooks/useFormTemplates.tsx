@@ -67,7 +67,7 @@ export const useFormTemplates = () => {
       // Transform the data to ensure proper typing
       const formattedData: FormData[] = formsData?.map((form: DbFormData) => ({
         ...form,
-        data: form.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+        data: form.data as unknown as FormStep[] || [], // Safe type assertion with unknown as intermediary
         sectionConfig: form.sectionConfig as unknown as FormSectionConfig || { sections: [], layout: 'vertical' },
         style: form.style as { [key: string]: string | number } || {}
       })) || [];
@@ -224,9 +224,13 @@ export const useFormTemplates = () => {
   };
 
   const getFormById = async (formId: string) => {
-    if (!formId) return null;
+    if (!formId) {
+      console.error("Form ID is missing");
+      return null;
+    }
     
     try {
+      console.log("Fetching form with ID:", formId);
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -239,24 +243,38 @@ export const useFormTemplates = () => {
       }
       
       if (!data) {
+        console.log("No form data returned from database");
         toast.error('النموذج غير موجود');
         return null;
       }
       
-      console.log('Retrieved form data:', data);
+      console.log('Retrieved form data from database:', data);
       
       // Transform the returned data to match our expected FormData structure
       // Add default values for properties that might not exist in the database
       const formData: DbFormData = data as DbFormData;
       
-      return {
+      // Handle empty or null data arrays
+      const safeData = formData.data || [];
+      if (Array.isArray(safeData) && safeData.length === 0) {
+        console.log("Data array is empty, providing default empty array");
+      }
+      
+      // Create form with defaults for all required properties
+      const safeForm = {
         ...formData,
-        data: formData.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+        title: formData.title || "Untitled Form",
+        description: formData.description || "",
+        data: safeData as unknown as FormStep[],
         // Add default values for properties that might not exist in the database
         sectionConfig: formData.sectionConfig as unknown as FormSectionConfig || { sections: [], layout: 'vertical' },
         style: formData.style as { [key: string]: string | number } || {},
       } as FormData;
+      
+      console.log("Processed form data with defaults:", safeForm);
+      return safeForm;
     } catch (error: any) {
+      console.error("Error in getFormById:", error);
       toast.error(`خطأ في جلب النموذج: ${error.message}`);
       return null;
     }

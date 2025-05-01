@@ -39,6 +39,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         setLoadError(null);
         
         const fetchedForm = await getFormById(formId);
+        console.log('Fetched form data:', fetchedForm);
         
         if (fetchedForm) {
           console.log('Form loaded successfully:', fetchedForm);
@@ -49,6 +50,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             sectionConfig: fetchedForm.sectionConfig || { sections: [], layout: 'vertical' },
             style: fetchedForm.style || {}
           };
+          console.log('Form with defaults:', formWithDefaults);
           setForm(formWithDefaults);
         } else {
           console.error('Form not found or error loading form');
