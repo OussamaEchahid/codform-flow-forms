@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -140,13 +141,7 @@ export const useShopify = () => {
   }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
-    // Skip sync if redirecting
-    if (isRedirecting) {
-      console.log('Skipping syncFormWithShopify due to ongoing redirect');
-      toast.error('يرجى الانتظار حتى يتم إعادة الاتصال بـ Shopify');
-      return;
-    }
-    
+    // ACTUAL IMPLEMENTATION
     if (!shopifyConnected || !shop) {
       toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
@@ -285,7 +280,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
+  }, [shop, shopifyConnected, handleAuthError]);
 
   // Manual reconnect function - Use window.location for more reliable navigation
   const manualReconnect = useCallback(() => {
@@ -298,26 +293,25 @@ export const useShopify = () => {
     setIsRedirecting(true);
     console.log('Manual reconnect initiated');
     
-    // Clear stored connection data
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
-    localStorage.setItem('shopify_last_redirect_time', Date.now().toString());
+    // Clear ALL stored data to ensure a fresh start
+    localStorage.clear();
+    sessionStorage.clear();
     
     // Update auth context if available
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // Use window.location for more reliable navigation
+    // Use window.location for more reliable navigation with timestamp and random values to avoid caching
     setTimeout(() => {
-      console.log('Redirecting to /shopify?reconnect=manual&ts=' + Date.now());
-      window.location.href = '/shopify?reconnect=manual&ts=' + Date.now();
+      console.log('Redirecting to /shopify?reconnect=manual&force=true&ts=' + Date.now() + '&r=' + Math.random());
+      window.location.href = '/shopify?reconnect=manual&force=true&ts=' + Date.now() + '&r=' + Math.random();
       
       // Reset redirect state after some time in case navigation fails
       setTimeout(() => {
         setIsRedirecting(false);
       }, 5000);
-    }, 1000);
+    }, 500);
     
     return true;
   }, [refreshShopifyConnection, isRedirecting]);
@@ -326,12 +320,7 @@ export const useShopify = () => {
     products,
     isLoading,
     error,
-    syncFormWithShopify: async (formData) => {
-      // Dummy implementation to avoid missing function errors
-      console.warn('syncFormWithShopify called but is temporarily disabled');
-      toast.error('تم تعطيل عملية المزامنة مؤقتًا. يرجى إعادة الاتصال بـ Shopify أولًا.');
-      return false;
-    },
+    syncFormWithShopify,
     fetchProducts,
     isConnected: !!shopifyConnected && !!shop,
     isSyncing,

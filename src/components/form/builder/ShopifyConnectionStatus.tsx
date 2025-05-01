@@ -15,16 +15,25 @@ const ShopifyConnectionStatus = () => {
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   
   useEffect(() => {
-    // Check connection status on mount
+    // Check connection status on mount and force show warning
     const initialCheck = () => {
-      const shouldShowWarning = !shopifyConnected || !shop;
-      setShowWarning(shouldShowWarning);
-      console.log('ShopifyConnectionStatus initial check:', { shopifyConnected, shop, shouldShowWarning });
+      // Always show warning during initial load until we confirm connection
+      setShowWarning(true);
+      console.log('ShopifyConnectionStatus initial check:', { shopifyConnected, shop });
+      
+      // If connected, hide warning after a short delay
+      if (shopifyConnected && shop) {
+        setTimeout(() => {
+          setShowWarning(false);
+          console.log('Connection confirmed, hiding warning');
+        }, 500);
+      }
     };
     
+    // Run initial check
     initialCheck();
     
-    // Re-check every 10 seconds, but don't show too many warnings in succession
+    // Set up interval to check connection status periodically
     const intervalId = setInterval(() => {
       const shouldShowWarning = !shopifyConnected || !shop;
       setShowWarning(shouldShowWarning);
@@ -32,18 +41,18 @@ const ShopifyConnectionStatus = () => {
       // Log connection state for debugging
       console.log('ShopifyConnectionStatus interval check:', { 
         shopifyConnected, 
-        shop, 
+        shop,
         shouldShowWarning,
         timeSinceLastReconnect: Date.now() - lastReconnectAttempt
       });
-    }, 10000);
+    }, 5000);
     
     return () => clearInterval(intervalId);
   }, [shopifyConnected, shop, lastReconnectAttempt]);
   
-  // Handle manual connection button click
+  // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
-    // Prevent multiple clicks or reconnects within 30 seconds
+    // Prevent multiple clicks or reconnects within 10 seconds
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
@@ -51,86 +60,72 @@ const ShopifyConnectionStatus = () => {
       return;
     }
     
-    // Prevent reconnect attempts if we had one in the last 30 seconds
+    // Prevent reconnect attempts if we had one in the last 10 seconds
     const timeSinceLastAttempt = Date.now() - lastReconnectAttempt;
-    if (timeSinceLastAttempt < 30000) {
+    if (timeSinceLastAttempt < 10000) {
       toast.info(language === 'ar' 
-        ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${Math.ceil((30000 - timeSinceLastAttempt)/1000)} ثواني...` 
-        : `Reconnect attempted recently, please wait ${Math.ceil((30000 - timeSinceLastAttempt)/1000)} seconds...`);
+        ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} ثواني...` 
+        : `Reconnect attempted recently, please wait ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} seconds...`);
       return;
     }
     
     setIsRedirecting(true);
     setLastReconnectAttempt(Date.now());
     
-    // Clear all locally stored data to ensure clean reconnection
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_reconnect_attempts');
-    localStorage.removeItem('shopify_last_connect_time');
-    localStorage.removeItem('shopify_last_redirect_time');
-    localStorage.removeItem('shopify_temp_store');
-    
-    // Update auth context if available
-    if (refreshShopifyConnection) {
-      refreshShopifyConnection();
-    }
+    // Clear ALL locally stored data to ensure clean reconnection
+    localStorage.clear(); // Clear everything to ensure a fresh start
+    sessionStorage.clear(); // Also clear session storage
     
     // Show message to user
     toast.info(language === 'ar' 
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // Add a longer delay to prevent rapid redirections
+    // Use direct path for more reliable navigation, with a short delay
     setTimeout(() => {
-      // Use direct path for more reliable navigation
-      window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
-      
-      // Reset redirect state after a timeout in case navigation fails
-      setTimeout(() => {
-        setIsRedirecting(false);
-      }, 5000);
-    }, 1500);
+      window.location.href = '/shopify?reconnect=true&force=true&ts=' + Date.now() + '&random=' + Math.random();
+    }, 500);
   };
-  
+
+  // Don't show anything if we're connected
   if (!showWarning) {
     return null;
   }
   
   return (
-    <Alert className="bg-yellow-100 text-yellow-800 z-50 shadow-lg p-6 text-center mb-4 border-yellow-300">
+    <Alert className="bg-red-50 text-red-800 border-red-300 z-50 shadow-lg p-6 text-center mb-4">
       <div className="flex items-center justify-center gap-2 mb-4">
-        <AlertCircle className="h-6 w-6" /> 
-        <AlertTitle className="text-xl font-bold">{language === 'ar' 
-          ? 'تنبيه: هناك مشكلة في الاتصال بـ Shopify' 
-          : 'Alert: Shopify Connection Issue'}</AlertTitle>
+        <AlertCircle className="h-6 w-6 text-red-600" /> 
+        <AlertTitle className="text-xl font-bold text-red-700">{language === 'ar' 
+          ? 'تنبيه هام: يوجد مشكلة في الاتصال بـ Shopify' 
+          : 'Important Alert: Shopify Connection Issue'}</AlertTitle>
       </div>
-      <AlertDescription className="mb-4 text-lg">
+      <AlertDescription className="mb-6 text-lg">
         {language === 'ar' 
-          ? 'هناك مشكلة في الاتصال بـ Shopify. يرجى النقر على الزر أدناه لإعادة الاتصال يدويًا.' 
-          : 'There is an issue with your Shopify connection. Please click the button below to reconnect manually.'}
+          ? 'نواجه مشكلة في الاتصال بـ Shopify. هذا قد يمنع تحميل النموذج والعمل بشكل صحيح. يرجى النقر على الزر أدناه لإعادة الاتصال.' 
+          : 'We are experiencing an issue with the Shopify connection. This may prevent the form from loading and functioning properly. Please click the button below to reconnect.'}
       </AlertDescription>
       <Button 
         onClick={handleConnectShopify}
-        className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-md text-lg font-medium"
         size="lg"
+        className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md text-lg font-medium"
         disabled={isRedirecting}
       >
         {isRedirecting ? (
           <div className="flex items-center">
             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-            {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
+            {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
           </div>
         ) : (
           <>
             <RefreshCw className="h-5 w-5 mr-2" />
-            {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+            {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
           </>
         )}
       </Button>
-      <p className="mt-4 text-sm">{language === 'ar' 
-        ? 'سيتم مسح بيانات الاتصال السابقة وتوجيهك إلى صفحة Shopify للبدء من جديد' 
-        : 'Previous connection data will be cleared and you will be redirected to Shopify page to start fresh'}</p>
+      <p className="mt-4 text-sm text-red-700">{language === 'ar' 
+        ? 'سيؤدي هذا إلى مسح جميع بيانات الجلسة وإعادة الاتصال بالكامل. قد تحتاج إلى إعادة تسجيل الدخول.' 
+        : 'This will clear all session data and perform a complete reconnection. You may need to log in again.'}</p>
     </Alert>
   );
 };
