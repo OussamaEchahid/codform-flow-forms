@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertCircle, ExternalLink, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 // Clean the shop domain
 function cleanShopDomain(shop: string): string {
@@ -37,6 +38,22 @@ const ShopifyRedirect = () => {
   const [debug, setDebug] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [showTrace, setShowTrace] = useState(false);
+  
+  // Prevent multiple redirects in the same session
+  useEffect(() => {
+    // Check if we've tried too many times in this session
+    const redirectAttempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
+    if (redirectAttempts > 5) {
+      setStatus("تم اكتشاف مشكلة تكرار إعادة التوجيه");
+      setError("يبدو أننا نواجه حلقة إعادة توجيه. سنوقف العملية مؤقتًا. يرجى العودة إلى لوحة التحكم ومحاولة إعادة الاتصال من هناك.");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Increment the redirect counter
+    sessionStorage.setItem('shopify_redirect_attempts', (redirectAttempts + 1).toString());
+  }, []);
   
   useEffect(() => {
     const redirectToAuthEndpoint = async () => {
@@ -69,7 +86,11 @@ const ShopifyRedirect = () => {
           referrer: document.referrer || "none",
           userAgent: navigator.userAgent,
           cookies: document.cookie,
-          retryCount
+          retryCount,
+          localStorageShop: localStorage.getItem('shopify_store'),
+          localStorageConnected: localStorage.getItem('shopify_connected'),
+          tempShop: localStorage.getItem('shopify_temp_store'),
+          sessionStorage: Object.keys(sessionStorage).map(key => `${key}: ${sessionStorage.getItem(key)}`),
         };
         
         setDebug(debugInfo);
@@ -88,6 +109,8 @@ const ShopifyRedirect = () => {
           if (savedShop && savedConnected === 'true') {
             // If we have stored shop data, redirect directly to dashboard
             console.log("Using stored shop data for redirect...");
+            // Reset redirect counter
+            sessionStorage.removeItem('shopify_redirect_attempts');
             navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
             return;
           }
@@ -122,6 +145,29 @@ const ShopifyRedirect = () => {
           setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
           
           try {
+            // First check if token already exists in database
+            const { data: existingToken, error: tokenError } = await supabase
+              .from('shopify_stores')
+              .select('access_token, updated_at')
+              .eq('shop', cleanedShop)
+              .single();
+              
+            if (existingToken?.access_token) {
+              console.log("Found existing token in database, skipping callback function");
+              
+              // Save shop data in localStorage
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.removeItem('shopify_temp_store');
+              
+              // Reset redirect counter
+              sessionStorage.removeItem('shopify_redirect_attempts');
+              
+              toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+              navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
+              return;
+            }
+          
             // Call Supabase Edge Function to complete the auth
             const callbackResponse = await fetch(
               `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
@@ -140,6 +186,9 @@ const ShopifyRedirect = () => {
               localStorage.setItem('shopify_store', cleanedShop);
               localStorage.setItem('shopify_connected', 'true');
               localStorage.removeItem('shopify_temp_store');
+              
+              // Reset redirect counter
+              sessionStorage.removeItem('shopify_redirect_attempts');
               
               toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
               
@@ -163,6 +212,29 @@ const ShopifyRedirect = () => {
           setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
           
           try {
+            // First, verify if this store already exists in the database
+            const { data: existingStore } = await supabase
+              .from('shopify_stores')
+              .select('access_token, updated_at')
+              .eq('shop', cleanedShop)
+              .maybeSingle();
+              
+            if (existingStore && existingStore.access_token) {
+              console.log("Found existing token in database, using it directly");
+              
+              // Store shop data in localStorage
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.removeItem('shopify_temp_store');
+              
+              // Reset redirect counter
+              sessionStorage.removeItem('shopify_redirect_attempts');
+              
+              toast.success(`تم الاتصال بمتجر ${cleanedShop} (استخدام رمز مخزن)`);
+              navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
+              return;
+            }
+            
             // Use Edge Function directly to get auth URL
             const authResponse = await fetch(
               `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}`, 
@@ -180,6 +252,9 @@ const ShopifyRedirect = () => {
             if (authData.redirect) {
               console.log("Redirecting to Shopify OAuth:", authData.redirect);
               
+              // Reset redirect counter before directing to Shopify
+              sessionStorage.removeItem('shopify_redirect_attempts');
+              
               // Direct redirect to auth URL
               window.location.href = authData.redirect;
             } else {
@@ -195,6 +270,9 @@ const ShopifyRedirect = () => {
               // Use direct auth URL after failing to use Edge Function
               const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
               console.log("Trying direct auth URL as fallback:", directAuthUrl);
+              
+              // Reset redirect counter before attempting fallback
+              sessionStorage.removeItem('shopify_redirect_attempts');
               
               // Use slight delay before redirect
               setTimeout(() => {
@@ -216,10 +294,32 @@ const ShopifyRedirect = () => {
     redirectToAuthEndpoint();
   }, [location, navigate, retryCount]);
   
+  // Clear all Shopify data and try a fresh start
+  const handleFullReset = () => {
+    try {
+      // Clear all local storage related to Shopify
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_temp_store');
+      
+      // Reset session storage counters
+      sessionStorage.removeItem('shopify_redirect_attempts');
+      
+      toast.success("تم مسح جميع بيانات الاتصال بنجاح");
+      navigate('/shopify?reset=true');
+    } catch (e) {
+      toast.error("حدث خطأ أثناء إعادة تعيين البيانات");
+    }
+  };
+  
   // Direct auth alternative method
   const handleDirectAuth = () => {
     const shop = localStorage.getItem('shopify_temp_store');
     if (shop) {
+      // Increment retry counter
+      const attempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
+      sessionStorage.setItem('shopify_redirect_attempts', (attempts + 1).toString());
+      
       // Using direct URL with additional params to avoid caching issues
       const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
       window.location.href = directAuthUrl;
@@ -239,10 +339,15 @@ const ShopifyRedirect = () => {
       navigate('/shopify');
     }
   };
+  
+  // Toggle showing technical debugging info
+  const toggleShowTrace = () => {
+    setShowTrace(!showTrace);
+  };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
-      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
+      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-lg w-full mx-4 my-8">
         {error ? (
           <>
             <div className="flex justify-center mb-4">
@@ -255,8 +360,16 @@ const ShopifyRedirect = () => {
               {error}
             </div>
             
-            {/* Recovery options */}
+            {/* Recovery options - enhanced with more choices */}
             <div className="mb-6 space-y-3">
+              <Button 
+                className="w-full"
+                onClick={handleFullReset}
+                variant="destructive"
+              >
+                إعادة ضبط كامل وبدء من جديد
+              </Button>
+              
               <Button 
                 className="w-full"
                 onClick={handleDirectAuth}
@@ -269,7 +382,7 @@ const ShopifyRedirect = () => {
                 onClick={handleRetryDirectly}
                 className="w-full flex items-center justify-center"
               >
-                <RefreshCcw className="h-4 w-4 mr-2" />
+                <RefreshCcw className="h-4 w-4 ml-2" />
                 محاولة الاتصال باستخدام مسار Node.js
               </Button>
               
@@ -282,11 +395,24 @@ const ShopifyRedirect = () => {
               </Button>
             </div>
             
-            {/* Debug information */}
-            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-              <p className="font-bold mb-2">معلومات التصحيح:</p>
-              <pre>{JSON.stringify(debug, null, 2)}</pre>
+            {/* Enhanced debug information - toggleable section */}
+            <div className="mt-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleShowTrace}
+                className="w-full mb-2"
+              >
+                {showTrace ? "إخفاء معلومات التصحيح" : "عرض معلومات التصحيح"}
+              </Button>
+              
+              {showTrace && (
+                <div className="p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-60 rtl:text-right">
+                  <pre dir="ltr" className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+                </div>
+              )}
             </div>
+            
             <button 
               onClick={() => navigate('/dashboard')} 
               className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
@@ -308,10 +434,21 @@ const ShopifyRedirect = () => {
                 </p>
               </div>
             )}
-            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-              <p className="font-bold mb-2">معلومات التصحيح:</p>
-              <pre>{JSON.stringify(debug, null, 2)}</pre>
-            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleShowTrace}
+              className="w-full mb-2"
+            >
+              {showTrace ? "إخفاء معلومات التصحيح" : "عرض معلومات التصحيح"}
+            </Button>
+            
+            {showTrace && (
+              <div className="p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-60 rtl:text-right">
+                <pre dir="ltr" className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+              </div>
+            )}
           </>
         )}
       </div>

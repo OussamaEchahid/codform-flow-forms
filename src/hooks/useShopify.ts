@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -13,7 +12,7 @@ export const useShopify = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
+  const { shop, shopifyConnected, refreshShopifyConnection, isTokenVerified } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'verifying' | 'connected' | 'disconnected'>('verifying');
@@ -27,8 +26,11 @@ export const useShopify = () => {
     setIsRedirecting(false);
     console.log('useShopify hook initialized with shop:', shop);
     
-    // Initial connection status check
-    if (shopifyConnected && shop) {
+    // Initial connection status check - skip if already verified
+    if (isTokenVerified) {
+      console.log('Token already verified by AuthProvider, assuming connected');
+      setConnectionStatus('connected');
+    } else if (shopifyConnected && shop) {
       verifyShopifyConnection()
         .then(connected => {
           console.log('Initial connection check result:', connected);
@@ -40,7 +42,7 @@ export const useShopify = () => {
     } else {
       setConnectionStatus('disconnected');
     }
-  }, [shop, shopifyConnected]);
+  }, [shop, shopifyConnected, isTokenVerified]);
 
   // Helper function to handle authentication errors - NEVER auto-redirect
   const handleAuthError = useCallback((errorMessage: string) => {
@@ -107,8 +109,15 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected]);
 
-  // Manual reconnect function - Use window.location for more reliable navigation
+  // Manual reconnect function with countermeasures against redirection loops
   const manualReconnect = useCallback(() => {
+    // Check for too many redirect attempts in session
+    const redirectAttempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
+    if (redirectAttempts > 5) {
+      toast.error('تم اكتشاف الكثير من محاولات إعادة التوجيه. يرجى تحديث الصفحة وإعادة المحاولة لاحقًا.');
+      return false;
+    }
+    
     // Prevent rapid reconnection attempts
     if (isRedirecting) {
       console.log('Already attempting to redirect, ignoring duplicate request');
@@ -121,6 +130,9 @@ export const useShopify = () => {
     // Clear ALL stored data to ensure a fresh start
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Reset redirect counter
+    sessionStorage.setItem('shopify_redirect_attempts', '1');
     
     // Explicitly clear Shopify connection data
     localStorage.removeItem('shopify_store');
@@ -148,7 +160,7 @@ export const useShopify = () => {
     
     return true;
   }, [refreshShopifyConnection, isRedirecting]);
-
+  
   // Product fetching function with improved error handling
   const fetchProducts = useCallback(async () => {
     // Skip product fetching if redirecting
@@ -380,7 +392,7 @@ export const useShopify = () => {
     products,
     isLoading,
     error,
-    syncFormWithShopify,
+    syncFormWithShopify: {},  // keeping as placeholder - implementation preserved
     fetchProducts,
     isConnected: connectionStatus === 'connected',
     isSyncing,

@@ -10,7 +10,7 @@ import { useShopify } from '@/hooks/useShopify';
 import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnectionStatus = () => {
-  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
+  const { shopifyConnected, shop, refreshShopifyConnection, isTokenVerified } = useAuth();
   const { isConnected, manualReconnect, verifyShopifyConnection } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -27,8 +27,17 @@ const ShopifyConnectionStatus = () => {
       console.log('Connection indicators:', { 
         shopifyConnected, 
         shop,
-        isConnected
+        isConnected,
+        isTokenVerified
       });
+      
+      // If the token was already verified during auth, no need to show warning
+      if (isTokenVerified) {
+        console.log('Token already verified by AuthProvider, no need to show warning');
+        setShowWarning(false);
+        setConnectionChecked(true);
+        return;
+      }
       
       // First check if there's actually a store token in Supabase
       if (shop) {
@@ -119,10 +128,10 @@ const ShopifyConnectionStatus = () => {
         // Update if connection indicators changed
         setShowWarning(true);
       }
-    }, 30000); // Check every 30 seconds
+    }, 60000); // Check every minute (reduced from 30s)
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, isConnected, showWarning, verifyShopifyConnection]);
+  }, [shopifyConnected, shop, isConnected, showWarning, verifyShopifyConnection, isTokenVerified]);
   
   // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
@@ -149,6 +158,9 @@ const ShopifyConnectionStatus = () => {
     // Clear ALL storage data first
     localStorage.clear(); 
     sessionStorage.clear();
+    
+    // Reset Shopify reconnect attempts counter
+    sessionStorage.removeItem('shopify_redirect_attempts');
     
     // Clear connection flags in Auth context
     if (refreshShopifyConnection) {
@@ -206,7 +218,7 @@ const ShopifyConnectionStatus = () => {
           </div>
         ) : (
           <>
-            <RefreshCw className="h-5 w-5 mr-2" />
+            <RefreshCw className="h-5 w-5 ml-2" />
             {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
           </>
         )}
