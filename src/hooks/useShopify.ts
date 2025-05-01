@@ -16,24 +16,58 @@ export const useShopify = () => {
   const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectionDisabled, setRedirectionDisabled] = useState(false); // جديد: لمنع التوجيه المستمر
+  const [authRetryCount, setAuthRetryCount] = useState(0); // جديد: لتتبع عدد محاولات إعادة الاتصال
+
+  // تحقق من حالة التوجيه عند تغيير الصفحة
+  useEffect(() => {
+    // إعادة تعيين حالة التوجيه عند تحميل الهوك
+    setIsRedirecting(false);
+    
+    // بعد محاولات متعددة فاشلة، تعطيل إعادة التوجيه التلقائي
+    if (authRetryCount > 2 && !redirectionDisabled) {
+      console.log('تم تعطيل إعادة التوجيه التلقائي بعد محاولات متعددة فاشلة');
+      setRedirectionDisabled(true);
+    }
+    
+    // فحص وجود تخزين مؤقت لتجنب الحلقة المتكررة
+    const lastRedirectTime = localStorage.getItem('shopify_last_redirect_time');
+    if (lastRedirectTime) {
+      const timeSinceLastRedirect = Date.now() - parseInt(lastRedirectTime);
+      // منع إعادة توجيه متكررة خلال 10 ثوانٍ
+      if (timeSinceLastRedirect < 10000) {
+        console.log('تم منع إعادة توجيه متكررة، مر', timeSinceLastRedirect, 'مللي ثانية منذ آخر توجيه');
+        setRedirectionDisabled(true);
+        setTimeout(() => setRedirectionDisabled(false), 10000 - timeSinceLastRedirect);
+      }
+    }
+  }, [authRetryCount]);
 
   // جلب المنتجات عندما يتغير اتصال المتجر
   useEffect(() => {
-    if (shopifyConnected && shop) {
+    // نتجاهل استدعاء الداتا إذا كنا في حالة إعادة توجيه
+    if (!isRedirecting && shopifyConnected && shop) {
       fetchProducts();
-    } else {
+    } else if (!shopifyConnected) {
       // إعادة تعيين المنتجات عند قطع الاتصال
       setProducts([]);
     }
-  }, [shopifyConnected, shop]);
+  }, [shopifyConnected, shop, isRedirecting]);
 
   // Helper function to handle authentication errors
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
     
-    // التحقق من أننا لسنا في حالة إعادة توجيه بالفعل لتجنب الحلقة
+    // تجنب الدخول في حلقة إعادة توجيه متكررة
     if (isRedirecting) {
       console.log('Already redirecting, skipping additional redirect');
+      return true;
+    }
+    
+    // تجنب التوجيه في حالة تعطيله
+    if (redirectionDisabled) {
+      console.log('Redirection disabled due to multiple failures. Showing error only.');
+      toast.error('فشل الاتصال بـ Shopify. يرجى النقر على زر إعادة الاتصال يدويًا.', { duration: 5000 });
       return true;
     }
     
@@ -46,8 +80,12 @@ export const useShopify = () => {
     
     if (isAuthError) {
       setIsRedirecting(true);
+      setAuthRetryCount(prev => prev + 1); // زيادة عداد المحاولات
       
-      toast.error('Shopify connection needs to be refreshed. Redirecting to reconnect...', {
+      // تسجيل وقت التوجيه لمنع التكرار
+      localStorage.setItem('shopify_last_redirect_time', Date.now().toString());
+      
+      toast.error('يجب تجديد اتصال Shopify. جاري إعادة التوجيه...', {
         duration: 5000,
         onDismiss: () => setIsRedirecting(false) // إعادة تعيين الحالة بعد إغلاق الإشعار
       });
@@ -63,6 +101,7 @@ export const useShopify = () => {
       
       // إضافة تأخير قبل إعادة التوجيه
       setTimeout(() => {
+        console.log('إعادة توجيه إلى صفحة الاتصال بـ Shopify');
         navigate('/shopify');
         // إعادة تعيين الحالة بعد التوجيه
         setTimeout(() => {
@@ -73,8 +112,9 @@ export const useShopify = () => {
       return true;
     }
     return false;
-  }, [navigate, refreshShopifyConnection, isRedirecting]);
+  }, [navigate, refreshShopifyConnection, isRedirecting, redirectionDisabled, setAuthRetryCount]);
 
+  // دالة جلب المنتجات مع تحسينات لتجنب حلقات التوجيه
   const fetchProducts = useCallback(async () => {
     // منع جلب المنتجات إذا كنا في حالة إعادة توجيه
     if (isRedirecting) {
@@ -82,7 +122,9 @@ export const useShopify = () => {
       return;
     }
     
+    // تحقق من حالة الاتصال بالمتجر
     if (!shopifyConnected || !shop) {
+      console.log('Shopify connection not established, skipping fetch');
       setError('Shopify connection not established');
       return;
     }
@@ -127,6 +169,8 @@ export const useShopify = () => {
         try {
           await api.verifyConnection();
           console.log('Connection verified successfully');
+          // إعادة تعيين عداد المحاولات عند نجاح الاتصال
+          setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Verification error:', verifyError.message);
           if (handleAuthError(verifyError.message)) {
@@ -154,6 +198,7 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
+  // باقي الدالات مع تحسينات بسيطة
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
     // منع المزامنة إذا كنا في حالة إعادة توجيه
     if (isRedirecting) {
@@ -251,6 +296,8 @@ export const useShopify = () => {
         try {
           await api.verifyConnection();
           console.log('Connection verification successful');
+          // إعادة تعيين عداد المحاولات عند نجاح الاتصال
+          setAuthRetryCount(0);
         } catch (verifyError: any) {
           console.error('Connection verification failed:', verifyError);
           
@@ -299,7 +346,25 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
+  }, [shop, shopifyConnected, handleAuthError, isRedirecting, setAuthRetryCount]);
+
+  // وظيفة جديدة للتحكم اليدوي في إعادة الاتصال
+  const manualReconnect = useCallback(() => {
+    // مسح بيانات الاتصال المخزنة
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.setItem('shopify_last_redirect_time', Date.now().toString());
+    
+    // تحديث سياق المصادقة
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+    
+    // إعادة توجيه المستخدم إلى صفحة إعادة الاتصال
+    navigate('/shopify');
+    
+    return true;
+  }, [navigate, refreshShopifyConnection]);
 
   return {
     products,
@@ -309,6 +374,9 @@ export const useShopify = () => {
     fetchProducts,
     isConnected: !!shopifyConnected,
     isSyncing,
-    isRedirecting
+    isRedirecting,
+    redirectionDisabled,
+    manualReconnect,  // إتاحة وظيفة إعادة الاتصال اليدوي
+    authRetryCount
   };
 };
