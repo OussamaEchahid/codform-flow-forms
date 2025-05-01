@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +49,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     isLoading: loadingProducts, 
     error: shopifyError, 
     isRedirecting, 
-    redirectionDisabled, 
     manualReconnect 
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -66,10 +64,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   
   // Initial connection check when component loads - always force a re-check
   useEffect(() => {
+    console.log("ShopifyIntegration component mounted");
     const checkConnection = () => {
+      console.log("Checking connection status:", { shopifyConnected, shop });
       if (shopifyConnected && shop) {
         console.log("Shopify connection detected:", shop);
-        // Always verify actual connection by trying to verify connection and handle failures
         setConnectionStatus('success');
       } else {
         console.log("No Shopify connection detected, showing warning");
@@ -167,7 +166,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
   
-  // Modified manual reconnect function to prevent redirect loops and add reconnection timestamp
+  // Modified manual reconnect function to prevent redirect loops
   const handleManualReconnect = () => {
     // Prevent multiple clicks
     if (isRedirecting || localIsRedirecting) {
@@ -177,26 +176,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    // Check if we've tried to reconnect recently
-    const lastReconnectTime = parseInt(localStorage.getItem('shopify_last_reconnect_time') || '0');
-    const timeSinceLastReconnect = Date.now() - lastReconnectTime;
-    
-    // Allow reconnection attempts only every 30 seconds
-    if (timeSinceLastReconnect < 30000) {
-      const secondsRemaining = Math.ceil((30000 - timeSinceLastReconnect) / 1000);
-      toast.info(language === 'ar'
-        ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${secondsRemaining} ثانية...`
-        : `Reconnection attempted recently, please wait ${secondsRemaining} seconds...`);
-      return;
-    }
-    
-    // Set local redirecting state
     setLocalIsRedirecting(true);
     
-    // Store reconnect attempt timestamp
-    localStorage.setItem('shopify_last_reconnect_time', Date.now().toString());
-    
-    // Remove all locally stored data
+    // Clear stored connection data
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_reconnect_attempts');
@@ -204,276 +186,256 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     localStorage.removeItem('shopify_last_redirect_time');
     localStorage.removeItem('shopify_temp_store');
     
-    // Update auth context
+    // Update auth context if available
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
     // Show message to user
-    toast.info(language === 'ar'
+    toast.info(language === 'ar' 
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // Use window.location for more robust navigation and to break potential redirect loops
-    // Add a timestamp query parameter to bust cache and ensure we get a fresh page
+    // Add a longer delay to prevent rapid redirections
     setTimeout(() => {
-      window.location.href = '/shopify?reconnect=integration&ts=' + Date.now();
-      
-      // Reset local state after longer timeout
-      setTimeout(() => {
-        setLocalIsRedirecting(false);
-      }, 3000);
+      console.log("Redirecting to Shopify connection page...");
+      // Use direct path for more reliable navigation
+      window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
     }, 1500);
   };
 
-  // Enhanced UI component for connection status - Always show connection status for debugging
-  const renderConnectionStatus = () => {
-    // Always show reconnect UI if we have errors or forceShowConnectWarning is true
-    if ((connectionStatus === 'error' || saveError || forceShowConnectWarning || !shopifyConnected || !shop)) {
-      return (
-        <Alert className="bg-red-50 border-red-300 mb-4 p-6">
-          <div className="flex items-center">
-            <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
-            <AlertTitle className="text-lg font-bold">
-              {language === 'ar' ? 'مشكلة في الاتصال بالمتجر' : 'Connection issue detected'}
-            </AlertTitle>
-          </div>
-          
-          {saveError && (
-            <AlertDescription className="mt-3 text-base">
-              {saveError}
-            </AlertDescription>
-          )}
-          
-          <div className="mt-4 flex justify-center">
-            <Button 
-              size="lg"
-              onClick={handleManualReconnect} 
-              className="bg-red-500 hover:bg-red-600 text-white px-6 py-3"
-              disabled={isRedirecting || localIsRedirecting}
-            >
-              {(isRedirecting || localIsRedirecting) ? (
-                <Loader className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-5 w-5 mr-2" />
-              )}
-              {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
-            </Button>
-          </div>
-          
-          <p className="mt-4 text-sm text-center text-red-700">
-            {language === 'ar'
-              ? 'تم اكتشاف مشكلة في الاتصال بـ Shopify. يرجى النقر على الزر أعلاه لإعادة الاتصال'
-              : 'A problem with your Shopify connection was detected. Please click the button above to reconnect'}
-          </p>
-        </Alert>
-      );
-    } else if (isRedirecting || localIsRedirecting) {
-      return (
-        <Alert className="bg-blue-50 border-blue-200 mb-4">
-          <div className="flex items-center">
-            <Loader className="h-5 w-5 animate-spin text-blue-500 mr-2" />
-            <AlertTitle className="text-lg font-bold">
-              {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
-            </AlertTitle>
-          </div>
-          <AlertDescription className="mt-2 text-base">
-            {language === 'ar'
-              ? 'يرجى الانتظار بينما نقوم بإعادة الاتصال بـ Shopify'
-              : 'Please wait while we reconnect to Shopify'}
+  // Show a warning if Shopify is not connected
+  if (!shopifyConnected || !shop || forceShowConnectWarning) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>
+            {language === 'ar' 
+              ? 'غير متصل بـ Shopify' 
+              : 'Not Connected to Shopify'}
+          </AlertTitle>
+          <AlertDescription>
+            {language === 'ar' 
+              ? 'يجب أن تكون متصلاً بمتجر Shopify لاستخدام هذه الميزة.' 
+              : 'You must be connected to a Shopify store to use this feature.'}
           </AlertDescription>
         </Alert>
-      );
-    } else if (connectionStatus === 'success' && shopifyConnected && shop) {
-      return (
-        <Alert className="bg-green-50 border-green-200 mb-4">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center">
-              <Check className="h-5 w-5 text-green-500 mr-2" />
-              <AlertTitle className="text-lg font-bold">
-                {language === 'ar' 
-                  ? `متصل بمتجر: ${shop}` 
-                  : `Connected to store: ${shop}`}
-              </AlertTitle>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManualReconnect}
-              className="ml-2 border-green-300 text-green-700 hover:bg-green-50"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
-            </Button>
-          </div>
-        </Alert>
-      );
-    }
-    
-    // Fallback for any other state - should always show something
-    return (
-      <Alert className="bg-yellow-50 border-yellow-200 mb-4">
-        <div className="flex items-center">
-          <Info className="h-5 w-5 text-yellow-500 mr-2" />
-          <AlertTitle className="text-lg font-bold">
-            {language === 'ar' 
-              ? 'جاري التحقق من الاتصال...' 
-              : 'Checking connection status...'}
-          </AlertTitle>
-        </div>
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualReconnect}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-          </Button>
-        </div>
-      </Alert>
-    );
-  };
 
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>
+              {language === 'ar' 
+                ? 'اتصال بـ Shopify' 
+                : 'Shopify Connection'}
+            </CardTitle>
+            <CardDescription>
+              {language === 'ar' 
+                ? 'قم بالاتصال بمتجر Shopify الخاص بك للبدء.' 
+                : 'Connect to your Shopify store to get started.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center">
+            <img 
+              src="https://cdn.shopify.com/s/files/1/0558/6737/1846/files/shopify_logo_whitebg.png" 
+              alt="Shopify Logo" 
+              className="mb-4 w-40 h-auto" 
+            />
+            <p className="text-center mb-6">
+              {language === 'ar' 
+                ? 'يتيح لك الاتصال بـ Shopify دمج النماذج مع متجرك، وعرض المنتجات، وتخصيص الردود على الطلبات.' 
+                : 'Connecting to Shopify allows you to integrate forms with your store, display products, and customize order responses.'}
+            </p>
+            <Button 
+              onClick={handleManualReconnect}
+              className="bg-[#95BF47] hover:bg-[#7AA93C] text-white w-full max-w-xs"
+              disabled={isRedirecting || localIsRedirecting}
+            >
+              {isRedirecting || localIsRedirecting ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  {language === 'ar' 
+                    ? 'جاري التوجيه...' 
+                    : 'Redirecting...'}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {language === 'ar' 
+                    ? 'الاتصال بـ Shopify' 
+                    : 'Connect to Shopify'}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Rest of the component for the connected state
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {language === 'ar' ? 'تكامل شوبيفاي' : 'Shopify Integration'}
-        </CardTitle>
-        <CardDescription>
+    <div className="max-w-4xl mx-auto">
+      <Alert className="mb-6 bg-green-50 border-green-200">
+        <Check className="h-4 w-4 text-green-600" />
+        <AlertTitle className="text-green-800">
           {language === 'ar' 
-            ? 'قم بتكوين كيفية ظهور النموذج في متجر شوبيفاي الخاص بك'
-            : 'Configure how your form appears in your Shopify store'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Always display connection status */}
-        <div className="mb-6">
-          {renderConnectionStatus()}
-        </div>
-        
-        {shopifyConnected && shop ? (
-          <>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                {language === 'ar' ? 'موقع النموذج' : 'Form Position'}
+            ? 'متصل بـ Shopify' 
+            : 'Connected to Shopify'}
+        </AlertTitle>
+        <AlertDescription className="text-green-700">
+          {language === 'ar' 
+            ? `متصل حاليا بمتجر: ${shop}` 
+            : `Currently connected to store: ${shop}`}
+        </AlertDescription>
+      </Alert>
+
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>
+            {language === 'ar' 
+              ? 'إعدادات تكامل المتجر' 
+              : 'Store Integration Settings'}
+          </CardTitle>
+          <CardDescription>
+            {language === 'ar' 
+              ? 'قم بتخصيص كيفية ظهور النموذج في متجرك' 
+              : 'Customize how the form appears in your store'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <label className="text-sm font-medium">
+              {language === 'ar' 
+                ? 'مكان عرض النموذج' 
+                : 'Form Display Location'}
+            </label>
+            <Select 
+              value={position} 
+              onValueChange={(val) => setPosition(val as any)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder={
+                  language === 'ar' 
+                    ? 'اختر مكان العرض' 
+                    : 'Select display location'
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="product-page">
+                  {language === 'ar' ? 'صفحة المنتج' : 'Product Page'}
+                </SelectItem>
+                <SelectItem value="cart-page">
+                  {language === 'ar' ? 'صفحة السلة' : 'Cart Page'}
+                </SelectItem>
+                <SelectItem value="checkout">
+                  {language === 'ar' ? 'صفحة الدفع' : 'Checkout'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              {language === 'ar' 
+                ? 'يحدد أين سيظهر النموذج في متجرك.' 
+                : 'Determines where the form will appear in your store.'}
+            </p>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium">
+              {language === 'ar' 
+                ? 'معرف المكوّن (Block ID)' 
+                : 'Block ID'}
+            </label>
+            <input
+              type="text"
+              value={blockId}
+              onChange={(e) => setBlockId(e.target.value)}
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+              placeholder={language === 'ar' ? 'أدخل معرف المكون' : 'Enter block ID'}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {language === 'ar' 
+                ? 'معرف فريد يستخدم لإدراج النموذج في الصفحة.' 
+                : 'A unique identifier used to embed the form in the page.'}
+            </p>
+          </div>
+          
+          {/* Display Products - temporarily disabled until Shopify API is fixed */}
+          <div className="pt-2 opacity-75 cursor-not-allowed">
+            <div className="pointer-events-none">
+              <label className="text-sm font-medium flex items-center">
+                <span>
+                  {language === 'ar' 
+                    ? 'المنتجات المرتبطة (قريبًا)' 
+                    : 'Associated Products (Coming Soon)'}
+                </span>
+                <div className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded ml-2">
+                  {language === 'ar' ? 'قريبًا' : 'Soon'}
+                </div>
               </label>
-              <Select value={position} onValueChange={(value: any) => setPosition(value)}>
-                <SelectTrigger>
-                  <SelectValue />
+              <Select disabled value="all">
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder={
+                    language === 'ar' 
+                      ? 'جميع المنتجات' 
+                      : 'All Products'
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="product-page">
-                    {language === 'ar' ? 'صفحة المنتج' : 'Product Page'}
-                  </SelectItem>
-                  <SelectItem value="cart-page">
-                    {language === 'ar' ? 'صفحة السلة' : 'Cart Page'}
-                  </SelectItem>
-                  <SelectItem value="checkout">
-                    {language === 'ar' ? 'صفحة الدفع' : 'Checkout'}
+                  <SelectItem value="all">
+                    {language === 'ar' ? 'جميع المنتجات' : 'All Products'}
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="mt-4">
-              <p className="text-sm font-medium mb-2">
-                {language === 'ar' ? 'معرف كتلة Shopify' : 'Shopify Block ID'}
-              </p>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="text" 
-                  value={blockId}
-                  onChange={(e) => setBlockId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder={language === 'ar' ? 'معرف كتلة شوبيفاي' : 'Shopify block ID'}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    const newId = `codform-${Math.random().toString(36).substring(2, 10)}`;
-                    setBlockId(newId);
-                  }}
-                >
-                  {language === 'ar' ? 'توليد' : 'Generate'}
-                </Button>
-              </div>
               <p className="text-xs text-gray-500 mt-1">
-                {language === 'ar'
-                  ? 'هذا المعرف مطلوب للمساعدة في تتبع النماذج المختلفة في متجرك'
-                  : 'This ID is required to help track different forms in your store'}
-              </p>
-            </div>
-
-            <Alert className="mt-4 bg-blue-50 border-blue-100">
-              <Info className="h-4 w-4 text-blue-500 mr-2" />
-              <AlertTitle className="text-sm font-medium mb-1">
-                {language === 'ar' ? 'تذكير هام' : 'Important Reminder'}
-              </AlertTitle>
-              <AlertDescription className="text-xs text-gray-600">
-                {language === 'ar'
-                  ? 'بعد حفظ التكامل، يجب عليك الذهاب إلى محرر موضوعات متجرك في شوبيفاي وإضافة بلوك "نموذج الدفع عند الاستلام" في قالب المنتج. تأكد من تعيين نفس معرف النموذج الذي اخترته في إعدادات البلوك.'
-                  : 'After saving the integration, you need to go to your Shopify theme editor and add the "Cash on Delivery Form" block in your product template. Make sure to set the same form ID you selected in the block settings.'}
-              </AlertDescription>
-            </Alert>
-
-            <Button
-              onClick={handleSave}
-              className="w-full mt-4"
-              disabled={isSaving || isSyncing || isRedirecting || localIsRedirecting}
-            >
-              {(isSaving || isSyncing) ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
-                </>
-              ) : (isRedirecting || localIsRedirecting) ? (
-                language === 'ar' ? 'جارٍ إعادة الاتصال...' : 'Reconnecting...'
-              ) : (
-                language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
-              )}
-            </Button>
-          </>
-        ) : (
-          <div className="space-y-4">
-            <Alert className="bg-yellow-50 border-yellow-200">
-              <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
-              <AlertTitle>
                 {language === 'ar' 
-                  ? 'أنت غير متصل بـ Shopify. قم بتسجيل الدخول لاستخدام هذه الميزة.'
-                  : 'You are not connected to Shopify. Sign in to use this feature.'}
-              </AlertTitle>
-            </Alert>
-            
-            <div className="flex justify-center mt-6">
-              <Button 
-                size="lg"
-                variant="default"
-                className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700"
-                onClick={handleManualReconnect}
-                disabled={isRedirecting || localIsRedirecting}
-              >
-                {(isRedirecting || localIsRedirecting) ? (
-                  <Loader className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-5 w-5 mr-2" />
-                )}
-                {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-              </Button>
+                  ? 'ميزة قادمة قريبًا - انتظرها!' 
+                  : 'Coming soon feature - stay tuned!'}
+              </p>
             </div>
           </div>
-        )}
-      </CardContent>
-      <CardFooter>
-        <p className="text-sm text-gray-500 w-full text-center">
-          {language === 'ar'
-            ? 'سيتم مزامنة النموذج تلقائياً عند تحديث المنتجات في متجرك'
-            : 'The form will automatically sync when products are updated in your store'}
-        </p>
-      </CardFooter>
-    </Card>
+          
+          {saveError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>خطأ</AlertTitle>
+              <AlertDescription>
+                {saveError}
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between flex-wrap gap-4">
+          <Button 
+            variant="outline"
+            onClick={handleManualReconnect}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {language === 'ar' 
+              ? 'إعادة الاتصال' 
+              : 'Reconnect'}
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving || isSyncing}
+            className="bg-[#9b87f5] hover:bg-[#8a74e8]"
+          >
+            {(isSaving || isSyncing) ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' 
+                  ? 'جاري الحفظ...' 
+                  : 'Saving...'}
+              </>
+            ) : (
+              language === 'ar' 
+                ? 'حفظ الإعدادات' 
+                : 'Save Settings'
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

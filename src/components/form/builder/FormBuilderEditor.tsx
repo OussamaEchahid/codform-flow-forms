@@ -10,6 +10,8 @@ import ShopifyIntegration from './ShopifyIntegration';
 import { ShopifyFormData } from '@/lib/shopify/types';
 import { useShopify } from '@/hooks/useShopify';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import ShopifyConnectionStatus from './ShopifyConnectionStatus';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -24,6 +26,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { syncFormWithShopify, isSyncing } = useShopify();
+  const { shopifyConnected, shop } = useAuth();
 
   useEffect(() => {
     const loadForm = async () => {
@@ -131,6 +134,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   return (
     <div className="p-4 bg-[#F8F9FB] min-h-screen">
+      {/* إضافة مكون حالة الاتصال بـ Shopify */}
+      {(!shopifyConnected || !shop) && <ShopifyConnectionStatus />}
+      
       <div className="max-w-[1400px] mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-1">{form.title}</h1>
