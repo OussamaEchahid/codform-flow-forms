@@ -88,14 +88,15 @@ export const useShopify = () => {
         throw new Error('No store data found');
       }
       
-      // Explicitly check if the properties exist to satisfy TypeScript
-      const accessToken = storeData.access_token as string;
+      // Safely access properties
+      const accessToken = storeData.access_token;
       if (!accessToken) {
         throw new Error('Access token not found in store data');
       }
       
       console.log('Access token retrieved successfully');
-      const updateTime = storeData.updated_at as string || storeData.created_at as string;
+      // Safely access date properties with fallbacks
+      const updateTime = storeData.updated_at || storeData.created_at || new Date().toISOString();
       console.log('Token age:', new Date(updateTime));
 
       // Create API instance with token and store scope
@@ -169,14 +170,15 @@ export const useShopify = () => {
         throw new Error('No store data found');
       }
       
-      // Explicitly check if the properties exist to satisfy TypeScript
-      const accessToken = storeData.access_token as string;
+      // Safely access properties
+      const accessToken = storeData.access_token;
       if (!accessToken) {
         throw new Error('Access token not found in store data');
       }
       
       console.log('Retrieved store access token successfully');
-      const updateTime = storeData.updated_at as string || storeData.created_at as string;
+      // Safely access date properties with fallbacks
+      const updateTime = storeData.updated_at || storeData.created_at || new Date().toISOString();
       console.log('Token age:', new Date(updateTime));
 
       // Save product settings to database first
