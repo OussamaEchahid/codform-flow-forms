@@ -88,7 +88,15 @@ export const useShopify = () => {
       console.log('Saving product settings for productId:', formData.settings.products?.[0] || 'default');
       
       try {
+        // استخدام معرف المنتج من الإعدادات أو استخدام قيمة افتراضية
         const productId = formData.settings.products?.[0] || 'default-product';
+        
+        // التأكد من أن معرف النموذج صالح قبل الإرسال
+        if (!formData.formId) {
+          throw new Error('Form ID is missing or invalid');
+        }
+        
+        // إعداد بيانات الطلب
         const requestData: ProductSettingsRequest = {
           productId: productId,
           formId: formData.formId,
@@ -108,12 +116,17 @@ export const useShopify = () => {
         }
       } catch (apiError) {
         console.error('API request error:', apiError);
-        throw apiError;
+        throw apiError instanceof Error ? apiError : new Error('Unknown API error');
       }
 
       // مزامنة النموذج مع شوبيفاي
       console.log('Setting up auto sync with Shopify');
-      await api.setupAutoSync(formData);
+      try {
+        await api.setupAutoSync(formData);
+      } catch (syncError) {
+        console.error('Auto-sync error:', syncError);
+        throw new Error('Failed to set up auto-sync with Shopify');
+      }
       
       // حفظ ارتباط النموذج بالمتجر
       console.log('Updating form-shop association in database');
@@ -125,6 +138,7 @@ export const useShopify = () => {
       if (formUpdateError) {
         console.error('Form update error:', formUpdateError);
         // نستمر على الرغم من هذا الخطأ، لأنه غير حاسم
+        console.log('Continuing despite form update error');
       }
 
       toast.success('تم مزامنة النموذج مع Shopify بنجاح');

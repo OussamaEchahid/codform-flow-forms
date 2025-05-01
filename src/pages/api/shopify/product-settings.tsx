@@ -25,14 +25,34 @@ export async function saveProductSettings(
 
     // استخدام Supabase للإدخال/التحديث
     try {
+      // التحقق من وجود جميع الأعمدة في الجدول
+      const { data: tableInfo, error: tableError } = await supabase
+        .from('shopify_product_settings')
+        .select('*')
+        .limit(1);
+      
+      if (tableError) {
+        console.error('خطأ في التحقق من بنية الجدول:', tableError);
+        return {
+          error: `خطأ في التحقق من بنية الجدول: ${tableError.message || 'خطأ غير معروف'}`
+        };
+      }
+
+      // بناء كائن البيانات بعناية
+      const settingsData: any = {
+        shop_id: shopId,
+        product_id: requestBody.productId,
+        form_id: requestBody.formId,
+        enabled: requestBody.enabled ?? true
+      };
+      
+      // إضافة block_id فقط إذا كان محدداً
+      if (requestBody.blockId !== undefined && requestBody.blockId !== null) {
+        settingsData.block_id = requestBody.blockId;
+      }
+
       const result = await supabase.from('shopify_product_settings').upsert(
-        {
-          shop_id: shopId,
-          product_id: requestBody.productId,
-          form_id: requestBody.formId,
-          enabled: requestBody.enabled,
-          block_id: requestBody.blockId || null
-        },
+        settingsData,
         { 
           onConflict: 'shop_id,product_id',
           ignoreDuplicates: false
