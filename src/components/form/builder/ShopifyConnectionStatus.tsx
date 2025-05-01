@@ -10,59 +10,88 @@ import { useShopify } from '@/hooks/useShopify';
 
 const ShopifyConnectionStatus = () => {
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
-  const { isConnected, manualReconnect } = useShopify();
+  const { isConnected, manualReconnect, verifyShopifyConnection } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
+  const [connectionChecked, setConnectionChecked] = useState(false);
   
   // Combine all connection indicators to determine real connection status
   const isActuallyConnected = shopifyConnected && shop && isConnected;
   
   useEffect(() => {
-    // Check connection status on mount 
-    const initialCheck = () => {
+    // Initial connection check
+    const initialCheck = async () => {
+      console.log('ShopifyConnectionStatus: Running initial connection check');
+      
       // Log current connection status variables for debugging
-      console.log('ShopifyConnectionStatus connection check:', { 
+      console.log('Connection indicators:', { 
         shopifyConnected, 
         shop,
         isConnected,
         isActuallyConnected: shopifyConnected && shop && isConnected
       });
       
-      // Only show warning if any connection indicator is false
-      const shouldShowWarning = !shopifyConnected || !shop || !isConnected;
-      setShowWarning(shouldShowWarning);
-      
-      // If connected, ensure warning is hidden
-      if (isActuallyConnected) {
-        setShowWarning(false);
-        console.log('Connection confirmed, hiding warning');
+      // Verify connection directly with Shopify API if indicators suggest we're connected
+      if (shopifyConnected && shop) {
+        try {
+          console.log('Verifying Shopify connection with API');
+          const verified = await verifyShopifyConnection();
+          
+          console.log('API connection verification result:', verified);
+          
+          // If verification fails, show warning regardless of other indicators
+          if (!verified) {
+            console.log('API verification failed, showing warning');
+            setShowWarning(true);
+          } else {
+            console.log('API verification successful, hiding warning');
+            setShowWarning(false);
+          }
+        } catch (error) {
+          console.error('Error verifying connection:', error);
+          setShowWarning(true);
+        }
+      } else {
+        // If any connection indicator is false, show warning
+        console.log('Connection indicators suggest not connected, showing warning');
+        setShowWarning(true);
       }
+      
+      setConnectionChecked(true);
     };
     
     // Run initial check
     initialCheck();
     
     // Set up interval to check connection status periodically - reduced frequency
-    const intervalId = setInterval(() => {
-      const shouldShowWarning = !shopifyConnected || !shop || !isConnected;
-      
-      // Only update state if there's a change to avoid unnecessary re-renders
-      if (shouldShowWarning !== showWarning) {
-        setShowWarning(shouldShowWarning);
-        
-        // Log only when status changes
-        if (!shouldShowWarning) {
-          console.log('Connection confirmed, hiding warning');
-        } else {
-          console.log('Connection issue detected, showing warning');
+    const intervalId = setInterval(async () => {
+      // Only perform checks if component is still mounted
+      if (shopifyConnected && shop) {
+        try {
+          const verified = await verifyShopifyConnection();
+          
+          // Update warning state based on verification (only if there's a change)
+          if (!verified && !showWarning) {
+            console.log('Connection issue detected during interval check, showing warning');
+            setShowWarning(true);
+          } else if (verified && showWarning) {
+            console.log('Connection confirmed during interval check, hiding warning');
+            setShowWarning(false);
+          }
+        } catch (error) {
+          console.error('Error during interval connection check:', error);
+          setShowWarning(true);
         }
+      } else if (!showWarning) {
+        // Update if connection indicators changed
+        setShowWarning(true);
       }
-    }, 10000); // Check less frequently (10 seconds)
+    }, 30000); // Check less frequently (30 seconds)
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, isConnected, showWarning]);
+  }, [shopifyConnected, shop, isConnected, showWarning, verifyShopifyConnection]);
   
   // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
@@ -88,9 +117,11 @@ const ShopifyConnectionStatus = () => {
     
     // Use the manualReconnect function from useShopify if available
     if (manualReconnect && typeof manualReconnect === 'function') {
+      console.log('Using manualReconnect function from useShopify');
       manualReconnect();
     } else {
       // Fallback to previous implementation if manualReconnect not available
+      console.log('Using fallback reconnect implementation');
       // Clear ALL locally stored data to ensure clean reconnection
       localStorage.clear(); 
       sessionStorage.clear(); 
@@ -102,13 +133,13 @@ const ShopifyConnectionStatus = () => {
       
       // Use direct path for more reliable navigation, with a short delay
       setTimeout(() => {
-        window.location.href = '/shopify?reconnect=true&force=true&ts=' + Date.now() + '&random=' + Math.random();
+        window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random()}`;
       }, 500);
     }
   };
 
-  // Don't show anything if we're connected or warning is hidden
-  if (!showWarning || isActuallyConnected) {
+  // Don't show anything if we're connected or warning is hidden or connection hasn't been checked yet
+  if ((!showWarning && connectionChecked) || !connectionChecked) {
     return null;
   }
   
@@ -151,3 +182,4 @@ const ShopifyConnectionStatus = () => {
 };
 
 export default ShopifyConnectionStatus;
+

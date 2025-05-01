@@ -61,6 +61,44 @@ export const useShopify = () => {
     return false;
   }, []);
 
+  // New function to directly verify Shopify connection by testing API
+  const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
+    if (!shopifyConnected || !shop) {
+      console.log('Cannot verify connection: shop not connected');
+      return false;
+    }
+
+    try {
+      console.log(`Verifying connection for shop: ${shop}`);
+      // Get store access token
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('access_token, updated_at')
+        .eq('shop', shop)
+        .single();
+      
+      if (storeError) {
+        console.error('Store access token error:', storeError);
+        return false;
+      }
+      
+      if (!storeData || !storeData.access_token) {
+        console.error('No store data or access token found');
+        return false;
+      }
+      
+      // Create API instance and verify connection
+      const api = createShopifyAPI(storeData.access_token, shop);
+      const result = await api.verifyConnection();
+      
+      console.log('Connection verification result:', result);
+      return result;
+    } catch (err) {
+      console.error('Error verifying connection:', err);
+      return false;
+    }
+  }, [shop, shopifyConnected]);
+
   // Product fetching function with improved error handling
   const fetchProducts = useCallback(async () => {
     // Skip product fetching if redirecting
@@ -141,10 +179,16 @@ export const useShopify = () => {
   }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
 
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
-    // ACTUAL IMPLEMENTATION
+    // Validate connection first
     if (!shopifyConnected || !shop) {
       toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
+    }
+
+    // Validate blockId
+    if (!formData.settings.blockId || formData.settings.blockId.trim() === '') {
+      toast.error('Block ID is required');
+      throw new Error('Block ID is required');
     }
 
     setIsSyncing(true);
@@ -326,6 +370,8 @@ export const useShopify = () => {
     isSyncing,
     isRedirecting,
     redirectionDisabled,
-    manualReconnect
+    manualReconnect,
+    verifyShopifyConnection
   };
 };
+

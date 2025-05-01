@@ -171,6 +171,12 @@ class ShopifyAPI {
   async syncFormData(formData: ShopifyFormData): Promise<void> {
     console.log('Syncing form data with Shopify');
     
+    // Ensure the block ID is valid
+    const blockId = formData.settings.blockId || '';
+    if (!blockId || blockId.trim() === '') {
+      throw new Error('Block ID is required for form integration');
+    }
+    
     // First check if a script tag already exists for this form
     try {
       console.log('Checking for existing script tags...');
@@ -190,27 +196,34 @@ class ShopifyAPI {
       `;
       
       const existingTags = await this.fetchAPI(queryExisting);
-      const blockId = formData.settings.blockId || '';
       console.log('Found script tags:', existingTags?.scriptTags?.edges?.length || 0);
       
       // Define script src (what we're looking for and what we'll create)
       const formScriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${blockId}&shop=${this.shopDomain}`;
+      
+      console.log('Target script source URL:', formScriptSrc);
       
       // Check if we already have a script tag for this form
       let existingTag = null;
       let needsUpdate = false;
       
       if (existingTags && existingTags.scriptTags && existingTags.scriptTags.edges) {
-        // Find a matching script tag
+        // Find a matching script tag - check both formId and blockId
         for (const edge of existingTags.scriptTags.edges) {
           const scriptTag = edge.node;
-          // Check if this tag is for this form (based on formId in the src)
+          console.log('Examining script tag:', scriptTag.src);
+          
+          // Check if this tag has our formId
           if (scriptTag.src && scriptTag.src.includes(`formId=${formData.formId}`)) {
             existingTag = scriptTag;
+            console.log('Found script tag for this form');
             
             // If blockId changed, we need to update
-            if (!scriptTag.src.includes(`blockId=${blockId}`)) {
+            if (scriptTag.src && !scriptTag.src.includes(`blockId=${blockId}`)) {
+              console.log('Block ID has changed, script tag needs update');
               needsUpdate = true;
+            } else {
+              console.log('Script tag is up to date with correct Block ID');
             }
             break;
           }
@@ -236,7 +249,16 @@ class ShopifyAPI {
         const deleteResult = await this.fetchAPI(deleteExisting, { id: existingTag.id });
         console.log('Delete script tag result:', deleteResult);
         
+        // Check for errors in deletion
+        if (deleteResult?.scriptTagDelete?.userErrors && deleteResult.scriptTagDelete.userErrors.length > 0) {
+          console.error('Errors deleting script tag:', deleteResult.scriptTagDelete.userErrors);
+          // Continue anyway to try creating a new one
+        }
+        
         existingTag = null; // Reset so we create a new one
+      } else if (existingTag) {
+        console.log('Script tag already exists and is up to date, no changes needed');
+        return; // Exit early if script tag exists and is correct
       }
       
       // If we don't have an existing tag, create a new one
@@ -245,13 +267,14 @@ class ShopifyAPI {
         console.log('Block ID:', blockId);
         console.log('Script source URL:', formScriptSrc);
         
-        // تحسين استعلام GraphQL لدعم الإعدادات المحددة
+        // Improved GraphQL mutation for creating script tag
         const mutation = `
           mutation createScriptTag($input: ScriptTagInput!) {
             scriptTagCreate(input: $input) {
               scriptTag {
                 id
                 src
+                displayScope
               }
               userErrors {
                 field
@@ -261,7 +284,7 @@ class ShopifyAPI {
           }
         `;
 
-        // إعداد مصدر السكريبت مع البيانات المطلوبة
+        // Setup script source with required parameters
         const variables = {
           input: {
             src: formScriptSrc,
@@ -280,7 +303,7 @@ class ShopifyAPI {
             throw new Error(`Errors creating script tag: ${errors}`);
           }
           
-          // التحقق من وجود scriptTag في النتيجة
+          // Check for scriptTag in result
           if (!result?.scriptTagCreate?.scriptTag?.id) {
             throw new Error('Failed to create script tag: No script tag ID returned');
           }
@@ -290,8 +313,6 @@ class ShopifyAPI {
           console.error('Error creating script tag:', error);
           throw error;
         }
-      } else {
-        console.log('Form script tag already exists, no need to create another');
       }
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
@@ -308,8 +329,6 @@ class ShopifyAPI {
       : `${this.shopDomain}.myshopify.com`;
     
     console.log('Using normalized shop domain for verification:', normalizedShopDomain);
-    console.log('Access token length:', this.accessToken ? this.accessToken.length : 0);
-    console.log('Access token first/last chars:', this.accessToken ? `${this.accessToken.substring(0, 4)}...${this.accessToken.substring(this.accessToken.length - 4)}` : 'none');
     
     try {
       // Use the simplest possible query first to test the connection
@@ -317,6 +336,7 @@ class ShopifyAPI {
         {
           shop {
             name
+            url
           }
         }
       `;
@@ -330,6 +350,7 @@ class ShopifyAPI {
       }
       
       console.log('Connection verified successfully, shop name:', result.shop.name);
+      console.log('Shop URL:', result.shop.url);
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);
@@ -402,3 +423,4 @@ export const createShopifyAPI = (accessToken: string, shopDomain: string) => {
   
   return new ShopifyAPI(accessToken, normalizedShopDomain);
 };
+

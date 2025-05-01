@@ -51,7 +51,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     error: shopifyError, 
     isRedirecting, 
     manualReconnect,
-    isConnected: shopifyIsConnected 
+    isConnected: shopifyIsConnected,
+    verifyShopifyConnection
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
@@ -71,7 +72,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Initial connection check when component loads - always force a re-check
   useEffect(() => {
     console.log("ShopifyIntegration component mounted");
-    const checkConnection = () => {
+    const checkConnection = async () => {
       console.log("Checking connection status:", { 
         shopifyConnected, 
         shop, 
@@ -79,10 +80,28 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         isActuallyConnected: shopifyConnected && shop && shopifyIsConnected 
       });
       
-      if (isActuallyConnected) {
-        console.log("Shopify connection confirmed:", shop);
-        setConnectionStatus('success');
-        setForceShowConnectWarning(false); // Hide warning when connected
+      setConnectionStatus('checking');
+      
+      if (shopifyConnected && shop) {
+        // Verify connection with API directly
+        try {
+          const verified = await verifyShopifyConnection();
+          console.log("API connection verification result:", verified);
+          
+          if (verified) {
+            console.log("Shopify connection confirmed:", shop);
+            setConnectionStatus('success');
+            setForceShowConnectWarning(false); // Hide warning when connected
+          } else {
+            console.log("API verification failed, showing warning");
+            setConnectionStatus('error');
+            setForceShowConnectWarning(true);
+          }
+        } catch (error) {
+          console.error("Connection verification error:", error);
+          setConnectionStatus('error');
+          setForceShowConnectWarning(true);
+        }
       } else {
         console.log("Incomplete Shopify connection detected, showing warning");
         setConnectionStatus('error');
@@ -91,20 +110,22 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setHasCheckedConnection(true);
     };
     
-    // Run connection check regardless of previous checks
+    // Run connection check
     checkConnection();
     
-    // Setup interval to recheck connection every 10 seconds
-    const intervalId = setInterval(checkConnection, 10000);
+    // Setup interval to recheck connection every 30 seconds
+    const intervalId = setInterval(checkConnection, 30000);
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, shopifyIsConnected]);
+  }, [shopifyConnected, shop, shopifyIsConnected, verifyShopifyConnection]);
   
   // Generate random block ID if not already present
   React.useEffect(() => {
     if (!blockId) {
-      const randomId = Math.random().toString(36).substring(2, 10);
-      setBlockId(`codform-${randomId}`);
+      // Generate a more readable and consistent block ID format
+      const randomId = `codform-${Math.random().toString(36).substring(2, 8)}`;
+      console.log('Generated default block ID:', randomId);
+      setBlockId(randomId);
     }
   }, [blockId]);
 
@@ -115,11 +136,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setConnectionStatus('error');
       setSaveError(shopifyError);
       setForceShowConnectWarning(true);
-    } else if (isActuallyConnected) {
-      setConnectionStatus('success');
-      setForceShowConnectWarning(false); // Hide warning when connected
     }
-  }, [shopifyError, shopifyConnected, shop, shopifyIsConnected]);
+  }, [shopifyError]);
 
   const handleSave = async () => {
     if (isRedirecting || localIsRedirecting) {
@@ -129,7 +147,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    if (!isActuallyConnected) {
+    if (connectionStatus !== 'success' && !isActuallyConnected) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
@@ -150,9 +168,30 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       }
       
       // Ensure the blockId is properly formatted - no spaces, only letters, numbers, and hyphens
-      const cleanedBlockId = blockId.trim().replace(/[^a-zA-Z0-9-]/g, '-');
+      let cleanedBlockId = blockId.trim().replace(/[^a-zA-Z0-9-]/g, '-');
+      
+      // Make sure it starts with 'codform-' prefix for consistency
+      if (!cleanedBlockId.startsWith('codform-')) {
+        cleanedBlockId = `codform-${cleanedBlockId}`;
+      }
+      
       if (cleanedBlockId !== blockId) {
+        console.log(`Cleaned block ID from "${blockId}" to "${cleanedBlockId}"`);
         setBlockId(cleanedBlockId);
+      }
+      
+      // Verify connection one more time before saving
+      try {
+        const connectionValid = await verifyShopifyConnection();
+        if (!connectionValid) {
+          throw new Error(language === 'ar' 
+            ? 'فشل التحقق من اتصال Shopify، يرجى إعادة الاتصال قبل المتابعة'
+            : 'Shopify connection verification failed, please reconnect before continuing');
+        }
+      } catch (verifyError) {
+        throw new Error(language === 'ar'
+          ? 'حدث خطأ أثناء التحقق من اتصال Shopify، يرجى إعادة المحاولة'
+          : 'Error verifying Shopify connection, please try again');
       }
       
       // Log form data for debugging
@@ -189,7 +228,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       setSaveError(errorMessage);
       toast.error(errorMessage);
-      setForceShowConnectWarning(true);
     } finally {
       setIsSaving(false);
     }
@@ -242,7 +280,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   };
 
   // Show a warning if Shopify is not connected
-  if (!isActuallyConnected || forceShowConnectWarning) {
+  if (connectionStatus === 'error' || forceShowConnectWarning) {
     return (
       <div className="max-w-4xl mx-auto">
         <Alert variant="destructive" className="mb-6">
@@ -392,8 +430,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             />
             <p className="text-xs text-gray-500 mt-1">
               {language === 'ar' 
-                ? 'معرف فريد يستخدم لإدراج النموذج في الصفحة.' 
-                : 'A unique identifier used to embed the form in the page.'}
+                ? 'معرف فريد يستخدم لإدراج النموذج في الصفحة. يجب أن يبدأ بـ "codform-" ويحتوي على أحرف وأرقام فقط.' 
+                : 'A unique identifier used to embed the form in the page. Should start with "codform-" and contain only letters and numbers.'}
             </p>
           </div>
           
@@ -477,3 +515,4 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 };
 
 export default ShopifyIntegration;
+
