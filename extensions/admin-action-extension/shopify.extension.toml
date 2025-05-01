@@ -7,6 +7,6 @@ handle = "admin-action-extension"
 namespace = "codform"
 key = "settings"
 
-[[extensions.targeting]]
-module = "./src/ActionExtension.jsx"
+[extension_points]
 target = "admin.product-details.action.render"
+module = "./src/ActionExtension.jsx"

@@ -40,6 +40,42 @@ function findRootDirectory() {
   process.exit(1);
 }
 
+// Validate extension files
+function validateExtensions(rootDir) {
+  console.log('Validating extensions structure...');
+  
+  // Check if the app has the extensions section in shopify.app.toml
+  const appConfigPath = path.join(rootDir, 'shopify.app.toml');
+  if (fs.existsSync(appConfigPath)) {
+    const appConfig = fs.readFileSync(appConfigPath, 'utf8');
+    if (!appConfig.includes('[extensions]')) {
+      console.warn('⚠️ Warning: Missing [extensions] section in shopify.app.toml');
+      console.warn('This might cause the "Expected array, received object" error');
+    }
+  }
+  
+  // Validate theme extension
+  const themeExtPath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'shopify.extension.toml');
+  if (fs.existsSync(themeExtPath)) {
+    console.log('✓ Found theme extension: theme-extension-codform');
+  }
+  
+  // Validate UI extension
+  const uiExtPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'shopify.extension.toml');
+  if (fs.existsSync(uiExtPath)) {
+    console.log('✓ Found UI extension: admin-action-extension');
+    
+    // Check for extension_points vs. extensions.targeting
+    const uiExtConfig = fs.readFileSync(uiExtPath, 'utf8');
+    if (!uiExtConfig.includes('[extension_points]') && uiExtConfig.includes('[[extensions.targeting]]')) {
+      console.warn('⚠️ Warning: UI extension is using [[extensions.targeting]] which may be outdated');
+      console.warn('Consider updating to [extension_points] format');
+    }
+  }
+  
+  console.log('Extension validation complete');
+}
+
 // Main function
 function main() {
   try {
@@ -76,6 +112,11 @@ function main() {
     let shopifyCommand;
     const additionalArgs = args.slice(1).join(' ');
     
+    // Validate extensions before deployment
+    if (command === 'deploy' || command === 'deploy-extensions') {
+      validateExtensions(rootDir);
+    }
+    
     // Execute the appropriate Shopify command
     switch(command) {
       case 'build':
@@ -107,6 +148,12 @@ function main() {
         console.log('Showing environment information...');
         shopifyCommand = `shopify app env ${additionalArgs}`;
         break;
+      
+      case 'validate':
+        console.log('Validating extension structure without deployment...');
+        validateExtensions(rootDir);
+        console.log('Validation complete - fix any warnings before deploying');
+        return;
         
       default:
         // Pass through any other commands directly to Shopify CLI
