@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -77,9 +78,14 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData) {
-        console.error('Store access token error:', storeError || 'No store data found');
+      if (storeError) {
+        console.error('Store access token error:', storeError);
         throw new Error('Could not retrieve store access token');
+      }
+      
+      if (!storeData) {
+        console.error('No store data found');
+        throw new Error('No store data found');
       }
       
       const accessToken = storeData.access_token;
@@ -151,9 +157,14 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData) {
-        console.error('Store access token error:', storeError || 'No store data found');
+      if (storeError) {
+        console.error('Store access token error:', storeError);
         throw new Error('Could not retrieve store access token');
+      }
+      
+      if (!storeData) {
+        console.error('No store data found');
+        throw new Error('No store data found');
       }
       
       const accessToken = storeData.access_token;
