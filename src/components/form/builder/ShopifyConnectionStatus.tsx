@@ -56,26 +56,8 @@ const ShopifyConnectionStatus = () => {
           }
           
           console.log('Found store data in database, token exists:', !!storeData.access_token);
+          setShowWarning(false);
           
-          // Only verify connection if we have a valid token
-          if (shopifyConnected && shop) {
-            try {
-              console.log('Verifying Shopify connection with API');
-              const verified = await verifyShopifyConnection();
-              
-              console.log('API connection verification result:', verified);
-              
-              // Show or hide warning based on verification result
-              setShowWarning(!verified);
-            } catch (error) {
-              console.error('Error verifying connection:', error);
-              setShowWarning(true);
-            }
-          } else {
-            // If any connection indicator is false, show warning
-            console.log('Connection indicators suggest not connected, showing warning');
-            setShowWarning(true);
-          }
         } catch (error) {
           console.error('Error checking store token:', error);
           setShowWarning(true);
@@ -91,47 +73,7 @@ const ShopifyConnectionStatus = () => {
     // Run initial check
     initialCheck();
     
-    // Set up interval to check connection status periodically - reduced frequency
-    const intervalId = setInterval(async () => {
-      // Only perform checks if component is still mounted and we have shop info
-      if (shopifyConnected && shop) {
-        try {
-          // Check if the token still exists in the database
-          const { data: storeData, error: storeError } = await supabase
-            .from('shopify_stores')
-            .select('access_token')
-            .eq('shop', shop)
-            .single();
-            
-          if (storeError || !storeData || !storeData.access_token) {
-            console.log('Token no longer exists in database during interval check');
-            setShowWarning(true);
-            return;
-          }
-          
-          // Verify the connection
-          const verified = await verifyShopifyConnection();
-          
-          // Update warning state based on verification (only if there's a change)
-          if (!verified && !showWarning) {
-            console.log('Connection issue detected during interval check, showing warning');
-            setShowWarning(true);
-          } else if (verified && showWarning) {
-            console.log('Connection confirmed during interval check, hiding warning');
-            setShowWarning(false);
-          }
-        } catch (error) {
-          console.error('Error during interval connection check:', error);
-          setShowWarning(true);
-        }
-      } else if (!showWarning) {
-        // Update if connection indicators changed
-        setShowWarning(true);
-      }
-    }, 60000); // Check every minute (reduced from 30s)
-    
-    return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, isConnected, showWarning, verifyShopifyConnection, isTokenVerified]);
+  }, [shopifyConnected, shop, isConnected, isTokenVerified, verifyShopifyConnection]);
   
   // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
