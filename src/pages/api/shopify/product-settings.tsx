@@ -19,6 +19,12 @@ export async function saveProductSettings(
       enabled: requestBody.enabled
     });
     
+    // التحقق من وجود البيانات المطلوبة
+    if (!shopId || shopId.trim() === '') {
+      console.error('معرف المتجر غير موجود');
+      return { error: 'معرف المتجر غير موجود' };
+    }
+    
     if (!requestBody.productId || !requestBody.formId) {
       console.error('البيانات المطلوبة غير موجودة: productId أو formId');
       return { 
@@ -54,8 +60,13 @@ export async function saveProductSettings(
       };
       
       // إضافة block_id فقط إذا كان محدداً
-      if (requestBody.blockId !== undefined && requestBody.blockId !== null) {
+      if (requestBody.blockId !== undefined && requestBody.blockId !== null && requestBody.blockId !== '') {
         settingsData.block_id = requestBody.blockId;
+      } else {
+        // إنشاء معرف افتراضي إذا لم يتم توفيره
+        const defaultBlockId = `codform-${Math.random().toString(36).substring(2, 10)}`;
+        settingsData.block_id = defaultBlockId;
+        console.log(`No block_id provided, using default: ${defaultBlockId}`);
       }
       
       console.log('Preparing to insert/update settings with data:', settingsData);
@@ -80,7 +91,8 @@ export async function saveProductSettings(
       return { 
         success: true,
         productId: requestBody.productId,
-        formId: requestBody.formId
+        formId: requestBody.formId,
+        blockId: settingsData.block_id
       };
     } catch (dbError: any) {
       console.error('Database error:', dbError);

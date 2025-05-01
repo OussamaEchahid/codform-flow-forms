@@ -22,24 +22,26 @@ class ShopifyAPI {
           'X-Shopify-Access-Token': this.accessToken,
         },
         body: JSON.stringify({ query, variables }),
+        // Add timeout and credentials
+        credentials: 'include',
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error Response:', errorText);
+        console.error('API Error Response:', errorText, 'Status:', response.status);
         throw new Error(`Shopify API error (${response.status}): ${response.statusText}. Response: ${errorText}`);
       }
 
       const json = await response.json();
       if (json.errors) {
         console.error('GraphQL Errors:', json.errors);
-        throw new Error(json.errors[0].message);
+        throw new Error(`GraphQL Error: ${json.errors[0].message}`);
       }
 
       return json.data;
     } catch (error) {
       console.error('Error in fetchAPI:', error);
-      throw error;
+      throw new Error(`Network error while contacting Shopify API: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -166,6 +168,7 @@ class ShopifyAPI {
 
     try {
       console.log('Creating script tag with variables:', variables);
+      console.log('Script source URL:', scriptSrc);
       
       const result = await this.fetchAPI(mutation, variables);
       console.log('Script tag creation result:', result);
@@ -208,54 +211,19 @@ class ShopifyAPI {
 
   async setupAutoSync(formData: ShopifyFormData): Promise<void> {
     console.log('Setting up auto-sync with Shopify', { formData });
+    
     try {
-      // أولاً، قم بإنشاء سكريبت للتكامل مع النموذج
+      // Step 1: First verify connection to ensure API token works
+      console.log('Verifying Shopify connection before sync...');
+      const isConnected = await this.verifyConnection();
+      if (!isConnected) {
+        throw new Error('Could not verify connection to Shopify API');
+      }
+      
+      // Step 2: Create script tag for the form
+      console.log('Creating script tag for form...');
       await this.syncFormData(formData);
       
-      // ثم قم بإعداد webhook للتحديثات المستقبلية (اختياري)
-      // استخدام استعلام GraphQL لإنشاء webhook
-      const mutation = `
-        mutation createWebhook($topic: WebhookSubscriptionTopic!, $callbackUrl: URL!) {
-          webhookSubscriptionCreate(
-            topic: $topic,
-            webhookSubscription: {
-              callbackUrl: $callbackUrl,
-              format: JSON
-            }
-          ) {
-            webhookSubscription {
-              id
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `;
-      
-      // تحديد عنوان استدعاء webhook
-      const callbackUrl = typeof window !== 'undefined' 
-        ? `https://${window.location.host}/api/shopify-webhook` 
-        : 'https://codform-flow-forms.lovable.app/api/shopify-webhook';
-        
-      console.log(`Using webhook callback URL: ${callbackUrl}`);
-        
-      // إنشاء webhook للتحديثات على المنتجات
-      const result = await this.fetchAPI(mutation, {
-        topic: 'PRODUCTS_UPDATE',
-        callbackUrl: callbackUrl,
-      });
-        
-      console.log('Webhook subscription result:', result);
-        
-      // التحقق من وجود أخطاء
-      if (result?.webhookSubscriptionCreate?.userErrors && result.webhookSubscriptionCreate.userErrors.length > 0) {
-        const errors = result.webhookSubscriptionCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        // نحن نعتبر أخطاء webhook كتحذيرات فقط ولا نوقف العملية
-        console.warn(`Warnings setting up webhook: ${errors}`);
-      }
-        
       console.log('Auto-sync setup completed successfully');
     } catch (error) {
       console.error('Error setting up auto-sync:', error);
@@ -266,5 +234,15 @@ class ShopifyAPI {
 
 export const createShopifyAPI = (accessToken: string, shopDomain: string) => {
   console.log(`Creating Shopify API client for shop: ${shopDomain} (token length: ${accessToken?.length || 0})`);
+  
+  // Validate inputs
+  if (!accessToken || accessToken.trim() === '') {
+    throw new Error('Invalid access token provided');
+  }
+  
+  if (!shopDomain || shopDomain.trim() === '') {
+    throw new Error('Invalid shop domain provided');
+  }
+  
   return new ShopifyAPI(accessToken, shopDomain);
 };

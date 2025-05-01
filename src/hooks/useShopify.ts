@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ export const useShopify = () => {
     }
   }, [shopifyConnected, shop]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!shopifyConnected || !shop) {
       setError('Shopify connection not established');
       return;
@@ -33,6 +33,7 @@ export const useShopify = () => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log(`Fetching products for shop: ${shop}`);
       // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
@@ -40,13 +41,17 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData) {
+      if (storeError || !storeData || !storeData.access_token) {
+        console.error('Store access token error:', storeError || 'No access token found');
         throw new Error('Could not retrieve store access token');
       }
+      
+      console.log('Access token retrieved successfully');
 
       // إنشاء مثيل API بالرمز ونطاق المتجر
       const api = createShopifyAPI(storeData.access_token, shop);
       const fetchedProducts = await api.getProducts();
+      console.log(`Retrieved ${fetchedProducts.length} products`);
       setProducts(fetchedProducts);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
@@ -55,9 +60,9 @@ export const useShopify = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [shop, shopifyConnected]);
 
-  const syncFormWithShopify = async (formData: ShopifyFormData) => {
+  const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
     if (!shopifyConnected || !shop) {
       toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
@@ -76,8 +81,8 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData) {
-        console.error('Store access token error:', storeError);
+      if (storeError || !storeData || !storeData.access_token) {
+        console.error('Store access token error:', storeError || 'No access token found');
         throw new Error('Could not retrieve store access token');
       }
       
@@ -118,6 +123,7 @@ export const useShopify = () => {
 
       // إنشاء مثيل API بالرمز ونطاق المتجر
       try {
+        console.log(`Creating API instance for shop: ${shop}`);
         const api = createShopifyAPI(storeData.access_token, shop);
         
         // مزامنة النموذج مع شوبيفاي
@@ -151,7 +157,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [shop, shopifyConnected]);
 
   return {
     products,
