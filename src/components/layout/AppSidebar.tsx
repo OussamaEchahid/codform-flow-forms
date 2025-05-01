@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -12,10 +13,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,16 +21,57 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+
+// تعريف الترجمات
+const translations = {
+  ar: {
+    dashboard: 'لوحة التحكم',
+    forms: 'النماذج',
+    orders: 'الطلبات',
+    landingPages: 'صفحات الهبوط',
+    quickOffers: 'العروض السريعة',
+    quantityOffers: 'عروض الكمية',
+    settings: 'الإعدادات',
+    logout: 'تسجيل الخروج',
+    logoutSuccess: 'تم تسجيل الخروج بنجاح',
+    logoutError: 'حدث خطأ أثناء تسجيل الخروج'
+  },
+  en: {
+    dashboard: 'Dashboard',
+    forms: 'Forms',
+    orders: 'Orders',
+    landingPages: 'Landing Pages',
+    quickOffers: 'Quick Offers',
+    quantityOffers: 'Quantity Offers',
+    settings: 'Settings',
+    logout: 'Logout',
+    logoutSuccess: 'Logged out successfully',
+    logoutError: 'Error logging out'
+  }
+};
 
 const AppSidebar = () => {
-  const { t, language, setLanguage } = useI18n();
   const navigate = useNavigate();
+  // تحديد اللغة الافتراضية
+  const [language, setLanguage] = React.useState<'ar' | 'en'>('ar');
+
+  // دالة ترجمة
+  const t = (key: string): string => {
+    return translations[language][key as keyof typeof translations[typeof language]] || key;
+  };
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // مسح بيانات المصادقة
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_last_connect_time');
+      localStorage.removeItem('shopify_reconnect_attempts');
+      
       toast.success(t('logoutSuccess'));
-      navigate('/auth');
+      navigate('/', { replace: true });
     } catch (error) {
       toast.error(t('logoutError'));
     }

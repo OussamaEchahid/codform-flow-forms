@@ -139,7 +139,7 @@ export default function Shopify() {
         }
       } else {
         // التدفق المضمّن - سيتم تنفيذه لاحقًا
-        toast("قريبا", {
+        toast({
           description: "سيتم دعم تدفق التطبيق المضمّن قريبًا"
         });
       }

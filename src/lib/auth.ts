@@ -7,13 +7,16 @@ export interface AuthContextType {
   shop?: string;
   refreshShopifyConnection?: () => void;
   isTokenVerified?: boolean;
+  forceReconnect?: () => void;  // إضافة وظيفة لإعادة الاتصال بشكل إجباري
+  lastConnectionTime?: string;  // وقت آخر اتصال ناجح
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   shopifyConnected: false,
   shop: undefined,
-  isTokenVerified: false
+  isTokenVerified: false,
+  lastConnectionTime: undefined
 });
 
 export const useAuth = () => {
