@@ -20,17 +20,23 @@ const FormBuilderPage = () => {
   const { fetchForms } = useFormTemplates();
   const isMobile = useIsMobile();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
+  // Determine which component to show based on presence of formId
+  const showEditor = !!formId;
   
   useEffect(() => {
-    if (formId) {
-      setActiveTab('editor');
-    } else {
+    // Just set the page as ready after a short initialization period
+    const timeoutId = setTimeout(() => {
+      setPageReady(true);
+    }, 300);
+    
+    if (!showEditor) {
       fetchForms();
-      setActiveTab('dashboard');
     }
-  }, [formId, fetchForms]);
+    
+    return () => clearTimeout(timeoutId);
+  }, [showEditor, fetchForms]);
 
   // Handle manual connection button click
   const handleConnectShopify = () => {
@@ -68,54 +74,62 @@ const FormBuilderPage = () => {
     return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
   }
 
+  if (!pageReady) {
+    return (
+      <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
-      {/* Shopify connection warning - show on all screens regardless of device */}
-      {formId && (
+      {/* Shopify connection warning - show on editor screen only */}
+      {showEditor && !shopifyConnected && (
         <div className="fixed top-0 left-0 right-0 z-50">
-          {!shopifyConnected && (
-            <Alert className="bg-yellow-100 text-yellow-800 shadow-lg p-6 text-center m-4 border-yellow-300">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <AlertCircle className="h-6 w-6" /> 
-                <h2 className="text-xl font-bold">{language === 'ar' 
-                  ? 'تنبيه: الاتصال بـ Shopify مطلوب' 
-                  : 'Alert: Shopify Connection Required'}</h2>
-              </div>
-              <AlertDescription className="mb-4 text-lg">
-                {language === 'ar' 
-                  ? 'يجب الاتصال بـ Shopify لاستخدام ميزات التكامل. يرجى النقر على الزر أدناه للاتصال.' 
-                  : 'Connecting to Shopify is required to use integration features. Please click the button below to connect.'}
-              </AlertDescription>
-              <Button 
-                onClick={handleConnectShopify}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-md text-lg font-medium"
-                size="lg"
-                disabled={isRedirecting}
-              >
-                {isRedirecting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                    {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
-                  </div>
-                ) : (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2" />
-                    {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-                  </>
-                )}
-              </Button>
-            </Alert>
-          )}
+          <Alert className="bg-yellow-100 text-yellow-800 shadow-lg p-6 text-center m-4 border-yellow-300">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <AlertCircle className="h-6 w-6" /> 
+              <h2 className="text-xl font-bold">{language === 'ar' 
+                ? 'تنبيه: الاتصال بـ Shopify مطلوب' 
+                : 'Alert: Shopify Connection Required'}</h2>
+            </div>
+            <AlertDescription className="mb-4 text-lg">
+              {language === 'ar' 
+                ? 'يجب الاتصال بـ Shopify لاستخدام ميزات التكامل. يرجى النقر على الزر أدناه للاتصال.' 
+                : 'Connecting to Shopify is required to use integration features. Please click the button below to connect.'}
+            </AlertDescription>
+            <Button 
+              onClick={handleConnectShopify}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-md text-lg font-medium"
+              size="lg"
+              disabled={isRedirecting}
+            >
+              {isRedirecting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                  {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
+                </div>
+              ) : (
+                <>
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
+                </>
+              )}
+            </Button>
+          </Alert>
         </div>
       )}
       
-      {activeTab === 'dashboard' ? (
-        <FormBuilderDashboard />
-      ) : (
-        <FormBuilderEditor formId={formId} />
-      )}
+      <div className="flex-1">
+        {showEditor ? (
+          <FormBuilderEditor formId={formId} />
+        ) : (
+          <FormBuilderDashboard />
+        )}
+      </div>
     </div>
   );
 };

@@ -51,7 +51,9 @@ export const useFormTemplates = () => {
       // Transform the data to ensure proper typing
       const formattedData: FormData[] = formsData?.map(form => ({
         ...form,
-        data: form.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
+        data: form.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+        sectionConfig: form.sectionConfig as FormSectionConfig || { sections: [], layout: 'vertical' },
+        style: form.style as { [key: string]: string | number } || {}
       })) || [];
       
       setForms(formattedData);
@@ -105,7 +107,9 @@ export const useFormTemplates = () => {
       if (data && data.length > 0) {
         const newForm = {
           ...data[0],
-          data: data[0].data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
+          data: data[0].data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+          sectionConfig: { sections: [], layout: 'vertical' },
+          style: {}
         } as FormData;
         
         setSelectedTemplate(newForm);
@@ -130,14 +134,16 @@ export const useFormTemplates = () => {
       const userId = user?.id && user.id !== 'shopify-user' 
         ? user.id 
         : uuidv4();
-        
+            
       const updateData = {
         title: formData.title,
         description: formData.description,
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
         shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
-        user_id: userId // Use generated or actual user ID
+        user_id: userId, // Use generated or actual user ID
+        style: formData.style || {},
+        sectionConfig: formData.sectionConfig || { sections: [], layout: 'vertical' }
       };
       
       const { error } = await supabase
@@ -224,13 +230,13 @@ export const useFormTemplates = () => {
       console.log('Retrieved form data:', data);
       
       // Transform the returned data to match our expected FormData structure
-      // Note: We need to add sectionConfig and style even if they don't exist in the database
+      // Add default values for properties that might not exist in the database
       return {
         ...data,
         data: data.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
         // Add default values for properties that might not exist in the database
-        sectionConfig: (data as any).sectionConfig || { sections: [], layout: 'vertical' },
-        style: (data as any).style || {},
+        sectionConfig: data.sectionConfig || { sections: [], layout: 'vertical' },
+        style: data.style || {},
       } as FormData;
     } catch (error: any) {
       toast.error(`خطأ في جلب النموذج: ${error.message}`);
@@ -266,7 +272,14 @@ export const useFormTemplates = () => {
       // Update the local state
       setForms(currentForms => 
         currentForms.map(form => 
-          form.id === formId ? { ...form, ...updatedFormData } : form
+          form.id === formId ? { 
+            ...form, 
+            ...updatedFormData,
+            // Ensure these fields are properly typed
+            data: updatedFormData.data as FormStep[],
+            sectionConfig: updatedFormData.sectionConfig || { sections: [], layout: 'vertical' },
+            style: updatedFormData.style || {}
+          } : form
         )
       );
       
@@ -290,7 +303,42 @@ export const useFormTemplates = () => {
     fetchForms,
     createDefaultForm,
     createFormFromTemplate,
-    saveForm,
+    saveForm: async (formId: string, formData: any) => {
+      try {
+        // Generate a valid UUID for user_id if not available
+        const userId = user?.id && user.id !== 'shopify-user' 
+          ? user.id 
+          : uuidv4();
+            
+        const updateData = {
+          title: formData.title,
+          description: formData.description,
+          data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
+          updated_at: new Date().toISOString(),
+          shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
+          user_id: userId, // Use generated or actual user ID
+          style: formData.style || {},
+          sectionConfig: formData.sectionConfig || { sections: [], layout: 'vertical' }
+        };
+        
+        const { error } = await supabase
+          .from('forms')
+          .update(updateData)
+          .eq('id', formId);
+        
+        if (error) {
+          console.error("Error saving form:", error);
+          throw error;
+        }
+        
+        toast.success('تم حفظ النموذج بنجاح');
+        await fetchForms();
+        return true;
+      } catch (error: any) {
+        toast.error(`خطأ في حفظ النموذج: ${error.message}`);
+        return false;
+      }
+    },
     publishForm,
     deleteForm,
     getFormById,
