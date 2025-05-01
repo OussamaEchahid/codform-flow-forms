@@ -17,7 +17,8 @@ const AUTH_CALLBACK_URL = `${APP_URL}/api/shopify-callback`;
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "*", // Allow all headers
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -57,9 +58,15 @@ function generateNonce(): string {
 }
 
 serve(async (req) => {
+  console.log("Request received:", req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling OPTIONS request");
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -67,6 +74,7 @@ serve(async (req) => {
     let shop = url.searchParams.get("shop");
     
     console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
     
     // No shop provided
     if (!shop) {
@@ -99,17 +107,25 @@ serve(async (req) => {
       
       // Create the authentication URL
       const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
-      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(AUTH_CALLBACK_URL)}&state=${state}`;
+      const redirectUri = encodeURIComponent(AUTH_CALLBACK_URL);
+      // Direct OAuth flow - redirect directly to Shopify
+      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${redirectUri}&state=${state}`;
       
       console.log("Generated auth URL:", authUrl);
       
+      // Return a redirect response
       return new Response(JSON.stringify({
         redirect: authUrl,
         shop: cleanedShop,
         state,
         appUrl: APP_URL,
         callbackUrl: AUTH_CALLBACK_URL
-      }), { headers: corsHeaders });
+      }), { 
+        headers: {
+          ...corsHeaders,
+          "Location": authUrl
+        }
+      });
     } catch (error) {
       console.error("Error initiating authentication:", error);
       return new Response(

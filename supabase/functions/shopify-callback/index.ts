@@ -16,7 +16,8 @@ const APP_URL = "https://codform-flow-forms.lovable.app";
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "*", // Allow all headers
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -51,9 +52,16 @@ function cleanShopDomain(shop: string): string {
 }
 
 serve(async (req) => {
+  console.log("Callback request received:", req.method, req.url);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling OPTIONS request");
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -102,6 +110,7 @@ serve(async (req) => {
       }
     
       // Exchange code for access token
+      console.log(`Exchanging code for access token with shop: ${shop}`);
       const accessTokenResponse = await fetch(
         `https://${shop}/admin/oauth/access_token`,
         {
@@ -169,7 +178,12 @@ serve(async (req) => {
           shop,
           redirect: redirectUrl
         }),
-        { headers: corsHeaders }
+        { 
+          headers: {
+            ...corsHeaders,
+            "Location": redirectUrl
+          }
+        }
       );
     } catch (error) {
       console.error("Error in Shopify OAuth flow:", error);
