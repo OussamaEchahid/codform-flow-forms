@@ -45,14 +45,18 @@ export default function ProductSettingsAPI() {
         // هذا يتجنب أخطاء TypeScript مع وظائف RPC المضافة حديثًا
         let result;
         try {
-          result = await supabase.rpc(
-            'insert_product_setting', 
+          // Use the old approach with a POST request directly to avoid the TypeScript error
+          result = await supabase.from('shopify_product_settings').upsert(
             {
-              p_shop_id: shopId,
-              p_product_id: requestBody.productId,
-              p_form_id: requestBody.formId,
-              p_enabled: requestBody.enabled,
-              p_block_id: requestBody.blockId || null
+              shop_id: shopId,
+              product_id: requestBody.productId,
+              form_id: requestBody.formId,
+              enabled: requestBody.enabled,
+              block_id: requestBody.blockId || null
+            },
+            { 
+              onConflict: 'shop_id,product_id',
+              ignoreDuplicates: false
             }
           );
 
