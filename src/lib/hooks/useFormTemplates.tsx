@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FormStep, formTemplates } from '@/lib/form-utils';
+import { FormStep, formTemplates, FormSectionConfig } from '@/lib/form-utils';
 import { useAuth } from '@/lib/auth';
 import { Json } from '@/integrations/supabase/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +11,10 @@ export interface FormData {
   title: string;
   description: string;
   data: FormStep[];
+  sectionConfig?: FormSectionConfig;
+  style?: {
+    [key: string]: string | number;
+  };
   is_published: boolean;
   created_at: string;
   user_id: string;
@@ -219,7 +223,9 @@ export const useFormTemplates = () => {
       
       return {
         ...data,
-        data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
+        data: data.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
+        sectionConfig: data.sectionConfig || { sections: [], layout: 'vertical' },
+        style: data.style || {},
       } as FormData;
     } catch (error: any) {
       toast.error(`خطأ في جلب النموذج: ${error.message}`);

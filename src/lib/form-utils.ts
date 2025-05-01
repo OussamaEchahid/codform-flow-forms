@@ -406,6 +406,8 @@ export interface FormData {
   description?: string;
   data: any[];
   sectionConfig?: FormSectionConfig;
-  style?: any;
+  style?: {
+    [key: string]: string | number;
+  };
   is_published?: boolean;
 }

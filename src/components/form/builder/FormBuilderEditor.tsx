@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FormSectionConfig } from '@/lib/form-utils';
 import FormElementEditor from './FormElementEditor';
 import FormElementList from './FormElementList';
 import FormPreviewPanel from './FormPreviewPanel';
@@ -19,11 +19,6 @@ import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { FileText, LayoutGrid } from 'lucide-react';
 
 // Define the interfaces to match what's being used in FormBuilderEditor
-interface FormSectionConfig {
-  sections: any[];
-  layout: string;
-}
-
 interface FormElement extends FormField {
   // Additional properties if needed
 }
@@ -78,9 +73,14 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
         try {
           const fetchedForm = await getFormById(formId);
           if (fetchedForm) {
-            setForm(fetchedForm);
-            // Initialize sectionConfig with default values if it doesn't exist
-            setSectionConfig(fetchedForm.sectionConfig || { sections: [], layout: 'vertical' });
+            // Ensure the form has the required structure
+            const formWithDefaults = {
+              ...fetchedForm,
+              sectionConfig: fetchedForm.sectionConfig || { sections: [], layout: 'vertical' },
+              style: fetchedForm.style || {},
+            };
+            setForm(formWithDefaults);
+            setSectionConfig(formWithDefaults.sectionConfig);
           } else {
             toast.error(t('formNotFound'));
             navigate('/forms');
