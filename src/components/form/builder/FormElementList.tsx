@@ -13,8 +13,25 @@ interface FormElementListProps {
   onAddElement: (type: string) => void;
 }
 
-const FormElementList: React.FC<FormElementListProps> = ({ availableElements, onAddElement }) => {
+const FormElementList: React.FC<FormElementListProps> = ({ 
+  availableElements = [], // Provide default empty array
+  onAddElement 
+}) => {
   const { language } = useI18n();
+
+  // Check if availableElements exists before mapping
+  if (!availableElements || availableElements.length === 0) {
+    return (
+      <div className="space-y-2">
+        <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
+          {language === 'ar' ? 'لا توجد عناصر للإضافة' : 'No Elements Available'}
+        </h3>
+        <div className="p-3 border rounded-md text-center text-gray-500">
+          {language === 'ar' ? 'لم يتم تكوين عناصر للإضافة' : 'No elements configured to add'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

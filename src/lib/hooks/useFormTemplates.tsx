@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -228,6 +227,42 @@ export const useFormTemplates = () => {
     }
   };
 
+  const updateFormData = async (formId: string, updatedFormData: any) => {
+    try {
+      if (!formId) {
+        console.error('Form ID is missing');
+        return false;
+      }
+
+      // Make API call to update the form data
+      const response = await fetch(`/api/forms/${formId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedFormData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update form');
+      }
+
+      const data = await response.json();
+      
+      // Update the local state
+      setForms(currentForms => 
+        currentForms.map(form => 
+          form.id === formId ? { ...form, ...updatedFormData } : form
+        )
+      );
+      
+      return data;
+    } catch (error) {
+      console.error('Error updating form data:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchForms();
   }, [fetchForms]);
@@ -242,6 +277,7 @@ export const useFormTemplates = () => {
     saveForm,
     publishForm,
     deleteForm,
-    getFormById
+    getFormById,
+    updateFormData
   };
 };

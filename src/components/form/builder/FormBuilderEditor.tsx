@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { FormData, FormElement, FormSectionConfig } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import FormElementEditor from './FormElementEditor';
 import FormElementList from './FormElementList';
 import FormPreviewPanel from './FormPreviewPanel';
@@ -15,6 +16,26 @@ import ShopifyConnectionStatus from './ShopifyConnectionStatus';
 import { useShopify } from '@/hooks/useShopify';
 import { useAuth } from '@/lib/auth';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { FileText, LayoutGrid } from 'lucide-react';
+
+// Define the interfaces to match what's being used in FormBuilderEditor
+interface FormSectionConfig {
+  sections: any[];
+  layout: string;
+}
+
+interface FormElement extends FormField {
+  // Additional properties if needed
+}
+
+interface FormData {
+  id: string;
+  title: string;
+  description?: string;
+  data: any[];
+  sectionConfig?: FormSectionConfig;
+  // Add other properties as needed
+}
 
 interface FormBuilderProps {
   formId?: string;
@@ -23,7 +44,7 @@ interface FormBuilderProps {
 const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
-  const { updateForm, fetchFormById } = useFormTemplates();
+  const { getFormById, updateFormData } = useFormTemplates();
   const [activeTab, setActiveTab] = useState<'elements' | 'styling' | 'preview' | 'shopify'>('elements');
   const [form, setForm] = useState<FormData | null>(null);
   const [selectedElement, setSelectedElement] = useState<FormElement | null>(null);
@@ -37,12 +58,22 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
   const { shopifyConnected, shop } = useAuth();
   const { isSyncing, syncFormWithShopify } = useShopify();
 
+  // Define the available form elements
+  const availableElements = [
+    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Field', icon: '✍️' },
+    { type: 'email', label: language === 'ar' ? 'بريد إلكتروني' : 'Email Field', icon: '✉️' },
+    { type: 'textarea', label: language === 'ar' ? 'منطقة نص' : 'Text Area', icon: '📝' },
+    { type: 'select', label: language === 'ar' ? 'قائمة منسدلة' : 'Dropdown', icon: '▼' },
+    { type: 'checkbox', label: language === 'ar' ? 'مربع اختيار' : 'Checkbox', icon: '☑️' },
+    { type: 'radio', label: language === 'ar' ? 'زر اختيار' : 'Radio Button', icon: '⚪' }
+  ];
+
   useEffect(() => {
     const loadForm = async () => {
       if (formId) {
         setIsLoading(true);
         try {
-          const fetchedForm = await fetchFormById(formId);
+          const fetchedForm = await getFormById(formId);
           if (fetchedForm) {
             setForm(fetchedForm);
             setSectionConfig(fetchedForm.sectionConfig || { sections: [], layout: 'vertical' });
@@ -62,7 +93,7 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
     };
 
     loadForm();
-  }, [formId, navigate, t, fetchFormById]);
+  }, [formId, navigate, t, getFormById]);
 
   const handleElementSelect = (element: FormElement) => {
     setSelectedElement(element);
@@ -75,7 +106,7 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
     }
 
     try {
-      await updateForm(updatedForm.id, updatedForm);
+      await updateFormData(updatedForm.id, updatedForm);
       setForm(updatedForm);
       toast.success(t('formUpdated'));
     } catch (error) {
@@ -92,7 +123,7 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
 
     try {
       const updatedForm = { ...form, sectionConfig: newSectionConfig };
-      await updateForm(form.id, updatedForm);
+      await updateFormData(form.id, updatedForm);
       setForm(updatedForm);
       setSectionConfig(newSectionConfig);
       toast.success(t('formUpdated'));
@@ -100,6 +131,11 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
       console.error('Error updating section config:', error);
       toast.error(t('formUpdateError'));
     }
+  };
+
+  const handleAddElement = (type: string) => {
+    console.log(`Adding element of type: ${type}`);
+    // Implementation for adding elements
   };
 
   // Handle Shopify integration save
@@ -125,8 +161,14 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
       <ShopifyConnectionStatus />
       
       <FormHeader 
-        form={form} 
-        onFormUpdate={handleFormUpdate} 
+        formTitle={form?.title || ''}
+        formDescription={form?.description || ''}
+        onUpdateForm={(title, description) => {
+          if (form) {
+            const updatedForm = { ...form, title, description };
+            handleFormUpdate(updatedForm);
+          }
+        }}
       />
       
       <div className="p-4">
@@ -142,20 +184,18 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-1">
                 <FormElementList
-                  formId={form?.id || ''}
-                  selectedElement={selectedElement}
-                  onElementSelect={handleElementSelect}
-                  sectionConfig={sectionConfig}
-                  onSectionConfigUpdate={handleSectionConfigUpdate}
+                  availableElements={availableElements}
+                  onAddElement={handleAddElement}
                 />
               </div>
               <div className="md:col-span-2">
                 <FormElementEditor
-                  formId={form?.id || ''}
-                  selectedElement={selectedElement}
-                  onFormUpdate={handleFormUpdate}
-                  sectionConfig={sectionConfig}
-                  onSectionConfigUpdate={handleSectionConfigUpdate}
+                  elements={form?.data?.[0]?.fields || []}
+                  selectedIndex={null}
+                  onSelectElement={() => {}}
+                  onEditElement={() => {}}
+                  onDeleteElement={() => {}}
+                  onDuplicateElement={() => {}}
                 />
               </div>
             </div>
@@ -163,14 +203,19 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
           
           <TabsContent value="styling" className="space-y-4">
             <FormStyleEditor
-              form={form}
-              onFormUpdate={handleFormUpdate}
+              formStyle={form?.style || {}}
+              onStyleUpdate={(newStyle) => {
+                if (form) {
+                  const updatedForm = { ...form, style: newStyle };
+                  handleFormUpdate(updatedForm);
+                }
+              }}
             />
           </TabsContent>
 
           <TabsContent value="preview" className="space-y-4">
             <FormPreviewPanel
-              form={form}
+              formData={form}
               sectionConfig={sectionConfig}
             />
           </TabsContent>

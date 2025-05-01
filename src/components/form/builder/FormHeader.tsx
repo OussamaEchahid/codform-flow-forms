@@ -1,85 +1,93 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { Save, FileCheck, Palette, FileText } from 'lucide-react';
+import React, { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Edit, Save, X } from 'lucide-react';
 
 interface FormHeaderProps {
-  onSave: () => void;
-  onPublish: () => void;
-  onStyleOpen: () => void;
-  onTemplateOpen: () => void;
-  isSaving: boolean;
-  isPublishing: boolean;
-  isPublished: boolean;
+  formTitle: string;
+  formDescription?: string;
+  onUpdateForm: (title: string, description: string) => void;
 }
 
-const FormHeader: React.FC<FormHeaderProps> = ({ 
-  onSave, 
-  onPublish, 
-  onStyleOpen, 
-  onTemplateOpen,
-  isSaving,
-  isPublishing,
-  isPublished
+const FormHeader: React.FC<FormHeaderProps> = ({
+  formTitle,
+  formDescription = '',
+  onUpdateForm
 }) => {
-  const navigate = useNavigate();
   const { language } = useI18n();
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(formTitle);
+  const [description, setDescription] = useState(formDescription || '');
 
-  return (
-    <div className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-10">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/form-builder')}>
-          {language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
-        </Button>
-        <div className="h-4 w-[1px] bg-gray-300"></div>
-        <div className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full flex items-center gap-2">
-          <span>{language === 'ar' ? 'نموذج كـ نافذة منبثقة' : 'Form as popup'}</span>
+  const handleSave = () => {
+    if (!title.trim()) {
+      return; // Don't save empty title
+    }
+    
+    onUpdateForm(title, description);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setTitle(formTitle);
+    setDescription(formDescription || '');
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-white border-b p-4">
+        <div className="container mx-auto">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={title} 
+                onChange={e => setTitle(e.target.value)}
+                className="text-xl font-medium flex-1"
+                placeholder={language === 'ar' ? "عنوان النموذج" : "Form title"}
+              />
+            </div>
+            <div>
+              <Textarea 
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                className="w-full text-gray-600"
+                placeholder={language === 'ar' ? "وصف النموذج (اختياري)" : "Form description (optional)"}
+                rows={2}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={handleCancel}>
+                <X size={16} className="mr-1" />
+                {language === 'ar' ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button size="sm" onClick={handleSave}>
+                <Save size={16} className="mr-1" />
+                {language === 'ar' ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div className="flex items-center gap-3">
-        <Button 
-          variant="outline" 
-          onClick={onStyleOpen}
-        >
-          <Palette size={16} className="mr-2" />
-          {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
-        </Button>
-        <Button 
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={onTemplateOpen}
-        >
-          <FileText size={16} className="mr-2" />
-          {language === 'ar' ? 'قوالب النماذج' : 'Form Templates'}
-        </Button>
-        <Button 
-          className="flex items-center gap-2 bg-[#9b87f5] hover:bg-[#7E69AB]" 
-          onClick={onSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-          ) : (
-            <Save size={18} className="mr-2" />
-          )}
-          {language === 'ar' ? 'حفظ' : 'Save'}
-        </Button>
-        <Button
-          variant={isPublished ? "secondary" : "default"}
-          onClick={onPublish}
-          disabled={isPublishing}
-          className="flex items-center gap-2"
-        >
-          {isPublishing ? (
-            <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></span>
-          ) : (
-            <FileCheck size={16} className="mr-2" />
-          )}
-          <span>{isPublished ? (language === 'ar' ? 'إلغاء النشر' : 'Unpublish') : (language === 'ar' ? 'نشر النموذج' : 'Publish')}</span>
-        </Button>
+    );
+  }
+
+  return (
+    <div className="bg-white border-b p-4">
+      <div className="container mx-auto">
+        <div className="flex justify-between">
+          <div>
+            <h1 className="text-xl font-medium">{title || (language === 'ar' ? "نموذج بلا عنوان" : "Untitled Form")}</h1>
+            {description && <p className="text-gray-600">{description}</p>}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+            <Edit size={16} className="mr-1" />
+            {language === 'ar' ? "تعديل" : "Edit"}
+          </Button>
+        </div>
       </div>
     </div>
   );
