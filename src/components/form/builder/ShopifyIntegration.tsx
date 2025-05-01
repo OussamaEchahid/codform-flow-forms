@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,8 +51,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     error: shopifyError, 
     isRedirecting, 
     redirectionDisabled, 
-    manualReconnect, 
-    authRetryCount 
+    manualReconnect 
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
