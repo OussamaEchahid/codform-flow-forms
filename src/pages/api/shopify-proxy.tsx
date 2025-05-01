@@ -1,6 +1,4 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
 /**
  * Shopify API Proxy Endpoint
  * This endpoint serves as a proxy between the frontend and the Shopify API
@@ -49,12 +47,29 @@ export async function POST(request: Request) {
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Non-JSON response received from Shopify API:', contentType);
         const responseText = await response.text();
-        console.error('Response text (first 200 chars):', responseText.substring(0, 200));
+        console.error('Response text (first 500 chars):', responseText.substring(0, 500));
         
+        // If the response contains <!DOCTYPE html> or similar, it's likely an authentication error
+        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Authentication error with Shopify API',
+              details: 'The server returned an HTML page instead of JSON data. This usually indicates an invalid access token or incorrect shop domain.',
+              statusCode: response.status,
+              contentType: contentType || 'unknown'
+            }),
+            { 
+              status: 401,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        }
+        
+        // Generic non-JSON response error
         return new Response(
           JSON.stringify({ 
             error: 'Invalid response from Shopify API - expected JSON but received HTML/text',
-            details: 'The server returned HTML instead of JSON, which may indicate an authentication error or invalid shop domain',
+            details: 'The server returned non-JSON content, which may indicate an authentication error or invalid shop domain',
             statusCode: response.status,
             contentType: contentType || 'unknown'
           }),

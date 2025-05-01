@@ -94,6 +94,7 @@ export const useShopify = () => {
       }
       
       console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
+      console.log('First 4 chars of token:', storeData.access_token.substring(0, 4) + '...');
 
       // حفظ إعدادات المنتج في قاعدة البيانات أولاً
       try {
@@ -132,6 +133,11 @@ export const useShopify = () => {
       try {
         console.log(`Creating API instance for shop: ${shop}`);
         const api = createShopifyAPI(storeData.access_token, shop);
+        
+        // First verify the connection is working
+        console.log('Verifying connection to Shopify API before sync...');
+        await api.verifyConnection();
+        console.log('Connection verification successful');
         
         // مزامنة النموذج مع شوبيفاي
         console.log('Setting up auto sync with Shopify');

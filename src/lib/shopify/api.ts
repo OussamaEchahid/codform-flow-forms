@@ -25,7 +25,9 @@ class ShopifyAPI {
       console.log('Request details:', {
         shopDomain: normalizedShopDomain,
         query: query.substring(0, 50) + '...', // Log part of the query for debugging
-        accessTokenPresent: this.accessToken ? true : false
+        accessTokenPresent: this.accessToken ? true : false,
+        accessTokenLength: this.accessToken ? this.accessToken.length : 0,
+        accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none'
       });
       
       const response = await fetch(url, {
@@ -222,9 +224,11 @@ class ShopifyAPI {
       : `${this.shopDomain}.myshopify.com`;
     
     console.log('Using normalized shop domain for verification:', normalizedShopDomain);
+    console.log('Access token length:', this.accessToken ? this.accessToken.length : 0);
+    console.log('Access token first 5 chars:', this.accessToken ? this.accessToken.substring(0, 5) + '...' : 'none');
     
     try {
-      // Use a simpler query first to test the connection
+      // Use the simplest possible query first to test the connection
       const query = `
         {
           shop {
@@ -282,9 +286,20 @@ class ShopifyAPI {
       console.error('Connection verification failed:', error);
       
       // Provide more detailed error message
-      const errorMessage = error instanceof Error 
-        ? `Verification error: ${error.message}` 
-        : 'Unknown verification error';
+      let errorMessage = 'Unknown verification error';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Add specific guidance for common errors
+        if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html')) {
+          errorMessage = 'Authentication error: Received HTML instead of JSON. This usually means your access token is invalid or expired.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+          errorMessage = 'Authentication error: Your access token does not have sufficient permissions or has expired.';
+        } else if (errorMessage.includes('404')) {
+          errorMessage = 'Shop not found: The shop domain may be incorrect or the shop no longer exists.';
+        }
+      }
       
       throw new Error(`Could not verify connection to Shopify API: ${errorMessage}`);
     }
