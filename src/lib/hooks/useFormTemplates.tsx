@@ -2,13 +2,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
-// Define the form data interface
+// Define the form data interface to match the database structure
 export interface FormData {
   id: string;
   title: string;
   description?: string;
-  data: any[];
+  data: any; // Changed from any[] to any to accommodate Json type from Supabase
   sectionConfig?: any;
   style?: any;
   is_published?: boolean;
@@ -17,6 +18,35 @@ export interface FormData {
   user_id?: string;
   shop_id?: string;
 }
+
+// Interface for database response
+interface DbFormData {
+  id: string;
+  title: string;
+  description: string | null;
+  data: Json;
+  is_published: boolean | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  shop_id: string | null;
+}
+
+// Helper function to convert database form data to our app's FormData type
+const convertDbFormToAppForm = (dbForm: DbFormData): FormData => {
+  return {
+    id: dbForm.id,
+    title: dbForm.title,
+    description: dbForm.description || undefined,
+    // Parse JSON if it's a string, otherwise use as is
+    data: typeof dbForm.data === 'string' ? JSON.parse(dbForm.data) : dbForm.data,
+    is_published: dbForm.is_published || false,
+    created_at: dbForm.created_at,
+    updated_at: dbForm.updated_at,
+    user_id: dbForm.user_id,
+    shop_id: dbForm.shop_id || undefined
+  };
+};
 
 // Create a cache for forms to reduce database calls
 const formCache = new Map();
@@ -51,8 +81,10 @@ export const useFormTemplates = () => {
       }
       
       console.log('Fetched forms:', data);
-      setForms(data || []);
-      return data;
+      // Convert database forms to app forms
+      const convertedForms = (data || []).map(convertDbFormToAppForm);
+      setForms(convertedForms);
+      return convertedForms;
     } catch (err: any) {
       console.error('Error in fetchForms:', err);
       setError(err?.message || 'An error occurred while fetching forms');
@@ -84,7 +116,7 @@ export const useFormTemplates = () => {
       // you can use this mock data for testing
       if (process.env.NODE_ENV === 'development' && window.location.search.includes('mock=true')) {
         console.log('Using mock data for form');
-        const mockForm = {
+        const mockForm: FormData = {
           id: formId,
           title: 'Mock Form (Development Mode)',
           description: 'This is a mock form for development',
@@ -111,13 +143,19 @@ export const useFormTemplates = () => {
 
       console.log('Fetched form data:', data);
 
-      // Cache the result
       if (data) {
-        formCache.set(formId, data);
+        // Convert database form to app form
+        const convertedForm = convertDbFormToAppForm(data);
+        
+        // Cache the result
+        formCache.set(formId, convertedForm);
+        
+        setIsLoading(false);
+        return convertedForm;
       }
 
       setIsLoading(false);
-      return data;
+      return null;
     } catch (err: any) {
       console.error('Error in getFormById:', err);
       setError(err?.message || 'An error occurred while fetching the form');
@@ -148,8 +186,15 @@ export const useFormTemplates = () => {
             fields: []
           }
         ],
-        is_published: false
+        is_published: false,
+        // Get user_id from supabase auth - this is required by the database
+        user_id: (await supabase.auth.getUser()).data.user?.id
       };
+      
+      // Check if user is authenticated
+      if (!defaultForm.user_id) {
+        throw new Error('User not authenticated');
+      }
       
       const { data, error } = await supabase
         .from('forms')
@@ -162,8 +207,10 @@ export const useFormTemplates = () => {
         throw error;
       }
       
+      // Convert database form to app form
+      const convertedForm = convertDbFormToAppForm(data);
       await fetchForms(); // Refresh forms list
-      return data;
+      return convertedForm;
     } catch (err: any) {
       console.error('Error in createDefaultForm:', err);
       setError(err?.message || 'An error occurred while creating the form');
@@ -179,6 +226,14 @@ export const useFormTemplates = () => {
     setError(null);
     
     try {
+      // Get user_id from supabase auth
+      const user_id = (await supabase.auth.getUser()).data.user?.id;
+      
+      // Check if user is authenticated
+      if (!user_id) {
+        throw new Error('User not authenticated');
+      }
+      
       // In a real implementation, you would fetch the template data
       // and use it to create a new form
       const templateForm = {
@@ -191,7 +246,8 @@ export const useFormTemplates = () => {
             fields: []
           }
         ],
-        is_published: false
+        is_published: false,
+        user_id: user_id
       };
       
       const { data, error } = await supabase
@@ -205,8 +261,10 @@ export const useFormTemplates = () => {
         throw error;
       }
       
+      // Convert database form to app form
+      const convertedForm = convertDbFormToAppForm(data);
       await fetchForms(); // Refresh forms list
-      return data;
+      return convertedForm;
     } catch (err: any) {
       console.error('Error in createFormFromTemplate:', err);
       setError(err?.message || 'An error occurred while creating the form from template');
