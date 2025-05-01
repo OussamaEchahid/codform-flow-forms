@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -221,11 +222,14 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      // Transform the returned data to match our expected FormData structure
+      // Note: We need to add sectionConfig and style even if they don't exist in the database
       return {
         ...data,
         data: data.data as unknown as FormStep[], // Safe type assertion with unknown as intermediary
-        sectionConfig: data.sectionConfig || { sections: [], layout: 'vertical' },
-        style: data.style || {},
+        // Add default values for properties that might not exist in the database
+        sectionConfig: (data as any).sectionConfig || { sections: [], layout: 'vertical' },
+        style: (data as any).style || {},
       } as FormData;
     } catch (error: any) {
       toast.error(`خطأ في جلب النموذج: ${error.message}`);
