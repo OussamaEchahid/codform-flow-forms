@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,10 +43,11 @@ export default function Shopify() {
       const savedShop = localStorage.getItem('shopify_store');
       if (savedShop) {
         console.log("Already connected to Shopify, redirecting to dashboard");
-        toast.success(
-          `متصل بالفعل بمتجر ${savedShop}`,
-          { id: 'already-connected' }
-        );
+        toast({
+          title: `متصل بالفعل بمتجر ${savedShop}`,
+          variant: "default",
+          id: 'already-connected'
+        });
         navigate('/dashboard');
       }
     }
