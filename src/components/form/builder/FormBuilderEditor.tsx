@@ -34,7 +34,10 @@ interface FormData {
   description?: string;
   data: any[];
   sectionConfig?: FormSectionConfig;
-  // Add other properties as needed
+  style?: {
+    [key: string]: string | number;
+  };
+  is_published?: boolean;
 }
 
 interface FormBuilderProps {
@@ -76,6 +79,7 @@ const FormBuilderEditor: React.FC<FormBuilderProps> = ({ formId }) => {
           const fetchedForm = await getFormById(formId);
           if (fetchedForm) {
             setForm(fetchedForm);
+            // Initialize sectionConfig with default values if it doesn't exist
             setSectionConfig(fetchedForm.sectionConfig || { sections: [], layout: 'vertical' });
           } else {
             toast.error(t('formNotFound'));
