@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
-import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
+import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { saveProductSettings } from '@/pages/api/shopify/product-settings';
 
 export const useShopify = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
@@ -88,7 +89,7 @@ export const useShopify = () => {
       
       try {
         const productId = formData.settings.products?.[0] || 'default-product';
-        const requestData = {
+        const requestData: ProductSettingsRequest = {
           productId: productId,
           formId: formData.formId,
           enabled: true,
@@ -97,32 +98,10 @@ export const useShopify = () => {
         
         console.log('Sending product settings data:', requestData);
         
-        // استخدام واجهة Next.js API بدلاً من الطريقة السابقة
-        const response = await fetch('/api/shopify/product-settings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shop-ID': shop
-          },
-          body: JSON.stringify(requestData),
-        });
+        // استدعاء وظيفة حفظ إعدادات المنتج مباشرة بدلاً من استخدام fetch
+        const result = await saveProductSettings(shop, requestData);
         
-        console.log('Product settings API response status:', response.status);
-        
-        if (!response.ok) {
-          let errorDetails = 'Unknown error';
-          try {
-            const errorData = await response.json();
-            errorDetails = errorData.error || errorData.message || 'Error saving product settings';
-            console.error('Error response:', errorData);
-          } catch (e) {
-            console.error('Could not parse error response:', e);
-          }
-          throw new Error(`API Error (${response.status}): ${errorDetails}`);
-        }
-        
-        const result = await response.json();
-        console.log('Product settings API result:', result);
+        console.log('Product settings result:', result);
         
         if (result.error) {
           throw new Error(result.error);
