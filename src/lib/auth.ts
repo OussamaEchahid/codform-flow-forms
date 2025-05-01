@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,7 +9,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<any>;
   shop: string | null;
   shopifyConnected: boolean;
-  refreshShopifyConnection?: () => void; // Add this function
+  refreshShopifyConnection?: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -176,10 +175,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     register,
     shop,
     shopifyConnected,
-    refreshShopifyConnection, // Add the refresh function
+    refreshShopifyConnection,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return { Provider: AuthContext.Provider, value, children };
 };
 
 export const useAuth = () => useContext(AuthContext);
