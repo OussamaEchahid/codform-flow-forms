@@ -87,11 +87,6 @@ export const useShopify = () => {
       console.log('Saving product settings for productId:', formData.settings.products?.[0] || 'default');
       
       try {
-        // بناء عنوان URL لنقطة نهاية API
-        const apiUrl = `/api/shopify/product-settings`;
-        console.log('API URL for product settings:', apiUrl);
-        
-        // إعداد بيانات طلب API
         const productId = formData.settings.products?.[0] || 'default-product';
         const requestData = {
           productId: productId,
@@ -102,11 +97,12 @@ export const useShopify = () => {
         
         console.log('Sending product settings data:', requestData);
         
-        // إرسال الطلب إلى نقطة النهاية
-        const response = await fetch(apiUrl, {
+        // استخدام واجهة Next.js API بدلاً من الطريقة السابقة
+        const response = await fetch('/api/shopify/product-settings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Shop-ID': shop
           },
           body: JSON.stringify(requestData),
         });
@@ -114,7 +110,6 @@ export const useShopify = () => {
         console.log('Product settings API response status:', response.status);
         
         if (!response.ok) {
-          // محاولة قراءة تفاصيل الخطأ من الاستجابة
           let errorDetails = 'Unknown error';
           try {
             const errorData = await response.json();
