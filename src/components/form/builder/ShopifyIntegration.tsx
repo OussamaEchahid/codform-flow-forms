@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -149,8 +148,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
   
+  // وظيفة معدلة للاتصال اليدوي
   const handleManualReconnect = () => {
-    // منع إعادة الاتصال المتكرر
+    // منع النقرات المتكررة
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
@@ -158,7 +158,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    // إعادة تعيين البيانات المخزنة محليًا قبل الاتصال من جديد
+    // تعيين حالة التوجيه
+    setIsRedirecting(true);
+    
+    // إزالة كافة البيانات المخزنة محليًا
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_reconnect_attempts');
@@ -171,23 +174,29 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       refreshShopifyConnection();
     }
     
+    // عرض رسالة للمستخدم
     toast.info(language === 'ar'
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // التوجيه إلى صفحة الاتصال بـ Shopify
-    navigate('/shopify');
+    // إضافة تأخير قبل التوجيه لتجنب مشاكل التوجيه السريع
+    setTimeout(() => {
+      navigate('/shopify');
+    }, 1500);
   };
 
+  // عنصر واجهة المستخدم المحسن لحالة الاتصال
   const renderConnectionStatus = () => {
     if (isRedirecting) {
       return (
         <Alert className="bg-blue-50 border-blue-200 mb-4">
-          <Loader className="h-4 w-4 animate-spin text-blue-500 mr-2" />
-          <AlertTitle>
-            {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
-          </AlertTitle>
-          <AlertDescription className="mt-2">
+          <div className="flex items-center">
+            <Loader className="h-5 w-5 animate-spin text-blue-500 mr-2" />
+            <AlertTitle className="text-lg font-bold">
+              {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
+            </AlertTitle>
+          </div>
+          <AlertDescription className="mt-2 text-base">
             {language === 'ar'
               ? 'يرجى الانتظار بينما نقوم بإعادة الاتصال بـ Shopify'
               : 'Please wait while we reconnect to Shopify'}
@@ -197,39 +206,53 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     } else if (connectionStatus === 'success' && shopifyConnected && shop) {
       return (
         <Alert className="bg-green-50 border-green-200 mb-4">
-          <Check className="h-4 w-4 text-green-500 mr-2" />
-          <AlertTitle>
-            {language === 'ar' 
-              ? `متصل بمتجر: ${shop}` 
-              : `Connected to store: ${shop}`}
-          </AlertTitle>
+          <div className="flex items-center">
+            <Check className="h-5 w-5 text-green-500 mr-2" />
+            <AlertTitle className="text-lg font-bold">
+              {language === 'ar' 
+                ? `متصل بمتجر: ${shop}` 
+                : `Connected to store: ${shop}`}
+            </AlertTitle>
+          </div>
         </Alert>
       );
     } else {
       return (
-        <Alert className="bg-red-50 border-red-200 mb-4">
-          <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-          <AlertTitle>
-            {language === 'ar' ? 'مشكلة في الاتصال بالمتجر' : 'Connection issue detected'}
-          </AlertTitle>
-          {saveError && <AlertDescription className="mt-2">{saveError}</AlertDescription>}
+        <Alert className="bg-red-50 border-red-300 mb-4 p-6">
+          <div className="flex items-center">
+            <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
+            <AlertTitle className="text-lg font-bold">
+              {language === 'ar' ? 'مشكلة في الاتصال بالمتجر' : 'Connection issue detected'}
+            </AlertTitle>
+          </div>
           
-          <div className="mt-4">
+          {saveError && (
+            <AlertDescription className="mt-3 text-base">
+              {saveError}
+            </AlertDescription>
+          )}
+          
+          <div className="mt-4 flex justify-center">
             <Button 
-              variant="outline" 
-              size="sm"
+              size="lg"
               onClick={handleManualReconnect} 
-              className="bg-white"
+              className="bg-red-500 hover:bg-red-600 text-white px-6 py-3"
               disabled={isRedirecting}
             >
               {isRedirecting ? (
-                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                <Loader className="h-5 w-5 mr-2 animate-spin" />
               ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-5 w-5 mr-2" />
               )}
               {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
             </Button>
           </div>
+          
+          <p className="mt-4 text-sm text-center text-red-700">
+            {language === 'ar'
+              ? 'تم اكتشاف مشكلة في الاتصال بـ Shopify. يرجى النقر على الزر أعلاه لإعادة الاتصال'
+              : 'A problem with your Shopify connection was detected. Please click the button above to reconnect'}
+          </p>
         </Alert>
       );
     }
@@ -248,7 +271,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {renderConnectionStatus()}
+        {/* عرض حالة الاتصال بشكل أكبر والأكثر فعالية */}
+        <div className="mb-6">
+          {renderConnectionStatus()}
+        </div>
         
         {shopifyConnected && shop ? (
           <>
@@ -336,7 +362,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         ) : (
           <div className="space-y-4">
             <Alert className="bg-yellow-50 border-yellow-200">
-              <AlertCircle className="h-4 w-4 text-yellow-500 mr-2" />
+              <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
               <AlertTitle>
                 {language === 'ar' 
                   ? 'أنت غير متصل بـ Shopify. قم بتسجيل الدخول لاستخدام هذه الميزة.'
@@ -344,13 +370,22 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </AlertTitle>
             </Alert>
             
-            <Button 
-              variant="secondary"
-              className="w-full"
-              onClick={handleManualReconnect}
-            >
-              {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-            </Button>
+            <div className="flex justify-center mt-6">
+              <Button 
+                size="lg"
+                variant="default"
+                className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700"
+                onClick={handleManualReconnect}
+                disabled={isRedirecting}
+              >
+                {isRedirecting ? (
+                  <Loader className="h-5 w-5 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                )}
+                {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
