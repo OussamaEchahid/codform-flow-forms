@@ -77,4 +77,5 @@ export interface ProductSettingsResponse {
   error?: string;
   productId?: string;
   formId?: string;
+  blockId?: string;
 }
