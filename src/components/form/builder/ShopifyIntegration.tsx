@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -35,12 +35,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { language } = useI18n();
   const { shopifyConnected, shop } = useAuth();
-  const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
+  const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
   const { products, isLoading: loadingProducts } = useShopify();
-  const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
-  const [blockId, setBlockId] = React.useState<string>('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [blockId, setBlockId] = useState<string>('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
-  // Generate a random block ID if not already set
+  // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
   React.useEffect(() => {
     if (!blockId) {
       const randomId = Math.random().toString(36).substring(2, 10);
@@ -48,28 +50,55 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   }, [blockId]);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!shopifyConnected || !shop) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
       return;
     }
-
-    onSave({
-      formId,
-      shopDomain: shop,
-      settings: {
-        position,
-        style: {
-          primaryColor: '#000000',
-          fontSize: '16px',
-          borderRadius: '4px',
+    
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      
+      // تسجيل بيانات النموذج للتصحيح
+      const formData = {
+        formId,
+        shopDomain: shop,
+        settings: {
+          position,
+          style: {
+            primaryColor: '#000000',
+            fontSize: '16px',
+            borderRadius: '4px',
+          },
+          products: selectedProducts,
+          blockId: blockId
         },
-        products: selectedProducts,
-        blockId: blockId
-      },
-    });
+      };
+      
+      console.log('Saving Shopify integration with data:', formData);
+      
+      // استدعاء وظيفة الحفظ المقدمة من المكون الأب
+      await onSave(formData);
+      
+      toast.success(language === 'ar' 
+        ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+        : 'Shopify settings saved successfully');
+    } catch (error) {
+      console.error('Error saving Shopify settings:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : language === 'ar' 
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'An error occurred while saving Shopify settings';
+      
+      setSaveError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -94,6 +123,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                   : `Connected to store: ${shop}`}
               </p>
             </div>
+            
+            {saveError && (
+              <div className="bg-red-50 rounded p-3 mb-4 border border-red-200">
+                <p className="text-red-700 text-sm">{saveError}</p>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 {language === 'ar' ? 'موقع النموذج' : 'Form Position'}
@@ -160,12 +196,12 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button
               onClick={handleSave}
               className="w-full mt-4"
-              disabled={isSyncing}
+              disabled={isSaving || isSyncing}
             >
-              {isSyncing ? (
+              {(isSaving || isSyncing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...'}
+                  {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                 </>
               ) : (
                 language === 'ar' ? 'حفظ التكامل' : 'Save Integration'

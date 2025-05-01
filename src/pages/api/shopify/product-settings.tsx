@@ -19,41 +19,57 @@ export default function ProductSettingsAPI() {
     async function handleSettings() {
       try {
         console.log('Processing product settings request');
-        // Get the request body
-        const requestBody: ProductSettings = JSON.parse(document.body.innerText);
-        console.log('Request body:', requestBody);
+        // تسجيل بيانات الطلب المستلمة
+        const requestBodyText = document.body.innerText;
+        console.log('Raw request body:', requestBodyText);
+        
+        // محاولة تحليل البيانات
+        let requestBody: ProductSettings;
+        try {
+          requestBody = JSON.parse(requestBodyText);
+          console.log('Parsed request body:', requestBody);
+        } catch (parseError) {
+          console.error('Error parsing JSON:', parseError);
+          throw new Error('تنسيق البيانات غير صالح. يرجى التأكد من إرسال JSON صحيح.');
+        }
         
         if (!requestBody.productId || !requestBody.formId) {
-          throw new Error('Missing required fields: productId or formId');
+          throw new Error('البيانات المطلوبة غير موجودة: productId أو formId');
         }
 
-        // If shop is not provided in auth context, try to get it from the request body
+        // الحصول على متجر من سياق المصادقة أو استخدام القيمة الافتراضية
         const shopId = shop || 'default-shop';
         console.log('Using shop ID:', shopId);
 
-        // Use a direct SQL query that works with any schema version
-        // This avoids TypeScript errors with newly added RPC functions
-        const { error } = await supabase.rpc(
-          'insert_product_setting' as any, 
-          {
-            p_shop_id: shopId,
-            p_product_id: requestBody.productId,
-            p_form_id: requestBody.formId,
-            p_enabled: requestBody.enabled,
-            p_block_id: requestBody.blockId || null
+        // استخدام SQL المباشر الذي يعمل مع أي إصدار من المخطط
+        // هذا يتجنب أخطاء TypeScript مع وظائف RPC المضافة حديثًا
+        let result;
+        try {
+          result = await supabase.rpc(
+            'insert_product_setting', 
+            {
+              p_shop_id: shopId,
+              p_product_id: requestBody.productId,
+              p_form_id: requestBody.formId,
+              p_enabled: requestBody.enabled,
+              p_block_id: requestBody.blockId || null
+            }
+          );
+
+          if (result.error) {
+            throw result.error;
           }
-        );
 
-        if (error) {
-          console.error('Error saving product settings:', error);
-          throw error;
+          console.log('Insert result:', result);
+          console.log('Product settings saved successfully');
+          setResponse({ success: true });
+        } catch (dbError) {
+          console.error('Database error:', dbError);
+          throw new Error(`خطأ في قاعدة البيانات: ${dbError.message || 'خطأ غير معروف'}`);
         }
-
-        console.log('Product settings saved successfully');
-        setResponse({ success: true });
       } catch (error: any) {
         console.error('Settings error:', error);
-        setResponse({ error: error.message || 'Error saving product settings' });
+        setResponse({ error: error.message || 'خطأ في حفظ إعدادات المنتج' });
       } finally {
         setIsLoading(false);
       }
@@ -63,11 +79,11 @@ export default function ProductSettingsAPI() {
       handleSettings();
     } else {
       setIsLoading(false);
-      setResponse({ error: 'No data provided' });
+      setResponse({ error: 'لم يتم توفير أي بيانات' });
     }
   }, [shop]);
 
-  // This component acts as an API endpoint, so it returns JSON
+  // هذا المكون يعمل كنقطة نهاية API، لذلك يعيد JSON
   useEffect(() => {
     if (!isLoading) {
       document.body.innerHTML = JSON.stringify(response, null, 2);
