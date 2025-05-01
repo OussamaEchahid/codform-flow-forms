@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,10 +23,11 @@ import {
 } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
-import { Loader, AlertCircle, Info, Check } from 'lucide-react';
+import { Loader, AlertCircle, Info, Check, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
+import { useNavigate } from 'react-router-dom';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -40,14 +41,32 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   isSyncing = false,
 }) => {
   const { language } = useI18n();
-  const { shopifyConnected, shop } = useAuth();
+  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
+  const navigate = useNavigate();
   const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
-  const { products, isLoading: loadingProducts } = useShopify();
+  const { products, isLoading: loadingProducts, error: shopifyError } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
+  
+  // Check for connection issues
+  useEffect(() => {
+    if (shopifyError) {
+      console.error('Shopify error detected:', shopifyError);
+      
+      // Check if it's an authentication error
+      if (typeof shopifyError === 'string' && 
+          (shopifyError.includes('authentication error') || 
+           shopifyError.includes('token is invalid') ||
+           shopifyError.includes('token has expired') ||
+           shopifyError.includes('HTML instead of JSON'))) {
+        setConnectionStatus('error');
+        setSaveError(shopifyError);
+      }
+    }
+  }, [shopifyError]);
   
   // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
   React.useEffect(() => {
@@ -119,6 +138,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setIsSaving(false);
     }
   };
+  
+  const handleReconnect = () => {
+    // Clear connection state
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+    
+    // Redirect to Shopify connection page
+    navigate('/shopify');
+  };
 
   const renderConnectionStatus = () => {
     if (connectionStatus === 'checking') {
@@ -146,9 +175,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         <Alert className="bg-red-50 border-red-200 mb-4">
           <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
           <AlertTitle>
-            {language === 'ar' ? 'فشل الاتصال بالمتجر' : 'Connection failed'}
+            {language === 'ar' ? 'مشكلة في الاتصال بالمتجر' : 'Connection issue detected'}
           </AlertTitle>
-          {saveError && <AlertDescription>{saveError}</AlertDescription>}
+          {saveError && <AlertDescription className="mt-2">{saveError}</AlertDescription>}
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleReconnect} 
+              className="bg-white"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+            </Button>
+          </div>
         </Alert>
       );
     }
@@ -239,13 +279,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button
               onClick={handleSave}
               className="w-full mt-4"
-              disabled={isSaving || isSyncing}
+              disabled={isSaving || isSyncing || connectionStatus === 'error'}
             >
               {(isSaving || isSyncing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                 </>
+              ) : connectionStatus === 'error' ? (
+                language === 'ar' ? 'يجب إعادة الاتصال أولاً' : 'Reconnect Required'
               ) : (
                 language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
               )}

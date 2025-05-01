@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       : `${shop}.myshopify.com`;
 
     console.log(`Proxying GraphQL request to Shopify for shop: ${normalizedShopDomain}`);
+    console.log(`Access token length: ${accessToken.length}, first/last 4 chars: ${accessToken.substring(0, 4)}...${accessToken.substring(accessToken.length - 4)}`);
     
     // Make the actual request to Shopify's GraphQL API
     const shopifyUrl = `https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`;
@@ -42,6 +43,10 @@ export async function POST(request: Request) {
         body: JSON.stringify({ query, variables }),
       });
 
+      // Log the response status and headers for debugging
+      console.log(`Shopify API response status: ${response.status}`);
+      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
+
       // Check if response is JSON by examining content-type header
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -49,17 +54,29 @@ export async function POST(request: Request) {
         const responseText = await response.text();
         console.error('Response text (first 500 chars):', responseText.substring(0, 500));
         
-        // If the response contains <!DOCTYPE html> or similar, it's likely an authentication error
+        let errorMessage = 'Authentication error with Shopify API';
+        let statusCode = 401;
+        
+        // Check for specific error patterns in the HTML response
         if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+          if (responseText.includes('access scope has expired') || responseText.includes('access_token is expired')) {
+            errorMessage = 'Your Shopify access token has expired. Please reconnect your store.';
+          } else if (responseText.includes('invalid_request') || responseText.includes('invalid_token')) {
+            errorMessage = 'Your Shopify access token is invalid. Please reconnect your store.';
+          } else if (responseText.includes('access denied') || responseText.includes('insufficient_scope')) {
+            errorMessage = 'Your Shopify access token has insufficient permissions. Please reconnect your store with the required scopes.';
+          }
+          
           return new Response(
             JSON.stringify({ 
-              error: 'Authentication error with Shopify API',
-              details: 'The server returned an HTML page instead of JSON data. This usually indicates an invalid access token or incorrect shop domain.',
+              error: errorMessage,
+              details: 'The server returned an HTML page instead of JSON data. This usually indicates an authentication issue.',
               statusCode: response.status,
-              contentType: contentType || 'unknown'
+              contentType: contentType || 'text/html',
+              action: 'reconnect'
             }),
             { 
-              status: 401,
+              status: statusCode,
               headers: { 'Content-Type': 'application/json' }
             }
           );
@@ -82,6 +99,24 @@ export async function POST(request: Request) {
 
       // Parse the Shopify response
       const data = await response.json();
+      
+      // Check for GraphQL errors
+      if (data.errors) {
+        console.error('GraphQL Errors:', data.errors);
+        const errorMessages = data.errors.map((err: any) => err.message).join(', ');
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Shopify GraphQL API returned errors',
+            details: errorMessages,
+            errors: data.errors
+          }),
+          { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
       
       // Return the Shopify response data
       return new Response(

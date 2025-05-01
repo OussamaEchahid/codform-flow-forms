@@ -1,4 +1,3 @@
-
 import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
@@ -27,7 +26,7 @@ class ShopifyAPI {
         query: query.substring(0, 50) + '...', // Log part of the query for debugging
         accessTokenPresent: this.accessToken ? true : false,
         accessTokenLength: this.accessToken ? this.accessToken.length : 0,
-        accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none'
+        accessTokenFirstChars: this.accessToken ? `${this.accessToken.substring(0, 4)}...${this.accessToken.substring(this.accessToken.length - 4)}` : 'none'
       });
       
       const response = await fetch(url, {
@@ -50,6 +49,12 @@ class ShopifyAPI {
         // Try to parse the error as JSON first
         try {
           const errorJson = JSON.parse(errorText);
+          
+          // If the error contains a specific "action" field, handle accordingly
+          if (errorJson.action === 'reconnect') {
+            throw new Error(`Authentication error: Your Shopify access token needs to be refreshed. Please reconnect your store.`);
+          }
+          
           throw new Error(`Shopify API error (${response.status}): ${errorJson.error || errorJson.details || response.statusText}`);
         } catch (parseError) {
           // If parsing fails, return the raw error text
@@ -225,7 +230,7 @@ class ShopifyAPI {
     
     console.log('Using normalized shop domain for verification:', normalizedShopDomain);
     console.log('Access token length:', this.accessToken ? this.accessToken.length : 0);
-    console.log('Access token first 5 chars:', this.accessToken ? this.accessToken.substring(0, 5) + '...' : 'none');
+    console.log('Access token first/last chars:', this.accessToken ? `${this.accessToken.substring(0, 4)}...${this.accessToken.substring(this.accessToken.length - 4)}` : 'none');
     
     try {
       // Use the simplest possible query first to test the connection
@@ -246,53 +251,19 @@ class ShopifyAPI {
       }
       
       console.log('Connection verified successfully, shop name:', result.shop.name);
-      
-      // Now that basic connection works, get more details if needed
-      try {
-        const detailQuery = `
-          {
-            shop {
-              name
-              email
-              primaryDomain {
-                url
-                host
-              }
-              plan {
-                displayName
-                partnerDevelopment
-                shopifyPlus
-              }
-            }
-          }
-        `;
-        
-        const detailResult = await this.fetchAPI(detailQuery);
-        if (detailResult && detailResult.shop) {
-          console.log('Shop details:', {
-            name: detailResult.shop.name,
-            email: detailResult.shop.email,
-            domain: detailResult.shop.primaryDomain,
-            plan: detailResult.shop.plan
-          });
-        }
-      } catch (detailError) {
-        // Just log this error but don't fail the connection check
-        console.warn('Could not fetch shop details (but connection works):', detailError);
-      }
-      
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);
       
       // Provide more detailed error message
-      let errorMessage = 'Unknown verification error';
+      let errorMessage = 'Verification error';
       
       if (error instanceof Error) {
         errorMessage = error.message;
         
         // Add specific guidance for common errors
-        if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html')) {
+        if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html') || 
+            errorMessage.includes('HTML instead of JSON')) {
           errorMessage = 'Authentication error: Received HTML instead of JSON. This usually means your access token is invalid or expired.';
         } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
           errorMessage = 'Authentication error: Your access token does not have sufficient permissions or has expired.';
