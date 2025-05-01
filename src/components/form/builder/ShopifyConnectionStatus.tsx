@@ -6,49 +6,63 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { useShopify } from '@/hooks/useShopify';
 
 const ShopifyConnectionStatus = () => {
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
+  const { isConnected, manualReconnect } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   
+  // Combine all connection indicators to determine real connection status
+  const isActuallyConnected = shopifyConnected && shop && isConnected;
+  
   useEffect(() => {
-    // Check connection status on mount and force show warning
+    // Check connection status on mount 
     const initialCheck = () => {
-      // Always show warning during initial load until we confirm connection
-      setShowWarning(true);
-      console.log('ShopifyConnectionStatus initial check:', { shopifyConnected, shop });
+      // Log current connection status variables for debugging
+      console.log('ShopifyConnectionStatus connection check:', { 
+        shopifyConnected, 
+        shop,
+        isConnected,
+        isActuallyConnected: shopifyConnected && shop && isConnected
+      });
       
-      // If connected, hide warning after a short delay
-      if (shopifyConnected && shop) {
-        setTimeout(() => {
-          setShowWarning(false);
-          console.log('Connection confirmed, hiding warning');
-        }, 500);
+      // Only show warning if any connection indicator is false
+      const shouldShowWarning = !shopifyConnected || !shop || !isConnected;
+      setShowWarning(shouldShowWarning);
+      
+      // If connected, ensure warning is hidden
+      if (isActuallyConnected) {
+        setShowWarning(false);
+        console.log('Connection confirmed, hiding warning');
       }
     };
     
     // Run initial check
     initialCheck();
     
-    // Set up interval to check connection status periodically
+    // Set up interval to check connection status periodically - reduced frequency
     const intervalId = setInterval(() => {
-      const shouldShowWarning = !shopifyConnected || !shop;
-      setShowWarning(shouldShowWarning);
+      const shouldShowWarning = !shopifyConnected || !shop || !isConnected;
       
-      // Log connection state for debugging
-      console.log('ShopifyConnectionStatus interval check:', { 
-        shopifyConnected, 
-        shop,
-        shouldShowWarning,
-        timeSinceLastReconnect: Date.now() - lastReconnectAttempt
-      });
-    }, 5000);
+      // Only update state if there's a change to avoid unnecessary re-renders
+      if (shouldShowWarning !== showWarning) {
+        setShowWarning(shouldShowWarning);
+        
+        // Log only when status changes
+        if (!shouldShowWarning) {
+          console.log('Connection confirmed, hiding warning');
+        } else {
+          console.log('Connection issue detected, showing warning');
+        }
+      }
+    }, 10000); // Check less frequently (10 seconds)
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, lastReconnectAttempt]);
+  }, [shopifyConnected, shop, isConnected, showWarning]);
   
   // Handle manual connection button click with improved reliability
   const handleConnectShopify = () => {
@@ -72,23 +86,29 @@ const ShopifyConnectionStatus = () => {
     setIsRedirecting(true);
     setLastReconnectAttempt(Date.now());
     
-    // Clear ALL locally stored data to ensure clean reconnection
-    localStorage.clear(); // Clear everything to ensure a fresh start
-    sessionStorage.clear(); // Also clear session storage
-    
-    // Show message to user
-    toast.info(language === 'ar' 
-      ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-      : 'Redirecting to connect to Shopify...');
-    
-    // Use direct path for more reliable navigation, with a short delay
-    setTimeout(() => {
-      window.location.href = '/shopify?reconnect=true&force=true&ts=' + Date.now() + '&random=' + Math.random();
-    }, 500);
+    // Use the manualReconnect function from useShopify if available
+    if (manualReconnect && typeof manualReconnect === 'function') {
+      manualReconnect();
+    } else {
+      // Fallback to previous implementation if manualReconnect not available
+      // Clear ALL locally stored data to ensure clean reconnection
+      localStorage.clear(); 
+      sessionStorage.clear(); 
+      
+      // Show message to user
+      toast.info(language === 'ar' 
+        ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
+        : 'Redirecting to connect to Shopify...');
+      
+      // Use direct path for more reliable navigation, with a short delay
+      setTimeout(() => {
+        window.location.href = '/shopify?reconnect=true&force=true&ts=' + Date.now() + '&random=' + Math.random();
+      }, 500);
+    }
   };
 
-  // Don't show anything if we're connected
-  if (!showWarning) {
+  // Don't show anything if we're connected or warning is hidden
+  if (!showWarning || isActuallyConnected) {
     return null;
   }
   

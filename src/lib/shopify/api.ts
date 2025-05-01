@@ -1,3 +1,4 @@
+
 import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
@@ -170,50 +171,128 @@ class ShopifyAPI {
   async syncFormData(formData: ShopifyFormData): Promise<void> {
     console.log('Syncing form data with Shopify');
     
-    // تحسين استعلام GraphQL لدعم الإعدادات المحددة
-    const mutation = `
-      mutation createScriptTag($input: ScriptTagInput!) {
-        scriptTagCreate(input: $input) {
-          scriptTag {
-            id
-            src
+    // First check if a script tag already exists for this form
+    try {
+      console.log('Checking for existing script tags...');
+      
+      const queryExisting = `
+        query {
+          scriptTags(first: 50) {
+            edges {
+              node {
+                id
+                src
+                displayScope
+              }
+            }
           }
-          userErrors {
-            field
-            message
+        }
+      `;
+      
+      const existingTags = await this.fetchAPI(queryExisting);
+      const blockId = formData.settings.blockId || '';
+      console.log('Found script tags:', existingTags?.scriptTags?.edges?.length || 0);
+      
+      // Define script src (what we're looking for and what we'll create)
+      const formScriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${blockId}&shop=${this.shopDomain}`;
+      
+      // Check if we already have a script tag for this form
+      let existingTag = null;
+      let needsUpdate = false;
+      
+      if (existingTags && existingTags.scriptTags && existingTags.scriptTags.edges) {
+        // Find a matching script tag
+        for (const edge of existingTags.scriptTags.edges) {
+          const scriptTag = edge.node;
+          // Check if this tag is for this form (based on formId in the src)
+          if (scriptTag.src && scriptTag.src.includes(`formId=${formData.formId}`)) {
+            existingTag = scriptTag;
+            
+            // If blockId changed, we need to update
+            if (!scriptTag.src.includes(`blockId=${blockId}`)) {
+              needsUpdate = true;
+            }
+            break;
           }
         }
       }
-    `;
-
-    // إعداد مصدر السكريبت مع البيانات المطلوبة
-    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}`;
-    
-    const variables = {
-      input: {
-        src: scriptSrc,
-        displayScope: "ALL",
-      },
-    };
-
-    try {
-      console.log('Creating script tag with variables:', variables);
-      console.log('Script source URL:', scriptSrc);
       
-      const result = await this.fetchAPI(mutation, variables);
-      console.log('Script tag creation result:', result);
-      
-      if (result?.scriptTagCreate?.userErrors && result.scriptTagCreate.userErrors.length > 0) {
-        const errors = result.scriptTagCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Errors creating script tag: ${errors}`);
+      // If we found an existing tag but it needs update, delete it first
+      if (existingTag && needsUpdate) {
+        console.log('Found existing script tag that needs updating, deleting first:', existingTag.id);
+        
+        const deleteExisting = `
+          mutation deleteScriptTag($id: ID!) {
+            scriptTagDelete(id: $id) {
+              deletedScriptTagId
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+        
+        const deleteResult = await this.fetchAPI(deleteExisting, { id: existingTag.id });
+        console.log('Delete script tag result:', deleteResult);
+        
+        existingTag = null; // Reset so we create a new one
       }
       
-      // التحقق من وجود scriptTag في النتيجة
-      if (!result?.scriptTagCreate?.scriptTag?.id) {
-        throw new Error('Failed to create script tag: No script tag ID returned');
+      // If we don't have an existing tag, create a new one
+      if (!existingTag) {
+        console.log('Creating new script tag for form:', formData.formId);
+        console.log('Block ID:', blockId);
+        console.log('Script source URL:', formScriptSrc);
+        
+        // تحسين استعلام GraphQL لدعم الإعدادات المحددة
+        const mutation = `
+          mutation createScriptTag($input: ScriptTagInput!) {
+            scriptTagCreate(input: $input) {
+              scriptTag {
+                id
+                src
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+
+        // إعداد مصدر السكريبت مع البيانات المطلوبة
+        const variables = {
+          input: {
+            src: formScriptSrc,
+            displayScope: "ALL",
+          },
+        };
+
+        try {
+          console.log('Creating script tag with variables:', variables);
+          
+          const result = await this.fetchAPI(mutation, variables);
+          console.log('Script tag creation result:', result);
+          
+          if (result?.scriptTagCreate?.userErrors && result.scriptTagCreate.userErrors.length > 0) {
+            const errors = result.scriptTagCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+            throw new Error(`Errors creating script tag: ${errors}`);
+          }
+          
+          // التحقق من وجود scriptTag في النتيجة
+          if (!result?.scriptTagCreate?.scriptTag?.id) {
+            throw new Error('Failed to create script tag: No script tag ID returned');
+          }
+          
+          console.log('Form script tag created successfully with ID:', result.scriptTagCreate.scriptTag.id);
+        } catch (error) {
+          console.error('Error creating script tag:', error);
+          throw error;
+        }
+      } else {
+        console.log('Form script tag already exists, no need to create another');
       }
-      
-      console.log('Form script tag created successfully with ID:', result.scriptTagCreate.scriptTag.id);
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
       throw new Error(`Failed to sync form with Shopify: ${error instanceof Error ? error.message : 'Unknown error'}`);

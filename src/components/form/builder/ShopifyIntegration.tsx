@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +50,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     isLoading: loadingProducts, 
     error: shopifyError, 
     isRedirecting, 
-    manualReconnect 
+    manualReconnect,
+    isConnected: shopifyIsConnected 
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
@@ -57,21 +59,32 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
+  
   // Adding local isRedirecting state
   const [localIsRedirecting, setLocalIsRedirecting] = useState(false);
   const isMobile = useIsMobile();
   const [forceShowConnectWarning, setForceShowConnectWarning] = useState(false);
   
+  // Combine all connection indicators to determine real connection status
+  const isActuallyConnected = shopifyConnected && shop && shopifyIsConnected;
+  
   // Initial connection check when component loads - always force a re-check
   useEffect(() => {
     console.log("ShopifyIntegration component mounted");
     const checkConnection = () => {
-      console.log("Checking connection status:", { shopifyConnected, shop });
-      if (shopifyConnected && shop) {
-        console.log("Shopify connection detected:", shop);
+      console.log("Checking connection status:", { 
+        shopifyConnected, 
+        shop, 
+        shopifyIsConnected,
+        isActuallyConnected: shopifyConnected && shop && shopifyIsConnected 
+      });
+      
+      if (isActuallyConnected) {
+        console.log("Shopify connection confirmed:", shop);
         setConnectionStatus('success');
+        setForceShowConnectWarning(false); // Hide warning when connected
       } else {
-        console.log("No Shopify connection detected, showing warning");
+        console.log("Incomplete Shopify connection detected, showing warning");
         setConnectionStatus('error');
         setForceShowConnectWarning(true);
       }
@@ -85,7 +98,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     const intervalId = setInterval(checkConnection, 10000);
     
     return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop]);
+  }, [shopifyConnected, shop, shopifyIsConnected]);
   
   // Generate random block ID if not already present
   React.useEffect(() => {
@@ -102,10 +115,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setConnectionStatus('error');
       setSaveError(shopifyError);
       setForceShowConnectWarning(true);
-    } else if (shopifyConnected && shop) {
+    } else if (isActuallyConnected) {
       setConnectionStatus('success');
+      setForceShowConnectWarning(false); // Hide warning when connected
     }
-  }, [shopifyError, shopifyConnected, shop]);
+  }, [shopifyError, shopifyConnected, shop, shopifyIsConnected]);
 
   const handleSave = async () => {
     if (isRedirecting || localIsRedirecting) {
@@ -115,7 +129,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    if (!shopifyConnected || !shop) {
+    if (!isActuallyConnected) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
@@ -125,6 +139,21 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     try {
       setIsSaving(true);
       setSaveError(null);
+      
+      // Validate blockId - ensure it's not empty and contains only valid characters
+      if (!blockId || blockId.trim() === '') {
+        const newBlockId = `codform-${Math.random().toString(36).substring(2, 8)}`;
+        setBlockId(newBlockId);
+        toast.info(language === 'ar'
+          ? `تم إنشاء معرف مكون تلقائي: ${newBlockId}`
+          : `Auto-generated block ID: ${newBlockId}`);
+      }
+      
+      // Ensure the blockId is properly formatted - no spaces, only letters, numbers, and hyphens
+      const cleanedBlockId = blockId.trim().replace(/[^a-zA-Z0-9-]/g, '-');
+      if (cleanedBlockId !== blockId) {
+        setBlockId(cleanedBlockId);
+      }
       
       // Log form data for debugging
       const formData = {
@@ -138,7 +167,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             borderRadius: '4px',
           },
           products: selectedProducts,
-          blockId: blockId
+          blockId: cleanedBlockId
         },
       };
       
@@ -178,34 +207,42 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     setLocalIsRedirecting(true);
     
-    // Clear stored connection data
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_reconnect_attempts');
-    localStorage.removeItem('shopify_last_connect_time');
-    localStorage.removeItem('shopify_last_redirect_time');
-    localStorage.removeItem('shopify_temp_store');
-    
-    // Update auth context if available
-    if (refreshShopifyConnection) {
-      refreshShopifyConnection();
+    // Use the manualReconnect function from useShopify if available
+    if (manualReconnect && typeof manualReconnect === 'function') {
+      const success = manualReconnect();
+      if (!success) {
+        setLocalIsRedirecting(false);
+      }
+    } else {
+      // Clear stored connection data
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_reconnect_attempts');
+      localStorage.removeItem('shopify_last_connect_time');
+      localStorage.removeItem('shopify_last_redirect_time');
+      localStorage.removeItem('shopify_temp_store');
+      
+      // Update auth context if available
+      if (refreshShopifyConnection) {
+        refreshShopifyConnection();
+      }
+      
+      // Show message to user
+      toast.info(language === 'ar' 
+        ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
+        : 'Redirecting to connect to Shopify...');
+      
+      // Add a longer delay to prevent rapid redirections
+      setTimeout(() => {
+        console.log("Redirecting to Shopify connection page...");
+        // Use direct path for more reliable navigation
+        window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
+      }, 1500);
     }
-    
-    // Show message to user
-    toast.info(language === 'ar' 
-      ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-      : 'Redirecting to connect to Shopify...');
-    
-    // Add a longer delay to prevent rapid redirections
-    setTimeout(() => {
-      console.log("Redirecting to Shopify connection page...");
-      // Use direct path for more reliable navigation
-      window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
-    }, 1500);
   };
 
   // Show a warning if Shopify is not connected
-  if (!shopifyConnected || !shop || forceShowConnectWarning) {
+  if (!isActuallyConnected || forceShowConnectWarning) {
     return (
       <div className="max-w-4xl mx-auto">
         <Alert variant="destructive" className="mb-6">
