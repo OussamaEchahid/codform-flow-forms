@@ -4,7 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
-import { AuthProvider } from "@/components/layout/AuthProvider";
+import { AuthContextProvider } from "@/components/layout/AuthContextProvider";
 
 // Pages
 import Dashboard from "@/pages/Dashboard";
@@ -28,7 +28,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <TooltipProvider>
-          <AuthProvider>
+          <AuthContextProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -42,7 +42,7 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster position="top-center" />
-          </AuthProvider>
+          </AuthContextProvider>
         </TooltipProvider>
       </I18nProvider>
     </QueryClientProvider>

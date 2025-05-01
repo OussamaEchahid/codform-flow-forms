@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthContext } from '@/lib/auth';
+import { AuthContext, AuthContextType } from '@/lib/auth';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -267,7 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [location.pathname, location.search, navigate]);
   
   // Context object with refresh function
-  const authContextValue = {
+  const authContextValue: AuthContextType = {
     ...authState,
     refreshShopifyConnection: async () => {
       console.log("Refreshing Shopify connection state");
@@ -297,7 +297,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={authContextValue as any}>
+    <AuthContext.Provider value={authContextValue}>
       {children}
     </AuthContext.Provider>
   );
