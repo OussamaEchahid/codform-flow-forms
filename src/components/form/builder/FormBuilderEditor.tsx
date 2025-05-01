@@ -42,7 +42,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         
         if (fetchedForm) {
           console.log('Form loaded successfully:', fetchedForm);
-          setForm(fetchedForm);
+          // Ensure the form has all required properties
+          const formWithDefaults = {
+            ...fetchedForm,
+            data: fetchedForm.data || [],
+            sectionConfig: fetchedForm.sectionConfig || { sections: [], layout: 'vertical' },
+            style: fetchedForm.style || {}
+          };
+          setForm(formWithDefaults);
         } else {
           console.error('Form not found or error loading form');
           setLoadError(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
@@ -139,7 +146,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           </TabsList>
           
           <TabsContent value="builder" className="mt-2">
-            <FormBuilder initialFormData={form} />
+            {form && <FormBuilder initialFormData={form} />}
           </TabsContent>
           
           <TabsContent value="shopify" className="mt-2">

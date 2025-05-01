@@ -26,6 +26,7 @@ const FormBuilderPage = () => {
   const showEditor = !!formId;
   
   useEffect(() => {
+    console.log("FormBuilderPage mounted with formId:", formId);
     // Just set the page as ready after a short initialization period
     const timeoutId = setTimeout(() => {
       setPageReady(true);
@@ -36,7 +37,7 @@ const FormBuilderPage = () => {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [showEditor, fetchForms]);
+  }, [showEditor, fetchForms, formId]);
 
   // Handle manual connection button click
   const handleConnectShopify = () => {
