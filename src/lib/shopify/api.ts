@@ -43,9 +43,15 @@ class ShopifyAPI {
         }),
       });
 
+      // Check if the response is successful
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error Response:', errorText, 'Status:', response.status);
+        
+        // Handle 401/403 errors explicitly
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`Authentication error: Your Shopify access token is invalid or has expired. Please reconnect your store.`);
+        }
         
         // Try to parse the error as JSON first
         try {
@@ -63,9 +69,19 @@ class ShopifyAPI {
         }
       }
 
+      // Parse the JSON response
       const json = await response.json();
+      
+      // Check for GraphQL errors
       if (json.errors) {
         console.error('GraphQL Errors:', json.errors);
+        
+        // Check for authentication-related errors
+        const errors = json.errors.map((e: any) => e.message).join(', ');
+        if (errors.includes('token') || errors.includes('auth') || errors.includes('access')) {
+          throw new Error(`Authentication error: ${errors}. Please reconnect your store.`);
+        }
+        
         throw new Error(`GraphQL Error: ${json.errors[0].message}`);
       }
 
@@ -208,6 +224,7 @@ class ShopifyAPI {
       let needsUpdate = false;
       
       if (existingTags && existingTags.scriptTags && existingTags.scriptTags.edges) {
+        console.log('Checking existing tags against current form ID and block ID');
         // Find a matching script tag - check both formId and blockId
         for (const edge of existingTags.scriptTags.edges) {
           const scriptTag = edge.node;
@@ -369,6 +386,8 @@ class ShopifyAPI {
           errorMessage = 'Authentication error: Your access token does not have sufficient permissions or has expired.';
         } else if (errorMessage.includes('404')) {
           errorMessage = 'Shop not found: The shop domain may be incorrect or the shop no longer exists.';
+        } else if (errorMessage.includes('authentication')) {
+          errorMessage = 'Authentication error: Your access token has expired or is invalid. Please reconnect your store.';
         }
       }
       
@@ -423,4 +442,3 @@ export const createShopifyAPI = (accessToken: string, shopDomain: string) => {
   
   return new ShopifyAPI(accessToken, normalizedShopDomain);
 };
-

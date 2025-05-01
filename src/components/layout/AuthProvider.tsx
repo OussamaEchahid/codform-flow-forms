@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -36,33 +37,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('Auth parameters:', { 
           shop, shopifyConnected, shopifySuccess, hmac, authSuccess,
           pathname: location.pathname,
-          search: location.search
+          search: location.search,
+          savedShop,
+          savedConnected,
+          tempShop
         });
 
-        // Check if we have a shop in Supabase
-        const { data: shopifyStore, error } = await supabase
-          .rpc('get_user_shop')
-          .single();
-
-        if (shopifyStore) {
-          console.log('Found Shopify store in database:', shopifyStore);
-          setAuthState({
-            shopifyConnected: true,
-            shop: shopifyStore,
-            user: { id: 'shopify-user' }
-          });
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', shopifyStore);
-          localStorage.setItem('shopify_connected', 'true');
-          
-          setAuthChecked(true);
-          return;
+        // Check if we have a valid token in Supabase for the shop
+        let tokenValid = false;
+        let shopToUse = shop || savedShop || tempShop;
+        
+        if (shopToUse) {
+          try {
+            const { data: shopifyStore, error } = await supabase
+              .from('shopify_stores')
+              .select('access_token, updated_at')
+              .eq('shop', shopToUse)
+              .single();
+              
+            if (shopifyStore && shopifyStore.access_token) {
+              console.log('Found valid Shopify token in database for:', shopToUse);
+              tokenValid = true;
+              
+              // Set connection state
+              setAuthState({
+                shopifyConnected: true,
+                shop: shopToUse,
+                user: { id: 'shopify-user' }
+              });
+              
+              // Update localStorage to match database state
+              localStorage.setItem('shopify_store', shopToUse);
+              localStorage.setItem('shopify_connected', 'true');
+              
+              // Clear any temporary data
+              localStorage.removeItem('shopify_temp_store');
+              
+              setAuthChecked(true);
+              return;
+            } else {
+              console.log('No valid token found in database for shop:', shopToUse);
+            }
+          } catch (error) {
+            console.error('Error checking shop token:', error);
+          }
         }
 
-        // Check for Shopify success parameters
+        // Check for Shopify success parameters if database check failed
         if (shopifySuccess === "true" && shop) {
-          console.log('Shopify connection success:', shop);
+          console.log('Shopify connection success from URL parameters:', shop);
           
           setAuthState({
             shopifyConnected: true,
@@ -77,9 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.removeItem('shopify_temp_store');
           
           // Show success message if not already shown
-          if (!toast.success) {
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
-          }
+          toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
           
           // Remove URL parameters if we're on dashboard
           if (location.pathname === '/dashboard' && window.history.replaceState) {
@@ -88,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         // Check for new Shopify parameters from successful auth
         else if (shopifyConnected === "true" && shop) {
-          console.log('New Shopify connection detected:', shop);
+          console.log('New Shopify connection detected from URL parameters:', shop);
           
           // Update auth state and save to localStorage
           setAuthState({
@@ -104,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.removeItem('shopify_temp_store');
           
           // Show success message
-          if (authSuccess === "true" && !toast.success) {
+          if (authSuccess === "true") {
             toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
           }
           
@@ -114,18 +135,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } 
         // Restore previous connection state from localStorage if available
-        else if (savedConnected === 'true' && savedShop) {
-          console.log('Restoring saved Shopify connection:', savedShop);
+        else if (savedConnected === 'true' && savedShop && !tokenValid) {
+          console.log('Restoring saved Shopify connection from localStorage:', savedShop);
           
-          setAuthState({
-            shopifyConnected: true,
-            shop: savedShop,
-            user: { id: 'shopify-user' }
-          });
+          // Double check with database again if we have a valid token
+          try {
+            const { data: shopifyStore } = await supabase
+              .from('shopify_stores')
+              .select('access_token')
+              .eq('shop', savedShop)
+              .single();
+              
+            if (shopifyStore && shopifyStore.access_token) {
+              console.log('Confirmed token exists for saved shop:', savedShop);
+              setAuthState({
+                shopifyConnected: true,
+                shop: savedShop,
+                user: { id: 'shopify-user' }
+              });
+            } else {
+              console.log('No token found for saved shop, clearing localStorage');
+              localStorage.removeItem('shopify_store');
+              localStorage.removeItem('shopify_connected');
+            }
+          } catch (error) {
+            console.error('Error checking saved shop token:', error);
+            // Clear potentially invalid data
+            localStorage.removeItem('shopify_store');
+            localStorage.removeItem('shopify_connected');
+          }
         }
         // If we have temporary store info but auth didn't complete
         else if (tempShop && location.pathname === '/dashboard') {
-          console.log('Temp store data exists, but auth didn\'t complete:', tempShop);
+          console.log('Temporary store data exists, but auth didn\'t complete:', tempShop);
           
           // If on dashboard, show message to user
           toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.");

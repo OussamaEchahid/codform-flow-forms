@@ -16,6 +16,7 @@ export const useShopify = () => {
   const { shop, shopifyConnected, refreshShopifyConnection } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'verifying' | 'connected' | 'disconnected'>('verifying');
   
   // CRITICAL: Prevent any auto-redirects to avoid loops
   const [redirectionDisabled] = useState(true);
@@ -24,25 +25,27 @@ export const useShopify = () => {
   useEffect(() => {
     // Reset redirect state when hook loads
     setIsRedirecting(false);
-    console.log('useShopify hook initialized with redirectionDisabled=true');
-  }, []);
-
-  // Fetch products when shop connection changes
-  useEffect(() => {
-    // Skip data fetching if we're redirecting
-    if (!isRedirecting && shopifyConnected && shop) {
-      console.log('Conditions met to fetch products:', { shopifyConnected, shop, isRedirecting });
-      fetchProducts();
-    } else if (!shopifyConnected) {
-      // Reset products when disconnected
-      setProducts([]);
-      console.log('Shop not connected, reset products array');
+    console.log('useShopify hook initialized with shop:', shop);
+    
+    // Initial connection status check
+    if (shopifyConnected && shop) {
+      verifyShopifyConnection()
+        .then(connected => {
+          console.log('Initial connection check result:', connected);
+          setConnectionStatus(connected ? 'connected' : 'disconnected');
+        })
+        .catch(() => {
+          setConnectionStatus('disconnected');
+        });
+    } else {
+      setConnectionStatus('disconnected');
     }
-  }, [shopifyConnected, shop, isRedirecting]);
+  }, [shop, shopifyConnected]);
 
   // Helper function to handle authentication errors - NEVER auto-redirect
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
+    setConnectionStatus('disconnected');
     
     // Always log the error but NEVER automatically redirect
     if (errorMessage.includes('authentication error') || 
@@ -89,15 +92,62 @@ export const useShopify = () => {
       
       // Create API instance and verify connection
       const api = createShopifyAPI(storeData.access_token, shop);
-      const result = await api.verifyConnection();
       
-      console.log('Connection verification result:', result);
-      return result;
+      try {
+        const result = await api.verifyConnection();
+        console.log('Connection verification result:', result);
+        return result;
+      } catch (error) {
+        console.error('Connection verification failed:', error);
+        return false;
+      }
     } catch (err) {
       console.error('Error verifying connection:', err);
       return false;
     }
   }, [shop, shopifyConnected]);
+
+  // Manual reconnect function - Use window.location for more reliable navigation
+  const manualReconnect = useCallback(() => {
+    // Prevent rapid reconnection attempts
+    if (isRedirecting) {
+      console.log('Already attempting to redirect, ignoring duplicate request');
+      return false;
+    }
+    
+    setIsRedirecting(true);
+    console.log('Manual reconnect initiated');
+    
+    // Clear ALL stored data to ensure a fresh start
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Explicitly clear Shopify connection data
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_reconnect_attempts');
+    localStorage.removeItem('shopify_last_connect_time');
+    localStorage.removeItem('shopify_last_redirect_time');
+    localStorage.removeItem('shopify_temp_store');
+    
+    // Update auth context if available
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+    
+    // Use window.location for more reliable navigation with timestamp and random values
+    setTimeout(() => {
+      console.log('Redirecting to /shopify with forced reconnect parameters');
+      window.location.href = `/shopify?reconnect=manual&force=true&ts=${Date.now()}&r=${Math.random()}`;
+      
+      // Reset redirect state after some time in case navigation fails
+      setTimeout(() => {
+        setIsRedirecting(false);
+      }, 5000);
+    }, 500);
+    
+    return true;
+  }, [refreshShopifyConnection, isRedirecting]);
 
   // Product fetching function with improved error handling
   const fetchProducts = useCallback(async () => {
@@ -326,52 +376,18 @@ export const useShopify = () => {
     }
   }, [shop, shopifyConnected, handleAuthError]);
 
-  // Manual reconnect function - Use window.location for more reliable navigation
-  const manualReconnect = useCallback(() => {
-    // Prevent rapid reconnection attempts
-    if (isRedirecting) {
-      console.log('Already attempting to redirect, ignoring duplicate request');
-      return false;
-    }
-    
-    setIsRedirecting(true);
-    console.log('Manual reconnect initiated');
-    
-    // Clear ALL stored data to ensure a fresh start
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Update auth context if available
-    if (refreshShopifyConnection) {
-      refreshShopifyConnection();
-    }
-    
-    // Use window.location for more reliable navigation with timestamp and random values to avoid caching
-    setTimeout(() => {
-      console.log('Redirecting to /shopify?reconnect=manual&force=true&ts=' + Date.now() + '&r=' + Math.random());
-      window.location.href = '/shopify?reconnect=manual&force=true&ts=' + Date.now() + '&r=' + Math.random();
-      
-      // Reset redirect state after some time in case navigation fails
-      setTimeout(() => {
-        setIsRedirecting(false);
-      }, 5000);
-    }, 500);
-    
-    return true;
-  }, [refreshShopifyConnection, isRedirecting]);
-
   return {
     products,
     isLoading,
     error,
     syncFormWithShopify,
     fetchProducts,
-    isConnected: !!shopifyConnected && !!shop,
+    isConnected: connectionStatus === 'connected',
     isSyncing,
     isRedirecting,
     redirectionDisabled,
     manualReconnect,
-    verifyShopifyConnection
+    verifyShopifyConnection,
+    connectionStatus
   };
 };
-

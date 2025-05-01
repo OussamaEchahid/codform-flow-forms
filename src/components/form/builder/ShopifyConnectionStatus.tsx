@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnectionStatus = () => {
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
@@ -17,9 +18,6 @@ const ShopifyConnectionStatus = () => {
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   const [connectionChecked, setConnectionChecked] = useState(false);
   
-  // Combine all connection indicators to determine real connection status
-  const isActuallyConnected = shopifyConnected && shop && isConnected;
-  
   useEffect(() => {
     // Initial connection check
     const initialCheck = async () => {
@@ -29,33 +27,52 @@ const ShopifyConnectionStatus = () => {
       console.log('Connection indicators:', { 
         shopifyConnected, 
         shop,
-        isConnected,
-        isActuallyConnected: shopifyConnected && shop && isConnected
+        isConnected
       });
       
-      // Verify connection directly with Shopify API if indicators suggest we're connected
-      if (shopifyConnected && shop) {
+      // First check if there's actually a store token in Supabase
+      if (shop) {
         try {
-          console.log('Verifying Shopify connection with API');
-          const verified = await verifyShopifyConnection();
-          
-          console.log('API connection verification result:', verified);
-          
-          // If verification fails, show warning regardless of other indicators
-          if (!verified) {
-            console.log('API verification failed, showing warning');
+          const { data: storeData, error: storeError } = await supabase
+            .from('shopify_stores')
+            .select('access_token, updated_at')
+            .eq('shop', shop)
+            .single();
+            
+          if (storeError || !storeData || !storeData.access_token) {
+            console.log('Missing or invalid store data in database', { storeError, hasStoreData: !!storeData });
             setShowWarning(true);
+            setConnectionChecked(true);
+            return;
+          }
+          
+          console.log('Found store data in database, token exists:', !!storeData.access_token);
+          
+          // Only verify connection if we have a valid token
+          if (shopifyConnected && shop) {
+            try {
+              console.log('Verifying Shopify connection with API');
+              const verified = await verifyShopifyConnection();
+              
+              console.log('API connection verification result:', verified);
+              
+              // Show or hide warning based on verification result
+              setShowWarning(!verified);
+            } catch (error) {
+              console.error('Error verifying connection:', error);
+              setShowWarning(true);
+            }
           } else {
-            console.log('API verification successful, hiding warning');
-            setShowWarning(false);
+            // If any connection indicator is false, show warning
+            console.log('Connection indicators suggest not connected, showing warning');
+            setShowWarning(true);
           }
         } catch (error) {
-          console.error('Error verifying connection:', error);
+          console.error('Error checking store token:', error);
           setShowWarning(true);
         }
       } else {
-        // If any connection indicator is false, show warning
-        console.log('Connection indicators suggest not connected, showing warning');
+        // No shop value means no connection
         setShowWarning(true);
       }
       
@@ -67,9 +84,23 @@ const ShopifyConnectionStatus = () => {
     
     // Set up interval to check connection status periodically - reduced frequency
     const intervalId = setInterval(async () => {
-      // Only perform checks if component is still mounted
+      // Only perform checks if component is still mounted and we have shop info
       if (shopifyConnected && shop) {
         try {
+          // Check if the token still exists in the database
+          const { data: storeData, error: storeError } = await supabase
+            .from('shopify_stores')
+            .select('access_token')
+            .eq('shop', shop)
+            .single();
+            
+          if (storeError || !storeData || !storeData.access_token) {
+            console.log('Token no longer exists in database during interval check');
+            setShowWarning(true);
+            return;
+          }
+          
+          // Verify the connection
           const verified = await verifyShopifyConnection();
           
           // Update warning state based on verification (only if there's a change)
@@ -88,7 +119,7 @@ const ShopifyConnectionStatus = () => {
         // Update if connection indicators changed
         setShowWarning(true);
       }
-    }, 30000); // Check less frequently (30 seconds)
+    }, 30000); // Check every 30 seconds
     
     return () => clearInterval(intervalId);
   }, [shopifyConnected, shop, isConnected, showWarning, verifyShopifyConnection]);
@@ -115,6 +146,15 @@ const ShopifyConnectionStatus = () => {
     setIsRedirecting(true);
     setLastReconnectAttempt(Date.now());
     
+    // Clear ALL storage data first
+    localStorage.clear(); 
+    sessionStorage.clear();
+    
+    // Clear connection flags in Auth context
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+    
     // Use the manualReconnect function from useShopify if available
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
@@ -122,9 +162,6 @@ const ShopifyConnectionStatus = () => {
     } else {
       // Fallback to previous implementation if manualReconnect not available
       console.log('Using fallback reconnect implementation');
-      // Clear ALL locally stored data to ensure clean reconnection
-      localStorage.clear(); 
-      sessionStorage.clear(); 
       
       // Show message to user
       toast.info(language === 'ar' 
@@ -182,4 +219,3 @@ const ShopifyConnectionStatus = () => {
 };
 
 export default ShopifyConnectionStatus;
-

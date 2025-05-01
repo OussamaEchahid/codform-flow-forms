@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +28,7 @@ import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -51,73 +51,64 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     error: shopifyError, 
     isRedirecting, 
     manualReconnect,
-    isConnected: shopifyIsConnected,
-    verifyShopifyConnection
+    verifyShopifyConnection,
+    connectionStatus
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
+  const [connectionState, setConnectionState] = useState<'checking' | 'success' | 'error'>('checking');
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   
   // Adding local isRedirecting state
   const [localIsRedirecting, setLocalIsRedirecting] = useState(false);
   const isMobile = useIsMobile();
-  const [forceShowConnectWarning, setForceShowConnectWarning] = useState(false);
   
-  // Combine all connection indicators to determine real connection status
-  const isActuallyConnected = shopifyConnected && shop && shopifyIsConnected;
-  
-  // Initial connection check when component loads - always force a re-check
+  // Initial connection check when component loads with direct verification
   useEffect(() => {
     console.log("ShopifyIntegration component mounted");
-    const checkConnection = async () => {
-      console.log("Checking connection status:", { 
-        shopifyConnected, 
-        shop, 
-        shopifyIsConnected,
-        isActuallyConnected: shopifyConnected && shop && shopifyIsConnected 
-      });
+    const checkDbConnection = async () => {
+      console.log("Checking database connection status");
+      setConnectionState('checking');
       
-      setConnectionStatus('checking');
-      
-      if (shopifyConnected && shop) {
-        // Verify connection with API directly
-        try {
-          const verified = await verifyShopifyConnection();
-          console.log("API connection verification result:", verified);
-          
-          if (verified) {
-            console.log("Shopify connection confirmed:", shop);
-            setConnectionStatus('success');
-            setForceShowConnectWarning(false); // Hide warning when connected
-          } else {
-            console.log("API verification failed, showing warning");
-            setConnectionStatus('error');
-            setForceShowConnectWarning(true);
-          }
-        } catch (error) {
-          console.error("Connection verification error:", error);
-          setConnectionStatus('error');
-          setForceShowConnectWarning(true);
-        }
-      } else {
-        console.log("Incomplete Shopify connection detected, showing warning");
-        setConnectionStatus('error');
-        setForceShowConnectWarning(true);
+      if (!shopifyConnected || !shop) {
+        console.log("No shopifyConnected or shop in auth state");
+        setConnectionState('error');
+        setHasCheckedConnection(true);
+        return;
       }
+      
+      try {
+        // Check if token exists in database
+        const { data: storeData, error: storeError } = await supabase
+          .from('shopify_stores')
+          .select('access_token')
+          .eq('shop', shop)
+          .single();
+        
+        if (storeError || !storeData || !storeData.access_token) {
+          console.log("Database check: No valid token found", { storeError });
+          setConnectionState('error');
+          setHasCheckedConnection(true);
+          return;
+        }
+        
+        // If token exists, verify API connection
+        const isApiConnected = await verifyShopifyConnection();
+        console.log("API connection verification result:", isApiConnected);
+        
+        setConnectionState(isApiConnected ? 'success' : 'error');
+      } catch (error) {
+        console.error("Error checking connection:", error);
+        setConnectionState('error');
+      }
+      
       setHasCheckedConnection(true);
     };
     
-    // Run connection check
-    checkConnection();
-    
-    // Setup interval to recheck connection every 30 seconds
-    const intervalId = setInterval(checkConnection, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, shopifyIsConnected, verifyShopifyConnection]);
+    checkDbConnection();
+  }, [shop, shopifyConnected, verifyShopifyConnection]);
   
   // Generate random block ID if not already present
   React.useEffect(() => {
@@ -133,13 +124,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   useEffect(() => {
     if (shopifyError) {
       console.error('Shopify error detected:', shopifyError);
-      setConnectionStatus('error');
+      setConnectionState('error');
       setSaveError(shopifyError);
-      setForceShowConnectWarning(true);
     }
   }, [shopifyError]);
 
   const handleSave = async () => {
+    // Prevent save if redirecting
     if (isRedirecting || localIsRedirecting) {
       toast.error(language === 'ar' 
         ? 'يرجى الانتظار حتى تكتمل عملية إعادة الاتصال'
@@ -147,7 +138,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       return;
     }
     
-    if (connectionStatus !== 'success' && !isActuallyConnected) {
+    // Prevent save if not connected
+    if (connectionState !== 'success' || !shopifyConnected || !shop) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
@@ -245,7 +237,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     setLocalIsRedirecting(true);
     
-    // Use the manualReconnect function from useShopify if available
+    // Use the manualReconnect function from useShopify
     if (manualReconnect && typeof manualReconnect === 'function') {
       const success = manualReconnect();
       if (!success) {
@@ -279,8 +271,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
-  // Show a warning if Shopify is not connected
-  if (connectionStatus === 'error' || forceShowConnectWarning) {
+  // Show a warning if Shopify is not connected based on connection state
+  if (connectionState === 'error' || !shopifyConnected || !shop) {
     return (
       <div className="max-w-4xl mx-auto">
         <Alert variant="destructive" className="mb-6">
@@ -515,4 +507,3 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 };
 
 export default ShopifyIntegration;
-
