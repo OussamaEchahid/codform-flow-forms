@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('shopify_stores')
         .select('access_token, updated_at')
         .eq('shop', shopDomain)
-        .single();
+        .maybeSingle();
       
       if (storeError) {
         console.error('Store access token error:', storeError);
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             // Show toast only in certain cases
             if (shopifySuccess === "true" || authSuccess === "true") {
-              toast.success(`تم الاتصال بمتجر ${shopToUse} بنجاح`, { id: 'shopify-success' });
+              toast.success(`تم الاتصال بمتجر ${shopToUse} بنجاح`);
             }
             
             setAuthChecked(true);
@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             // If on dashboard page, show warning
             if (location.pathname === '/dashboard') {
-              toast.error('لم يتم العثور على رمز الوصول في قاعدة البيانات. يرجى إعادة الاتصال.', { id: 'token-error' });
+              toast.error('لم يتم العثور على رمز الوصول في قاعدة البيانات. يرجى إعادة الاتصال.');
               setAuthState({
                 shopifyConnected: false,
                 shop: undefined,
@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('shopify_temp_store');
             
             // Show success message if not already shown
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`, { id: 'shopify-success' });
+            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
             
             // Remove URL parameters if we're on dashboard
             if (location.pathname === '/dashboard' && window.history.replaceState) {
@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             
             if (location.pathname === '/forms' || location.pathname === '/dashboard') {
-              toast.error('انتهت صلاحية الاتصال بـ Shopify. يرجى إعادة الاتصال.', { id: 'connection-expired' });
+              toast.error('انتهت صلاحية الاتصال بـ Shopify. يرجى إعادة الاتصال.');
             }
           }
         } else {
@@ -212,7 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('Temporary store data exists, but auth didn\'t complete:', tempShop);
           
           // Show message to user
-          toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.", { id: 'auth-incomplete' });
+          toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.");
           localStorage.removeItem('shopify_temp_store');
         }
       } catch (error) {

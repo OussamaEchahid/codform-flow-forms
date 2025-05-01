@@ -45,7 +45,7 @@ const ShopifyConnectionStatus = () => {
             .from('shopify_stores')
             .select('access_token, updated_at')
             .eq('shop', shop)
-            .single();
+            .maybeSingle();
             
           if (storeError || !storeData || !storeData.access_token) {
             console.log('Missing or invalid store data in database', { storeError, hasStoreData: !!storeData });
@@ -94,7 +94,7 @@ const ShopifyConnectionStatus = () => {
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
-        : 'Already redirecting, please wait...', { id: 'redirect-wait' });
+        : 'Already redirecting, please wait...');
       return;
     }
     
@@ -103,7 +103,7 @@ const ShopifyConnectionStatus = () => {
     if (timeSinceLastAttempt < 10000) {
       toast.info(language === 'ar' 
         ? `تم محاولة إعادة الاتصال مؤخرًا، يرجى الانتظار ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} ثواني...` 
-        : `Reconnect attempted recently, please wait ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} seconds...`, { id: 'reconnect-wait' });
+        : `Reconnect attempted recently, please wait ${Math.ceil((10000 - timeSinceLastAttempt)/1000)} seconds...`);
       return;
     }
     
@@ -133,7 +133,7 @@ const ShopifyConnectionStatus = () => {
         // Show message to user
         toast.info(language === 'ar' 
           ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-          : 'Redirecting to connect to Shopify...', { id: 'redirect-info' });
+          : 'Redirecting to connect to Shopify...');
         
         // Use direct path for more reliable navigation, with a short delay
         setTimeout(() => {
@@ -147,7 +147,7 @@ const ShopifyConnectionStatus = () => {
       // Show message to user
       toast.info(language === 'ar' 
         ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-        : 'Redirecting to connect to Shopify...', { id: 'redirect-info' });
+        : 'Redirecting to connect to Shopify...');
       
       // Use direct path for more reliable navigation, with a short delay
       setTimeout(() => {

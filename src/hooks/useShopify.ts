@@ -1,11 +1,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
-import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
+import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { saveProductSettings } from '@/pages/api/shopify/product-settings';
 import { useNavigate } from 'react-router-dom';
 
 export const useShopify = () => {
@@ -81,7 +80,7 @@ export const useShopify = () => {
         .from('shopify_stores')
         .select('access_token, updated_at')
         .eq('shop', shop)
-        .single();
+        .maybeSingle();
       
       if (storeError) {
         console.error('Store access token error:', storeError);
@@ -186,7 +185,7 @@ export const useShopify = () => {
         .from('shopify_stores')
         .select('access_token, updated_at')
         .eq('shop', shop)
-        .single();
+        .maybeSingle();
       
       if (storeError) {
         console.error('Store access token error:', storeError);
