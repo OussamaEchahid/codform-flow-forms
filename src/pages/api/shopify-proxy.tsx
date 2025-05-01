@@ -44,6 +44,27 @@ export async function POST(request: Request) {
         body: JSON.stringify({ query, variables }),
       });
 
+      // Check if response is JSON by examining content-type header
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Non-JSON response received from Shopify API:', contentType);
+        const responseText = await response.text();
+        console.error('Response text (first 200 chars):', responseText.substring(0, 200));
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid response from Shopify API - expected JSON but received HTML/text',
+            details: 'The server returned HTML instead of JSON, which may indicate an authentication error or invalid shop domain',
+            statusCode: response.status,
+            contentType: contentType || 'unknown'
+          }),
+          { 
+            status: 502,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       // Parse the Shopify response
       const data = await response.json();
       

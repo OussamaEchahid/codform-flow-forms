@@ -1,3 +1,4 @@
+
 import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
@@ -43,7 +44,15 @@ class ShopifyAPI {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error Response:', errorText, 'Status:', response.status);
-        throw new Error(`Shopify API error (${response.status}): ${response.statusText}. Response: ${errorText}`);
+        
+        // Try to parse the error as JSON first
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(`Shopify API error (${response.status}): ${errorJson.error || errorJson.details || response.statusText}`);
+        } catch (parseError) {
+          // If parsing fails, return the raw error text
+          throw new Error(`Shopify API error (${response.status}): ${response.statusText}. Response: ${errorText.substring(0, 100)}...`);
+        }
       }
 
       const json = await response.json();
@@ -215,20 +224,11 @@ class ShopifyAPI {
     console.log('Using normalized shop domain for verification:', normalizedShopDomain);
     
     try {
+      // Use a simpler query first to test the connection
       const query = `
-        query {
+        {
           shop {
             name
-            email
-            primaryDomain {
-              url
-              host
-            }
-            plan {
-              displayName
-              partnerDevelopment
-              shopifyPlus
-            }
           }
         }
       `;
@@ -242,8 +242,41 @@ class ShopifyAPI {
       }
       
       console.log('Connection verified successfully, shop name:', result.shop.name);
-      console.log('Shop domain info:', result.shop.primaryDomain || 'No domain info');
-      console.log('Shop plan info:', result.shop.plan || 'No plan info');
+      
+      // Now that basic connection works, get more details if needed
+      try {
+        const detailQuery = `
+          {
+            shop {
+              name
+              email
+              primaryDomain {
+                url
+                host
+              }
+              plan {
+                displayName
+                partnerDevelopment
+                shopifyPlus
+              }
+            }
+          }
+        `;
+        
+        const detailResult = await this.fetchAPI(detailQuery);
+        if (detailResult && detailResult.shop) {
+          console.log('Shop details:', {
+            name: detailResult.shop.name,
+            email: detailResult.shop.email,
+            domain: detailResult.shop.primaryDomain,
+            plan: detailResult.shop.plan
+          });
+        }
+      } catch (detailError) {
+        // Just log this error but don't fail the connection check
+        console.warn('Could not fetch shop details (but connection works):', detailError);
+      }
+      
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);
