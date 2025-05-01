@@ -87,6 +87,11 @@ function main() {
         console.log('Deploying Shopify app...');
         shopifyCommand = `shopify app deploy ${additionalArgs}`;
         break;
+      
+      case 'deploy-extensions':
+        console.log('Deploying Shopify extensions...');
+        shopifyCommand = `shopify app deploy --only-extensions ${additionalArgs}`;
+        break;
         
       case 'dev':
         console.log('Starting Shopify app in development mode...');
