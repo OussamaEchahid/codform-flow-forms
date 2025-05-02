@@ -47,12 +47,13 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Use type assertion to avoid deep type analysis
+      // Create a completely sanitized copy to avoid type recursion
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        data: data.data as any, // Use 'any' to break type recursion
+        // Use JSON.stringify + JSON.parse to break deep object references and type recursion
+        data: JSON.parse(JSON.stringify(data.data)),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -107,12 +108,13 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            // Use type assertion to avoid deep type analysis
+            // Create a completely sanitized copy to avoid type recursion
             const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              data: item.data as any, // Use 'any' to break type recursion
+              // Use JSON.stringify + JSON.parse to break deep object references and type recursion
+              data: JSON.parse(JSON.stringify(item.data)),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
