@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,7 +47,7 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Manually create the form object to avoid type recursion issues
+      // Fixed: Create a typed form object with explicit property assignments to avoid type recursion
       const fetchedForm: FormData = {
         id: data.id,
         title: data.title,
