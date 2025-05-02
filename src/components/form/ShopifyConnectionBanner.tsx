@@ -20,27 +20,33 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   const [isConnectionWarning, setIsConnectionWarning] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
-  // فحص حالة الاتصال عند تحميل المكون
+  // Check connection status when component loads
   useEffect(() => {
-    const checkConnectionStatus = async () => {
-      // لا نفحص إذا لم يكن هناك متجر متصل في الأساس
-      if (!shop) {
-        setIsConnectionWarning(true);
-        return;
-      }
-      
-      // تحقق من الاتصال فقط إذا كان هناك اتصال يُفترض أنه نشط
-      if (shopifyConnected) {
-        setIsCheckingConnection(true);
-        const isConnected = await verifyShopifyConnection();
-        setIsConnectionWarning(!isConnected);
-        setIsCheckingConnection(false);
-      } else {
-        setIsConnectionWarning(true);
-      }
-    };
+    // Don't check if there's no connected shop
+    if (!shop) {
+      setIsConnectionWarning(false);
+      return;
+    }
     
-    checkConnectionStatus();
+    // Only check if we have a supposedly active connection
+    if (shopifyConnected) {
+      const checkConnection = async () => {
+        setIsCheckingConnection(true);
+        try {
+          const isConnected = await verifyShopifyConnection();
+          setIsConnectionWarning(!isConnected);
+        } catch (error) {
+          console.error('Error checking Shopify connection:', error);
+          setIsConnectionWarning(true);
+        } finally {
+          setIsCheckingConnection(false);
+        }
+      };
+      
+      checkConnection();
+    } else {
+      setIsConnectionWarning(false);
+    }
   }, [shopifyConnected, shop, verifyShopifyConnection]);
 
   const handleCheckConnection = async () => {
@@ -84,20 +90,25 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     setIsRedirecting(true);
     
     try {
-      // مسح بيانات الاتصال القديمة
+      // Clear old connection data
       localStorage.removeItem('shopify_connected');
       localStorage.setItem('shopify_last_reconnect', Date.now().toString());
       
-      // استخدام معالج إعادة الاتصال المخصص إذا كان موجودًا
+      // Use custom reconnect handler if provided
       if (onReconnect) {
         onReconnect();
         return;
       }
       
-      // استخدام وظيفة إعادة الاتصال العامة
-      const reconnectResult = manualReconnect();
-      if (!reconnectResult) {
-        // إعادة توجيه إلى صفحة Shopify في حالة عدم وجود معالج
+      // Use general reconnect function
+      if (manualReconnect && typeof manualReconnect === 'function') {
+        const reconnectResult = manualReconnect();
+        if (!reconnectResult) {
+          // Fallback to redirect if manual reconnect returns false
+          window.location.href = `/shopify?force=true&ts=${Date.now()}`;
+        }
+      } else {
+        // Direct redirect if no reconnect function available
         window.location.href = `/shopify?force=true&ts=${Date.now()}`;
       }
     } catch (error) {
@@ -107,8 +118,8 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     }
   };
 
-  // لا تظهر أي شيء إذا لم تكن هناك مشكلة
-  if (!isConnectionWarning) {
+  // Don't show anything if there's no warning to show
+  if (!isConnectionWarning || !shopifyConnected) {
     return null;
   }
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { FormData } from './types';
 import { toast } from 'sonner';
@@ -9,69 +9,106 @@ export const useFormFetch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [fetchAttempts, setFetchAttempts] = useState<number>(0);
   
-  // إضافة وظيفة تسجيل سجلات للتصحيح
+  // Enhanced debug logging
   const logDebug = (message: string, data?: any) => {
     console.log(`[FormFetch] ${message}`, data || '');
   };
 
-  const fetchForms = async () => {
-    // تجنب إعادة التحميل المتكرر
+  // Reset error state after some time to allow retry
+  useEffect(() => {
+    let errorTimer: ReturnType<typeof setTimeout> | null = null;
+    
+    if (error && fetchAttempts <= 3) {
+      errorTimer = setTimeout(() => {
+        setError('');
+      }, 5000); // Clear error after 5 seconds
+    }
+    
+    return () => {
+      if (errorTimer) clearTimeout(errorTimer);
+    };
+  }, [error, fetchAttempts]);
+
+  // Memoized fetch function with better error handling and caching
+  const fetchForms = useCallback(async () => {
+    // Avoid redundant fetches within a short time period
     const now = Date.now();
-    if (now - lastFetchTime < 2000 && forms.length > 0) {
+    if (now - lastFetchTime < 2000 && forms.length > 0 && !error) {
       logDebug('Skipping fetch, last fetch was recent');
       return forms;
     }
     
     setIsLoading(true);
-    setError('');
+    setFetchAttempts(prev => prev + 1);
     
     try {
       logDebug('Attempting to fetch forms from Supabase...');
       
-      // محاولة جلب البيانات من قاعدة البيانات
+      // Try to get data from Supabase
       const { data, error: fetchError } = await supabase
         .from('forms')
         .select('*')
         .order('created_at', { ascending: false });
       
-      // التعامل مع حالة الخطأ
+      // Handle Supabase error
       if (fetchError) {
         throw fetchError;
       }
 
-      // تحديث الحالة بالبيانات المسترجعة
+      // Update state with fetched data
       logDebug('Forms fetched successfully:', data);
       setForms(Array.isArray(data) ? data : []);
+      setError('');
       setLastFetchTime(now);
       
-      // إعادة البيانات مباشرة للاستخدام الفوري
+      // Cache the data for offline use
+      try {
+        localStorage.setItem('cached_forms', JSON.stringify(data));
+        localStorage.setItem('forms_last_fetch', now.toString());
+      } catch (cacheError) {
+        logDebug('Error caching forms:', cacheError);
+      }
+      
+      // Return the data for immediate use
       return data || [];
     } catch (err) {
-      // معالجة الخطأ
+      // Enhanced error handling
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب النماذج';
       logDebug('Error fetching forms:', err);
       setError(errorMessage);
       
-      // استرجاع البيانات المخزنة محليا إذا كانت متاحة
+      // Try to get cached data as fallback
       try {
         const cachedForms = localStorage.getItem('cached_forms');
+        const lastFetchTimeStr = localStorage.getItem('forms_last_fetch');
+        
         if (cachedForms) {
           const parsedForms = JSON.parse(cachedForms);
           logDebug('Using cached forms:', parsedForms);
-          setForms(parsedForms);
-          return parsedForms;
+          
+          if (parsedForms && Array.isArray(parsedForms) && parsedForms.length > 0) {
+            setForms(parsedForms);
+            
+            // Show toast only once when falling back to cached data
+            if (fetchAttempts <= 1) {
+              toast.info('استخدام بيانات محفوظة محليًا نظرًا لمشكلة في الاتصال');
+            }
+            
+            return parsedForms;
+          }
         }
       } catch (cacheError) {
         logDebug('Error retrieving cached forms:', cacheError);
       }
       
-      // في حالة عدم وجود بيانات مخزنة، إرجاع مصفوفة فارغة
+      // No cached data available, return empty array
       return [];
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [forms, lastFetchTime, error, fetchAttempts]);
   
   const getFormById = async (formId: string) => {
     setIsLoading(true);
@@ -80,7 +117,7 @@ export const useFormFetch = () => {
     try {
       logDebug(`Attempting to fetch form with ID: ${formId}`);
       
-      // التعامل مع حالة النموذج الجديد
+      // Handle new form case
       if (formId === 'new') {
         logDebug('Creating new form template');
         setIsLoading(false);
@@ -96,16 +133,23 @@ export const useFormFetch = () => {
         };
       }
       
-      // جلب النموذج من قاعدة البيانات
+      // Fetch from database
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
         .eq('id', formId)
-        .single();
+        .maybeSingle();
       
       if (formError) {
         logDebug('Error fetching form by ID:', formError);
         throw formError;
+      }
+      
+      // Save to local cache
+      try {
+        localStorage.setItem(`form_${formId}`, JSON.stringify(formData));
+      } catch (cacheError) {
+        logDebug('Error caching individual form:', cacheError);
       }
       
       logDebug('Form fetched successfully:', formData);
@@ -115,19 +159,20 @@ export const useFormFetch = () => {
       logDebug('Error fetching form by ID:', err);
       setError(errorMessage);
       
-      // في حالة الخطأ، نحاول استرجاع البيانات المخزنة محليا
+      // Try to get from cache
       try {
         const cachedForm = localStorage.getItem(`form_${formId}`);
         if (cachedForm) {
           const parsedForm = JSON.parse(cachedForm);
           logDebug('Using cached form:', parsedForm);
+          toast.info('استخدام نسخة محفوظة من النموذج بسبب مشكلة في الاتصال');
           return parsedForm;
         }
       } catch (cacheError) {
         logDebug('Error retrieving cached form:', cacheError);
       }
       
-      // إرجاع نموذج فارغ إذا لم يتم العثور على البيانات
+      // Return empty form if not found
       return {
         id: formId || 'new',
         title: 'نموذج جديد',
@@ -143,17 +188,6 @@ export const useFormFetch = () => {
     }
   };
 
-  // احتفظ بالنماذج في التخزين المحلي عند تحديثها
-  useEffect(() => {
-    if (forms.length > 0) {
-      try {
-        localStorage.setItem('cached_forms', JSON.stringify(forms));
-      } catch (e) {
-        logDebug('Error caching forms:', e);
-      }
-    }
-  }, [forms]);
-  
   return {
     forms,
     isLoading,

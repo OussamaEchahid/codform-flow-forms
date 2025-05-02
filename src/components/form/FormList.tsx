@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import FormListItem from './FormListItem';
 import EmptyFormList from './EmptyFormList';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Loader2 } from 'lucide-react';
 
 interface FormListProps {
   forms: FormData[];
@@ -24,44 +24,67 @@ const FormList: React.FC<FormListProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // إضافة تسجيل للتصحيح
+  // Debug logging
   console.log('FormList render:', { 
     formsLength: forms?.length || 0, 
     isLoading, 
     hasError 
   });
 
+  // Show loading state when initially loading with no forms
   if (isLoading && forms.length === 0) {
     return (
       <div className="p-8 text-center">
-        <div className="animate-spin h-6 w-6 border-t-2 border-purple-500 border-r-2 rounded-full mx-auto mb-2"></div>
-        <p>{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+        <div className="flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-4" />
+          <p className="text-gray-600 font-medium">
+            {language === 'ar' ? 'جاري تحميل النماذج...' : 'Loading forms...'}
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            {language === 'ar' ? 'يرجى الانتظار' : 'Please wait'}
+          </p>
+        </div>
       </div>
     );
   }
 
+  // Show error state when there's an error and no forms
   if (hasError && forms.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-amber-600 mb-4">
-          {language === 'ar'
-            ? 'حدث خطأ في الاتصال. يمكنك إنشاء نموذج جديد أو إعادة المحاولة لاحقًا.'
-            : 'Connection error occurred. You can create a new form or try again later.'}
-        </p>
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="rounded-full bg-red-100 p-3 mb-4">
+            <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-amber-600 font-medium mb-2">
+            {language === 'ar'
+              ? 'حدث خطأ في الاتصال. يمكنك إنشاء نموذج جديد أو إعادة المحاولة لاحقًا.'
+              : 'Connection error occurred. You can create a new form or try again later.'}
+          </p>
+          <p className="text-gray-500 text-sm mb-4">
+            {language === 'ar'
+              ? 'قد يكون هناك مشكلة في الاتصال بالخادم. حاول مرة أخرى بعد بضع لحظات.'
+              : 'There might be a problem connecting to the server. Try again in a moment.'}
+          </p>
+        </div>
         {onRefresh && (
-          <Button variant="outline" onClick={onRefresh}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+          <Button variant="secondary" onClick={onRefresh} className="flex items-center gap-2">
+            <RefreshCcw className="h-4 w-4" />
+            {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
           </Button>
         )}
       </div>
     );
   }
 
+  // Show empty state when there are no forms
   if (forms.length === 0) {
     return <EmptyFormList />;
   }
 
+  // Show the list of forms
   return (
     <div className="divide-y">
       {forms.map((form) => (
@@ -75,7 +98,7 @@ const FormList: React.FC<FormListProps> = ({
         />
       ))}
       
-      {/* إضافة مؤشر تحميل عند إضافة المزيد من النماذج */}
+      {/* Show loading indicator when adding more forms */}
       {isLoading && forms.length > 0 && (
         <div className="p-4 text-center">
           <div className="animate-spin h-4 w-4 border-t-2 border-purple-500 border-r-2 rounded-full mx-auto"></div>
