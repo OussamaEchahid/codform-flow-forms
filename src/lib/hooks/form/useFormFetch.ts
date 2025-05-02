@@ -101,14 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Convert returned data to FormData[]
+      // Convert returned data to FormData[] with explicit property assignments to avoid type recursion
       const fetchedForms: FormData[] = [];
       
-      // Using manual loop instead of map() to avoid type recursion issues
       if (data) {
         for (let i = 0; i < data.length; i++) {
           const item = data[i];
-          fetchedForms.push({
+          const formItem: FormData = {
             id: item.id,
             title: item.title,
             description: item.description,
@@ -118,7 +117,8 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          });
+          };
+          fetchedForms.push(formItem);
         }
       }
       
