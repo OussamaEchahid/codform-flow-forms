@@ -12,6 +12,12 @@ import ShopifyCallback from '@/api/shopify-callback';
 import Logout from '@/pages/Logout';
 
 function App() {
+  // Clear stale session data on app load
+  useEffect(() => {
+    // Clear any temporary navigation data to prevent loops
+    sessionStorage.removeItem('last_form_navigation');
+  }, []);
+  
   return (
     <>
       <Routes>

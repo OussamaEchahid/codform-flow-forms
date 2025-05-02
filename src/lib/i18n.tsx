@@ -1,168 +1,100 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// Available languages
+type Language = 'en' | 'ar';
 
-// Define translation types
-type Language = 'ar' | 'en';
-type Translations = Record<string, Record<string, string>>;
-
-// Translation dictionary
-const translations: Translations = {
-  ar: {
-    dashboard: 'لوحة التحكم',
-    forms: 'النماذج',
-    orders: 'الطلبات',
-    landingPages: 'صفحات الهبوط',
-    quickOffers: 'العروض السريعة',
-    quantityOffers: 'عروض الكمية',
-    settings: 'الإعدادات',
-    logout: 'تسجيل الخروج',
-    logoutSuccess: 'تم تسجيل الخروج بنجاح',
-    logoutError: 'حدث خطأ أثناء تسجيل الخروج',
-    loading: 'جاري التحميل...',
-    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
-    pleaseConnect: 'يرجى الاتصال بمتجر Shopify الخاص بك للمتابعة',
-    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
-    forceReconnect: 'إعادة الاتصال بالقوة',
-    shopifyConnected: 'متصل بـ Shopify',
-    shopifyDisconnected: 'غير متصل بـ Shopify',
-    createNewForm: 'إنشاء نموذج جديد',
-    useTemplate: 'استخدام قالب',
-    formCreating: 'جاري إنشاء النموذج...',
-    formCreated: 'تم إنشاء النموذج بنجاح',
-    formCreationError: 'حدث خطأ أثناء إنشاء النموذج',
-    noForms: 'لا توجد نماذج متاحة',
-    createFormPrompt: 'أنشئ نموذجًا جديدًا أو استخدم قالبًا للبدء',
-    editForm: 'تعديل النموذج',
-    viewEditForm: 'عرض وتعديل',
-    formSettings: 'إعدادات النموذج',
-    formPublished: 'منشور',
-    formDraft: 'مسودة',
-    publishForm: 'نشر النموذج',
-    unpublishForm: 'إلغاء نشر النموذج',
-    deleteForm: 'حذف النموذج',
-    deleteFormConfirm: 'هل أنت متأكد من حذف النموذج؟',
-    deleteFormWarning: 'لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم.',
-    cancel: 'إلغاء',
-    confirm: 'تأكيد',
-    delete: 'حذف',
-    redirecting: 'جاري إعادة التوجيه...'
-  },
-  en: {
-    dashboard: 'Dashboard',
-    forms: 'Forms',
-    orders: 'Orders',
-    landingPages: 'Landing Pages',
-    quickOffers: 'Quick Offers',
-    quantityOffers: 'Quantity Offers',
-    settings: 'Settings',
-    logout: 'Logout',
-    logoutSuccess: 'Logged out successfully',
-    logoutError: 'Error logging out',
-    loading: 'Loading...',
-    shopifyConnectionIssue: 'Shopify Connection Issue',
-    pleaseConnect: 'Please connect to your Shopify store to continue',
-    connectToShopifyNow: 'Connect to Shopify Now',
-    forceReconnect: 'Force Reconnect',
-    shopifyConnected: 'Connected to Shopify',
-    shopifyDisconnected: 'Not Connected to Shopify',
-    createNewForm: 'Create New Form',
-    useTemplate: 'Use Template',
-    formCreating: 'Creating form...',
-    formCreated: 'Form created successfully',
-    formCreationError: 'Error creating form',
-    noForms: 'No forms available',
-    createFormPrompt: 'Create a new form or use a template to get started',
-    editForm: 'Edit Form',
-    viewEditForm: 'View and Edit',
-    formSettings: 'Form Settings',
-    formPublished: 'Published',
-    formDraft: 'Draft',
-    publishForm: 'Publish Form',
-    unpublishForm: 'Unpublish Form',
-    deleteForm: 'Delete Form',
-    deleteFormConfirm: 'Are you sure you want to delete this form?',
-    deleteFormWarning: 'This action cannot be undone. The form will be permanently deleted.',
-    cancel: 'Cancel',
-    confirm: 'Confirm',
-    delete: 'Delete',
-    redirecting: 'Redirecting...'
-  }
-};
-
-// Create the context
+// Interface for i18n context
 interface I18nContextType {
   t: (key: string) => string;
   language: Language;
   setLanguage: (lang: Language) => void;
-  translations: Translations;
 }
 
-const I18nContext = createContext<I18nContextType | null>(null);
+// Translations
+const translations = {
+  en: {
+    loading: 'Loading...',
+    forms: 'Forms',
+    useTemplate: 'Use Template',
+    createNewForm: 'Create New Form',
+    formCreating: 'Creating Form...',
+    noForms: 'No forms available',
+    createFormPrompt: 'Click "Create New Form" to add a form',
+    shopifyConnectionIssue: 'Shopify Connection Issue',
+    pleaseConnect: 'Please connect to Shopify to use form features',
+    connectToShopifyNow: 'Connect to Shopify Now',
+    forceReconnect: 'Force Reconnect',
+    authError: 'Authentication Error',
+    pleaseLogin: 'Please login to continue',
+  },
+  ar: {
+    loading: 'جار التحميل...',
+    forms: 'النماذج',
+    useTemplate: 'استخدام قالب',
+    createNewForm: 'إنشاء نموذج جديد',
+    formCreating: 'جاري إنشاء النموذج...',
+    noForms: 'لا توجد نماذج متاحة',
+    createFormPrompt: 'انقر على "إنشاء نموذج جديد" لإضافة نموذج',
+    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
+    pleaseConnect: 'يرجى الاتصال بـ Shopify لاستخدام ميزات النماذج',
+    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
+    forceReconnect: 'إعادة الاتصال الإجباري',
+    authError: 'خطأ في المصادقة',
+    pleaseLogin: 'يرجى تسجيل الدخول للمتابعة',
+  }
+};
 
-// Create provider component
-interface I18nProviderProps {
-  children: ReactNode;
-}
+// Create context
+const I18nContext = createContext<I18nContextType>({
+  t: (key) => key,
+  language: 'en',
+  setLanguage: () => {},
+});
 
-export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
-  // Get initial language from localStorage or default to Arabic
-  const getInitialLanguage = (): Language => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('language');
-      return (savedLang === 'en' || savedLang === 'ar') ? savedLang : 'ar';
-    }
-    return 'ar';
-  };
+// Event to notify when language changes
+export const createLanguageChangeEvent = (language: string) => {
+  const event = new CustomEvent('languageChange', { detail: { language } });
+  document.dispatchEvent(event);
+  return event;
+};
 
-  const [language, setInternalLanguage] = useState<Language>(getInitialLanguage());
-
-  // Update language and store preference
-  const setLanguage = (lang: Language) => {
-    console.log(`Changing language to: ${lang}`);
-    localStorage.setItem('language', lang);
-    setInternalLanguage(lang);
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-    
-    // Dispatch custom event for components that need to react to language change
-    const event = new CustomEvent('languageChanged', { detail: { language: lang } });
-    window.dispatchEvent(event);
-  };
-
-  // Translation function
-  const t = (key: string): string => {
-    return translations[language]?.[key] || key;
-  };
-
-  // Set document direction based on language on mount and language change
+// Provider component
+export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Initialize from localStorage or default to 'ar'
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem('language');
+    return (saved === 'en' || saved === 'ar') ? saved : 'ar';
+  });
+  
+  // Set document direction based on language
   useEffect(() => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = language;
-    console.log(`Language set to: ${language}, direction: ${document.documentElement.dir}`);
+    localStorage.setItem('language', language);
+    
+    // Dispatch language change event for components that need to react
+    createLanguageChangeEvent(language);
   }, [language]);
-
-  // Context value
-  const contextValue: I18nContextType = {
-    t,
-    language,
-    setLanguage,
-    translations
+  
+  // Translation function
+  const t = (key: string): string => {
+    return translations[language][key as keyof typeof translations[typeof language]] || key;
   };
-
+  
+  // Change language and update localStorage
+  const setLanguage = (lang: Language) => {
+    localStorage.setItem('language', lang);
+    setLanguageState(lang);
+  };
+  
   return (
-    <I18nContext.Provider value={contextValue}>
+    <I18nContext.Provider value={{ t, language, setLanguage }}>
       {children}
     </I18nContext.Provider>
   );
 };
 
-// Custom hook to use i18n
-export const useI18n = (): I18nContextType => {
-  const context = useContext(I18nContext);
-  
-  if (!context) {
-    throw new Error('useI18n must be used within an I18nProvider');
-  }
-  
-  return context;
-};
+// Hook to use i18n in components
+export const useI18n = () => useContext(I18nContext);
+
+// Ensure the file also re-exports everything for backward compatibility
+export * from './i18n';

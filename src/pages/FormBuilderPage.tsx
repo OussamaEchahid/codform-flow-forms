@@ -7,7 +7,6 @@ import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -19,93 +18,151 @@ const FormBuilderPage = () => {
   const { user, shopifyConnected, shop, refreshShopifyConnection } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms, getFormById, clearFormCache } = useFormTemplates();
-  const isMobile = useIsMobile();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [pageReady, setPageReady] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   
   // Determine which component to show based on presence of formId
-  const showEditor = !!formId;
-  
+  const showEditor = !!formId && formId !== 'new';
+
+  // Check authentication status on load
   useEffect(() => {
-    const init = async () => {
-      console.log("FormBuilderPage mounted with formId:", formId);
+    const checkAuth = () => {
+      console.log("FormBuilderPage: Checking auth status, user:", user);
       
-      // Always try to refresh the Shopify connection when the page loads
-      if (refreshShopifyConnection) {
-        console.log("Refreshing Shopify connection status");
-        refreshShopifyConnection();
-      }
-      
-      // Clear form cache when loading form builder to ensure fresh data
-      if (clearFormCache) {
-        console.log("Clearing form cache");
-        await clearFormCache();
-      }
-      
-      // If in editor mode, validate the form
-      if (formId) {
+      // Restore auth state from sessionStorage if needed
+      const savedAuthState = sessionStorage.getItem('auth_state');
+      if (savedAuthState) {
         try {
-          console.log("Validating form:", formId);
-          const form = await getFormById(formId);
-          if (!form) {
-            console.error("Form validation failed: Form not found");
-            setFormError(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-            setTimeout(() => navigate('/forms', { replace: true }), 3000);
-          } else {
-            console.log("Form validation successful:", form);
-            setFormError(null);
+          const parsedState = JSON.parse(savedAuthState);
+          
+          // Only use saved state if it's recent (less than 10 minutes old)
+          const stateAge = Date.now() - parsedState.timestamp;
+          if (stateAge < 10 * 60 * 1000) {
+            console.log("FormBuilderPage: Restoring saved auth state");
+            
+            // Restore shopify connection state
+            if (parsedState.shopify_store && !localStorage.getItem('shopify_store')) {
+              localStorage.setItem('shopify_store', parsedState.shopify_store);
+            }
+            
+            if (parsedState.shopify_connected && !localStorage.getItem('shopify_connected')) {
+              localStorage.setItem('shopify_connected', parsedState.shopify_connected);
+            }
           }
-        } catch (err) {
-          console.error("Error validating form:", err);
-          setFormError(language === 'ar' ? 'خطأ في التحقق من النموذج' : 'Error validating form');
+        } catch (error) {
+          console.error("Error parsing saved auth state:", error);
         }
-      } else {
-        // In dashboard mode, fetch forms
-        fetchForms();
       }
       
-      // Set the page as ready after validation
-      setPageReady(true);
+      // If user is not authenticated, redirect to forms page
+      if (!user) {
+        console.log("FormBuilderPage: User not authenticated, navigating to forms");
+        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access form builder');
+        navigate('/forms', { replace: true });
+        return false;
+      }
+      
+      return true;
     };
     
-    init();
-  }, [formId, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
+    const isAuthenticated = checkAuth();
+    setAuthChecked(true);
+    
+    if (isAuthenticated) {
+      const init = async () => {
+        console.log("FormBuilderPage: Initializing with formId:", formId);
+        
+        // Always try to refresh the Shopify connection
+        if (refreshShopifyConnection) {
+          console.log("FormBuilderPage: Refreshing Shopify connection");
+          refreshShopifyConnection();
+        }
+        
+        // Clear form cache to ensure fresh data
+        if (clearFormCache) {
+          console.log("FormBuilderPage: Clearing form cache");
+          await clearFormCache();
+        }
+        
+        // If in editor mode, validate the form exists
+        if (formId && formId !== 'new') {
+          try {
+            console.log("FormBuilderPage: Validating form:", formId);
+            const form = await getFormById(formId);
+            if (!form) {
+              console.error("FormBuilderPage: Form not found");
+              setFormError(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+              setTimeout(() => navigate('/forms', { replace: true }), 2000);
+            } else {
+              console.log("FormBuilderPage: Form validation successful:", form.id);
+              setFormError(null);
+            }
+          } catch (err) {
+            console.error("FormBuilderPage: Error validating form:", err);
+            setFormError(language === 'ar' ? 'خطأ في التحقق من النموذج' : 'Error validating form');
+          }
+        } else {
+          // In dashboard mode or new form, fetch forms list
+          fetchForms();
+        }
+        
+        // Set page as ready
+        setPageReady(true);
+      };
+      
+      init();
+    }
+  }, [formId, user, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
 
-  // Handle manual connection button click
+  // Handle reconnection to Shopify
   const handleConnectShopify = () => {
-    // Prevent multiple clicks
     if (isRedirecting) {
-      toast.info(language === 'ar' 
-        ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
-        : 'Already redirecting, please wait...');
       return;
     }
     
     setIsRedirecting(true);
+    toast.info(language === 'ar' ? 'جاري إعادة توجيهك للاتصال بـ Shopify...' : 'Redirecting to connect to Shopify...');
     
-    // Clear all locally stored data to ensure clean reconnection
+    // Clear connection data
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_reconnect_attempts');
     localStorage.removeItem('shopify_last_connect_time');
-    localStorage.removeItem('shopify_last_redirect_time');
-    localStorage.removeItem('shopify_temp_store');
     
-    // Show message to user
-    toast.info(language === 'ar' 
-      ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-      : 'Redirecting to connect to Shopify...');
-    
-    // Add a longer delay to prevent rapid redirections
+    // Force page reload to /shopify route
     setTimeout(() => {
-      // Use direct location change to break any potential redirect loops
       window.location.href = '/shopify';
-    }, 1500);
+    }, 500);
   };
 
+  // Show loading state while checking auth
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
+  }
+  
+  // User not authenticated
   if (!user) {
-    return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
+    return (
+      <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
+        <div className="bg-white shadow rounded-lg p-8 w-full max-w-md text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-xl font-medium mb-2">
+            {language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}
+          </h3>
+          <Button 
+            onClick={() => navigate('/forms')}
+            className="mt-4 bg-[#9b87f5] hover:bg-[#8a74e8]"
+          >
+            {language === 'ar' ? 'العودة إلى النماذج' : 'Return to Forms'}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!pageReady) {
@@ -180,7 +237,9 @@ const FormBuilderPage = () => {
       )}
       
       <div className="flex-1">
-        {showEditor ? (
+        {formId === 'new' ? (
+          <FormBuilderEditor key="new-form" />
+        ) : showEditor ? (
           <FormBuilderEditor key={formId} />
         ) : (
           <FormBuilderDashboard />

@@ -11,9 +11,8 @@ import { Dialog } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/auth';
 import { navigateToFormBuilder } from '@/lib/form-navigation';
 
-// لمنع العمليات المتكررة
-let isFormCreationInProgress = false;
-let redirectionTimer: ReturnType<typeof setTimeout> | null = null;
+// Global variable to prevent duplicate operations
+let isFormActionInProgress = false;
 
 const FormBuilderDashboard = () => {
   const { t, language } = useI18n();
@@ -21,22 +20,17 @@ const FormBuilderDashboard = () => {
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isCreatingForm, setIsCreatingForm] = useState(false);
   const [creationAttempted, setCreationAttempted] = useState(false);
-  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
+  const { user, shop, shopifyConnected } = useAuth();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // تحميل بيانات النماذج مرة واحدة فقط عند بدء التشغيل
+  // Load forms data once
   useEffect(() => {
     if (initialLoadComplete) return;
-
+    
     console.log('FormBuilderDashboard - Initial load started');
     
     const initializeDashboard = async () => {
       try {
-        // محاولة تحديث حالة الاتصال أولاً
-        if (refreshShopifyConnection) {
-          refreshShopifyConnection();
-        }
-        
         console.log('Fetching forms...');
         await fetchForms();
         console.log('Forms fetched successfully');
@@ -47,41 +41,42 @@ const FormBuilderDashboard = () => {
       }
     };
     
-    // إعادة تعيين المتغير العام لضمان عدم وجود تضارب
-    isFormCreationInProgress = false;
-    
-    // مسح أي مؤقتات سابقة
-    if (redirectionTimer) {
-      clearTimeout(redirectionTimer);
-      redirectionTimer = null;
-    }
+    // Reset global variable to ensure no conflicts
+    isFormActionInProgress = false;
     
     initializeDashboard();
-    
-    return () => {
-      if (redirectionTimer) {
-        clearTimeout(redirectionTimer);
-      }
-    };
-  }, [fetchForms, refreshShopifyConnection]);
+  }, [fetchForms]);
 
-  // إنشاء نموذج جديد مع ضمانات إضافية
+  // Create new form with additional safeguards
   const handleCreateForm = async () => {
-    // منع النقرات المتعددة والعمليات المتزامنة
-    if (isCreatingForm || isFormCreationInProgress) {
+    // Prevent multiple clicks
+    if (isCreatingForm || isFormActionInProgress) {
       console.log("Form creation already in progress");
       toast.info(language === 'ar' ? 'جارٍ إنشاء النموذج، يرجى الانتظار...' : 'Form creation in progress, please wait...');
       return;
     }
     
+    // Verify user is logged in
+    if (!user) {
+      console.error("User not authenticated");
+      toast.error(language === 'ar' ? 'يرجى تسجيل الدخول للمتابعة' : 'Please login to continue');
+      return;
+    }
+    
     try {
-      // تعيين المؤشرات المحلية والعالمية
+      // Set indicators
       setIsCreatingForm(true);
-      isFormCreationInProgress = true;
+      isFormActionInProgress = true;
       setCreationAttempted(true);
       
       console.log("Creating default form...");
       toast.loading(language === 'ar' ? 'جارٍ إنشاء النموذج...' : 'Creating form...');
+      
+      // Store shop ID in localStorage before creating form
+      if (shop) {
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+      }
       
       const newForm = await createDefaultForm();
       
@@ -89,9 +84,9 @@ const FormBuilderDashboard = () => {
         console.log("New form created with ID:", newForm.id);
         toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
         
-        // إصلاح مشكلة إعادة التوجيه عن طريق استخدام تأخير أطول وإعادة التحميل الكامل
-        redirectionTimer = setTimeout(() => {
-          // استخدام وظيفة التنقل المحسنة
+        // Use timeout to ensure toast is displayed before navigation
+        setTimeout(() => {
+          // Use enhanced navigation function
           console.log("Navigating to form builder:", newForm.id);
           navigateToFormBuilder(newForm.id);
         }, 500);
@@ -107,18 +102,18 @@ const FormBuilderDashboard = () => {
           : `Form creation error: ${error.message || 'Unknown error'}`
       );
     } finally {
-      // إضافة تأخير قبل إعادة تعيين حالة الإنشاء لمنع النقرات المزدوجة
+      // Add delay before resetting creation state
       setTimeout(() => {
         setIsCreatingForm(false);
-        // انتظر فترة أطول قبل السماح بطلب إنشاء جديد
+        // Wait longer before allowing another creation request
         setTimeout(() => {
-          isFormCreationInProgress = false;
+          isFormActionInProgress = false;
         }, 1000);
       }, 1000);
     }
   };
 
-  // معالجة تحديد النموذج مع معالجة أخطاء أكثر قوة
+  // Handle form selection with robust error handling
   const handleSelectForm = useCallback((formId: string) => {
     if (!formId) {
       console.error("Invalid form ID");
@@ -126,43 +121,73 @@ const FormBuilderDashboard = () => {
       return;
     }
     
-    // منع النقرات المتعددة
-    if (isFormCreationInProgress) {
+    // Prevent multiple clicks
+    if (isFormActionInProgress) {
       console.log("Navigation already in progress");
       toast.info(language === 'ar' ? 'جارٍ التنقل، يرجى الانتظار...' : 'Navigation in progress, please wait...');
       return;
     }
     
-    isFormCreationInProgress = true;
+    isFormActionInProgress = true;
     
     console.log(`Navigating to form editor for form ${formId}`);
     toast.loading(language === 'ar' ? 'جارٍ تحميل النموذج...' : 'Loading form...');
     
-    // استخدام وظيفة التنقل المحسنة مع تأخير لضمان عرض رسالة التحميل
+    // Verify the user is logged in before navigation
+    if (!user) {
+      toast.error(language === 'ar' ? 'يرجى تسجيل الدخول للمتابعة' : 'Please login to continue');
+      isFormActionInProgress = false;
+      return;
+    }
+    
+    // Store the user ID and shop connection in localStorage before navigation
+    if (user) {
+      localStorage.setItem('user_id', user.id);
+    }
+    
+    if (shop) {
+      localStorage.setItem('shopify_store', shop);
+      localStorage.setItem('shopify_connected', shopifyConnected ? 'true' : 'false');
+    }
+    
+    // Use enhanced navigation with delay to ensure loading message shows
     setTimeout(() => {
       navigateToFormBuilder(formId);
       
-      // إعادة تعيين العلامة بعد 3 ثوانٍ للسماح بالتنقل مرة أخرى
+      // Reset flag after 3 seconds to allow navigation again
       setTimeout(() => {
-        isFormCreationInProgress = false;
+        isFormActionInProgress = false;
       }, 3000);
     }, 300);
-  }, [language]);
+  }, [language, user, shop, shopifyConnected]);
 
-  // معالج تحديد القالب مع ضمانات
+  // Template selection handler with safeguards
   const handleSelectTemplate = async (templateId: number) => {
-    if (isCreatingForm || isFormCreationInProgress) {
+    if (isCreatingForm || isFormActionInProgress) {
       console.log("Form creation already in progress");
       toast.info(language === 'ar' ? 'جارٍ إنشاء النموذج، يرجى الانتظار...' : 'Form creation in progress, please wait...');
       return;
     }
     
+    // Verify user is logged in
+    if (!user) {
+      console.error("User not authenticated");
+      toast.error(language === 'ar' ? 'يرجى تسجيل الدخول للمتابعة' : 'Please login to continue');
+      return;
+    }
+    
     try {
       setIsCreatingForm(true);
-      isFormCreationInProgress = true;
+      isFormActionInProgress = true;
       setCreationAttempted(true);
       console.log("Selected template ID:", templateId);
       toast.loading(language === 'ar' ? 'جارٍ إنشاء النموذج من القالب...' : 'Creating form from template...');
+      
+      // Store shop ID in localStorage before creating form
+      if (shop) {
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+      }
       
       const newForm = await createFormFromTemplate(templateId);
       
@@ -170,8 +195,8 @@ const FormBuilderDashboard = () => {
         console.log("New form created from template:", newForm);
         toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
         
-        // تأخير قصير قبل التنقل للسماح بعرض رسالة النجاح
-        redirectionTimer = setTimeout(() => {
+        // Short delay before navigation to allow success toast to appear
+        setTimeout(() => {
           navigateToFormBuilder(newForm.id);
         }, 500);
       } else {
@@ -186,14 +211,14 @@ const FormBuilderDashboard = () => {
           : `Template selection error: ${err.message || 'Unknown error'}`
       );
     } finally {
-      // إضافة تأخير قبل إعادة تعيين حالة الإنشاء
+      // Add delay before resetting creation state
       setTimeout(() => {
         setIsCreatingForm(false);
         setIsTemplateDialogOpen(false);
         
-        // انتظر فترة أطول قبل السماح بطلب إنشاء جديد
+        // Wait longer before allowing another create request
         setTimeout(() => {
-          isFormCreationInProgress = false;
+          isFormActionInProgress = false;
         }, 1000);
       }, 1000);
     }
@@ -215,14 +240,14 @@ const FormBuilderDashboard = () => {
             <Button 
               onClick={() => setIsTemplateDialogOpen(true)} 
               variant="outline"
-              disabled={isCreatingForm}
+              disabled={isCreatingForm || !user}
             >
               {t('useTemplate')}
             </Button>
             <Button 
               onClick={handleCreateForm} 
               className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-              disabled={isCreatingForm || isFormCreationInProgress}
+              disabled={isCreatingForm || isFormActionInProgress || !user}
             >
               {isCreatingForm ? (
                 <div className="flex items-center">
@@ -238,6 +263,14 @@ const FormBuilderDashboard = () => {
             </Button>
           </div>
         </div>
+        
+        {!user && (
+          <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-6">
+            <p className="font-medium">
+              {language === 'ar' ? 'يرجى تسجيل الدخول لإنشاء وتعديل النماذج' : 'Please login to create and edit forms'}
+            </p>
+          </div>
+        )}
         
         <FormList 
           forms={forms} 
@@ -256,8 +289,8 @@ const FormBuilderDashboard = () => {
           </div>
         )}
         
-        {/* عرض رسالة إذا تمت محاولة إنشاء النموذج لكن فشلت */}
-        {creationAttempted && !isCreatingForm && isFormCreationInProgress && (
+        {/* Show message if form creation was attempted but failed */}
+        {creationAttempted && !isCreatingForm && (
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-yellow-800">
               {language === 'ar' 
@@ -268,7 +301,7 @@ const FormBuilderDashboard = () => {
         )}
       </div>
       
-      {/* مربع حوار اختيار القالب */}
+      {/* Template selection dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
           open={isTemplateDialogOpen}
