@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
 import { useI18n } from '@/lib/i18n';
@@ -12,15 +12,149 @@ import { supabase } from '@/integrations/supabase/client';
 import FormBuilder from '@/components/form/FormBuilder';
 import { ArrowLeft, Save, Eye, AlertCircle, RefreshCcw } from 'lucide-react';
 import FormBuilderShopify from '@/components/form/builder/FormBuilderShopify';
-import ShopifyConnectionBanner from '@/components/form/ShopifyConnectionBanner';
+import ShopifyConnectionManager from '@/components/form/builder/ShopifyConnectionManager';
 import { ShopifyFormData } from '@/lib/shopify/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Extract FormInfo section to its own component
+const FormInfo = ({ 
+  title, 
+  setTitle, 
+  description, 
+  setDescription, 
+  setIsFormModified,
+  language 
+}: {
+  title: string;
+  setTitle: (val: string) => void;
+  description: string;
+  setDescription: (val: string) => void;
+  setIsFormModified: (val: boolean) => void;
+  language: string;
+}) => (
+  <div className="bg-white p-6 rounded-lg shadow">
+    <h2 className="font-medium mb-4">
+      {language === 'ar' ? 'معلومات النموذج' : 'Form Information'}
+    </h2>
+    
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {language === 'ar' ? 'العنوان' : 'Title'}
+        </label>
+        <Input
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setIsFormModified(true);
+          }}
+          placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {language === 'ar' ? 'الوصف' : 'Description'}
+        </label>
+        <Textarea
+          value={description}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            setIsFormModified(true);
+          }}
+          placeholder={language === 'ar' ? 'أدخل وصف النموذج (اختياري)' : 'Enter form description (optional)'}
+          rows={3}
+        />
+      </div>
+    </div>
+  </div>
+);
+
+// Extract FormActions component
+const FormActions = ({ 
+  handleSave, 
+  isSaving, 
+  handlePreviewInShopify,
+  showPreview,
+  language 
+}: {
+  handleSave: () => void;
+  isSaving: boolean;
+  handlePreviewInShopify: () => void;
+  showPreview: boolean;
+  language: string;
+}) => (
+  <div className="flex justify-between">
+    <Button
+      onClick={handleSave}
+      disabled={isSaving}
+      className="flex items-center"
+    >
+      {isSaving ? (
+        <>
+          <div className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-current rounded-full"></div>
+          {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+        </>
+      ) : (
+        <>
+          <Save className="h-4 w-4 mr-2" />
+          {language === 'ar' ? 'حفظ النموذج' : 'Save Form'}
+        </>
+      )}
+    </Button>
+    
+    {showPreview && (
+      <Button
+        variant="outline"
+        onClick={handlePreviewInShopify}
+      >
+        <Eye className="h-4 w-4 mr-2" />
+        {language === 'ar' ? 'معاينة في Shopify' : 'Preview in Shopify'}
+      </Button>
+    )}
+  </div>
+);
+
+// Extract StatusNotices component
+const StatusNotices = ({ 
+  isFormModified,
+  connectionError,
+  language
+}: {
+  isFormModified: boolean;
+  connectionError: boolean;
+  language: string;
+}) => (
+  <>
+    {isFormModified && (
+      <Alert variant="default" className="bg-blue-50 border-blue-100">
+        <AlertCircle className="h-4 w-4 text-blue-500" />
+        <AlertDescription className="text-blue-700">
+          {language === 'ar' 
+            ? 'لديك تغييرات غير محفوظة. سيتم حفظها تلقائيًا كل دقيقة أو يمكنك الضغط على "حفظ النموذج" للحفظ الآن.' 
+            : 'You have unsaved changes. They will be auto-saved every minute or you can press "Save Form" to save now.'}
+        </AlertDescription>
+      </Alert>
+    )}
+    
+    {connectionError && (
+      <Alert variant="default" className="bg-yellow-50 border-yellow-100">
+        <AlertCircle className="h-4 w-4 text-yellow-500" />
+        <AlertDescription className="text-yellow-700">
+          {language === 'ar' 
+            ? 'أنت تعمل في الوضع غير المتصل. سيتم حفظ التغييرات محليًا حتى يتم استعادة الاتصال.' 
+            : 'You are working in offline mode. Changes will be saved locally until connection is restored.'}
+        </AlertDescription>
+      </Alert>
+    )}
+  </>
+);
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
   const { language } = useI18n();
-  const { user, shopifyConnected, shop, forceReconnect } = useAuth();
+  const { user, shopifyConnected, shop } = useAuth();
   const { getFormById } = useFormFetch();
   
   const [title, setTitle] = useState('');
@@ -219,7 +353,7 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate, user?.id]);
   
-  // Improve form saving process with local saving and later sync
+  // Form save handler
   const handleSave = async (isAutoSave = false) => {
     if (!title.trim() && !isAutoSave) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
@@ -423,19 +557,6 @@ const FormBuilderPage = () => {
       );
     }
   };
-  
-  // Custom reconnect handler
-  const handleReconnect = () => {
-    // Prevent multiple reconnection
-    if (typeof forceReconnect === 'function') {
-      console.log('Using direct reconnect function');
-      forceReconnect();
-    } else {
-      // Alternative method - redirect with return_to
-      const currentUrl = encodeURIComponent(window.location.pathname);
-      window.location.href = `/shopify?force=true&return=${currentUrl}&ts=${Date.now()}`;
-    }
-  };
 
   // Handle Shopify integration
   const handleShopifyIntegration = async (settings: ShopifyFormData): Promise<void> => {
@@ -506,8 +627,8 @@ const FormBuilderPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4" key={renderKey}>
       <div className="max-w-6xl mx-auto">
-        {/* Show warning banner in case of connection issue */}
-        <ShopifyConnectionBanner onReconnect={handleReconnect} />
+        {/* Shopify connection status - now optimized to prevent excessive requests */}
+        <ShopifyConnectionManager formId={formId !== 'new' ? formId : null} />
         
         {/* Show warning when there's a loading error */}
         {(loadError || connectionError) && (
@@ -549,42 +670,14 @@ const FormBuilderPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
             {/* Form information */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="font-medium mb-4">
-                {language === 'ar' ? 'معلومات النموذج' : 'Form Information'}
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {language === 'ar' ? 'العنوان' : 'Title'}
-                  </label>
-                  <Input
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      setIsFormModified(true);
-                    }}
-                    placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {language === 'ar' ? 'الوصف' : 'Description'}
-                  </label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => {
-                      setDescription(e.target.value);
-                      setIsFormModified(true);
-                    }}
-                    placeholder={language === 'ar' ? 'أدخل وصف النموذج (اختياري)' : 'Enter form description (optional)'}
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </div>
+            <FormInfo 
+              title={title}
+              setTitle={setTitle}
+              description={description}
+              setDescription={setDescription}
+              setIsFormModified={setIsFormModified}
+              language={language}
+            />
             
             {/* Form builder */}
             <div className="bg-white p-6 rounded-lg shadow">
@@ -603,35 +696,13 @@ const FormBuilderPage = () => {
             </div>
             
             {/* Action buttons */}
-            <div className="flex justify-between">
-              <Button
-                onClick={() => handleSave(false)}
-                disabled={isSaving}
-                className="flex items-center"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-current rounded-full"></div>
-                    {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {language === 'ar' ? 'حفظ النموذج' : 'Save Form'}
-                  </>
-                )}
-              </Button>
-              
-              {shopifyConnected && formId && formId !== 'new' && !connectionError && (
-                <Button
-                  variant="outline"
-                  onClick={handlePreviewInShopify}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  {language === 'ar' ? 'معاينة في Shopify' : 'Preview in Shopify'}
-                </Button>
-              )}
-            </div>
+            <FormActions
+              handleSave={() => handleSave(false)}
+              isSaving={isSaving}
+              handlePreviewInShopify={handlePreviewInShopify}
+              showPreview={shopifyConnected && !!formId && formId !== 'new' && !connectionError}
+              language={language}
+            />
           </div>
           
           {/* Settings and integration */}
@@ -645,29 +716,12 @@ const FormBuilderPage = () => {
               />
             </div>
             
-            {/* Save and sync status info */}
-            {isFormModified && (
-              <Alert variant="default" className="bg-blue-50 border-blue-100">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
-                <AlertDescription className="text-blue-700">
-                  {language === 'ar' 
-                    ? 'لديك تغييرات غير محفوظة. سيتم حفظها تلقائيًا كل دقيقة أو يمكنك الضغط على "حفظ النموذج" للحفظ الآن.' 
-                    : 'You have unsaved changes. They will be auto-saved every minute or you can press "Save Form" to save now.'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Offline mode info */}
-            {connectionError && (
-              <Alert variant="default" className="bg-yellow-50 border-yellow-100">
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-                <AlertDescription className="text-yellow-700">
-                  {language === 'ar' 
-                    ? 'أنت تعمل في الوضع غير المتصل. سيتم حفظ التغييرات محليًا حتى يتم استعادة الاتصال.' 
-                    : 'You are working in offline mode. Changes will be saved locally until connection is restored.'}
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Status notices */}
+            <StatusNotices
+              isFormModified={isFormModified}
+              connectionError={connectionError}
+              language={language}
+            />
           </div>
         </div>
       </div>

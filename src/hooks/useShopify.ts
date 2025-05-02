@@ -1,9 +1,13 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { toast } from 'sonner';
+
+// Constants for better maintainability
+const CACHE_TTL = 60000; // 1 minute cache
+const CONNECTION_CHECK_THROTTLE = 30000; // 30 seconds
+const REQUEST_DEBOUNCE_TIME = 500; // 500ms
 
 export const useShopify = () => {
   const { shop, shopifyConnected, forceReconnect, refreshShopifyConnection } = useAuth();
@@ -15,45 +19,86 @@ export const useShopify = () => {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<boolean>(false);
   
-  // إضافة مراجع للتحكم في تكرار الطلبات
-  const requestsInProgressRef = useRef<{[key: string]: boolean}>({});
-  const cachedProductsRef = useRef<{data: ShopifyProduct[] | null, timestamp: number}>({
-    data: null,
-    timestamp: 0
-  });
+  // Request state management
+  const activeRequestsRef = useRef<{[key: string]: boolean}>({});
+  const requestTimeoutsRef = useRef<{[key: string]: ReturnType<typeof setTimeout>}>({});
   const connectionCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   
-  // تحسين آلية تحديث قائمة منتجات Shopify مع منع التكرار
-  const refreshProducts = async () => {
+  // Cache management
+  const cachedDataRef = useRef<{
+    products: { data: ShopifyProduct[] | null, timestamp: number },
+    connection: { status: boolean, timestamp: number }
+  }>({
+    products: { data: null, timestamp: 0 },
+    connection: { status: false, timestamp: 0 }
+  });
+
+  // Helper to check if a request is already in progress
+  const isRequestInProgress = (key: string): boolean => {
+    return !!activeRequestsRef.current[key];
+  };
+
+  // Helper to track request status and cleanup
+  const trackRequest = useCallback((key: string, inProgress: boolean) => {
+    if (inProgress) {
+      activeRequestsRef.current[key] = true;
+    } else {
+      // Clean up after a small delay to prevent rapid successive calls
+      if (requestTimeoutsRef.current[key]) {
+        clearTimeout(requestTimeoutsRef.current[key]);
+      }
+      
+      requestTimeoutsRef.current[key] = setTimeout(() => {
+        activeRequestsRef.current[key] = false;
+        delete requestTimeoutsRef.current[key];
+      }, REQUEST_DEBOUNCE_TIME);
+    }
+  }, []);
+  
+  // Clear all request timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      Object.values(requestTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      
+      if (connectionCheckTimeoutRef.current) {
+        clearTimeout(connectionCheckTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Improved products fetching with proper caching and throttling
+  const refreshProducts = useCallback(async () => {
+    // Skip if conditions aren't met
     if (!shopifyConnected || !shop) {
-      return [];
+      return cachedDataRef.current.products.data || [];
     }
 
-    // منع استدعاءات متعددة في نفس الوقت
-    if (requestsInProgressRef.current['refreshProducts']) {
-      console.log('A products refresh is already in progress, skipping duplicate request');
-      return cachedProductsRef.current.data || [];
+    // Return cached data if a request is in progress
+    if (isRequestInProgress('refreshProducts')) {
+      console.log('A products refresh is already in progress, using cached data');
+      return cachedDataRef.current.products.data || [];
     }
     
-    // التحقق من وجود نسخة مخزنة مؤقتًا حديثة (أقل من 30 ثانية)
-    const CACHE_TTL = 30000; // 30 seconds cache
+    // Return cached data if still valid
     if (
-      cachedProductsRef.current.data &&
-      Date.now() - cachedProductsRef.current.timestamp < CACHE_TTL
+      cachedDataRef.current.products.data &&
+      Date.now() - cachedDataRef.current.products.timestamp < CACHE_TTL
     ) {
       console.log('Using cached products data');
-      return cachedProductsRef.current.data;
+      return cachedDataRef.current.products.data;
     }
     
-    requestsInProgressRef.current['refreshProducts'] = true;
+    trackRequest('refreshProducts', true);
     setIsLoading(true);
     
     try {
       console.log('Refreshing Shopify products for shop:', shop);
       
-      // استخدام بيانات وهمية مؤقتة للمنتجات بدلاً من الطلب المستمر
-      // هذا سيتم استبداله لاحقًا بطلب API حقيقي عندما يتم إصلاح المشكلة
+      // For now, return mock products to prevent continuous API calls
+      // This should be replaced with actual API call when ready
       const mockProducts: ShopifyProduct[] = [
         {
           id: "mock1",
@@ -73,8 +118,8 @@ export const useShopify = () => {
         }
       ];
       
-      // تخزين البيانات في الذاكرة المؤقتة
-      cachedProductsRef.current = {
+      // Cache the data
+      cachedDataRef.current.products = {
         data: mockProducts,
         timestamp: Date.now()
       };
@@ -83,7 +128,8 @@ export const useShopify = () => {
       return mockProducts;
     } catch (error) {
       console.error('Error fetching Shopify products:', error);
-      // استخدام بيانات وهمية في حالة فشل الاتصال
+      
+      // Use offline products if available or create fallback
       const offlineProducts: ShopifyProduct[] = [
         {
           id: "offline1",
@@ -100,138 +146,114 @@ export const useShopify = () => {
       return offlineProducts;
     } finally {
       setIsLoading(false);
-      // إعادة تعيين حالة الطلب بعد تأخير قصير لمنع الطلبات المتعددة
-      setTimeout(() => {
-        requestsInProgressRef.current['refreshProducts'] = false;
-      }, 500);
+      trackRequest('refreshProducts', false);
     }
-  };
+  }, [shop, shopifyConnected, trackRequest]);
 
-  // تحسين التحقق من اتصال Shopify مع منع التكرار
-  const verifyShopifyConnection = async (): Promise<boolean> => {
+  // Improved connection verification with proper throttling
+  const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
     if (!shop) return false;
     
-    // منع الفحوصات المتكررة خلال فترة زمنية قصيرة (10 ثوانٍ)
-    const THROTTLE_TIME = 10000;
-    if (Date.now() - lastCheck < THROTTLE_TIME) {
+    // Skip if we checked recently
+    if (Date.now() - lastCheck < CONNECTION_CHECK_THROTTLE) {
       console.log("Throttling connection verification - checked recently");
       return connectionStatus;
     }
     
-    // منع استدعاءات متعددة في نفس الوقت
-    if (requestsInProgressRef.current['verifyConnection']) {
-      console.log('A connection verification is already in progress, skipping duplicate request');
+    // Skip if already checking
+    if (isRequestInProgress('verifyConnection')) {
+      console.log('Connection verification already in progress');
       return connectionStatus;
     }
     
-    requestsInProgressRef.current['verifyConnection'] = true;
+    trackRequest('verifyConnection', true);
     setLastCheck(Date.now());
     
     try {
       console.log('Verifying Shopify connection for shop:', shop);
       
-      // تحقق بسيط من التخزين المحلي لتسريع الاستجابة
-      const cachedStatus = localStorage.getItem('shopify_connection_status');
-      const cachedTime = parseInt(localStorage.getItem('shopify_connection_check_time') || '0', 10);
-      
-      if (cachedStatus && Date.now() - cachedTime < THROTTLE_TIME) {
-        const isConnected = cachedStatus === 'true';
-        setConnectionStatus(isConnected);
-        return isConnected;
+      // Check cached status first
+      const cachedTime = cachedDataRef.current.connection.timestamp;
+      if (Date.now() - cachedTime < CONNECTION_CHECK_THROTTLE) {
+        return cachedDataRef.current.connection.status;
       }
       
-      // لغرض التبسيط، سنتخطى الطلب الفعلي ونعيد حالة الاتصال الحالية
-      // هذا يمنع الطلبات المستمرة التي تسبب خطأ
+      // For demo purposes, use the current shopifyConnected state
+      // This should be replaced with actual verification logic
       const isConnected = shopifyConnected && !!shop;
       
+      // Update cache
+      cachedDataRef.current.connection = {
+        status: isConnected,
+        timestamp: Date.now()
+      };
+      
+      // Update storage for persistence
       localStorage.setItem('shopify_connection_status', String(isConnected));
       localStorage.setItem('shopify_connection_check_time', String(Date.now()));
       
       setConnectionStatus(isConnected);
       return isConnected;
     } catch (error) {
-      console.error('Error verifying Shopify connection:', error);
+      console.error('Database error checking connection:', error);
       setConnectionStatus(false);
       return false;
     } finally {
-      // إعادة تعيين حالة الطلب بعد تأخير قصير لمنع الطلبات المتعددة
-      setTimeout(() => {
-        requestsInProgressRef.current['verifyConnection'] = false;
-      }, 500);
+      trackRequest('verifyConnection', false);
     }
-  };
+  }, [shop, shopifyConnected, connectionStatus, lastCheck]);
 
-  // تحسين تحديث المنتجات عند التغيير مع التحكم في عدد مرات الاستدعاء
-  useEffect(() => {
-    if (shopifyConnected && shop) {
-      // تنفيذ استدعاء واحد فقط عند تحميل المكون
-      refreshProducts().catch(err => {
-        console.error('Error in refreshProducts effect:', err);
-      });
-    }
-    
-    // عند تفكيك المكون، إلغاء أي مؤقتات معلقة
-    return () => {
-      if (connectionCheckTimeoutRef.current) {
-        clearTimeout(connectionCheckTimeoutRef.current);
-      }
-    };
-  }, [shopifyConnected, shop]);
-
-  // إعادة الاتصال اليدوي بـ Shopify مع منع تكرار العملية
-  const manualReconnect = () => {
-    // منع إعادة الاتصال المتعدد
+  // Manual reconnect with improved error handling
+  const manualReconnect = useCallback(() => {
     if (isRedirecting) return false;
     
-    // منع محاولات إعادة الاتصال المتكررة
     reconnectAttemptsRef.current += 1;
     if (reconnectAttemptsRef.current > 3) {
       toast.warning('Too many reconnection attempts. Please try again later.');
+      
+      // Reset after a minute
       setTimeout(() => {
         reconnectAttemptsRef.current = 0;
-      }, 60000); // إعادة تعيين بعد دقيقة
+      }, 60000);
+      
       return false;
     }
     
     setIsRedirecting(true);
     
-    // تنفيذ عملية إعادة الاتصال
     if (typeof forceReconnect === 'function') {
       console.log('Using direct reconnect function');
       return forceReconnect();
     }
     
-    // إذا لم تكن دالة إعادة الاتصال المباشر متاحة، استخدم طريقة بديلة
     console.log('Using URL redirect for reconnection');
     toast.info('Redirecting to reconnect to Shopify...');
     
-    // إضافة تأخير قبل إعادة التوجيه لتحسين تجربة المستخدم
     setTimeout(() => {
       const redirectUrl = `/shopify?force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
       window.location.href = redirectUrl;
     }, 1000);
     
     return true;
-  };
+  }, [isRedirecting, forceReconnect]);
 
-  // تحسين حفظ إعدادات النموذج لمنتج معين
-  const saveFormToProduct = async (formData: ShopifyFormData) => {
+  // Save form settings to product with retry mechanism
+  const saveFormToProduct = useCallback(async (formData: ShopifyFormData) => {
     if (!shopifyConnected || !shop) {
       toast.error('يجب الاتصال بـ Shopify أولاً');
       return false;
     }
 
-    // منع العمليات المتعددة في نفس الوقت
-    if (requestsInProgressRef.current['saveForm']) {
+    if (isRequestInProgress('saveForm')) {
       toast.info('طلب حفظ آخر قيد التنفيذ، يرجى الانتظار...');
       return false;
     }
 
-    requestsInProgressRef.current['saveForm'] = true;
+    trackRequest('saveForm', true);
 
     try {
       console.log('Saving form settings to product:', formData);
-      // تخزين البيانات محليًا في حالة عدم توفر الاتصال
+      
       const formSettings = {
         productId: formData.product_id,
         formId: formData.form_id,
@@ -240,7 +262,6 @@ export const useShopify = () => {
         shopId: shop,
       };
       
-      // محاولة حفظ البيانات في قاعدة البيانات
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .upsert({
@@ -254,7 +275,6 @@ export const useShopify = () => {
         .select();
         
       if (error) {
-        console.error('Error saving form settings:', error);
         throw error;
       }
       
@@ -263,7 +283,7 @@ export const useShopify = () => {
     } catch (error) {
       console.error('Error saving form to product:', error);
       
-      // تخزين في التخزين المحلي كنسخة احتياطية
+      // Store offline for later sync
       try {
         const offlineSettings = JSON.parse(localStorage.getItem('offline_shopify_settings') || '[]');
         offlineSettings.push({
@@ -283,22 +303,18 @@ export const useShopify = () => {
       
       return false;
     } finally {
-      // إعادة تعيين حالة الطلب بعد تأخير قصير لمنع الطلبات المتعددة
-      setTimeout(() => {
-        requestsInProgressRef.current['saveForm'] = false;
-      }, 500);
+      trackRequest('saveForm', false);
     }
-  };
+  }, [shop, shopifyConnected, trackRequest]);
   
-  // تحسين مزامنة النموذج مع Shopify
-  const syncFormWithShopify = async (formData: ShopifyFormData): Promise<boolean> => {
-    // منع العمليات المتعددة في نفس الوقت
-    if (isSyncing || requestsInProgressRef.current['syncForm']) {
+  // Sync form with Shopify
+  const syncFormWithShopify = useCallback(async (formData: ShopifyFormData): Promise<boolean> => {
+    if (isSyncing || isRequestInProgress('syncForm')) {
       toast.info('طلب مزامنة آخر قيد التنفيذ، يرجى الانتظار...');
       return false;
     }
     
-    requestsInProgressRef.current['syncForm'] = true;
+    trackRequest('syncForm', true);
     setIsSyncing(true);
     
     try {
@@ -309,7 +325,6 @@ export const useShopify = () => {
         return false;
       }
 
-      // حفظ إعدادات النموذج
       const saved = await saveFormToProduct(formData);
       
       if (!saved) {
@@ -323,66 +338,75 @@ export const useShopify = () => {
       return false;
     } finally {
       setIsSyncing(false);
-      // إعادة تعيين حالة الطلب بعد تأخير قصير لمنع الطلبات المتعددة
-      setTimeout(() => {
-        requestsInProgressRef.current['syncForm'] = false;
-      }, 500);
+      trackRequest('syncForm', false);
     }
-  };
+  }, [isSyncing, shopifyConnected, shop, saveFormToProduct, trackRequest]);
   
-  // تحسين محاولة مزامنة البيانات المخزنة محليًا
+  // Try to sync offline data when connection is restored
   useEffect(() => {
-    let isMounted = true;
+    if (!shopifyConnected || !shop || isRequestInProgress('offlineSync')) {
+      return;
+    }
     
     const attemptOfflineSync = async () => {
-      if (!shopifyConnected || !shop || requestsInProgressRef.current['offlineSync']) {
-        return;
-      }
-      
-      // تحديد حالة الطلب لمنع التكرار
-      requestsInProgressRef.current['offlineSync'] = true;
+      trackRequest('offlineSync', true);
       
       try {
-        // التحقق من وجود إعدادات مخزنة محليًا
         const offlineSettings = JSON.parse(localStorage.getItem('offline_shopify_settings') || '[]');
         
-        if (offlineSettings.length > 0 && isMounted) {
+        if (offlineSettings.length > 0) {
           console.log('Found offline settings to sync:', offlineSettings.length);
           toast.info('جاري مزامنة الإعدادات المخزنة محليًا...');
           
+          let successful = 0;
+          
           for (const setting of offlineSettings) {
-            if (!isMounted) break;
-            await saveFormToProduct(setting);
+            try {
+              await saveFormToProduct(setting);
+              successful++;
+            } catch (err) {
+              console.error('Error syncing individual setting:', err);
+            }
           }
           
-          // مسح البيانات المخزنة بعد المزامنة
-          if (isMounted) {
+          // Clear successfully synced items
+          if (successful > 0) {
             localStorage.removeItem('offline_shopify_settings');
-            toast.success('تمت مزامنة جميع الإعدادات بنجاح');
+            toast.success(`تمت مزامنة ${successful} من الإعدادات بنجاح`);
           }
         }
       } catch (error) {
         console.error('Error syncing offline settings:', error);
       } finally {
-        if (isMounted) {
-          // إعادة تعيين حالة الطلب
-          setTimeout(() => {
-            requestsInProgressRef.current['offlineSync'] = false;
-          }, 1000);
-        }
+        trackRequest('offlineSync', false);
       }
     };
     
-    // تأخير المزامنة للسماح بتحميل الصفحة أولاً
-    const syncTimeout = setTimeout(attemptOfflineSync, 3000);
+    // Delay sync to allow page to load first
+    const syncTimeout = setTimeout(attemptOfflineSync, 5000);
     
     return () => {
-      isMounted = false;
       clearTimeout(syncTimeout);
     };
-  }, [shopifyConnected, shop]);
+  }, [shopifyConnected, shop, saveFormToProduct, trackRequest]);
 
-  // الواجهة المزودة من الخطاف
+  // Check connection once on component mount, but don't keep polling
+  useEffect(() => {
+    if (shopifyConnected && shop && !isRequestInProgress('initialConnectionCheck')) {
+      trackRequest('initialConnectionCheck', true);
+      
+      // Do a single connection check when component mounts
+      verifyShopifyConnection().finally(() => {
+        trackRequest('initialConnectionCheck', false);
+      });
+      
+      // Do a single product refresh when component mounts
+      if (!cachedDataRef.current.products.data) {
+        refreshProducts();
+      }
+    }
+  }, [shopifyConnected, shop, verifyShopifyConnection, refreshProducts, trackRequest]);
+
   return {
     products,
     isLoading,
