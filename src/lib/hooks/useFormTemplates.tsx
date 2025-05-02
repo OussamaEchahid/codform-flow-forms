@@ -1,99 +1,135 @@
 
-import { useCallback } from 'react';
-import { useFormCache } from './form/useFormCache';
-import { useFormCrud } from './form/useFormCrud';
-import { useFormFetch } from './form/useFormFetch';
-import { FormData, FormCreatePayload, FormUpdatePayload } from './form/types';
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth';
+import { toast } from 'sonner';
 
-// Re-export FormData interface for backward compatibility
-export type { FormData } from './form/types';
+// A simplified type for form data to avoid recursion
+interface FormTemplate {
+  id?: string;
+  title: string;
+  description?: string;
+  data: any;
+}
 
-/**
- * Main hook for form templates management
- * This combines various smaller hooks for form operations
- */
 export const useFormTemplates = () => {
-  const { formCache, updateFormInCache, removeFormFromCache, clearFormCache } = useFormCache();
-  const { forms, isLoading: isFetchLoading, fetchForms, getFormById: fetchFormById, updateFormsState } = useFormFetch();
-  const { 
-    isLoading: isCrudLoading, 
-    createNewForm: createForm, 
-    saveForm: saveSingleForm, 
-    publishForm: togglePublishForm,
-    deleteForm: deleteSingleForm
-  } = useFormCrud();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  // Combined isLoading state
-  const isLoading = isFetchLoading || isCrudLoading;
-
-  /**
-   * Create a new form and update the local state
-   */
-  const createNewForm = useCallback(async (formData: FormCreatePayload) => {
-    const newForm = await createForm(formData);
-    if (newForm) {
-      updateFormInCache(newForm);
-      updateFormsState([newForm, ...forms]);
-    }
-    return newForm;
-  }, [createForm, forms, updateFormInCache, updateFormsState]);
-
-  /**
-   * Get a form by ID, with cache support
-   */
   const getFormById = useCallback(async (formId: string) => {
-    const form = await fetchFormById(formId, formCache);
-    if (form) {
-      updateFormInCache(form);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .single();
+      
+      if (fetchError) {
+        throw new Error(`Error fetching form: ${fetchError.message}`);
+      }
+      
+      if (!data) {
+        throw new Error('Form not found');
+      }
+      
+      // Use structuredClone or JSON parsing to break any potential circular references
+      return {
+        ...data,
+        // Create a fresh copy of the data to break potential circular references
+        data: JSON.parse(JSON.stringify(data.data)),
+      };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error fetching form';
+      setError(errorMessage);
+      console.error('Error in getFormById:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-    return form;
-  }, [fetchFormById, formCache, updateFormInCache]);
+  }, []);
 
-  /**
-   * Save an existing form
-   */
-  const saveForm = useCallback(async (formId: string, formData: FormUpdatePayload) => {
-    const savedForm = await saveSingleForm(formId, formData);
-    if (savedForm) {
-      updateFormInCache(savedForm);
-      updateFormsState(forms.map(form => form.id === formId ? savedForm : form));
+  const createNewForm = useCallback(async (formData: FormTemplate) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Create a simplified version of form data to prevent deep type issues
+      const formToCreate = {
+        title: formData.title,
+        description: formData.description || null,
+        data: JSON.parse(JSON.stringify(formData.data)), // Create a fresh copy
+        user_id: user?.id,
+        is_published: true
+      };
+      
+      const { data, error: createError } = await supabase
+        .from('forms')
+        .insert(formToCreate)
+        .select()
+        .single();
+      
+      if (createError) {
+        throw new Error(`Error creating form: ${createError.message}`);
+      }
+      
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error creating form';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error in createNewForm:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-    return savedForm;
-  }, [saveSingleForm, forms, updateFormInCache, updateFormsState]);
+  }, [user]);
 
-  /**
-   * Publish or unpublish a form
-   */
-  const publishForm = useCallback(async (formId: string, isPublished: boolean) => {
-    const updatedForm = await togglePublishForm(formId, isPublished);
-    if (updatedForm) {
-      updateFormInCache(updatedForm);
-      updateFormsState(forms.map(form => form.id === formId ? updatedForm : form));
+  const saveForm = useCallback(async (formId: string, formData: Partial<FormTemplate>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Create a simplified version of form data to prevent deep type issues
+      const formToUpdate: any = {};
+      
+      if (formData.title !== undefined) formToUpdate.title = formData.title;
+      if (formData.description !== undefined) formToUpdate.description = formData.description;
+      if (formData.data !== undefined) {
+        formToUpdate.data = JSON.parse(JSON.stringify(formData.data)); // Create a fresh copy
+      }
+      
+      const { data, error: updateError } = await supabase
+        .from('forms')
+        .update(formToUpdate)
+        .eq('id', formId)
+        .select()
+        .single();
+      
+      if (updateError) {
+        throw new Error(`Error updating form: ${updateError.message}`);
+      }
+      
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error updating form';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error in saveForm:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-    return updatedForm;
-  }, [togglePublishForm, forms, updateFormInCache, updateFormsState]);
-
-  /**
-   * Delete a form
-   */
-  const deleteForm = useCallback(async (formId: string) => {
-    const success = await deleteSingleForm(formId);
-    if (success) {
-      removeFormFromCache(formId);
-      updateFormsState(forms.filter(form => form.id !== formId));
-    }
-    return success;
-  }, [deleteSingleForm, forms, removeFormFromCache, updateFormsState]);
+  }, []);
 
   return {
-    forms,
     isLoading,
-    fetchForms,
+    error,
     getFormById,
-    saveForm,
     createNewForm,
-    deleteForm,
-    clearFormCache,
-    publishForm
+    saveForm
   };
 };

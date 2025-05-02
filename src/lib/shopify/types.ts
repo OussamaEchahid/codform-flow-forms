@@ -21,6 +21,9 @@ export interface ShopifyFormData {
     enabled: boolean;
     placement?: string;
     style?: string;
+    blockId?: string; // إضافة حقل blockId
+    position?: string;
+    products?: string[];
   };
 }
 
@@ -29,4 +32,20 @@ export interface ShopifyVerifyResponse {
   success: boolean;
   shop?: string;
   timestamp?: string;
+}
+
+// إضافة أنواع البيانات المفقودة
+export interface ProductSettingsRequest {
+  productId: string;
+  formId: string;
+  blockId?: string;
+  enabled?: boolean;
+}
+
+export interface ProductSettingsResponse {
+  success?: boolean;
+  error?: string;
+  productId?: string;
+  formId?: string;
+  blockId?: string;
 }

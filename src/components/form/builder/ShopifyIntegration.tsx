@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -187,10 +188,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       }
       
       // Log form data for debugging
-      const formData = {
-        formId,
-        shopDomain: shop,
+      const formData: ShopifyFormData = {
+        form_id: formId,
         settings: {
+          enabled: true,
           position,
           style: {
             primaryColor: '#000000',

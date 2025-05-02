@@ -19,9 +19,10 @@ const ShopifyPage = () => {
       
       const checkConnection = async () => {
         try {
-          // احترس: refreshShopifyConnection قد يكون void، لذا تحقق منه أولاً
+          // تحقق من نتيجة الاتصال إذا كانت متاحة
           const result = await refreshShopifyConnection();
           
+          // تحقق أن النتيجة هي true بشكل محدد (وليس void أو قيمة أخرى)
           if (result === true) {
             toast.success(
               language === 'ar'

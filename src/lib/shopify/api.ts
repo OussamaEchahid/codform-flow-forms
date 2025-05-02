@@ -1,5 +1,5 @@
 
-import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
+import { ShopifyProduct, ShopifyFormData } from './types';
 
 class ShopifyAPI {
   private accessToken: string;
@@ -188,7 +188,7 @@ class ShopifyAPI {
     console.log('Syncing form data with Shopify');
     
     // Ensure the block ID is valid
-    const blockId = formData.settings.blockId || '';
+    const blockId = formData.settings?.blockId || '';
     if (!blockId || blockId.trim() === '') {
       throw new Error('Block ID is required for form integration');
     }
@@ -215,7 +215,7 @@ class ShopifyAPI {
       console.log('Found script tags:', existingTags?.scriptTags?.edges?.length || 0);
       
       // Define script src (what we're looking for and what we'll create)
-      const formScriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${blockId}&shop=${this.shopDomain}`;
+      const formScriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.form_id}&blockId=${blockId}&shop=${this.shopDomain}`;
       
       console.log('Target script source URL:', formScriptSrc);
       
@@ -231,7 +231,7 @@ class ShopifyAPI {
           console.log('Examining script tag:', scriptTag.src);
           
           // Check if this tag has our formId
-          if (scriptTag.src && scriptTag.src.includes(`formId=${formData.formId}`)) {
+          if (scriptTag.src && scriptTag.src.includes(`formId=${formData.form_id}`)) {
             existingTag = scriptTag;
             console.log('Found script tag for this form');
             
@@ -280,7 +280,7 @@ class ShopifyAPI {
       
       // If we don't have an existing tag, create a new one
       if (!existingTag) {
-        console.log('Creating new script tag for form:', formData.formId);
+        console.log('Creating new script tag for form:', formData.form_id);
         console.log('Block ID:', blockId);
         console.log('Script source URL:', formScriptSrc);
         

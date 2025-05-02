@@ -171,7 +171,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
       
       await syncFormWithShopify({
         ...settings,
-        formId: resolvedFormId
+        form_id: resolvedFormId // تغيير formId إلى form_id
       });
       
       toast.success(language === 'ar' 
