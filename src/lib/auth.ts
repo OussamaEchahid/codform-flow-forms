@@ -1,16 +1,18 @@
 
 import { createContext, useContext } from 'react';
 
+// Interface to define what's available in the auth context
 export interface AuthContextType {
   user: any;
   shopifyConnected: boolean;
   shop?: string;
   refreshShopifyConnection?: () => void;
-  isTokenVerified?: boolean;
-  forceReconnect?: () => void;  // إضافة وظيفة لإعادة الاتصال بشكل إجباري
-  lastConnectionTime?: string;  // وقت آخر اتصال ناجح
+  isTokenVerified: boolean;
+  forceReconnect?: () => void;
+  lastConnectionTime?: string;
 }
 
+// Create a context with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   shopifyConnected: false,
@@ -19,10 +21,5 @@ export const AuthContext = createContext<AuthContextType>({
   lastConnectionTime: undefined
 });
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// Custom hook to use the auth context
+export const useAuth = () => useContext(AuthContext);

@@ -16,9 +16,9 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 const FormBuilderPage = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { user, shopifyConnected, shop } = useAuth();
+  const { user, shopifyConnected, shop, refreshShopifyConnection } = useAuth();
   const { t, language } = useI18n();
-  const { fetchForms, getFormById } = useFormTemplates();
+  const { fetchForms, getFormById, clearFormCache } = useFormTemplates();
   const isMobile = useIsMobile();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [pageReady, setPageReady] = useState(false);
@@ -28,16 +28,30 @@ const FormBuilderPage = () => {
   const showEditor = !!formId;
   
   useEffect(() => {
-    console.log("FormBuilderPage mounted with formId:", formId);
-    
-    const validateForm = async () => {
+    const init = async () => {
+      console.log("FormBuilderPage mounted with formId:", formId);
+      
+      // Always try to refresh the Shopify connection when the page loads
+      if (refreshShopifyConnection) {
+        console.log("Refreshing Shopify connection status");
+        refreshShopifyConnection();
+      }
+      
+      // Clear form cache when loading form builder to ensure fresh data
+      if (clearFormCache) {
+        console.log("Clearing form cache");
+        await clearFormCache();
+      }
+      
+      // If in editor mode, validate the form
       if (formId) {
         try {
+          console.log("Validating form:", formId);
           const form = await getFormById(formId);
           if (!form) {
             console.error("Form validation failed: Form not found");
             setFormError(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-            setTimeout(() => navigate('/forms'), 3000);
+            setTimeout(() => navigate('/forms', { replace: true }), 3000);
           } else {
             console.log("Form validation successful:", form);
             setFormError(null);
@@ -46,21 +60,17 @@ const FormBuilderPage = () => {
           console.error("Error validating form:", err);
           setFormError(language === 'ar' ? 'خطأ في التحقق من النموذج' : 'Error validating form');
         }
+      } else {
+        // In dashboard mode, fetch forms
+        fetchForms();
       }
+      
+      // Set the page as ready after validation
+      setPageReady(true);
     };
     
-    // Just set the page as ready after a short initialization period
-    const timeoutId = setTimeout(() => {
-      validateForm();
-      setPageReady(true);
-    }, 300);
-    
-    if (!showEditor) {
-      fetchForms();
-    }
-    
-    return () => clearTimeout(timeoutId);
-  }, [showEditor, fetchForms, formId, getFormById, navigate, language]);
+    init();
+  }, [formId, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
 
   // Handle manual connection button click
   const handleConnectShopify = () => {
@@ -118,7 +128,7 @@ const FormBuilderPage = () => {
             {formError}
           </p>
           <Button 
-            onClick={() => navigate('/forms')}
+            onClick={() => navigate('/forms', { replace: true })}
             className="bg-[#9b87f5] hover:bg-[#8a74e8]"
           >
             {language === 'ar' ? 'العودة إلى النماذج' : 'Return to Forms'}
@@ -171,7 +181,7 @@ const FormBuilderPage = () => {
       
       <div className="flex-1">
         {showEditor ? (
-          <FormBuilderEditor />
+          <FormBuilderEditor key={formId} />
         ) : (
           <FormBuilderDashboard />
         )}

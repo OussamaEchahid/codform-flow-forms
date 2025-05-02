@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -22,44 +22,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-// تعريف الترجمات
-const translations = {
-  ar: {
-    dashboard: 'لوحة التحكم',
-    forms: 'النماذج',
-    orders: 'الطلبات',
-    landingPages: 'صفحات الهبوط',
-    quickOffers: 'العروض السريعة',
-    quantityOffers: 'عروض الكمية',
-    settings: 'الإعدادات',
-    logout: 'تسجيل الخروج',
-    logoutSuccess: 'تم تسجيل الخروج بنجاح',
-    logoutError: 'حدث خطأ أثناء تسجيل الخروج'
-  },
-  en: {
-    dashboard: 'Dashboard',
-    forms: 'Forms',
-    orders: 'Orders',
-    landingPages: 'Landing Pages',
-    quickOffers: 'Quick Offers',
-    quantityOffers: 'Quantity Offers',
-    settings: 'Settings',
-    logout: 'Logout',
-    logoutSuccess: 'Logged out successfully',
-    logoutError: 'Error logging out'
-  }
-};
+import { useI18n } from '@/lib/i18n';
 
 const AppSidebar = () => {
   const navigate = useNavigate();
-  // تحديد اللغة الافتراضية
-  const [language, setLanguage] = React.useState<'ar' | 'en'>('ar');
+  const location = useLocation();
+  const { t, language, setLanguage } = useI18n();
 
-  // دالة ترجمة
-  const t = (key: string): string => {
-    return translations[language][key as keyof typeof translations[typeof language]] || key;
-  };
+  // Update document title based on current route and language
+  useEffect(() => {
+    let title = 'CODFORM';
+    
+    if (location.pathname.includes('/dashboard')) {
+      title = `${t('dashboard')} | CODFORM`;
+    } else if (location.pathname.includes('/forms') || location.pathname.includes('/form-builder')) {
+      title = `${t('forms')} | CODFORM`;
+    } else if (location.pathname.includes('/orders')) {
+      title = `${t('orders')} | CODFORM`;
+    } else if (location.pathname.includes('/settings')) {
+      title = `${t('settings')} | CODFORM`;
+    }
+    
+    document.title = title;
+  }, [location, language, t]);
 
   const handleLogout = async () => {
     try {

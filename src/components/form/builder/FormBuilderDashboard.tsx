@@ -17,13 +17,22 @@ const FormBuilderDashboard = () => {
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isCreatingForm, setIsCreatingForm] = useState(false);
-  const { shopifyConnected, shop } = useAuth();
+  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
 
-  // Refresh forms list when component mounts or shop connection changes
+  // Refresh forms list and auth state when component mounts
   useEffect(() => {
+    console.log('FormBuilderDashboard - Component mounted');
+    // Try to refresh the connection status first
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+    
+    // Log auth state for debugging
     console.log('FormBuilderDashboard - Auth state:', { shopifyConnected, shop });
+    
+    // Fetch forms regardless of connection status
     fetchForms();
-  }, [fetchForms, shopifyConnected, shop]);
+  }, [fetchForms, shopifyConnected, shop, refreshShopifyConnection]);
 
   const handleCreateForm = async () => {
     try {
@@ -33,7 +42,9 @@ const FormBuilderDashboard = () => {
       if (newForm) {
         console.log("New form created:", newForm);
         toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
-        navigate(`/form-builder/${newForm.id}`);
+        
+        // Force navigation with full page refresh to ensure correct loading
+        window.location.href = `/form-builder/${newForm.id}`;
       } else {
         console.error("Form creation failed: no form returned");
         toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء النموذج' : 'Error creating form');
@@ -48,7 +59,8 @@ const FormBuilderDashboard = () => {
 
   const handleSelectForm = (formId: string) => {
     console.log(`Navigating to form editor for form ${formId}`);
-    navigate(`/form-builder/${formId}`);
+    // Force navigation with full page refresh to ensure correct loading
+    window.location.href = `/form-builder/${formId}`;
   };
 
   const handleSelectTemplate = async (templateId: number) => {
@@ -58,15 +70,17 @@ const FormBuilderDashboard = () => {
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
         console.log("New form created from template:", newForm);
-        navigate(`/form-builder/${newForm.id}`);
         toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
+        
+        // Force navigation with full page refresh to ensure correct loading
+        window.location.href = `/form-builder/${newForm.id}`;
       } else {
         console.error("Template form creation failed: no form returned");
         toast.error(language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form');
       }
-    } catch (error: any) {
-      console.error("Template selection error:", error);
-      toast.error(language === 'ar' ? `خطأ في اختيار القالب: ${error.message}` : `Template selection error: ${error.message}`);
+    } catch (err: any) {
+      console.error("Template selection error:", err);
+      toast.error(language === 'ar' ? `خطأ في اختيار القالب: ${err.message}` : `Template selection error: ${err.message}`);
     } finally {
       setIsCreatingForm(false);
       setIsTemplateDialogOpen(false);
