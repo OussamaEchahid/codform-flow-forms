@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FormsPage from './FormsPage';
 
-// This is a redirect component to ensure we use the newer FormsPage.tsx
+// This is a redirect component that properly handles the lowercase redirection
 const Forms = () => {
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -16,7 +16,7 @@ const Forms = () => {
     // Clean up any old redirect logic
     const cleanUp = () => {
       const currentPath = window.location.pathname;
-      // Only navigate if we're at the old path
+      // Only navigate if we're at the old path with uppercase
       if (currentPath === '/Forms' || currentPath === '/Forms/') {
         navigate('/forms', { replace: true });
       }
@@ -26,7 +26,7 @@ const Forms = () => {
     setTimeout(cleanUp, 0);
   }, [navigate]);
 
-  // Instead of redirecting, we'll just render FormsPage directly
+  // Simply render the FormsPage component
   if (redirectComplete) {
     return <FormsPage />;
   }
