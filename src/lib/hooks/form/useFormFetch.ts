@@ -47,13 +47,14 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a new FormData object without using type assertion directly on the object
+      // Create a FormData object with explicit typing and direct assignment
+      // Avoid complex type inference by using a simpler structure
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Clone data deeply to avoid reference issues
-        data: data.data ? JSON.parse(JSON.stringify(data.data)) : {},
+        // Prevent deep recursion by using a simple object
+        data: data.data === null ? {} : JSON.parse(JSON.stringify(data.data)),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -105,7 +106,7 @@ export const useFormFetch = () => {
       const formsData: FormData[] = [];
       
       if (data && Array.isArray(data)) {
-        // Process each form individually
+        // Process each form individually with simpler type handling
         data.forEach(item => {
           if (item) {
             // Create a FormData object with explicit typing
@@ -113,8 +114,8 @@ export const useFormFetch = () => {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Clone data deeply to avoid reference issues
-              data: item.data ? JSON.parse(JSON.stringify(item.data)) : {},
+              // Prevent deep recursion by using a simple object
+              data: item.data === null ? {} : JSON.parse(JSON.stringify(item.data)),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
