@@ -59,7 +59,10 @@ const translations = {
     verifyingConnection: 'Verifying connection...',
     loading: 'Loading...',
     reconnect: 'Reconnect',
-    forceReconnect: 'Force Reconnect'
+    forceReconnect: 'Force Reconnect',
+    createNewForm: 'Create New Form',
+    editForm: 'Edit Form',
+    viewForm: 'View Form'
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -101,7 +104,10 @@ const translations = {
     verifyingConnection: 'جاري التحقق من الاتصال...',
     loading: 'جاري التحميل...',
     reconnect: 'إعادة الاتصال',
-    forceReconnect: 'إعادة اتصال إجباري'
+    forceReconnect: 'إعادة اتصال إجباري',
+    createNewForm: 'إنشاء نموذج جديد',
+    editForm: 'تعديل النموذج',
+    viewForm: 'عرض النموذج'
   }
 };
 
@@ -131,12 +137,15 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
     
-    // Add a global RTL class to the body for additional styling if needed
+    // Apply RTL class to the body element
     if (language === 'ar') {
       document.body.classList.add('rtl');
     } else {
       document.body.classList.remove('rtl');
     }
+
+    // Force any components to re-render by dispatching a custom event
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: language }));
   }, [language]);
 
   // Translation function
@@ -166,3 +175,4 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
 
 // Custom hook for using translations
 export const useI18n = () => useContext(I18nContext);
+

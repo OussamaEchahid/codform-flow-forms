@@ -1,37 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
-import { useI18n } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n.tsx'; // Updated import to explicitly reference the tsx file
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
-// تعريف الترجمات
-const translations = {
-  ar: {
-    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
-    pleaseConnect: 'يرجى الاتصال بمتجر Shopify للوصول إلى قسم النماذج',
-    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
-    verifyingConnection: 'جاري التحقق من الاتصال...',
-    loading: 'جاري التحميل...',
-    reconnect: 'إعادة الاتصال',
-    forceReconnect: 'إعادة اتصال إجباري'
-  },
-  en: {
-    shopifyConnectionIssue: 'Shopify Connection Issue',
-    pleaseConnect: 'Please connect to Shopify to access forms',
-    connectToShopifyNow: 'Connect to Shopify Now',
-    verifyingConnection: 'Verifying connection...',
-    loading: 'Loading...',
-    reconnect: 'Reconnect',
-    forceReconnect: 'Force Reconnect'
-  }
-};
 
 const Forms = () => {
   const { shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect, lastConnectionTime } = useAuth();
@@ -41,13 +19,8 @@ const Forms = () => {
   const [isVerifying, setIsVerifying] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // تحديد اللغة الافتراضية
-  const [language, setLanguage] = useState<'ar' | 'en'>('ar');
-
-  // دالة ترجمة
-  const t = (key: string): string => {
-    return translations[language][key as keyof typeof translations[typeof language]] || key;
-  };
+  // Use our internationalization hook
+  const { t, language } = useI18n();
   
   // Verify connection directly with Supabase
   useEffect(() => {
@@ -76,7 +49,7 @@ const Forms = () => {
             console.log('Forms: Valid token found in database');
             setConnectionVerified(true);
             
-            // إضافة تحديث التخزين المحلي هنا للتأكيد على صحة الاتصال
+            // Update localStorage to confirm valid connection
             localStorage.setItem('shopify_store', shop);
             localStorage.setItem('shopify_connected', 'true');
             localStorage.setItem('shopify_last_connect_time', Date.now().toString());
@@ -161,7 +134,7 @@ const Forms = () => {
                   )}
                 </Button>
                 
-                {/* إضافة زر إعادة اتصال إجباري إذا كان الدالة متاحة */}
+                {/* Force reconnect button if the function is available */}
                 {forceReconnect && (
                   <Button 
                     variant="outline" 
@@ -184,7 +157,7 @@ const Forms = () => {
                 )}
               </div>
               
-              {/* إضافة معلومات التصحيح في وضع التطوير */}
+              {/* Debug info in development mode */}
               {process.env.NODE_ENV === 'development' && (
                 <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-left">
                   <p className="font-bold">Debug Info:</p>

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useI18n } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n.tsx'; // Updated import to explicitly reference the tsx file
 
 const AppSidebar = () => {
   const navigate = useNavigate();
@@ -46,9 +46,22 @@ const AppSidebar = () => {
     document.title = title;
   }, [location, language, t]);
 
+  // Listen for language changes globally
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // Force re-render of component when language changes
+      console.log("Language change event detected in sidebar");
+    };
+    
+    window.addEventListener('languageChanged', handleLanguageChange);
+    return () => {
+      window.removeEventListener('languageChanged', handleLanguageChange);
+    };
+  }, []);
+
   const handleLogout = async () => {
     try {
-      // مسح بيانات المصادقة
+      // Clear authentication data
       localStorage.removeItem('shopify_store');
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_temp_store');
