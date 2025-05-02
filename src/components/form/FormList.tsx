@@ -30,6 +30,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/lib/i18n';
+
+// منع الإجراءات المتعددة
+let isActionInProgress = false;
 
 interface FormListProps {
   forms: FormData[];
@@ -40,18 +44,44 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
+  const { language } = useI18n(); // استخدام hook الترجمة للحصول على اللغة الحالية
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    await publishForm(formId, !currentStatus);
-  };
-
-  const handleDelete = async () => {
-    if (formToDelete) {
-      await deleteForm(formToDelete);
-      setFormToDelete(null);
+    // منع الإجراءات المتعددة
+    if (isActionInProgress) {
+      return;
+    }
+    
+    isActionInProgress = true;
+    try {
+      await publishForm(formId, !currentStatus);
+    } finally {
+      // إعادة تعيين العلامة بعد مهلة قصيرة
+      setTimeout(() => {
+        isActionInProgress = false;
+      }, 1000);
     }
   };
 
+  const handleDelete = async () => {
+    // منع الإجراءات المتعددة
+    if (isActionInProgress || !formToDelete) {
+      return;
+    }
+    
+    isActionInProgress = true;
+    try {
+      await deleteForm(formToDelete);
+      setFormToDelete(null);
+    } finally {
+      // إعادة تعيين العلامة بعد مهلة قصيرة
+      setTimeout(() => {
+        isActionInProgress = false;
+      }, 1000);
+    }
+  };
+
+  // إظهار حالة التحميل مع منع التحميل المتكرر
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -86,11 +116,23 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (!isActionInProgress) {
+                        onSelectForm(form.id);
+                      }
+                    }}
+                  >
                     <Edit className="mr-2 h-4 w-4" />
                     <span>تعديل</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (!isActionInProgress) {
+                        handlePublishToggle(form.id, form.is_published || false);
+                      }
+                    }}
+                  >
                     {form.is_published ? (
                       <>
                         <EyeOff className="mr-2 h-4 w-4" />
@@ -104,7 +146,11 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => setFormToDelete(form.id)}
+                    onClick={() => {
+                      if (!isActionInProgress) {
+                        setFormToDelete(form.id);
+                      }
+                    }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash className="mr-2 h-4 w-4" />
@@ -120,7 +166,10 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                 {form.is_published ? 'منشور' : 'مسودة'}
               </Badge>
               <span className="text-xs text-gray-500 rtl:text-left">
-                {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+                {formatDistanceToNow(new Date(form.created_at || ''), { 
+                  addSuffix: true, 
+                  locale: language === 'ar' ? ar : undefined 
+                })}
               </span>
             </div>
             <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
@@ -128,8 +177,13 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
           <CardFooter className="border-t pt-4">
             <Button 
               variant="default" 
-              onClick={() => onSelectForm(form.id)}
+              onClick={() => {
+                if (!isActionInProgress) {
+                  onSelectForm(form.id);
+                }
+              }}
               className="w-full"
+              disabled={isActionInProgress}
             >
               عرض وتعديل
             </Button>

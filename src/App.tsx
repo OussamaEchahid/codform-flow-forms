@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import Home from '@/pages/Home';
 import Dashboard from '@/pages/Dashboard';
 import Forms from '@/pages/Forms';
+import FormBuilderPage from '@/pages/FormBuilderPage';
 import Settings from '@/pages/Settings';
 import Shopify from '@/pages/Shopify';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
@@ -17,6 +18,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forms" element={<Forms />} />
+        <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
+        <Route path="/form-builder/new" element={<FormBuilderPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/shopify" element={<Shopify />} />
         <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
