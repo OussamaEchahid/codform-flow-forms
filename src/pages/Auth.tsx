@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Auth = () => {
@@ -10,15 +10,25 @@ const Auth = () => {
   const location = useLocation();
   const [debug, setDebug] = useState<any>({});
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(true);
+  const [attempts, setAttempts] = useState<number>(0);
   
   useEffect(() => {
     const processAuth = async () => {
       const searchParams = new URLSearchParams(location.search);
       let shop = searchParams.get('shop');
+      const force = searchParams.get('force') === 'true';
+      const client = searchParams.get('client') || window.location.origin;
+      const state = searchParams.get('state');
+      const returnUrl = searchParams.get('return') || '/dashboard';
       
       // Log diagnostic info
       const debugInfo = {
         shop,
+        force,
+        client,
+        state,
+        returnUrl,
         fullUrl: window.location.href,
         pathname: window.location.pathname,
         search: window.location.search,
@@ -26,10 +36,32 @@ const Auth = () => {
         authParams: Object.fromEntries(searchParams.entries()),
         referrer: document.referrer || "none",
         userAgent: navigator.userAgent,
+        localStorage: {
+          shopify_store: localStorage.getItem('shopify_store'),
+          shopify_connected: localStorage.getItem('shopify_connected'),
+          shopify_last_connect_time: localStorage.getItem('shopify_last_connect_time'),
+        },
+        sessionStorage: {
+          shopify_auth_state: sessionStorage.getItem('shopify_auth_state'),
+        },
+        attempts: attempts + 1,
       };
       
       setDebug(debugInfo);
       console.log("Auth page loaded with params:", debugInfo);
+      
+      // تحقق من أن لدينا معلمة متجر
+      if (!shop) {
+        if (localStorage.getItem('shopify_store')) {
+          // استخدم المتجر المخزن إذا كان متاحًا
+          shop = localStorage.getItem('shopify_store');
+          console.log("Using shop from localStorage:", shop);
+        } else {
+          setError("لم يتم توفير معلمة متجر Shopify. يرجى العودة واتباع الخطوات الصحيحة لتثبيت التطبيق.");
+          setIsProcessing(false);
+          return;
+        }
+      }
       
       // Clean Shopify store URL if it contains a protocol
       if (shop) {
@@ -51,26 +83,42 @@ const Auth = () => {
           }
         }
         
-        // Save temporary store in localStorage
+        // Save store in localStorage
         try {
           localStorage.setItem('shopify_temp_store', shop);
-          console.log("Saved temporary shop:", shop);
+          localStorage.setItem('shopify_store', shop);
+          console.log("Saved shop in localStorage:", shop);
         } catch (e) {
-          console.error("Error saving temp shop:", e);
+          console.error("Error saving shop:", e);
         }
         
         // Redirect to ShopifyRedirect with the cleaned parameter
-        const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
+        let redirectUrl;
+        
+        if (force) {
+          // Use direct Shopify auth endpoint for forced reconnection
+          redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&client=${encodeURIComponent(client)}&force=true&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
+        } else {
+          // Use standard Shopify authentication endpoint
+          redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&client=${encodeURIComponent(client)}&return=${encodeURIComponent(returnUrl)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
+        }
+        
         console.log("Redirecting to:", redirectUrl);
-        navigate(redirectUrl);
+        setAttempts(prev => prev + 1);
+        
+        // Add delay to prevent redirect loops
+        setTimeout(() => {
+          navigate(redirectUrl);
+        }, 1000); 
       } else {
         // If there's no shop parameter, show error
         setError("لم يتم توفير معلمة متجر Shopify. يرجى العودة واتباع الخطوات الصحيحة لتثبيت التطبيق.");
+        setIsProcessing(false);
       }
     };
     
     processAuth();
-  }, [location, navigate]);
+  }, [location, navigate, attempts]);
   
   // Improved with better error handling
   const handleBackToShopify = () => {
@@ -79,6 +127,11 @@ const Auth = () => {
   
   const handleBackToDashboard = () => {
     navigate('/dashboard');
+  };
+  
+  const handleRetry = () => {
+    setIsProcessing(true);
+    setAttempts(prev => prev + 1);
   };
   
   // If there's an error, show error message and navigation buttons
@@ -111,6 +164,15 @@ const Auth = () => {
             >
               العودة إلى لوحة التحكم
             </Button>
+            
+            <Button
+              variant="secondary" 
+              onClick={handleRetry}
+              className="w-full"
+            >
+              <RotateCw className="h-4 w-4 mr-2" />
+              إعادة المحاولة
+            </Button>
           </div>
           
           <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
@@ -130,6 +192,19 @@ const Auth = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
         </div>
         <p className="mb-4">يرجى الانتظار بينما نقوم بمصادقة متجر Shopify الخاص بك...</p>
+        <p className="text-sm text-gray-600 mb-4">سيتم إعادة توجيهك تلقائياً خلال ثوان...</p>
+        
+        {attempts > 1 && (
+          <div className="mt-4">
+            <Button 
+              variant="outline"
+              onClick={handleBackToDashboard}
+              className="w-full"
+            >
+              العودة إلى لوحة التحكم
+            </Button>
+          </div>
+        )}
         
         <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
           <p className="font-bold mb-2">معلومات التصحيح:</p>

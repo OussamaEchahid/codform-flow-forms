@@ -1,38 +1,45 @@
 
-import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Home from '@/pages/Home';
-import Dashboard from '@/pages/Dashboard';
-import Forms from '@/pages/Forms';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomePage from '@/pages/HomePage';
+import DashboardPage from '@/pages/DashboardPage';
+import FormsPage from '@/pages/FormsPage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
-import Settings from '@/pages/Settings';
-import Shopify from '@/pages/Shopify';
+import SubmissionsPage from '@/pages/SubmissionsPage';
+import SettingsPage from '@/pages/SettingsPage';
+import ShopifyPage from '@/pages/ShopifyPage';
+import NotFoundPage from '@/pages/NotFoundPage';
+import Layout from '@/components/layout/Layout';
+import AuthContextProvider from '@/components/layout/AuthContextProvider';
+import Auth from '@/pages/Auth';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
-import ShopifyCallback from '@/api/shopify-callback';
-import Logout from '@/pages/Logout';
 
 function App() {
-  // Clear stale session data on app load
-  useEffect(() => {
-    // Clear any temporary navigation data to prevent loops
-    sessionStorage.removeItem('last_form_navigation');
-  }, []);
-  
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/forms" element={<Forms />} />
-        <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
-        <Route path="/form-builder/new" element={<FormBuilderPage />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/shopify" element={<Shopify />} />
-        <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
-        <Route path="/api/shopify-callback" element={<ShopifyCallback />} />
-        <Route path="/logout" element={<Logout />} />
-      </Routes>
-    </>
+    <BrowserRouter>
+      <AuthContextProvider>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
+          
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          
+          {/* Protected Routes with Layout */}
+          <Route path="/" element={<Layout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/forms" element={<FormsPage />} />
+            <Route path="/form-builder/:formId" element={<FormBuilderPage />} />
+            <Route path="/submissions" element={<SubmissionsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/shopify" element={<ShopifyPage />} />
+          </Route>
+          
+          {/* 404 Page */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </AuthContextProvider>
+    </BrowserRouter>
   );
 }
 

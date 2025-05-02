@@ -12,12 +12,13 @@ import { supabase } from '@/integrations/supabase/client';
 import FormBuilder from '@/components/form/FormBuilder';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import FormBuilderShopify from '@/components/form/builder/FormBuilderShopify';
+import ShopifyConnectionBanner from '@/components/form/ShopifyConnectionBanner';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
   const { language } = useI18n();
-  const { user, shopifyConnected, shop } = useAuth();
+  const { user, shopifyConnected, shop, forceReconnect } = useAuth();
   const { getFormById } = useFormFetch();
   
   const [title, setTitle] = useState('');
@@ -26,8 +27,8 @@ const FormBuilderPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  
-  // جلب بيانات النموذج إذا كان هناك معرّف للنموذج
+
+  // Handle form data loading
   useEffect(() => {
     const loadForm = async () => {
       if (formId && formId !== 'new') {
@@ -49,7 +50,7 @@ const FormBuilderPage = () => {
           setIsLoading(false);
         }
       } else {
-        // نموذج جديد
+        // New form
         setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
         setDescription('');
         setFormData([]);
@@ -60,7 +61,7 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate]);
   
-  // حفظ النموذج
+  // Handle form saving
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
@@ -81,7 +82,7 @@ const FormBuilderPage = () => {
       let response;
       
       if (formId && formId !== 'new') {
-        // تحديث نموذج موجود
+        // Update existing form
         response = await supabase
           .from('forms')
           .update(formPayload)
@@ -89,7 +90,7 @@ const FormBuilderPage = () => {
           .select()
           .single();
       } else {
-        // إنشاء نموذج جديد
+        // Create new form
         response = await supabase
           .from('forms')
           .insert(formPayload)
@@ -107,7 +108,7 @@ const FormBuilderPage = () => {
           : 'Form saved successfully'
       );
       
-      // إذا كان نموذجًا جديدًا، انتقل إلى صفحة تحرير النموذج مع المعرّف الجديد
+      // If it's a new form, navigate to the form edit page with the new ID
       if (!formId || formId === 'new') {
         navigate(`/form-builder/${response.data.id}`);
       }
@@ -124,10 +125,9 @@ const FormBuilderPage = () => {
     }
   };
   
-  // معاينة النموذج في متجر Shopify
+  // Preview form in Shopify
   const handlePreviewInShopify = () => {
     if (shopifyConnected && shop && formId && formId !== 'new') {
-      // إنشاء عنوان URL للنموذج في متجر Shopify
       const shopifyUrl = `https://${shop}/apps/codform/?form=${formId}`;
       window.open(shopifyUrl, '_blank');
     } else {
@@ -136,6 +136,18 @@ const FormBuilderPage = () => {
           ? 'يجب حفظ النموذج أولاً والاتصال بـ Shopify' 
           : 'Save the form first and connect to Shopify'
       );
+    }
+  };
+  
+  // معالج إعادة الاتصال المخصص
+  const handleReconnect = () => {
+    // استخدم وظيفة إعادة الاتصال إذا كانت متوفرة
+    if (forceReconnect) {
+      forceReconnect();
+    } else {
+      // الطريقة البديلة - إعادة توجيه مع return_to
+      const currentUrl = encodeURIComponent(window.location.pathname);
+      window.location.href = `/shopify?force=true&return=${currentUrl}&ts=${Date.now()}`;
     }
   };
   
@@ -150,6 +162,9 @@ const FormBuilderPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
+        {/* عرض شريط التحذير في حالة وجود مشكلة في الاتصال */}
+        <ShopifyConnectionBanner onReconnect={handleReconnect} />
+        
         <div className="mb-6">
           <Button 
             variant="outline" 
@@ -251,6 +266,7 @@ const FormBuilderPage = () => {
               <FormBuilderShopify 
                 isSyncing={isSyncing}
                 formId={formId !== 'new' ? formId : null}
+                onShopifyIntegration={() => {}}
               />
             </div>
           </div>

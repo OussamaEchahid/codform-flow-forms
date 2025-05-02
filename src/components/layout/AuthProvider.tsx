@@ -11,46 +11,87 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isTokenVerified, setIsTokenVerified] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [lastConnectionTime, setLastConnectionTime] = useState<string | undefined>(undefined);
+  const [connectionCheckInProgress, setConnectionCheckInProgress] = useState<boolean>(false);
 
-  // تحديث حالة الاتصال مع متجر Shopify
+  // تحديث حالة الاتصال مع متجر Shopify - تحسين آلية الاسترجاع
   const refreshShopifyConnection = async (): Promise<boolean> => {
-    // قراءة البيانات من التخزين المحلي
-    const shopInStorage = localStorage.getItem('shopify_store');
-    const connectionStatus = localStorage.getItem('shopify_connected') === 'true';
-    const lastConnectTime = localStorage.getItem('shopify_last_connect_time');
-    
-    console.log("AuthProvider: refreshing Shopify connection status", {
-      shopInStorage,
-      connectionStatus,
-      lastConnectTime
-    });
-
-    setShop(shopInStorage || undefined);
-    setShopifyConnected(connectionStatus);
-    setLastConnectionTime(lastConnectTime || undefined);
-    
-    // إعادة تعيين حالة التحقق من الرمز
-    setIsTokenVerified(false);
-
-    if (shopInStorage && connectionStatus) {
-      const verified = await verifyTokenInDatabase(shopInStorage);
-      
-      // هام: إذا كان Shopify متصلاً، أنشئ مستخدمًا افتراضيًا
-      // هذا يضمن أن النظام يتعرف على المصادقة حتى بدون تسجيل دخول مباشر
-      if (!user && verified) {
-        setUser({
-          id: `shopify-${shopInStorage}`,
-          email: `shop@${shopInStorage}`,
-          app_metadata: { provider: 'shopify' },
-          user_metadata: { shop: shopInStorage },
-          shopify: true
-        });
-      }
-      
-      return verified;
+    if (connectionCheckInProgress) {
+      console.log("AuthProvider: Connection check already in progress, skipping duplicate check");
+      return shopifyConnected;
     }
     
-    return false;
+    setConnectionCheckInProgress(true);
+    
+    try {
+      // قراءة البيانات من التخزين المحلي - تحسين مع فحص صلاحية أكثر صرامة
+      const shopInStorage = localStorage.getItem('shopify_store');
+      const connectionStatus = localStorage.getItem('shopify_connected') === 'true';
+      const lastConnectTime = localStorage.getItem('shopify_last_connect_time');
+      const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
+      
+      console.log("AuthProvider: refreshing Shopify connection status", {
+        shopInStorage,
+        connectionStatus,
+        lastConnectTime,
+        lastCheckTime,
+        timeSinceLastCheck: Date.now() - lastCheckTime
+      });
+      
+      // تجنب الفحوصات المتكررة خلال 5 ثوانٍ
+      if (Date.now() - lastCheckTime < 5000 && connectionStatus && shopInStorage) {
+        console.log("AuthProvider: Skipping check - performed recently");
+        setShop(shopInStorage);
+        setShopifyConnected(connectionStatus);
+        setLastConnectionTime(lastConnectTime);
+        setConnectionCheckInProgress(false);
+        return connectionStatus;
+      }
+      
+      // تحديث وقت آخر فحص
+      localStorage.setItem('shopify_last_check_time', Date.now().toString());
+
+      setShop(shopInStorage || undefined);
+      setShopifyConnected(connectionStatus);
+      setLastConnectionTime(lastConnectTime || undefined);
+      
+      // إعادة تعيين حالة التحقق من الرمز
+      setIsTokenVerified(false);
+
+      if (shopInStorage) {
+        const verified = await verifyTokenInDatabase(shopInStorage);
+        
+        // إذا كان التحقق ناجحًا، تأكد من تحديث الحالة
+        if (verified && !connectionStatus) {
+          localStorage.setItem('shopify_connected', 'true');
+          setShopifyConnected(true);
+        } else if (!verified && connectionStatus) {
+          // إذا فشل التحقق ولكن كانت الحالة متصلة
+          localStorage.setItem('shopify_connected', 'false');
+          setShopifyConnected(false);
+        }
+        
+        // هام: إذا كان Shopify متصلاً، أنشئ مستخدمًا افتراضيًا
+        if (!user && verified) {
+          setUser({
+            id: `shopify-${shopInStorage}`,
+            email: `shop@${shopInStorage}`,
+            app_metadata: { provider: 'shopify' },
+            user_metadata: { shop: shopInStorage },
+            shopify: true
+          });
+        }
+        
+        setConnectionCheckInProgress(false);
+        return verified;
+      }
+      
+      setConnectionCheckInProgress(false);
+      return false;
+    } catch (error) {
+      console.error("Error refreshing Shopify connection:", error);
+      setConnectionCheckInProgress(false);
+      return false;
+    }
   };
 
   // إعادة الاتصال بشكل إجباري - مسح جميع بيانات الاتصال
@@ -63,6 +104,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('shopify_temp_store');
     localStorage.removeItem('shopify_last_connect_time');
     localStorage.removeItem('shopify_reconnect_attempts');
+    localStorage.removeItem('shopify_last_check_time');
+    
+    // مسح بيانات الجلسة لمنع تداخل الجلسات
+    sessionStorage.removeItem('shopify_connection_attempts');
+    sessionStorage.removeItem('shopify_connecting');
+    sessionStorage.removeItem('shopify_callback_attempts');
+    sessionStorage.removeItem('shopify_auth_state');
     
     // إعادة تعيين حالة الاتصال
     setShop(undefined);
@@ -76,12 +124,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     // إظهار رسالة للمستخدم
-    toast.info('تم مسح بيانات الاتصال. يرجى إعادة الاتصال بمتجر Shopify.');
+    toast.info('تم مسح بيانات الاتصال. جاري إعادة الاتصال بمتجر Shopify...');
     
-    // يمكن إعادة توجيه المستخدم إلى صفحة الاتصال
-    setTimeout(() => {
-      window.location.href = '/shopify?force=true&ts=' + Date.now();
-    }, 1000);
+    // استخدم طريقة التوجيه مباشرة
+    const authUrl = `/shopify?force=true&ts=${Date.now()}&client=${encodeURIComponent(window.location.origin)}`;
+    window.location.href = authUrl;
+    
+    return true;
   };
 
   // التحقق من وجود الرمز في قاعدة البيانات
@@ -219,14 +268,16 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const host = params.get('host');
       const timestamp = params.get('timestamp');
       const authSuccess = params.get('auth_success');
+      const shopifyConnected = params.get('shopify_connected');
       
-      if (shop && (host || timestamp || authSuccess === 'true')) {
-        console.log("AuthProvider: Detected Shopify callback parameters", { shop, host, timestamp, authSuccess });
+      if ((shop && (host || timestamp || authSuccess === 'true' || shopifyConnected === 'true'))) {
+        console.log("AuthProvider: Detected Shopify callback parameters", { shop, host, timestamp, authSuccess, shopifyConnected });
         
         // Store parameters and update connection status
         localStorage.setItem('shopify_store', shop);
         localStorage.setItem('shopify_connected', 'true');
         localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+        localStorage.setItem('shopify_last_check_time', Date.now().toString());
         
         // Update state
         setShop(shop);
