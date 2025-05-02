@@ -3,7 +3,7 @@ import React from 'react';
 import { useI18n } from '@/lib/i18n';
 
 // Updated interface matching how the component is being used
-interface FormBuilderProps {
+export interface FormBuilderProps {
   formData: any[];
   onChange: (newFormData: any[]) => void;
 }

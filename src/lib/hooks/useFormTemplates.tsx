@@ -6,7 +6,7 @@ import { useFormFetch } from './form/useFormFetch';
 import { FormData, FormCreatePayload, FormUpdatePayload } from './form/types';
 
 // Re-export FormData interface for backward compatibility
-export { FormData } from './form/types';
+export type { FormData } from './form/types';
 
 /**
  * Main hook for form templates management
