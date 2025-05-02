@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { Dialog } from '@/components/ui/dialog';
+import { useAuth } from '@/lib/auth';
 
 const FormBuilderDashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ const FormBuilderDashboard = () => {
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const { shopifyConnected, shop } = useAuth();
+
+  // Refresh forms list when component mounts or shop connection changes
+  useEffect(() => {
+    console.log('FormBuilderDashboard - Auth state:', { shopifyConnected, shop });
+    fetchForms();
+  }, [fetchForms, shopifyConnected, shop]);
 
   const handleCreateForm = async () => {
     try {
@@ -32,7 +40,7 @@ const FormBuilderDashboard = () => {
       }
     } catch (error: any) {
       console.error("Form creation error:", error);
-      toast.error(`${language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Form creation error'}: ${error.message}`);
+      toast.error(language === 'ar' ? `خطأ في إنشاء النموذج: ${error.message}` : `Form creation error: ${error.message}`);
     } finally {
       setIsCreatingForm(false);
     }
@@ -58,7 +66,7 @@ const FormBuilderDashboard = () => {
       }
     } catch (error: any) {
       console.error("Template selection error:", error);
-      toast.error(`${language === 'ar' ? 'خطأ في اختيار القالب' : 'Template selection error'}: ${error.message}`);
+      toast.error(language === 'ar' ? `خطأ في اختيار القالب: ${error.message}` : `Template selection error: ${error.message}`);
     } finally {
       setIsCreatingForm(false);
       setIsTemplateDialogOpen(false);
