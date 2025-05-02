@@ -19,8 +19,9 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isConnectionWarning, setIsConnectionWarning] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<number>(0);
 
-  // Check connection status when component loads
+  // Check connection status when component loads, but not too frequently
   useEffect(() => {
     // Don't check if there's no connected shop
     if (!shop) {
@@ -29,12 +30,15 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     }
     
     // Only check if we have a supposedly active connection
-    if (shopifyConnected) {
+    // and the last check was more than 5 minutes ago
+    const now = Date.now();
+    if (shopifyConnected && (now - lastCheckTimestamp > 300000)) {
       const checkConnection = async () => {
         setIsCheckingConnection(true);
         try {
           const isConnected = await verifyShopifyConnection();
           setIsConnectionWarning(!isConnected);
+          setLastCheckTimestamp(now);
         } catch (error) {
           console.error('Error checking Shopify connection:', error);
           setIsConnectionWarning(true);
@@ -44,10 +48,8 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       };
       
       checkConnection();
-    } else {
-      setIsConnectionWarning(false);
     }
-  }, [shopifyConnected, shop, verifyShopifyConnection]);
+  }, [shopifyConnected, shop, verifyShopifyConnection, lastCheckTimestamp]);
 
   const handleCheckConnection = async () => {
     if (isCheckingConnection) return;
@@ -81,6 +83,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       setIsConnectionWarning(true);
     } finally {
       setIsCheckingConnection(false);
+      setLastCheckTimestamp(Date.now());
     }
   };
 

@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import FormListItem from './FormListItem';
 import EmptyFormList from './EmptyFormList';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Loader2 } from 'lucide-react';
+import { RefreshCcw, Loader2, WifiOff } from 'lucide-react';
 
 interface FormListProps {
   forms: FormData[];
@@ -13,6 +13,7 @@ interface FormListProps {
   onSelectForm: (formId: string) => void;
   hasError?: boolean;
   onRefresh?: () => void;
+  isOffline?: boolean;
 }
 
 const FormList: React.FC<FormListProps> = ({
@@ -20,7 +21,8 @@ const FormList: React.FC<FormListProps> = ({
   isLoading,
   onSelectForm,
   hasError = false,
-  onRefresh
+  onRefresh,
+  isOffline = false
 }) => {
   const { language } = useI18n();
   
@@ -28,7 +30,8 @@ const FormList: React.FC<FormListProps> = ({
   console.log('FormList render:', { 
     formsLength: forms?.length || 0, 
     isLoading, 
-    hasError 
+    hasError,
+    isOffline 
   });
 
   // Show loading state when initially loading with no forms
@@ -78,10 +81,40 @@ const FormList: React.FC<FormListProps> = ({
       </div>
     );
   }
+  
+  // Show offline message when in offline mode with forms
+  if (isOffline && forms.length > 0) {
+    return (
+      <div>
+        <div className="p-4 mb-4 bg-blue-50 border border-blue-100 rounded-md text-blue-700 flex items-center gap-2">
+          <WifiOff className="h-4 w-4" />
+          <p>
+            {language === 'ar'
+              ? 'أنت حاليًا غير متصل بالإنترنت. يتم عرض النماذج المحفوظة محليًا.'
+              : 'You are currently offline. Showing locally saved forms.'}
+          </p>
+        </div>
+        
+        <div className="divide-y">
+          {forms.map((form) => (
+            <FormListItem
+              key={form.id}
+              form={form}
+              onSelectForm={() => onSelectForm(form.id)}
+              onPublishToggle={() => {}}
+              onDeleteRequest={() => {}}
+              isActionInProgress={false}
+              isOfflineMode={isOffline}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Show empty state when there are no forms
   if (forms.length === 0) {
-    return <EmptyFormList />;
+    return <EmptyFormList isOffline={isOffline} />;
   }
 
   // Show the list of forms
@@ -95,6 +128,7 @@ const FormList: React.FC<FormListProps> = ({
           onPublishToggle={() => {}}
           onDeleteRequest={() => {}}
           isActionInProgress={false}
+          isOfflineMode={isOffline}
         />
       ))}
       

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
 import { useI18n } from '@/lib/i18n';
@@ -32,8 +32,57 @@ const FormBuilderPage = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const [hasInitialFormData, setHasInitialFormData] = useState<boolean>(false);
+  const [isFormModified, setIsFormModified] = useState<boolean>(false);
+  
+  // Referencia para seguimiento de cambios
+  const formDataRef = useRef(formData);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // معالجة تحميل بيانات النموذج
+  // Seguimiento de cambios en el formulario
+  useEffect(() => {
+    formDataRef.current = formData;
+    setIsFormModified(true);
+    
+    // Guardar automáticamente en localStorage después de cambios
+    if (formId) {
+      try {
+        localStorage.setItem(`form_draft_${formId}`, JSON.stringify({
+          title,
+          description, 
+          data: formData,
+          lastModified: new Date().toISOString()
+        }));
+      } catch (err) {
+        console.error('Error saving form draft to localStorage:', err);
+      }
+    }
+  }, [formData, title, description, formId]);
+
+  // Configurar guardado automático
+  useEffect(() => {
+    if (isFormModified && !isSaving) {
+      // Cancelar cualquier temporizador existente
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      
+      // Configurar nuevo temporizador
+      autoSaveTimerRef.current = setTimeout(() => {
+        // Solo intentar guardar automáticamente si hay cambios y no es un formulario nuevo
+        if (formId && formId !== 'new') {
+          handleSave(true);
+        }
+      }, 60000); // Auto-guardar después de 60 segundos de inactividad
+    }
+    
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [isFormModified, isSaving, formId]);
+
+  // معالجة تحميل بيانات النموذج مع تحسينات لمعالجة الأخطاء والتخزين المؤقت
   useEffect(() => {
     const loadForm = async () => {
       setIsLoading(true);
@@ -42,11 +91,17 @@ const FormBuilderPage = () => {
       try {
         console.log(`FormBuilderPage: Loading form with ID: ${formId}`);
         let form;
+        let usingCachedData = false;
+        
+        // التحقق من وجود بيانات غير محفوظة في التخزين المحلي
+        const draftKey = `form_draft_${formId}`;
+        const cachedDraft = localStorage.getItem(draftKey);
         
         // إضافة تأخير قصير لتجنب التحميل المستمر
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         try {
+          // محاولة تحميل البيانات من الخادم
           form = await getFormById(formId || 'new');
           
           // تأكد من وجود بيانات صالحة
@@ -57,8 +112,35 @@ const FormBuilderPage = () => {
         } catch (fetchError) {
           console.error('Error fetching form:', fetchError);
           setConnectionError(true);
+          usingCachedData = true;
           
-          // محاولة استرجاع البيانات المخزنة محليًا
+          // محاولة استرجاع مسودة غير محفوظة أولاً
+          if (cachedDraft) {
+            try {
+              const draftData = JSON.parse(cachedDraft);
+              console.log('Found unsaved draft:', draftData);
+              toast.info(language === 'ar' 
+                ? 'تم العثور على مسودة غير محفوظة. استخدام البيانات المحلية.' 
+                : 'Found unsaved draft. Using local data.');
+                
+              // استخدام المسودة غير المحفوظة
+              form = {
+                id: formId || 'new',
+                title: draftData.title || '',
+                description: draftData.description || '',
+                data: Array.isArray(draftData.data) ? draftData.data : [],
+                created_at: new Date().toISOString(),
+                updated_at: draftData.lastModified || new Date().toISOString(),
+                user_id: user?.id || '',
+                is_published: false
+              };
+              return;
+            } catch (draftError) {
+              console.error('Error parsing draft data:', draftError);
+            }
+          }
+          
+          // محاولة استرجاع النسخة المخزنة محلياً
           try {
             const cachedForm = localStorage.getItem(`form_${formId}`);
             if (cachedForm) {
@@ -73,7 +155,7 @@ const FormBuilderPage = () => {
           if (!form) {
             form = {
               id: formId || 'new',
-              title: formId === 'new' ? 'نموذج جديد' : 'نموذج موجود',
+              title: formId === 'new' ? (language === 'ar' ? 'نموذج جديد' : 'New Form') : '',
               description: '',
               data: [],
               created_at: new Date().toISOString(),
@@ -92,6 +174,16 @@ const FormBuilderPage = () => {
           const formDataArray = Array.isArray(form.data) ? form.data : [];
           setFormData(formDataArray);
           setHasInitialFormData(true);
+          
+          // لعرض إشعار مناسب للمستخدم
+          if (usingCachedData) {
+            toast.info(language === 'ar' 
+              ? 'جاري استخدام بيانات محلية نظرًا لمشكلة في الاتصال' 
+              : 'Using local data due to connection issue');
+          }
+          
+          // إعادة تعيين حالة التعديل بعد التحميل الأولي
+          setIsFormModified(false);
         } else {
           console.error('Form not found');
           toast.error(language === 'ar' ? 'النموذج غير موجود' : 'Form not found');
@@ -110,18 +202,22 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate, user?.id]);
   
-  // حفظ النموذج مع معالجة الخطأ
-  const handleSave = async () => {
-    if (!title.trim()) {
+  // تحسين عملية حفظ النموذج مع دعم الحفظ المحلي والمزامنة اللاحقة
+  const handleSave = async (isAutoSave = false) => {
+    if (!title.trim() && !isAutoSave) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
       return;
     }
     
-    setIsSaving(true);
+    // عدم عرض إشعار للحفظ التلقائي
+    if (!isAutoSave) {
+      setIsSaving(true);
+    }
+    
     try {
       console.log('Saving form...');
       const formPayload = {
-        title,
+        title: title || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
         description: description || null,
         data: formData,
         user_id: user?.id,
@@ -129,23 +225,52 @@ const FormBuilderPage = () => {
         is_published: true
       };
       
-      if (connectionError) {
-        console.log('Saving form in offline mode (mock)');
-        // عرض إشعار للمستخدم أن النموذج سيتم حفظه عند استعادة الاتصال
-        toast.warning(
-          language === 'ar' 
-            ? 'الاتصال غير متاح حاليًا. سيتم حفظ النموذج عند استعادة الاتصال.' 
-            : 'Connection unavailable. Form will be saved when connection is restored.'
-        );
+      // تحديث تخزين المسودة
+      if (formId) {
+        try {
+          localStorage.setItem(`form_draft_${formId}`, JSON.stringify({
+            ...formPayload,
+            lastModified: new Date().toISOString()
+          }));
+        } catch (cacheError) {
+          console.error('Error updating draft cache:', cacheError);
+        }
+      }
+      
+      // التحقق من الاتصال
+      const isOnline = navigator.onLine;
+      if (!isOnline || connectionError) {
+        console.log('Saving form in offline mode');
+        
+        if (!isAutoSave) {
+          // عرض إشعار للمستخدم أن النموذج سيتم حفظه عند استعادة الاتصال
+          toast.warning(
+            language === 'ar' 
+              ? 'الاتصال غير متاح حاليًا. تم حفظ النموذج محليًا وسيتم مزامنته عند استعادة الاتصال.' 
+              : 'Connection unavailable. Form saved locally and will be synced when connection is restored.'
+          );
+        }
         
         // تخزين النموذج محليًا للحفظ لاحقًا
         const offlineForms = JSON.parse(localStorage.getItem('offline_forms') || '[]');
-        offlineForms.push({
-          id: formId === 'new' ? `new-${Date.now()}` : formId,
-          ...formPayload,
-          pendingSave: true,
-          lastModified: new Date().toISOString()
-        });
+        const existingFormIndex = offlineForms.findIndex(f => f.id === formId);
+        
+        if (existingFormIndex >= 0) {
+          offlineForms[existingFormIndex] = {
+            id: formId,
+            ...formPayload,
+            pendingSave: true,
+            lastModified: new Date().toISOString()
+          };
+        } else {
+          offlineForms.push({
+            id: formId === 'new' ? `new-${Date.now()}` : formId,
+            ...formPayload,
+            pendingSave: true,
+            lastModified: new Date().toISOString()
+          });
+        }
+        
         localStorage.setItem('offline_forms', JSON.stringify(offlineForms));
         
         // حفظ النموذج الحالي أيضًا
@@ -154,21 +279,27 @@ const FormBuilderPage = () => {
           ...formPayload
         }));
         
-        // توجيه المستخدم إلى صفحة النماذج
-        toast.success(
-          language === 'ar' 
-            ? 'تم حفظ النموذج مؤقتًا. سيتم مزامنته عند استعادة الاتصال.' 
-            : 'Form saved temporarily. It will be synced when connection is restored.'
-        );
-        
-        if (formId === 'new') {
-          navigate('/forms');
+        // إعادة تعيين حالة التعديل
+        if (!isAutoSave) {
+          setIsFormModified(false);
+          
+          // توجيه المستخدم إلى صفحة النماذج إذا كان نموذجًا جديدًا
+          if (formId === 'new') {
+            toast.success(
+              language === 'ar' 
+                ? 'تم حفظ النموذج مؤقتًا. سيتم مزامنته عند استعادة الاتصال.' 
+                : 'Form saved temporarily. It will be synced when connection is restored.'
+            );
+            navigate('/forms');
+          }
         }
+        
         return;
       }
       
       let response;
       
+      // الحفظ إلى الخادم
       if (formId && formId !== 'new') {
         // تحديث نموذج موجود
         console.log('Updating existing form:', formId);
@@ -194,36 +325,61 @@ const FormBuilderPage = () => {
       }
       
       console.log('Form saved successfully:', response.data);
-      toast.success(
-        language === 'ar' 
-          ? 'تم حفظ النموذج بنجاح' 
-          : 'Form saved successfully'
-      );
       
-      // إذا كان نموذجًا جديدًا، انتقل إلى صفحة تحرير النموذج باستخدام المعرف الجديد
-      if (!formId || formId === 'new') {
-        navigate(`/form-builder/${response.data.id}`);
+      // تحديث التخزين المؤقت المحلي
+      try {
+        localStorage.setItem(`form_${response.data.id}`, JSON.stringify(response.data));
+        // إزالة المسودة بعد الحفظ الناجح
+        localStorage.removeItem(`form_draft_${formId}`);
+      } catch (cacheError) {
+        console.error('Error updating localStorage cache:', cacheError);
+      }
+      
+      // إعادة تعيين حالة التعديل
+      setIsFormModified(false);
+      
+      // عرض إشعار للحفظ العادي فقط، وليس للحفظ التلقائي
+      if (!isAutoSave) {
+        toast.success(
+          language === 'ar' 
+            ? 'تم حفظ النموذج بنجاح' 
+            : 'Form saved successfully'
+        );
+        
+        // إذا كان نموذجًا جديدًا، انتقل إلى صفحة تحرير النموذج باستخدام المعرف الجديد
+        if (!formId || formId === 'new') {
+          navigate(`/form-builder/${response.data.id}`);
+        }
       }
       
     } catch (error) {
       console.error('Error saving form:', error);
       
       // التخزين المؤقت في حالة فشل الاتصال
-      if (error instanceof Error && error.message.includes('fetch')) {
+      if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('network'))) {
         setConnectionError(true);
-        toast.warning(
-          language === 'ar' 
-            ? 'فشل الاتصال. سيتم حفظ النموذج مؤقتًا.' 
-            : 'Connection failed. Form will be saved temporarily.'
-        );
+        
+        if (!isAutoSave) {
+          toast.warning(
+            language === 'ar' 
+              ? 'فشل الاتصال. تم حفظ النموذج مؤقتًا محليًا.' 
+              : 'Connection failed. Form saved locally temporarily.'
+          );
+        }
         
         // تخزين النموذج محليًا
-        localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
-          title, 
-          description, 
-          data: formData
-        }));
-      } else {
+        try {
+          localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
+            id: formId || `new-${Date.now()}`,
+            title, 
+            description, 
+            data: formData,
+            lastModified: new Date().toISOString()
+          }));
+        } catch (cacheError) {
+          console.error('Error saving to localStorage:', cacheError);
+        }
+      } else if (!isAutoSave) {
         toast.error(
           language === 'ar' 
             ? 'خطأ في حفظ النموذج' 
@@ -231,7 +387,9 @@ const FormBuilderPage = () => {
         );
       }
     } finally {
-      setIsSaving(false);
+      if (!isAutoSave) {
+        setIsSaving(false);
+      }
     }
   };
   
@@ -327,6 +485,23 @@ const FormBuilderPage = () => {
     );
   }
   
+  // التحقق من حجم البيانات بشكل مستمر
+  useEffect(() => {
+    // محاولة تقدير حجم البيانات
+    try {
+      const formDataSize = new TextEncoder().encode(
+        JSON.stringify({ title, description, data: formData })
+      ).length;
+      
+      // عرض تحذير إذا كانت البيانات كبيرة جدًا
+      if (formDataSize > 100000) { // ~ 100KB
+        console.warn('Large form data detected:', formDataSize, 'bytes');
+      }
+    } catch (e) {
+      console.error('Error estimating form data size:', e);
+    }
+  }, [title, description, formData]);
+  
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
@@ -385,7 +560,10 @@ const FormBuilderPage = () => {
                   </label>
                   <Input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setIsFormModified(true);
+                    }}
                     placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
                   />
                 </div>
@@ -396,7 +574,10 @@ const FormBuilderPage = () => {
                   </label>
                   <Textarea
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      setIsFormModified(true);
+                    }}
                     placeholder={language === 'ar' ? 'أدخل وصف النموذج (اختياري)' : 'Enter form description (optional)'}
                     rows={3}
                   />
@@ -412,14 +593,17 @@ const FormBuilderPage = () => {
               
               <FormBuilder
                 formData={formData}
-                onChange={setFormData}
+                onChange={(newData) => {
+                  setFormData(newData);
+                  setIsFormModified(true);
+                }}
               />
             </div>
             
             {/* أزرار الإجراءات */}
             <div className="flex justify-between">
               <Button
-                onClick={handleSave}
+                onClick={() => handleSave(false)}
                 disabled={isSaving}
                 className="flex items-center"
               >
@@ -459,11 +643,23 @@ const FormBuilderPage = () => {
               />
             </div>
             
+            {/* معلومات حالة الحفظ والتزامن */}
+            {isFormModified && (
+              <Alert variant="default" className="bg-blue-50 border-blue-100">
+                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <AlertDescription className="text-blue-700">
+                  {language === 'ar' 
+                    ? 'لديك تغييرات غير محفوظة. سيتم حفظها تلقائيًا كل دقيقة أو يمكنك الضغط على "حفظ النموذج" للحفظ الآن.' 
+                    : 'You have unsaved changes. They will be auto-saved every minute or you can press "Save Form" to save now.'}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {/* معلومات الوضع غير المتصل */}
             {connectionError && (
               <Alert variant="default" className="bg-yellow-50 border-yellow-100">
                 <AlertCircle className="h-4 w-4 text-yellow-500" />
-                <AlertDescription>
+                <AlertDescription className="text-yellow-700">
                   {language === 'ar' 
                     ? 'أنت تعمل في الوضع غير المتصل. سيتم حفظ التغييرات محليًا حتى يتم استعادة الاتصال.' 
                     : 'You are working in offline mode. Changes will be saved locally until connection is restored.'}
