@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a plain object without using FormData type to avoid recursion
-      const fetchedForm = {
+      // First create a regular JavaScript object without type annotations
+      const plainObject = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -58,7 +58,10 @@ export const useFormFetch = () => {
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      } as FormData;
+      };
+      
+      // Then cast it to FormData
+      const fetchedForm = plainObject as FormData;
       
       return fetchedForm;
     } catch (error) {
@@ -101,13 +104,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create forms array without directly using FormData[] type annotation
-      const fetchedForms: Array<FormData> = [];
+      // Create an empty array without direct FormData[] type annotation
+      const fetchedForms: any[] = [];
       
       if (data) {
         for (const item of data) {
-          // Cast each object to FormData after creation to avoid recursion
-          const form = {
+          // First create a plain JavaScript object
+          const plainObject = {
             id: item.id,
             title: item.title,
             description: item.description,
@@ -117,14 +120,17 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          } as FormData;
+          };
           
-          fetchedForms.push(form);
+          // Push the plain object to the array
+          fetchedForms.push(plainObject);
         }
       }
       
-      setForms(fetchedForms);
-      return fetchedForms;
+      // Cast the entire array at once after creation
+      const typedForms = fetchedForms as FormData[];
+      setForms(typedForms);
+      return typedForms;
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
