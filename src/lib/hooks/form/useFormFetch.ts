@@ -47,21 +47,23 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Break the type recursion by creating a completely new object with explicit any type
-      const formData: any = {
+      // Create a new object with primitive values to avoid deep type analysis
+      // We use JSON for complete type isolation
+      const safeData = JSON.parse(JSON.stringify(data.data || {}));
+      
+      const formData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        data: data.data as any, // Force any type to break recursion
+        data: safeData,
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      };
+      } as FormData;
       
-      // Cast back to FormData after breaking the recursion
-      return formData as FormData;
+      return formData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -108,20 +110,22 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            // Break the type recursion by using explicit any type
-            const formData: any = {
+            // Use JSON to completely isolate the types and break recursion
+            const safeData = JSON.parse(JSON.stringify(item.data || {}));
+            
+            const formData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              data: item.data as any, // Force any type to break recursion
+              data: safeData,
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
               is_published: item.is_published,
               shop_id: item.shop_id
-            };
+            } as FormData;
             
-            formsData.push(formData as FormData);
+            formsData.push(formData);
           }
         });
       }
