@@ -47,21 +47,19 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a new object with primitive values to avoid deep type analysis
-      // We use JSON for complete type isolation
-      const safeData = JSON.parse(JSON.stringify(data.data || {}));
-      
-      const formData = {
+      // Create a shallow copy of data properties and use unknown type to break recursion
+      const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        data: safeData,
+        // Cast to unknown first, then to the expected type to break type recursion
+        data: (data.data as unknown) as Record<string, any>,
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      } as FormData;
+      };
       
       return formData;
     } catch (error) {
@@ -110,20 +108,19 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            // Use JSON to completely isolate the types and break recursion
-            const safeData = JSON.parse(JSON.stringify(item.data || {}));
-            
-            const formData = {
+            // Create a shallow copy and use type casting to break recursion
+            const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              data: safeData,
+              // Cast to unknown first, then to the expected type to break type recursion
+              data: (item.data as unknown) as Record<string, any>,
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
               is_published: item.is_published,
               shop_id: item.shop_id
-            } as FormData;
+            };
             
             formsData.push(formData);
           }
