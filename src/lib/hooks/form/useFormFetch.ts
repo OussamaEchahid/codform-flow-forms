@@ -47,12 +47,12 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a new object with explicit properties to avoid type recursion
+      // Create a plain object first, then apply the type
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        data: data.data,
+        data: JSON.parse(JSON.stringify(data.data)), // Break reference to prevent recursion
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -101,17 +101,17 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create a typed array first
+      // Create an array to hold the forms
       const formsData: FormData[] = [];
       
       if (data) {
+        // Process each item individually to avoid circular references
         for (const item of data) {
-          // Add each item with explicit properties
           formsData.push({
             id: item.id,
             title: item.title,
             description: item.description,
-            data: item.data,
+            data: JSON.parse(JSON.stringify(item.data)), // Break reference to prevent recursion
             created_at: item.created_at,
             updated_at: item.updated_at,
             user_id: item.user_id,
