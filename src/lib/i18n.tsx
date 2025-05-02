@@ -1,69 +1,12 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Define language types
-type Language = 'en' | 'ar';
+// Define translation types
+type Language = 'ar' | 'en';
+type Translations = Record<string, Record<string, string>>;
 
-// Create context
-interface I18nContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
-}
-
-const I18nContext = createContext<I18nContextType>({
-  language: 'en',
-  setLanguage: () => {},
-  t: () => '',
-});
-
-// Define translations
-const translations = {
-  en: {
-    dashboard: 'Dashboard',
-    forms: 'Forms',
-    orders: 'Orders',
-    landingPages: 'Landing Pages',
-    quickOffers: 'Quick Offers',
-    quantityOffers: 'Quantity Offers',
-    settings: 'Settings',
-    ordersTitle: 'Orders',
-    formBuilder: 'Form Builder',
-    save: 'Save',
-    publish: 'Publish',
-    cancel: 'Cancel',
-    delete: 'Delete',
-    edit: 'Edit',
-    preview: 'Preview',
-    newForm: 'New Form',
-    formTemplates: 'Form Templates',
-    elements: 'Elements',
-    addElement: 'Add Element',
-    formSettings: 'Form Settings',
-    formDesign: 'Form Design',
-    elementSettings: 'Element Settings',
-    next: 'Next',
-    previous: 'Previous',
-    submitOrder: 'Submit Order',
-    fullName: 'Full Name',
-    phoneNumber: 'Phone Number',
-    city: 'City',
-    address: 'Address',
-    logout: 'Logout',
-    logoutSuccess: 'Logged out successfully',
-    logoutError: 'Error logging out',
-    connectToShopify: 'Connect to Shopify',
-    shopifyConnectionIssue: 'Shopify Connection Issue',
-    pleaseConnect: 'Please connect to Shopify to access forms',
-    connectToShopifyNow: 'Connect to Shopify Now',
-    verifyingConnection: 'Verifying connection...',
-    loading: 'Loading...',
-    reconnect: 'Reconnect',
-    forceReconnect: 'Force Reconnect',
-    createNewForm: 'Create New Form',
-    editForm: 'Edit Form',
-    viewForm: 'View Form'
-  },
+// Translation dictionary
+const translations: Translations = {
   ar: {
     dashboard: 'لوحة التحكم',
     forms: 'النماذج',
@@ -72,107 +15,154 @@ const translations = {
     quickOffers: 'العروض السريعة',
     quantityOffers: 'عروض الكمية',
     settings: 'الإعدادات',
-    ordersTitle: 'الطلبات',
-    formBuilder: 'منشئ النماذج',
-    save: 'حفظ',
-    publish: 'نشر',
-    cancel: 'إلغاء',
-    delete: 'حذف',
-    edit: 'تعديل',
-    preview: 'معاينة',
-    newForm: 'نموذج جديد',
-    formTemplates: 'قوالب النماذج',
-    elements: 'العناصر',
-    addElement: 'إضافة عنصر',
-    formSettings: 'إعدادات النموذج',
-    formDesign: 'تصميم النموذج',
-    elementSettings: 'إعدادات العنصر',
-    next: 'التالي',
-    previous: 'السابق',
-    submitOrder: 'إرسال الطلب',
-    fullName: 'الاسم الكامل',
-    phoneNumber: 'رقم الهاتف',
-    city: 'المدينة',
-    address: 'العنوان',
     logout: 'تسجيل الخروج',
     logoutSuccess: 'تم تسجيل الخروج بنجاح',
     logoutError: 'حدث خطأ أثناء تسجيل الخروج',
-    connectToShopify: 'الاتصال بـ Shopify',
-    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
-    pleaseConnect: 'يرجى الاتصال بمتجر Shopify للوصول إلى قسم النماذج',
-    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
-    verifyingConnection: 'جاري التحقق من الاتصال...',
     loading: 'جاري التحميل...',
-    reconnect: 'إعادة الاتصال',
-    forceReconnect: 'إعادة اتصال إجباري',
+    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
+    pleaseConnect: 'يرجى الاتصال بمتجر Shopify الخاص بك للمتابعة',
+    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
+    forceReconnect: 'إعادة الاتصال بالقوة',
+    shopifyConnected: 'متصل بـ Shopify',
+    shopifyDisconnected: 'غير متصل بـ Shopify',
     createNewForm: 'إنشاء نموذج جديد',
+    useTemplate: 'استخدام قالب',
+    formCreating: 'جاري إنشاء النموذج...',
+    formCreated: 'تم إنشاء النموذج بنجاح',
+    formCreationError: 'حدث خطأ أثناء إنشاء النموذج',
+    noForms: 'لا توجد نماذج متاحة',
+    createFormPrompt: 'أنشئ نموذجًا جديدًا أو استخدم قالبًا للبدء',
     editForm: 'تعديل النموذج',
-    viewForm: 'عرض النموذج'
+    viewEditForm: 'عرض وتعديل',
+    formSettings: 'إعدادات النموذج',
+    formPublished: 'منشور',
+    formDraft: 'مسودة',
+    publishForm: 'نشر النموذج',
+    unpublishForm: 'إلغاء نشر النموذج',
+    deleteForm: 'حذف النموذج',
+    deleteFormConfirm: 'هل أنت متأكد من حذف النموذج؟',
+    deleteFormWarning: 'لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم.',
+    cancel: 'إلغاء',
+    confirm: 'تأكيد',
+    delete: 'حذف',
+    redirecting: 'جاري إعادة التوجيه...'
+  },
+  en: {
+    dashboard: 'Dashboard',
+    forms: 'Forms',
+    orders: 'Orders',
+    landingPages: 'Landing Pages',
+    quickOffers: 'Quick Offers',
+    quantityOffers: 'Quantity Offers',
+    settings: 'Settings',
+    logout: 'Logout',
+    logoutSuccess: 'Logged out successfully',
+    logoutError: 'Error logging out',
+    loading: 'Loading...',
+    shopifyConnectionIssue: 'Shopify Connection Issue',
+    pleaseConnect: 'Please connect to your Shopify store to continue',
+    connectToShopifyNow: 'Connect to Shopify Now',
+    forceReconnect: 'Force Reconnect',
+    shopifyConnected: 'Connected to Shopify',
+    shopifyDisconnected: 'Not Connected to Shopify',
+    createNewForm: 'Create New Form',
+    useTemplate: 'Use Template',
+    formCreating: 'Creating form...',
+    formCreated: 'Form created successfully',
+    formCreationError: 'Error creating form',
+    noForms: 'No forms available',
+    createFormPrompt: 'Create a new form or use a template to get started',
+    editForm: 'Edit Form',
+    viewEditForm: 'View and Edit',
+    formSettings: 'Form Settings',
+    formPublished: 'Published',
+    formDraft: 'Draft',
+    publishForm: 'Publish Form',
+    unpublishForm: 'Unpublish Form',
+    deleteForm: 'Delete Form',
+    deleteFormConfirm: 'Are you sure you want to delete this form?',
+    deleteFormWarning: 'This action cannot be undone. The form will be permanently deleted.',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    delete: 'Delete',
+    redirecting: 'Redirecting...'
   }
 };
 
-// Provider component
+// Create the context
+interface I18nContextType {
+  t: (key: string) => string;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  translations: Translations;
+}
+
+const I18nContext = createContext<I18nContextType | null>(null);
+
+// Create provider component
 interface I18nProviderProps {
   children: ReactNode;
 }
 
-export const I18nProvider = ({ children }: I18nProviderProps) => {
-  const [language, setLanguage] = useState<Language>(() => {
-    // Get language from localStorage or use browser preference or default to 'ar'
-    const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar')) {
-      return savedLanguage;
+export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
+  // Get initial language from localStorage or default to Arabic
+  const getInitialLanguage = (): Language => {
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('language');
+      return (savedLang === 'en' || savedLang === 'ar') ? savedLang : 'ar';
     }
-    
-    // Default to Arabic if no language is set
     return 'ar';
-  });
+  };
 
-  // Save language to localStorage when it changes and apply RTL settings
-  useEffect(() => {
-    console.log('Language changed to:', language);
-    localStorage.setItem('language', language);
-    
-    // Set RTL for Arabic
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = language;
-    
-    // Apply RTL class to the body element
-    if (language === 'ar') {
-      document.body.classList.add('rtl');
-    } else {
-      document.body.classList.remove('rtl');
-    }
+  const [language, setInternalLanguage] = useState<Language>(getInitialLanguage());
 
-    // Force any components to re-render by dispatching a custom event
-    window.dispatchEvent(new CustomEvent('languageChanged', { detail: language }));
-  }, [language]);
+  // Update language and store preference
+  const setLanguage = (lang: Language) => {
+    console.log(`Changing language to: ${lang}`);
+    localStorage.setItem('language', lang);
+    setInternalLanguage(lang);
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+    
+    // Dispatch custom event for components that need to react to language change
+    const event = new CustomEvent('languageChanged', { detail: { language: lang } });
+    window.dispatchEvent(event);
+  };
 
   // Translation function
   const t = (key: string): string => {
-    if (!key) return '';
-    
-    // Safely access translations with type checking
-    const langTranslations = translations[language] || {};
-    return (langTranslations as Record<string, string>)[key] || key;
+    return translations[language]?.[key] || key;
   };
 
-  const value: I18nContextType = {
+  // Set document direction based on language on mount and language change
+  useEffect(() => {
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+    console.log(`Language set to: ${language}, direction: ${document.documentElement.dir}`);
+  }, [language]);
+
+  // Context value
+  const contextValue: I18nContextType = {
+    t,
     language,
-    setLanguage: (lang: Language) => {
-      console.log('Setting language to:', lang);
-      setLanguage(lang);
-    },
-    t
+    setLanguage,
+    translations
   };
 
   return (
-    <I18nContext.Provider value={value}>
+    <I18nContext.Provider value={contextValue}>
       {children}
     </I18nContext.Provider>
   );
 };
 
-// Custom hook for using translations
-export const useI18n = () => useContext(I18nContext);
-
+// Custom hook to use i18n
+export const useI18n = (): I18nContextType => {
+  const context = useContext(I18nContext);
+  
+  if (!context) {
+    throw new Error('useI18n must be used within an I18nProvider');
+  }
+  
+  return context;
+};

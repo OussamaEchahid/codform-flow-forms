@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useI18n } from '@/lib/i18n.tsx'; // Updated import to explicitly reference the tsx file
+import { useI18n } from '@/lib/i18n'; // Updated import with correct path
 
 const AppSidebar = () => {
   const navigate = useNavigate();
@@ -46,18 +46,16 @@ const AppSidebar = () => {
     document.title = title;
   }, [location, language, t]);
 
-  // Listen for language changes globally
-  useEffect(() => {
-    const handleLanguageChange = () => {
-      // Force re-render of component when language changes
-      console.log("Language change event detected in sidebar");
-    };
+  // Handle language change
+  const handleLanguageChange = (lang: 'ar' | 'en') => {
+    console.log(`Changing language to ${lang}`);
+    setLanguage(lang);
     
-    window.addEventListener('languageChanged', handleLanguageChange);
-    return () => {
-      window.removeEventListener('languageChanged', handleLanguageChange);
-    };
-  }, []);
+    // Force reload the page to apply language changes everywhere
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
 
   const handleLogout = async () => {
     try {
@@ -101,13 +99,13 @@ const AppSidebar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem 
-                onClick={() => setLanguage('en')} 
+                onClick={() => handleLanguageChange('en')} 
                 className={language === 'en' ? 'bg-muted' : ''}
               >
                 English
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => setLanguage('ar')} 
+                onClick={() => handleLanguageChange('ar')} 
                 className={language === 'ar' ? 'bg-muted' : ''}
               >
                 العربية

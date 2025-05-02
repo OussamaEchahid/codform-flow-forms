@@ -1,9 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
-import { useI18n } from '@/lib/i18n.tsx'; // Updated import to explicitly reference the tsx file
+import { useI18n } from '@/lib/i18n';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,77 +18,142 @@ const Forms = () => {
   const [connectionVerified, setConnectionVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [errorState, setErrorState] = useState<string | null>(null);
   
   // Use our internationalization hook
   const { t, language } = useI18n();
   
-  // Verify connection directly with Supabase
+  // Clean cached connection data to start fresh
   useEffect(() => {
-    const verifyConnection = async () => {
+    console.log('Forms: Initial cleanup of potentially stale data');
+    // Only clear specific shopify temporary data to avoid full logout
+    localStorage.removeItem('shopify_last_redirect_time');
+    localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('shopify_reconnect_attempts');
+    
+    // Update session if needed
+    if (refreshShopifyConnection) {
+      refreshShopifyConnection();
+    }
+  }, []);
+  
+  // Verify connection directly with Supabase with retries
+  const verifyConnection = useCallback(async () => {
+    setIsVerifying(true);
+    setErrorState(null);
+    
+    try {
       console.log('Forms: Verifying Shopify connection with shop:', shop);
-      setIsVerifying(true);
       
-      try {
-        if (shop) {
-          // Verify token exists in database
-          const { data: storeData, error: storeError } = await supabase
-            .from('shopify_stores')
-            .select('access_token, updated_at')
-            .eq('shop', shop)
-            .maybeSingle();
-          
-          if (storeError || !storeData || !storeData.access_token) {
-            console.error('Forms: No valid token found in database', { storeError });
-            setConnectionVerified(false);
-            
-            // Clear invalid connection data
-            if (refreshShopifyConnection) {
-              refreshShopifyConnection();
-            }
-          } else {
-            console.log('Forms: Valid token found in database');
-            setConnectionVerified(true);
-            
-            // Update localStorage to confirm valid connection
-            localStorage.setItem('shopify_store', shop);
-            localStorage.setItem('shopify_connected', 'true');
-            localStorage.setItem('shopify_last_connect_time', Date.now().toString());
-          }
-        } else {
-          console.log('Forms: No shop parameter provided');
-          setConnectionVerified(false);
-        }
-      } catch (error) {
-        console.error('Forms: Error verifying connection:', error);
+      if (!shop) {
+        console.log("Forms: No shop parameter provided");
         setConnectionVerified(false);
-      } finally {
+        setErrorState("no_shop");
         setIsVerifying(false);
         setIsPageReady(true);
+        return;
       }
-    };
+      
+      // Verify token exists in database
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('access_token, updated_at')
+        .eq('shop', shop)
+        .maybeSingle();
+      
+      if (storeError) {
+        console.error('Forms: Database query error:', storeError);
+        setErrorState("db_error");
+        setConnectionVerified(false);
+        setIsVerifying(false);
+        setIsPageReady(true);
+        return;
+      }
+      
+      if (!storeData || !storeData.access_token) {
+        console.log('Forms: No valid token found in database');
+        setErrorState("no_token");
+        setConnectionVerified(false);
+        setIsVerifying(false);
+        setIsPageReady(true);
+        return;
+      }
+      
+      console.log('Forms: Valid token found in database');
+      setConnectionVerified(true);
+      
+      // Update localStorage to confirm valid connection
+      localStorage.setItem('shopify_store', shop);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+      
+      setIsVerifying(false);
+      setIsPageReady(true);
+      
+    } catch (error) {
+      console.error('Forms: Error verifying connection:', error);
+      setErrorState("connection_error");
+      setConnectionVerified(false);
+      setIsVerifying(false);
+      setIsPageReady(true);
+    }
+  }, [shop]);
+
+  // Initial verification with retry mechanism
+  useEffect(() => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 2000; // 2 seconds
     
-    verifyConnection();
-  }, [shop, refreshShopifyConnection]);
+    if (retryCount < MAX_RETRIES) {
+      verifyConnection();
+      
+      // If not connected and not on the last retry, schedule another attempt
+      if (!connectionVerified && retryCount < MAX_RETRIES - 1) {
+        const timer = setTimeout(() => {
+          console.log(`Forms: Retry attempt ${retryCount + 1} of ${MAX_RETRIES}`);
+          setRetryCount(prev => prev + 1);
+        }, RETRY_DELAY);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [verifyConnection, retryCount, connectionVerified]);
 
   // Handle reconnection
   const handleReconnect = () => {
     if (isRedirecting) return;
+    
     setIsRedirecting(true);
-    navigate('/shopify?reconnect=form&ts=' + Date.now());
+    
+    // Clear connection data entirely
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('shopify_reconnect_attempts');
+    localStorage.removeItem('shopify_last_connect_time');
+    localStorage.removeItem('shopify_last_redirect_time');
+    
+    // Force browser to refresh connection state
+    setTimeout(() => {
+      window.location.href = `/shopify?reconnect=form&ts=${Date.now()}&r=${Math.random().toString(36).substring(7)}`;
+    }, 500);
   };
 
   // Handle force reconnection
   const handleForceReconnect = () => {
     if (!forceReconnect || isRedirecting) return;
+    
     setIsRedirecting(true);
     forceReconnect();
     
+    // Reset redirect state after a timeout
     setTimeout(() => {
       setIsRedirecting(false);
     }, 3000);
   };
 
-  // Loading state
+  // Show loading state
   if (!isPageReady || isVerifying) {
     return (
       <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
@@ -100,7 +165,7 @@ const Forms = () => {
     );
   }
 
-  // Check if user is connected to Shopify
+  // Show connection issue screen
   if (!connectionVerified || !shopifyConnected || !shop) {
     return (
       <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -157,22 +222,16 @@ const Forms = () => {
                 )}
               </div>
               
-              {/* Debug info in development mode */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-left">
-                  <p className="font-bold">Debug Info:</p>
-                  <pre className="overflow-auto max-h-32 text-[10px]">{JSON.stringify({
-                    shopifyConnected,
-                    shop,
-                    isTokenVerified,
-                    connectionVerified,
-                    lastConnectionTime,
-                    localStorage: {
-                      shopify_store: localStorage.getItem('shopify_store'),
-                      shopify_connected: localStorage.getItem('shopify_connected'),
-                      shopify_last_connect_time: localStorage.getItem('shopify_last_connect_time')
-                    }
-                  }, null, 2)}</pre>
+              {/* Error state and debug info */}
+              {errorState && (
+                <div className="mt-4 p-3 bg-red-100 rounded-md text-xs text-red-800">
+                  <p>Error type: {errorState}</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-2 px-2 py-1 bg-red-200 rounded text-xs"
+                  >
+                    Refresh page
+                  </button>
                 </div>
               )}
             </div>
@@ -182,6 +241,7 @@ const Forms = () => {
     );
   }
 
+  // Display the main form dashboard
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
