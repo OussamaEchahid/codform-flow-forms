@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // First create a regular JavaScript object without type annotations
-      const plainObject = {
+      // Use type assertion with a specific Record type to avoid deep type instantiation
+      const fetchedForm: Record<string, any> = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -61,9 +61,7 @@ export const useFormFetch = () => {
       };
       
       // Then cast it to FormData
-      const fetchedForm = plainObject as FormData;
-      
-      return fetchedForm;
+      return fetchedForm as unknown as FormData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -104,13 +102,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create an empty array without direct FormData[] type annotation
-      const fetchedForms: any[] = [];
+      // Create an array without FormData type constraints initially
+      const fetchedForms: Record<string, any>[] = [];
       
       if (data) {
         for (const item of data) {
-          // First create a plain JavaScript object
-          const plainObject = {
+          // Create each form object as a simple Record
+          const formObject: Record<string, any> = {
             id: item.id,
             title: item.title,
             description: item.description,
@@ -122,13 +120,12 @@ export const useFormFetch = () => {
             shop_id: item.shop_id
           };
           
-          // Push the plain object to the array
-          fetchedForms.push(plainObject);
+          fetchedForms.push(formObject);
         }
       }
       
-      // Cast the entire array at once after creation
-      const typedForms = fetchedForms as FormData[];
+      // Cast the entire array after creation
+      const typedForms = fetchedForms as unknown as FormData[];
       setForms(typedForms);
       return typedForms;
     } catch (error) {
