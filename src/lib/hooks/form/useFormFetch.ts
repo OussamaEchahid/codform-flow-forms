@@ -47,19 +47,19 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Use type assertion with a clean copy of the data
-      const formData = {
+      // Create a new FormData object without using type assertion directly on the object
+      const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Explicitly clone the data to avoid reference issues
-        data: JSON.parse(JSON.stringify(data.data || {})),
+        // Clone data deeply to avoid reference issues
+        data: data.data ? JSON.parse(JSON.stringify(data.data)) : {},
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      } as FormData;
+      };
       
       return formData;
     } catch (error) {
@@ -105,21 +105,22 @@ export const useFormFetch = () => {
       const formsData: FormData[] = [];
       
       if (data && Array.isArray(data)) {
-        // Map the data to FormData objects with type assertion
+        // Process each form individually
         data.forEach(item => {
           if (item) {
-            const formData = {
+            // Create a FormData object with explicit typing
+            const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Explicitly clone the data to avoid reference issues
-              data: JSON.parse(JSON.stringify(item.data || {})),
+              // Clone data deeply to avoid reference issues
+              data: item.data ? JSON.parse(JSON.stringify(item.data)) : {},
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
               is_published: item.is_published,
               shop_id: item.shop_id
-            } as FormData;
+            };
             
             formsData.push(formData);
           }
