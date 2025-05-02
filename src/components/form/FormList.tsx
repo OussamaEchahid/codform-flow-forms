@@ -23,8 +23,15 @@ const FormList: React.FC<FormListProps> = ({
   onRefresh
 }) => {
   const { language } = useI18n();
+  
+  // إضافة تسجيل للتصحيح
+  console.log('FormList render:', { 
+    formsLength: forms?.length || 0, 
+    isLoading, 
+    hasError 
+  });
 
-  if (isLoading) {
+  if (isLoading && forms.length === 0) {
     return (
       <div className="p-8 text-center">
         <div className="animate-spin h-6 w-6 border-t-2 border-purple-500 border-r-2 rounded-full mx-auto mb-2"></div>
@@ -33,7 +40,6 @@ const FormList: React.FC<FormListProps> = ({
     );
   }
 
-  // عرض رسالة ولكن استمر في عرض النماذج الموجودة في حالة وجود خطأ
   if (hasError && forms.length === 0) {
     return (
       <div className="p-8 text-center">
@@ -68,6 +74,13 @@ const FormList: React.FC<FormListProps> = ({
           isActionInProgress={false}
         />
       ))}
+      
+      {/* إضافة مؤشر تحميل عند إضافة المزيد من النماذج */}
+      {isLoading && forms.length > 0 && (
+        <div className="p-4 text-center">
+          <div className="animate-spin h-4 w-4 border-t-2 border-purple-500 border-r-2 rounded-full mx-auto"></div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
@@ -30,6 +31,7 @@ const FormBuilderPage = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<boolean>(false);
+  const [hasInitialFormData, setHasInitialFormData] = useState<boolean>(false);
 
   // معالجة تحميل بيانات النموذج
   useEffect(() => {
@@ -41,23 +43,45 @@ const FormBuilderPage = () => {
         console.log(`FormBuilderPage: Loading form with ID: ${formId}`);
         let form;
         
+        // إضافة تأخير قصير لتجنب التحميل المستمر
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         try {
           form = await getFormById(formId || 'new');
+          
+          // تأكد من وجود بيانات صالحة
+          if (!form || (!form.id && formId !== 'new')) {
+            throw new Error('No valid form data received');
+          }
+          
         } catch (fetchError) {
           console.error('Error fetching form:', fetchError);
           setConnectionError(true);
           
+          // محاولة استرجاع البيانات المخزنة محليًا
+          try {
+            const cachedForm = localStorage.getItem(`form_${formId}`);
+            if (cachedForm) {
+              form = JSON.parse(cachedForm);
+              console.log('Using cached form data:', form);
+            }
+          } catch (cacheError) {
+            console.error('Error retrieving cached form:', cacheError);
+          }
+          
           // إنشاء نموذج افتراضي في حالة وجود مشكلة في الاتصال
-          form = {
-            id: formId || 'new',
-            title: formId === 'new' ? 'نموذج جديد' : 'نموذج موجود',
-            description: '',
-            data: [],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            user_id: user?.id || '',
-            is_published: false
-          };
+          if (!form) {
+            form = {
+              id: formId || 'new',
+              title: formId === 'new' ? 'نموذج جديد' : 'نموذج موجود',
+              description: '',
+              data: [],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              user_id: user?.id || '',
+              is_published: false
+            };
+          }
         }
         
         if (form) {
@@ -65,7 +89,9 @@ const FormBuilderPage = () => {
           setTitle(form.title || '');
           setDescription(form.description || '');
           // التأكد من أن البيانات دائمًا مصفوفة
-          setFormData(Array.isArray(form.data) ? form.data : []);
+          const formDataArray = Array.isArray(form.data) ? form.data : [];
+          setFormData(formDataArray);
+          setHasInitialFormData(true);
         } else {
           console.error('Form not found');
           toast.error(language === 'ar' ? 'النموذج غير موجود' : 'Form not found');
@@ -121,6 +147,12 @@ const FormBuilderPage = () => {
           lastModified: new Date().toISOString()
         });
         localStorage.setItem('offline_forms', JSON.stringify(offlineForms));
+        
+        // حفظ النموذج الحالي أيضًا
+        localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
+          id: formId || 'new',
+          ...formPayload
+        }));
         
         // توجيه المستخدم إلى صفحة النماذج
         toast.success(
@@ -284,7 +316,7 @@ const FormBuilderPage = () => {
   };
   
   // عرض حالة التحميل
-  if (isLoading) {
+  if (isLoading && !hasInitialFormData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
