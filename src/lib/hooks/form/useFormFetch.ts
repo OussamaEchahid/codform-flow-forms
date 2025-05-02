@@ -47,13 +47,12 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a completely separate object to break type recursion
-      const formData = {
+      // Break the type recursion by creating a completely new object with explicit any type
+      const formData: any = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Use a type assertion that bypasses TypeScript's deep analysis
-        data: Object.assign({}, data.data) as Record<string, any>,
+        data: data.data as any, // Force any type to break recursion
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -61,6 +60,7 @@ export const useFormFetch = () => {
         shop_id: data.shop_id
       };
       
+      // Cast back to FormData after breaking the recursion
       return formData as FormData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
@@ -108,13 +108,12 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            // Create completely separate objects for each form to break recursion
-            const formData = {
+            // Break the type recursion by using explicit any type
+            const formData: any = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Use object spread operator to create a fresh copy
-              data: Object.assign({}, item.data) as Record<string, any>,
+              data: item.data as any, // Force any type to break recursion
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
