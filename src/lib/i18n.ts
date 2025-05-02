@@ -22,11 +22,13 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     return key;
   };
   
-  return (
-    <I18nContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return {
+    element: I18nContext.Provider,
+    props: {
+      value: { language, setLanguage, t },
+      children
+    }
+  };
 };
 
 export const useI18n = () => useContext(I18nContext);
