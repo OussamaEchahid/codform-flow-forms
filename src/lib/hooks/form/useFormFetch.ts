@@ -101,12 +101,12 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Convert returned data to FormData[] with explicit property assignments to avoid type recursion
+      // Use a more explicit approach to avoid type recursion
       const fetchedForms: FormData[] = [];
       
       if (data) {
-        for (let i = 0; i < data.length; i++) {
-          const item = data[i];
+        for (const item of data) {
+          // Create each form with explicit typing
           const formItem: FormData = {
             id: item.id,
             title: item.title,
