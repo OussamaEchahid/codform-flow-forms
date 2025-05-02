@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create explicit type object to avoid recursion issues
-      const fetchedForm: FormData = {
+      // Create a plain object without using FormData type to avoid recursion
+      const fetchedForm = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -58,7 +58,7 @@ export const useFormFetch = () => {
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      };
+      } as FormData;
       
       return fetchedForm;
     } catch (error) {
@@ -101,13 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Explicitly create FormData objects to avoid type recursion
-      const fetchedForms: FormData[] = [];
+      // Create forms array without directly using FormData[] type annotation
+      const fetchedForms: Array<FormData> = [];
       
       if (data) {
         for (const item of data) {
-          // Create each form with explicit property assignments
-          fetchedForms.push({
+          // Cast each object to FormData after creation to avoid recursion
+          const form = {
             id: item.id,
             title: item.title,
             description: item.description,
@@ -117,7 +117,9 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          });
+          } as FormData;
+          
+          fetchedForms.push(form);
         }
       }
       
