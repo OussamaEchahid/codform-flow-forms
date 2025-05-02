@@ -34,6 +34,18 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (shopInStorage && connectionStatus) {
       verifyTokenInDatabase(shopInStorage);
+      
+      // IMPORTANT: If Shopify is connected, create a virtual user
+      // This ensures the system recognizes authentication even without direct login
+      if (!user) {
+        setUser({
+          id: `shopify-${shopInStorage}`,
+          email: `shop@${shopInStorage}`,
+          app_metadata: { provider: 'shopify' },
+          user_metadata: { shop: shopInStorage },
+          shopify: true
+        });
+      }
     }
   };
 
@@ -53,6 +65,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setShopifyConnected(false);
     setIsTokenVerified(false);
     setLastConnectionTime(undefined);
+    
+    // Reset user state if it's a Shopify-based user
+    if (user && user.shopify) {
+      setUser(null);
+    }
     
     // إظهار رسالة للمستخدم
     toast.info('تم مسح بيانات الاتصال. يرجى إعادة الاتصال بمتجر Shopify.');
@@ -88,6 +105,17 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // تحديث وقت آخر اتصال ناجح
         localStorage.setItem('shopify_last_connect_time', Date.now().toString());
         setLastConnectionTime(Date.now().toString());
+        
+        // Create a virtual user for Shopify authentication if user doesn't exist
+        if (!user) {
+          setUser({
+            id: `shopify-${shopDomain}`,
+            email: `shop@${shopDomain}`,
+            app_metadata: { provider: 'shopify' },
+            user_metadata: { shop: shopDomain },
+            shopify: true
+          });
+        }
       } else {
         console.log("AuthProvider: No valid token found for shop", shopDomain);
         setIsTokenVerified(false);
@@ -95,6 +123,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // إذا لم يتم العثور على رمز، يمكن محاولة إعادة الاتصال
         localStorage.removeItem('shopify_connected');
         setShopifyConnected(false);
+        
+        // Reset user if it was a Shopify-based user
+        if (user && user.shopify) {
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error("AuthProvider: Exception while verifying token:", error);
@@ -107,9 +140,32 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const setupAuth = async () => {
       console.log("AuthProvider: Setting up authentication");
       
-      // التحقق من المستخدم الحالي
+      // التحقق من المستخدم الحالي من Supabase
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
+      
+      // Check for Shopify authentication first
+      const shopInStorage = localStorage.getItem('shopify_store');
+      const connectionStatus = localStorage.getItem('shopify_connected') === 'true';
+      
+      if (shopInStorage && connectionStatus) {
+        console.log("AuthProvider: Found Shopify connection, using as authentication");
+        if (!currentUser) {
+          // Create virtual user for Shopify authentication
+          setUser({
+            id: `shopify-${shopInStorage}`,
+            email: `shop@${shopInStorage}`,
+            app_metadata: { provider: 'shopify' },
+            user_metadata: { shop: shopInStorage },
+            shopify: true
+          });
+        } else {
+          // If there's both a Supabase user and Shopify connection
+          setUser(currentUser);
+        }
+      } else if (currentUser) {
+        // Standard Supabase authentication
+        setUser(currentUser);
+      }
       
       // قراءة بيانات اتصال Shopify من التخزين المحلي
       refreshShopifyConnection();
@@ -117,7 +173,17 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // استماع لتغييرات حالة المصادقة
       const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         console.log("AuthProvider: Auth state change", event);
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          // Only reset user if it's a Supabase user, not a Shopify user
+          const shopInStorage = localStorage.getItem('shopify_store');
+          const connectionStatus = localStorage.getItem('shopify_connected') === 'true';
+          
+          if (!(shopInStorage && connectionStatus)) {
+            setUser(null);
+          }
+        }
       });
       
       setLoading(false);
@@ -137,9 +203,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const shop = params.get('shop');
       const host = params.get('host');
       const timestamp = params.get('timestamp');
+      const authSuccess = params.get('auth_success');
       
-      if (shop && host && timestamp) {
-        console.log("AuthProvider: Detected Shopify callback parameters", { shop, host, timestamp });
+      if (shop && (host || timestamp || authSuccess === 'true')) {
+        console.log("AuthProvider: Detected Shopify callback parameters", { shop, host, timestamp, authSuccess });
         
         // Store parameters and update connection status
         localStorage.setItem('shopify_store', shop);
@@ -150,6 +217,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setShop(shop);
         setShopifyConnected(true);
         setLastConnectionTime(Date.now().toString());
+        
+        // Create a virtual user for Shopify authentication
+        setUser({
+          id: `shopify-${shop}`,
+          email: `shop@${shop}`,
+          app_metadata: { provider: 'shopify' },
+          user_metadata: { shop },
+          shopify: true
+        });
         
         // Verify token
         verifyTokenInDatabase(shop);

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const Forms = () => {
-  const { shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect, lastConnectionTime } = useAuth();
+  const { user, shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect, lastConnectionTime } = useAuth();
   const navigate = useNavigate();
   const [isPageReady, setIsPageReady] = useState(false);
   const [connectionVerified, setConnectionVerified] = useState(false);
@@ -27,6 +27,8 @@ const Forms = () => {
   // منع دورات التحقق المتكررة عن طريق تتبع الحالة
   useEffect(() => {
     console.log('Forms: Component mounted with initial state');
+    console.log('Forms: Auth status -', { user, shopifyConnected, shop });
+    
     // تنظيف البيانات المؤقتة لـ Shopify
     localStorage.removeItem('shopify_last_redirect_time');
     localStorage.removeItem('shopify_temp_store');
@@ -40,7 +42,7 @@ const Forms = () => {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [user, shopifyConnected, shop]);
   
   // التحقق من الاتصال مرة واحدة فقط عند بدء التشغيل
   useEffect(() => {
@@ -149,8 +151,18 @@ const Forms = () => {
     );
   }
   
-  // إظهار شاشة مشكلة الاتصال
-  if (!connectionVerified || !shopifyConnected || !shop) {
+  // Authentication status debugging info in console
+  console.log("Forms page authentication status:", {
+    user: !!user,
+    userDetails: user,
+    shopifyConnected,
+    connectionVerified,
+    shop,
+    errorState
+  });
+  
+  // إظهار شاشة مشكلة الاتصال - only if no user AND no Shopify connection
+  if ((!user && !shopifyConnected) || (!connectionVerified && !user && !shopifyConnected)) {
     return (
       <div className="flex min-h-screen bg-[#F8F9FB]">
         <AppSidebar />
@@ -229,7 +241,7 @@ const Forms = () => {
       <AppSidebar />
       
       <div className="flex-1">
-        {!isTokenVerified && <ShopifyConnectionStatus />}
+        {!isTokenVerified && shopifyConnected && <ShopifyConnectionStatus />}
         
         <FormBuilderDashboard key="form-dashboard" />
       </div>

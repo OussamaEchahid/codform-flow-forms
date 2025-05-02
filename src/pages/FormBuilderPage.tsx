@@ -30,7 +30,7 @@ const FormBuilderPage = () => {
   // Check authentication status on load
   useEffect(() => {
     const checkAuth = () => {
-      console.log("FormBuilderPage: Checking auth status, user:", user);
+      console.log("FormBuilderPage: Checking auth status, user:", user, "shopifyConnected:", shopifyConnected);
       
       // Restore auth state from sessionStorage if needed
       const savedAuthState = sessionStorage.getItem('auth_state');
@@ -57,10 +57,10 @@ const FormBuilderPage = () => {
         }
       }
       
-      // If user is not authenticated, redirect to forms page
-      if (!user) {
-        console.log("FormBuilderPage: User not authenticated, navigating to forms");
-        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access form builder');
+      // If user is not authenticated AND not connected to Shopify, redirect to forms page
+      if (!user && !shopifyConnected) {
+        console.log("FormBuilderPage: User not authenticated and not connected to Shopify, navigating to forms");
+        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أو الاتصال بـ Shopify للوصول إلى منشئ النماذج' : 'Please login or connect to Shopify to access form builder');
         navigate('/forms', { replace: true });
         return false;
       }
@@ -115,7 +115,7 @@ const FormBuilderPage = () => {
       
       init();
     }
-  }, [formId, user, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
+  }, [formId, user, shopifyConnected, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
 
   // Show loading state while checking auth
   if (!authChecked) {
@@ -126,18 +126,25 @@ const FormBuilderPage = () => {
     );
   }
   
-  // User not authenticated
-  if (!user) {
+  // User not authenticated and not connected to Shopify
+  if (!user && !shopifyConnected) {
     return (
       <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
         <div className="bg-white shadow rounded-lg p-8 w-full max-w-md text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h3 className="text-xl font-medium mb-2">
-            {language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}
+            {language === 'ar' ? 'يرجى تسجيل الدخول أو الاتصال بـ Shopify للوصول إلى منشئ النماذج' : 'Please login or connect to Shopify to access the form builder'}
           </h3>
           <Button 
+            onClick={() => navigate('/shopify')}
+            className="mt-4 mb-2 bg-[#9b87f5] hover:bg-[#8a74e8] w-full"
+          >
+            {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
+          </Button>
+          <Button 
             onClick={() => navigate('/forms')}
-            className="mt-4 bg-[#9b87f5] hover:bg-[#8a74e8]"
+            variant="outline"
+            className="w-full"
           >
             {language === 'ar' ? 'العودة إلى النماذج' : 'Return to Forms'}
           </Button>
