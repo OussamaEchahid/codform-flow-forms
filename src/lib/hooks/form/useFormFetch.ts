@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // To avoid type inference issues, create a plain object first without type annotation
-      const formObject = {
+      // Create FormData object directly without complex type inference
+      const result = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -58,10 +58,8 @@ export const useFormFetch = () => {
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      };
+      } as FormData;
       
-      // Then apply the type
-      const result = formObject as FormData;
       return result;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
@@ -103,12 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create a plain array first
-      const formArray: Array<Record<string, any>> = [];
+      // Transform data to FormData[] without complex type inference
+      const results: FormData[] = [];
       
       if (data) {
         for (const item of data) {
-          formArray.push({
+          // Push each item individually to prevent type recursion
+          results.push({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -118,12 +117,9 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          });
+          } as FormData);
         }
       }
-      
-      // Then cast the entire array
-      const results = formArray as FormData[];
       
       setForms(results);
       return results;
