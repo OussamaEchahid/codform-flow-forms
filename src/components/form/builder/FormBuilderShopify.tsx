@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 interface FormBuilderShopifyProps {
   onShopifyIntegration?: (settings: ShopifyFormData) => Promise<void>;
   isSyncing?: boolean;
-  formId?: string | null; // إضافة خاصية formId
+  formId?: string | null;
 }
 
 const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({ 

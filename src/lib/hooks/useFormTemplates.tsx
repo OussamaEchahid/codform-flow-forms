@@ -1,10 +1,9 @@
-
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
-import { Database } from '@/types/supabase';
+import { Database } from '@/integrations/supabase/types';
 
 // تعريف نوع FormData بشكل متوافق مع بيانات قاعدة البيانات
 export interface FormData {
@@ -37,10 +36,11 @@ export const useFormTemplates = () => {
     setIsLoading(true);
 
     try {
-      // تأكد من أن حقل data موجود
+      // تأكد من أن حقل data موجود وأن title موجود (لأنه مطلوب في قاعدة البيانات)
       const dataToInsert = {
         ...formData,
         data: formData.data || [], // استخدام مصفوفة فارغة كقيمة افتراضية
+        title: formData.title || 'Untitled Form', // تعيين قيمة افتراضية للعنوان
         user_id: user?.id // إضافة user_id إذا كان المستخدم متاحًا
       };
 
@@ -343,6 +343,6 @@ export const useFormTemplates = () => {
     createNewForm,
     deleteForm,
     clearFormCache,
-    publishForm // إضافة دالة publishForm إلى الكائن المُرجع
+    publishForm
   };
 };
