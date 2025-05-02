@@ -48,13 +48,13 @@ export const useFormFetch = () => {
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
       // Create a FormData object with explicit typing and direct assignment
-      // Avoid complex type inference by using a simpler structure
+      // Using a simple structure without complex type inference
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Prevent deep recursion by using a simple object
-        data: data.data === null ? {} : JSON.parse(JSON.stringify(data.data)),
+        // Use a simple object assignment to avoid deep type recursion
+        data: typeof data.data === 'object' ? { ...data.data } : {},
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -109,13 +109,13 @@ export const useFormFetch = () => {
         // Process each form individually with simpler type handling
         data.forEach(item => {
           if (item) {
-            // Create a FormData object with explicit typing
+            // Create a FormData object with explicit typing and simplified data handling
             const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Prevent deep recursion by using a simple object
-              data: item.data === null ? {} : JSON.parse(JSON.stringify(item.data)),
+              // Use a simple object assignment to avoid deep type recursion
+              data: typeof item.data === 'object' ? { ...item.data } : {},
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
