@@ -47,18 +47,19 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a plain object first, then apply the type
-      const formData: FormData = {
+      // Use type assertion with a clean copy of the data
+      const formData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        data: JSON.parse(JSON.stringify(data.data)), // Break reference to prevent recursion
+        // Explicitly clone the data to avoid reference issues
+        data: JSON.parse(JSON.stringify(data.data || {})),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      };
+      } as FormData;
       
       return formData;
     } catch (error) {
@@ -101,24 +102,28 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create an array to hold the forms
       const formsData: FormData[] = [];
       
-      if (data) {
-        // Process each item individually to avoid circular references
-        for (const item of data) {
-          formsData.push({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            data: JSON.parse(JSON.stringify(item.data)), // Break reference to prevent recursion
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            user_id: item.user_id,
-            is_published: item.is_published,
-            shop_id: item.shop_id
-          });
-        }
+      if (data && Array.isArray(data)) {
+        // Map the data to FormData objects with type assertion
+        data.forEach(item => {
+          if (item) {
+            const formData = {
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              // Explicitly clone the data to avoid reference issues
+              data: JSON.parse(JSON.stringify(item.data || {})),
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              user_id: item.user_id,
+              is_published: item.is_published,
+              shop_id: item.shop_id
+            } as FormData;
+            
+            formsData.push(formData);
+          }
+        });
       }
       
       setForms(formsData);
