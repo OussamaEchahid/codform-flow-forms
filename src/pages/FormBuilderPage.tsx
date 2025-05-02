@@ -10,7 +10,8 @@ import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { ShopifyConnectionManager } from '@/components/shopify/ShopifyConnectionManager';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -116,26 +117,6 @@ const FormBuilderPage = () => {
     }
   }, [formId, user, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
 
-  // Handle reconnection to Shopify
-  const handleConnectShopify = () => {
-    if (isRedirecting) {
-      return;
-    }
-    
-    setIsRedirecting(true);
-    toast.info(language === 'ar' ? 'جاري إعادة توجيهك للاتصال بـ Shopify...' : 'Redirecting to connect to Shopify...');
-    
-    // Clear connection data
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_last_connect_time');
-    
-    // Force page reload to /shopify route
-    setTimeout(() => {
-      window.location.href = '/shopify';
-    }, 500);
-  };
-
   // Show loading state while checking auth
   if (!authChecked) {
     return (
@@ -214,24 +195,9 @@ const FormBuilderPage = () => {
                 ? 'يجب الاتصال بـ Shopify لاستخدام ميزات التكامل. يرجى النقر على الزر أدناه للاتصال.' 
                 : 'Connecting to Shopify is required to use integration features. Please click the button below to connect.'}
             </AlertDescription>
-            <Button 
-              onClick={handleConnectShopify}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-md text-lg font-medium"
-              size="lg"
-              disabled={isRedirecting}
-            >
-              {isRedirecting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                  {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
-                </div>
-              ) : (
-                <>
-                  <RefreshCw className="h-5 w-5 mr-2" />
-                  {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-                </>
-              )}
-            </Button>
+            
+            {/* Use our new ShopifyConnectionManager component */}
+            <ShopifyConnectionManager variant="button" />
           </Alert>
         </div>
       )}

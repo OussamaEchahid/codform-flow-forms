@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
@@ -12,24 +11,46 @@ export default function ShopifyCallback() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState("جاري معالجة طلب المصادقة...");
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>({});
+  const [shop, setShop] = useState<string | null>(null);
   
   useEffect(() => {
     const handleCallback = async () => {
       try {
         const params = new URLSearchParams(location.search);
-        const shop = params.get('shop');
+        const shopParam = params.get('shop');
         const code = params.get('code');
         const hmac = params.get('hmac');
         const state = params.get('state');
+        const timestamp = Date.now();
+        
+        setShop(shopParam);
         
         console.log("Shopify callback received with params:", { 
-          shop, 
+          shop: shopParam, 
           code: code ? 'present' : 'missing', 
           hmac: hmac ? 'present' : 'missing',
           state
         });
         
-        if (!shop || !code || !hmac) {
+        setDebugInfo({
+          params: {
+            shop: shopParam,
+            code: code ? 'present' : 'missing',
+            hmac: hmac ? 'present' : 'missing',
+            state
+          },
+          timestamp: new Date().toISOString(),
+          url: window.location.href,
+          localStorage: {
+            shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+            shopify_store: localStorage.getItem('shopify_store'),
+            shopify_connected: localStorage.getItem('shopify_connected')
+          }
+        });
+        
+        // Make sure we have required params
+        if (!shopParam || !code || !hmac) {
           setStatus('error');
           setError("معلمات المصادقة مفقودة");
           return;
@@ -37,11 +58,18 @@ export default function ShopifyCallback() {
         
         // Call our Supabase Edge Function to complete OAuth
         setMessage("جاري التحقق من المصادقة مع Shopify...");
-        const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}`;
+        const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
         
         console.log("Calling callback function:", callbackUrl);
         
-        const response = await fetch(callbackUrl);
+        const response = await fetch(callbackUrl, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -57,19 +85,28 @@ export default function ShopifyCallback() {
         
         if (result.success) {
           setStatus('success');
-          setMessage(`تم الاتصال بمتجر ${shop} بنجاح! جاري التوجيه...`);
+          setMessage(`تم الاتصال بمتجر ${shopParam} بنجاح! جاري التوجيه...`);
           
-          // حفظ معلومات المتجر في التخزين المحلي
-          localStorage.setItem('shopify_store', shop);
+          // Store connection data with clean values
+          localStorage.setItem('shopify_store', shopParam);
           localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('shopify_last_connect_time', timestamp.toString());
           localStorage.removeItem('shopify_temp_store');
           
-          // إظهار رسالة نجاح
-          toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+          // Show success toast
+          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
           
-          // تأخير بسيط ثم التوجيه إلى لوحة التحكم
+          // Redirect with delay to allow state to be saved
           setTimeout(() => {
-            navigate('/dashboard', { replace: true });
+            navigate('/dashboard', { 
+              replace: true, 
+              state: { 
+                shopify_success: true, 
+                shop: shopParam, 
+                connected: true,
+                timestamp
+              } 
+            });
           }, 1500);
         } else {
           setStatus('error');
@@ -86,7 +123,12 @@ export default function ShopifyCallback() {
   }, [location.search, navigate]);
   
   const handleRetry = () => {
-    window.location.href = '/shopify';
+    // Navigate to Shopify connection page with shop parameter if available
+    if (shop) {
+      window.location.href = `/shopify?shop=${encodeURIComponent(shop)}&retry=true&ts=${Date.now()}`;
+    } else {
+      window.location.href = `/shopify?retry=true&ts=${Date.now()}`;
+    }
   };
   
   const handleGoToDashboard = () => {
