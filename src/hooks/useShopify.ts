@@ -25,30 +25,33 @@ export const useShopify = () => {
     try {
       console.log('Refreshing Shopify products for shop:', shop);
       
-      // استخدام وظيفة RPC مخصصة بدلاً من الوصول المباشر للجدول
-      const { data: productsData, error } = await supabase
-        .rpc('get_user_shop')
-        .order('title', { ascending: true });
-
-      if (error) {
-        console.error('Supabase error fetching products:', error);
-        setError(error.message);
-        throw error;
+      // نحاول استخدام وظيفة get_shopify_store_data بدلاً من get_user_shop
+      // لكن إذا فشل ذلك، نستخدم get_user_shop كاحتياطي
+      let shopData;
+      
+      try {
+        // أولاً، نحاول استخدام وظيفة get_shopify_store_data التي تعيد معلومات المتجر كاملة
+        const { data: storeData, error: storeError } = await supabase
+          .rpc('get_shopify_store_data');
+        
+        if (storeError) throw storeError;
+        shopData = storeData?.[0];
+      } catch (storeError) {
+        console.log('Falling back to get_user_shop for basic shop name');
+        // في حالة الفشل، نستخدم get_user_shop للحصول على اسم المتجر فقط
+        const { data: shopName, error } = await supabase.rpc('get_user_shop');
+        
+        if (error) {
+          throw error;
+        }
+        
+        shopData = { shop: shopName };
       }
 
-      console.log('Products data received:', productsData);
+      console.log('Shop data received:', shopData);
 
-      // إذا لم تكن وظيفة RPC موجودة بعد، استخدم بيانات وهمية مؤقتًا
-      const formattedProducts: ShopifyProduct[] = productsData ? [
-        {
-          id: "mock1",
-          title: "Sample Product",
-          handle: "sample-product",
-          description: "This is a sample product",
-          price: "19.99",
-          image: ""
-        }
-      ] : [
+      // استخدام بيانات وهمية مؤقتة للمنتجات
+      const formattedProducts: ShopifyProduct[] = [
         {
           id: "mock1",
           title: "Sample Product",
