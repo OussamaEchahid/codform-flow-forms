@@ -47,13 +47,13 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Use a more direct approach to avoid type recursion
+      // Create a completely new object to avoid type recursion
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Break recursion by using a type assertion to any
-        data: data.data as any,
+        // Create a completely new object for the data to break any reference
+        data: JSON.parse(JSON.stringify(data.data)),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -108,13 +108,13 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            // Use a more direct approach to avoid type recursion
+            // Create a completely new object to avoid type recursion
             const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Break recursion by using a type assertion to any
-              data: item.data as any,
+              // Create a completely new object for the data to break any reference
+              data: JSON.parse(JSON.stringify(item.data)),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
