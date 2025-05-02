@@ -1,100 +1,108 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Available languages
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
 type Language = 'en' | 'ar';
 
-// Interface for i18n context
 interface I18nContextType {
-  t: (key: string) => string;
   language: Language;
   setLanguage: (lang: Language) => void;
+  t: (key: string) => string;
+  dir: () => 'ltr' | 'rtl';
 }
 
-// Translations
-const translations = {
-  en: {
-    loading: 'Loading...',
-    forms: 'Forms',
-    useTemplate: 'Use Template',
-    createNewForm: 'Create New Form',
-    formCreating: 'Creating Form...',
-    noForms: 'No forms available',
-    createFormPrompt: 'Click "Create New Form" to add a form',
-    shopifyConnectionIssue: 'Shopify Connection Issue',
-    pleaseConnect: 'Please connect to Shopify to use form features',
-    connectToShopifyNow: 'Connect to Shopify Now',
-    forceReconnect: 'Force Reconnect',
-    authError: 'Authentication Error',
-    pleaseLogin: 'Please login to continue',
+const translations: Record<string, Record<Language, string>> = {
+  loading: {
+    en: 'Loading...',
+    ar: 'جار التحميل...'
   },
-  ar: {
-    loading: 'جار التحميل...',
-    forms: 'النماذج',
-    useTemplate: 'استخدام قالب',
-    createNewForm: 'إنشاء نموذج جديد',
-    formCreating: 'جاري إنشاء النموذج...',
-    noForms: 'لا توجد نماذج متاحة',
-    createFormPrompt: 'انقر على "إنشاء نموذج جديد" لإضافة نموذج',
-    shopifyConnectionIssue: 'مشكلة في الاتصال بـ Shopify',
-    pleaseConnect: 'يرجى الاتصال بـ Shopify لاستخدام ميزات النماذج',
-    connectToShopifyNow: 'الاتصال بـ Shopify الآن',
-    forceReconnect: 'إعادة الاتصال الإجباري',
-    authError: 'خطأ في المصادقة',
-    pleaseLogin: 'يرجى تسجيل الدخول للمتابعة',
+  shopifyConnectionIssue: {
+    en: 'Shopify Connection Issue',
+    ar: 'مشكلة في الاتصال بـ Shopify'
+  },
+  pleaseConnect: {
+    en: 'Please connect your Shopify store to continue using this application.',
+    ar: 'يرجى الاتصال بمتجر Shopify للاستمرار في استخدام هذا التطبيق.'
+  },
+  connectToShopifyNow: {
+    en: 'Connect to Shopify Now',
+    ar: 'الاتصال بـ Shopify الآن'
+  },
+  forceReconnect: {
+    en: 'Force Reconnect',
+    ar: 'إعادة الاتصال بشكل إجباري'
+  },
+  'shopify.integration': {
+    en: 'Shopify Integration',
+    ar: 'تكامل Shopify'
+  },
+  'shopify.connection_required': {
+    en: 'You need to connect to Shopify to use this feature.',
+    ar: 'تحتاج إلى الاتصال بـ Shopify لاستخدام هذه الميزة.'
+  },
+  'shopify.connect_now': {
+    en: 'Connect to Shopify',
+    ar: 'الاتصال بـ Shopify'
+  },
+  'shopify.connected': {
+    en: 'Connected to Shopify',
+    ar: 'متصل بـ Shopify'
   }
 };
 
-// Create context
+// Create I18n context
 const I18nContext = createContext<I18nContextType>({
-  t: (key) => key,
   language: 'en',
   setLanguage: () => {},
+  t: () => '',
+  dir: () => 'ltr'
 });
 
-// Event to notify when language changes
-export const createLanguageChangeEvent = (language: string) => {
-  const event = new CustomEvent('languageChange', { detail: { language } });
-  document.dispatchEvent(event);
-  return event;
-};
+export const useI18n = () => useContext(I18nContext);
 
-// Provider component
-export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize from localStorage or default to 'ar'
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('language');
-    return (saved === 'en' || saved === 'ar') ? saved : 'ar';
-  });
-  
-  // Set document direction based on language
-  useEffect(() => {
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    localStorage.setItem('language', language);
-    
-    // Dispatch language change event for components that need to react
-    createLanguageChangeEvent(language);
-  }, [language]);
-  
-  // Translation function
-  const t = (key: string): string => {
-    return translations[language][key as keyof typeof translations[typeof language]] || key;
-  };
-  
-  // Change language and update localStorage
+export const I18nProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  // Try to get language from localStorage, default to en
+  const [language, setLanguageState] = useState<Language>(
+    () => {
+      try {
+        const savedLanguage = localStorage.getItem('language');
+        return (savedLanguage === 'ar' || savedLanguage === 'en') 
+          ? savedLanguage 
+          : 'en';
+      } catch {
+        return 'en';
+      }
+    }
+  );
+
   const setLanguage = (lang: Language) => {
-    localStorage.setItem('language', lang);
     setLanguageState(lang);
+    try {
+      localStorage.setItem('language', lang);
+      // Update document direction
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = lang;
+    } catch (e) {
+      console.error('Failed to save language preference:', e);
+    }
   };
-  
+
+  const t = (key: string): string => {
+    return translations[key]?.[language] || key;
+  };
+
+  const dir = (): 'ltr' | 'rtl' => {
+    return language === 'ar' ? 'rtl' : 'ltr';
+  };
+
+  // Set initial document direction
+  React.useEffect(() => {
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language]);
+
   return (
-    <I18nContext.Provider value={{ t, language, setLanguage }}>
+    <I18nContext.Provider value={{ language, setLanguage, t, dir }}>
       {children}
     </I18nContext.Provider>
   );
 };
-
-// Hook to use i18n in components
-export const useI18n = () => useContext(I18nContext);
-
-// Ensure the file also re-exports everything for backward compatibility
-export * from './i18n';

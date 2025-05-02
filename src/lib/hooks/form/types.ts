@@ -1,12 +1,11 @@
 
-import { Database } from '@/integrations/supabase/types';
-
-// Define FormData type that's compatible with Supabase database
+// Define FormData type that's compatible with Supabase database - Simplified to avoid recursion issues
 export interface FormData {
   id: string;
   title: string;
   description?: string | null;
-  data: any; // Using any instead of any[] to solve compatibility issues with Supabase Json
+  // Use a simpler type for data to avoid recursion issues
+  data: any;
   created_at?: string;
   updated_at?: string;
   user_id?: string;

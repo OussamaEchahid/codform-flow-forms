@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { FormData } from './types';
 
 /**
- * Hook for fetching form data
+ * Hook for fetching form data - Simplified to avoid type recursion issues
  */
 export const useFormFetch = () => {
   const [forms, setForms] = useState<FormData[]>([]);
@@ -16,7 +16,7 @@ export const useFormFetch = () => {
   const { language } = useI18n();
 
   /**
-   * Get a form by ID
+   * Get a form by ID - Using simple object creation to prevent type recursion
    */
   const getFormById = useCallback(async (formId: string, formCache: Record<string, FormData>) => {
     console.log(`useFormFetch: Getting form by ID: ${formId}`);
@@ -29,7 +29,7 @@ export const useFormFetch = () => {
       }
       
       // Form not in cache, fetch from database
-      const { data, error } = await supabase
+      const { data: rawData, error } = await supabase
         .from('forms')
         .select('*')
         .eq('id', formId)
@@ -40,25 +40,25 @@ export const useFormFetch = () => {
         throw error;
       }
 
-      if (!data) {
+      if (!rawData) {
         console.log(`useFormFetch: Form ${formId} not found`);
         return null;
       }
 
-      console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
+      console.log(`useFormFetch: Form ${formId} fetched successfully:`, rawData);
       
-      // Create a completely new object to avoid type recursion
+      // Create a new object with a simple assignment
       const formData: FormData = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        // Create a completely new object for the data to break any reference
-        data: JSON.parse(JSON.stringify(data.data)),
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        user_id: data.user_id,
-        is_published: data.is_published,
-        shop_id: data.shop_id
+        id: rawData.id,
+        title: rawData.title,
+        description: rawData.description,
+        // Explicitly create a new object - fixes type recursion
+        data: structuredClone(rawData.data || []),
+        created_at: rawData.created_at,
+        updated_at: rawData.updated_at,
+        user_id: rawData.user_id,
+        is_published: rawData.is_published,
+        shop_id: rawData.shop_id
       };
       
       return formData;
@@ -70,7 +70,7 @@ export const useFormFetch = () => {
   }, [language]);
 
   /**
-   * Fetch all forms for the current user
+   * Fetch all forms for the current user - Simplified to prevent type issues
    */
   const fetchForms = useCallback(async () => {
     console.log("useFormFetch: Fetching forms");
@@ -93,28 +93,27 @@ export const useFormFetch = () => {
       // Order by newest first
       query = query.order('created_at', { ascending: false });
       
-      const { data, error } = await query;
+      const { data: rawData, error } = await query;
 
       if (error) {
         console.error("useFormFetch: Error fetching forms:", error);
         throw error;
       }
 
-      console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
+      console.log("useFormFetch: Forms fetched successfully:", rawData?.length || 0, "forms");
       
       const formsData: FormData[] = [];
       
-      if (data && Array.isArray(data)) {
-        // Process each form individually
-        data.forEach(item => {
+      if (rawData && Array.isArray(rawData)) {
+        // Process each form individually with simple object creation
+        rawData.forEach(item => {
           if (item) {
-            // Create a completely new object to avoid type recursion
             const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Create a completely new object for the data to break any reference
-              data: JSON.parse(JSON.stringify(item.data)),
+              // Explicitly create a new object - fixes type recursion
+              data: structuredClone(item.data || []),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
