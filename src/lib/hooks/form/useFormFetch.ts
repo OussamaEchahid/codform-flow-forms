@@ -102,17 +102,25 @@ export const useFormFetch = () => {
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
       // Convert returned data to FormData[]
-      const fetchedForms: FormData[] = data?.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        data: item.data,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        user_id: item.user_id,
-        is_published: item.is_published,
-        shop_id: item.shop_id
-      })) || [];
+      const fetchedForms: FormData[] = [];
+      
+      // Using manual loop instead of map() to avoid type recursion issues
+      if (data) {
+        for (let i = 0; i < data.length; i++) {
+          const item = data[i];
+          fetchedForms.push({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            data: item.data,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            user_id: item.user_id,
+            is_published: item.is_published,
+            shop_id: item.shop_id
+          });
+        }
+      }
       
       setForms(fetchedForms);
       return fetchedForms;
