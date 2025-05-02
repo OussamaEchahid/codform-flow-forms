@@ -46,10 +46,12 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     setIsCheckingConnection(true);
     try {
       const connected = await refreshConnection();
-      toast.success(connected
-        ? (language === 'ar' ? 'تم التحقق من اتصال Shopify بنجاح' : 'Shopify connection verified successfully')
-        : (language === 'ar' ? 'فشل التحقق من اتصال Shopify' : 'Shopify connection verification failed')
-      );
+      if (connected !== undefined) {
+        toast.success(connected
+          ? (language === 'ar' ? 'تم التحقق من اتصال Shopify بنجاح' : 'Shopify connection verified successfully')
+          : (language === 'ar' ? 'فشل التحقق من اتصال Shopify' : 'Shopify connection verification failed')
+        );
+      }
     } catch (error) {
       console.error('Error verifying connection:', error);
       toast.error(language === 'ar' ? 'خطأ في التحقق من الاتصال' : 'Connection check error');

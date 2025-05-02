@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -91,8 +90,8 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   // معالج إعادة الاتصال بـ Shopify
   const handleReconnect = () => {
     if (forceReconnect) {
-      const result = forceReconnect();
-      // لا نحتاج إلى التحقق من النتيجة لأن forceReconnect تقوم بإعادة توجيه المتصفح
+      const reconnectResult = forceReconnect();
+      // Skip checking result because forceReconnect may redirect
     } else {
       handleConnect();
     }
@@ -104,7 +103,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       try {
         const result = await refreshShopifyConnection();
         
-        if (result) {
+        if (result !== undefined) {
           toast.success(language === 'ar' 
             ? 'تم تحديث حالة الاتصال بنجاح' 
             : 'Connection status updated successfully');

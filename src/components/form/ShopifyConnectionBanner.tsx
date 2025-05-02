@@ -50,12 +50,14 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     try {
       if (refreshShopifyConnection) {
         const result = await refreshShopifyConnection();
-        setIsConnectionWarning(!result);
-        
-        if (result) {
-          toast.success(language === 'ar' ? 'تم التحقق من الاتصال بنجاح' : 'Connection verified successfully');
-        } else {
-          toast.error(language === 'ar' ? 'فشل التحقق من الاتصال' : 'Connection verification failed');
+        if (result !== undefined) {
+          setIsConnectionWarning(!result);
+          
+          if (result) {
+            toast.success(language === 'ar' ? 'تم التحقق من الاتصال بنجاح' : 'Connection verified successfully');
+          } else {
+            toast.error(language === 'ar' ? 'فشل التحقق من الاتصال' : 'Connection verification failed');
+          }
         }
       } else {
         const isConnected = await verifyShopifyConnection();
@@ -93,9 +95,8 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       }
       
       // استخدام وظيفة إعادة الاتصال العامة
-      if (manualReconnect) {
-        manualReconnect();
-      } else {
+      const reconnectResult = manualReconnect();
+      if (!reconnectResult) {
         // إعادة توجيه إلى صفحة Shopify في حالة عدم وجود معالج
         window.location.href = `/shopify?force=true&ts=${Date.now()}`;
       }

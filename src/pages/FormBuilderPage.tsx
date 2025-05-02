@@ -13,6 +13,7 @@ import FormBuilder from '@/components/form/FormBuilder';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import FormBuilderShopify from '@/components/form/builder/FormBuilderShopify';
 import ShopifyConnectionBanner from '@/components/form/ShopifyConnectionBanner';
+import { ShopifyFormData } from '@/lib/shopify/types';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -148,6 +149,50 @@ const FormBuilderPage = () => {
       // الطريقة البديلة - إعادة توجيه مع return_to
       const currentUrl = encodeURIComponent(window.location.pathname);
       window.location.href = `/shopify?force=true&return=${currentUrl}&ts=${Date.now()}`;
+    }
+  };
+
+  // Handle Shopify integration - correcting the return type issue
+  const handleShopifyIntegration = async (settings: ShopifyFormData): Promise<void> => {
+    try {
+      setIsSyncing(true);
+      
+      if (!formId || formId === 'new') {
+        toast.error(language === 'ar' 
+          ? 'يجب حفظ النموذج أولاً قبل تكوين تكامل Shopify'
+          : 'Please save the form first before configuring Shopify integration');
+        return;
+      }
+      
+      // Simple implementation to save the form settings to Shopify
+      const { data, error } = await supabase
+        .from('shopify_product_settings')
+        .upsert({
+          form_id: formId,
+          product_id: settings.product_id || 'all',
+          shop_id: shop || '',
+          block_id: settings.settings?.blockId || 'codform-default',
+          enabled: settings.settings?.enabled || true,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(language === 'ar' 
+        ? 'تم حفظ إعدادات التكامل مع Shopify بنجاح'
+        : 'Shopify integration settings saved successfully');
+        
+    } catch (error) {
+      console.error('Error saving Shopify integration:', error);
+      toast.error(language === 'ar' 
+        ? 'حدث خطأ أثناء حفظ إعدادات التكامل'
+        : 'Error saving integration settings');
+    } finally {
+      setIsSyncing(false);
     }
   };
   
