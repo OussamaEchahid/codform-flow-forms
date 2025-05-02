@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
@@ -430,7 +429,7 @@ const FormBuilderPage = () => {
             
             {/* معلومات الوضع غير المتصل */}
             {connectionError && (
-              <Alert className="bg-yellow-50 border-yellow-100">
+              <Alert variant="default" className="bg-yellow-50 border-yellow-100">
                 <AlertCircle className="h-4 w-4 text-yellow-500" />
                 <AlertDescription>
                   {language === 'ar' 

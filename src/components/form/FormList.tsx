@@ -62,7 +62,10 @@ const FormList: React.FC<FormListProps> = ({
         <FormListItem
           key={form.id}
           form={form}
-          onClick={() => onSelectForm(form.id)}
+          onSelectForm={() => onSelectForm(form.id)}
+          onPublishToggle={() => {}}
+          onDeleteRequest={() => {}}
+          isActionInProgress={false}
         />
       ))}
     </div>
