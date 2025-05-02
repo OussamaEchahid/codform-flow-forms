@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create form data without explicit typing first
-      const fetchedForm = {
+      // Convert database result to FormData type using manual assignment
+      const result: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -60,8 +60,7 @@ export const useFormFetch = () => {
         shop_id: data.shop_id
       };
       
-      // Use type assertion without chaining
-      return fetchedForm as FormData;
+      return result;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -102,12 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create fetched forms array without explicit typing
-      const fetchedForms = [];
+      // Convert database results to FormData[] using explicit mapping
+      const results: FormData[] = [];
       
       if (data) {
         for (const item of data) {
-          const formObject = {
+          // Add each item as a properly typed FormData object
+          results.push({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -117,15 +117,12 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          };
-          
-          fetchedForms.push(formObject);
+          });
         }
       }
       
-      // Use type assertion directly
-      setForms(fetchedForms as FormData[]);
-      return fetchedForms as FormData[];
+      setForms(results);
+      return results;
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
