@@ -47,13 +47,13 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Break the type recursion by explicitly casting to any
+      // Create a shallow copy of the data object instead of direct reference
       const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Use type assertion to unknown first, then to any to break the type recursion
-        data: data.data as unknown as any,
+        // Instead of type assertion, create a new object to break recursion
+        data: JSON.parse(JSON.stringify(data.data)),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -112,8 +112,8 @@ export const useFormFetch = () => {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Use type assertion to unknown first, then to any to break the type recursion
-              data: item.data as unknown as any,
+              // Using JSON.parse(JSON.stringify()) to create a deep copy and break the recursion
+              data: JSON.parse(JSON.stringify(item.data)),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
