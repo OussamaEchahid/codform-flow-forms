@@ -47,13 +47,13 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create a shallow copy of the data object instead of direct reference
-      const formData: FormData = {
+      // Create a completely separate object to break type recursion
+      const formData = {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Instead of type assertion, create a new object to break recursion
-        data: JSON.parse(JSON.stringify(data.data)),
+        // Use a type assertion that bypasses TypeScript's deep analysis
+        data: Object.assign({}, data.data) as Record<string, any>,
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -61,7 +61,7 @@ export const useFormFetch = () => {
         shop_id: data.shop_id
       };
       
-      return formData;
+      return formData as FormData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -108,12 +108,13 @@ export const useFormFetch = () => {
         // Process each form individually
         data.forEach(item => {
           if (item) {
-            const formData: FormData = {
+            // Create completely separate objects for each form to break recursion
+            const formData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Using JSON.parse(JSON.stringify()) to create a deep copy and break the recursion
-              data: JSON.parse(JSON.stringify(item.data)),
+              // Use object spread operator to create a fresh copy
+              data: Object.assign({}, item.data) as Record<string, any>,
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
@@ -121,7 +122,7 @@ export const useFormFetch = () => {
               shop_id: item.shop_id
             };
             
-            formsData.push(formData);
+            formsData.push(formData as FormData);
           }
         });
       }
