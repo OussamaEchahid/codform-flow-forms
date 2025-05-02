@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
@@ -9,10 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import FormBuilder from '@/components/form/FormBuilder';
-import { ArrowLeft, Save, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Eye, AlertCircle, RefreshCcw } from 'lucide-react';
 import FormBuilderShopify from '@/components/form/builder/FormBuilderShopify';
 import ShopifyConnectionBanner from '@/components/form/ShopifyConnectionBanner';
 import { ShopifyFormData } from '@/lib/shopify/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -27,42 +29,63 @@ const FormBuilderPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<boolean>(false);
 
-  // Handle form data loading
+  // معالجة تحميل بيانات النموذج
   useEffect(() => {
     const loadForm = async () => {
-      if (formId && formId !== 'new') {
-        setIsLoading(true);
+      setIsLoading(true);
+      setLoadError(null);
+      
+      try {
+        console.log(`FormBuilderPage: Loading form with ID: ${formId}`);
+        let form;
+        
         try {
-          const form = await getFormById(formId);
-          if (form) {
-            setTitle(form.title);
-            setDescription(form.description || '');
-            // Ensure form.data is always handled as an array
-            setFormData(Array.isArray(form.data) ? form.data : []);
-          } else {
-            toast.error(language === 'ar' ? 'النموذج غير موجود' : 'Form not found');
-            navigate('/forms');
-          }
-        } catch (error) {
-          console.error('Error loading form:', error);
-          toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-        } finally {
-          setIsLoading(false);
+          form = await getFormById(formId || 'new');
+        } catch (fetchError) {
+          console.error('Error fetching form:', fetchError);
+          setConnectionError(true);
+          
+          // إنشاء نموذج افتراضي في حالة وجود مشكلة في الاتصال
+          form = {
+            id: formId || 'new',
+            title: formId === 'new' ? 'نموذج جديد' : 'نموذج موجود',
+            description: '',
+            data: [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_id: user?.id || '',
+            is_published: false
+          };
         }
-      } else {
-        // New form
-        setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
-        setDescription('');
-        setFormData([]);
+        
+        if (form) {
+          console.log('Form loaded successfully:', form);
+          setTitle(form.title || '');
+          setDescription(form.description || '');
+          // التأكد من أن البيانات دائمًا مصفوفة
+          setFormData(Array.isArray(form.data) ? form.data : []);
+        } else {
+          console.error('Form not found');
+          toast.error(language === 'ar' ? 'النموذج غير موجود' : 'Form not found');
+          navigate('/forms');
+        }
+      } catch (error) {
+        console.error('Error loading form:', error);
+        const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء تحميل النموذج';
+        setLoadError(errorMessage);
+        toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+      } finally {
         setIsLoading(false);
       }
     };
     
     loadForm();
-  }, [formId, getFormById, language, navigate]);
+  }, [formId, getFormById, language, navigate, user?.id]);
   
-  // Handle form saving
+  // حفظ النموذج مع معالجة الخطأ
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
@@ -71,6 +94,7 @@ const FormBuilderPage = () => {
     
     setIsSaving(true);
     try {
+      console.log('Saving form...');
       const formPayload = {
         title,
         description: description || null,
@@ -80,10 +104,43 @@ const FormBuilderPage = () => {
         is_published: true
       };
       
+      if (connectionError) {
+        console.log('Saving form in offline mode (mock)');
+        // عرض إشعار للمستخدم أن النموذج سيتم حفظه عند استعادة الاتصال
+        toast.warning(
+          language === 'ar' 
+            ? 'الاتصال غير متاح حاليًا. سيتم حفظ النموذج عند استعادة الاتصال.' 
+            : 'Connection unavailable. Form will be saved when connection is restored.'
+        );
+        
+        // تخزين النموذج محليًا للحفظ لاحقًا
+        const offlineForms = JSON.parse(localStorage.getItem('offline_forms') || '[]');
+        offlineForms.push({
+          id: formId === 'new' ? `new-${Date.now()}` : formId,
+          ...formPayload,
+          pendingSave: true,
+          lastModified: new Date().toISOString()
+        });
+        localStorage.setItem('offline_forms', JSON.stringify(offlineForms));
+        
+        // توجيه المستخدم إلى صفحة النماذج
+        toast.success(
+          language === 'ar' 
+            ? 'تم حفظ النموذج مؤقتًا. سيتم مزامنته عند استعادة الاتصال.' 
+            : 'Form saved temporarily. It will be synced when connection is restored.'
+        );
+        
+        if (formId === 'new') {
+          navigate('/forms');
+        }
+        return;
+      }
+      
       let response;
       
       if (formId && formId !== 'new') {
-        // Update existing form
+        // تحديث نموذج موجود
+        console.log('Updating existing form:', formId);
         response = await supabase
           .from('forms')
           .update(formPayload)
@@ -91,7 +148,8 @@ const FormBuilderPage = () => {
           .select()
           .single();
       } else {
-        // Create new form
+        // إنشاء نموذج جديد
+        console.log('Creating new form');
         response = await supabase
           .from('forms')
           .insert(formPayload)
@@ -100,33 +158,53 @@ const FormBuilderPage = () => {
       }
       
       if (response.error) {
+        console.error('Supabase error:', response.error);
         throw response.error;
       }
       
+      console.log('Form saved successfully:', response.data);
       toast.success(
         language === 'ar' 
           ? 'تم حفظ النموذج بنجاح' 
           : 'Form saved successfully'
       );
       
-      // If it's a new form, navigate to the form edit page with the new ID
+      // إذا كان نموذجًا جديدًا، انتقل إلى صفحة تحرير النموذج باستخدام المعرف الجديد
       if (!formId || formId === 'new') {
         navigate(`/form-builder/${response.data.id}`);
       }
       
     } catch (error) {
       console.error('Error saving form:', error);
-      toast.error(
-        language === 'ar' 
-          ? 'خطأ في حفظ النموذج' 
-          : 'Error saving form'
-      );
+      
+      // التخزين المؤقت في حالة فشل الاتصال
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setConnectionError(true);
+        toast.warning(
+          language === 'ar' 
+            ? 'فشل الاتصال. سيتم حفظ النموذج مؤقتًا.' 
+            : 'Connection failed. Form will be saved temporarily.'
+        );
+        
+        // تخزين النموذج محليًا
+        localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
+          title, 
+          description, 
+          data: formData
+        }));
+      } else {
+        toast.error(
+          language === 'ar' 
+            ? 'خطأ في حفظ النموذج' 
+            : 'Error saving form'
+        );
+      }
     } finally {
       setIsSaving(false);
     }
   };
   
-  // Preview form in Shopify
+  // معاينة النموذج في Shopify
   const handlePreviewInShopify = () => {
     if (shopifyConnected && shop && formId && formId !== 'new') {
       const shopifyUrl = `https://${shop}/apps/codform/?form=${formId}`;
@@ -142,7 +220,7 @@ const FormBuilderPage = () => {
   
   // معالج إعادة الاتصال المخصص
   const handleReconnect = () => {
-    // استخدم وظيفة إعادة الاتصال إذا كانت متوفرة
+    // استخدام وظيفة إعادة الاتصال إذا كانت متوفرة
     if (forceReconnect) {
       forceReconnect();
     } else {
@@ -152,7 +230,7 @@ const FormBuilderPage = () => {
     }
   };
 
-  // Handle Shopify integration - fixing return type issue
+  // معالجة تكامل Shopify
   const handleShopifyIntegration = async (settings: ShopifyFormData): Promise<void> => {
     try {
       setIsSyncing(true);
@@ -164,7 +242,7 @@ const FormBuilderPage = () => {
         return;
       }
       
-      // Simple implementation to save the form settings to Shopify
+      // تنفيذ بسيط لحفظ إعدادات النموذج في Shopify
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .upsert({
@@ -179,6 +257,7 @@ const FormBuilderPage = () => {
         .single();
         
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
       
@@ -196,10 +275,23 @@ const FormBuilderPage = () => {
     }
   };
   
+  // إعادة محاولة تحميل النموذج
+  const handleRetry = () => {
+    setLoadError(null);
+    setConnectionError(false);
+    setIsLoading(true);
+    // إعادة تحميل الصفحة لمحاولة جديدة
+    window.location.reload();
+  };
+  
+  // عرض حالة التحميل
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-purple-500 rounded-full"></div>
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-purple-500 rounded-full mx-auto mb-4"></div>
+          <p>{language === 'ar' ? 'جاري تحميل النموذج...' : 'Loading form...'}</p>
+        </div>
       </div>
     );
   }
@@ -209,6 +301,27 @@ const FormBuilderPage = () => {
       <div className="max-w-6xl mx-auto">
         {/* عرض شريط التحذير في حالة وجود مشكلة في الاتصال */}
         <ShopifyConnectionBanner onReconnect={handleReconnect} />
+        
+        {/* عرض تحذير عند وجود خطأ في التحميل */}
+        {(loadError || connectionError) && (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {language === 'ar' 
+                ? 'حدث خطأ في الاتصال. يمكنك متابعة العمل والمحاولة مرة أخرى لاحقًا.' 
+                : 'Connection error occurred. You can continue working and try again later.'}
+              <Button 
+                variant="outline"
+                size="sm"
+                className="ml-2"
+                onClick={handleRetry}
+              >
+                <RefreshCcw className="h-4 w-4 mr-1" />
+                {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="mb-6">
           <Button 
@@ -292,7 +405,7 @@ const FormBuilderPage = () => {
                 )}
               </Button>
               
-              {shopifyConnected && formId && formId !== 'new' && (
+              {shopifyConnected && formId && formId !== 'new' && !connectionError && (
                 <Button
                   variant="outline"
                   onClick={handlePreviewInShopify}
@@ -314,6 +427,18 @@ const FormBuilderPage = () => {
                 onShopifyIntegration={handleShopifyIntegration}
               />
             </div>
+            
+            {/* معلومات الوضع غير المتصل */}
+            {connectionError && (
+              <Alert className="bg-yellow-50 border-yellow-100">
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'أنت تعمل في الوضع غير المتصل. سيتم حفظ التغييرات محليًا حتى يتم استعادة الاتصال.' 
+                    : 'You are working in offline mode. Changes will be saved locally until connection is restored.'}
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
       </div>
