@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Use type assertion with a specific Record type to avoid deep type instantiation
-      const fetchedForm: Record<string, any> = {
+      // Create form data without explicit typing first
+      const fetchedForm = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -60,8 +60,8 @@ export const useFormFetch = () => {
         shop_id: data.shop_id
       };
       
-      // Then cast it to FormData
-      return fetchedForm as unknown as FormData;
+      // Use type assertion without chaining
+      return fetchedForm as FormData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -102,13 +102,12 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Create an array without FormData type constraints initially
-      const fetchedForms: Record<string, any>[] = [];
+      // Create fetched forms array without explicit typing
+      const fetchedForms = [];
       
       if (data) {
         for (const item of data) {
-          // Create each form object as a simple Record
-          const formObject: Record<string, any> = {
+          const formObject = {
             id: item.id,
             title: item.title,
             description: item.description,
@@ -124,10 +123,9 @@ export const useFormFetch = () => {
         }
       }
       
-      // Cast the entire array after creation
-      const typedForms = fetchedForms as unknown as FormData[];
-      setForms(typedForms);
-      return typedForms;
+      // Use type assertion directly
+      setForms(fetchedForms as FormData[]);
+      return fetchedForms as FormData[];
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
