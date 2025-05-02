@@ -303,7 +303,7 @@ const FormBuilderPage = () => {
         
         {/* عرض تحذير عند وجود خطأ في التحميل */}
         {(loadError || connectionError) && (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {language === 'ar' 
