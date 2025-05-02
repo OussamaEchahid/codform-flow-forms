@@ -1,453 +1,219 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Json } from '@/integrations/supabase/types';
-
-// Define the form data interface to match the database structure
-export interface FormData {
-  id: string;
-  title: string;
-  description?: string;
-  data: any; // Changed from any[] to any to accommodate Json type from Supabase
-  sectionConfig?: any;
-  style?: any;
-  is_published?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string;
-  shop_id?: string;
-}
-
-// Interface for database response
-interface DbFormData {
-  id: string;
-  title: string;
-  description: string | null;
-  data: Json;
-  is_published: boolean | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  shop_id: string | null;
-}
-
-// Helper function to convert database form data to our app's FormData type
-const convertDbFormToAppForm = (dbForm: DbFormData): FormData => {
-  return {
-    id: dbForm.id,
-    title: dbForm.title,
-    description: dbForm.description || undefined,
-    // Parse JSON if it's a string, otherwise use as is
-    data: typeof dbForm.data === 'string' ? JSON.parse(dbForm.data) : dbForm.data,
-    is_published: dbForm.is_published || false,
-    created_at: dbForm.created_at,
-    updated_at: dbForm.updated_at,
-    user_id: dbForm.user_id,
-    shop_id: dbForm.shop_id || undefined
-  };
-};
-
-// Create a cache for forms to reduce database calls
-const formCache = new Map();
+import { useI18n } from '@/lib/i18n';
 
 export const useFormTemplates = () => {
+  const [forms, setForms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [forms, setForms] = useState<FormData[]>([]);
+  const [formCache, setFormCache] = useState<Record<string, any>>({});
+  const { user } = useAuth();
+  const { language } = useI18n();
 
   const clearFormCache = useCallback(() => {
-    console.log('Clearing form cache');
-    formCache.clear();
+    console.log("useFormTemplates: Clearing form cache");
+    setFormCache({});
     return Promise.resolve();
   }, []);
 
-  const fetchForms = useCallback(async () => {
+  const createNewForm = useCallback(async (formData: any) => {
+    console.log("useFormTemplates: Creating new form", formData);
     setIsLoading(true);
-    setError(null);
-    
+
     try {
-      console.log('Fetching all forms');
       const { data, error } = await supabase
         .from('forms')
+        .insert(formData)
         .select('*')
-        .order('created_at', { ascending: false });
-        
+        .single();
+
       if (error) {
-        console.error('Error fetching forms:', error);
+        console.error("useFormTemplates: Error creating form:", error);
         throw error;
       }
+
+      console.log("useFormTemplates: Form created successfully:", data);
       
-      console.log('Fetched forms:', data);
-      // Convert database forms to app forms
-      const convertedForms = (data || []).map(convertDbFormToAppForm);
-      setForms(convertedForms);
-      return convertedForms;
-    } catch (err: any) {
-      console.error('Error in fetchForms:', err);
-      setError(err?.message || 'An error occurred while fetching forms');
+      // Update the local forms state with the new form
+      setForms(prevForms => [...prevForms, data]);
+      
+      // Update the cache
+      setFormCache(prev => ({ ...prev, [data.id]: data }));
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating form:', error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [language]);
+
+  const fetchForms = useCallback(async () => {
+    console.log("useFormTemplates: Fetching forms");
+    setIsLoading(true);
+
+    try {
+      // Get forms by the current user or forms that are public
+      const userId = user?.id;
+      
+      let query = supabase.from('forms').select('*');
+      
+      if (userId) {
+        // If user is logged in, get forms created by this user
+        query = query.eq('user_id', userId);
+      } else {
+        // If no user, get only public forms
+        query = query.eq('is_public', true);
+      }
+
+      // Order by most recently created
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("useFormTemplates: Error fetching forms:", error);
+        throw error;
+      }
+
+      console.log("useFormTemplates: Forms fetched successfully:", data?.length || 0, "forms");
+      setForms(data || []);
+      
+      // Update cache with fetched forms
+      const newCache = { ...formCache };
+      data?.forEach((form: any) => {
+        newCache[form.id] = form;
+      });
+      setFormCache(newCache);
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching forms:', error);
+      toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
       return [];
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user, language, formCache]);
 
-  const getFormById = useCallback(async (formId: string): Promise<FormData | null> => {
-    setIsLoading(true);
-    setError(null);
-
+  const getFormById = useCallback(async (formId: string) => {
+    console.log(`useFormTemplates: Getting form by ID: ${formId}`);
+    
     try {
-      console.log('getFormById called for ID:', formId);
-
-      // Check cache first
-      if (formCache.has(formId)) {
-        console.log('Form found in cache');
-        const cachedForm = formCache.get(formId);
-        setIsLoading(false);
-        return cachedForm;
+      // Check if we already have this form in the cache
+      if (formCache[formId]) {
+        console.log(`useFormTemplates: Form ${formId} found in cache`);
+        return formCache[formId];
       }
-
-      console.log('Form not in cache, fetching from database');
       
-      // If running in development or testing mode and seeing the network error,
-      // you can use this mock data for testing
-      if (process.env.NODE_ENV === 'development' && window.location.search.includes('mock=true')) {
-        console.log('Using mock data for form');
-        const mockForm: FormData = {
-          id: formId,
-          title: 'Mock Form (Development Mode)',
-          description: 'This is a mock form for development',
-          data: [],
-          sectionConfig: { sections: [], layout: 'vertical' },
-          style: {}
-        };
-        formCache.set(formId, mockForm);
-        setIsLoading(false);
-        return mockForm;
-      }
-
-      // Otherwise try to fetch from Supabase
+      // Form not in cache, fetch it from the database
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('id', formId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Error getting form by ID:', error);
+        console.error(`useFormTemplates: Error fetching form ${formId}:`, error);
         throw error;
       }
 
-      console.log('Fetched form data:', data);
-
-      if (data) {
-        // Convert database form to app form
-        const convertedForm = convertDbFormToAppForm(data);
-        
-        // Cache the result
-        formCache.set(formId, convertedForm);
-        
-        setIsLoading(false);
-        return convertedForm;
+      if (!data) {
+        console.log(`useFormTemplates: Form ${formId} not found`);
+        return null;
       }
 
-      setIsLoading(false);
-      return null;
-    } catch (err: any) {
-      console.error('Error in getFormById:', err);
-      setError(err?.message || 'An error occurred while fetching the form');
-      setIsLoading(false);
+      console.log(`useFormTemplates: Form ${formId} fetched successfully:`, data);
       
-      // For fetch errors (common with network issues), try to provide more details
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        console.warn('Network error detected - might be temporary');
-      }
+      // Update the cache with this form
+      setFormCache(prev => ({ ...prev, [formId]: data }));
       
+      return data;
+    } catch (error) {
+      console.error(`Error fetching form ${formId}:`, error);
+      toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
       return null;
     }
-  }, []);
-  
-  const createDefaultForm = useCallback(async (): Promise<FormData | null> => {
-    setIsLoading(true);
-    setError(null);
+  }, [formCache, language]);
+
+  const saveForm = useCallback(async (formId: string, formData: any) => {
+    console.log(`useFormTemplates: Saving form ${formId}`, formData);
     
     try {
-      console.log('Creating default form');
-      // Get shop_id from local storage - this is set by the Shopify connection
-      const shop_id = localStorage.getItem('shopify_store');
-      
-      // Get user from Supabase auth
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('User not authenticated');
-      }
-      
-      const defaultForm = {
-        title: 'نموذج جديد',
-        description: 'وصف النموذج',
-        data: JSON.stringify([
-          {
-            id: '1',
-            title: 'الخطوة الأولى',
-            fields: []
-          }
-        ]),
-        is_published: false,
-        user_id: user.id,
-        shop_id: shop_id || null
-      };
-      
-      console.log('Inserting new form with data:', defaultForm);
-      
       const { data, error } = await supabase
         .from('forms')
-        .insert([defaultForm])
-        .select();
-        
+        .update(formData)
+        .eq('id', formId)
+        .select('*')
+        .maybeSingle();
+
       if (error) {
-        console.error('Error creating default form:', error);
+        console.error(`useFormTemplates: Error saving form ${formId}:`, error);
         throw error;
       }
+
+      console.log(`useFormTemplates: Form ${formId} saved successfully:`, data);
       
-      console.log('Form creation response:', data);
+      // Update the cache
+      setFormCache(prev => ({ ...prev, [formId]: data }));
       
-      if (!data || data.length === 0) {
-        throw new Error('No data returned after form creation');
-      }
+      // Also update the form in the forms state if it exists there
+      setForms(prevForms => prevForms.map(form => 
+        form.id === formId ? data : form
+      ));
       
-      // Convert database form to app form
-      const convertedForm = convertDbFormToAppForm(data[0]);
-      
-      // Update forms list and cache
-      await fetchForms();
-      formCache.set(convertedForm.id, convertedForm);
-      
-      return convertedForm;
-    } catch (err: any) {
-      console.error('Error in createDefaultForm:', err);
-      setError(err?.message || 'An error occurred while creating the form');
+      return data;
+    } catch (error) {
+      console.error(`Error saving form ${formId}:`, error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       return null;
-    } finally {
-      setIsLoading(false);
     }
-  }, [fetchForms]);
-  
-  const createFormFromTemplate = useCallback(async (templateId: number): Promise<FormData | null> => {
-    setIsLoading(true);
-    setError(null);
+  }, [language]);
+
+  const deleteForm = useCallback(async (formId: string) => {
+    console.log(`useFormTemplates: Deleting form ${formId}`);
     
     try {
-      console.log('Creating form from template', templateId);
-      // Get shop_id from local storage
-      const shop_id = localStorage.getItem('shopify_store');
-      
-      // Get user from Supabase auth
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('User not authenticated');
-      }
-      
-      // In a real implementation, you would fetch the template data
-      // and use it to create a new form
-      const templateForm = {
-        title: `نموذج من قالب ${templateId}`,
-        description: 'تم إنشاء هذا النموذج من قالب',
-        data: JSON.stringify([
-          {
-            id: '1',
-            title: 'الخطوة الأولى',
-            fields: []
-          }
-        ]),
-        is_published: false,
-        user_id: user.id,
-        shop_id: shop_id || null
-      };
-      
-      console.log('Inserting new form from template with data:', templateForm);
-      
-      const { data, error } = await supabase
-        .from('forms')
-        .insert([templateForm])
-        .select();
-        
-      if (error) {
-        console.error('Error creating form from template:', error);
-        throw error;
-      }
-      
-      console.log('Form creation from template response:', data);
-      
-      if (!data || data.length === 0) {
-        throw new Error('No data returned after form creation from template');
-      }
-      
-      // Convert database form to app form
-      const convertedForm = convertDbFormToAppForm(data[0]);
-      
-      // Update forms list and cache
-      await fetchForms();
-      formCache.set(convertedForm.id, convertedForm);
-      
-      return convertedForm;
-    } catch (err: any) {
-      console.error('Error in createFormFromTemplate:', err);
-      setError(err?.message || 'An error occurred while creating the form from template');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchForms]);
-  
-  // Rename saveForm to keep the same function name as used in FormBuilderEditor
-  const saveForm = useCallback(async (formId: string, formData: Partial<FormData>): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Saving form with ID:', formId, 'Data:', formData);
-      
-      // Make sure data is properly stringified if it's an object
-      let processedData = formData;
-      if (formData.data && typeof formData.data !== 'string') {
-        processedData = {
-          ...formData,
-          data: JSON.stringify(formData.data)
-        };
-      }
-      
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          ...processedData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', formId);
-        
-      if (error) {
-        console.error('Error saving form:', error);
-        throw error;
-      }
-      
-      console.log('Form saved successfully');
-      
-      // Update cache
-      if (formCache.has(formId)) {
-        const cachedForm = formCache.get(formId);
-        formCache.set(formId, { ...cachedForm, ...formData });
-      }
-      
-      // Refresh forms list
-      await fetchForms();
-      
-      return true;
-    } catch (err: any) {
-      console.error('Error in saveForm:', err);
-      setError(err?.message || 'An error occurred while saving the form');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchForms]);
-  
-  const publishForm = useCallback(async (formId: string, isPublished: boolean): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log(`${isPublished ? 'Publishing' : 'Unpublishing'} form with ID:`, formId);
-      
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          is_published: isPublished,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', formId);
-        
-      if (error) {
-        console.error('Error publishing form:', error);
-        throw error;
-      }
-      
-      console.log(`Form ${isPublished ? 'published' : 'unpublished'} successfully`);
-      
-      // Update cache
-      if (formCache.has(formId)) {
-        const cachedForm = formCache.get(formId);
-        formCache.set(formId, { ...cachedForm, is_published: isPublished });
-      }
-      
-      // Refresh forms list
-      await fetchForms();
-      
-      return true;
-    } catch (err: any) {
-      console.error('Error in publishForm:', err);
-      setError(err?.message || 'An error occurred while publishing/unpublishing the form');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchForms]);
-  
-  const deleteForm = useCallback(async (formId: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Deleting form with ID:', formId);
-      
       const { error } = await supabase
         .from('forms')
         .delete()
         .eq('id', formId);
-        
+
       if (error) {
-        console.error('Error deleting form:', error);
+        console.error(`useFormTemplates: Error deleting form ${formId}:`, error);
         throw error;
       }
-      
-      console.log('Form deleted successfully');
+
+      console.log(`useFormTemplates: Form ${formId} deleted successfully`);
       
       // Remove from cache
-      if (formCache.has(formId)) {
-        formCache.delete(formId);
-      }
+      const newCache = { ...formCache };
+      delete newCache[formId];
+      setFormCache(newCache);
       
-      // Refresh forms list
-      await fetchForms();
+      // Remove from forms state
+      setForms(prevForms => prevForms.filter(form => form.id !== formId));
       
       return true;
-    } catch (err: any) {
-      console.error('Error in deleteForm:', err);
-      setError(err?.message || 'An error occurred while deleting the form');
+    } catch (error) {
+      console.error(`Error deleting form ${formId}:`, error);
+      toast.error(language === 'ar' ? 'خطأ في حذف النموذج' : 'Error deleting form');
       return false;
-    } finally {
-      setIsLoading(false);
     }
-  }, [fetchForms]);
-  
-  // Load forms on initial mount
-  useEffect(() => {
-    fetchForms();
-  }, [fetchForms]);
-  
+  }, [formCache, language]);
+
   return {
-    isLoading,
-    error,
     forms,
-    getFormById,
-    clearFormCache,
+    isLoading,
     fetchForms,
-    createDefaultForm,
-    createFormFromTemplate,
+    getFormById,
     saveForm,
-    publishForm,
-    deleteForm
+    createNewForm,
+    deleteForm,
+    clearFormCache
   };
 };

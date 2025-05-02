@@ -6,28 +6,51 @@ import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2 } from 'lucide-react';
 import { ShopifyFormData } from '@/lib/shopify/types';
 import { useShopify } from '@/hooks/useShopify';
 import FormBuilderShopify from './FormBuilderShopify';
+import { v4 as uuidv4 } from 'uuid';
 
-const FormBuilderEditor = () => {
-  const { formId } = useParams();
+interface FormBuilderEditorProps {
+  formId?: string;
+}
+
+const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId: propFormId }) => {
+  // Use params only as fallback if prop is not provided
+  const { formId: paramFormId } = useParams();
+  const formId = propFormId || paramFormId;
+  
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getFormById, saveForm } = useFormTemplates();
+  const { getFormById, saveForm, createNewForm } = useFormTemplates();
   const { t, language } = useI18n();
+  
   const [formData, setFormData] = useState<any>(null);
   const [formTitle, setFormTitle] = useState<string>('');
   const [formDescription, setFormDescription] = useState<string>('');
   const [formFields, setFormFields] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingNew, setIsCreatingNew] = useState(formId === 'new');
+  
   const { syncFormWithShopify, isSyncing } = useShopify();
 
   const fetchFormData = useCallback(async () => {
     if (!formId) return;
+    
+    if (formId === 'new') {
+      console.log("FormBuilderEditor: Creating new form");
+      setIsLoading(false);
+      setFormData({});
+      setFormTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
+      setFormDescription('');
+      setFormFields([]);
+      return;
+    }
+    
     setIsLoading(true);
+    
     try {
       console.log("FormBuilderEditor: Fetching form data for ID:", formId);
       const form = await getFormById(formId);
@@ -104,10 +127,53 @@ const FormBuilderEditor = () => {
     }
   };
 
+  const createForm = async () => {
+    if (!user) {
+      toast.error(language === 'ar' ? 'يجب تسجيل الدخول لإنشاء نموذج' : 'You must be logged in to create a form');
+      return;
+    }
+
+    setIsCreatingNew(true);
+    try {
+      const newFormData = {
+        id: uuidv4(),
+        title: formTitle,
+        description: formDescription,
+        data: formFields,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: user.id,
+        status: 'active',
+      };
+
+      console.log("FormBuilderEditor: Creating new form:", newFormData);
+      const success = await createNewForm(newFormData);
+
+      if (success) {
+        console.log("FormBuilderEditor: Form created successfully:", success);
+        toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
+        // Navigate to the edit page for the new form
+        navigate(`/form-builder/${success.id}`, { replace: true });
+      } else {
+        throw new Error('Failed to create form');
+      }
+    } catch (error) {
+      console.error("FormBuilderEditor: Error creating form:", error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
+    } finally {
+      setIsCreatingNew(false);
+    }
+  };
+
   const handleSaveForm = useCallback(async () => {
     if (!formId || !user) {
       console.error("FormBuilderEditor: Missing formId or user");
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      return;
+    }
+    
+    if (formId === 'new') {
+      await createForm();
       return;
     }
     
@@ -144,28 +210,13 @@ const FormBuilderEditor = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [formId, user, formTitle, formDescription, formFields, formData, saveForm, language]);
+  }, [formId, user, formTitle, formDescription, formFields, formData, saveForm, language, createForm]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#9b87f5]"></div>
         <span className="ml-3">{language === 'ar' ? 'جاري تحميل النموذج...' : 'Loading form...'}</span>
-      </div>
-    );
-  }
-
-  if (!formData) {
-    return (
-      <div className="text-center py-8 bg-red-50 text-red-800 p-4 rounded-lg">
-        <p className="text-lg font-medium">{language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found'}</p>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/forms')}
-          className="mt-4"
-        >
-          {language === 'ar' ? 'العودة إلى النماذج' : 'Back to forms'}
-        </Button>
       </div>
     );
   }
@@ -179,19 +230,33 @@ const FormBuilderEditor = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             {language === 'ar' ? 'العودة إلى النماذج' : 'Back to forms'}
           </Button>
-          <h1 className="text-2xl font-bold">{language === 'ar' ? 'تعديل النموذج' : 'Edit Form'}</h1>
+          <h1 className="text-2xl font-bold">
+            {formId === 'new' 
+              ? (language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form') 
+              : (language === 'ar' ? 'تعديل النموذج' : 'Edit Form')}
+          </h1>
         </div>
         <div className="flex items-center">
           <Button
             onClick={handleSaveForm}
-            disabled={isSaving}
+            disabled={isSaving || isCreatingNew}
             className="bg-[#9b87f5] hover:bg-[#8a74e8] text-white"
           >
-            {isSaving ? (
+            {isCreatingNew ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' ? 'جاري الإنشاء...' : 'Creating...'}
+              </>
+            ) : isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
               </>
+            ) : formId === 'new' ? (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'إنشاء النموذج' : 'Create form'}
+              </>  
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
@@ -252,20 +317,31 @@ const FormBuilderEditor = () => {
               <FormBuilderShopify 
                 onShopifyIntegration={handleShopifyIntegration}
                 isSyncing={isSyncing}
+                formId={formId === 'new' ? null : formId}
               />
             </div>
             
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={handleSaveForm}
-                disabled={isSaving}
+                disabled={isSaving || isCreatingNew}
                 className="bg-[#9b87f5] hover:bg-[#8a74e8] text-white"
               >
-                {isSaving ? (
+                {isCreatingNew ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جاري الإنشاء...' : 'Creating...'}
+                  </>
+                ) : isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
                   </>
+                ) : formId === 'new' ? (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'إنشاء النموذج' : 'Create form'}
+                  </>  
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />

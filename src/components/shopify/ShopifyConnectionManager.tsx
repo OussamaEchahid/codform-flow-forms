@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,7 +18,7 @@ export interface ShopifyConnectionManagerProps {
 
 /**
  * مكون محسّن لإدارة حالة اتصال Shopify مع معالجة اتصال أكثر موثوقية
- * نسخة v2 مع تحسينات للتعامل مع مشكلات الاتصال
+ * نسخة v2.1 مع تحسينات للتعامل مع مشكلات الاتصال
  */
 export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ 
   onConnectionSuccess,
@@ -32,6 +32,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [lastConnectionTime, setLastConnectionTime] = useState<number | null>(null);
+  const [connectionCheckInProgress, setConnectionCheckInProgress] = useState(false);
   
   // تسجيل محاولات الاتصال
   useEffect(() => {
@@ -40,6 +41,64 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     
     const lastTime = parseInt(localStorage.getItem('shopify_last_connection_attempt') || '0', 10);
     setLastConnectionTime(lastTime || null);
+    
+    // إذا كنا متصلين بالفعل، تحقق من صحة الاتصال
+    if (shopifyConnected && shop && !connectionCheckInProgress) {
+      verifyConnectionStatus();
+    }
+  }, [shopifyConnected, shop]);
+  
+  // التحقق من حالة الاتصال
+  const verifyConnectionStatus = async () => {
+    if (connectionCheckInProgress || !shop) return;
+    
+    setConnectionCheckInProgress(true);
+    try {
+      console.log("ShopifyConnectionManager: Verifying connection status for shop", shop);
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .select('access_token, updated_at')
+        .eq('shop', shop)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("ShopifyConnectionManager: Error verifying token:", error);
+      }
+      
+      if (!data || !data.access_token) {
+        console.log("ShopifyConnectionManager: No valid token found for shop", shop);
+        
+        // فحص إذا كان المتصفح حديثًا معاد تحميله، اترك فرصة للتحقق من الاتصال
+        const pageLoadTime = parseInt(sessionStorage.getItem('page_load_time') || '0', 10);
+        const timeSincePageLoad = Date.now() - pageLoadTime;
+        
+        if (timeSincePageLoad > 5000) {
+          // تم تحميل الصفحة منذ أكثر من 5 ثوان، من المرجح أن يكون الاتصال غير صالح
+          localStorage.removeItem('shopify_connected');
+          localStorage.removeItem('shopify_store');
+          
+          if (refreshShopifyConnection) {
+            refreshShopifyConnection();
+          }
+          
+          console.log("ShopifyConnectionManager: Removed invalid connection data");
+        }
+      } else {
+        console.log("ShopifyConnectionManager: Token verified for shop", shop);
+      }
+    } catch (e) {
+      console.error("ShopifyConnectionManager: Error during connection verification:", e);
+    } finally {
+      setConnectionCheckInProgress(false);
+    }
+  };
+  
+  // تسجيل وقت تحميل الصفحة لمساعدة في تتبع حالة الاتصال
+  useEffect(() => {
+    // تسجيل وقت تحميل الصفحة لاستخدامه في التحقق من الاتصال
+    if (!sessionStorage.getItem('page_load_time')) {
+      sessionStorage.setItem('page_load_time', Date.now().toString());
+    }
   }, []);
   
   // إعادة ضبط حالة الاتصال إذا لزم الأمر عند تركيب المكون
@@ -55,16 +114,18 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
             .maybeSingle();
             
           if (error || !data?.access_token) {
-            console.log("فشل التحقق من الرمز، جاري مسح حالة الاتصال");
+            console.log("ShopifyConnectionManager: Token verification failed, clearing connection state");
             localStorage.removeItem('shopify_store');
             localStorage.removeItem('shopify_connected');
             localStorage.removeItem('shopify_last_connect_time');
             if (refreshShopifyConnection) {
               refreshShopifyConnection();
             }
+          } else {
+            console.log("ShopifyConnectionManager: Token verified, connection is valid");
           }
         } catch (e) {
-          console.error("خطأ في التحقق من الرمز:", e);
+          console.error("ShopifyConnectionManager: Error verifying token:", e);
         }
       };
       
@@ -86,7 +147,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   // معالجة اتصال مباشر وموثوق
   const handleConnect = useCallback(async () => {
     if (isConnecting) {
-      console.log("Already attempting to connect, ignoring duplicate request");
+      console.log("ShopifyConnectionManager: Already attempting to connect, ignoring duplicate request");
       return;
     }
     
@@ -128,7 +189,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       // قبل استدعاء واجهة برمجة التطبيقات، تأكد من عدم وجود توجيهات متعددة
       if (sessionStorage.getItem('shopify_connecting') === 'true' && 
           Date.now() - parseInt(sessionStorage.getItem('shopify_connecting_time') || '0', 10) < 10000) {
-        console.log("تم اكتشاف محاولة اتصال جارية، تجاهل");
+        console.log("ShopifyConnectionManager: Ongoing connection attempt detected, ignoring");
         setTimeout(() => setIsConnecting(false), 3000);
         return;
       }
@@ -139,17 +200,17 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       
       // اتخاذ القرار بشأن مسار المصادقة بناءً على محاولات الاتصال السابقة
       const useDirectPath = useDirectAuthPath();
-      console.log(`Using ${useDirectPath ? 'direct auth path' : 'edge function'} (attempts: ${attempts})`);
+      console.log(`ShopifyConnectionManager: Using ${useDirectPath ? 'direct auth path' : 'edge function'} (attempts: ${attempts})`);
       
       if (useDirectPath) {
         // الطريقة 1: توجيه مباشر إلى مسار المصادقة الخاص بنا
         const authPath = `/auth?ts=${timestamp}&r=${randomStr}&force=true`;
-        console.log("استخدام مسار المصادقة المباشر:", authPath);
+        console.log("ShopifyConnectionManager: Using direct auth path:", authPath);
         window.location.href = authPath;
       } else {
         // الطريقة 2: استدعاء دالة حافة Edge Function
         const apiUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}&debug=true`;
-        console.log("استدعاء نقطة نهاية المصادقة:", apiUrl);
+        console.log("ShopifyConnectionManager: Calling authentication endpoint:", apiUrl);
         
         try {
           const response = await fetch(apiUrl, {
@@ -163,17 +224,17 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
           
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`خطأ في واجهة برمجة التطبيقات: ${response.status} - ${errorText}`);
-            throw new Error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
+            console.error(`ShopifyConnectionManager: API error: ${response.status} - ${errorText}`);
+            throw new Error(`API error: ${response.status}`);
           }
           
           const data = await response.json();
           
           if (data.redirect) {
-            console.log("إعادة التوجيه إلى عنوان URL لمصادقة Shopify:", data.redirect);
+            console.log("ShopifyConnectionManager: Redirecting to Shopify authentication URL:", data.redirect);
             window.location.href = data.redirect;
           } else if (data.success && data.shop && data.hasExistingToken) {
-            console.log("تم إنشاء اتصال بالفعل مع المتجر:", data.shop);
+            console.log("ShopifyConnectionManager: Connection already established with store:", data.shop);
             localStorage.setItem('shopify_store', data.shop);
             localStorage.setItem('shopify_connected', 'true');
             localStorage.setItem('shopify_last_connect_time', Date.now().toString());
@@ -204,14 +265,14 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
               window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(data.shop)}&reconnected=true`;
             }
           } else {
-            throw new Error("استجابة غير صالحة من نقطة نهاية المصادقة");
+            throw new Error("Invalid response from authentication endpoint");
           }
         } catch (error) {
-          console.error("خطأ في واجهة برمجة التطبيقات:", error);
-          setErrorDetails(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال");
+          console.error("ShopifyConnectionManager: API error:", error);
+          setErrorDetails(error instanceof Error ? error.message : "Error during connection");
           
           // احتياطي: التنقل المباشر إلى مسار المصادقة الخاص بنا
-          console.log("استخدام التنقل الاحتياطي للمصادقة");
+          console.log("ShopifyConnectionManager: Using fallback authentication navigation");
           
           // اعط بعض الوقت لظهور الخطأ ثم قم بإعادة التوجيه
           setTimeout(() => {
@@ -221,8 +282,8 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
         }
       }
     } catch (error) {
-      console.error("خطأ في بدء اتصال Shopify:", error);
-      setErrorDetails(error instanceof Error ? error.message : "حدث خطأ أثناء محاولة الاتصال");
+      console.error("ShopifyConnectionManager: Error initiating Shopify connection:", error);
+      setErrorDetails(error instanceof Error ? error.message : "Error during connection attempt");
       toast.error(language === 'ar'
         ? 'حدث خطأ أثناء توجيهك للاتصال. يرجى المحاولة مرة أخرى.'
         : 'Error during connection redirect. Please try again.');
@@ -246,7 +307,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     // إذا تم تحديد reconnect وتم تحميل الصفحة للتو، ولكن لا تقم بتشغيله إذا كان قد تم ذلك حديثًا
     if ((reconnect || shouldReconnect) && !isConnecting && 
         (!lastConnectionTime || Date.now() - lastConnectionTime > 10000)) {
-      console.log("تم اكتشاف معلمة إعادة اتصال، بدء الاتصال تلقائيًا");
+      console.log("ShopifyConnectionManager: Reconnect parameter detected, initiating automatic connection");
       // تأخير قصير للسماح بتحميل المكونات
       setTimeout(() => {
         handleConnect();
@@ -272,7 +333,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       >
         {isConnecting ? (
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current mr-2"></div>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
           </div>
         ) : (
@@ -294,7 +355,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       >
         {isConnecting ? (
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
           </div>
         ) : (
@@ -341,7 +402,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
             <AlertDescription className="text-sm">
               {language === 'ar' 
                 ? `حدثت مشكلة أثناء محاولة الاتصال: ${errorDetails}` 
-                : `Problem connecting: ${errorDetails}`}
+                : `Connection problem: ${errorDetails}`}
             </AlertDescription>
           </Alert>
         )}
@@ -381,7 +442,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
         >
           {isConnecting ? (
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
               {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
             </div>
           ) : shopifyConnected ? (

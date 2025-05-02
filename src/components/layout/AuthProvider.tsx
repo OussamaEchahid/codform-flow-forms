@@ -35,8 +35,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (shopInStorage && connectionStatus) {
       verifyTokenInDatabase(shopInStorage);
       
-      // IMPORTANT: If Shopify is connected, create a virtual user
-      // This ensures the system recognizes authentication even without direct login
+      // هام: إذا كان Shopify متصلاً، أنشئ مستخدمًا افتراضيًا
+      // هذا يضمن أن النظام يتعرف على المصادقة حتى بدون تسجيل دخول مباشر
       if (!user) {
         setUser({
           id: `shopify-${shopInStorage}`,
@@ -108,13 +108,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Create a virtual user for Shopify authentication if user doesn't exist
         if (!user) {
-          setUser({
+          const shopifyUser = {
             id: `shopify-${shopDomain}`,
             email: `shop@${shopDomain}`,
             app_metadata: { provider: 'shopify' },
             user_metadata: { shop: shopDomain },
             shopify: true
-          });
+          };
+          console.log("AuthProvider: Creating virtual Shopify user:", shopifyUser);
+          setUser(shopifyUser);
         }
       } else {
         console.log("AuthProvider: No valid token found for shop", shopDomain);
@@ -151,19 +153,23 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("AuthProvider: Found Shopify connection, using as authentication");
         if (!currentUser) {
           // Create virtual user for Shopify authentication
-          setUser({
+          const shopifyUser = {
             id: `shopify-${shopInStorage}`,
             email: `shop@${shopInStorage}`,
             app_metadata: { provider: 'shopify' },
             user_metadata: { shop: shopInStorage },
             shopify: true
-          });
+          };
+          console.log("AuthProvider: Creating virtual Shopify user:", shopifyUser);
+          setUser(shopifyUser);
         } else {
           // If there's both a Supabase user and Shopify connection
+          console.log("AuthProvider: Using Supabase user with Shopify connection:", currentUser);
           setUser(currentUser);
         }
       } else if (currentUser) {
         // Standard Supabase authentication
+        console.log("AuthProvider: Using standard Supabase user:", currentUser);
         setUser(currentUser);
       }
       
@@ -219,13 +225,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLastConnectionTime(Date.now().toString());
         
         // Create a virtual user for Shopify authentication
-        setUser({
+        const shopifyUser = {
           id: `shopify-${shop}`,
           email: `shop@${shop}`,
           app_metadata: { provider: 'shopify' },
           user_metadata: { shop },
           shopify: true
-        });
+        };
+        console.log("AuthProvider: Creating virtual Shopify user from callback:", shopifyUser);
+        setUser(shopifyUser);
         
         // Verify token
         verifyTokenInDatabase(shop);

@@ -162,7 +162,7 @@ const Forms = () => {
   });
   
   // إظهار شاشة مشكلة الاتصال - only if no user AND no Shopify connection
-  if ((!user && !shopifyConnected) || (!connectionVerified && !user && !shopifyConnected)) {
+  if ((!user && !shopifyConnected) || (!connectionVerified && !user && errorState === "no_token")) {
     return (
       <div className="flex min-h-screen bg-[#F8F9FB]">
         <AppSidebar />

@@ -24,26 +24,28 @@ const FormBuilderPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   
-  // Determine which component to show based on presence of formId
+  // تحديد أي مكون يجب إظهاره بناءً على وجود formId
   const showEditor = !!formId && formId !== 'new';
+  
+  console.log("FormBuilderPage: formId =", formId, "showEditor =", showEditor, "user =", user, "shopifyConnected =", shopifyConnected);
 
-  // Check authentication status on load
+  // التحقق من حالة المصادقة عند التحميل
   useEffect(() => {
     const checkAuth = () => {
       console.log("FormBuilderPage: Checking auth status, user:", user, "shopifyConnected:", shopifyConnected);
       
-      // Restore auth state from sessionStorage if needed
+      // استعادة حالة المصادقة من sessionStorage إذا لزم الأمر
       const savedAuthState = sessionStorage.getItem('auth_state');
       if (savedAuthState) {
         try {
           const parsedState = JSON.parse(savedAuthState);
           
-          // Only use saved state if it's recent (less than 10 minutes old)
+          // استخدم الحالة المحفوظة فقط إذا كانت حديثة (أقل من 10 دقائق)
           const stateAge = Date.now() - parsedState.timestamp;
           if (stateAge < 10 * 60 * 1000) {
             console.log("FormBuilderPage: Restoring saved auth state");
             
-            // Restore shopify connection state
+            // استعادة حالة اتصال shopify
             if (parsedState.shopify_store && !localStorage.getItem('shopify_store')) {
               localStorage.setItem('shopify_store', parsedState.shopify_store);
             }
@@ -57,7 +59,7 @@ const FormBuilderPage = () => {
         }
       }
       
-      // If user is not authenticated AND not connected to Shopify, redirect to forms page
+      // إذا لم يكن المستخدم مصادقًا وغير متصل بـ Shopify، التوجيه إلى صفحة النماذج
       if (!user && !shopifyConnected) {
         console.log("FormBuilderPage: User not authenticated and not connected to Shopify, navigating to forms");
         toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أو الاتصال بـ Shopify للوصول إلى منشئ النماذج' : 'Please login or connect to Shopify to access form builder');
@@ -75,19 +77,19 @@ const FormBuilderPage = () => {
       const init = async () => {
         console.log("FormBuilderPage: Initializing with formId:", formId);
         
-        // Always try to refresh the Shopify connection
+        // دائمًا محاولة تحديث اتصال Shopify
         if (refreshShopifyConnection) {
           console.log("FormBuilderPage: Refreshing Shopify connection");
           refreshShopifyConnection();
         }
         
-        // Clear form cache to ensure fresh data
+        // مسح ذاكرة التخزين المؤقت للنموذج لضمان البيانات الجديدة
         if (clearFormCache) {
           console.log("FormBuilderPage: Clearing form cache");
           await clearFormCache();
         }
         
-        // If in editor mode, validate the form exists
+        // في حالة وضع المحرر، التحقق من وجود النموذج
         if (formId && formId !== 'new') {
           try {
             console.log("FormBuilderPage: Validating form:", formId);
@@ -105,11 +107,11 @@ const FormBuilderPage = () => {
             setFormError(language === 'ar' ? 'خطأ في التحقق من النموذج' : 'Error validating form');
           }
         } else {
-          // In dashboard mode or new form, fetch forms list
+          // في وضع لوحة التحكم أو نموذج جديد، جلب قائمة النماذج
           fetchForms();
         }
         
-        // Set page as ready
+        // تعيين الصفحة على أنها جاهزة
         setPageReady(true);
       };
       
@@ -117,7 +119,7 @@ const FormBuilderPage = () => {
     }
   }, [formId, user, shopifyConnected, getFormById, navigate, language, fetchForms, refreshShopifyConnection, clearFormCache]);
 
-  // Show loading state while checking auth
+  // إظهار حالة التحميل أثناء التحقق من المصادقة
   if (!authChecked) {
     return (
       <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
@@ -126,7 +128,7 @@ const FormBuilderPage = () => {
     );
   }
   
-  // User not authenticated and not connected to Shopify
+  // المستخدم غير مصادق وغير متصل بـ Shopify
   if (!user && !shopifyConnected) {
     return (
       <div className="flex min-h-screen justify-center items-center bg-[#F8F9FB]">
@@ -187,7 +189,7 @@ const FormBuilderPage = () => {
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
-      {/* Shopify connection warning - show on editor screen only */}
+      {/* تحذير اتصال Shopify - إظهار على شاشة المحرر فقط */}
       {showEditor && !shopifyConnected && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <Alert className="bg-yellow-100 text-yellow-800 shadow-lg p-6 text-center m-4 border-yellow-300">
@@ -203,7 +205,7 @@ const FormBuilderPage = () => {
                 : 'Connecting to Shopify is required to use integration features. Please click the button below to connect.'}
             </AlertDescription>
             
-            {/* Use our new ShopifyConnectionManager component */}
+            {/* استخدام مكون ShopifyConnectionManager الجديد */}
             <ShopifyConnectionManager variant="button" />
           </Alert>
         </div>
@@ -211,9 +213,9 @@ const FormBuilderPage = () => {
       
       <div className="flex-1">
         {formId === 'new' ? (
-          <FormBuilderEditor key="new-form" />
+          <FormBuilderEditor key="new-form" formId="new" />
         ) : showEditor ? (
-          <FormBuilderEditor key={formId} />
+          <FormBuilderEditor key={formId} formId={formId} />
         ) : (
           <FormBuilderDashboard />
         )}
