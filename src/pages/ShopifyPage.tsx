@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
@@ -10,26 +10,40 @@ const ShopifyPage = () => {
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
+  const [isChecking, setIsChecking] = useState(false);
   
-  // Check connection status on load
+  // التحقق من حالة الاتصال عند التحميل
   useEffect(() => {
-    if (refreshShopifyConnection) {
-      refreshShopifyConnection().then(isConnected => {
-        if (isConnected) {
-          toast.success(
-            language === 'ar'
-              ? 'تم الاتصال بـ Shopify بنجاح'
-              : 'Successfully connected to Shopify'
-          );
+    if (refreshShopifyConnection && !isChecking) {
+      setIsChecking(true);
+      
+      const checkConnection = async () => {
+        try {
+          // احترس: refreshShopifyConnection قد يكون void، لذا تحقق منه أولاً
+          const result = await refreshShopifyConnection();
           
-          // Automatically redirect back to forms page if connected
-          setTimeout(() => {
-            navigate('/forms');
-          }, 1500);
+          if (result === true) {
+            toast.success(
+              language === 'ar'
+                ? 'تم الاتصال بـ Shopify بنجاح'
+                : 'Successfully connected to Shopify'
+            );
+            
+            // إعادة التوجيه تلقائيًا إلى صفحة النماذج إذا كان متصلاً
+            setTimeout(() => {
+              navigate('/forms');
+            }, 1500);
+          }
+        } catch (error) {
+          console.error("Failed to check connection:", error);
+        } finally {
+          setIsChecking(false);
         }
-      });
+      };
+      
+      checkConnection();
     }
-  }, [refreshShopifyConnection, language, navigate]);
+  }, [refreshShopifyConnection, language, navigate, isChecking]);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">

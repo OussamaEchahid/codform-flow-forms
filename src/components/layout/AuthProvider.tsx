@@ -13,7 +13,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [lastConnectionTime, setLastConnectionTime] = useState<string | undefined>(undefined);
 
   // تحديث حالة الاتصال مع متجر Shopify
-  const refreshShopifyConnection = () => {
+  const refreshShopifyConnection = async (): Promise<boolean> => {
     // قراءة البيانات من التخزين المحلي
     const shopInStorage = localStorage.getItem('shopify_store');
     const connectionStatus = localStorage.getItem('shopify_connected') === 'true';
@@ -33,11 +33,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsTokenVerified(false);
 
     if (shopInStorage && connectionStatus) {
-      verifyTokenInDatabase(shopInStorage);
+      const verified = await verifyTokenInDatabase(shopInStorage);
       
       // هام: إذا كان Shopify متصلاً، أنشئ مستخدمًا افتراضيًا
       // هذا يضمن أن النظام يتعرف على المصادقة حتى بدون تسجيل دخول مباشر
-      if (!user) {
+      if (!user && verified) {
         setUser({
           id: `shopify-${shopInStorage}`,
           email: `shop@${shopInStorage}`,
@@ -46,7 +46,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           shopify: true
         });
       }
+      
+      return verified;
     }
+    
+    return false;
   };
 
   // إعادة الاتصال بشكل إجباري - مسح جميع بيانات الاتصال
@@ -81,7 +85,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // التحقق من وجود الرمز في قاعدة البيانات
-  const verifyTokenInDatabase = async (shopDomain: string) => {
+  const verifyTokenInDatabase = async (shopDomain: string): Promise<boolean> => {
     console.log("AuthProvider: verifying token in database for shop", shopDomain);
     
     try {
@@ -95,7 +99,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error("AuthProvider: Error verifying token:", error);
         setIsTokenVerified(false);
-        return;
+        return false;
       }
       
       if (storeData && storeData.access_token) {
@@ -118,6 +122,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("AuthProvider: Creating virtual Shopify user:", shopifyUser);
           setUser(shopifyUser);
         }
+        
+        return true;
       } else {
         console.log("AuthProvider: No valid token found for shop", shopDomain);
         setIsTokenVerified(false);
@@ -130,10 +136,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (user && user.shopify) {
           setUser(null);
         }
+        
+        return false;
       }
     } catch (error) {
       console.error("AuthProvider: Exception while verifying token:", error);
       setIsTokenVerified(false);
+      return false;
     }
   };
 
@@ -174,7 +183,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // قراءة بيانات اتصال Shopify من التخزين المحلي
-      refreshShopifyConnection();
+      await refreshShopifyConnection();
       
       // استماع لتغييرات حالة المصادقة
       const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -236,7 +245,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(shopifyUser);
         
         // Verify token
-        verifyTokenInDatabase(shop);
+        await verifyTokenInDatabase(shop);
       }
     };
     

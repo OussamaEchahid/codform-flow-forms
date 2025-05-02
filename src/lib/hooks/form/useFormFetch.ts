@@ -7,28 +7,29 @@ import { useI18n } from '@/lib/i18n';
 import { FormData } from './types';
 
 /**
- * Hook for fetching form data - Simplified to avoid type recursion issues
+ * ملف محسّن للحصول على بيانات النماذج - تم تبسيطه لتجنب مشاكل العمق المفرط في الأنواع
  */
 export const useFormFetch = () => {
   const [forms, setForms] = useState<FormData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { language } = useI18n();
+  const [formCache, setFormCache] = useState<Record<string, FormData>>({});
 
   /**
-   * Get a form by ID - Using simple object creation to prevent type recursion
+   * الحصول على نموذج بواسطة المعرف - تم تبسيط إنشاء الكائن لمنع مشاكل العمق المفرط
    */
-  const getFormById = useCallback(async (formId: string, formCache: Record<string, FormData>) => {
+  const getFormById = useCallback(async (formId: string) => {
     console.log(`useFormFetch: Getting form by ID: ${formId}`);
     
     try {
-      // Check if we already have this form in cache
+      // التحقق من وجود النموذج في ذاكرة التخزين المؤقت
       if (formCache[formId]) {
         console.log(`useFormFetch: Form ${formId} found in cache`);
         return formCache[formId];
       }
       
-      // Form not in cache, fetch from database
+      // النموذج غير موجود في ذاكرة التخزين المؤقت، قم بجلبه من قاعدة البيانات
       const { data: rawData, error } = await supabase
         .from('forms')
         .select('*')
@@ -47,13 +48,13 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, rawData);
       
-      // Create a new object with a simple assignment
+      // إنشاء كائن جديد بطريقة آمنة من مشاكل أنواع TypeScript
       const formData: FormData = {
         id: rawData.id,
         title: rawData.title,
         description: rawData.description,
-        // Explicitly create a new object - fixes type recursion
-        data: structuredClone(rawData.data || []),
+        // تحويل البيانات إلى نص ثم إعادة تحليلها لكسر أي ارتباطات مرجعية قد تؤدي إلى مشاكل عمق الأنواع
+        data: JSON.parse(JSON.stringify(rawData.data || [])),
         created_at: rawData.created_at,
         updated_at: rawData.updated_at,
         user_id: rawData.user_id,
@@ -61,36 +62,39 @@ export const useFormFetch = () => {
         shop_id: rawData.shop_id
       };
       
+      // تحديث ذاكرة التخزين المؤقت
+      setFormCache(prev => ({...prev, [formId]: formData}));
+      
       return formData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
       return null;
     }
-  }, [language]);
+  }, [language, formCache]);
 
   /**
-   * Fetch all forms for the current user - Simplified to prevent type issues
+   * جلب جميع النماذج للمستخدم الحالي - تم تبسيطه لمنع مشاكل أنواع TypeScript
    */
   const fetchForms = useCallback(async () => {
     console.log("useFormFetch: Fetching forms");
     setIsLoading(true);
 
     try {
-      // Get forms created by current user or public forms
+      // الحصول على النماذج التي أنشأها المستخدم الحالي أو النماذج العامة
       const userId = user?.id;
       
       let query = supabase.from('forms').select('*');
       
       if (userId) {
-        // If user is logged in, get forms created by this user
+        // إذا كان المستخدم مسجل الدخول، احصل على النماذج التي أنشأها هذا المستخدم
         query = query.eq('user_id', userId);
       } else {
-        // If no user, only get public forms
-        query = query.eq('is_public', true);
+        // إذا لم يكن هناك مستخدم، احصل فقط على النماذج العامة
+        query = query.eq('is_published', true);
       }
 
-      // Order by newest first
+      // ترتيب حسب الأحدث أولاً
       query = query.order('created_at', { ascending: false });
       
       const { data: rawData, error } = await query;
@@ -105,15 +109,15 @@ export const useFormFetch = () => {
       const formsData: FormData[] = [];
       
       if (rawData && Array.isArray(rawData)) {
-        // Process each form individually with simple object creation
+        // معالجة كل نموذج بشكل فردي بطريقة آمنة من مشاكل أنواع TypeScript
         rawData.forEach(item => {
           if (item) {
             const formData: FormData = {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Explicitly create a new object - fixes type recursion
-              data: structuredClone(item.data || []),
+              // تحويل البيانات إلى نص ثم إعادة تحليلها لكسر أي ارتباطات مرجعية
+              data: JSON.parse(JSON.stringify(item.data || [])),
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
@@ -122,6 +126,9 @@ export const useFormFetch = () => {
             };
             
             formsData.push(formData);
+            
+            // تحديث ذاكرة التخزين المؤقت
+            setFormCache(prev => ({...prev, [item.id]: formData}));
           }
         });
       }
@@ -138,7 +145,7 @@ export const useFormFetch = () => {
   }, [user, language]);
 
   /**
-   * Update the forms state
+   * تحديث حالة النماذج
    */
   const updateFormsState = useCallback((newForms: FormData[]) => {
     setForms(newForms);

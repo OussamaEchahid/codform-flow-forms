@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 
-// Props type for the ShopifyConnectionManager component
+// نوع خصائص مكون ShopifyConnectionManager
 export interface ShopifyConnectionManagerProps {
   variant?: 'button' | 'panel';
   showStatus?: boolean;
@@ -21,16 +21,16 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   const { language } = useI18n();
   const [isConnecting, setIsConnecting] = useState(false);
   
-  // Handle connect to Shopify
+  // معالج الاتصال بـ Shopify
   const handleConnect = async () => {
     setIsConnecting(true);
     
     try {
-      // Simple approach - redirect to the Shopify auth page
+      // نهج بسيط - إعادة توجيه إلى صفحة مصادقة Shopify
       const shopifyAuthUrl = `/shopify?ts=${Date.now()}`;
       console.log('Redirecting to Shopify auth:', shopifyAuthUrl);
       
-      // Add a small delay before redirect to let the user see the loading state
+      // إضافة تأخير صغير قبل إعادة التوجيه للسماح للمستخدم برؤية حالة التحميل
       setTimeout(() => {
         window.location.href = shopifyAuthUrl;
       }, 500);
@@ -44,7 +44,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     }
   };
   
-  // Handle reconnect to Shopify
+  // معالج إعادة الاتصال بـ Shopify
   const handleReconnect = () => {
     if (forceReconnect) {
       forceReconnect();
@@ -53,17 +53,31 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     }
   };
   
-  // Handle refresh connection status
+  // معالج تحديث حالة الاتصال
   const handleRefresh = async () => {
     if (refreshShopifyConnection) {
-      await refreshShopifyConnection();
-      toast.success(language === 'ar' 
-        ? 'تم تحديث حالة الاتصال' 
-        : 'Connection status updated');
+      try {
+        const isConnected = await refreshShopifyConnection();
+        
+        if (isConnected) {
+          toast.success(language === 'ar' 
+            ? 'تم تحديث حالة الاتصال' 
+            : 'Connection status updated');
+        } else {
+          toast.error(language === 'ar'
+            ? 'فشل التحقق من الاتصال'
+            : 'Failed to verify connection');
+        }
+      } catch (error) {
+        console.error('Error refreshing connection:', error);
+        toast.error(language === 'ar'
+          ? 'خطأ في تحديث حالة الاتصال'
+          : 'Error updating connection status');
+      }
     }
   };
   
-  // Simple button variant
+  // النسخة البسيطة (زر)
   if (variant === 'button') {
     return (
       <Button
@@ -73,7 +87,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       >
         {isConnecting ? (
           <>
-            <span className="animate-spin mr-2">⏳</span>
+            <span className="inline-block animate-spin mr-2">⏳</span>
             {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
           </>
         ) : shopifyConnected ? (
@@ -85,7 +99,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     );
   }
   
-  // Panel variant with more details
+  // النسخة الموسعة (لوحة)
   return (
     <div className="border rounded-md p-4 bg-white shadow-sm">
       <h3 className="text-lg font-medium mb-2">
@@ -118,7 +132,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
         >
           {isConnecting ? (
             <>
-              <span className="animate-spin mr-2">⏳</span>
+              <span className="inline-block animate-spin mr-2">⏳</span>
               {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
             </>
           ) : shopifyConnected ? (
