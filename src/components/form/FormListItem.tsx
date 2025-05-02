@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, WifiOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { FormData } from '@/lib/hooks/form/types';
@@ -21,6 +21,7 @@ interface FormListItemProps {
   onPublishToggle: (formId: string, currentStatus: boolean) => void;
   onDeleteRequest: (formId: string) => void;
   isActionInProgress: boolean;
+  isOfflineMode?: boolean;
 }
 
 const FormListItem: React.FC<FormListItemProps> = ({
@@ -28,7 +29,8 @@ const FormListItem: React.FC<FormListItemProps> = ({
   onSelectForm,
   onPublishToggle,
   onDeleteRequest,
-  isActionInProgress
+  isActionInProgress,
+  isOfflineMode = false
 }) => {
   const { language } = useI18n();
   
@@ -55,25 +57,27 @@ const FormListItem: React.FC<FormListItemProps> = ({
                 <Edit className="mr-2 h-4 w-4" />
                 <span>تعديل</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => {
-                  if (!isActionInProgress) {
-                    onPublishToggle(form.id, form.is_published || false);
-                  }
-                }}
-              >
-                {form.is_published ? (
-                  <>
-                    <EyeOff className="mr-2 h-4 w-4" />
-                    <span>إلغاء النشر</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" />
-                    <span>نشر</span>
-                  </>
-                )}
-              </DropdownMenuItem>
+              {!isOfflineMode && (
+                <DropdownMenuItem 
+                  onClick={() => {
+                    if (!isActionInProgress) {
+                      onPublishToggle(form.id, form.is_published || false);
+                    }
+                  }}
+                >
+                  {form.is_published ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      <span>إلغاء النشر</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      <span>نشر</span>
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem 
                 onClick={() => {
                   if (!isActionInProgress) {
@@ -91,9 +95,16 @@ const FormListItem: React.FC<FormListItemProps> = ({
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-2">
-          <Badge variant={form.is_published ? "success" : "secondary"}>
-            {form.is_published ? 'منشور' : 'مسودة'}
-          </Badge>
+          {isOfflineMode ? (
+            <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
+              <WifiOff className="h-3 w-3" />
+              {language === 'ar' ? 'وضع غير متصل' : 'Offline'}
+            </Badge>
+          ) : (
+            <Badge variant={form.is_published ? "success" : "secondary"}>
+              {form.is_published ? 'منشور' : 'مسودة'}
+            </Badge>
+          )}
           <span className="text-xs text-gray-500 rtl:text-left">
             {formatDistanceToNow(new Date(form.created_at || ''), { 
               addSuffix: true, 
@@ -114,7 +125,9 @@ const FormListItem: React.FC<FormListItemProps> = ({
           className="w-full"
           disabled={isActionInProgress}
         >
-          عرض وتعديل
+          {isOfflineMode ? 
+            (language === 'ar' ? 'عرض (وضع غير متصل)' : 'View (Offline)') : 
+            (language === 'ar' ? 'عرض وتعديل' : 'View & Edit')}
         </Button>
       </CardFooter>
     </Card>
