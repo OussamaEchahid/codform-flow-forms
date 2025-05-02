@@ -47,7 +47,7 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Fixed: Create a typed form object with explicit property assignments to avoid type recursion
+      // Create explicit type object to avoid recursion issues
       const fetchedForm: FormData = {
         id: data.id,
         title: data.title,
@@ -101,13 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Use a more explicit approach to avoid type recursion
+      // Explicitly create FormData objects to avoid type recursion
       const fetchedForms: FormData[] = [];
       
       if (data) {
         for (const item of data) {
-          // Create each form with explicit typing
-          const formItem: FormData = {
+          // Create each form with explicit property assignments
+          fetchedForms.push({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -117,8 +117,7 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          };
-          fetchedForms.push(formItem);
+          });
         }
       }
       
