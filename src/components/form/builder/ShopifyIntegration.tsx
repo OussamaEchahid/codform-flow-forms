@@ -193,11 +193,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         settings: {
           enabled: true,
           position,
-          style: {
+          style: JSON.stringify({
             primaryColor: '#000000',
             fontSize: '16px',
             borderRadius: '4px',
-          },
+          }),
           products: selectedProducts,
           blockId: cleanedBlockId
         },

@@ -1,109 +1,67 @@
 
-import { supabase } from '@/integrations/supabase/client';
+// API endpoint for product settings
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { ProductSettingsRequest, ProductSettingsResponse } from '@/lib/shopify/types';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * حامل إعدادات المنتج
- * تم تحويله من Next.js API route إلى وظيفة عادية
- */
-export async function saveProductSettings(
-  shopId: string,
-  requestBody: ProductSettingsRequest
-): Promise<ProductSettingsResponse> {
-  try {
-    console.log('Processing product settings request:', {
-      shopId,
-      productId: requestBody.productId,
-      formId: requestBody.formId,
-      blockId: requestBody.blockId,
-      enabled: requestBody.enabled
-    });
-    
-    // التحقق من وجود البيانات المطلوبة
-    if (!shopId || shopId.trim() === '') {
-      console.error('معرف المتجر غير موجود');
-      return { error: 'معرف المتجر غير موجود' };
-    }
-    
-    if (!requestBody.productId || !requestBody.formId) {
-      console.error('البيانات المطلوبة غير موجودة: productId أو formId');
-      return { 
-        error: 'البيانات المطلوبة غير موجودة: productId أو formId'
-      };
-    }
-
-    console.log('Using shop ID:', shopId);
-    
-    // التحقق من وجود عمود block_id في الجدول قبل المتابعة
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ProductSettingsResponse>
+) {
+  if (req.method === 'POST') {
     try {
-      // التحقق من وجود الجدول وأعمدته
-      const { data: tableInfo, error: tableError } = await supabase
+      const { productId, formId, blockId, enabled = true }: ProductSettingsRequest = req.body;
+      
+      if (!productId || !formId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Product ID and Form ID are required' 
+        });
+      }
+      
+      // Insert or update the product settings
+      const { data, error } = await supabase
         .from('shopify_product_settings')
-        .select('*')
-        .limit(1);
+        .upsert({
+          product_id: productId,
+          form_id: formId,
+          block_id: blockId,
+          enabled,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'product_id'
+        })
+        .select()
+        .single();
       
-      if (tableError) {
-        console.error('خطأ في التحقق من بنية الجدول:', tableError);
-        return {
-          error: `خطأ في التحقق من بنية الجدول: ${tableError.message || 'خطأ غير معروف'}`
-        };
+      if (error) {
+        console.error('Error saving product settings:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Failed to save product settings' 
+        });
       }
       
-      console.log('Table structure verified successfully');
-
-      // بناء كائن البيانات بعناية
-      const settingsData: any = {
-        shop_id: shopId,
-        product_id: requestBody.productId,
-        form_id: requestBody.formId,
-        enabled: requestBody.enabled ?? true
-      };
+      return res.status(200).json({ 
+        success: true, 
+        productId: data.product_id,
+        formId: data.form_id,
+        blockId: data.block_id
+      });
       
-      // إضافة block_id فقط إذا كان محدداً
-      if (requestBody.blockId !== undefined && requestBody.blockId !== null && requestBody.blockId !== '') {
-        settingsData.block_id = requestBody.blockId;
-      } else {
-        // إنشاء معرف افتراضي إذا لم يتم توفيره
-        const defaultBlockId = `codform-${Math.random().toString(36).substring(2, 10)}`;
-        settingsData.block_id = defaultBlockId;
-        console.log(`No block_id provided, using default: ${defaultBlockId}`);
-      }
-      
-      console.log('Preparing to insert/update settings with data:', settingsData);
-
-      // استخدام supabase للإدراج/التحديث
-      const result = await supabase.from('shopify_product_settings').upsert(
-        settingsData,
-        { 
-          onConflict: 'shop_id,product_id',
-          ignoreDuplicates: false
-        }
-      );
-
-      if (result.error) {
-        console.error('Database error:', result.error);
-        return { 
-          error: `خطأ في قاعدة البيانات: ${result.error.message || 'خطأ غير معروف'}`
-        };
-      }
-
-      console.log('Product settings saved successfully');
-      return { 
-        success: true,
-        productId: requestBody.productId,
-        formId: requestBody.formId,
-        blockId: settingsData.block_id
-      };
-    } catch (dbError: any) {
-      console.error('Database error:', dbError);
-      return { 
-        error: `خطأ في قاعدة البيانات: ${dbError.message || 'خطأ غير معروف'}`
-      };
+    } catch (error) {
+      console.error('Error in product settings endpoint:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error' 
+      });
     }
-  } catch (error: any) {
-    console.error('Settings error:', error);
-    return { 
-      error: error.message || 'خطأ في حفظ إعدادات المنتج'
-    };
+  } else {
+    // Method not allowed
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ 
+      success: false, 
+      error: `Method ${req.method} Not Allowed` 
+    });
   }
 }

@@ -19,12 +19,28 @@ export interface ShopifyFormData {
   product_id?: string;
   settings?: {
     enabled: boolean;
-    placement?: string;
-    style?: string;
-    blockId?: string; // إضافة حقل blockId
     position?: string;
+    style?: string;
+    blockId?: string;
     products?: string[];
   };
+}
+
+// نوع بيانات طلب إعدادات المنتج
+export interface ProductSettingsRequest {
+  productId: string;
+  formId: string;
+  blockId?: string;
+  enabled?: boolean;
+}
+
+// نوع بيانات استجابة إعدادات المنتج
+export interface ProductSettingsResponse {
+  success?: boolean;
+  error?: string;
+  productId?: string;
+  formId?: string;
+  blockId?: string;
 }
 
 // نوع بيانات استجابة التحقق من اتصال Shopify
@@ -34,18 +50,13 @@ export interface ShopifyVerifyResponse {
   timestamp?: string;
 }
 
-// إضافة أنواع البيانات المفقودة
-export interface ProductSettingsRequest {
-  productId: string;
-  formId: string;
-  blockId?: string;
-  enabled?: boolean;
-}
-
-export interface ProductSettingsResponse {
-  success?: boolean;
-  error?: string;
-  productId?: string;
-  formId?: string;
-  blockId?: string;
+// نوع بيانات طلب Shopify
+export interface ShopifyOrder {
+  id: string;
+  order_number: string;
+  email: string;
+  created_at: string;
+  total_price: string;
+  currency: string;
+  financial_status: string;
 }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Loader2, Plus, Search } from 'lucide-react';
 const FormBuilderDashboard = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
-  const { forms, isLoading, fetchForms } = useFormTemplates();
+  const { forms, isLoading, fetchForms } = useFormFetch();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredForms, setFilteredForms] = useState<any[]>([]);
   const { user, shopifyConnected } = useAuth();

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -57,17 +56,10 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   const handleRefresh = async () => {
     if (refreshShopifyConnection) {
       try {
-        const isConnected = await refreshShopifyConnection();
-        
-        if (isConnected) {
-          toast.success(language === 'ar' 
-            ? 'تم تحديث حالة الاتصال' 
-            : 'Connection status updated');
-        } else {
-          toast.error(language === 'ar'
-            ? 'فشل التحقق من الاتصال'
-            : 'Failed to verify connection');
-        }
+        await refreshShopifyConnection();
+        toast.success(language === 'ar' 
+          ? 'تم تحديث حالة الاتصال' 
+          : 'Connection status updated');
       } catch (error) {
         console.error('Error refreshing connection:', error);
         toast.error(language === 'ar'

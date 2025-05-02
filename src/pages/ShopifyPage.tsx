@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -20,21 +19,19 @@ const ShopifyPage = () => {
       const checkConnection = async () => {
         try {
           // تحقق من نتيجة الاتصال إذا كانت متاحة
-          const result = await refreshShopifyConnection();
+          await refreshShopifyConnection();
           
-          // تحقق أن النتيجة هي true بشكل محدد (وليس void أو قيمة أخرى)
-          if (result === true) {
-            toast.success(
-              language === 'ar'
-                ? 'تم الاتصال بـ Shopify بنجاح'
-                : 'Successfully connected to Shopify'
-            );
-            
-            // إعادة التوجيه تلقائيًا إلى صفحة النماذج إذا كان متصلاً
-            setTimeout(() => {
-              navigate('/forms');
-            }, 1500);
-          }
+          // إذا وصلنا إلى هنا، فإن الاتصال ناجح (لم يحدث استثناء)
+          toast.success(
+            language === 'ar'
+              ? 'تم الاتصال بـ Shopify بنجاح'
+              : 'Successfully connected to Shopify'
+          );
+          
+          // إعادة التوجيه تلقائيًا إلى صفحة النماذج إذا كان متصلاً
+          setTimeout(() => {
+            navigate('/forms');
+          }, 1500);
         } catch (error) {
           console.error("Failed to check connection:", error);
         } finally {

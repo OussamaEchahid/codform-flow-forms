@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { useFormCrud } from '@/lib/hooks/form/useFormCrud';
 import { FormData } from '@/lib/hooks/form/types';
 import FormListItem from './FormListItem';
 import DeleteFormDialog from './DeleteFormDialog';
@@ -18,7 +17,7 @@ interface FormListProps {
 
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
-  const { publishForm, deleteForm } = useFormTemplates();
+  const { publishForm, deleteForm } = useFormCrud();
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     // Prevent multiple actions
