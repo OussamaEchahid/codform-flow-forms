@@ -10,9 +10,8 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIU
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-// Our app's URL
-const APP_URL = "https://codform-flow-forms.lovable.app";
-const AUTH_CALLBACK_PATH = "/api/shopify-callback";
+// Default app URL if not provided
+const DEFAULT_APP_URL = "https://codform-flow-forms.lovable.app";
 
 // CORS headers
 const corsHeaders = {
@@ -30,7 +29,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Function to clean shop domain
 function cleanShopDomain(shop: string): string {
-  let cleanedShop = shop.trim();
+  let cleanedShop = shop ? shop.trim() : "bestform-app.myshopify.com";
+  
+  // Default to known shop if none provided
+  if (!cleanedShop || cleanedShop === "") {
+    return "bestform-app.myshopify.com";
+  }
   
   // Remove protocol if present
   if (cleanedShop.startsWith('http')) {
@@ -72,19 +76,15 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     let shop = url.searchParams.get("shop");
-    const client = url.searchParams.get("client") || APP_URL;
+    const client = url.searchParams.get("client") || DEFAULT_APP_URL;
+    const force = url.searchParams.get("force") === "true";
     
     console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
     console.log("Request headers:", Object.fromEntries(req.headers.entries()));
     
-    if (!shop) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Missing shop parameter",
-          success: false 
-        }), 
-        { status: 400, headers: corsHeaders }
-      );
+    if (!shop && !force) {
+      shop = "bestform-app.myshopify.com"; // Default to known shop if not provided
+      console.log("Using default shop:", shop);
     }
     
     // Clean shop domain
@@ -134,7 +134,7 @@ serve(async (req) => {
       }
       
       // Ensure the callback URL uses the client origin
-      const callbackUrl = `${client}${AUTH_CALLBACK_PATH}`;
+      const callbackUrl = `${client}/api/shopify-callback`;
       console.log("Using callback URL:", callbackUrl);
       
       // Create the authentication URL
@@ -159,11 +159,20 @@ serve(async (req) => {
       });
     } catch (error) {
       console.error("Error initiating authentication:", error);
+      
+      // Generate fallback auth URL for direct client-side redirect
+      const callbackUrl = `${client}/api/shopify-callback`;
+      const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+      const redirectUri = encodeURIComponent(callbackUrl);
+      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${redirectUri}&state=${generateNonce()}`;
+      
+      // Return error with fallback URL
       return new Response(
         JSON.stringify({ 
           error: "Error initiating authentication",
           details: error instanceof Error ? error.message : "Unknown error",
           shop: cleanedShop,
+          fallbackAuthUrl: authUrl,
           success: false
         }),
         { status: 500, headers: corsHeaders }

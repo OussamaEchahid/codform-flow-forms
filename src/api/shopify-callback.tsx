@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 
 export default function ShopifyCallback() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function ShopifyCallback() {
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [shop, setShop] = useState<string | null>(null);
+  const { refreshShopifyConnection } = useAuth();
   
   useEffect(() => {
     const handleCallback = async () => {
@@ -58,29 +60,67 @@ export default function ShopifyCallback() {
         
         // Call our Supabase Edge Function to complete OAuth
         setMessage("جاري التحقق من المصادقة مع Shopify...");
-        const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
         
-        console.log("Calling callback function:", callbackUrl);
-        
-        const response = await fetch(callbackUrl, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+        // Add retry logic with multiple callback URLs
+        const tryCallbackWithUrl = async (baseUrl: string): Promise<Response> => {
+          const callbackUrl = `${baseUrl}/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
+          console.log("Calling callback function:", callbackUrl);
+          
+          try {
+            const response = await fetch(callbackUrl, {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              }
+            });
+            
+            return response;
+          } catch (error) {
+            console.error("Error calling callback URL:", error);
+            throw error;
           }
-        });
+        };
         
-        if (!response.ok) {
-          const errorText = await response.text();
+        let response: Response | null = null;
+        let errorMessage = "";
+        
+        // Try with first URL
+        try {
+          response = await tryCallbackWithUrl("https://nhqrngdzuatdnfkihtud.functions.supabase.co");
+        } catch (error1) {
+          errorMessage = `First endpoint failed: ${error1}`;
+          console.error("First endpoint failed:", error1);
+          
+          // Try with second URL if first fails
+          try {
+            response = await tryCallbackWithUrl("https://edge-runtime.supabase.com");
+          } catch (error2) {
+            errorMessage = `Both endpoints failed: ${error1}, then ${error2}`;
+            console.error("Second endpoint failed:", error2);
+          }
+        }
+        
+        if (!response || !response.ok) {
+          const errorText = response ? await response.text() : "No response";
           console.error("Callback error response:", errorText);
           
           setStatus('error');
-          setError(`فشل إكمال المصادقة: ${response.status} ${response.statusText}`);
+          setError(`فشل إكمال المصادقة: ${response ? response.status : 'No response'} ${errorMessage}`);
           return;
         }
         
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          console.error("JSON parse error:", parseError);
+          setStatus('error');
+          setError(`خطأ في تحليل استجابة الخادم: ${parseError}`);
+          return;
+        }
+        
         console.log("Callback result:", result);
         
         if (result.success) {
@@ -92,6 +132,14 @@ export default function ShopifyCallback() {
           localStorage.setItem('shopify_connected', 'true');
           localStorage.setItem('shopify_last_connect_time', timestamp.toString());
           localStorage.removeItem('shopify_temp_store');
+          
+          // Reset connection attempts counter
+          localStorage.setItem('shopify_connection_attempts', '0');
+          
+          // Refresh connection in auth context if available
+          if (refreshShopifyConnection) {
+            refreshShopifyConnection();
+          }
           
           // Show success toast
           toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
@@ -120,7 +168,7 @@ export default function ShopifyCallback() {
     };
     
     handleCallback();
-  }, [location.search, navigate]);
+  }, [location.search, navigate, refreshShopifyConnection]);
   
   const handleRetry = () => {
     // Navigate to Shopify connection page with shop parameter if available
@@ -132,7 +180,7 @@ export default function ShopifyCallback() {
   };
   
   const handleGoToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
   
   return (

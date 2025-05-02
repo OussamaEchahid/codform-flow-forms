@@ -5,7 +5,8 @@ import { redirect } from "@remix-run/node";
 export const loader = async ({ request }) => {
   console.log("Server Auth route hit with URL:", request.url);
   const url = new URL(request.url);
-  let shop = url.searchParams.get("shop");
+  let shop = url.searchParams.get("shop") || "bestform-app.myshopify.com"; // Default to known shop if none provided
+  const force = url.searchParams.get("force") === "true";
   
   // سجل جميع المعلومات للتشخيص
   console.log("Auth route complete parameters:", {
@@ -15,6 +16,7 @@ export const loader = async ({ request }) => {
     timestamp: url.searchParams.get("timestamp"),
     host: url.searchParams.get("host"),
     state: url.searchParams.get("state"),
+    force,
     allParams: Object.fromEntries(url.searchParams.entries()),
     headers: Object.fromEntries(request.headers.entries()),
     url: request.url,
@@ -53,6 +55,10 @@ export const loader = async ({ request }) => {
       url.searchParams.set("shop", shop);
       // إنشاء طلب جديد بعنوان URL محدث
       request = new Request(url.toString(), request);
+    } else if (!url.searchParams.has("shop") && shop) {
+      // Add shop parameter if missing
+      url.searchParams.set("shop", shop);
+      request = new Request(url.toString(), request);
     }
 
     const code = url.searchParams.get("code");
@@ -89,7 +95,7 @@ export const loader = async ({ request }) => {
       }
     } 
     // إذا كان لدينا متجر فقط، نبدأ تدفق OAuth
-    else if (shop) {
+    else if (shop || force) {
       try {
         console.log("Starting authentication flow for shop:", shop);
         
@@ -102,7 +108,21 @@ export const loader = async ({ request }) => {
         return response;
       } catch (loginError) {
         console.error("Login error:", loginError);
-        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop || '')}`);
+        
+        // Fallback for when Shopify OAuth fails - try direct redirect
+        console.log("Using fallback direct OAuth redirect");
+        
+        // Get existing app URL or use default
+        const appUrl = process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app";
+        const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+        const redirectUri = `${appUrl}/api/shopify-callback`;
+        
+        // Create direct OAuth URL
+        const shopifyAuthUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407"}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${Date.now()}`;
+        
+        console.log("Fallback auth URL:", shopifyAuthUrl);
+        
+        return redirect(shopifyAuthUrl);
       }
     }
     
@@ -125,8 +145,16 @@ export const loader = async ({ request }) => {
         return response;
       } catch (loginError) {
         console.error("Login error:", loginError);
-        // في حالة خطأ تسجيل الدخول، قدم معلومات مفصلة
-        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(loginError.message)}&shop=${encodeURIComponent(shop || '')}`);
+        
+        // Last resort - direct redirect to Shopify OAuth
+        const appUrl = process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app";
+        const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+        const redirectUri = `${appUrl}/api/shopify-callback`;
+        const shopifyAuthUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407"}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${Date.now()}`;
+        
+        console.log("Last resort auth URL:", shopifyAuthUrl);
+        
+        return redirect(shopifyAuthUrl);
       }
     }
     
