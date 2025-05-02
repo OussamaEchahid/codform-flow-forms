@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -15,7 +15,7 @@ export interface ShopifyConnectionManagerProps {
 }
 
 /**
- * Component for managing Shopify connection state with reliable connection handling
+ * مكون محسّن لإدارة حالة اتصال Shopify مع معالجة اتصال أكثر موثوقية
  */
 export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ 
   onConnectionSuccess,
@@ -26,16 +26,20 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   const { language, t } = useI18n();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
-
-  // Record connection attempts
+  const [lastConnectionTime, setLastConnectionTime] = useState<number | null>(null);
+  
+  // تسجيل محاولات الاتصال
   useEffect(() => {
     const attempts = parseInt(localStorage.getItem('shopify_connection_attempts') || '0', 10);
     setConnectionAttempts(attempts);
+    
+    const lastTime = parseInt(localStorage.getItem('shopify_last_connection_attempt') || '0', 10);
+    setLastConnectionTime(lastTime || null);
   }, []);
-
-  // Reset connection state if needed on component mount
+  
+  // إعادة ضبط حالة الاتصال إذا لزم الأمر عند تركيب المكون
   useEffect(() => {
-    // If we detect multiple recent attempts, check if token is actually valid
+    // إذا اكتشفنا محاولات متعددة حديثة، تحقق مما إذا كان الرمز المميز صالحًا بالفعل
     if (shopifyConnected && shop && connectionAttempts > 2) {
       const verifyConnection = async () => {
         try {
@@ -46,7 +50,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
             .maybeSingle();
             
           if (error || !data?.access_token) {
-            console.log("Token validation failed, clearing connection state");
+            console.log("فشل التحقق من الرمز، جاري مسح حالة الاتصال");
             localStorage.removeItem('shopify_store');
             localStorage.removeItem('shopify_connected');
             localStorage.removeItem('shopify_last_connect_time');
@@ -55,7 +59,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
             }
           }
         } catch (e) {
-          console.error("Error verifying token:", e);
+          console.error("خطأ في التحقق من الرمز:", e);
         }
       };
       
@@ -63,42 +67,59 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     }
   }, [shop, shopifyConnected, connectionAttempts, refreshShopifyConnection]);
 
-  // Direct and reliable connection handling
-  const handleConnect = () => {
+  // معالجة اتصال مباشر وموثوق
+  const handleConnect = useCallback(() => {
     if (isConnecting) return;
     
     try {
       setIsConnecting(true);
       
-      // Update connection attempt counter
+      // تحديث عداد محاولات الاتصال
       const attempts = parseInt(localStorage.getItem('shopify_connection_attempts') || '0', 10);
       localStorage.setItem('shopify_connection_attempts', (attempts + 1).toString());
+      localStorage.setItem('shopify_last_connection_attempt', Date.now().toString());
       setConnectionAttempts(attempts + 1);
+      setLastConnectionTime(Date.now());
       
-      // Clear any existing Shopify data
+      // مسح أي بيانات Shopify موجودة
       localStorage.removeItem('shopify_store');
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_last_connect_time');
       localStorage.removeItem('shopify_temp_store');
       
-      // Add timestamp to prevent caching and ensure fresh auth flow
+      // إضافة طابع زمني لمنع التخزين المؤقت وضمان تدفق مصادقة جديد
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(7);
       
-      // Refresh connection state in auth context
+      // تحديث حالة الاتصال في سياق المصادقة
       if (refreshShopifyConnection) {
         refreshShopifyConnection();
       }
       
-      // Show connecting toast
+      // إظهار نخبة الاتصال
       toast.info(language === 'ar' 
         ? 'جاري توجيهك للاتصال بـ Shopify...' 
         : 'Redirecting to connect with Shopify...', 
         { duration: 5000 }
       );
       
-      // First try with direct API call to edge function, then fallback to direct navigation
-      fetch(`https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}`, {
+      // قبل استدعاء واجهة برمجة التطبيقات، تأكد من عدم وجود توجيهات متعددة
+      if (sessionStorage.getItem('shopify_connecting') === 'true' && 
+          Date.now() - parseInt(sessionStorage.getItem('shopify_connecting_time') || '0', 10) < 10000) {
+        console.log("تم اكتشاف محاولة اتصال جارية، تجاهل");
+        setTimeout(() => setIsConnecting(false), 3000);
+        return;
+      }
+      
+      // وضع علامة على الاتصال الجاري
+      sessionStorage.setItem('shopify_connecting', 'true');
+      sessionStorage.setItem('shopify_connecting_time', Date.now().toString());
+      
+      // محاولة أولى: استدعاء دالة حافة Edge Function مباشرة
+      const apiUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}&debug=true`;
+      console.log("استدعاء نقطة نهاية المصادقة:", apiUrl);
+      
+      fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -108,52 +129,122 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          console.error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
+          throw new Error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
         if (data.redirect) {
-          console.log("Redirecting to Shopify auth URL:", data.redirect);
-          window.location.href = data.redirect;
-        } else if (data.success && data.shop) {
-          console.log("Connection already established with shop:", data.shop);
+          console.log("إعادة التوجيه إلى عنوان URL لمصادقة Shopify:", data.redirect);
+          
+          // تأكد من إكمال أي وظائف متزامنة قبل إعادة التوجيه
+          setTimeout(() => {
+            // قم بإزالة علامة الاتصال الجاري
+            sessionStorage.removeItem('shopify_connecting');
+            
+            // تخزين بيانات مؤقتة قبل إعادة التوجيه
+            if (data.shop) {
+              localStorage.setItem('shopify_temp_store', data.shop);
+            }
+            
+            // إعادة التوجيه إلى Shopify
+            window.location.href = data.redirect;
+          }, 100);
+        } else if (data.success && data.shop && data.hasExistingToken) {
+          console.log("تم إنشاء اتصال بالفعل مع المتجر:", data.shop);
           localStorage.setItem('shopify_store', data.shop);
           localStorage.setItem('shopify_connected', 'true');
           localStorage.setItem('shopify_last_connect_time', Date.now().toString());
           
-          // Refresh connection state
+          // إزالة علامة الاتصال الجاري
+          sessionStorage.removeItem('shopify_connecting');
+          
+          // تحديث حالة الاتصال
           if (refreshShopifyConnection) {
             refreshShopifyConnection();
           }
           
-          // Callback on success
+          // استدعاء رد الاتصال عند النجاح
           if (onConnectionSuccess) {
             onConnectionSuccess();
           }
           
-          // Navigate to dashboard with success params
-          window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(data.shop)}&reconnected=true`;
+          // عرض نخبة نجاح
+          toast.success(language === 'ar'
+            ? `تم الاتصال بنجاح بمتجر ${data.shop}`
+            : `Successfully connected to ${data.shop}`
+          );
+          
+          // التنقل إلى لوحة التحكم بمعلمات النجاح
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(data.shop)}&reconnected=true`;
+          }
         } else {
-          throw new Error("Invalid response from auth endpoint");
+          throw new Error("استجابة غير صالحة من نقطة نهاية المصادقة");
         }
       })
       .catch(error => {
-        console.error("API Error:", error);
-        // Fallback: Direct navigation to our auth route for Remix handling
-        console.log("Using fallback auth navigation");
+        console.error("خطأ في واجهة برمجة التطبيقات:", error);
+        
+        // احتياطي: التنقل المباشر إلى مسار المصادقة الخاص بنا للتعامل مع Remix
+        console.log("استخدام التنقل الاحتياطي للمصادقة");
+        
+        // إزالة علامة الاتصال الجاري بعد فترة زمنية
         setTimeout(() => {
-          window.location.href = `/auth?shop=bestform-app.myshopify.com&ts=${timestamp}&r=${randomStr}&force=true`;
+          sessionStorage.removeItem('shopify_connecting');
+        }, 5000);
+        
+        setTimeout(() => {
+          const shopParam = shop ? `&shop=${encodeURIComponent(shop)}` : '';
+          window.location.href = `/auth?ts=${timestamp}&r=${randomStr}&force=true${shopParam}`;
         }, 500);
+      })
+      .finally(() => {
+        // إعادة تعيين حالة الاتصال بعد فترة زمنية في حالة عدم حدوث إعادة توجيه
+        setTimeout(() => {
+          setIsConnecting(false);
+          // إزالة علامة الاتصال الجاري بعد فترة زمنية كافية
+          sessionStorage.removeItem('shopify_connecting'); 
+        }, 10000);
       });
     } catch (error) {
-      console.error("Error initiating Shopify connection:", error);
+      console.error("خطأ في بدء اتصال Shopify:", error);
       toast.error(language === 'ar'
         ? 'حدث خطأ أثناء توجيهك للاتصال. يرجى المحاولة مرة أخرى.'
         : 'Error during connection redirect. Please try again.');
       setIsConnecting(false);
+      sessionStorage.removeItem('shopify_connecting');
     }
-  };
+  }, [shop, isConnecting, language, onConnectionSuccess, refreshShopifyConnection]);
+
+  // استدعاء إعادة توجيه الاتصال مرة واحدة في حالة إعادة التحميل السريع - منع حلقات إعادة التوجيه
+  useEffect(() => {
+    // فحص ما إذا كان هناك علامة إعادة اتصال في URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const reconnect = urlParams.get('reconnect');
+    const shouldReconnect = urlParams.get('force') === 'true';
+    
+    // إذا تم تحديد reconnect وتم تحميل الصفحة للتو، ولكن لا تقم بتشغيله إذا كان قد تم ذلك حديثًا
+    if ((reconnect || shouldReconnect) && !isConnecting && 
+        (!lastConnectionTime || Date.now() - lastConnectionTime > 10000)) {
+      console.log("تم اكتشاف معلمة إعادة اتصال، بدء الاتصال تلقائيًا");
+      // تأخير قصير للسماح بتحميل المكونات
+      setTimeout(() => {
+        handleConnect();
+      }, 500);
+      
+      // تنظيف معلمات URL
+      if (window.history.replaceState && !shouldReconnect) {
+        const cleanUrl = window.location.pathname + 
+          window.location.search.replace(/[?&]reconnect=[^&]+/, '') + 
+          window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+  }, [handleConnect, isConnecting, lastConnectionTime]);
 
   if (variant === 'minimal') {
     return (

@@ -13,11 +13,11 @@ const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da
 // Default app URL if not provided
 const DEFAULT_APP_URL = "https://codform-flow-forms.lovable.app";
 
-// CORS headers
+// CORS headers - أكثر شمولية لتجنب مشاكل CORS
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, shopify-access-token",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -78,9 +78,17 @@ serve(async (req) => {
     let shop = url.searchParams.get("shop");
     const client = url.searchParams.get("client") || DEFAULT_APP_URL;
     const force = url.searchParams.get("force") === "true";
+    const debug = url.searchParams.get("debug") === "true";
     
     console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
     console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    
+    // إضافة المزيد من عمليات التسجيل لتتبع المشكلة
+    if (debug) {
+      console.log("Debug mode enabled, additional logging will be shown");
+      console.log("Client URL:", client);
+      console.log("Force reconnect:", force);
+    }
     
     if (!shop && !force) {
       shop = "bestform-app.myshopify.com"; // Default to known shop if not provided
@@ -93,6 +101,7 @@ serve(async (req) => {
 
     // Generate a unique state for this authorization
     const state = generateNonce();
+    const timestamp = Date.now().toString();
     
     try {
       // Save the temporary state and shop to verify later
@@ -112,21 +121,34 @@ serve(async (req) => {
       try {
         const { data: existingStore, error: storeError } = await supabase
           .from('shopify_stores')
-          .select('access_token')
+          .select('access_token, updated_at')
           .eq('shop', cleanedShop)
           .maybeSingle();
           
-        if (existingStore?.access_token) {
+        if (existingStore?.access_token && !force) {
           console.log("Found existing access token for shop:", cleanedShop);
           
-          // Return success response pointing back to dashboard
-          return new Response(JSON.stringify({
-            success: true,
-            shop: cleanedShop,
-            redirect: `${client}/dashboard?shopify_connected=true&shop=${encodeURIComponent(cleanedShop)}&auth_success=true&timestamp=${Date.now()}`
-          }), { 
-            headers: corsHeaders
-          });
+          // تحقق من صلاحية الرمز قبل إعادته - إضافة جديدة
+          const tokenAge = existingStore.updated_at ? 
+            (Date.now() - new Date(existingStore.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 
+            0;
+            
+          if (tokenAge > 7 || force) {
+            console.log("Token is older than 7 days or force refresh requested, generating new auth flow");
+          } else {
+            // Return success response pointing back to dashboard
+            const redirectUrl = `${client}/dashboard?shopify_connected=true&shop=${encodeURIComponent(cleanedShop)}&auth_success=true&timestamp=${timestamp}`;
+            console.log("Redirecting with existing token to:", redirectUrl);
+            
+            return new Response(JSON.stringify({
+              success: true,
+              shop: cleanedShop,
+              redirect: redirectUrl,
+              hasExistingToken: true
+            }), { 
+              headers: corsHeaders
+            });
+          }
         }
       } catch (checkError) {
         console.error("Error checking for existing token:", checkError);
@@ -146,14 +168,16 @@ serve(async (req) => {
       
       console.log("Generated auth URL:", authUrl);
       
-      // Return a response with the redirect URL
+      // إضافة المزيد من المعلومات في الاستجابة للمساعدة في تشخيص المشكلات
       return new Response(JSON.stringify({
         success: true,
         redirect: authUrl,
         shop: cleanedShop,
         state,
         clientUrl: client,
-        callbackUrl
+        callbackUrl,
+        timestamp,
+        version: "v2"  // لتتبع إصدار الكود الذي يعمل
       }), { 
         headers: corsHeaders
       });

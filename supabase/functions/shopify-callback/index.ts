@@ -13,11 +13,11 @@ const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// CORS headers
+// CORS headers - تحسين إعدادات CORS لتجنب مشاكل الاتصال
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "*", // Allow all headers
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, shopify-access-token",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -70,17 +70,32 @@ serve(async (req) => {
     const hmac = url.searchParams.get("hmac");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
+    const client = url.searchParams.get("client") || APP_URL;
+    const debug = url.searchParams.get("debug") === "true";
     
+    // إضافة المزيد من التسجيلات للمساعدة في التشخيص
     console.log("Callback received with params:", {
       shop,
       hmac: hmac ? "present" : "missing", 
       code: code ? "present" : "missing", 
-      state
+      state,
+      client
     });
+    
+    if (debug) {
+      console.log("DEBUG MODE: Full URL parameters:", Object.fromEntries(url.searchParams.entries()));
+    }
     
     if (!shop || !code || !hmac) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }), 
+        JSON.stringify({ 
+          error: "Missing required parameters",
+          params: {
+            shop: shop ? "present" : "missing",
+            code: code ? "present" : "missing",
+            hmac: hmac ? "present" : "missing"
+          }
+        }), 
         { status: 400, headers: corsHeaders }
       );
     }
@@ -109,25 +124,65 @@ serve(async (req) => {
         }
       }
     
-      // Exchange code for access token
+      // Exchange code for access token with error retry
       console.log(`Exchanging code for access token with shop: ${shop}`);
-      const accessTokenResponse = await fetch(
-        `https://${shop}/admin/oauth/access_token`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            client_id: SHOPIFY_API_KEY,
-            client_secret: SHOPIFY_API_SECRET,
-            code
-          })
-        }
-      );
       
-      if (!accessTokenResponse.ok) {
-        const errorText = await accessTokenResponse.text();
-        console.error("Access token error response:", errorText);
-        throw new Error(`Failed to get access token: ${accessTokenResponse.statusText}. Response: ${errorText}`);
+      let accessTokenResponse = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !accessTokenResponse) {
+        try {
+          accessTokenResponse = await fetch(
+            `https://${shop}/admin/oauth/access_token`,
+            {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'Codform-Flow-Forms/1.0'
+              },
+              body: JSON.stringify({
+                client_id: SHOPIFY_API_KEY,
+                client_secret: SHOPIFY_API_SECRET,
+                code
+              })
+            }
+          );
+          
+          if (!accessTokenResponse.ok) {
+            const errorText = await accessTokenResponse.text();
+            console.error(`Attempt ${retryCount + 1} - Token exchange error:`, 
+              accessTokenResponse.status,
+              accessTokenResponse.statusText, 
+              errorText
+            );
+            
+            // Reset for retry
+            accessTokenResponse = null;
+            retryCount++;
+            
+            if (retryCount < maxRetries) {
+              console.log(`Retrying in 1 second... (Attempt ${retryCount + 1} of ${maxRetries})`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              throw new Error(`Failed to get access token after ${maxRetries} attempts: ${errorText}`);
+            }
+          }
+        } catch (fetchError) {
+          console.error(`Attempt ${retryCount + 1} - Network error during token exchange:`, fetchError);
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            console.log(`Retrying in 1 second... (Attempt ${retryCount + 1} of ${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            throw fetchError;
+          }
+        }
+      }
+      
+      if (!accessTokenResponse || !accessTokenResponse.ok) {
+        throw new Error(`Failed to get access token after ${maxRetries} attempts`);
       }
       
       const tokenData = await accessTokenResponse.json();
@@ -168,15 +223,17 @@ serve(async (req) => {
         }
       }
       
-      // Redirect URL back to the app's dashboard
-      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`;
+      // استخدام عنوان URL المقدم للعميل أو الافتراضي
+      const redirectUrl = `${client || APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&auth_success=true&timestamp=${Date.now()}`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(
         JSON.stringify({
           success: true,
           shop,
-          redirect: redirectUrl
+          redirect: redirectUrl,
+          timestamp: Date.now(),
+          version: "v2" // لتتبع إصدار الكود الذي يعمل
         }),
         { 
           headers: {
@@ -191,7 +248,8 @@ serve(async (req) => {
         JSON.stringify({ 
           error: error instanceof Error ? error.message : "Unknown error in OAuth flow",
           errorType: error instanceof Error ? error.name : "Unknown",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          shop: shop || null
         }),
         { status: 500, headers: corsHeaders }
       );

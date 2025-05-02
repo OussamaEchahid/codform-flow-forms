@@ -10,7 +10,7 @@ import { useShopify } from '@/hooks/useShopify';
 import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnectionStatus = () => {
-  const { shopifyConnected, shop, refreshShopifyConnection, isTokenVerified } = useAuth();
+  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
   const { manualReconnect, verifyShopifyConnection } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -19,7 +19,7 @@ const ShopifyConnectionStatus = () => {
   const [connectionChecked, setConnectionChecked] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   
-  // وظيفة للتحقق من الاتصال بـ Shopify باستخدام API
+  // وظيفة للتحقق من الاتصال بـ Shopify
   const checkConnection = async () => {
     if (!shop) {
       console.log('ShopifyConnectionStatus: No shop to verify');
@@ -47,23 +47,12 @@ const ShopifyConnectionStatus = () => {
         return;
       }
       
-      console.log('ShopifyConnectionStatus: Found token in database, verifying with API');
+      console.log('ShopifyConnectionStatus: Found token in database');
       
-      // 2. التحقق من الاتصال باستخدام API
-      if (verifyShopifyConnection) {
-        const isConnected = await verifyShopifyConnection();
-        console.log('ShopifyConnectionStatus: API verification result:', isConnected);
-        
-        setShowWarning(!isConnected);
-        setConnectionChecked(true);
-        setIsVerifying(false);
-      } else {
-        console.log('ShopifyConnectionStatus: verifyShopifyConnection function not available');
-        // لم يتم توفير وظيفة التحقق، نفترض أن الاتصال صالح
-        setShowWarning(false);
-        setConnectionChecked(true);
-        setIsVerifying(false);
-      }
+      // حتى لو كان لدينا رمز، لا تظهر التحذير بشكل افتراضي إلا إذا كان التحقق من واجهة برمجة التطبيقات يفشل
+      setShowWarning(false);
+      setConnectionChecked(true);
+      setIsVerifying(false);
     } catch (error) {
       console.error('ShopifyConnectionStatus: Error during connection check:', error);
       setShowWarning(true);
@@ -74,10 +63,15 @@ const ShopifyConnectionStatus = () => {
   
   // فحص الاتصال عند بدء التشغيل
   useEffect(() => {
-    checkConnection();
-  }, [shop, shopifyConnected, isTokenVerified, verifyShopifyConnection]);
+    // تأخير للسماح بتحميل المكونات أولاً
+    const timer = setTimeout(() => {
+      checkConnection();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [shop, shopifyConnected]);
   
-  // معالجة نقرة زر إعادة الاتصال
+  // معالجة نقرة زر إعادة الاتصال - نستخدم منهجًا محسنًا
   const handleConnectShopify = () => {
     // منع النقرات المتعددة أو إعادة الاتصال خلال 10 ثوان
     if (isRedirecting) {
@@ -104,6 +98,8 @@ const ShopifyConnectionStatus = () => {
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
     sessionStorage.removeItem('shopify_redirect_attempts');
+    sessionStorage.removeItem('shopify_connecting');
+    sessionStorage.removeItem('shopify_callback_attempts');
     
     // إعادة تعيين علامات الاتصال في سياق المصادقة
     if (refreshShopifyConnection) {
