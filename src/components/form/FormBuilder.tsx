@@ -439,7 +439,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                       value={formStyle.borderRadius}
                       onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
                     >
-                      <option value="0">بدون استدارة</option>
+                      <option value="0">بدون اس��دارة</option>
                       <option value="0.25rem">استدارة خفيفة</option>
                       <option value="0.5rem">استدارة متوسطة</option>
                       <option value="1rem">استدارة كبيرة</option>

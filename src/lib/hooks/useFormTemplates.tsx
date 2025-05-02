@@ -5,10 +5,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 
+// Add the FormData type definition
+export interface FormData {
+  id: string;
+  title: string;
+  description?: string;
+  data: any[];
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  is_published?: boolean;
+  shop_id?: string;
+}
+
 export const useFormTemplates = () => {
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] = useState<FormData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [formCache, setFormCache] = useState<Record<string, any>>({});
+  const [formCache, setFormCache] = useState<Record<string, FormData>>({});
   const { user } = useAuth();
   const { language } = useI18n();
 
@@ -18,7 +31,7 @@ export const useFormTemplates = () => {
     return Promise.resolve();
   }, []);
 
-  const createNewForm = useCallback(async (formData: any) => {
+  const createNewForm = useCallback(async (formData: Partial<FormData>) => {
     console.log("useFormTemplates: Creating new form", formData);
     setIsLoading(true);
 
@@ -174,6 +187,47 @@ export const useFormTemplates = () => {
     }
   }, [language]);
 
+  // Add publishForm method
+  const publishForm = useCallback(async (formId: string, isPublished: boolean) => {
+    console.log(`useFormTemplates: ${isPublished ? 'Publishing' : 'Unpublishing'} form ${formId}`);
+    
+    try {
+      const { data, error } = await supabase
+        .from('forms')
+        .update({ is_published: isPublished })
+        .eq('id', formId)
+        .select('*')
+        .maybeSingle();
+
+      if (error) {
+        console.error(`useFormTemplates: Error ${isPublished ? 'publishing' : 'unpublishing'} form ${formId}:`, error);
+        throw error;
+      }
+
+      console.log(`useFormTemplates: Form ${formId} ${isPublished ? 'published' : 'unpublished'} successfully:`, data);
+      
+      // Update the cache
+      setFormCache(prev => ({ ...prev, [formId]: data }));
+      
+      // Also update the form in the forms state if it exists there
+      setForms(prevForms => prevForms.map(form => 
+        form.id === formId ? data : form
+      ));
+      
+      toast.success(language === 'ar' 
+        ? `تم ${isPublished ? 'نشر' : 'إلغاء نشر'} النموذج بنجاح` 
+        : `Form ${isPublished ? 'published' : 'unpublished'} successfully`);
+      
+      return data;
+    } catch (error) {
+      console.error(`Error ${isPublished ? 'publishing' : 'unpublishing'} form ${formId}:`, error);
+      toast.error(language === 'ar' 
+        ? `خطأ في ${isPublished ? 'نشر' : 'إلغاء نشر'} النموذج` 
+        : `Error ${isPublished ? 'publishing' : 'unpublishing'} form`);
+      return null;
+    }
+  }, [language]);
+
   const deleteForm = useCallback(async (formId: string) => {
     console.log(`useFormTemplates: Deleting form ${formId}`);
     
@@ -214,6 +268,7 @@ export const useFormTemplates = () => {
     saveForm,
     createNewForm,
     deleteForm,
-    clearFormCache
+    clearFormCache,
+    publishForm // Add the publishForm function to the returned object
   };
 };

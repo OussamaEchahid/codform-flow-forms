@@ -8,11 +8,13 @@ import { useShopify } from '@/hooks/useShopify';
 interface FormBuilderShopifyProps {
   onShopifyIntegration?: (settings: ShopifyFormData) => Promise<void>;
   isSyncing?: boolean;
+  formId?: string | null; // Add formId prop
 }
 
 const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({ 
   onShopifyIntegration, 
-  isSyncing = false 
+  isSyncing = false,
+  formId = null
 }) => {
   const { t } = useI18n();
   const { isConnected, manualReconnect } = useShopify();
