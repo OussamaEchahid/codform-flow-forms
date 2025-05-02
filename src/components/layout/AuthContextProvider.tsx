@@ -1,7 +1,6 @@
 
 import { ReactNode } from 'react';
-import { AuthContext } from '@/lib/auth';
-import AuthProvider from './AuthProvider';  // استيراد AuthProvider
+import AuthProvider from './AuthProvider';
 
 export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   return (
@@ -10,3 +9,5 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
     </AuthProvider>
   );
 };
+
+export default AuthContextProvider;

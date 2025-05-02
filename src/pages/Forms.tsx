@@ -8,7 +8,7 @@ import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnection
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // تعريف الترجمات
@@ -18,23 +18,28 @@ const translations = {
     pleaseConnect: 'يرجى الاتصال بمتجر Shopify للوصول إلى قسم النماذج',
     connectToShopifyNow: 'الاتصال بـ Shopify الآن',
     verifyingConnection: 'جاري التحقق من الاتصال...',
-    loading: 'جاري التحميل...'
+    loading: 'جاري التحميل...',
+    reconnect: 'إعادة الاتصال',
+    forceReconnect: 'إعادة اتصال إجباري'
   },
   en: {
     shopifyConnectionIssue: 'Shopify Connection Issue',
     pleaseConnect: 'Please connect to Shopify to access forms',
     connectToShopifyNow: 'Connect to Shopify Now',
     verifyingConnection: 'Verifying connection...',
-    loading: 'Loading...'
+    loading: 'Loading...',
+    reconnect: 'Reconnect',
+    forceReconnect: 'Force Reconnect'
   }
 };
 
 const Forms = () => {
-  const { shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect } = useAuth();
+  const { shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect, lastConnectionTime } = useAuth();
   const navigate = useNavigate();
   const [isPageReady, setIsPageReady] = useState(false);
   const [connectionVerified, setConnectionVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // تحديد اللغة الافتراضية
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
@@ -92,6 +97,24 @@ const Forms = () => {
     verifyConnection();
   }, [shop, refreshShopifyConnection]);
 
+  // Handle reconnection
+  const handleReconnect = () => {
+    if (isRedirecting) return;
+    setIsRedirecting(true);
+    navigate('/shopify?reconnect=form&ts=' + Date.now());
+  };
+
+  // Handle force reconnection
+  const handleForceReconnect = () => {
+    if (!forceReconnect || isRedirecting) return;
+    setIsRedirecting(true);
+    forceReconnect();
+    
+    setTimeout(() => {
+      setIsRedirecting(false);
+    }, 3000);
+  };
+
   // Loading state
   if (!isPageReady || isVerifying) {
     return (
@@ -121,34 +144,56 @@ const Forms = () => {
               <p className="mb-4">
                 {t('pleaseConnect')}
               </p>
-              <Button 
-                variant="destructive" 
-                className="w-full"
-                onClick={() => navigate('/shopify?reconnect=form&ts=' + Date.now())}
-              >
-                {t('connectToShopifyNow')}
-              </Button>
-              
-              {/* إضافة زر إعادة اتصال إجباري إذا كان الدالة متاحة */}
-              {forceReconnect && (
+              <div className="space-y-2">
                 <Button 
-                  variant="outline" 
-                  className="w-full mt-2"
-                  onClick={forceReconnect}
+                  variant="destructive" 
+                  className="w-full"
+                  disabled={isRedirecting}
+                  onClick={handleReconnect}
                 >
-                  إعادة اتصال إجباري
+                  {isRedirecting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
+                    </div>
+                  ) : (
+                    t('connectToShopifyNow')
+                  )}
                 </Button>
-              )}
+                
+                {/* إضافة زر إعادة اتصال إجباري إذا كان الدالة متاحة */}
+                {forceReconnect && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2"
+                    disabled={isRedirecting}
+                    onClick={handleForceReconnect}
+                  >
+                    {isRedirecting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current mr-2"></div>
+                        {language === 'ar' ? 'جاري المعالجة...' : 'Processing...'}
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        {t('forceReconnect')}
+                      </div>
+                    )}
+                  </Button>
+                )}
+              </div>
               
               {/* إضافة معلومات التصحيح في وضع التطوير */}
               {process.env.NODE_ENV === 'development' && (
                 <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-left">
                   <p className="font-bold">Debug Info:</p>
-                  <pre>{JSON.stringify({
+                  <pre className="overflow-auto max-h-32 text-[10px]">{JSON.stringify({
                     shopifyConnected,
                     shop,
                     isTokenVerified,
                     connectionVerified,
+                    lastConnectionTime,
                     localStorage: {
                       shopify_store: localStorage.getItem('shopify_store'),
                       shopify_connected: localStorage.getItem('shopify_connected'),

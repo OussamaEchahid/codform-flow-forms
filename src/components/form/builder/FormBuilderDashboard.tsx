@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -14,14 +14,17 @@ const FormBuilderDashboard = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
 
   const handleCreateForm = async () => {
     try {
+      setIsCreatingForm(true);
       console.log("Creating default form...");
       const newForm = await createDefaultForm();
       if (newForm) {
         console.log("New form created:", newForm);
+        toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
         navigate(`/form-builder/${newForm.id}`);
       } else {
         console.error("Form creation failed: no form returned");
@@ -30,15 +33,19 @@ const FormBuilderDashboard = () => {
     } catch (error: any) {
       console.error("Form creation error:", error);
       toast.error(`${language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Form creation error'}: ${error.message}`);
+    } finally {
+      setIsCreatingForm(false);
     }
   };
 
   const handleSelectForm = (formId: string) => {
+    console.log(`Navigating to form editor for form ${formId}`);
     navigate(`/form-builder/${formId}`);
   };
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
+      setIsCreatingForm(true);
       console.log("Selected template ID:", templateId);
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
@@ -52,8 +59,10 @@ const FormBuilderDashboard = () => {
     } catch (error: any) {
       console.error("Template selection error:", error);
       toast.error(`${language === 'ar' ? 'خطأ في اختيار القالب' : 'Template selection error'}: ${error.message}`);
+    } finally {
+      setIsCreatingForm(false);
+      setIsTemplateDialogOpen(false);
     }
-    setIsTemplateDialogOpen(false);
   };
 
   return (
@@ -72,15 +81,26 @@ const FormBuilderDashboard = () => {
             <Button 
               onClick={() => setIsTemplateDialogOpen(true)} 
               variant="outline"
+              disabled={isCreatingForm}
             >
               {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
             </Button>
             <Button 
               onClick={handleCreateForm} 
               className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+              disabled={isCreatingForm}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+              {isCreatingForm ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                  {language === 'ar' ? 'جاري الإنشاء...' : 'Creating...'}
+                </div>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+                </>
+              )}
             </Button>
           </div>
         </div>

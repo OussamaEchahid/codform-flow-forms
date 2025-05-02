@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -171,40 +172,58 @@ export const useFormTemplates = () => {
     setError(null);
     
     try {
+      console.log('Creating default form');
+      // Get shop_id from local storage - this is set by the Shopify connection
+      const shop_id = localStorage.getItem('shopify_store');
+      
+      // Get user from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('User not authenticated');
+      }
+      
       const defaultForm = {
         title: 'نموذج جديد',
         description: 'وصف النموذج',
-        data: [
+        data: JSON.stringify([
           {
             id: '1',
             title: 'الخطوة الأولى',
             fields: []
           }
-        ],
+        ]),
         is_published: false,
-        // Get user_id from supabase auth - this is required by the database
-        user_id: (await supabase.auth.getUser()).data.user?.id
+        user_id: user.id,
+        shop_id: shop_id || null
       };
       
-      // Check if user is authenticated
-      if (!defaultForm.user_id) {
-        throw new Error('User not authenticated');
-      }
+      console.log('Inserting new form with data:', defaultForm);
       
       const { data, error } = await supabase
         .from('forms')
         .insert([defaultForm])
-        .select()
-        .single();
+        .select();
         
       if (error) {
         console.error('Error creating default form:', error);
         throw error;
       }
       
+      console.log('Form creation response:', data);
+      
+      if (!data || data.length === 0) {
+        throw new Error('No data returned after form creation');
+      }
+      
       // Convert database form to app form
-      const convertedForm = convertDbFormToAppForm(data);
-      await fetchForms(); // Refresh forms list
+      const convertedForm = convertDbFormToAppForm(data[0]);
+      
+      // Update forms list and cache
+      await fetchForms();
+      formCache.set(convertedForm.id, convertedForm);
+      
       return convertedForm;
     } catch (err: any) {
       console.error('Error in createDefaultForm:', err);
@@ -220,11 +239,15 @@ export const useFormTemplates = () => {
     setError(null);
     
     try {
-      // Get user_id from supabase auth
-      const user_id = (await supabase.auth.getUser()).data.user?.id;
+      console.log('Creating form from template', templateId);
+      // Get shop_id from local storage
+      const shop_id = localStorage.getItem('shopify_store');
       
-      // Check if user is authenticated
-      if (!user_id) {
+      // Get user from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('No authenticated user found');
         throw new Error('User not authenticated');
       }
       
@@ -233,31 +256,43 @@ export const useFormTemplates = () => {
       const templateForm = {
         title: `نموذج من قالب ${templateId}`,
         description: 'تم إنشاء هذا النموذج من قالب',
-        data: [
+        data: JSON.stringify([
           {
             id: '1',
             title: 'الخطوة الأولى',
             fields: []
           }
-        ],
+        ]),
         is_published: false,
-        user_id: user_id
+        user_id: user.id,
+        shop_id: shop_id || null
       };
+      
+      console.log('Inserting new form from template with data:', templateForm);
       
       const { data, error } = await supabase
         .from('forms')
         .insert([templateForm])
-        .select()
-        .single();
+        .select();
         
       if (error) {
         console.error('Error creating form from template:', error);
         throw error;
       }
       
+      console.log('Form creation from template response:', data);
+      
+      if (!data || data.length === 0) {
+        throw new Error('No data returned after form creation from template');
+      }
+      
       // Convert database form to app form
-      const convertedForm = convertDbFormToAppForm(data);
-      await fetchForms(); // Refresh forms list
+      const convertedForm = convertDbFormToAppForm(data[0]);
+      
+      // Update forms list and cache
+      await fetchForms();
+      formCache.set(convertedForm.id, convertedForm);
+      
       return convertedForm;
     } catch (err: any) {
       console.error('Error in createFormFromTemplate:', err);
@@ -274,10 +309,21 @@ export const useFormTemplates = () => {
     setError(null);
     
     try {
+      console.log('Saving form with ID:', formId, 'Data:', formData);
+      
+      // Make sure data is properly stringified if it's an object
+      let processedData = formData;
+      if (formData.data && typeof formData.data !== 'string') {
+        processedData = {
+          ...formData,
+          data: JSON.stringify(formData.data)
+        };
+      }
+      
       const { error } = await supabase
         .from('forms')
         .update({
-          ...formData,
+          ...processedData,
           updated_at: new Date().toISOString()
         })
         .eq('id', formId);
@@ -287,11 +333,16 @@ export const useFormTemplates = () => {
         throw error;
       }
       
+      console.log('Form saved successfully');
+      
       // Update cache
       if (formCache.has(formId)) {
         const cachedForm = formCache.get(formId);
         formCache.set(formId, { ...cachedForm, ...formData });
       }
+      
+      // Refresh forms list
+      await fetchForms();
       
       return true;
     } catch (err: any) {
@@ -301,13 +352,15 @@ export const useFormTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchForms]);
   
   const publishForm = useCallback(async (formId: string, isPublished: boolean): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
+      console.log(`${isPublished ? 'Publishing' : 'Unpublishing'} form with ID:`, formId);
+      
       const { error } = await supabase
         .from('forms')
         .update({
@@ -320,6 +373,8 @@ export const useFormTemplates = () => {
         console.error('Error publishing form:', error);
         throw error;
       }
+      
+      console.log(`Form ${isPublished ? 'published' : 'unpublished'} successfully`);
       
       // Update cache
       if (formCache.has(formId)) {
@@ -345,6 +400,8 @@ export const useFormTemplates = () => {
     setError(null);
     
     try {
+      console.log('Deleting form with ID:', formId);
+      
       const { error } = await supabase
         .from('forms')
         .delete()
@@ -354,6 +411,8 @@ export const useFormTemplates = () => {
         console.error('Error deleting form:', error);
         throw error;
       }
+      
+      console.log('Form deleted successfully');
       
       // Remove from cache
       if (formCache.has(formId)) {
