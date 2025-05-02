@@ -53,8 +53,8 @@ export const useFormFetch = () => {
         id: data.id,
         title: data.title,
         description: data.description,
-        // Use a simple object assignment to avoid deep type recursion
-        data: typeof data.data === 'object' ? { ...data.data } : {},
+        // Use a different approach to avoid deep type recursion
+        data: data.data ? Object.assign({}, data.data) : {},
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -114,8 +114,8 @@ export const useFormFetch = () => {
               id: item.id,
               title: item.title,
               description: item.description,
-              // Use a simple object assignment to avoid deep type recursion
-              data: typeof item.data === 'object' ? { ...item.data } : {},
+              // Use a different approach to avoid deep type recursion
+              data: item.data ? Object.assign({}, item.data) : {},
               created_at: item.created_at,
               updated_at: item.updated_at,
               user_id: item.user_id,
