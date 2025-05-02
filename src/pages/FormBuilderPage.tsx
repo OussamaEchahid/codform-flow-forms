@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
@@ -39,7 +38,8 @@ const FormBuilderPage = () => {
           if (form) {
             setTitle(form.title);
             setDescription(form.description || '');
-            setFormData(form.data || []);
+            // Ensure form.data is always handled as an array
+            setFormData(Array.isArray(form.data) ? form.data : []);
           } else {
             toast.error(language === 'ar' ? 'النموذج غير موجود' : 'Form not found');
             navigate('/forms');
@@ -152,7 +152,7 @@ const FormBuilderPage = () => {
     }
   };
 
-  // Handle Shopify integration - correcting the return type issue
+  // Handle Shopify integration - fixing return type issue
   const handleShopifyIntegration = async (settings: ShopifyFormData): Promise<void> => {
     try {
       setIsSyncing(true);
@@ -311,7 +311,7 @@ const FormBuilderPage = () => {
               <FormBuilderShopify 
                 isSyncing={isSyncing}
                 formId={formId !== 'new' ? formId : null}
-                onShopifyIntegration={() => {}}
+                onShopifyIntegration={handleShopifyIntegration}
               />
             </div>
           </div>

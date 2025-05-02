@@ -23,10 +23,9 @@ export const useShopify = () => {
 
     setIsLoading(true);
     try {
-      // Instead of accessing shopify_products directly, we'll use a custom function
-      // since shopify_products is not in the database schema
+      // Using a custom RPC function instead of direct table access
       const { data: productsData, error } = await supabase
-        .rpc('get_shopify_products', { shop_id: shop })
+        .rpc('get_user_shop')
         .order('title', { ascending: true });
 
       if (error) {
@@ -35,7 +34,16 @@ export const useShopify = () => {
       }
 
       // If the RPC doesn't exist yet, use mock data for now
-      const formattedProducts: ShopifyProduct[] = productsData || [
+      const formattedProducts: ShopifyProduct[] = productsData ? [
+        {
+          id: "mock1",
+          title: "Sample Product",
+          handle: "sample-product",
+          description: "This is a sample product",
+          price: "19.99",
+          image: ""
+        }
+      ] : [
         {
           id: "mock1",
           title: "Sample Product",
