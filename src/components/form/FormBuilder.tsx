@@ -2,7 +2,7 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 
-// Adding proper type definitions to match how the component is being used
+// Updated interface matching how the component is being used
 interface FormBuilderProps {
   formData: any[];
   onChange: (newFormData: any[]) => void;

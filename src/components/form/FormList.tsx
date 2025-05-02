@@ -1,38 +1,13 @@
 
 import { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from '@/components/ui/alert-dialog';
-import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { useI18n } from '@/lib/i18n';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { FormData } from '@/lib/hooks/form/types';
+import FormListItem from './FormListItem';
+import DeleteFormDialog from './DeleteFormDialog';
+import EmptyFormList from './EmptyFormList';
 
-// منع الإجراءات المتعددة
+// Prevent multiple actions
 let isActionInProgress = false;
 
 interface FormListProps {
@@ -44,10 +19,9 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const { language } = useI18n(); // استخدام hook الترجمة للحصول على اللغة الحالية
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    // منع الإجراءات المتعددة
+    // Prevent multiple actions
     if (isActionInProgress) {
       return;
     }
@@ -56,7 +30,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     try {
       await publishForm(formId, !currentStatus);
     } finally {
-      // إعادة تعيين العلامة بعد مهلة قصيرة
+      // Reset the flag after a short timeout
       setTimeout(() => {
         isActionInProgress = false;
       }, 1000);
@@ -64,7 +38,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
   };
 
   const handleDelete = async () => {
-    // منع الإجراءات المتعددة
+    // Prevent multiple actions
     if (isActionInProgress || !formToDelete) {
       return;
     }
@@ -74,14 +48,14 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       await deleteForm(formToDelete);
       setFormToDelete(null);
     } finally {
-      // إعادة تعيين العلامة بعد مهلة قصيرة
+      // Reset the flag after a short timeout
       setTimeout(() => {
         isActionInProgress = false;
       }, 1000);
     }
   };
 
-  // إظهار حالة التحميل مع منع التحميل المتكرر
+  // Show loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -90,123 +64,30 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
+  // Show empty state
   if (forms.length === 0) {
-    return (
-      <Card className="bg-gray-50 border-dashed">
-        <CardContent className="pt-6 text-center">
-          <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
-          <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyFormList />;
   }
 
+  // Show form list
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {forms.map((form) => (
-        <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-          <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <CardTitle className="text-lg truncate">{form.title}</CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      if (!isActionInProgress) {
-                        onSelectForm(form.id);
-                      }
-                    }}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>تعديل</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      if (!isActionInProgress) {
-                        handlePublishToggle(form.id, form.is_published || false);
-                      }
-                    }}
-                  >
-                    {form.is_published ? (
-                      <>
-                        <EyeOff className="mr-2 h-4 w-4" />
-                        <span>إلغاء النشر</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>نشر</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      if (!isActionInProgress) {
-                        setFormToDelete(form.id);
-                      }
-                    }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    <span>حذف</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-2">
-              <Badge variant={form.is_published ? "success" : "secondary"}>
-                {form.is_published ? 'منشور' : 'مسودة'}
-              </Badge>
-              <span className="text-xs text-gray-500 rtl:text-left">
-                {formatDistanceToNow(new Date(form.created_at || ''), { 
-                  addSuffix: true, 
-                  locale: language === 'ar' ? ar : undefined 
-                })}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
-          </CardContent>
-          <CardFooter className="border-t pt-4">
-            <Button 
-              variant="default" 
-              onClick={() => {
-                if (!isActionInProgress) {
-                  onSelectForm(form.id);
-                }
-              }}
-              className="w-full"
-              disabled={isActionInProgress}
-            >
-              عرض وتعديل
-            </Button>
-          </CardFooter>
-        </Card>
+        <FormListItem 
+          key={form.id}
+          form={form}
+          onSelectForm={onSelectForm}
+          onPublishToggle={handlePublishToggle}
+          onDeleteRequest={(formId) => setFormToDelete(formId)}
+          isActionInProgress={isActionInProgress}
+        />
       ))}
 
-      <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد من حذف النموذج؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم وإزالة جميع البيانات المرتبطة به.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteFormDialog
+        isOpen={!!formToDelete}
+        onClose={() => setFormToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 };
