@@ -17,6 +17,7 @@ export interface ShopifyProduct {
 export interface ShopifyFormData {
   form_id: string;
   product_id?: string;
+  shop_id?: string;
   settings?: {
     enabled: boolean;
     position?: string;
@@ -32,6 +33,7 @@ export interface ProductSettingsRequest {
   formId: string;
   blockId?: string;
   enabled?: boolean;
+  shopId?: string;
 }
 
 // نوع بيانات استجابة إعدادات المنتج

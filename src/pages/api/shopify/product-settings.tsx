@@ -1,22 +1,59 @@
 
 // API endpoint for product settings
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { ProductSettingsRequest, ProductSettingsResponse } from '@/lib/shopify/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth';
+
+// Define the request and response types locally since we're having issues with imports
+interface ProductSettingsRequest {
+  productId: string;
+  formId: string;
+  blockId?: string;
+  enabled?: boolean;
+  shopId?: string; // Add shopId as optional param
+}
+
+interface ProductSettingsResponse {
+  success?: boolean;
+  error?: string;
+  productId?: string;
+  formId?: string;
+  blockId?: string;
+}
 
 export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ProductSettingsResponse>
+  req: any,
+  res: any
 ) {
   if (req.method === 'POST') {
     try {
-      const { productId, formId, blockId, enabled = true }: ProductSettingsRequest = req.body;
+      const { productId, formId, blockId, enabled = true, shopId }: ProductSettingsRequest = req.body;
       
       if (!productId || !formId) {
         return res.status(400).json({ 
           success: false, 
           error: 'Product ID and Form ID are required' 
         });
+      }
+      
+      // Get the shop ID from the request or try to get from auth context
+      let shop_id = shopId;
+      
+      // If shop_id is not provided, try to get it from the database
+      if (!shop_id) {
+        const { data: shopData } = await supabase
+          .from('shopify_stores')
+          .select('shop')
+          .limit(1)
+          .single();
+          
+        if (shopData && shopData.shop) {
+          shop_id = shopData.shop;
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Shop ID is required but could not be determined' 
+          });
+        }
       }
       
       // Insert or update the product settings
@@ -27,9 +64,10 @@ export default async function handler(
           form_id: formId,
           block_id: blockId,
           enabled,
+          shop_id: shop_id, // Add the required shop_id field
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'product_id'
+          onConflict: 'product_id,shop_id' // Update conflict strategy to match our schema
         })
         .select()
         .single();
