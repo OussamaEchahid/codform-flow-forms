@@ -1,32 +1,43 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FormsPage from './FormsPage';
 
 // This is a redirect component to ensure we use the newer FormsPage.tsx
 const Forms = () => {
   const navigate = useNavigate();
-  const [isRedirecting, setIsRedirecting] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectComplete, setRedirectComplete] = useState(false);
 
   useEffect(() => {
-    // Redirect to the new FormsPage with a small delay to ensure
-    // proper navigation and avoid any race conditions
-    const timer = setTimeout(() => {
-      navigate('/forms', { replace: true });
-      setIsRedirecting(false);
-    }, 100);
+    // Instead of redirecting, we'll just render FormsPage directly
+    setRedirectComplete(true);
     
-    return () => clearTimeout(timer);
+    // Clean up any old redirect logic
+    const cleanUp = () => {
+      const currentPath = window.location.pathname;
+      // Only navigate if we're at the old path
+      if (currentPath === '/Forms' || currentPath === '/Forms/') {
+        navigate('/forms', { replace: true });
+      }
+    };
+    
+    // Run cleanup with a small delay to avoid navigation loops
+    setTimeout(cleanUp, 0);
   }, [navigate]);
 
-  // Show loading while redirecting
+  // Instead of redirecting, we'll just render FormsPage directly
+  if (redirectComplete) {
+    return <FormsPage />;
+  }
+
+  // Show loading while setting up
   return (
     <div className="flex items-center justify-center h-screen">
-      {isRedirecting ? (
-        <div className="flex flex-col items-center">
-          <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-purple-500 rounded-full mb-4"></div>
-          <p className="text-purple-600">Redirecting to forms page...</p>
-        </div>
-      ) : null}
+      <div className="flex flex-col items-center">
+        <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-purple-500 rounded-full mb-4"></div>
+        <p className="text-purple-600">Loading forms...</p>
+      </div>
     </div>
   );
 };

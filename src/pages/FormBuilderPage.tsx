@@ -33,17 +33,18 @@ const FormBuilderPage = () => {
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const [hasInitialFormData, setHasInitialFormData] = useState<boolean>(false);
   const [isFormModified, setIsFormModified] = useState<boolean>(false);
+  const [renderKey, setRenderKey] = useState<number>(Date.now());
   
-  // Referencia para seguimiento de cambios
+  // Reference for tracking changes
   const formDataRef = useRef(formData);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Seguimiento de cambios en el formulario
+  // Track changes in form data
   useEffect(() => {
     formDataRef.current = formData;
     setIsFormModified(true);
     
-    // Guardar automáticamente en localStorage después de cambios
+    // Auto-save to localStorage after changes
     if (formId) {
       try {
         localStorage.setItem(`form_draft_${formId}`, JSON.stringify({
@@ -58,21 +59,21 @@ const FormBuilderPage = () => {
     }
   }, [formData, title, description, formId]);
 
-  // Configurar guardado automático
+  // Set up auto-save
   useEffect(() => {
     if (isFormModified && !isSaving) {
-      // Cancelar cualquier temporizador existente
+      // Cancel any existing timer
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
       
-      // Configurar nuevo temporizador
+      // Set up new timer
       autoSaveTimerRef.current = setTimeout(() => {
-        // Solo intentar guardar automáticamente si hay cambios y no es un formulario nuevo
+        // Only attempt auto-save if there are changes and it's not a new form
         if (formId && formId !== 'new') {
           handleSave(true);
         }
-      }, 60000); // Auto-guardar después de 60 segundos de inactividad
+      }, 60000); // Auto-save after 60 seconds of inactivity
     }
     
     return () => {
@@ -82,7 +83,7 @@ const FormBuilderPage = () => {
     };
   }, [isFormModified, isSaving, formId]);
 
-  // معالجة تحميل بيانات النموذج مع تحسينات لمعالجة الأخطاء والتخزين المؤقت
+  // Handle loading form data with improvements for error handling and caching
   useEffect(() => {
     const loadForm = async () => {
       setIsLoading(true);
@@ -93,28 +94,42 @@ const FormBuilderPage = () => {
         let form;
         let usingCachedData = false;
         
-        // التحقق من وجود بيانات غير محفوظة في التخزين المحلي
+        // Check for unsaved data in localStorage
         const draftKey = `form_draft_${formId}`;
         const cachedDraft = localStorage.getItem(draftKey);
         
-        // إضافة تأخير قصير لتجنب التحميل المستمر
+        // Add short delay to avoid continuous loading
         await new Promise(resolve => setTimeout(resolve, 300));
         
         try {
-          // محاولة تحميل البيانات من الخادم
-          form = await getFormById(formId || 'new');
-          
-          // تأكد من وجود بيانات صالحة
-          if (!form || (!form.id && formId !== 'new')) {
-            throw new Error('No valid form data received');
+          // Try loading data from server
+          if (formId === 'new') {
+            // Create a new empty form for 'new' formId
+            form = {
+              id: 'new',
+              title: language === 'ar' ? 'نموذج جديد' : 'New Form',
+              description: '',
+              data: [],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              user_id: user?.id || '',
+              is_published: false
+            };
+          } else {
+            // Load existing form
+            form = await getFormById(formId || '');
+            
+            // Ensure valid data exists
+            if (!form || (!form.id && formId !== 'new')) {
+              throw new Error('No valid form data received');
+            }
           }
-          
         } catch (fetchError) {
           console.error('Error fetching form:', fetchError);
           setConnectionError(true);
           usingCachedData = true;
           
-          // محاولة استرجاع مسودة غير محفوظة أولاً
+          // Try retrieving unsaved draft first
           if (cachedDraft) {
             try {
               const draftData = JSON.parse(cachedDraft);
@@ -123,7 +138,7 @@ const FormBuilderPage = () => {
                 ? 'تم العثور على مسودة غير محفوظة. استخدام البيانات المحلية.' 
                 : 'Found unsaved draft. Using local data.');
                 
-              // استخدام المسودة غير المحفوظة
+              // Use unsaved draft
               form = {
                 id: formId || 'new',
                 title: draftData.title || '',
@@ -134,24 +149,25 @@ const FormBuilderPage = () => {
                 user_id: user?.id || '',
                 is_published: false
               };
-              return;
             } catch (draftError) {
               console.error('Error parsing draft data:', draftError);
             }
           }
           
-          // محاولة استرجاع النسخة المخزنة محلياً
-          try {
-            const cachedForm = localStorage.getItem(`form_${formId}`);
-            if (cachedForm) {
-              form = JSON.parse(cachedForm);
-              console.log('Using cached form data:', form);
+          // Try retrieving locally cached version
+          if (!form) {
+            try {
+              const cachedForm = localStorage.getItem(`form_${formId}`);
+              if (cachedForm) {
+                form = JSON.parse(cachedForm);
+                console.log('Using cached form data:', form);
+              }
+            } catch (cacheError) {
+              console.error('Error retrieving cached form:', cacheError);
             }
-          } catch (cacheError) {
-            console.error('Error retrieving cached form:', cacheError);
           }
           
-          // إنشاء نموذج افتراضي في حالة وجود مشكلة في الاتصال
+          // Create default form if there's a connection issue
           if (!form) {
             form = {
               id: formId || 'new',
@@ -170,19 +186,20 @@ const FormBuilderPage = () => {
           console.log('Form loaded successfully:', form);
           setTitle(form.title || '');
           setDescription(form.description || '');
-          // التأكد من أن البيانات دائمًا مصفوفة
+          // Ensure data is always an array
           const formDataArray = Array.isArray(form.data) ? form.data : [];
           setFormData(formDataArray);
           setHasInitialFormData(true);
+          setRenderKey(Date.now()); // Force re-render with new key
           
-          // لعرض إشعار مناسب للمستخدم
+          // Show appropriate notification to user
           if (usingCachedData) {
             toast.info(language === 'ar' 
               ? 'جاري استخدام بيانات محلية نظرًا لمشكلة في الاتصال' 
               : 'Using local data due to connection issue');
           }
           
-          // إعادة تعيين حالة التعديل بعد التحميل الأولي
+          // Reset modification state after initial load
           setIsFormModified(false);
         } else {
           console.error('Form not found');
@@ -202,14 +219,14 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate, user?.id]);
   
-  // تحسين عملية حفظ النموذج مع دعم الحفظ المحلي والمزامنة اللاحقة
+  // Improve form saving process with local saving and later sync
   const handleSave = async (isAutoSave = false) => {
     if (!title.trim() && !isAutoSave) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
       return;
     }
     
-    // عدم عرض إشعار للحفظ التلقائي
+    // Don't show notification for auto-save
     if (!isAutoSave) {
       setIsSaving(true);
     }
@@ -225,7 +242,7 @@ const FormBuilderPage = () => {
         is_published: true
       };
       
-      // تحديث تخزين المسودة
+      // Update draft storage
       if (formId) {
         try {
           localStorage.setItem(`form_draft_${formId}`, JSON.stringify({
@@ -237,13 +254,13 @@ const FormBuilderPage = () => {
         }
       }
       
-      // التحقق من الاتصال
+      // Check connection
       const isOnline = navigator.onLine;
       if (!isOnline || connectionError) {
         console.log('Saving form in offline mode');
         
         if (!isAutoSave) {
-          // عرض إشعار للمستخدم أن النموذج سيتم حفظه عند استعادة الاتصال
+          // Show notification to user that form will be saved when connection is restored
           toast.warning(
             language === 'ar' 
               ? 'الاتصال غير متاح حاليًا. تم حفظ النموذج محليًا وسيتم مزامنته عند استعادة الاتصال.' 
@@ -251,7 +268,7 @@ const FormBuilderPage = () => {
           );
         }
         
-        // تخزين النموذج محليًا للحفظ لاحقًا
+        // Store form locally for later saving
         const offlineForms = JSON.parse(localStorage.getItem('offline_forms') || '[]');
         const existingFormIndex = offlineForms.findIndex(f => f.id === formId);
         
@@ -273,17 +290,17 @@ const FormBuilderPage = () => {
         
         localStorage.setItem('offline_forms', JSON.stringify(offlineForms));
         
-        // حفظ النموذج الحالي أيضًا
+        // Save current form also
         localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
           id: formId || 'new',
           ...formPayload
         }));
         
-        // إعادة تعيين حالة التعديل
+        // Reset modification state
         if (!isAutoSave) {
           setIsFormModified(false);
           
-          // توجيه المستخدم إلى صفحة النماذج إذا كان نموذجًا جديدًا
+          // Direct user to forms page if it's a new form
           if (formId === 'new') {
             toast.success(
               language === 'ar' 
@@ -299,9 +316,9 @@ const FormBuilderPage = () => {
       
       let response;
       
-      // الحفظ إلى الخادم
+      // Save to server
       if (formId && formId !== 'new') {
-        // تحديث نموذج موجود
+        // Update existing form
         console.log('Updating existing form:', formId);
         response = await supabase
           .from('forms')
@@ -310,7 +327,7 @@ const FormBuilderPage = () => {
           .select()
           .single();
       } else {
-        // إنشاء نموذج جديد
+        // Create new form
         console.log('Creating new form');
         response = await supabase
           .from('forms')
@@ -326,19 +343,19 @@ const FormBuilderPage = () => {
       
       console.log('Form saved successfully:', response.data);
       
-      // تحديث التخزين المؤقت المحلي
+      // Update local cache
       try {
         localStorage.setItem(`form_${response.data.id}`, JSON.stringify(response.data));
-        // إزالة المسودة بعد الحفظ الناجح
+        // Remove draft after successful save
         localStorage.removeItem(`form_draft_${formId}`);
       } catch (cacheError) {
         console.error('Error updating localStorage cache:', cacheError);
       }
       
-      // إعادة تعيين حالة التعديل
+      // Reset modification state
       setIsFormModified(false);
       
-      // عرض إشعار للحفظ العادي فقط، وليس للحفظ التلقائي
+      // Show notification for regular save only, not auto-save
       if (!isAutoSave) {
         toast.success(
           language === 'ar' 
@@ -346,7 +363,7 @@ const FormBuilderPage = () => {
             : 'Form saved successfully'
         );
         
-        // إذا كان نموذجًا جديدًا، انتقل إلى صفحة تحرير النموذج باستخدام المعرف الجديد
+        // If it's a new form, navigate to edit form page using the new ID
         if (!formId || formId === 'new') {
           navigate(`/form-builder/${response.data.id}`);
         }
@@ -355,7 +372,7 @@ const FormBuilderPage = () => {
     } catch (error) {
       console.error('Error saving form:', error);
       
-      // التخزين المؤقت في حالة فشل الاتصال
+      // Temporary cache in case of connection failure
       if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('network'))) {
         setConnectionError(true);
         
@@ -367,7 +384,7 @@ const FormBuilderPage = () => {
           );
         }
         
-        // تخزين النموذج محليًا
+        // Store form locally
         try {
           localStorage.setItem(`form_${formId || 'new'}`, JSON.stringify({
             id: formId || `new-${Date.now()}`,
@@ -393,7 +410,7 @@ const FormBuilderPage = () => {
     }
   };
   
-  // معاينة النموذج في Shopify
+  // Preview form in Shopify
   const handlePreviewInShopify = () => {
     if (shopifyConnected && shop && formId && formId !== 'new') {
       const shopifyUrl = `https://${shop}/apps/codform/?form=${formId}`;
@@ -407,19 +424,20 @@ const FormBuilderPage = () => {
     }
   };
   
-  // معالج إعادة الاتصال المخصص
+  // Custom reconnect handler
   const handleReconnect = () => {
-    // استخدام وظيفة إعادة الاتصال إذا كانت متوفرة
-    if (forceReconnect) {
+    // Prevent multiple reconnection
+    if (typeof forceReconnect === 'function') {
+      console.log('Using direct reconnect function');
       forceReconnect();
     } else {
-      // الطريقة البديلة - إعادة توجيه مع return_to
+      // Alternative method - redirect with return_to
       const currentUrl = encodeURIComponent(window.location.pathname);
       window.location.href = `/shopify?force=true&return=${currentUrl}&ts=${Date.now()}`;
     }
   };
 
-  // معالجة تكامل Shopify
+  // Handle Shopify integration
   const handleShopifyIntegration = async (settings: ShopifyFormData): Promise<void> => {
     try {
       setIsSyncing(true);
@@ -431,7 +449,7 @@ const FormBuilderPage = () => {
         return;
       }
       
-      // تنفيذ بسيط لحفظ إعدادات النموذج في Shopify
+      // Simple implementation for saving form settings in Shopify
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .upsert({
@@ -464,16 +482,16 @@ const FormBuilderPage = () => {
     }
   };
   
-  // إعادة محاولة تحميل النموذج
+  // Retry loading the form
   const handleRetry = () => {
     setLoadError(null);
     setConnectionError(false);
     setIsLoading(true);
-    // إعادة تحميل الصفحة لمحاولة جديدة
+    setRenderKey(Date.now()); // Force re-render with new key
     window.location.reload();
   };
   
-  // عرض حالة التحميل
+  // Display loading state
   if (isLoading && !hasInitialFormData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -485,30 +503,13 @@ const FormBuilderPage = () => {
     );
   }
   
-  // التحقق من حجم البيانات بشكل مستمر
-  useEffect(() => {
-    // محاولة تقدير حجم البيانات
-    try {
-      const formDataSize = new TextEncoder().encode(
-        JSON.stringify({ title, description, data: formData })
-      ).length;
-      
-      // عرض تحذير إذا كانت البيانات كبيرة جدًا
-      if (formDataSize > 100000) { // ~ 100KB
-        console.warn('Large form data detected:', formDataSize, 'bytes');
-      }
-    } catch (e) {
-      console.error('Error estimating form data size:', e);
-    }
-  }, [title, description, formData]);
-  
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-4" key={renderKey}>
       <div className="max-w-6xl mx-auto">
-        {/* عرض شريط التحذير في حالة وجود مشكلة في الاتصال */}
+        {/* Show warning banner in case of connection issue */}
         <ShopifyConnectionBanner onReconnect={handleReconnect} />
         
-        {/* عرض تحذير عند وجود خطأ في التحميل */}
+        {/* Show warning when there's a loading error */}
         {(loadError || connectionError) && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
@@ -547,7 +548,7 @@ const FormBuilderPage = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
-            {/* معلومات النموذج */}
+            {/* Form information */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="font-medium mb-4">
                 {language === 'ar' ? 'معلومات النموذج' : 'Form Information'}
@@ -585,7 +586,7 @@ const FormBuilderPage = () => {
               </div>
             </div>
             
-            {/* منشئ النماذج */}
+            {/* Form builder */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="font-medium mb-4">
                 {language === 'ar' ? 'حقول النموذج' : 'Form Fields'}
@@ -597,10 +598,11 @@ const FormBuilderPage = () => {
                   setFormData(newData);
                   setIsFormModified(true);
                 }}
+                isOfflineMode={connectionError}
               />
             </div>
             
-            {/* أزرار الإجراءات */}
+            {/* Action buttons */}
             <div className="flex justify-between">
               <Button
                 onClick={() => handleSave(false)}
@@ -632,9 +634,9 @@ const FormBuilderPage = () => {
             </div>
           </div>
           
-          {/* الإعدادات والتكامل */}
+          {/* Settings and integration */}
           <div className="space-y-6">
-            {/* تكامل Shopify */}
+            {/* Shopify integration */}
             <div className="bg-white p-6 rounded-lg shadow">
               <FormBuilderShopify 
                 isSyncing={isSyncing}
@@ -643,7 +645,7 @@ const FormBuilderPage = () => {
               />
             </div>
             
-            {/* معلومات حالة الحفظ والتزامن */}
+            {/* Save and sync status info */}
             {isFormModified && (
               <Alert variant="default" className="bg-blue-50 border-blue-100">
                 <AlertCircle className="h-4 w-4 text-blue-500" />
@@ -655,7 +657,7 @@ const FormBuilderPage = () => {
               </Alert>
             )}
             
-            {/* معلومات الوضع غير المتصل */}
+            {/* Offline mode info */}
             {connectionError && (
               <Alert variant="default" className="bg-yellow-50 border-yellow-100">
                 <AlertCircle className="h-4 w-4 text-yellow-500" />
