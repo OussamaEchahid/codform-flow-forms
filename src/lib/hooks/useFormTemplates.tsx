@@ -4,18 +4,19 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
+import { Database } from '@/types/supabase';
 
-// Add the FormData type definition
+// تعريف نوع FormData بشكل متوافق مع بيانات قاعدة البيانات
 export interface FormData {
   id: string;
   title: string;
-  description?: string;
-  data: any[];
+  description?: string | null;
+  data: any; // استخدام any بدلاً من any[] لحل مشكلة التوافق مع Json من Supabase
   created_at?: string;
   updated_at?: string;
   user_id?: string;
   is_published?: boolean;
-  shop_id?: string;
+  shop_id?: string | null;
 }
 
 export const useFormTemplates = () => {
@@ -36,9 +37,16 @@ export const useFormTemplates = () => {
     setIsLoading(true);
 
     try {
+      // تأكد من أن حقل data موجود
+      const dataToInsert = {
+        ...formData,
+        data: formData.data || [], // استخدام مصفوفة فارغة كقيمة افتراضية
+        user_id: user?.id // إضافة user_id إذا كان المستخدم متاحًا
+      };
+
       const { data, error } = await supabase
         .from('forms')
-        .insert(formData)
+        .insert(dataToInsert)
         .select('*')
         .single();
 
@@ -49,13 +57,26 @@ export const useFormTemplates = () => {
 
       console.log("useFormTemplates: Form created successfully:", data);
       
-      // Update the local forms state with the new form
-      setForms(prevForms => [...prevForms, data]);
+      // تحويل البيانات المستردة إلى FormData
+      const newForm: FormData = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        data: data.data,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id,
+        is_published: data.is_published,
+        shop_id: data.shop_id
+      };
       
-      // Update the cache
-      setFormCache(prev => ({ ...prev, [data.id]: data }));
+      // تحديث حالة النماذج المحلية
+      setForms(prevForms => [...prevForms, newForm]);
       
-      return data;
+      // تحديث ذاكرة التخزين المؤقت
+      setFormCache(prev => ({ ...prev, [newForm.id]: newForm }));
+      
+      return newForm;
     } catch (error) {
       console.error('Error creating form:', error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
@@ -63,27 +84,27 @@ export const useFormTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [language]);
+  }, [language, user?.id]);
 
   const fetchForms = useCallback(async () => {
     console.log("useFormTemplates: Fetching forms");
     setIsLoading(true);
 
     try {
-      // Get forms by the current user or forms that are public
+      // الحصول على النماذج التي أنشأها المستخدم الحالي أو النماذج العامة
       const userId = user?.id;
       
       let query = supabase.from('forms').select('*');
       
       if (userId) {
-        // If user is logged in, get forms created by this user
+        // إذا كان المستخدم مسجل الدخول، احصل على النماذج التي أنشأها هذا المستخدم
         query = query.eq('user_id', userId);
       } else {
-        // If no user, get only public forms
+        // إذا لم يكن هناك مستخدم، احصل على النماذج العامة فقط
         query = query.eq('is_public', true);
       }
 
-      // Order by most recently created
+      // ترتيب حسب الأحدث
       query = query.order('created_at', { ascending: false });
       
       const { data, error } = await query;
@@ -94,16 +115,30 @@ export const useFormTemplates = () => {
       }
 
       console.log("useFormTemplates: Forms fetched successfully:", data?.length || 0, "forms");
-      setForms(data || []);
       
-      // Update cache with fetched forms
+      // تحويل البيانات المستردة إلى FormData[]
+      const fetchedForms: FormData[] = data?.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        data: item.data,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        user_id: item.user_id,
+        is_published: item.is_published,
+        shop_id: item.shop_id
+      })) || [];
+      
+      setForms(fetchedForms);
+      
+      // تحديث ذاكرة التخزين المؤقت مع النماذج المستردة
       const newCache = { ...formCache };
-      data?.forEach((form: any) => {
+      fetchedForms.forEach((form) => {
         newCache[form.id] = form;
       });
       setFormCache(newCache);
 
-      return data;
+      return fetchedForms;
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
@@ -117,13 +152,13 @@ export const useFormTemplates = () => {
     console.log(`useFormTemplates: Getting form by ID: ${formId}`);
     
     try {
-      // Check if we already have this form in the cache
+      // التحقق مما إذا كان لدينا هذا النموذج بالفعل في ذاكرة التخزين المؤقت
       if (formCache[formId]) {
         console.log(`useFormTemplates: Form ${formId} found in cache`);
         return formCache[formId];
       }
       
-      // Form not in cache, fetch it from the database
+      // النموذج غير موجود في ذاكرة التخزين المؤقت، قم بجلبه من قاعدة البيانات
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -142,10 +177,23 @@ export const useFormTemplates = () => {
 
       console.log(`useFormTemplates: Form ${formId} fetched successfully:`, data);
       
-      // Update the cache with this form
-      setFormCache(prev => ({ ...prev, [formId]: data }));
+      // تحويل البيانات المستردة إلى FormData
+      const fetchedForm: FormData = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        data: data.data,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id,
+        is_published: data.is_published,
+        shop_id: data.shop_id
+      };
       
-      return data;
+      // تحديث ذاكرة التخزين المؤقت مع هذا النموذج
+      setFormCache(prev => ({ ...prev, [formId]: fetchedForm }));
+      
+      return fetchedForm;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -171,15 +219,28 @@ export const useFormTemplates = () => {
 
       console.log(`useFormTemplates: Form ${formId} saved successfully:`, data);
       
-      // Update the cache
-      setFormCache(prev => ({ ...prev, [formId]: data }));
+      // تحويل البيانات المستردة إلى FormData
+      const savedForm: FormData = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        data: data.data,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id,
+        is_published: data.is_published,
+        shop_id: data.shop_id
+      };
       
-      // Also update the form in the forms state if it exists there
+      // تحديث ذاكرة التخزين المؤقت
+      setFormCache(prev => ({ ...prev, [formId]: savedForm }));
+      
+      // أيضًا تحديث النموذج في حالة النماذج إذا كان موجودًا هناك
       setForms(prevForms => prevForms.map(form => 
-        form.id === formId ? data : form
+        form.id === formId ? savedForm : form
       ));
       
-      return data;
+      return savedForm;
     } catch (error) {
       console.error(`Error saving form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
@@ -187,7 +248,7 @@ export const useFormTemplates = () => {
     }
   }, [language]);
 
-  // Add publishForm method
+  // إضافة طريقة publishForm
   const publishForm = useCallback(async (formId: string, isPublished: boolean) => {
     console.log(`useFormTemplates: ${isPublished ? 'Publishing' : 'Unpublishing'} form ${formId}`);
     
@@ -206,19 +267,32 @@ export const useFormTemplates = () => {
 
       console.log(`useFormTemplates: Form ${formId} ${isPublished ? 'published' : 'unpublished'} successfully:`, data);
       
-      // Update the cache
-      setFormCache(prev => ({ ...prev, [formId]: data }));
+      // تحويل البيانات المستردة إلى FormData
+      const updatedForm: FormData = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        data: data.data,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id,
+        is_published: data.is_published,
+        shop_id: data.shop_id
+      };
       
-      // Also update the form in the forms state if it exists there
+      // تحديث ذاكرة التخزين المؤقت
+      setFormCache(prev => ({ ...prev, [formId]: updatedForm }));
+      
+      // أيضًا تحديث النموذج في حالة النماذج إذا كان موجودًا هناك
       setForms(prevForms => prevForms.map(form => 
-        form.id === formId ? data : form
+        form.id === formId ? updatedForm : form
       ));
       
       toast.success(language === 'ar' 
         ? `تم ${isPublished ? 'نشر' : 'إلغاء نشر'} النموذج بنجاح` 
         : `Form ${isPublished ? 'published' : 'unpublished'} successfully`);
       
-      return data;
+      return updatedForm;
     } catch (error) {
       console.error(`Error ${isPublished ? 'publishing' : 'unpublishing'} form ${formId}:`, error);
       toast.error(language === 'ar' 
@@ -244,12 +318,12 @@ export const useFormTemplates = () => {
 
       console.log(`useFormTemplates: Form ${formId} deleted successfully`);
       
-      // Remove from cache
+      // إزالة من ذاكرة التخزين المؤقت
       const newCache = { ...formCache };
       delete newCache[formId];
       setFormCache(newCache);
       
-      // Remove from forms state
+      // إزالة من حالة النماذج
       setForms(prevForms => prevForms.filter(form => form.id !== formId));
       
       return true;
@@ -269,6 +343,6 @@ export const useFormTemplates = () => {
     createNewForm,
     deleteForm,
     clearFormCache,
-    publishForm // Add the publishForm function to the returned object
+    publishForm // إضافة دالة publishForm إلى الكائن المُرجع
   };
 };

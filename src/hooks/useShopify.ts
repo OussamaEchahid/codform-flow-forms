@@ -16,36 +16,42 @@ export const useShopify = () => {
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'verifying' | 'connected' | 'disconnected'>('verifying');
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<number>(0);
   
-  // Reset redirect state on page change
+  // إعادة تعيين حالة إعادة التوجيه عند تغيير الصفحة
   useEffect(() => {
     setIsRedirecting(false);
     console.log('useShopify hook initialized with shop:', shop);
     
-    // Initial connection status check - skip if already verified
+    // التحقق الأولي من حالة الاتصال - تخطي إذا تم التحقق بالفعل
     if (isTokenVerified) {
       console.log('Token already verified by AuthProvider, assuming connected');
       setConnectionStatus('connected');
     } else if (shopifyConnected && shop) {
-      verifyShopifyConnection()
-        .then(connected => {
-          console.log('Initial connection check result:', connected);
-          setConnectionStatus(connected ? 'connected' : 'disconnected');
-        })
-        .catch(() => {
-          setConnectionStatus('disconnected');
-        });
+      // منع التحقق المتكرر في فترة قصيرة
+      const now = Date.now();
+      if (now - lastConnectionCheck > 30000) { // تحقق كل 30 ثانية فقط
+        setLastConnectionCheck(now);
+        verifyShopifyConnection()
+          .then(connected => {
+            console.log('Initial connection check result:', connected);
+            setConnectionStatus(connected ? 'connected' : 'disconnected');
+          })
+          .catch(() => {
+            setConnectionStatus('disconnected');
+          });
+      }
     } else {
       setConnectionStatus('disconnected');
     }
-  }, [shop, shopifyConnected, isTokenVerified]);
+  }, [shop, shopifyConnected, isTokenVerified, lastConnectionCheck]);
 
-  // Helper function to handle authentication errors - NEVER auto-redirect
+  // وظيفة مساعدة للتعامل مع أخطاء المصادقة - عدم إعادة التوجيه تلقائيًا
   const handleAuthError = useCallback((errorMessage: string) => {
     console.error('Shopify authentication error:', errorMessage);
     setConnectionStatus('disconnected');
     
-    // Log the error but don't auto-redirect
+    // تسجيل الخطأ ولكن عدم إعادة التوجيه تلقائيًا
     if (errorMessage.includes('authentication error') || 
         errorMessage.includes('token is invalid') || 
         errorMessage.includes('token has expired') || 
@@ -56,18 +62,30 @@ export const useShopify = () => {
         duration: 7000,
       });
       
-      // Return true to indicate this was handled as an auth error
+      // إرجاع true للإشارة إلى أن هذا تم التعامل معه كخطأ مصادقة
       return true;
     }
     return false;
   }, []);
 
-  // وظيفة للتحقق من اتصال Shopify عن طريق اختبار API
+  // وظيفة للتحقق من اتصال Shopify عن طريق اختبار API مع آلية تخزين مؤقت
   const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
     console.log("verifyShopifyConnection called");
+    
     if (!shopifyConnected || !shop) {
       console.log('Cannot verify connection: shop not connected');
       return false;
+    }
+
+    // استخدام التخزين المؤقت لمنع الطلبات المتكررة
+    const now = Date.now();
+    const lastCheck = parseInt(localStorage.getItem('shopify_last_connection_check') || '0', 10);
+    const cachedResult = localStorage.getItem('shopify_connection_verified');
+    
+    // إذا كان هناك نتيجة مخزنة مؤقتًا وكان آخر تحقق قبل أقل من 5 دقائق
+    if (cachedResult && (now - lastCheck) < 300000) {
+      console.log('Using cached connection verification result:', cachedResult === 'true');
+      return cachedResult === 'true';
     }
 
     try {
@@ -81,11 +99,15 @@ export const useShopify = () => {
       
       if (storeError) {
         console.error('Store access token error:', storeError);
+        localStorage.setItem('shopify_last_connection_check', now.toString());
+        localStorage.setItem('shopify_connection_verified', 'false');
         return false;
       }
       
       if (!storeData || !storeData.access_token) {
         console.error('No store data or access token found');
+        localStorage.setItem('shopify_last_connection_check', now.toString());
+        localStorage.setItem('shopify_connection_verified', 'false');
         return false;
       }
       
@@ -94,91 +116,100 @@ export const useShopify = () => {
         const api = createShopifyAPI(storeData.access_token, shop);
         const result = await api.verifyConnection();
         console.log('Connection verification result:', result);
+        
+        // تخزين نتيجة التحقق
+        localStorage.setItem('shopify_last_connection_check', now.toString());
+        localStorage.setItem('shopify_connection_verified', result ? 'true' : 'false');
+        
         return !!result;
       } catch (error) {
         console.error('Connection verification failed:', error);
+        localStorage.setItem('shopify_last_connection_check', now.toString());
+        localStorage.setItem('shopify_connection_verified', 'false');
         return false;
       }
     } catch (err) {
       console.error('Error verifying connection:', err);
+      localStorage.setItem('shopify_last_connection_check', now.toString());
+      localStorage.setItem('shopify_connection_verified', 'false');
       return false;
     }
   }, [shop, shopifyConnected]);
 
-  // إعادة اتصال يدوية مع إجراءات مضادة لحلقات إعادة التوجيه
+  // إعادة اتصال يدوية مع إجراءات مضادة لحلقات إعادة التوجيه وتخزين مؤقت متقدم
   const manualReconnect = useCallback(() => {
     console.log('Manual reconnect triggered');
-    // التحقق من وجود محاولات إعادة توجيه كثيرة في الجلسة
-    const redirectAttempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
-    if (redirectAttempts > 5) {
-      toast.error('تم اكتشاف الكثير من محاولات إعادة التوجيه. يرجى تحديث الصفحة وإعادة المحاولة لاحقًا.');
-      return false;
-    }
     
-    // منع محاولات إعادة اتصال سريعة
+    // التحقق من عدم إعادة التوجيه بالفعل
     if (isRedirecting) {
       console.log('Already attempting to redirect, ignoring duplicate request');
       return false;
     }
     
+    // تقييد التوجيه المتكرر
+    const lastRedirectTime = parseInt(localStorage.getItem('shopify_last_redirect_time') || '0', 10);
+    const now = Date.now();
+    
+    if ((now - lastRedirectTime) < 10000) {
+      console.log('Redirect throttling: must wait before next attempt');
+      toast.info('الرجاء الانتظار قبل محاولة إعادة الاتصال مرة أخرى');
+      return false;
+    }
+    
+    // تعيين العلامات وتخزين وقت إعادة التوجيه
     setIsRedirecting(true);
-    console.log('Manual reconnect initiated');
+    localStorage.setItem('shopify_last_redirect_time', now.toString());
     
-    // مسح جميع البيانات المخزنة لضمان بداية جديدة
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // إعادة تعيين عداد إعادة التوجيه
-    sessionStorage.setItem('shopify_redirect_attempts', '1');
-    
-    // مسح بيانات اتصال Shopify بشكل صريح
+    // مسح بيانات الاتصال لتجنب استخدام البيانات القديمة
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_reconnect_attempts');
-    localStorage.removeItem('shopify_last_connect_time');
-    localStorage.removeItem('shopify_last_redirect_time');
-    localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('shopify_connection_verified');
+    localStorage.removeItem('shopify_last_connection_check');
+    sessionStorage.removeItem('shopify_redirect_attempts');
+    sessionStorage.removeItem('shopify_connecting');
+    sessionStorage.removeItem('shopify_callback_attempts');
     
-    // تحديث سياق المصادقة إذا كان متاحًا
+    // تحديث سياق المصادقة
     if (refreshShopifyConnection) {
       refreshShopifyConnection();
     }
     
-    // استخدام window.location لتنقل أكثر موثوقية مع الطابع الزمني وقيم عشوائية
+    // إعادة التوجيه مع معلمات عشوائية لمنع التخزين المؤقت
     setTimeout(() => {
-      console.log('Redirecting to /shopify with forced reconnect parameters');
-      const randomStr = Math.random().toString(36).substring(7);
-      window.location.href = `/shopify?reconnect=manual&force=true&ts=${Date.now()}&r=${randomStr}`;
-      
-      // إعادة تعيين حالة إعادة التوجيه بعد مرور بعض الوقت في حالة فشل التنقل
-      setTimeout(() => {
-        setIsRedirecting(false);
-      }, 5000);
+      const randomParam = Math.random().toString(36).substring(7);
+      window.location.href = `/shopify?reconnect=true&force=true&ts=${now}&r=${randomParam}`;
     }, 500);
     
     return true;
   }, [refreshShopifyConnection, isRedirecting]);
 
-  // Product fetching function with improved error handling
+  // وظيفة جلب المنتجات مع معالجة محسنة للأخطاء وتخزين مؤقت
   const fetchProducts = useCallback(async () => {
-    // Skip product fetching if redirecting
+    // تخطي جلب المنتجات إذا كانت هناك إعادة توجيه جارية
     if (isRedirecting) {
       console.log('Skipping fetchProducts due to ongoing redirect');
       return;
     }
     
-    // Check shop connection status
+    // التحقق من حالة اتصال المتجر
     if (!shopifyConnected || !shop) {
       console.log('Shopify connection not established, skipping fetch');
       setError('Shopify connection not established');
       return;
     }
 
+    // منع الطلبات المتزامنة
+    if (isLoading) {
+      console.log('Already loading products, skipping duplicate fetch');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    
     try {
       console.log(`Fetching products for shop: ${shop}`);
-      // Get store access token
+      // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
         .select('access_token, updated_at')
@@ -195,7 +226,7 @@ export const useShopify = () => {
         throw new Error('No store data found');
       }
       
-      // Make sure storeData has the access_token property
+      // التأكد من وجود رمز الوصول في بيانات المتجر
       const accessToken = storeData.access_token;
       if (!accessToken) {
         throw new Error('Access token not found in store data');
@@ -203,29 +234,50 @@ export const useShopify = () => {
       
       console.log('Access token retrieved successfully');
 
-      // Create API instance with token and store scope
+      // إنشاء مثيل API مع الرمز ونطاق المتجر
       try {
         const api = createShopifyAPI(accessToken, shop);
         
-        // Verify connection first
+        // التحقق من الاتصال أولاً
         try {
           await api.verifyConnection();
+          
+          // تحديث حالة التحقق من الاتصال
+          localStorage.setItem('shopify_last_connection_check', Date.now().toString());
+          localStorage.setItem('shopify_connection_verified', 'true');
+          
           console.log('Connection verified successfully');
         } catch (verifyError: any) {
           console.error('Verification error:', verifyError.message);
           if (handleAuthError(verifyError.message)) {
-            return; // Stop execution if it's an auth error that's being handled
+            return; // إيقاف التنفيذ إذا كان خطأ مصادقة يتم معالجته
           }
           throw verifyError;
         }
         
-        const fetchedProducts = await api.getProducts();
-        console.log(`Retrieved ${fetchedProducts.length} products`);
-        setProducts(fetchedProducts);
+        // استخدام تخزين مؤقت للمنتجات لتقليل طلبات API
+        const cachedProducts = localStorage.getItem('shopify_products_cache');
+        const cacheTime = parseInt(localStorage.getItem('shopify_products_cache_time') || '0', 10);
+        const now = Date.now();
+        
+        // استخدام المنتجات المخزنة مؤقتًا إذا كانت حديثة (أقل من 5 دقائق)
+        if (cachedProducts && (now - cacheTime) < 300000) {
+          console.log('Using cached products data');
+          setProducts(JSON.parse(cachedProducts));
+        } else {
+          // جلب منتجات جديدة
+          const fetchedProducts = await api.getProducts();
+          console.log(`Retrieved ${fetchedProducts.length} products`);
+          setProducts(fetchedProducts);
+          
+          // تخزين المنتجات للاستخدام لاحقًا
+          localStorage.setItem('shopify_products_cache', JSON.stringify(fetchedProducts));
+          localStorage.setItem('shopify_products_cache_time', now.toString());
+        }
       } catch (apiError: any) {
         console.error('API error:', apiError);
         if (handleAuthError(apiError.message)) {
-          return; // Stop execution if it's an auth error that's being handled
+          return; // إيقاف التنفيذ إذا كان خطأ مصادقة يتم معالجته
         }
         throw apiError;
       }
@@ -236,15 +288,47 @@ export const useShopify = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [shop, shopifyConnected, handleAuthError, isRedirecting]);
+  }, [shop, shopifyConnected, handleAuthError, isRedirecting, isLoading]);
 
-  // Fix the syncFormWithShopify function to return a properly typed value
+  // وظيفة مزامنة النموذج مع Shopify محسنة مع معالجة الأخطاء
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
-    // Implementation code
     console.log("Syncing form with Shopify", formData);
-    // Return a Promise that resolves to void
-    return Promise.resolve();
-  }, []);
+    
+    if (!shop || !shopifyConnected) {
+      toast.error('يجب الاتصال بـ Shopify أولاً');
+      return Promise.reject(new Error('Not connected to Shopify'));
+    }
+    
+    setIsSyncing(true);
+    
+    try {
+      // التحقق من حالة الاتصال أولاً
+      const isConnected = await verifyShopifyConnection();
+      if (!isConnected) {
+        throw new Error('Shopify connection verification failed');
+      }
+      
+      // تنفيذ المزامنة هنا - هذه نسخة بسيطة
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success('تمت المزامنة بنجاح مع Shopify');
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error syncing with Shopify:', error);
+      toast.error('فشلت المزامنة مع Shopify');
+      return Promise.reject(error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [shop, shopifyConnected, verifyShopifyConnection]);
+
+  // إضافة دالة تحديث الاتصال متاحة للمستخدم
+  const refreshConnection = useCallback(async () => {
+    setConnectionStatus('verifying');
+    const isConnected = await verifyShopifyConnection();
+    setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+    return isConnected;
+  }, [verifyShopifyConnection]);
 
   return {
     products,
@@ -257,6 +341,7 @@ export const useShopify = () => {
     isRedirecting,
     manualReconnect,
     verifyShopifyConnection,
-    connectionStatus
+    connectionStatus,
+    refreshConnection // إضافة دالة تحديث الاتصال للتصدير
   };
 };

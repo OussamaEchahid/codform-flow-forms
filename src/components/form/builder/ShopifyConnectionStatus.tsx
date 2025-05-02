@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -11,13 +11,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnectionStatus = () => {
   const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
-  const { manualReconnect, verifyShopifyConnection } = useShopify();
+  const { manualReconnect, verifyShopifyConnection, refreshConnection } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
   const [connectionChecked, setConnectionChecked] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   
   // وظيفة للتحقق من الاتصال بـ Shopify
   const checkConnection = async () => {
@@ -49,8 +50,18 @@ const ShopifyConnectionStatus = () => {
       
       console.log('ShopifyConnectionStatus: Found token in database');
       
-      // حتى لو كان لدينا رمز، لا تظهر التحذير بشكل افتراضي إلا إذا كان التحقق من واجهة برمجة التطبيقات يفشل
-      setShowWarning(false);
+      // استخدام دالة التحقق من useShopify إذا كانت متاحة
+      if (refreshConnection) {
+        const isConnected = await refreshConnection();
+        console.log('ShopifyConnectionStatus: Connection check result:', isConnected);
+        setShowWarning(!isConnected);
+      } else {
+        // استخدام التحقق من الواجهة الحالية إذا كان refreshConnection غير متاح
+        const isConnected = await verifyShopifyConnection();
+        console.log('ShopifyConnectionStatus: Legacy connection check result:', isConnected);
+        setShowWarning(!isConnected);
+      }
+      
       setConnectionChecked(true);
       setIsVerifying(false);
     } catch (error) {
@@ -61,15 +72,50 @@ const ShopifyConnectionStatus = () => {
     }
   };
   
-  // فحص الاتصال عند بدء التشغيل
+  // فحص الاتصال عند بدء التشغيل مع منع التحقق المتكرر
   useEffect(() => {
-    // تأخير للسماح بتحميل المكونات أولاً
-    const timer = setTimeout(() => {
-      checkConnection();
-    }, 1000);
+    // تحقق من وقت آخر فحص لمنع الفحوصات المتكررة
+    const lastCheck = parseInt(localStorage.getItem('shopify_connection_status_check') || '0', 10);
+    const now = Date.now();
     
-    return () => clearTimeout(timer);
+    if ((now - lastCheck) > 60000 || !localStorage.getItem('shopify_connection_status')) {
+      // تأخير للسماح بتحميل المكونات أولاً
+      const timer = setTimeout(() => {
+        checkConnection().then(() => {
+          // تخزين نتيجة الفحص ووقت الفحص
+          localStorage.setItem('shopify_connection_status', showWarning ? 'warning' : 'ok');
+          localStorage.setItem('shopify_connection_status_check', now.toString());
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // استخدام النتيجة المخزنة
+      const savedStatus = localStorage.getItem('shopify_connection_status');
+      setShowWarning(savedStatus === 'warning');
+      setConnectionChecked(true);
+    }
   }, [shop, shopifyConnected]);
+  
+  // إضافة دالة للتحقق اليدوي من الاتصال
+  const handleCheckNow = async () => {
+    if (isCheckingConnection) return;
+    
+    setIsCheckingConnection(true);
+    
+    try {
+      await checkConnection();
+      
+      // تحديث حالة الاتصال في العارض
+      if (!showWarning) {
+        toast.success(language === 'ar' 
+          ? 'تم التحقق من الاتصال بنجاح' 
+          : 'Connection verified successfully');
+      }
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
   
   // معالجة نقرة زر إعادة الاتصال - نستخدم منهجًا محسنًا
   const handleConnectShopify = () => {
@@ -97,6 +143,10 @@ const ShopifyConnectionStatus = () => {
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('shopify_connection_verified');
+    localStorage.removeItem('shopify_last_connection_check');
+    localStorage.removeItem('shopify_connection_status');
+    localStorage.removeItem('shopify_connection_status_check');
     sessionStorage.removeItem('shopify_redirect_attempts');
     sessionStorage.removeItem('shopify_connecting');
     sessionStorage.removeItem('shopify_callback_attempts');
@@ -158,24 +208,48 @@ const ShopifyConnectionStatus = () => {
           ? 'نواجه مشكلة في الاتصال بـ Shopify. هذا قد يمنع تحميل النموذج والعمل بشكل صحيح. يرجى النقر على الزر أدناه لإعادة الاتصال.' 
           : 'We are experiencing an issue with the Shopify connection. This may prevent the form from loading and functioning properly. Please click the button below to reconnect.'}
       </AlertDescription>
-      <Button 
-        onClick={handleConnectShopify}
-        size="lg"
-        className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md text-lg font-medium"
-        disabled={isRedirecting}
-      >
-        {isRedirecting ? (
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-            {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
-          </div>
-        ) : (
-          <>
-            <RefreshCw className="h-5 w-5 mr-2" />
-            {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
-          </>
-        )}
-      </Button>
+
+      <div className="flex flex-wrap justify-center gap-4">
+        <Button 
+          onClick={handleConnectShopify}
+          size="lg"
+          className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md text-lg font-medium"
+          disabled={isRedirecting}
+        >
+          {isRedirecting ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+              {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
+            </div>
+          ) : (
+            <>
+              <RefreshCw className="h-5 w-5 mr-2" />
+              {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
+            </>
+          )}
+        </Button>
+
+        <Button
+          onClick={handleCheckNow}
+          size="lg"
+          variant="outline"
+          className="border-red-300 text-red-700 hover:bg-red-50 px-8 py-3 rounded-md text-lg font-medium"
+          disabled={isCheckingConnection}
+        >
+          {isCheckingConnection ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-red-700 mr-2"></div>
+              {language === 'ar' ? 'جاري التحقق...' : 'Checking...'}
+            </div>
+          ) : (
+            <>
+              <CheckCircle className="h-5 w-5 mr-2" />
+              {language === 'ar' ? 'التحقق من الاتصال' : 'Check Connection'}
+            </>
+          )}
+        </Button>
+      </div>
+
       <p className="mt-4 text-sm text-red-700">{language === 'ar' 
         ? 'سيؤدي هذا إلى مسح جميع بيانات الجلسة وإعادة الاتصال بالكامل. قد تحتاج إلى إعادة تسجيل الدخول.' 
         : 'This will clear all session data and perform a complete reconnection. You may need to log in again.'}</p>

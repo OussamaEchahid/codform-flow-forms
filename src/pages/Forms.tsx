@@ -9,7 +9,7 @@ import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnection
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Plus } from 'lucide-react';
 
 const Forms = () => {
   const { user, shopifyConnected, shop, isTokenVerified, refreshShopifyConnection, forceReconnect, lastConnectionTime } = useAuth();
@@ -23,6 +23,12 @@ const Forms = () => {
   
   // استخدام hook الترجمة
   const { t, language } = useI18n();
+  
+  // إضافة دالة إنشاء نموذج جديد
+  const handleCreateNewForm = useCallback(() => {
+    console.log("Navigating to new form page");
+    navigate('/form-builder/new');
+  }, [navigate]);
   
   // منع دورات التحقق المتكررة عن طريق تتبع الحالة
   useEffect(() => {
@@ -234,8 +240,8 @@ const Forms = () => {
       </div>
     );
   }
-  
-  // عرض لوحة تحكم منشئ النماذج الرئيسية
+
+  // إضافة زر إنشاء نموذج جديد في أعلى الصفحة
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
@@ -243,7 +249,24 @@ const Forms = () => {
       <div className="flex-1">
         {!isTokenVerified && shopifyConnected && <ShopifyConnectionStatus />}
         
-        <FormBuilderDashboard key="form-dashboard" />
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">
+              {language === 'ar' ? 'النماذج' : 'Forms'}
+            </h1>
+            
+            {/* زر إنشاء نموذج جديد */}
+            <Button 
+              onClick={handleCreateNewForm} 
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+            </Button>
+          </div>
+          
+          <FormBuilderDashboard key="form-dashboard" />
+        </div>
       </div>
     </div>
   );
