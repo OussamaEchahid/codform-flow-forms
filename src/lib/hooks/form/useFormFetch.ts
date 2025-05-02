@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Create FormData object directly without complex type inference
-      const result = {
+      // Create a new object with explicit properties to avoid type recursion
+      const formData: FormData = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -58,9 +58,9 @@ export const useFormFetch = () => {
         user_id: data.user_id,
         is_published: data.is_published,
         shop_id: data.shop_id
-      } as FormData;
+      };
       
-      return result;
+      return formData;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
       toast.error(language === 'ar' ? 'خطأ في جلب النموذج' : 'Error fetching form');
@@ -101,13 +101,13 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Transform data to FormData[] without complex type inference
-      const results: FormData[] = [];
+      // Create a typed array first
+      const formsData: FormData[] = [];
       
       if (data) {
         for (const item of data) {
-          // Push each item individually to prevent type recursion
-          results.push({
+          // Add each item with explicit properties
+          formsData.push({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -117,12 +117,12 @@ export const useFormFetch = () => {
             user_id: item.user_id,
             is_published: item.is_published,
             shop_id: item.shop_id
-          } as FormData);
+          });
         }
       }
       
-      setForms(results);
-      return results;
+      setForms(formsData);
+      return formsData;
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error(language === 'ar' ? 'خطأ في جلب النماذج' : 'Error fetching forms');
