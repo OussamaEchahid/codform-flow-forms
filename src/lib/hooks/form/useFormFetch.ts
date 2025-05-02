@@ -47,9 +47,7 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Convert returned data to FormData
-      // Instead of using object spread which can cause type recursion issues,
-      // manually assign each property
+      // Create a typed fetchedForm without using object spreading to avoid recursion
       const fetchedForm: FormData = {
         id: data.id,
         title: data.title,
