@@ -4,27 +4,32 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export interface ShopifyConnectionManagerProps {
   onConnectionSuccess?: () => void;
   variant?: 'card' | 'button' | 'minimal';
   className?: string;
+  showErrors?: boolean;
 }
 
 /**
  * مكون محسّن لإدارة حالة اتصال Shopify مع معالجة اتصال أكثر موثوقية
+ * نسخة v2 مع تحسينات للتعامل مع مشكلات الاتصال
  */
 export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ 
   onConnectionSuccess,
   variant = 'card',
-  className = ''
+  className = '',
+  showErrors = true
 }) => {
-  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
+  const { shopifyConnected, shop, refreshShopifyConnection, forceReconnect } = useAuth();
   const { language, t } = useI18n();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [lastConnectionTime, setLastConnectionTime] = useState<number | null>(null);
   
@@ -67,12 +72,27 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     }
   }, [shop, shopifyConnected, connectionAttempts, refreshShopifyConnection]);
 
+  // استخدام مسار مباشر للمصادقة
+  const useDirectAuthPath = () => {
+    if (lastConnectionTime && Date.now() - lastConnectionTime < 30000) {
+      // إذا كانت هناك محاولة اتصال حديثة، استخدم طريقة مختلفة
+      return connectionAttempts % 2 === 0;
+    }
+    
+    // التناوب بين الطرق المختلفة بناءً على عدد محاولات الاتصال
+    return connectionAttempts % 3 === 0;
+  };
+  
   // معالجة اتصال مباشر وموثوق
-  const handleConnect = useCallback(() => {
-    if (isConnecting) return;
+  const handleConnect = useCallback(async () => {
+    if (isConnecting) {
+      console.log("Already attempting to connect, ignoring duplicate request");
+      return;
+    }
     
     try {
       setIsConnecting(true);
+      setErrorDetails(null);
       
       // تحديث عداد محاولات الاتصال
       const attempts = parseInt(localStorage.getItem('shopify_connection_attempts') || '0', 10);
@@ -92,7 +112,9 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       const randomStr = Math.random().toString(36).substring(7);
       
       // تحديث حالة الاتصال في سياق المصادقة
-      if (refreshShopifyConnection) {
+      if (forceReconnect) {
+        forceReconnect();
+      } else if (refreshShopifyConnection) {
         refreshShopifyConnection();
       }
       
@@ -115,110 +137,104 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       sessionStorage.setItem('shopify_connecting', 'true');
       sessionStorage.setItem('shopify_connecting_time', Date.now().toString());
       
-      // محاولة أولى: استدعاء دالة حافة Edge Function مباشرة
-      const apiUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}&debug=true`;
-      console.log("استدعاء نقطة نهاية المصادقة:", apiUrl);
+      // اتخاذ القرار بشأن مسار المصادقة بناءً على محاولات الاتصال السابقة
+      const useDirectPath = useDirectAuthPath();
+      console.log(`Using ${useDirectPath ? 'direct auth path' : 'edge function'} (attempts: ${attempts})`);
       
-      fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA'
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          console.error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
-          throw new Error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.redirect) {
-          console.log("إعادة التوجيه إلى عنوان URL لمصادقة Shopify:", data.redirect);
+      if (useDirectPath) {
+        // الطريقة 1: توجيه مباشر إلى مسار المصادقة الخاص بنا
+        const authPath = `/auth?ts=${timestamp}&r=${randomStr}&force=true`;
+        console.log("استخدام مسار المصادقة المباشر:", authPath);
+        window.location.href = authPath;
+      } else {
+        // الطريقة 2: استدعاء دالة حافة Edge Function
+        const apiUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}&debug=true`;
+        console.log("استدعاء نقطة نهاية المصادقة:", apiUrl);
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA'
+            }
+          });
           
-          // تأكد من إكمال أي وظائف متزامنة قبل إعادة التوجيه
-          setTimeout(() => {
-            // قم بإزالة علامة الاتصال الجاري
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`خطأ في واجهة برمجة التطبيقات: ${response.status} - ${errorText}`);
+            throw new Error(`خطأ في واجهة برمجة التطبيقات: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.redirect) {
+            console.log("إعادة التوجيه إلى عنوان URL لمصادقة Shopify:", data.redirect);
+            window.location.href = data.redirect;
+          } else if (data.success && data.shop && data.hasExistingToken) {
+            console.log("تم إنشاء اتصال بالفعل مع المتجر:", data.shop);
+            localStorage.setItem('shopify_store', data.shop);
+            localStorage.setItem('shopify_connected', 'true');
+            localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+            
+            // إزالة علامة الاتصال الجاري
             sessionStorage.removeItem('shopify_connecting');
             
-            // تخزين بيانات مؤقتة قبل إعادة التوجيه
-            if (data.shop) {
-              localStorage.setItem('shopify_temp_store', data.shop);
+            // تحديث حالة الاتصال
+            if (refreshShopifyConnection) {
+              refreshShopifyConnection();
             }
             
-            // إعادة التوجيه إلى Shopify
-            window.location.href = data.redirect;
-          }, 100);
-        } else if (data.success && data.shop && data.hasExistingToken) {
-          console.log("تم إنشاء اتصال بالفعل مع المتجر:", data.shop);
-          localStorage.setItem('shopify_store', data.shop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_last_connect_time', Date.now().toString());
-          
-          // إزالة علامة الاتصال الجاري
-          sessionStorage.removeItem('shopify_connecting');
-          
-          // تحديث حالة الاتصال
-          if (refreshShopifyConnection) {
-            refreshShopifyConnection();
-          }
-          
-          // استدعاء رد الاتصال عند النجاح
-          if (onConnectionSuccess) {
-            onConnectionSuccess();
-          }
-          
-          // عرض نخبة نجاح
-          toast.success(language === 'ar'
-            ? `تم الاتصال بنجاح بمتجر ${data.shop}`
-            : `Successfully connected to ${data.shop}`
-          );
-          
-          // التنقل إلى لوحة التحكم بمعلمات النجاح
-          if (data.redirect) {
-            window.location.href = data.redirect;
+            // استدعاء رد الاتصال عند النجاح
+            if (onConnectionSuccess) {
+              onConnectionSuccess();
+            }
+            
+            // عرض نخبة نجاح
+            toast.success(language === 'ar'
+              ? `تم الاتصال بنجاح بمتجر ${data.shop}`
+              : `Successfully connected to ${data.shop}`
+            );
+            
+            // التنقل إلى لوحة التحكم بمعلمات النجاح
+            if (data.redirect) {
+              window.location.href = data.redirect;
+            } else {
+              window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(data.shop)}&reconnected=true`;
+            }
           } else {
-            window.location.href = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(data.shop)}&reconnected=true`;
+            throw new Error("استجابة غير صالحة من نقطة نهاية المصادقة");
           }
-        } else {
-          throw new Error("استجابة غير صالحة من نقطة نهاية المصادقة");
+        } catch (error) {
+          console.error("خطأ في واجهة برمجة التطبيقات:", error);
+          setErrorDetails(error instanceof Error ? error.message : "حدث خطأ أثناء الاتصال");
+          
+          // احتياطي: التنقل المباشر إلى مسار المصادقة الخاص بنا
+          console.log("استخدام التنقل الاحتياطي للمصادقة");
+          
+          // اعط بعض الوقت لظهور الخطأ ثم قم بإعادة التوجيه
+          setTimeout(() => {
+            const authPath = `/auth?ts=${timestamp}&r=${randomStr}&fallback=true&force=true`;
+            window.location.href = authPath;
+          }, 1500);
         }
-      })
-      .catch(error => {
-        console.error("خطأ في واجهة برمجة التطبيقات:", error);
-        
-        // احتياطي: التنقل المباشر إلى مسار المصادقة الخاص بنا للتعامل مع Remix
-        console.log("استخدام التنقل الاحتياطي للمصادقة");
-        
-        // إزالة علامة الاتصال الجاري بعد فترة زمنية
-        setTimeout(() => {
-          sessionStorage.removeItem('shopify_connecting');
-        }, 5000);
-        
-        setTimeout(() => {
-          const shopParam = shop ? `&shop=${encodeURIComponent(shop)}` : '';
-          window.location.href = `/auth?ts=${timestamp}&r=${randomStr}&force=true${shopParam}`;
-        }, 500);
-      })
-      .finally(() => {
-        // إعادة تعيين حالة الاتصال بعد فترة زمنية في حالة عدم حدوث إعادة توجيه
-        setTimeout(() => {
-          setIsConnecting(false);
-          // إزالة علامة الاتصال الجاري بعد فترة زمنية كافية
-          sessionStorage.removeItem('shopify_connecting'); 
-        }, 10000);
-      });
+      }
     } catch (error) {
       console.error("خطأ في بدء اتصال Shopify:", error);
+      setErrorDetails(error instanceof Error ? error.message : "حدث خطأ أثناء محاولة الاتصال");
       toast.error(language === 'ar'
         ? 'حدث خطأ أثناء توجيهك للاتصال. يرجى المحاولة مرة أخرى.'
         : 'Error during connection redirect. Please try again.');
-      setIsConnecting(false);
-      sessionStorage.removeItem('shopify_connecting');
+    } finally {
+      // إعادة تعيين حالة الاتصال بعد فترة زمنية في حالة عدم حدوث إعادة توجيه
+      setTimeout(() => {
+        setIsConnecting(false);
+        // إزالة علامة الاتصال الجاري بعد فترة زمنية كافية
+        sessionStorage.removeItem('shopify_connecting'); 
+      }, 10000);
     }
-  }, [shop, isConnecting, language, onConnectionSuccess, refreshShopifyConnection]);
+  }, [shop, isConnecting, language, onConnectionSuccess, refreshShopifyConnection, forceReconnect, useDirectAuthPath]);
 
   // استدعاء إعادة توجيه الاتصال مرة واحدة في حالة إعادة التحميل السريع - منع حلقات إعادة التوجيه
   useEffect(() => {
@@ -234,7 +250,7 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       // تأخير قصير للسماح بتحميل المكونات
       setTimeout(() => {
         handleConnect();
-      }, 500);
+      }, 800);
       
       // تنظيف معلمات URL
       if (window.history.replaceState && !shouldReconnect) {
@@ -312,15 +328,52 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!shopifyConnected && (
+        {!shopifyConnected && !errorDetails && (
           <p className="text-sm text-gray-600 mb-4">
             {language === 'ar' 
               ? 'سيتم توجيهك إلى Shopify للتصريح بالوصول. هذه عملية آمنة وموثوقة.'
               : 'You will be redirected to Shopify for authorization. This is a secure and trusted process.'}
           </p>
         )}
+        
+        {errorDetails && showErrors && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription className="text-sm">
+              {language === 'ar' 
+                ? `حدثت مشكلة أثناء محاولة الاتصال: ${errorDetails}` 
+                : `Problem connecting: ${errorDetails}`}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {errorDetails && showErrors && (
+          <div className="text-sm text-gray-600 mb-4">
+            <p className="mb-2 font-medium">
+              {language === 'ar' 
+                ? 'جرب هذه الخطوات:' 
+                : 'Try these steps:'}
+            </p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                {language === 'ar' 
+                  ? 'تأكد من أن متصفحك محدّث' 
+                  : 'Ensure your browser is updated'}
+              </li>
+              <li>
+                {language === 'ar' 
+                  ? 'تأكد من تفعيل الكوكيز والسماح بالنوافذ المنبثقة' 
+                  : 'Make sure cookies and pop-ups are enabled'}
+              </li>
+              <li>
+                {language === 'ar' 
+                  ? 'استخدم زر "اتصال مباشر" أدناه للاتصال بطريقة بديلة' 
+                  : 'Use the "Direct Connect" button below to connect with an alternative method'}
+              </li>
+            </ol>
+          </div>
+        )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col space-y-2">
         <Button 
           onClick={handleConnect}
           className="w-full bg-[#5E6EBF] hover:bg-[#4E5EAF]"
@@ -343,6 +396,20 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
             </>
           )}
         </Button>
+        
+        {errorDetails && (
+          <Button
+            variant="outline"
+            className="w-full text-sm"
+            onClick={() => {
+              const authPath = `/auth?ts=${Date.now()}&r=${Math.random().toString(36).substring(7)}&direct=true&force=true`;
+              window.location.href = authPath;
+            }}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            {language === 'ar' ? 'اتصال مباشر (بديل)' : 'Direct Connect (Alternative)'}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

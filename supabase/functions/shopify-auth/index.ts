@@ -73,6 +73,46 @@ serve(async (req) => {
     });
   }
 
+  // إضافة دعم لعمليات POST
+  if (req.method === "POST") {
+    try {
+      const data = await req.json();
+      console.log("POST request data:", data);
+      
+      if (data.action === "save_state" && data.shop && data.state) {
+        // حفظ الحالة المؤقتة
+        const { error: insertError } = await supabase.from('shopify_auth').insert({
+          shop: cleanShopDomain(data.shop),
+          state: data.state,
+        });
+        
+        if (insertError) {
+          console.error("Error saving auth state:", insertError);
+          return new Response(
+            JSON.stringify({ error: "Failed to save auth state" }), 
+            { status: 500, headers: corsHeaders }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true }), 
+          { status: 200, headers: corsHeaders }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: "Invalid action" }), 
+        { status: 400, headers: corsHeaders }
+      );
+    } catch (error) {
+      console.error("Error processing POST request:", error);
+      return new Response(
+        JSON.stringify({ error: "Error processing request" }), 
+        { status: 500, headers: corsHeaders }
+      );
+    }
+  }
+
   try {
     const url = new URL(req.url);
     let shop = url.searchParams.get("shop");
@@ -146,7 +186,11 @@ serve(async (req) => {
               redirect: redirectUrl,
               hasExistingToken: true
             }), { 
-              headers: corsHeaders
+              headers: {
+                ...corsHeaders,
+                "Location": redirectUrl
+              },
+              status: 200
             });
           }
         }
@@ -168,7 +212,7 @@ serve(async (req) => {
       
       console.log("Generated auth URL:", authUrl);
       
-      // إضافة المزيد من المعلومات في الاستجابة للمساعدة في تشخيص المشكلات
+      // Return response with both JSON data and redirect header
       return new Response(JSON.stringify({
         success: true,
         redirect: authUrl,
@@ -177,9 +221,13 @@ serve(async (req) => {
         clientUrl: client,
         callbackUrl,
         timestamp,
-        version: "v2"  // لتتبع إصدار الكود الذي يعمل
+        version: "v3"  // تحديث الإصدار لتتبع التغييرات
       }), { 
-        headers: corsHeaders
+        headers: {
+          ...corsHeaders,
+          "Location": authUrl
+        },
+        status: 200
       });
     } catch (error) {
       console.error("Error initiating authentication:", error);
@@ -199,7 +247,13 @@ serve(async (req) => {
           fallbackAuthUrl: authUrl,
           success: false
         }),
-        { status: 500, headers: corsHeaders }
+        { 
+          status: 500, 
+          headers: {
+            ...corsHeaders,
+            "Location": authUrl
+          }
+        }
       );
     }
   } catch (error) {

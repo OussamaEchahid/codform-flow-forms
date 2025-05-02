@@ -1,12 +1,60 @@
 
 import { authenticate, login } from "../shopify.server";
 import { redirect } from "@remix-run/node";
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+
+// مكون واجهة المستخدم لصفحة المصادقة
+export function AuthRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shop = params.get("shop");
+    
+    // عرض رسالة في وحدة التحكم للتشخيص
+    console.log("Auth page loaded with params:", Object.fromEntries(params.entries()));
+    
+    // إذا كان لدينا رمز ورمز تشفير، فنحن في استدعاء OAuth
+    if (params.get("code") && params.get("hmac")) {
+      console.log("OAuth callback detected, redirecting to dashboard");
+      // سيتم التعامل مع هذا من خلال الجزء الخادم (loader)
+    } 
+    // وإلا، نحن في بداية تدفق OAuth
+    else {
+      console.log("Starting OAuth flow, waiting for server redirect");
+      // ستتم إعادة التوجيه قريبًا من خلال الجزء الخادم (loader)
+    }
+  }, [location.search]);
+  
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
+      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 className="text-2xl font-bold mb-4">جاري المصادقة مع Shopify</h1>
+        <div className="flex justify-center mb-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        </div>
+        <p className="mb-4">الرجاء الانتظار بينما نكمل عملية الاتصال مع متجر Shopify الخاص بك...</p>
+        <p className="text-sm text-gray-500">إذا لم يتم إعادة توجيهك تلقائيًا، انقر على الزر أدناه.</p>
+        
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        >
+          العودة إلى لوحة التحكم
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export const loader = async ({ request }) => {
   console.log("Server Auth route hit with URL:", request.url);
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop") || "bestform-app.myshopify.com"; // Default to known shop if none provided
   const force = url.searchParams.get("force") === "true";
+  const debug = url.searchParams.get("debug") === "true";
   
   // سجل جميع المعلومات للتشخيص
   console.log("Auth route complete parameters:", {
@@ -87,11 +135,29 @@ export const loader = async ({ request }) => {
             "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
+            "X-Auth-Result": "success"
           }
         });
       } catch (authError) {
         console.error("Authentication error:", authError);
-        return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(authError.message)}&shop=${encodeURIComponent(shop || '')}`);
+        
+        // في حالة فشل المصادقة، حاول استخدام طريقة احتياطية
+        try {
+          // حاول الاتصال بوظيفة الحافة لإكمال المصادقة
+          const edgeFunctionUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${url.search.substring(1)}`;
+          console.log("Trying edge function callback:", edgeFunctionUrl);
+          
+          return redirect(`/api/shopify-callback?${url.search.substring(1)}`, {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0"
+            }
+          });
+        } catch (fallbackError) {
+          console.error("Fallback error:", fallbackError);
+          return redirect(`/dashboard?auth_error=true&error=${encodeURIComponent(authError.message)}&shop=${encodeURIComponent(shop || '')}`);
+        }
       }
     } 
     // إذا كان لدينا متجر فقط، نبدأ تدفق OAuth
@@ -116,9 +182,31 @@ export const loader = async ({ request }) => {
         const appUrl = process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app";
         const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
         const redirectUri = `${appUrl}/api/shopify-callback`;
+        const state = Date.now().toString();
+        
+        // Save state temporarily for verification
+        try {
+          const { error } = await fetch("https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              shop,
+              state,
+              action: "save_state"
+            })
+          });
+          
+          if (error) {
+            console.error("Error saving state:", error);
+          }
+        } catch (stateError) {
+          console.error("State saving error:", stateError);
+        }
         
         // Create direct OAuth URL
-        const shopifyAuthUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407"}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${Date.now()}`;
+        const shopifyAuthUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407"}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
         
         console.log("Fallback auth URL:", shopifyAuthUrl);
         
@@ -175,3 +263,6 @@ export const action = async ({ request }) => {
     return redirect("/dashboard?auth_error=true&error=action_failed");
   }
 };
+
+// استخدم هذا المكون لتقديم الصفحة
+export default AuthRoute;
