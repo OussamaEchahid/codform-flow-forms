@@ -47,8 +47,8 @@ export const useFormFetch = () => {
 
       console.log(`useFormFetch: Form ${formId} fetched successfully:`, data);
       
-      // Convert database result to FormData type using manual assignment
-      const result: FormData = {
+      // To avoid type inference issues, create a plain object first without type annotation
+      const formObject = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -60,6 +60,8 @@ export const useFormFetch = () => {
         shop_id: data.shop_id
       };
       
+      // Then apply the type
+      const result = formObject as FormData;
       return result;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
@@ -101,13 +103,12 @@ export const useFormFetch = () => {
 
       console.log("useFormFetch: Forms fetched successfully:", data?.length || 0, "forms");
       
-      // Convert database results to FormData[] using explicit mapping
-      const results: FormData[] = [];
+      // Create a plain array first
+      const formArray: Array<Record<string, any>> = [];
       
       if (data) {
         for (const item of data) {
-          // Add each item as a properly typed FormData object
-          results.push({
+          formArray.push({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -120,6 +121,9 @@ export const useFormFetch = () => {
           });
         }
       }
+      
+      // Then cast the entire array
+      const results = formArray as FormData[];
       
       setForms(results);
       return results;
