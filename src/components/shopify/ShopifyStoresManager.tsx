@@ -6,27 +6,58 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { Store, Check, Trash2, ExternalLink } from 'lucide-react';
+import { Store, Check, Trash2, ExternalLink, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ShopifyStoreConnection } from '@/lib/shopify/types';
+import { parseShopifyParams } from '@/utils/shopify-helpers'; 
 
 export const ShopifyStoresManager: React.FC = () => {
   const { shop: activeShop, setShop } = useAuth();
   const navigate = useNavigate();
   const [stores, setStores] = useState<ShopifyStoreConnection[]>([]);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Load stores on component mount
   useEffect(() => {
     const loadStores = () => {
       const allStores = shopifyConnectionManager.getAllStores();
       setStores(allStores);
+      
+      // Update diagnostic information
+      const { shopDomain } = parseShopifyParams();
+      const lastUrlShop = shopifyConnectionManager.getLastUrlShop();
+      
+      setDiagnosticInfo({
+        activeShopFromContext: activeShop,
+        activeStoreFromManager: shopifyConnectionManager.getActiveStore(),
+        shopFromCurrentUrl: shopDomain,
+        lastUrlShop: lastUrlShop,
+        localStorageData: {
+          shopify_store: localStorage.getItem('shopify_store'),
+          shopify_connected: localStorage.getItem('shopify_connected'),
+          shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+          shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
+          shopify_active_store: localStorage.getItem('shopify_active_store'),
+          shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
+          shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
+        },
+        window: {
+          location: window.location.href,
+          searchParams: Object.fromEntries(new URLSearchParams(window.location.search).entries()),
+        }
+      });
     };
     
     loadStores();
     
     // Add event listener for storage changes
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'shopify_connected_stores' || e.key === 'shopify_active_store') {
+      if (e.key === 'shopify_connected_stores' || 
+          e.key === 'shopify_active_store' ||
+          e.key === 'shopify_store' ||
+          e.key === 'shopify_connected' ||
+          e.key === 'shopify_last_url_shop') {
         loadStores();
       }
     };
@@ -36,12 +67,12 @@ export const ShopifyStoresManager: React.FC = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [activeShop]);
 
   // Set a store as active
   const setActiveStore = (storeUrl: string) => {
     try {
-      shopifyConnectionManager.setActiveStore(storeUrl);
+      shopifyConnectionManager.setActiveStore(storeUrl, true);
       if (setShop) {
         setShop(storeUrl);
       }
@@ -76,6 +107,40 @@ export const ShopifyStoresManager: React.FC = () => {
   const openStoreAdmin = (storeUrl: string) => {
     window.open(`https://${storeUrl}/admin`, '_blank');
   };
+  
+  // Refresh store list
+  const refreshStores = () => {
+    const allStores = shopifyConnectionManager.getAllStores();
+    setStores(allStores);
+    toast.success('تم تحديث قائمة المتاجر');
+  };
+  
+  // Clear all stores except active one
+  const clearAllExceptActive = () => {
+    if (window.confirm('هل أنت متأكد من رغبتك في مسح جميع المتاجر غير النشطة؟')) {
+      try {
+        shopifyConnectionManager.clearAllStoresExcept(activeShop);
+        refreshStores();
+        toast.success('تم مسح جميع المتاجر غير النشطة');
+      } catch (error) {
+        toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      }
+    }
+  };
+  
+  // Clear all stores
+  const clearAllStores = () => {
+    if (window.confirm('تحذير: سيؤدي هذا الإجراء إلى مسح جميع المتاجر المتصلة. هل أنت متأكد؟')) {
+      try {
+        shopifyConnectionManager.clearAllStores();
+        refreshStores();
+        toast.success('تم مسح جميع المتاجر');
+        navigate('/shopify');
+      } catch (error) {
+        toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      }
+    }
+  };
 
   // Format date to human-readable format
   const formatDate = (dateString?: string) => {
@@ -102,10 +167,32 @@ export const ShopifyStoresManager: React.FC = () => {
             <Store className="h-5 w-5 mr-2" />
             متاجر Shopify المتصلة
           </div>
-          <Badge variant="outline" className="ml-2">
-            {stores.length} متجر
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="ml-2">
+              {stores.length} متجر
+            </Badge>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              title="عرض معلومات التشخيص"
+            >
+              <AlertTriangle className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
+        
+        {/* عرض معلومات التشخيص */}
+        {showDiagnostics && diagnosticInfo && (
+          <div className="mt-2 p-3 bg-slate-100 text-xs rounded-md">
+            <h4 className="font-bold mb-2">معلومات التشخيص:</h4>
+            <div className="overflow-auto max-h-40">
+              <pre className="text-xs whitespace-pre-wrap" dir="ltr">
+                {JSON.stringify(diagnosticInfo, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         {stores.length === 0 ? (
@@ -176,8 +263,37 @@ export const ShopifyStoresManager: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <div className="p-4 border-t">
+            <div className="p-4 border-t flex flex-col gap-2">
               <Button onClick={addNewStore} className="w-full">إضافة متجر جديد</Button>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={refreshStores}
+                  className="flex items-center justify-center"
+                  title="تحديث قائمة المتاجر"
+                >
+                  <RefreshCcw className="h-4 w-4 mr-2" /> تحديث
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={clearAllExceptActive}
+                  className="text-orange-600 hover:bg-orange-50"
+                  title="مسح جميع المتاجر غير النشطة"
+                >
+                  مسح غير النشطة
+                </Button>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                onClick={clearAllStores}
+                className="text-red-600 hover:bg-red-50 mt-2"
+                title="مسح جميع المتاجر"
+              >
+                مسح جميع المتاجر
+              </Button>
             </div>
           </div>
         )}

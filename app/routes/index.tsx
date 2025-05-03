@@ -36,6 +36,8 @@ export async function loader({ request }) {
     // تأكد من تضمين جميع معلمات عنوان URL في إعادة التوجيه
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
+    params.set("force_update", "true"); // علامة للإشارة إلى تحديث إجباري للمتجر
+    
     if (hmac) params.set("hmac", hmac);
     if (timestamp) params.set("timestamp", timestamp);
     if (code) params.set("code", code);
@@ -58,6 +60,7 @@ export async function loader({ request }) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
     params.append("new_connection", "true");
+    params.append("force_update", "true"); // علامة للإشارة إلى تحديث إجباري للمتجر
     return redirect(`/auth?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

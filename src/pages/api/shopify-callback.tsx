@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, RefreshCcw, Store, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { cleanShopifyDomain } from '@/lib/shopify/types';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 export default function ShopifyCallback() {
@@ -15,6 +16,7 @@ export default function ShopifyCallback() {
   const [shop, setShop] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
   const [debugInfo, setDebugInfo] = useState<any>({});
+  const [triedFallback, setTriedFallback] = useState(false);
   
   useEffect(() => {
     const handleCallback = async () => {
@@ -24,6 +26,7 @@ export default function ShopifyCallback() {
         const code = params.get('code');
         const hmac = params.get('hmac');
         const state = params.get('state');
+        const forceUpdate = params.get('force_update') === 'true';
         
         // Set debug info
         const debug = {
@@ -31,6 +34,7 @@ export default function ShopifyCallback() {
           code: code ? "present" : "missing",
           hmac: hmac ? "present" : "missing",
           state,
+          forceUpdate,
           search: location.search,
           url: window.location.href,
           origin: window.location.origin,
@@ -39,7 +43,9 @@ export default function ShopifyCallback() {
             shopify_store: localStorage.getItem('shopify_store'),
             shopify_connected: localStorage.getItem('shopify_connected'),
             shopify_temp_store: localStorage.getItem('shopify_temp_store'),
-            shopify_active_store: localStorage.getItem('shopify_active_store')
+            shopify_active_store: localStorage.getItem('shopify_active_store'),
+            shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
+            shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
           },
           timestamp: new Date().toISOString()
         };
@@ -52,16 +58,24 @@ export default function ShopifyCallback() {
           return;
         }
         
-        setShop(shopParam);
+        // تنظيف معلمة المتجر
+        const cleanedShop = cleanShopifyDomain(shopParam);
+        setShop(cleanedShop);
         
         try {
-          // Call Supabase Edge Function to complete the auth
+          // مسح جميع المتاجر الأخرى للتأكد من أن المتجر الجديد فقط هو النشط
+          if (forceUpdate) {
+            shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+          }
+          
+          // استدعاء دالة Edge Function لإكمال المصادقة
           const { data, error } = await supabase.functions.invoke('shopify-callback', {
             body: {
-              shop: shopParam,
+              shop: cleanedShop,
               code,
               hmac,
-              state
+              state,
+              forceUpdate
             },
           });
           
@@ -73,68 +87,73 @@ export default function ShopifyCallback() {
             throw new Error(data?.error || "حدث خطأ غير معروف أثناء إكمال المصادقة");
           }
           
-          // Update connection manager
-          shopifyConnectionManager.setActiveStore(shopParam);
+          // تحديث مدير الاتصال
+          shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
           
-          // Store shop information in localStorage
-          localStorage.setItem('shopify_store', shopParam);
+          // حفظ معلومات المتجر في localStorage
+          localStorage.setItem('shopify_store', cleanedShop);
           localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_active_store', shopParam);
+          localStorage.setItem('shopify_active_store', cleanedShop);
+          localStorage.setItem('shopify_last_url_shop', cleanedShop);
           
-          // Remove temporary data
+          // إزالة البيانات المؤقتة
           localStorage.removeItem('shopify_temp_store');
           
           setIsProcessing(false);
-          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
           
-          // If there's a redirect URL in the response, navigate to it
+          // إذا كان هناك عنوان URL للتوجيه في الإستجابة، انتقل إليه
           if (data.redirect) {
             window.location.href = data.redirect;
           } else {
             setTimeout(() => {
-              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam), { replace: true });
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop) + '&timestamp=' + Date.now(), { replace: true });
             }, 1000);
           }
         } catch (error) {
           console.error("Error handling callback:", error);
           
-          // Fallback to direct API call
-          try {
-            // Try direct API call as a fallback
-            const response = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shopParam)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
-              { method: 'GET' }
-            );
+          // محاولة استدعاء مباشر كخطة بديلة
+          if (!triedFallback) {
+            setTriedFallback(true);
+            setStatus("جاري تجربة الطريقة البديلة للمصادقة...");
             
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(`فشل إكمال المصادقة: ${errorData.error || response.statusText}`);
+            try {
+              const response = await fetch(
+                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
+                { method: 'GET' }
+              );
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`فشل إكمال المصادقة: ${errorData.error || response.statusText}`);
+              }
+              
+              const result = await response.json();
+              
+              // تحديث مدير الاتصال
+              shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+              
+              // حفظ معلومات المتجر في localStorage
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.setItem('shopify_active_store', cleanedShop);
+              localStorage.setItem('shopify_last_url_shop', cleanedShop);
+              
+              // إزالة البيانات المؤقتة
+              localStorage.removeItem('shopify_temp_store');
+              
+              setIsProcessing(false);
+              toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+              
+              // توجيه المستخدم إلى لوحة التحكم
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop) + '&timestamp=' + Date.now(), { replace: true });
+            } catch (fallbackError) {
+              console.error("Fallback API call failed:", fallbackError);
+              setError("فشل إكمال عملية المصادقة");
+              setIsProcessing(false);
             }
-            
-            const result = await response.json();
-            
-            // Update connection manager
-            shopifyConnectionManager.setActiveStore(shopParam);
-            
-            // Store shop information in localStorage
-            localStorage.setItem('shopify_store', shopParam);
-            localStorage.setItem('shopify_connected', 'true');
-            localStorage.setItem('shopify_active_store', shopParam);
-            
-            // Remove temporary data
-            localStorage.removeItem('shopify_temp_store');
-            
-            setIsProcessing(false);
-            toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
-            
-            // If there's a redirect URL in the response, navigate to it
-            if (result.redirect) {
-              window.location.href = result.redirect;
-            } else {
-              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam), { replace: true });
-            }
-          } catch (fallbackError) {
-            console.error("Fallback API call failed:", fallbackError);
+          } else {
             setError("فشل إكمال عملية المصادقة");
             setIsProcessing(false);
           }
@@ -147,13 +166,30 @@ export default function ShopifyCallback() {
     };
     
     handleCallback();
-  }, [location.search, navigate]);
+  }, [location.search, navigate, triedFallback]);
   
   const retryAuth = () => {
     if (shop) {
-      navigate(`/shopify?shop=${encodeURIComponent(shop)}`);
+      shopifyConnectionManager.clearAllStoresExcept(shop);
+      navigate(`/shopify?shop=${encodeURIComponent(shop)}&force_update=true&t=${Date.now()}`);
     } else {
       navigate('/shopify');
+    }
+  };
+  
+  const retryWithFallback = () => {
+    setTriedFallback(true);
+    setIsProcessing(true);
+    setError(null);
+    setStatus("جاري تجربة الطريقة البديلة للمصادقة...");
+  };
+  
+  const forceReset = () => {
+    if (window.confirm('سيؤدي هذا الإجراء إلى مسح جميع بيانات المتاجر المخزنة محليًا. هل أنت متأكد؟')) {
+      shopifyConnectionManager.clearAllStores();
+      localStorage.removeItem('shopify_temp_store');
+      toast.success('تم مسح جميع بيانات المتاجر');
+      navigate('/shopify', { replace: true });
     }
   };
   
@@ -169,14 +205,33 @@ export default function ShopifyCallback() {
             </div>
             <h1 className="text-2xl font-bold mb-4">فشل إكمال المصادقة</h1>
             <p className="text-gray-600 mb-6">{error}</p>
-            <Button className="mr-2" onClick={retryAuth}>
-              إعادة المحاولة
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              العودة إلى لوحة التحكم
-            </Button>
             
-            {/* Debug information */}
+            <div className="flex flex-col space-y-3">
+              <Button onClick={retryAuth}>
+                إعادة المحاولة
+              </Button>
+              
+              {!triedFallback && (
+                <Button variant="outline" onClick={retryWithFallback}>
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  استخدام الطريقة البديلة
+                </Button>
+              )}
+              
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                العودة إلى لوحة التحكم
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="text-red-600 hover:bg-red-50 mt-2"
+                onClick={forceReset}
+              >
+                إعادة ضبط جميع المتاجر
+              </Button>
+            </div>
+            
+            {/* معلومات التصحيح */}
             <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md dir-ltr">
               <details>
                 <summary className="cursor-pointer font-bold mb-2 text-right">معلومات التصحيح</summary>
@@ -210,6 +265,14 @@ export default function ShopifyCallback() {
                 الانتقال إلى لوحة التحكم
               </Button>
             )}
+            
+            {/* معلومات التصحيح */}
+            <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md dir-ltr">
+              <details>
+                <summary className="cursor-pointer font-bold mb-2 text-right">معلومات التصحيح</summary>
+                <pre className="whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
+              </details>
+            </div>
           </>
         )}
       </div>

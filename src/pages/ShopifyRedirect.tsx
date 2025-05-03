@@ -28,6 +28,7 @@ const ShopifyRedirect = () => {
         const timestamp = params.get("timestamp");
         const state = params.get("state");
         const host = params.get("host");
+        const forceUpdate = params.get("force_update") === "true";
         
         // حفظ المتجر الأصلي للتصحيح
         const originalShop = shopParam;
@@ -40,6 +41,7 @@ const ShopifyRedirect = () => {
           timestamp,
           state,
           host,
+          forceUpdate,
           url: window.location.href,
           pathname: window.location.pathname,
           search: window.location.search,
@@ -54,6 +56,7 @@ const ShopifyRedirect = () => {
             shopify_temp_store: localStorage.getItem('shopify_temp_store'),
             shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
             shopify_active_store: localStorage.getItem('shopify_active_store'),
+            shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
             shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
           },
           retryCount
@@ -75,7 +78,7 @@ const ShopifyRedirect = () => {
           if (savedShop && savedConnected === 'true') {
             // إذا كانت لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
             console.log("استخدام بيانات المتجر المخزنة لإعادة التوجيه...");
-            shopifyConnectionManager.addOrUpdateStore(savedShop, true);
+            shopifyConnectionManager.addOrUpdateStore(savedShop, true, forceUpdate);
             navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
             return;
           }
@@ -97,9 +100,16 @@ const ShopifyRedirect = () => {
         let cleanedShop = cleanShopifyDomain(shopParam);
         console.log("نطاق متجر منظف:", cleanedShop);
         
+        // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+        if (forceUpdate) {
+          console.log("تطبيق وضع التحديث الإجباري. مسح جميع المتاجر الأخرى.");
+          shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+        }
+        
         // تخزين معلومات المتجر في localStorage للاستخدام إذا تمت مقاطعة تدفق المصادقة
         try {
           localStorage.setItem('shopify_temp_store', cleanedShop);
+          localStorage.setItem('shopify_last_url_shop', cleanedShop);
           console.log("تم حفظ معلومات المتجر المؤقتة:", cleanedShop);
         } catch (e) {
           console.error("خطأ في حفظ البيانات المؤقتة:", e);
@@ -116,7 +126,8 @@ const ShopifyRedirect = () => {
                 shop: cleanedShop,
                 code,
                 hmac,
-                state
+                state,
+                forceUpdate
               },
             });
             
@@ -128,7 +139,7 @@ const ShopifyRedirect = () => {
             
             if (callbackResult?.success) {
               // حفظ بيانات المتجر في localStorage
-              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+              shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
               
               // إزالة البيانات المؤقتة
               localStorage.removeItem('shopify_temp_store');
@@ -151,7 +162,7 @@ const ShopifyRedirect = () => {
             try {
               // الخطة البديلة: استخدام نقطة النهاية مباشرة
               const callbackResponse = await fetch(
-                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
+                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}${forceUpdate ? `&force_update=true` : ''}`,
                 { method: 'GET' }
               );
               
@@ -164,273 +175,225 @@ const ShopifyRedirect = () => {
               
               if (callbackResult.success) {
                 // حفظ بيانات المتجر في localStorage
-                shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+                shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
                 
                 // إزالة البيانات المؤقتة
                 localStorage.removeItem('shopify_temp_store');
                 
                 toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
                 
-                // التحقق مما إذا كان هناك عنوان URL لإعادة التوجيه من الاستجابة
-                if (callbackResult.redirect) {
-                  window.location.href = callbackResult.redirect;
-                } else {
-                  navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
-                }
+                // توجيه المستخدم إلى لوحة التحكم
+                navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
               } else {
                 setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
                 setIsLoading(false);
               }
             } catch (fallbackError) {
-              console.error("فشل الطريقة البديلة:", fallbackError);
-              setError(e instanceof Error ? e.message : "حدث خطأ أثناء استكمال عملية المصادقة");
+              console.error("Fallback API call failed:", fallbackError);
+              setError("فشل إكمال عملية المصادقة");
               setIsLoading(false);
             }
           }
         } else {
-          // توجيه المستخدم مباشرة إلى مسار المصادقة على الخادم
-          setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
+          // إذا لم يكن لدينا رمز وhmac، فنحن في بداية تدفق المصادقة
+          setStatus(`جاري بدء عملية المصادقة مع متجر ${cleanedShop}...`);
           
           try {
-            // استخدام Supabase Edge Function للحصول على عنوان URL للمصادقة
-            const { data, error } = await supabase.functions.invoke('shopify-auth', {
-              body: { shop: cleanedShop },
+            // استدعاء دالة Supabase Edge Function لبدء المصادقة
+            const { data: authResult, error: authError } = await supabase.functions.invoke('shopify-auth', {
+              body: { 
+                shop: cleanedShop,
+                forceUpdate: forceUpdate
+              },
             });
             
-            if (error) {
-              throw new Error(`فشل بدء عملية المصادقة: ${error.message}`);
+            if (authError) {
+              throw new Error(`فشل بدء المصادقة: ${authError.message}`);
             }
             
-            setDebug(prev => ({ ...prev, authResponse: data }));
+            setDebug(prev => ({ ...prev, authResult }));
             
-            if (data?.redirect) {
-              console.log("إعادة توجيه إلى Shopify OAuth:", data.redirect);
-              
-              // إعادة توجيه مباشرة إلى عنوان URL للمصادقة
-              window.location.href = data.redirect;
+            if (authResult?.redirect) {
+              // توجيه المستخدم إلى صفحة المصادقة Shopify
+              window.location.href = authResult.redirect;
             } else {
-              throw new Error("لم يتم استلام عنوان URL للمصادقة من الخادم");
+              setError("لم يتم استلام عنوان URL للمصادقة من الخادم");
+              setIsLoading(false);
             }
           } catch (e) {
-            console.error("خطأ في الحصول على عنوان URL للمصادقة:", e);
+            console.error("خطأ في بدء المصادقة:", e);
             
-            // إذا فشل، حاول مرة أخرى بنهج مباشر إذا لم نصل إلى الحد الأقصى لعدد المحاولات
-            if (retryCount < 3) {
-              setRetryCount(prev => prev + 1);
+            try {
+              // الخطة البديلة: استخدام نقطة النهاية مباشرة
+              const authResponse = await fetch(
+                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}${forceUpdate ? `&force_update=true` : ''}`,
+                { method: 'GET' }
+              );
               
-              try {
-                // محاولة استخدام استدعاء مباشر
-                const authResponse = await fetch(
-                  `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`, 
-                  { method: 'GET' }
-                );
-                
-                if (!authResponse.ok) {
-                  throw new Error(`فشل استدعاء API: ${authResponse.statusText}`);
-                }
-                
-                const authData = await authResponse.json();
-                setDebug(prev => ({ ...prev, directAuthResponse: authData }));
-                
-                if (authData.redirect) {
-                  console.log("إعادة توجيه باستخدام URL مباشر:", authData.redirect);
-                  window.location.href = authData.redirect;
-                } else {
-                  throw new Error("لم يتم استلام عنوان URL للمصادقة");
-                }
-              } catch (directError) {
-                console.error("فشل النهج المباشر:", directError);
-                
-                // استخدام عنوان URL المباشر للمصادقة بعد فشل استخدام Edge Function
-                const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
-                console.log("محاولة استخدام عنوان URL للمصادقة المباشرة كخطة احتياطية:", directAuthUrl);
-                
-                // استخدام تأخير قليل قبل إعادة التوجيه
-                setTimeout(() => {
-                  window.location.href = directAuthUrl;
-                }, 500);
+              if (!authResponse.ok) {
+                const errorData = await authResponse.json();
+                throw new Error(`فشل بدء المصادقة: ${errorData.error || authResponse.statusText}`);
               }
-            } else {
-              setError(e instanceof Error ? e.message : "حدث خطأ أثناء بدء عملية المصادقة");
+              
+              const authData = await authResponse.json();
+              
+              if (authData.redirect) {
+                // توجيه المستخدم إلى صفحة المصادقة Shopify
+                window.location.href = authData.redirect;
+              } else {
+                setError("لم يتم استلام عنوان URL للمصادقة");
+                setIsLoading(false);
+              }
+            } catch (directError) {
+              console.error("Direct API call failed:", directError);
+              setError("فشل بدء عملية المصادقة");
               setIsLoading(false);
             }
           }
         }
       } catch (error) {
-        console.error("خطأ غير متوقع أثناء إعادة التوجيه:", error);
+        console.error("Unexpected error in redirect:", error);
         setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
         setIsLoading(false);
       }
     };
-
+    
+    // زيادة عداد المحاولات وإعادة محاولة توجيه المصادقة
+    const handleRetry = () => {
+      setRetryCount(count => count + 1);
+      setIsLoading(true);
+      setError(null);
+      redirectToAuthEndpoint();
+    };
+    
     redirectToAuthEndpoint();
-  }, [location, navigate, retryCount]);
+    
+    // إعداد مؤقت للتحقق من حالة المعالجة الطويلة
+    const timeoutId = setTimeout(() => {
+      if (isLoading && retryCount === 0) {
+        setStatus("المعالجة تستغرق وقتًا أطول من المتوقع...");
+      }
+    }, 10000); // 10 ثوانٍ
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [location.search, navigate, retryCount]);
   
-  // طريقة المصادقة البديلة المباشرة
-  const handleDirectAuth = () => {
-    const shop = localStorage.getItem('shopify_temp_store');
-    if (shop) {
-      // استخدام عنوان URL مباشر مع معلمات إضافية لتجنب مشكلات التخزين المؤقت
-      const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
-      window.location.href = directAuthUrl;
-    } else {
-      toast.error("لا توجد معلومات متجر متاحة للاستخدام");
-    }
-  };
-
-  // التعامل مع إعادة المحاولة بنهج مباشر
-  const handleRetryDirectly = () => {
-    // تجربة نقطة نهاية المصادقة Remix مباشرة
-    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop;
-    if (shop) {
-      // استخدام عنوان URL مع طابع زمني لتجنب التخزين المؤقت
-      window.location.href = `/auth?shop=${encodeURIComponent(cleanShopifyDomain(shop))}&_t=${Date.now()}`;
+  // إعادة محاولة المصادقة
+  const retry = () => {
+    setRetryCount(prev => prev + 1);
+    setIsLoading(true);
+    setError(null);
+    
+    // استخراج معلمة المتجر من عنوان URL أو من التخزين المؤقت
+    const params = new URLSearchParams(location.search);
+    const shopParam = params.get("shop") || localStorage.getItem('shopify_temp_store');
+    
+    if (shopParam) {
+      navigate(`/shopify?shop=${encodeURIComponent(shopParam)}&force_update=true`);
     } else {
       navigate('/shopify');
     }
   };
   
-  // إعادة المحاولة باستخدام Edge Function
-  const handleRetryEdgeFunction = async () => {
-    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop;
-    if (!shop) {
-      toast.error("لا توجد معلومات متجر متاحة للاستخدام");
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      const cleanedShop = cleanShopifyDomain(shop);
-      
-      // استخدام Edge Function
-      const { data, error } = await supabase.functions.invoke('shopify-auth', {
-        body: { shop: cleanedShop },
-      });
-      
-      if (error) {
-        throw new Error(`فشل بدء عملية المصادقة: ${error.message}`);
-      }
-      
-      if (data?.redirect) {
-        window.location.href = data.redirect;
-      } else {
-        throw new Error("لم يتم استلام عنوان URL للمصادقة من الخادم");
-      }
-    } catch (e) {
-      console.error("فشل إعادة المحاولة باستخدام Edge Function:", e);
-      setError(e instanceof Error ? e.message : "حدث خطأ أثناء بدء عملية المصادقة");
-      setIsLoading(false);
-      
-      // محاولة الطريقة البديلة
-      handleDirectAuth();
+  // إعادة ضبط جميع البيانات
+  const resetAll = () => {
+    if (window.confirm('سيؤدي هذا الإجراء إلى مسح جميع بيانات المتاجر المخزنة محليًا. هل أنت متأكد؟')) {
+      shopifyConnectionManager.clearAllStores();
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_last_url_shop');
+      toast.success('تم مسح جميع بيانات المتاجر');
+      navigate('/shopify', { replace: true });
     }
   };
-
+  
+  // العودة إلى صفحة Shopify
+  const backToShopify = () => {
+    navigate('/shopify', { replace: true });
+  };
+  
   return (
-    <div className="flex min-h-screen bg-gray-50" dir="rtl">
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          {error ? (
-            <>
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-lg bg-red-100">
-                  <AlertCircle className="h-8 w-8 text-red-600" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold mb-4">{status}</h1>
-              <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-                {error}
-              </div>
-              
-              {/* خيارات الاسترداد */}
-              <div className="mb-6 space-y-3">
-                <Button 
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={handleRetryEdgeFunction}
-                >
-                  <Store className="h-4 w-4" />
-                  إعادة محاولة الاتصال
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={handleDirectAuth}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  محاولة الاتصال مباشرة
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={handleRetryDirectly}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                  محاولة الاتصال باستخدام مسار Node.js
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/shopify')}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  العودة إلى صفحة الاتصال بـ Shopify
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50" dir="rtl">
+      <div className="text-center max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
+        {isLoading ? (
+          <>
+            <div className="flex justify-center mb-6">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+            <h1 className="text-2xl font-bold mb-4">{status}</h1>
+            <p className="text-gray-600 mb-4">
+              يرجى الانتظار بينما نقوم بإكمال عملية المصادقة مع Shopify.
+            </p>
+            
+            {retryCount > 0 && (
+              <p className="text-sm text-orange-600 mb-4">
+                محاولة {retryCount}: جاري محاولة تنفيذ طريقة اتصال بديلة...
+              </p>
+            )}
+            
+            {retryCount > 1 && (
+              <div className="mt-6">
+                <Button variant="outline" onClick={backToShopify}>
+                  <ArrowLeft className="h-4 w-4 ml-2" />
+                  العودة إلى صفحة الاتصال
                 </Button>
               </div>
-              
-              {/* معلومات التصحيح */}
-              <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40 dir-ltr">
-                <p className="font-bold mb-2 text-right">معلومات التصحيح:</p>
-                <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+            )}
+          </>
+        ) : error ? (
+          <>
+            <div className="flex justify-center mb-6">
+              <div className="p-3 rounded-full bg-red-100">
+                <AlertCircle className="h-10 w-10 text-red-600" />
               </div>
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                variant="link"
-                className="mt-4"
-              >
-                العودة إلى لوحة التحكم
+            </div>
+            <h1 className="text-2xl font-bold mb-4">حدث خطأ</h1>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="flex flex-col space-y-3">
+              <Button onClick={retry}>
+                إعادة المحاولة
               </Button>
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold mb-4">{status}</h1>
-              <div className="flex justify-center mb-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+              
+              <Button variant="outline" onClick={backToShopify}>
+                <ArrowLeft className="h-4 w-4 ml-2" />
+                العودة إلى صفحة الاتصال
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="text-red-600 hover:bg-red-50 mt-2"
+                onClick={resetAll}
+              >
+                إعادة ضبط جميع البيانات
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-center mb-6">
+              <div className="p-3 rounded-full bg-green-100">
+                <Store className="h-10 w-10 text-green-600" />
               </div>
-              <p className="mb-4">سيتم توجيهك تلقائيًا خلال لحظات...</p>
-              {isLoading && retryCount > 0 && (
-                <div className="mb-4 bg-yellow-50 border border-yellow-200 p-3 rounded-md">
-                  <p className="text-yellow-800">
-                    محاولة رقم {retryCount}/3: جاري تجربة طريقة اتصال بديلة...
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      
-      {/* لوحة معلومات التصحيح */}
-      <div className="fixed bottom-0 left-0 m-4 p-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const debugPanel = document.getElementById('debug-panel');
-            if (debugPanel) {
-              debugPanel.classList.toggle('hidden');
-            }
-          }}
-        >
-          عرض/إخفاء التصحيح
-        </Button>
+            </div>
+            <h1 className="text-2xl font-bold mb-4">تم الاتصال بنجاح</h1>
+            <p className="text-gray-600 mb-4">
+              تم اتصال متجر Shopify الخاص بك بنجاح. يمكنك الآن العودة إلى لوحة التحكم.
+            </p>
+            <Button onClick={() => navigate('/dashboard')}>
+              العودة إلى لوحة التحكم
+            </Button>
+          </>
+        )}
         
-        <div id="debug-panel" className="hidden mt-2 p-4 bg-white border rounded shadow-lg text-left text-xs overflow-auto max-h-80 max-w-lg dir-ltr">
-          <p className="font-bold mb-2 text-right">معلومات التصحيح:</p>
-          <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+        {/* معلومات التصحيح */}
+        <div className="mt-8 pt-4 border-t border-gray-200">
+          <details className="text-xs">
+            <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">عرض معلومات التشخيص</summary>
+            <pre dir="ltr" className="bg-gray-100 p-4 rounded text-left overflow-auto max-h-40 text-xs">
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
   const newConnection = url.searchParams.get("new_connection") === "true";
+  const forceUpdate = url.searchParams.get("force_update") === "true";
   
   // سجل جميع المعلومات للتشخيص
   console.log("Auth route complete parameters:", {
@@ -19,6 +20,7 @@ export const loader = async ({ request }) => {
     state: url.searchParams.get("state"),
     session: url.searchParams.get("session"),
     newConnection,
+    forceUpdate,
     allParams: Object.fromEntries(url.searchParams.entries()),
     headers: Object.fromEntries(request.headers.entries()),
     url: request.url,
@@ -59,8 +61,20 @@ export const loader = async ({ request }) => {
         const { session } = await authenticate.admin(request);
         console.log("Authentication successful for shop:", session.shop);
         
+        // تضمين معلمة تحديث إجباري إذا كانت موجودة في الطلب الأصلي
+        const redirectParams = new URLSearchParams();
+        redirectParams.set("shopify_connected", "true");
+        redirectParams.set("shop", encodeURIComponent(session.shop));
+        redirectParams.set("auth_success", "true");
+        redirectParams.set("timestamp", Date.now().toString());
+        redirectParams.set("session_id", session.id);
+        redirectParams.set("new_connection", "true");
+        if (forceUpdate) {
+          redirectParams.set("force_update", "true");
+        }
+        
         // بعد المصادقة الناجحة، قم بتوجيه المستخدم مباشرة إلى لوحة التحكم
-        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}&new_connection=true`;
+        const redirectUrl = `/dashboard?${redirectParams.toString()}`;
         console.log("Redirecting to:", redirectUrl);
         
         return redirect(redirectUrl, {
@@ -132,7 +146,20 @@ export const action = async ({ request }) => {
     console.log("POST auth action called with URL:", request.url);
     const { session } = await authenticate.admin(request);
     console.log("POST auth action successful for shop:", session.shop);
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&from_action=true&new_connection=true`);
+    
+    const url = new URL(request.url);
+    const forceUpdate = url.searchParams.get("force_update") === "true";
+    const redirectParams = new URLSearchParams();
+    redirectParams.set("shopify_connected", "true");
+    redirectParams.set("shop", encodeURIComponent(session.shop));
+    redirectParams.set("auth_success", "true");
+    redirectParams.set("from_action", "true");
+    redirectParams.set("new_connection", "true");
+    if (forceUpdate) {
+      redirectParams.set("force_update", "true");
+    }
+    
+    return redirect(`/dashboard?${redirectParams.toString()}`);
   } catch (error) {
     console.error("Authentication action error:", error);
     return redirect("/dashboard?auth_error=true&error=action_failed");

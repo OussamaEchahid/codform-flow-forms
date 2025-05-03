@@ -39,20 +39,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Function to detect and store shop
   const setupShopFromUrl = () => {
-    // First try to get shop from URL
+    // First try to get shop from URL (highest priority)
     const { shopDomain, isShopifyRequest } = parseShopifyParams();
     
+    console.log("Checking shop from URL:", { shopDomain, isShopifyRequest });
+    
     if (shopDomain && isShopifyRequest) {
-      console.log("Setting shop from URL params:", shopDomain);
-      localStorage.setItem('shopify_store', shopDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_active_store', shopDomain);
+      console.log("Found shop in URL, setting as active and clearing others:", shopDomain);
+      
+      // If shop from URL is different from current shop, clear all other stores
+      if (shop !== shopDomain) {
+        // Clear other stores and only keep this one
+        shopifyConnectionManager.clearAllStoresExcept(shopDomain);
+      } else {
+        shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
+      }
       
       setShop(shopDomain);
       setShopifyConnected(true);
-      
-      // Update connection manager
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       return true;
     }
@@ -94,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!shopDomain) return;
       
       // Update in connection manager
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
       
       // Update state
       setShop(shopDomain);
@@ -127,20 +131,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data && data.length > 0) {
         console.log("Loaded shops from database:", data);
         
-        // Update connection manager with database shops
-        data.forEach(storeRecord => {
-          shopifyConnectionManager.addOrUpdateStore(storeRecord.shop, storeRecord.is_active);
-        });
-        
         // First check URL parameters (highest priority)
         const { shopDomain } = parseShopifyParams();
         
         if (shopDomain) {
           // If URL has shop parameter, prioritize it
+          const foundInDb = data.some(store => store.shop === shopDomain);
+          if (!foundInDb) {
+            console.log("Shop from URL not found in database, will add it");
+            // Will be handled by the authentication flow - we just continue
+          }
+          
+          // Update connection manager
+          shopifyConnectionManager.clearAllStoresExcept(shopDomain);
+          
           setShop(shopDomain);
           setShopifyConnected(true);
         } else {
-          // Otherwise use active shop from database
+          // Update connection manager with database shops
+          // But don't clear existing shops to avoid losing local state
+          data.forEach(storeRecord => {
+            shopifyConnectionManager.addOrUpdateStore(storeRecord.shop, storeRecord.is_active);
+          });
+          
+          // Use active shop from database
           const activeShop = data.find(store => store.is_active)?.shop || data[0].shop;
           setShop(activeShop);
           setShopifyConnected(true);
@@ -164,15 +178,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (shopDomain && isShopifyRequest) {
           console.log("URL contains Shopify parameters:", shopDomain);
-          localStorage.setItem('shopify_store', shopDomain);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_active_store', shopDomain);
+          // Clear any other stores to avoid confusion, only keep this one
+          shopifyConnectionManager.clearAllStoresExcept(shopDomain);
           
           setShop(shopDomain);
           setShopifyConnected(true);
-          
-          // Update connection manager
-          shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
         } else {
           // Setup Shopify shop from other sources
           const shopConnected = setupShopFromUrl();
@@ -181,11 +191,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (process.env.NODE_ENV === 'development' && !shopConnected) {
             console.log("Development mode: Using default shop and user");
             const defaultShop = 'dev-store.myshopify.com';
-            localStorage.setItem('shopify_store', defaultShop);
-            localStorage.setItem('shopify_connected', 'true');
+            shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
+            
             setShop(defaultShop);
             setShopifyConnected(true);
-            shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
             
             // Create a default user for development
             const devUser = { id: 'shopify-user', email: 'dev@example.com' };
@@ -230,8 +239,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
+    // Listen for URL changes to detect shop parameter
+    const handleUrlChange = () => {
+      const { shopDomain, isShopifyRequest } = parseShopifyParams();
+      if (shopDomain && isShopifyRequest && shopDomain !== shop) {
+        console.log("URL changed with new shop:", shopDomain);
+        handleSetShop(shopDomain);
+      }
+    };
+
+    // Use the popstate event to detect URL changes
+    window.addEventListener('popstate', handleUrlChange);
+
     return () => {
       authListener.subscription.unsubscribe();
+      window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
 

@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
-import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink, Store } from 'lucide-react';
+import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink, Store, RefreshCcw, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cleanShopifyDomain } from '@/lib/shopify/types';
@@ -36,11 +36,13 @@ const DebugPanel = ({ data }: { data: any }) => {
 const ConnectionStatus = ({ 
   isConnected, 
   shop, 
-  onReturn 
+  onReturn,
+  forceReset
 }: { 
   isConnected: boolean, 
   shop?: string, 
-  onReturn: () => void 
+  onReturn: () => void,
+  forceReset: () => void
 }) => {
   const { language } = useI18n();
   
@@ -51,7 +53,7 @@ const ConnectionStatus = ({
           <div className="p-3 rounded-lg bg-green-100">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <div>
+          <div className="flex-grow">
             <h3 className="text-xl font-bold">
               {language === 'ar' ? 'متصل بنجاح' : 'Successfully Connected'}
             </h3>
@@ -60,12 +62,21 @@ const ConnectionStatus = ({
                 ? `أنت متصل بمتجر: ${shop}` 
                 : `You are connected to store: ${shop}`}
             </p>
-            <Button 
-              variant="outline" 
-              onClick={onReturn}
-            >
-              {language === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to Dashboard'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={onReturn}
+              >
+                {language === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to Dashboard'}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="text-red-600 hover:bg-red-50"
+                onClick={forceReset}
+              >
+                {language === 'ar' ? 'إعادة ضبط الاتصال' : 'Reset Connection'}
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
@@ -90,6 +101,7 @@ const Shopify = () => {
   const [shopInput, setShopInput] = useState('');
   const [popupWindow, setPopupWindow] = useState<Window | null>(null);
   const [apiResponse, setApiResponse] = useState<any>(null);
+  const [forceUpdate, setForceUpdate] = useState(false);
 
   // فحص معلمات URL وحالة المتاجر عند التحميل
   useEffect(() => {
@@ -98,6 +110,12 @@ const Shopify = () => {
     const shopParam = params.get("shop");
     const shopifySuccess = params.get("shopify_success");
     const authError = params.get("auth_error");
+    const forceUpdateParam = params.get("force_update");
+    
+    // تعيين علامة التحديث الإجباري إذا وجدت
+    if (forceUpdateParam === 'true') {
+      setForceUpdate(true);
+    }
     
     // الحصول على حالة المتجر من localStorage
     const storedShop = localStorage.getItem('shopify_store');
@@ -109,6 +127,11 @@ const Shopify = () => {
     
     if (shopParam) {
       setShopInput(shopParam);
+      
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdateParam === 'true') {
+        shopifyConnectionManager.clearAllStoresExcept(shopParam);
+      }
     }
     
     // تعيين حالة الاتصال بـ Shopify
@@ -123,6 +146,7 @@ const Shopify = () => {
       shopParam,
       shopifySuccess,
       authError,
+      forceUpdate: forceUpdateParam,
       shopifyConnected: isConnected,
       shop: activeStore,
       shops: allStores.map(store => store.domain),
@@ -134,6 +158,7 @@ const Shopify = () => {
         shopify_temp_store: localStorage.getItem('shopify_temp_store'),
         shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
         shopify_active_store: localStorage.getItem('shopify_active_store'),
+        shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
         shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
       }
     });
@@ -160,6 +185,19 @@ const Shopify = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [location.search, navigate]);
 
+  // دالة لإعادة ضبط جميع اتصالات المتجر
+  const forceResetConnections = () => {
+    if (window.confirm('سيؤدي هذا الإجراء إلى مسح جميع بيانات المتاجر المخزنة محليًا. هل أنت متأكد؟')) {
+      shopifyConnectionManager.clearAllStores();
+      localStorage.removeItem('shopify_temp_store');
+      toast.success('تم مسح جميع بيانات المتاجر');
+      setShopifyConnected(false);
+      setShop(null);
+      setShops([]);
+      window.location.reload();
+    }
+  };
+
   // دالة للاتصال باستخدام النافذة المنبثقة
   const connectWithPopup = async () => {
     try {
@@ -176,10 +214,18 @@ const Shopify = () => {
       // تخزين نطاق المتجر مؤقتًا للصفحة المعاد توجيهها
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdate) {
+        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+      }
+      
       try {
         // استدعاء دالة Supabase Edge Function مباشرة
         const { data, error } = await supabase.functions.invoke('shopify-auth', {
-          body: { shop: cleanedShop },
+          body: { 
+            shop: cleanedShop,
+            forceUpdate: forceUpdate
+          },
         });
         
         if (error) {
@@ -200,7 +246,7 @@ const Shopify = () => {
         const top = (window.innerHeight - height) / 2;
         
         const popup = window.open(
-          data.redirect,
+          `${data.redirect}${data.redirect.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
           'ShopifyAuth',
           `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
         );
@@ -238,7 +284,7 @@ const Shopify = () => {
         try {
           // محاولة استدعاء مباشر
           const authResponse = await fetch(
-            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`, 
+            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`, 
             { method: 'GET' }
           );
           
@@ -250,7 +296,7 @@ const Shopify = () => {
           
           if (authData.redirect) {
             const popup = window.open(
-              authData.redirect,
+              `${authData.redirect}${authData.redirect.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
               'ShopifyAuth',
               `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
             );
@@ -290,7 +336,7 @@ const Shopify = () => {
           console.error("فشل النهج المباشر:", directError);
           
           // استخدام كخطة احتياطية نهائية
-          window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
+          window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`;
         }
       }
     } catch (e) {
@@ -316,8 +362,13 @@ const Shopify = () => {
       // تخزين نطاق المتجر مؤقتًا
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdate) {
+        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+      }
+      
       // التنقل إلى صفحة إعادة التوجيه مع معلمة المتجر
-      navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`);
+      navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`);
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة:', e);
       setError(e instanceof Error ? e.message : 'حدث خطأ أثناء بدء عملية المصادقة');
@@ -343,13 +394,23 @@ const Shopify = () => {
       setIsProcessing(true);
       setError(null);
       
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdate) {
+        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+      }
+      
       // رابط مباشر إلى نقطة نهاية Remix auth
-      window.location.href = `/auth?shop=${encodeURIComponent(cleanedShop)}&timestamp=${Date.now()}`;
+      window.location.href = `/auth?shop=${encodeURIComponent(cleanedShop)}&timestamp=${Date.now()}&force_update=${forceUpdate}`;
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة المباشرة:', e);
       setError(e instanceof Error ? e.message : 'حدث خطأ أثناء بدء عملية المصادقة');
       setIsProcessing(false);
     }
+  };
+
+  // تبديل علامة التحديث الإجباري
+  const toggleForceUpdate = () => {
+    setForceUpdate(!forceUpdate);
   };
 
   return (
@@ -369,6 +430,7 @@ const Shopify = () => {
         isConnected={shopifyConnected} 
         shop={shop} 
         onReturn={returnToDashboard}
+        forceReset={forceResetConnections}
       />
       
       <Card className="overflow-hidden">
@@ -410,6 +472,19 @@ const Shopify = () => {
               className="w-full p-3 border border-gray-300 rounded-md mb-4"
               disabled={isProcessing}
             />
+            
+            <div className="flex items-center mb-4">
+              <input
+                id="force-update"
+                type="checkbox"
+                checked={forceUpdate}
+                onChange={toggleForceUpdate}
+                className="h-4 w-4 text-purple-600 rounded"
+              />
+              <label htmlFor="force-update" className="mr-2 text-sm text-gray-700">
+                إعادة ضبط جميع الاتصالات السابقة وإجبار استخدام هذا المتجر فقط
+              </label>
+            </div>
           </div>
           
           <div className="space-y-3 mx-auto max-w-md">
@@ -458,6 +533,14 @@ const Shopify = () => {
             >
               {language === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to Dashboard'}
             </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full text-red-600 hover:bg-red-50 mt-4"
+              onClick={forceResetConnections}
+            >
+              {language === 'ar' ? 'إعادة ضبط جميع المتاجر' : 'Reset All Stores'}
+            </Button>
           </div>
         </div>
       </Card>
@@ -466,6 +549,7 @@ const Shopify = () => {
       <DebugPanel data={{
         ...debugInfo,
         apiResponse,
+        forceUpdate,
         window: {
           location: window.location.href,
           opener: window.opener ? 'exists' : 'none'
