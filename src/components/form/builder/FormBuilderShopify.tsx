@@ -20,20 +20,20 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   formId = null
 }) => {
   const { t, language } = useI18n();
-  const { isConnected, manualReconnect, refreshConnection } = useShopify();
+  const { isConnected, manualReconnect, refreshConnection, shop: connectedShop } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const hasAttemptedConnection = useRef(false);
   const [shopDomain, setShopDomain] = useState('');
   
-  // Load any existing temporary store when component mounts
+  // Load any existing store when component mounts
   useEffect(() => {
-    const tempStore = ShopifyConnectionManager.getCurrentStoreTarget();
-    if (tempStore) {
-      setShopDomain(tempStore);
+    const currentStore = connectedShop || ShopifyConnectionManager.getCurrentStoreTarget();
+    if (currentStore) {
+      setShopDomain(currentStore);
     }
-  }, []);
+  }, [connectedShop]);
   
   // Connection checking with throttling
   const handleCheckConnection = async () => {
@@ -70,7 +70,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     }
   };
 
-  const handleConnectClick = () => {
+  const handleConnectClick = async () => {
     // Check if we have a shop domain
     if (!shopDomain) {
       toast.error(language === 'ar' 
@@ -100,20 +100,44 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     setIsConnecting(true);
     setLastAttemptTime(Date.now());
     
-    // Save the store domain as the temporary target
-    ShopifyConnectionManager.setTempStore(shopDomain);
-    
     try {
-      // Use the provided reconnect function with our shop domain
-      const clientUrl = window.location.origin;
-      const redirectUrl = `/auth?shop=${encodeURIComponent(shopDomain)}&timestamp=${Date.now()}&client=${encodeURIComponent(clientUrl)}`;
-      window.location.href = redirectUrl;
+      // Save the store domain as the temporary target
+      ShopifyConnectionManager.setTempStore(shopDomain);
+      
+      // Try using direct edge function API first
+      try {
+        const response = await fetch('https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop: shopDomain,
+            redirectUri: `${window.location.origin}/shopify-callback`
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.url) {
+            console.log('[FormBuilderShopify] Got auth URL from API:', result.url);
+            window.location.href = result.url;
+            return;
+          }
+        }
+        
+        // If edge function fails, fall back to legacy method
+        console.log('[FormBuilderShopify] API auth failed, using legacy redirect');
+        throw new Error('API auth failed');
+      } catch (apiError) {
+        console.log('[FormBuilderShopify] Using fallback auth method');
+        // Fallback to legacy method
+        const clientUrl = window.location.origin;
+        const redirectUrl = `/auth?shop=${encodeURIComponent(shopDomain)}&timestamp=${Date.now()}&client=${encodeURIComponent(clientUrl)}`;
+        window.location.href = redirectUrl;
+      }
     } catch (err) {
       console.error('Error initiating Shopify connection:', err);
       toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');
-      setTimeout(() => {
-        setIsConnecting(false);
-      }, 1000);
+      setIsConnecting(false);
     }
   };
 
@@ -177,7 +201,11 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <p className="text-sm text-green-600">
-              {t('shopify.connected') || 'Connected to Shopify'}
+              {connectedShop 
+                ? (language === 'ar' 
+                  ? `تم الاتصال بمتجر: ${connectedShop}` 
+                  : `Connected to: ${connectedShop}`) 
+                : (t('shopify.connected') || 'Connected to Shopify')}
             </p>
           </div>
           

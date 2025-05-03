@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyRedirect = () => {
   const navigate = useNavigate();
@@ -25,12 +26,14 @@ const ShopifyRedirect = () => {
         const returnTo = params.get('return_to') || '/forms';
         const hmac = params.get('hmac');
         const code = params.get('code');
+        const timestamp = Date.now();
         
         console.log('ShopifyRedirect: Processing redirect with params:', { 
           shop, 
           returnTo,
           hmac: hmac ? 'present' : 'missing',
-          code: code ? 'present' : 'missing'
+          code: code ? 'present' : 'missing',
+          timestamp
         });
         
         setDebugInfo({
@@ -44,26 +47,50 @@ const ShopifyRedirect = () => {
           currentStoreTarget: ShopifyConnectionManager.getCurrentStoreTarget()
         });
         
-        // If we have a shop parameter, store it
+        // If we have a shop parameter, verify and store it
         if (shop) {
           // Before setting the connected store, check if it matches the temp store we expected
           const tempStore = ShopifyConnectionManager.getCurrentStoreTarget();
           
-          if (tempStore && tempStore !== shop && !tempStore.includes(shop) && !shop.includes(tempStore)) {
-            console.warn(`[ShopifyRedirect] Received shop (${shop}) doesn't match the expected temporary store (${tempStore})`);
-            // Log it but continue anyway - don't block the flow
-          }
+          console.log(`[ShopifyRedirect] Processing connection for shop: ${shop}, tempStore: ${tempStore}`);
           
-          // Store the connected shop
+          // Store the connected shop regardless of temporary store value
+          // This ensures we always save the actual shop we're connecting to
           localStorage.setItem('shopify_store', shop);
           localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+          localStorage.setItem('shopify_last_connect_time', timestamp.toString());
           
           // Clear the temporary store as we now have a proper connection
           ShopifyConnectionManager.clearTempStore();
           
           // Reset connection attempts as we succeeded
           ShopifyConnectionManager.resetAttempts();
+          
+          // Save the connection to Supabase if available
+          try {
+            if (code && hmac) {
+              // Make API call to our edge function to complete OAuth and store token
+              const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shop)}&code=${code}&hmac=${hmac}&client=${encodeURIComponent(window.location.origin)}`;
+              
+              console.log('[ShopifyRedirect] Calling callback function to store token');
+              
+              // Make non-blocking call to store token
+              fetch(callbackUrl)
+                .then(response => {
+                  if (!response.ok) {
+                    console.warn('[ShopifyRedirect] Warning: Token storage may have failed, but connection will continue');
+                  } else {
+                    console.log('[ShopifyRedirect] Token storage successful');
+                  }
+                })
+                .catch(err => {
+                  console.warn('[ShopifyRedirect] Warning: Token storage error', err);
+                });
+            }
+          } catch (tokenError) {
+            // Non-fatal error - log but continue
+            console.error('[ShopifyRedirect] Error storing token:', tokenError);
+          }
           
           // Refresh the connection status in the auth context
           if (refreshShopifyConnection) {

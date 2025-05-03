@@ -4,16 +4,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Replace these with your actual Supabase URL and key
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '';
 
 // The Shopify app credentials
-const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
-const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "";
+const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "";
 
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// CORS headers - تحسين إعدادات CORS لتجنب مشاكل الاتصال
+// CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, shopify-access-token",
@@ -73,7 +73,7 @@ serve(async (req) => {
     const client = url.searchParams.get("client") || APP_URL;
     const debug = url.searchParams.get("debug") === "true";
     
-    // إضافة المزيد من التسجيلات للمساعدة في التشخيص
+    // Log request parameters
     console.log("Callback received with params:", {
       shop,
       hmac: hmac ? "present" : "missing", 
@@ -223,7 +223,6 @@ serve(async (req) => {
         }
       }
       
-      // استخدام عنوان URL المقدم للعميل أو الافتراضي
       const redirectUrl = `${client || APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&auth_success=true&timestamp=${Date.now()}`;
       console.log("Redirecting back to app:", redirectUrl);
       
@@ -233,7 +232,7 @@ serve(async (req) => {
           shop,
           redirect: redirectUrl,
           timestamp: Date.now(),
-          version: "v2" // لتتبع إصدار الكود الذي يعمل
+          version: "v2"
         }),
         { 
           headers: {

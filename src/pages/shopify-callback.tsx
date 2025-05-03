@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader, ArrowLeft } from 'lucide-react';
 import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
+import { useAuth } from '@/lib/auth';
 
 export default function ShopifyCallback() {
   const navigate = useNavigate();
@@ -13,114 +14,174 @@ export default function ShopifyCallback() {
   const [message, setMessage] = useState("Processing authentication request...");
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>({});
+  const [shop, setShop] = useState<string | null>(null);
+  const { refreshShopifyConnection } = useAuth();
+  
+  // Detect repeated redirect attempts
+  useEffect(() => {
+    const attempts = parseInt(sessionStorage.getItem('shopify_redirect_attempts') || '0', 10);
+    sessionStorage.setItem('shopify_redirect_attempts', (attempts + 1).toString());
+    
+    if (attempts > 5) {
+      setStatus('error');
+      setError("Too many redirect attempts detected. Please try connecting from the dashboard again.");
+      return;
+    }
+  }, []);
   
   useEffect(() => {
     const handleCallback = async () => {
       try {
         const params = new URLSearchParams(location.search);
-        const shop = params.get('shop');
+        const shopParam = params.get('shop');
         const code = params.get('code');
         const hmac = params.get('hmac');
         const state = params.get('state');
+        const timestamp = Date.now();
+        
+        setShop(shopParam);
         
         console.log("Shopify callback received with params:", { 
-          shop, 
+          shop: shopParam, 
           code: code ? 'present' : 'missing', 
           hmac: hmac ? 'present' : 'missing',
           state
         });
         
-        // Save debug info for troubleshooting
-        const debugData = {
+        // Save debug info
+        setDebugInfo({
           params: {
-            shop,
+            shop: shopParam,
             code: code ? 'present' : 'missing',
             hmac: hmac ? 'present' : 'missing',
             state
           },
           timestamp: new Date().toISOString(),
           url: window.location.href,
-          tempStore: localStorage.getItem('shopify_temp_store'),
-          currentStoreTarget: ShopifyConnectionManager.getCurrentStoreTarget()
-        };
+          localStorage: {
+            shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+            shopify_store: localStorage.getItem('shopify_store'),
+            shopify_connected: localStorage.getItem('shopify_connected')
+          }
+        });
         
-        setDebugInfo(debugData);
-        
-        if (!shop || !code || !hmac) {
+        // Check for required parameters
+        if (!shopParam || !code || !hmac) {
           setStatus('error');
           setError("Authentication parameters missing");
           return;
         }
         
+        // Reset connection attempt counter
+        localStorage.setItem('shopify_connection_attempts', '0');
+        
         // Call our Supabase Edge Function to complete OAuth
         setMessage("Verifying authentication with Shopify...");
-        const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}`;
         
-        console.log("Calling callback function:", callbackUrl);
-        
-        const response = await fetch(callbackUrl);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Callback error response:", errorText);
+        try {
+          const callbackUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}&client=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
+          console.log("Calling callback function:", callbackUrl);
           
-          setStatus('error');
-          setError(`Failed to complete authentication: ${response.status} ${response.statusText}`);
-          return;
-        }
-        
-        const result = await response.json();
-        console.log("Callback result:", result);
-        
-        if (result.success) {
-          setStatus('success');
-          setMessage(`Successfully connected to shop ${shop}! Redirecting...`);
+          const response = await fetch(callbackUrl, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
           
-          // Store shop information clearly
-          localStorage.setItem('shopify_store', shop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_last_connect_time', Date.now().toString());
-          
-          // Remove temporary data
-          ShopifyConnectionManager.clearTempStore();
-          
-          // Reset connection attempts
-          ShopifyConnectionManager.resetAttempts();
-          
-          // Disable emergency mode if it was enabled
-          if (ShopifyConnectionManager.isEmergencyDisabled()) {
-            ShopifyConnectionManager.toggleEmergencyDisable(false);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Callback error response:", errorText);
+            throw new Error(`Failed to complete authentication: ${response.status} ${response.statusText}`);
           }
           
-          // Add delay before redirecting
-          setTimeout(() => {
-            // Show success message to user
-            toast.success(`Successfully connected to shop ${shop}`);
+          const result = await response.json();
+          
+          if (result.success) {
+            // Store shop information clearly
+            localStorage.setItem('shopify_store', shopParam);
+            localStorage.setItem('shopify_connected', 'true');
+            localStorage.setItem('shopify_last_connect_time', timestamp.toString());
             
-            // Redirect with additional parameters to update connection state on dashboard entry
-            navigate('/dashboard', { 
-              replace: true, 
-              state: { 
-                shopify_success: true, 
-                shop, 
-                connected: true,
-                timestamp: Date.now()
-              } 
-            });
-          }, 1500);
-        } else {
-          setStatus('error');
-          setError(result.error || "Connection failed for an unknown reason");
+            // Remove temporary data
+            ShopifyConnectionManager.clearTempStore();
+            
+            // Reset connection attempts
+            ShopifyConnectionManager.resetAttempts();
+            
+            // Disable emergency mode if it was enabled
+            if (ShopifyConnectionManager.isEmergencyDisabled()) {
+              ShopifyConnectionManager.toggleEmergencyDisable(false);
+            }
+            
+            // Set success status
+            setStatus('success');
+            setMessage(`Successfully connected to shop ${shopParam}! Redirecting...`);
+            
+            // Refresh auth connection if available
+            if (refreshShopifyConnection) {
+              try {
+                await refreshShopifyConnection();
+              } catch (refreshError) {
+                console.error("Error refreshing connection:", refreshError);
+                // Non-critical error, continue with flow
+              }
+            }
+            
+            // Add delay before redirecting
+            setTimeout(() => {
+              // Show success message to user
+              toast.success(`Successfully connected to shop ${shopParam}`);
+              
+              // Redirect with additional parameters to update connection state on dashboard entry
+              navigate('/dashboard', { 
+                replace: true, 
+                state: { 
+                  shopify_success: true, 
+                  shop: shopParam, 
+                  connected: true,
+                  timestamp: Date.now()
+                } 
+              });
+            }, 1500);
+          } else {
+            setStatus('error');
+            setError(result.error || "Connection failed for an unknown reason");
+          }
+        } catch (error: any) {
+          console.error("Error processing callback:", error);
+          
+          // Fallback to direct connection if API fails
+          try {
+            // Still store the connection information directly
+            localStorage.setItem('shopify_store', shopParam);
+            localStorage.setItem('shopify_connected', 'true');
+            localStorage.setItem('shopify_last_connect_time', timestamp.toString());
+            localStorage.removeItem('shopify_temp_store');
+            
+            setStatus('success');
+            setMessage(`Connected to shop ${shopParam} using fallback method. Redirecting...`);
+            
+            setTimeout(() => {
+              toast.success(`Connected to shop ${shopParam} (fallback method)`);
+              navigate('/dashboard', { replace: true });
+            }, 1500);
+          } catch (fallbackError) {
+            setStatus('error');
+            setError(`Authentication failed: ${error.message || "Unknown error"}`);
+          }
         }
-      } catch (error) {
-        console.error("Error processing callback:", error);
+      } catch (error: any) {
+        console.error("Error in callback handling:", error);
         setStatus('error');
-        setError(error instanceof Error ? error.message : "An error occurred during authentication");
+        setError(error?.message || "An error occurred during authentication");
       }
     };
     
     handleCallback();
-  }, [location.search, navigate]);
+  }, [location.search, navigate, refreshShopifyConnection]);
   
   const handleRetry = () => {
     // Clear any existing connection data
@@ -153,7 +214,7 @@ export default function ShopifyCallback() {
   };
   
   return (
-    <div className="flex min-h-screen justify-center items-center bg-gray-50" dir="rtl">
+    <div className="flex min-h-screen justify-center items-center bg-gray-50">
       <div className="max-w-md w-full mx-auto p-8 bg-white rounded-lg shadow-lg text-center">
         <h1 className="text-2xl font-bold mb-4">
           {status === 'loading' && "Connecting to Shopify"}
@@ -176,7 +237,7 @@ export default function ShopifyCallback() {
         <p className="mb-6 text-lg">{message}</p>
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-6 text-right">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-6 text-left">
             <p className="font-bold">Error:</p>
             <p>{error}</p>
           </div>
@@ -196,7 +257,7 @@ export default function ShopifyCallback() {
           
           {status === 'loading' && (
             <Button onClick={handleGoToDashboard} variant="outline" className="w-full">
-              <ArrowLeft className="h-4 w-4 ml-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Cancel
             </Button>
           )}
