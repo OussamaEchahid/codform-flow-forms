@@ -1,8 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { ShopifyConnectionManager as ShopifyConnectionUtil } from '@/utils/shopifyConnectionManager';
+import { ShieldOff } from 'lucide-react';
 
 // نوع خصائص مكون ShopifyConnectionManager
 export interface ShopifyConnectionManagerProps {
@@ -20,9 +23,21 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   const { language } = useI18n();
   const [isConnecting, setIsConnecting] = useState(false);
   const [callbackTriggered, setCallbackTriggered] = useState<number>(0);
+  const [isEmergencyDisabled, setIsEmergencyDisabled] = useState(false);
+  
+  // Check emergency mode status on mount
+  useEffect(() => {
+    setIsEmergencyDisabled(ShopifyConnectionUtil.isEmergencyDisabled());
+  }, []);
   
   // تتبع حالة الاتصال
   useEffect(() => {
+    // Skip if emergency mode is enabled
+    if (isEmergencyDisabled) {
+      console.log('[ShopifyConnectionManager] Emergency mode active, skipping connection verification');
+      return;
+    }
+    
     // التحقق من حالة الاتصال مع Shopify عند تحميل المكون
     const verifyConnection = async () => {
       try {
@@ -40,10 +55,18 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
     };
     
     verifyConnection();
-  }, [refreshShopifyConnection, shopifyConnected, onComplete, callbackTriggered]);
+  }, [refreshShopifyConnection, shopifyConnected, onComplete, callbackTriggered, isEmergencyDisabled]);
   
   // معالج الاتصال بـ Shopify - تحسين لإضافة أمان إضافي
   const handleConnect = async () => {
+    // Don't do anything in emergency mode
+    if (isEmergencyDisabled) {
+      toast.error(language === 'ar' 
+        ? 'فحوصات الاتصال معطلة حاليًا. قم بتمكينها أولاً.' 
+        : 'Connection checks are currently disabled. Enable them first.');
+      return;
+    }
+    
     if (isConnecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل محاولة الاتصال، يرجى الانتظار...' 
@@ -89,6 +112,14 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   
   // معالج إعادة الاتصال بـ Shopify
   const handleReconnect = () => {
+    // Don't do anything in emergency mode
+    if (isEmergencyDisabled) {
+      toast.error(language === 'ar' 
+        ? 'فحوصات الاتصال معطلة حاليًا. قم بتمكينها أولاً.' 
+        : 'Connection checks are currently disabled. Enable them first.');
+      return;
+    }
+    
     if (forceReconnect) {
       const reconnectResult = forceReconnect();
       // Skip checking result because forceReconnect may redirect
@@ -99,6 +130,14 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
   
   // معالج تحديث حالة الاتصال
   const handleRefresh = async () => {
+    // Don't do anything in emergency mode
+    if (isEmergencyDisabled) {
+      toast.error(language === 'ar' 
+        ? 'فحوصات الاتصال معطلة حاليًا. قم بتمكينها أولاً.' 
+        : 'Connection checks are currently disabled. Enable them first.');
+      return;
+    }
+    
     if (refreshShopifyConnection) {
       try {
         const result = await refreshShopifyConnection();
@@ -122,9 +161,27 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       }
     }
   };
+
+  const toggleEmergencyMode = () => {
+    const newValue = ShopifyConnectionUtil.toggleEmergencyDisable();
+    setIsEmergencyDisabled(newValue);
+    
+    toast.success(newValue ? 
+      (language === 'ar' ? 'تم تفعيل وضع الطوارئ - تم تعطيل فحوصات Shopify' : 'Emergency mode activated - Shopify checks disabled') :
+      (language === 'ar' ? 'تم إلغاء تفعيل وضع الطوارئ - تم تمكين فحوصات Shopify' : 'Emergency mode deactivated - Shopify checks enabled')
+    );
+    
+    // Force reload to apply changes
+    window.location.reload();
+  };
   
   // التحقق من معلمات URL للاتصال
   useEffect(() => {
+    // Skip if emergency mode is enabled
+    if (isEmergencyDisabled) {
+      return;
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const shopParam = params.get('shop');
     const shopifyConnectedParam = params.get('shopify_connected');
@@ -145,7 +202,33 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
       url.searchParams.delete('timestamp');
       window.history.replaceState({}, document.title, url.toString());
     }
-  }, []);
+  }, [isEmergencyDisabled]);
+
+  // Show emergency mode banner if active
+  if (isEmergencyDisabled) {
+    return (
+      <div className="border rounded-md p-3 bg-red-50 border-red-200 shadow-sm mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldOff className="h-5 w-5 text-red-600" />
+            <span className="font-medium text-red-700">
+              {language === 'ar' 
+                ? 'تم تعطيل فحوصات اتصال Shopify للاستقرار' 
+                : 'Shopify connection checks disabled for stability'}
+            </span>
+          </div>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={toggleEmergencyMode}
+            className="text-xs bg-white"
+          >
+            {language === 'ar' ? 'إعادة تمكين الاتصالات' : 'Re-enable Connections'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   // النسخة البسيطة (زر)
   if (variant === 'button') {
@@ -212,15 +295,27 @@ export const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> =
           )}
         </Button>
         
-        {shopifyConnected && (
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            className="w-full"
+        <div className="flex gap-2">
+          {shopifyConnected && (
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              className="flex-1"
+            >
+              {language === 'ar' ? 'تحديث حالة الاتصال' : 'Refresh Connection Status'}
+            </Button>
+          )}
+          
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={toggleEmergencyMode}
+            className="text-xs"
           >
-            {language === 'ar' ? 'تحديث حالة الاتصال' : 'Refresh Connection Status'}
+            <ShieldOff className="h-3 w-3 mr-1" />
+            {language === 'ar' ? 'تعطيل فحوصات الاتصال' : 'Disable Connection Checks'}
           </Button>
-        )}
+        </div>
       </div>
     </div>
   );

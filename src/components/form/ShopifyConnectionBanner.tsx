@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCcw, CheckCircle } from 'lucide-react';
+import { AlertCircle, RefreshCcw, CheckCircle, ShieldOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -22,13 +21,22 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [showThrottleMessage, setShowThrottleMessage] = useState(false);
   const [throttleTime, setThrottleTime] = useState(0);
+  const [isEmergencyDisabled, setIsEmergencyDisabled] = useState(false);
   
   // Use a ref to track if we've already checked the connection
   const hasCheckedConnectionRef = useRef(false);
   const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Check connection status when component loads, with throttling
+  // Check if emergency mode is enabled
   useEffect(() => {
+    setIsEmergencyDisabled(ShopifyConnectionManager.isEmergencyDisabled());
+    
+    // If emergency mode is enabled, don't check connection
+    if (ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log('[ShopifyConnectionBanner] Emergency mode is active, not checking connection');
+      return;
+    }
+    
     // Exit if we've already done the check or if there's no shop
     if (hasCheckedConnectionRef.current || !shop) {
       return;
@@ -97,7 +105,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   }, [showThrottleMessage, throttleTime]);
 
   const handleCheckConnection = async () => {
-    if (isCheckingConnection) return;
+    if (isCheckingConnection || isEmergencyDisabled) return;
     
     setIsCheckingConnection(true);
     try {
@@ -131,7 +139,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   };
 
   const handleReconnect = () => {
-    if (isRedirecting) return;
+    if (isRedirecting || isEmergencyDisabled) return;
     
     // Check if we should throttle reconnection attempts
     if (ShopifyConnectionManager.shouldThrottle()) {
@@ -171,6 +179,50 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       setIsRedirecting(false);
     }
   };
+
+  const toggleEmergencyMode = () => {
+    const newValue = ShopifyConnectionManager.toggleEmergencyDisable();
+    setIsEmergencyDisabled(newValue);
+    
+    if (newValue) {
+      toast.success(language === 'ar' 
+        ? 'تم تفعيل وضع الطوارئ - تم تعطيل جميع فحوصات Shopify' 
+        : 'Emergency mode activated - all Shopify checks disabled');
+    } else {
+      toast.success(language === 'ar'
+        ? 'تم تعطيل وضع الطوارئ - تم تفعيل فحوصات Shopify'
+        : 'Emergency mode deactivated - Shopify checks enabled');
+    }
+    
+    // Reload the page to apply changes
+    window.location.reload();
+  };
+
+  // Show emergency mode banner if active
+  if (isEmergencyDisabled) {
+    return (
+      <Alert className="bg-red-50 text-red-800 border-red-300 shadow-sm p-3 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldOff className="h-5 w-5 text-red-600" />
+            <span className="font-medium">
+              {language === 'ar' 
+                ? 'تم تعطيل فحوصات اتصال Shopify للاستقرار' 
+                : 'Shopify connection checks disabled for stability'}
+            </span>
+          </div>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={toggleEmergencyMode}
+            className="text-xs"
+          >
+            {language === 'ar' ? 'إعادة تمكين الاتصالات' : 'Re-enable Connections'}
+          </Button>
+        </div>
+      </Alert>
+    );
+  }
 
   // Don't show anything if there's no warning to show
   if (!isConnectionWarning || !shopifyConnected) {
@@ -235,6 +287,16 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
               {language === 'ar' ? 'التحقق من الاتصال' : 'Check Connection'}
             </>
           )}
+        </Button>
+        
+        <Button
+          onClick={toggleEmergencyMode}
+          size="lg"
+          variant="destructive"
+          className="px-8 py-3 rounded-md text-lg font-medium"
+        >
+          <ShieldOff className="h-5 w-5 mr-2" />
+          {language === 'ar' ? 'تعطيل فحوصات الاتصال' : 'Disable Connection Checks'}
         </Button>
       </div>
     </Alert>

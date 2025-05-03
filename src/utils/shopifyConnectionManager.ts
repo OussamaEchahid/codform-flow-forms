@@ -14,6 +14,12 @@ export const ShopifyConnectionManager = {
    * Record a connection attempt
    */
   recordAttempt(): void {
+    // Check if emergency disable is active
+    if (this.isEmergencyDisabled()) {
+      console.log('[ShopifyConnectionManager] Emergency disable active, not recording attempt');
+      return;
+    }
+    
     const now = Date.now();
     localStorage.setItem('shopify_last_connect_attempt', now.toString());
     
@@ -48,6 +54,11 @@ export const ShopifyConnectionManager = {
    * Check if we should throttle connection attempts
    */
   shouldThrottle(): boolean {
+    // Check if emergency disable is active
+    if (this.isEmergencyDisabled()) {
+      return true; // Always throttle/block if emergency disable is active
+    }
+    
     const now = Date.now();
     const lastAttempt = this.getLastAttemptTime();
     const attemptCount = this.getAttemptCount();
@@ -86,6 +97,11 @@ export const ShopifyConnectionManager = {
    * Get time to wait before next attempt (in ms)
    */
   getTimeToWait(): number {
+    // If emergency disabled, return a large number
+    if (this.isEmergencyDisabled()) {
+      return 3600000; // 1 hour - effectively blocking all attempts
+    }
+    
     const now = Date.now();
     const lastAttempt = this.getLastAttemptTime();
     const attemptCount = this.getAttemptCount();
@@ -139,6 +155,21 @@ export const ShopifyConnectionManager = {
   toggleEmergencyDisable(value?: boolean): boolean {
     const newValue = value !== undefined ? value : !this.isEmergencyDisabled();
     localStorage.setItem('emergency_disable_shopify_checks', newValue.toString());
+    console.log(`[ShopifyConnectionManager] Emergency mode ${newValue ? 'ENABLED' : 'DISABLED'}`);
     return newValue;
+  },
+
+  /**
+   * Set an initial disabled state if connection storm is detected
+   */
+  initializeEmergencyModeIfNeeded(): void {
+    // If we've had a connection storm, enable emergency mode automatically
+    if (this.getAttemptCount() > 7) {
+      console.warn('[ShopifyConnectionManager] Too many connection attempts detected, enabling emergency mode');
+      this.toggleEmergencyDisable(true);
+    }
   }
 };
+
+// Auto-initialize on script load
+ShopifyConnectionManager.initializeEmergencyModeIfNeeded();

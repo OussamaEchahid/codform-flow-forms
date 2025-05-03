@@ -12,10 +12,18 @@ const ShopifyDebugPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmergencyDisabled, setIsEmergencyDisabled] = useState(false);
 
-  // Load data on mount
+  // Load data on mount and auto-enable emergency mode
   useEffect(() => {
     loadConnectionData();
     checkEmergencyMode();
+    
+    // Automatically enable emergency mode when the debug panel is shown
+    // This helps prevent infinite loops
+    if (!ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log("Auto-enabling emergency mode for safety");
+      ShopifyConnectionManager.toggleEmergencyDisable(true);
+      setIsEmergencyDisabled(true);
+    }
   }, []);
 
   const loadConnectionData = () => {

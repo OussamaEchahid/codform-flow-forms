@@ -248,6 +248,13 @@ export const useShopify = (): UseShopifyReturn => {
   
   // Simplified form sync function
   const syncFormWithShopify = useCallback(async (formData: any): Promise<boolean> => {
+    // Emergency disabled mode check
+    if (ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log('[useShopify] Emergency disable mode is active, skipping form sync');
+      toast.error('Shopify connection checks are disabled. Enable connection checks to sync forms.');
+      return false;
+    }
+    
     try {
       // Don't sync if not connected
       if (!isConnected || !shop) {
