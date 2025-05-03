@@ -1,6 +1,5 @@
-
-import React, { useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -13,7 +12,10 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,53 +23,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useI18n } from '@/lib/i18n'; // Updated import with correct path
 
 const AppSidebar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { t, language, setLanguage } = useI18n();
-
-  // Update document title based on current route and language
-  useEffect(() => {
-    let title = 'CODFORM';
-    
-    if (location.pathname.includes('/dashboard')) {
-      title = `${t('dashboard')} | CODFORM`;
-    } else if (location.pathname.includes('/forms') || location.pathname.includes('/form-builder')) {
-      title = `${t('forms')} | CODFORM`;
-    } else if (location.pathname.includes('/orders')) {
-      title = `${t('orders')} | CODFORM`;
-    } else if (location.pathname.includes('/settings')) {
-      title = `${t('settings')} | CODFORM`;
-    }
-    
-    document.title = title;
-  }, [location, language, t]);
-
-  // Handle language change
-  const handleLanguageChange = (lang: 'ar' | 'en') => {
-    console.log(`Changing language to ${lang}`);
-    setLanguage(lang);
-    
-    // Force reload the page to apply language changes everywhere
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  };
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      // Clear authentication data
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_connect_time');
-      localStorage.removeItem('shopify_reconnect_attempts');
-      
+      await supabase.auth.signOut();
       toast.success(t('logoutSuccess'));
-      navigate('/', { replace: true });
+      navigate('/auth');
     } catch (error) {
       toast.error(t('logoutError'));
     }
@@ -99,13 +64,13 @@ const AppSidebar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem 
-                onClick={() => handleLanguageChange('en')} 
+                onClick={() => setLanguage('en')} 
                 className={language === 'en' ? 'bg-muted' : ''}
               >
                 English
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => handleLanguageChange('ar')} 
+                onClick={() => setLanguage('ar')} 
                 className={language === 'ar' ? 'bg-muted' : ''}
               >
                 العربية

@@ -4,11 +4,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Replace these with your actual Supabase URL and key
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
 
 // The Shopify app credentials
-const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "";
-const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "";
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
+const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
@@ -16,8 +16,7 @@ const APP_URL = "https://codform-flow-forms.lovable.app";
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, shopify-access-token",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -52,16 +51,9 @@ function cleanShopDomain(shop: string): string {
 }
 
 serve(async (req) => {
-  console.log("Callback request received:", req.method, req.url);
-  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
-  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request");
-    return new Response(null, { 
-      status: 204,
-      headers: corsHeaders 
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -70,32 +62,17 @@ serve(async (req) => {
     const hmac = url.searchParams.get("hmac");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
-    const client = url.searchParams.get("client") || APP_URL;
-    const debug = url.searchParams.get("debug") === "true";
     
-    // Log request parameters
     console.log("Callback received with params:", {
       shop,
       hmac: hmac ? "present" : "missing", 
       code: code ? "present" : "missing", 
-      state,
-      client
+      state
     });
-    
-    if (debug) {
-      console.log("DEBUG MODE: Full URL parameters:", Object.fromEntries(url.searchParams.entries()));
-    }
     
     if (!shop || !code || !hmac) {
       return new Response(
-        JSON.stringify({ 
-          error: "Missing required parameters",
-          params: {
-            shop: shop ? "present" : "missing",
-            code: code ? "present" : "missing",
-            hmac: hmac ? "present" : "missing"
-          }
-        }), 
+        JSON.stringify({ error: "Missing required parameters" }), 
         { status: 400, headers: corsHeaders }
       );
     }
@@ -124,65 +101,24 @@ serve(async (req) => {
         }
       }
     
-      // Exchange code for access token with error retry
-      console.log(`Exchanging code for access token with shop: ${shop}`);
-      
-      let accessTokenResponse = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (retryCount < maxRetries && !accessTokenResponse) {
-        try {
-          accessTokenResponse = await fetch(
-            `https://${shop}/admin/oauth/access_token`,
-            {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'User-Agent': 'Codform-Flow-Forms/1.0'
-              },
-              body: JSON.stringify({
-                client_id: SHOPIFY_API_KEY,
-                client_secret: SHOPIFY_API_SECRET,
-                code
-              })
-            }
-          );
-          
-          if (!accessTokenResponse.ok) {
-            const errorText = await accessTokenResponse.text();
-            console.error(`Attempt ${retryCount + 1} - Token exchange error:`, 
-              accessTokenResponse.status,
-              accessTokenResponse.statusText, 
-              errorText
-            );
-            
-            // Reset for retry
-            accessTokenResponse = null;
-            retryCount++;
-            
-            if (retryCount < maxRetries) {
-              console.log(`Retrying in 1 second... (Attempt ${retryCount + 1} of ${maxRetries})`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              throw new Error(`Failed to get access token after ${maxRetries} attempts: ${errorText}`);
-            }
-          }
-        } catch (fetchError) {
-          console.error(`Attempt ${retryCount + 1} - Network error during token exchange:`, fetchError);
-          retryCount++;
-          
-          if (retryCount < maxRetries) {
-            console.log(`Retrying in 1 second... (Attempt ${retryCount + 1} of ${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else {
-            throw fetchError;
-          }
+      // Exchange code for access token
+      const accessTokenResponse = await fetch(
+        `https://${shop}/admin/oauth/access_token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: SHOPIFY_API_KEY,
+            client_secret: SHOPIFY_API_SECRET,
+            code
+          })
         }
-      }
+      );
       
-      if (!accessTokenResponse || !accessTokenResponse.ok) {
-        throw new Error(`Failed to get access token after ${maxRetries} attempts`);
+      if (!accessTokenResponse.ok) {
+        const errorText = await accessTokenResponse.text();
+        console.error("Access token error response:", errorText);
+        throw new Error(`Failed to get access token: ${accessTokenResponse.statusText}. Response: ${errorText}`);
       }
       
       const tokenData = await accessTokenResponse.json();
@@ -223,23 +159,17 @@ serve(async (req) => {
         }
       }
       
-      const redirectUrl = `${client || APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&auth_success=true&timestamp=${Date.now()}`;
+      // Redirect URL back to the app's dashboard
+      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(
         JSON.stringify({
           success: true,
           shop,
-          redirect: redirectUrl,
-          timestamp: Date.now(),
-          version: "v2"
+          redirect: redirectUrl
         }),
-        { 
-          headers: {
-            ...corsHeaders,
-            "Location": redirectUrl
-          }
-        }
+        { headers: corsHeaders }
       );
     } catch (error) {
       console.error("Error in Shopify OAuth flow:", error);
@@ -247,8 +177,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: error instanceof Error ? error.message : "Unknown error in OAuth flow",
           errorType: error instanceof Error ? error.name : "Unknown",
-          timestamp: new Date().toISOString(),
-          shop: shop || null
+          timestamp: new Date().toISOString()
         }),
         { status: 500, headers: corsHeaders }
       );

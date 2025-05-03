@@ -1,24 +1,23 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.0";
 
 // Replace these with your actual Supabase URL and key
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
 
 // The Shopify app credentials
-const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "";
-const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "";
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
+const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
+const AUTH_CALLBACK_URL = `${APP_URL}/api/shopify-callback`;
 
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, shopify-access-token",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -30,10 +29,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Function to clean shop domain
 function cleanShopDomain(shop: string): string {
-  if (!shop || shop === "") {
-    return "";
-  }
-  
   let cleanedShop = shop.trim();
   
   // Remove protocol if present
@@ -56,196 +51,83 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
+// Create nonce for security
+function generateNonce(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
 serve(async (req) => {
-  console.log("Request received:", req.method, req.url);
-  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request");
-    return new Response(null, { 
-      status: 204,
-      headers: corsHeaders 
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // Handle POST requests for starting auth flow
-  if (req.method === "POST") {
-    try {
-      const data = await req.json();
-      console.log("POST request data:", data);
-      
-      if (!data.shop) {
-        return new Response(
-          JSON.stringify({ error: "Shop parameter is required" }), 
-          { status: 400, headers: corsHeaders }
-        );
-      }
-      
-      // Clean shop domain
-      const shop = cleanShopDomain(data.shop);
-      
-      if (!shop) {
-        return new Response(
-          JSON.stringify({ error: "Invalid shop domain" }), 
-          { status: 400, headers: corsHeaders }
-        );
-      }
-      
-      // Generate unique state
-      const state = uuidv4();
-      
-      // Save state for verification
-      const { error: insertError } = await supabase.from("shopify_auth").insert({ 
-        state,
-        shop
-      });
-      
-      if (insertError) {
-        console.error("Error saving auth state:", insertError);
-        return new Response(
-          JSON.stringify({ error: "Failed to save auth state" }), 
-          { status: 500, headers: corsHeaders }
-        );
-      }
-      
-      // Generate auth URL
-      const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes";
-      const redirectUri = `${data.redirectUri || APP_URL}/shopify-callback`;
-      
-      const authUrl = new URL(`https://${shop}/admin/oauth/authorize`);
-      authUrl.searchParams.append("client_id", SHOPIFY_API_KEY);
-      authUrl.searchParams.append("scope", scopes);
-      authUrl.searchParams.append("redirect_uri", redirectUri);
-      authUrl.searchParams.append("state", state);
-      
-      console.log("Generated auth URL:", authUrl.toString());
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          url: authUrl.toString(),
-          state,
-          shop
-        }), 
-        { status: 200, headers: corsHeaders }
-      );
-    } catch (error) {
-      console.error("Error processing POST request:", error);
-      return new Response(
-        JSON.stringify({ error: "Error processing request" }), 
-        { status: 500, headers: corsHeaders }
-      );
-    }
-  }
-
-  // Handle GET requests for legacy auth flow
   try {
     const url = new URL(req.url);
-    const shop = url.searchParams.get("shop");
-    const clientUrl = url.searchParams.get("client") || APP_URL;
-    const debug = url.searchParams.get("debug") === "true";
+    let shop = url.searchParams.get("shop");
     
-    if (debug) {
-      console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
-      console.log("Request headers:", Object.fromEntries(req.headers.entries()));
-    }
+    console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
     
+    // No shop provided
     if (!shop) {
       return new Response(
-        JSON.stringify({ error: "Shop parameter is required" }), 
+        JSON.stringify({ error: "Missing shop parameter" }), 
         { status: 400, headers: corsHeaders }
       );
     }
     
-    // Clean shop domain
+    // Clean shop domain from any protocol
     const cleanedShop = cleanShopDomain(shop);
-    console.log("Initiating auth for shop:", cleanedShop);
+    console.log("Cleaned shop domain:", cleanedShop);
+
+    // Generate a unique state for this authorization
+    const state = generateNonce();
     
-    // Generate unique state
-    const state = uuidv4();
-    const timestamp = Date.now();
-    
-    // Save state for verification
-    const { error: insertError } = await supabase.from("shopify_auth").insert({ 
-      state,
-      shop: cleanedShop
-    });
-    
-    if (insertError) {
-      console.error("Error saving auth state:", insertError);
-      // Continue anyway - this is non-critical
-    }
-    
-    // Check if we already have a token for this shop
-    const { data: existingStore } = await supabase
-      .from('shopify_stores')
-      .select('access_token, updated_at')
-      .eq('shop', cleanedShop)
-      .maybeSingle();
+    try {
+      // Save the temporary state and shop to verify later
+      const { error: insertError } = await supabase.from('shopify_auth').insert({
+        shop: cleanedShop,
+        state,
+      });
       
-    if (existingStore?.access_token) {
-      console.log("Found existing access token for shop:", cleanedShop);
+      if (insertError) {
+        console.error("Error saving auth state:", insertError);
+        // Continue anyway - non-critical error
+      } else {
+        console.log("Auth state saved successfully");
+      }
       
-      // Check token age
-      const tokenAge = existingStore.updated_at ? 
-        (Date.now() - new Date(existingStore.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 
-        0;
-        
-      // If token is recent, return success immediately
-      if (tokenAge < 7) {
-        const redirectUrl = `${clientUrl}/dashboard?shopify_connected=true&shop=${encodeURIComponent(cleanedShop)}&auth_success=true&timestamp=${timestamp}`;
-        console.log("Using existing token, redirecting to:", redirectUrl);
-        
-        return new Response(JSON.stringify({
-          success: true,
+      // Create the authentication URL
+      const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(AUTH_CALLBACK_URL)}&state=${state}`;
+      
+      console.log("Generated auth URL:", authUrl);
+      
+      return new Response(JSON.stringify({
+        redirect: authUrl,
+        shop: cleanedShop,
+        state,
+        appUrl: APP_URL,
+        callbackUrl: AUTH_CALLBACK_URL
+      }), { headers: corsHeaders });
+    } catch (error) {
+      console.error("Error initiating authentication:", error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Error initiating authentication",
+          details: error instanceof Error ? error.message : "Unknown error",
           shop: cleanedShop,
-          redirect: redirectUrl,
-          hasExistingToken: true
-        }), { 
-          headers: {
-            ...corsHeaders,
-            "Location": redirectUrl
-          }
-        });
-      }
+        }),
+        { status: 500, headers: corsHeaders }
+      );
     }
-    
-    // Create the callback URL
-    const callbackUrl = `${clientUrl}/shopify-callback`;
-    
-    // Generate auth URL
-    const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes";
-    
-    const authUrl = new URL(`https://${cleanedShop}/admin/oauth/authorize`);
-    authUrl.searchParams.append("client_id", SHOPIFY_API_KEY);
-    authUrl.searchParams.append("scope", scopes);
-    authUrl.searchParams.append("redirect_uri", callbackUrl);
-    authUrl.searchParams.append("state", state);
-    
-    console.log("Generated auth URL:", authUrl.toString());
-    
-    return new Response(JSON.stringify({
-      success: true,
-      redirect: authUrl.toString(),
-      shop: cleanedShop,
-      state,
-      callbackUrl,
-      timestamp,
-      version: "v3"
-    }), { 
-      headers: {
-        ...corsHeaders,
-        "Location": authUrl.toString()
-      }
-    });
   } catch (error) {
-    console.error("Error in auth function:", error);
-    
+    console.error("Critical error in auth function:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Internal server error",
-        timestamp: new Date().toISOString(),
-        success: false
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
       }),
       { status: 500, headers: corsHeaders }
     );

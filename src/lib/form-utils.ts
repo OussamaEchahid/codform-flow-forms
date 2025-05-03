@@ -389,25 +389,3 @@ export const formTemplates: FormTemplate[] = [
     ]
   }
 ];
-
-// Interfaces for form builder
-export interface FormElement extends FormField {
-  // Additional properties specific to form elements
-}
-
-export interface FormSectionConfig {
-  sections: any[];
-  layout: string;
-}
-
-export interface FormData {
-  id: string;
-  title: string;
-  description?: string;
-  data: any[];
-  sectionConfig?: FormSectionConfig;
-  style?: {
-    [key: string]: string | number;
-  };
-  is_published?: boolean;
-}

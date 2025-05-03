@@ -1,32 +1,39 @@
 
-# This file is used to configure the Supabase CLI
 project_id = "nhqrngdzuatdnfkihtud"
 
 [api]
-# Port to start the API server on
+enabled = true
 port = 54321
-# Schemas to expose in your API
-schemas = ["public"]
-# Extra schemas to expose in your API but exclude from automatic type generation
-extra_schemas = ["storage", "auth"]
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
-# Port to start the DB on
-port = 54320
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
 
 [studio]
-# Port to start Studio on
+enabled = true
 port = 54323
-# External URL for serving your API
-api_url = "http://localhost:54321"
-# External URL for serving the Supabase Studio
-studio_url = "http://localhost:54323"
-# External URL for serving the Inbucket UI
-inbucket_url = "http://localhost:54324"
+api_url = "http://localhost"
 
-[functions]
-[functions.shopify-auth]
-verify_jwt = false
+[inbucket]
+enabled = true
+port = 54324
 
-[functions.shopify-callback]
-verify_jwt = false
+[storage]
+enabled = true
+
+[edge_functions]
+enabled = true

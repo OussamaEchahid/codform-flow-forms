@@ -1,20 +1,16 @@
 
 import { createContext, useContext } from 'react';
 
-export interface AuthContextType {
-  user: any;
+type AuthContextType = {
   shopifyConnected: boolean;
   shop?: string;
-  refreshShopifyConnection?: () => Promise<boolean>;
-  isTokenVerified?: boolean;
-  forceReconnect?: () => boolean | void;
-  lastConnectionTime?: string;
-}
+  user?: any;
+};
 
 export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  shopifyConnected: false,
-  shop: undefined,
+  shopifyConnected: false
 });
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};

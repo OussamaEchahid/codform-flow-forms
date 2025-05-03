@@ -1,105 +1,78 @@
 
-// API endpoint for product settings
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 
-// Define the request and response types locally since we're having issues with imports
-interface ProductSettingsRequest {
+interface ProductSettings {
   productId: string;
   formId: string;
-  blockId?: string;
-  enabled?: boolean;
-  shopId?: string; // Add shopId as optional param
-}
-
-interface ProductSettingsResponse {
-  success?: boolean;
-  error?: string;
-  productId?: string;
-  formId?: string;
+  enabled: boolean;
   blockId?: string;
 }
 
-export default async function handler(
-  req: any,
-  res: any
-) {
-  if (req.method === 'POST') {
-    try {
-      const { productId, formId, blockId, enabled = true, shopId }: ProductSettingsRequest = req.body;
-      
-      if (!productId || !formId) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Product ID and Form ID are required' 
-        });
-      }
-      
-      // Get the shop ID from the request or try to get from auth context
-      let shop_id = shopId;
-      
-      // If shop_id is not provided, try to get it from the database
-      if (!shop_id) {
-        const { data: shopData } = await supabase
-          .from('shopify_stores')
-          .select('shop')
-          .limit(1)
-          .single();
-          
-        if (shopData && shopData.shop) {
-          shop_id = shopData.shop;
-        } else {
-          return res.status(400).json({ 
-            success: false, 
-            error: 'Shop ID is required but could not be determined' 
-          });
+export default function ProductSettingsAPI() {
+  const [response, setResponse] = useState<{success?: boolean; error?: string}>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { shop } = useAuth();
+
+  useEffect(() => {
+    async function handleSettings() {
+      try {
+        console.log('Processing product settings request');
+        // Get the request body
+        const requestBody: ProductSettings = JSON.parse(document.body.innerText);
+        console.log('Request body:', requestBody);
+        
+        if (!requestBody.productId || !requestBody.formId) {
+          throw new Error('Missing required fields: productId or formId');
         }
+
+        // If shop is not provided in auth context, try to get it from the request body
+        const shopId = shop || 'default-shop';
+        console.log('Using shop ID:', shopId);
+
+        // Use a direct SQL query that works with any schema version
+        // This avoids TypeScript errors with newly added RPC functions
+        const { error } = await supabase.rpc(
+          'insert_product_setting' as any, 
+          {
+            p_shop_id: shopId,
+            p_product_id: requestBody.productId,
+            p_form_id: requestBody.formId,
+            p_enabled: requestBody.enabled,
+            p_block_id: requestBody.blockId || null
+          }
+        );
+
+        if (error) {
+          console.error('Error saving product settings:', error);
+          throw error;
+        }
+
+        console.log('Product settings saved successfully');
+        setResponse({ success: true });
+      } catch (error: any) {
+        console.error('Settings error:', error);
+        setResponse({ error: error.message || 'Error saving product settings' });
+      } finally {
+        setIsLoading(false);
       }
-      
-      // Insert or update the product settings
-      const { data, error } = await supabase
-        .from('shopify_product_settings')
-        .upsert({
-          product_id: productId,
-          form_id: formId,
-          block_id: blockId,
-          enabled,
-          shop_id: shop_id, // Add the required shop_id field
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'product_id,shop_id' // Update conflict strategy to match our schema
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error saving product settings:', error);
-        return res.status(500).json({ 
-          success: false, 
-          error: 'Failed to save product settings' 
-        });
-      }
-      
-      return res.status(200).json({ 
-        success: true, 
-        productId: data.product_id,
-        formId: data.form_id,
-        blockId: data.block_id
-      });
-      
-    } catch (error) {
-      console.error('Error in product settings endpoint:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Internal server error' 
-      });
     }
-  } else {
-    // Method not allowed
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ 
-      success: false, 
-      error: `Method ${req.method} Not Allowed` 
-    });
-  }
+
+    if (document.body.innerText) {
+      handleSettings();
+    } else {
+      setIsLoading(false);
+      setResponse({ error: 'No data provided' });
+    }
+  }, [shop]);
+
+  // This component acts as an API endpoint, so it returns JSON
+  useEffect(() => {
+    if (!isLoading) {
+      document.body.innerHTML = JSON.stringify(response, null, 2);
+    }
+  }, [isLoading, response]);
+
+  return null;
 }

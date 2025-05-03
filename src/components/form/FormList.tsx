@@ -1,143 +1,158 @@
 
-import React from 'react';
-import { FormData } from '@/lib/hooks/form/types';
-import { useI18n } from '@/lib/i18n';
-import FormListItem from './FormListItem';
-import EmptyFormList from './EmptyFormList';
+import { useState } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Loader2, WifiOff } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
+import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
-  hasError?: boolean;
-  onRefresh?: () => void;
-  isOffline?: boolean;
 }
 
-const FormList: React.FC<FormListProps> = ({
-  forms,
-  isLoading,
-  onSelectForm,
-  hasError = false,
-  onRefresh,
-  isOffline = false
-}) => {
-  const { language } = useI18n();
-  
-  // Debug logging
-  console.log('FormList render:', { 
-    formsLength: forms?.length || 0, 
-    isLoading, 
-    hasError,
-    isOffline 
-  });
+const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
+  const [formToDelete, setFormToDelete] = useState<string | null>(null);
+  const { publishForm, deleteForm } = useFormTemplates();
 
-  // Show loading state when initially loading with no forms
-  if (isLoading && forms.length === 0) {
+  const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
+    await publishForm(formId, !currentStatus);
+  };
+
+  const handleDelete = async () => {
+    if (formToDelete) {
+      await deleteForm(formToDelete);
+      setFormToDelete(null);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="p-8 text-center">
-        <div className="flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-4" />
-          <p className="text-gray-600 font-medium">
-            {language === 'ar' ? 'جاري تحميل النماذج...' : 'Loading forms...'}
-          </p>
-          <p className="text-gray-400 text-sm mt-2">
-            {language === 'ar' ? 'يرجى الانتظار' : 'Please wait'}
-          </p>
-        </div>
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Show error state when there's an error and no forms
-  if (hasError && forms.length === 0) {
-    return (
-      <div className="p-8 text-center">
-        <div className="flex flex-col items-center justify-center mb-6">
-          <div className="rounded-full bg-red-100 p-3 mb-4">
-            <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-amber-600 font-medium mb-2">
-            {language === 'ar'
-              ? 'حدث خطأ في الاتصال. يمكنك إنشاء نموذج جديد أو إعادة المحاولة لاحقًا.'
-              : 'Connection error occurred. You can create a new form or try again later.'}
-          </p>
-          <p className="text-gray-500 text-sm mb-4">
-            {language === 'ar'
-              ? 'قد يكون هناك مشكلة في الاتصال بالخادم. حاول مرة أخرى بعد بضع لحظات.'
-              : 'There might be a problem connecting to the server. Try again in a moment.'}
-          </p>
-        </div>
-        {onRefresh && (
-          <Button variant="secondary" onClick={onRefresh} className="flex items-center gap-2">
-            <RefreshCcw className="h-4 w-4" />
-            {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
-          </Button>
-        )}
-      </div>
-    );
-  }
-  
-  // Show offline message when in offline mode with forms
-  if (isOffline && forms.length > 0) {
-    return (
-      <div>
-        <div className="p-4 mb-4 bg-blue-50 border border-blue-100 rounded-md text-blue-700 flex items-center gap-2">
-          <WifiOff className="h-4 w-4" />
-          <p>
-            {language === 'ar'
-              ? 'أنت حاليًا غير متصل بالإنترنت. يتم عرض النماذج المحفوظة محليًا.'
-              : 'You are currently offline. Showing locally saved forms.'}
-          </p>
-        </div>
-        
-        <div className="divide-y">
-          {forms.map((form) => (
-            <FormListItem
-              key={form.id}
-              form={form}
-              onSelectForm={() => onSelectForm(form.id)}
-              onPublishToggle={() => {}}
-              onDeleteRequest={() => {}}
-              isActionInProgress={false}
-              isOfflineMode={isOffline}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state when there are no forms
   if (forms.length === 0) {
-    return <EmptyFormList isOffline={isOffline} />;
+    return (
+      <Card className="bg-gray-50 border-dashed">
+        <CardContent className="pt-6 text-center">
+          <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
+          <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
+        </CardContent>
+      </Card>
+    );
   }
 
-  // Show the list of forms
   return (
-    <div className="divide-y">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {forms.map((form) => (
-        <FormListItem
-          key={form.id}
-          form={form}
-          onSelectForm={() => onSelectForm(form.id)}
-          onPublishToggle={() => {}}
-          onDeleteRequest={() => {}}
-          isActionInProgress={false}
-          isOfflineMode={isOffline}
-        />
+        <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
+          <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg truncate">{form.title}</CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>تعديل</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
+                    {form.is_published ? (
+                      <>
+                        <EyeOff className="mr-2 h-4 w-4" />
+                        <span>إلغاء النشر</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>نشر</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setFormToDelete(form.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    <span>حذف</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center mb-2">
+              <Badge variant={form.is_published ? "success" : "secondary"}>
+                {form.is_published ? 'منشور' : 'مسودة'}
+              </Badge>
+              <span className="text-xs text-gray-500 rtl:text-left">
+                {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <Button 
+              variant="default" 
+              onClick={() => onSelectForm(form.id)}
+              className="w-full"
+            >
+              عرض وتعديل
+            </Button>
+          </CardFooter>
+        </Card>
       ))}
-      
-      {/* Show loading indicator when adding more forms */}
-      {isLoading && forms.length > 0 && (
-        <div className="p-4 text-center">
-          <div className="animate-spin h-4 w-4 border-t-2 border-purple-500 border-r-2 rounded-full mx-auto"></div>
-        </div>
-      )}
+
+      <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من حذف النموذج؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم وإزالة جميع البيانات المرتبطة به.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

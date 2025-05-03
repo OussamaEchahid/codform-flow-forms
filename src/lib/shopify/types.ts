@@ -1,64 +1,58 @@
 
-/**
- * أنواع بيانات Shopify المبسطة
- */
-
-// نوع بيانات منتج Shopify
 export interface ShopifyProduct {
   id: string;
   title: string;
   handle: string;
-  description?: string;
-  price?: string;
-  image?: string;
+  price: string;
+  images: string[];
+  variants: ShopifyVariant[];
 }
 
-// نوع بيانات النموذج المرتبط بمتجر Shopify
-export interface ShopifyFormData {
-  form_id: string;
-  product_id?: string;
-  shop_id?: string;
-  settings?: {
-    enabled: boolean;
-    position?: string;
-    style?: string;
-    blockId?: string;
-    products?: string[];
-  };
+export interface ShopifyVariant {
+  id: string;
+  title: string;
+  price: string;
+  available: boolean;
 }
 
-// نوع بيانات طلب إعدادات المنتج
-export interface ProductSettingsRequest {
-  productId: string;
-  formId: string;
-  blockId?: string;
-  enabled?: boolean;
-  shopId?: string;
-}
-
-// نوع بيانات استجابة إعدادات المنتج
-export interface ProductSettingsResponse {
-  success?: boolean;
-  error?: string;
-  productId?: string;
-  formId?: string;
-  blockId?: string;
-}
-
-// نوع بيانات استجابة التحقق من اتصال Shopify
-export interface ShopifyVerifyResponse {
-  success: boolean;
-  shop?: string;
-  timestamp?: string;
-}
-
-// نوع بيانات طلب Shopify
 export interface ShopifyOrder {
   id: string;
-  order_number: string;
-  email: string;
-  created_at: string;
+  name: string;
   total_price: string;
-  currency: string;
-  financial_status: string;
+  created_at: string;
+  items: ShopifyLineItem[];
+  customer?: ShopifyCustomer;
+}
+
+export interface ShopifyLineItem {
+  id: string;
+  product_id: string;
+  variant_id: string;
+  title: string;
+  quantity: number;
+  price: string;
+  total: string;
+}
+
+export interface ShopifyCustomer {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+}
+
+export interface ShopifyFormData {
+  formId: string;
+  shopDomain: string;
+  settings: {
+    position: 'product-page' | 'cart-page' | 'checkout';
+    style: {
+      primaryColor: string;
+      fontSize: string;
+      borderRadius: string;
+    };
+    products?: string[];
+    blockId?: string; // Add the blockId field to the settings type
+  };
 }

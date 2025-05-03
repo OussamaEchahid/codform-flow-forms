@@ -1,424 +1,356 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { useShopify } from '@/hooks/useShopify';
 import { useI18n } from '@/lib/i18n';
-import { ArrowLeft, Save } from 'lucide-react';
-import FormBuilderShopify from './FormBuilderShopify';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
+import FieldEditor from '@/components/form/FieldEditor';
+import FormHeader from '@/components/form/builder/FormHeader';
+import FormElementEditor from '@/components/form/builder/FormElementEditor';
+import FormElementList from '@/components/form/builder/FormElementList';
+import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
+import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
+import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import { useShopify } from '@/hooks/useShopify';
 import { ShopifyFormData } from '@/lib/shopify/types';
-import FormBuilder from '@/components/form/FormBuilder';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
 
-// مساعد لضمان عدم إهدار الموارد بكثرة التحديثات
-const useDebounce = <T,>(value: T, delay: number = 500): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+interface FormBuilderEditorProps {
+  formId?: string;
+}
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'new' }) => {
-  const { language } = useI18n();
+const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const navigate = useNavigate();
-  const params = useParams();
-  const resolvedFormId = formId !== 'new' ? formId : (params.formId === 'new' ? 'new' : params.formId);
+  const { t, language } = useI18n();
+  const shopifyIntegration = useShopify();
+  const { createFormFromTemplate } = useFormTemplates();
   
-  const { getFormById, saveForm, createNewForm } = useFormTemplates();
-  const { syncFormWithShopify, isSyncing } = useShopify();
-  
-  // حالة النموذج
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [formData, setFormData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [isNewForm, setIsNewForm] = useState(false);
-  const [renderKey, setRenderKey] = useState<number>(Date.now());
   
-  // متغيرات مرجعية للتتبع
-  const hasLoadedRef = useRef(false);
-  const formDataRef = useRef(formData);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  // تأخير تحديثات FormData لمنع التحديثات المفرطة
-  const debouncedFormData = useDebounce(formData, 300);
-  
-  // تتبع التغييرات في بيانات النموذج
-  useEffect(() => {
-    formDataRef.current = debouncedFormData;
-    if (hasLoadedRef.current) {
-      setIsDirty(true);
-    }
-    
-    // حفظ تلقائي إلى التخزين المحلي بعد التغييرات
-    if (resolvedFormId) {
-      try {
-        localStorage.setItem(`form_draft_${resolvedFormId}`, JSON.stringify({
-          title,
-          description, 
-          data: debouncedFormData,
-          lastModified: new Date().toISOString()
-        }));
-      } catch (err) {
-        console.error('خطأ في حفظ مسودة النموذج في التخزين المحلي:', err);
-      }
-    }
-  }, [debouncedFormData, title, description, resolvedFormId]);
-
-  // تحميل بيانات النموذج عند بدء التشغيل
-  useEffect(() => {
-    const loadForm = async () => {
-      setIsLoading(true);
-      setSaveError(null);
-      
-      try {
-        // معالجة حالة النموذج الجديد
-        if (resolvedFormId === 'new') {
-          console.log('FormBuilderEditor: إنشاء نموذج جديد');
-          setIsNewForm(true);
-          setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
-          setDescription('');
-          setFormData([]);
-        } 
-        // تحميل نموذج موجود
-        else if (resolvedFormId) {
-          console.log(`FormBuilderEditor: تحميل النموذج ${resolvedFormId}`);
-          const form = await getFormById(resolvedFormId);
-          
-          if (!form) {
-            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-            navigate('/forms', { replace: true });
-            return;
-          }
-          
-          setIsNewForm(false);
-          setTitle(form.title || '');
-          setDescription(form.description || '');
-          setFormData(Array.isArray(form.data) ? form.data : []);
-        } 
-        // حالة خطأ - عدم وجود معرف للنموذج
-        else {
-          console.error('FormBuilderEditor: لم يتم توفير معرف النموذج');
-          toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-          navigate('/forms', { replace: true });
-        }
-      } catch (error) {
-        console.error('خطأ في تحميل النموذج:', error);
-        setSaveError(language === 'ar' 
-          ? 'خطأ في تحميل النموذج' 
-          : 'Error loading form');
-        
-        // محاولة التحميل من التخزين المحلي كنسخة احتياطية
-        try {
-          const cachedForm = localStorage.getItem(`form_${resolvedFormId}`);
-          if (cachedForm) {
-            const parsedForm = JSON.parse(cachedForm);
-            setTitle(parsedForm.title || '');
-            setDescription(parsedForm.description || '');
-            setFormData(Array.isArray(parsedForm.data) ? parsedForm.data : []);
-            
-            toast.info(language === 'ar'
-              ? 'تم استخدام بيانات محلية نظرًا لمشكلة في الاتصال'
-              : 'Using local data due to connection issue');
-          } else {
-            // نموذج فارغ افتراضي
-            setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
-            setDescription('');
-            setFormData([]);
-          }
-        } catch (localError) {
-          console.error('خطأ في التحميل من التخزين المحلي:', localError);
-        }
-      } finally {
-        setIsLoading(false);
-        setIsDirty(false); // إعادة تعيين حالة التعديل بعد التحميل
-        setRenderKey(Date.now()); // فرض إعادة العرض بمفتاح جديد
-        hasLoadedRef.current = true;
-      }
+  const [formStyle, setFormStyle] = useState(() => {
+    const storedStyle = localStorage.getItem('selectedTemplateStyle');
+    return storedStyle ? JSON.parse(storedStyle) : {
+      primaryColor: '#9b87f5',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      buttonStyle: 'rounded',
     };
+  });
+  
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [formElements, setFormElements] = useState<Array<FormField>>([
+    { type: 'title', id: 'title-1', label: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery' },
+    { type: 'text', id: 'name-1', label: language === 'ar' ? 'الاسم الكامل' : 'Full name', required: true, placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name' },
+    { type: 'phone', id: 'phone-1', label: language === 'ar' ? 'رقم الهاتف' : 'Phone number', required: true, placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number' },
+    { type: 'text', id: 'city-1', label: language === 'ar' ? 'المدينة' : 'City', required: true, placeholder: language === 'ar' ? 'المدينة' : 'City' },
+    { type: 'textarea', id: 'address-1', label: language === 'ar' ? 'العنوان' : 'Address', required: true, placeholder: language === 'ar' ? 'العنوان' : 'address' },
+    { type: 'cart-items', id: 'cart-1', label: language === 'ar' ? 'المنتج' : 'Product item' },
+    { type: 'submit', id: 'submit-1', label: language === 'ar' ? 'شراء بالدفع عند الاستلام' : 'Buy with Cash on Delivery' }
+  ]);
+  
+  const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
+  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formDescription, setFormDescription] = useState('');
+  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
 
-    loadForm();
-  }, [resolvedFormId, getFormById, navigate, language]);
+  const availableElements = [
+    { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
+    { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
+    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
+    { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
+    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
+    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
+    { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
+    { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
+    { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
+    { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
+    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
+  ];
 
-  // معالجة تغييرات منشئ النموذج - استخدام useCallback لتحسين الأداء
-  const handleFormDataChange = useCallback((newFormData: any[]) => {
-    setFormData(newFormData);
-  }, []);
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [formElements]);
 
-  // حفظ النموذج
-  const handleSave = async () => {
-    if (isSaving) return;
-    
+  const handleSave = () => {
     setIsSaving(true);
-    setSaveError(null);
-    
-    try {
-      let savedForm;
-      
-      // التحقق من القيم المطلوبة
-      if (!title.trim()) {
-        toast.error(language === 'ar' ? 'عنوان النموذج مطلوب' : 'Form title is required');
-        setIsSaving(false);
-        return;
-      }
-      
-      const formToSave = {
-        title,
-        description,
-        data: formData,
-      };
-
-      // إنشاء نموذج جديد أو تحديث نموذج موجود
-      if (isNewForm) {
-        console.log('FormBuilderEditor: إنشاء نموذج جديد', formToSave);
-        savedForm = await createNewForm(formToSave);
-        
-        if (savedForm) {
-          toast.success(language === 'ar' 
-            ? 'تم إنشاء النموذج بنجاح' 
-            : 'Form created successfully');
-          
-          // الانتقال إلى النموذج الجديد
-          navigate(`/form-builder/${savedForm.id}`, { replace: true });
-          setIsNewForm(false);
-        } else {
-          throw new Error('فشل في إنشاء النموذج');
-        }
-      } 
-      // تحديث النموذج الموجود
-      else if (resolvedFormId && resolvedFormId !== 'new') {
-        console.log(`FormBuilderEditor: تحديث النموذج ${resolvedFormId}`, formToSave);
-        savedForm = await saveForm(resolvedFormId, formToSave);
-        
-        if (savedForm) {
-          toast.success(language === 'ar' 
-            ? 'تم حفظ النموذج بنجاح' 
-            : 'Form saved successfully');
-        } else {
-          throw new Error('فشل في تحديث النموذج');
-        }
-      }
-      
-      // تحديث التخزين المؤقت المحلي
-      try {
-        if (savedForm) {
-          localStorage.setItem(`form_${savedForm.id}`, JSON.stringify(savedForm));
-          // حذف المسودة بعد الحفظ بنجاح
-          localStorage.removeItem(`form_draft_${resolvedFormId}`);
-        }
-      } catch (cacheError) {
-        console.error('خطأ في تحديث التخزين المحلي:', cacheError);
-      }
-      
-      setIsDirty(false); // إعادة تعيين حالة التعديل بعد الحفظ
-    } catch (error) {
-      console.error('خطأ في حفظ النموذج:', error);
-      setSaveError(language === 'ar' 
-        ? 'خطأ في حفظ النموذج' 
-        : 'Error saving form');
-      
-      toast.error(language === 'ar' 
-        ? 'حدث خطأ أثناء حفظ النموذج' 
-        : 'Error saving form');
-      
-      // محاولة الحفظ في التخزين المحلي في حالة فشل الحفظ على الخادم
-      try {
-        localStorage.setItem(`form_draft_${resolvedFormId || 'new'}`, JSON.stringify({
-          title,
-          description,
-          data: formData,
-          lastModified: new Date().toISOString()
-        }));
-        
-        toast.info(language === 'ar'
-          ? 'تم حفظ النموذج محليًا كنسخة احتياطية'
-          : 'Form saved locally as backup');
-      } catch (localError) {
-        console.error('خطأ في الحفظ إلى التخزين المحلي:', localError);
-      }
-    } finally {
+    setTimeout(() => {
       setIsSaving(false);
+      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+    }, 1000);
+  };
+
+  const addElement = (type: string) => {
+    const newElement = {
+      type,
+      id: `${type}-${Date.now()}`,
+      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+    };
+    
+    const updatedElements = [...formElements, newElement];
+    setFormElements(updatedElements);
+    setTimeout(() => {
+      setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const editElement = (index: number) => {
+    const element = formElements[index];
+    setCurrentEditingField(element);
+    setIsFieldEditorOpen(true);
+  };
+
+  const deleteElement = (index: number) => {
+    const updatedElements = [...formElements];
+    updatedElements.splice(index, 1);
+    setFormElements(updatedElements);
+    setSelectedElementIndex(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const duplicateElement = (index: number) => {
+    const element = formElements[index];
+    const newElement = {
+      ...element,
+      id: `${element.id}-copy-${Date.now()}`
+    };
+    
+    const updatedElements = [...formElements];
+    updatedElements.splice(index + 1, 0, newElement);
+    setFormElements(updatedElements);
+    
+    setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+  };
+
+  const handleSelectTemplate = async (templateId: number) => {
+    const template = formTemplates.find(t => t.id === templateId);
+    if (template) {
+      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+      
+      const storedStyle = localStorage.getItem('selectedTemplateStyle');
+      const templateStyle = storedStyle ? JSON.parse(storedStyle) : null;
+      
+      if (templateStyle) {
+        setFormStyle({
+          primaryColor: template.primaryColor || templateStyle.primaryColor,
+          borderRadius: templateStyle.borderRadius,
+          fontSize: templateStyle.fontSize,
+          buttonStyle: templateStyle.buttonStyle
+        });
+      }
+      
+      const newElements = template.data.flatMap(step => 
+        step.fields.map(field => ({
+          ...field,
+          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        }))
+      );
+      
+      setFormTitle(template.title);
+      setFormDescription(template.description);
+      setFormElements(newElements);
+      setRefreshKey(prev => prev + 1);
+      setIsTemplateDialogOpen(false);
     }
   };
 
-  // إدارة تكامل Shopify - منع الاستدعاءات المتكررة باستخدام useCallback
-  const handleShopifyIntegration = useCallback(async (settings: ShopifyFormData) => {
-    try {
-      if (resolvedFormId === 'new') {
-        toast.error(language === 'ar' 
-          ? 'يرجى حفظ النموذج أولاً قبل تكوين تكامل Shopify' 
-          : 'Please save the form first before configuring Shopify integration');
-        return;
-      }
-      
-      await syncFormWithShopify({
-        ...settings,
-        form_id: resolvedFormId
-      });
-      
-      toast.success(language === 'ar' 
-        ? 'تم تكوين تكامل Shopify بنجاح' 
-        : 'Shopify integration configured successfully');
-    } catch (error) {
-      console.error('خطأ في تكوين تكامل Shopify:', error);
-      toast.error(language === 'ar' 
-        ? 'خطأ في تكوين تكامل Shopify' 
-        : 'Error configuring Shopify integration');
+  const saveField = (updatedField: FormField) => {
+    const newElements = [...formElements];
+    const index = newElements.findIndex(el => el.id === updatedField.id);
+    if (index !== -1) {
+      newElements[index] = updatedField;
+      setFormElements(newElements);
     }
-  }, [syncFormWithShopify, resolvedFormId, language]);
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
+    
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
 
-  // عرض حالة التحميل
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  const handleStyleChange = (key: string, value: string) => {
+    setFormStyle({
+      ...formStyle,
+      [key]: value
+    });
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleSaveStyle = () => {
+    setIsStyleDialogOpen(false);
+    localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+  };
+
+  const handleShopifyIntegration = async (settings: ShopifyFormData) => {
+    try {
+      await shopifyIntegration.syncFormWithShopify(settings);
+      toast.success(
+        language === 'ar' 
+          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+          : 'Shopify settings saved successfully'
+      );
+    } catch (error) {
+      toast.error(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'Error saving Shopify settings'
+      );
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    setFormElements((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      
+      return arrayMove(items, oldIndex, newIndex);
+    });
+
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
 
   return (
-    <div className="p-6" key={renderKey}>
-      {/* رأس الصفحة مع أزرار الإجراءات */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/forms')}
-            className="mr-3"
+    <main className="flex-1 overflow-auto">
+      <FormHeader 
+        onSave={handleSave}
+        onPublish={() => {}}
+        onStyleOpen={() => setIsStyleDialogOpen(true)}
+        onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+        isSaving={isSaving}
+        isPublishing={false}
+        isPublished={false}
+      />
+      
+      <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
+        <div className="col-span-2 border-r bg-white p-4">
+          <FormElementList 
+            availableElements={availableElements}
+            onAddElement={addElement}
+          />
+        </div>
+        
+        <div className="col-span-6 bg-gray-50 p-6">
+          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+          </h2>
+          
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            {language === 'ar' ? 'العودة' : 'Back'}
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {isNewForm 
-              ? (language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form') 
-              : (language === 'ar' ? 'تعديل النموذج' : 'Edit Form')}
-          </h1>
+            <SortableContext 
+              items={formElements.map(el => el.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <FormElementEditor
+                elements={formElements}
+                selectedIndex={selectedElementIndex}
+                onSelectElement={setSelectedElementIndex}
+                onEditElement={editElement}
+                onDeleteElement={deleteElement}
+                onDuplicateElement={duplicateElement}
+              />
+            </SortableContext>
+          </DndContext>
         </div>
         
-        <Button 
-          onClick={handleSave}
-          disabled={isSaving || (!isDirty && !isNewForm)}
-          className="flex items-center"
-        >
-          {isSaving ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-              {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
-            </div>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              {language === 'ar' ? 'حفظ النموذج' : 'Save Form'}
-            </>
-          )}
-        </Button>
+        <div className="col-span-4 border-l bg-white p-6">
+          <FormPreviewPanel
+            formTitle={formTitle}
+            formDescription={formDescription}
+            currentStep={currentPreviewStep}
+            totalSteps={1}
+            formStyle={formStyle}
+            fields={formElements}
+            onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+            onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
+            refreshKey={refreshKey}
+          />
+        </div>
       </div>
       
-      {/* عرض الخطأ إذا كان موجودًا */}
-      {saveError && (
-        <Alert className="bg-red-50 border-red-300 mb-4">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-600">
-            {saveError}
-          </AlertDescription>
-        </Alert>
+      <FormStyleEditor
+        isOpen={isStyleDialogOpen}
+        onOpenChange={setIsStyleDialogOpen}
+        formStyle={formStyle}
+        onStyleChange={handleStyleChange}
+        onSave={handleSaveStyle}
+      />
+
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <FormTemplatesDialog 
+          open={isTemplateDialogOpen}
+          onSelect={handleSelectTemplate} 
+          onClose={() => setIsTemplateDialogOpen(false)}
+        />
+      </Dialog>
+
+      {isFieldEditorOpen && currentEditingField && (
+        <FieldEditor
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => setIsFieldEditorOpen(false)}
+        />
       )}
-      
-      {/* تعديل النموذج */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* المحتوى الرئيسي - منشئ النماذج وإعدادات النموذج */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg border p-4 shadow-sm">
-            <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'تفاصيل النموذج' : 'Form Details'}</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                  {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}*
-                </label>
-                <Input 
-                  id="title"
-                  value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setIsDirty(true);
-                  }}
-                  placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
-                  className="w-full"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
-                </label>
-                <Textarea 
-                  id="description"
-                  value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                    setIsDirty(true);
-                  }}
-                  placeholder={language === 'ar' ? 'أدخل وصفاً مختصراً للنموذج (اختياري)' : 'Enter a brief description (optional)'}
-                  className="w-full"
-                  rows={3}
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* منشئ النموذج */}
-          <div className="bg-white rounded-lg border p-4 shadow-sm">
-            <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'محتوى النموذج' : 'Form Content'}</h2>
-            
-            <FormBuilder 
-              formData={formData}
-              onChange={handleFormDataChange}
-            />
-          </div>
+
+      {formId && (
+        <div className="mt-6">
+          <ShopifyIntegration
+            formId={formId}
+            onSave={handleShopifyIntegration}
+            isSyncing={shopifyIntegration.isSyncing}
+          />
         </div>
-        
-        {/* الشريط الجانبي - التكاملات والإعدادات */}
-        <div className="space-y-6">
-          {/* تكامل Shopify */}
-          <div className="bg-white rounded-lg border p-4 shadow-sm">
-            <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'تكاملات' : 'Integrations'}</h2>
-            
-            <FormBuilderShopify 
-              onShopifyIntegration={handleShopifyIntegration}
-              isSyncing={isSyncing}
-              formId={resolvedFormId !== 'new' ? resolvedFormId : null}
-            />
-          </div>
-          
-          {/* إعدادات النموذج - يمكن إضافة المزيد هنا */}
-          <div className="bg-white rounded-lg border p-4 shadow-sm">
-            <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'إعدادات النموذج' : 'Form Settings'}</h2>
-            
-            <div className="text-sm text-gray-600">
-              {language === 'ar' 
-                ? 'ستتمكن من تخصيص المزيد من الإعدادات بعد حفظ النموذج.' 
-                : 'You will be able to customize more settings after saving the form.'}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      )}
+    </main>
   );
 };
 

@@ -1,9 +1,12 @@
 
 import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
 import { Button } from '@/components/ui/button';
 import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -15,7 +18,7 @@ interface FormElementEditorProps {
 }
 
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
-  elements = [], // Provide default empty array
+  elements,
   selectedIndex,
   onSelectElement,
   onEditElement,
@@ -23,25 +26,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onDuplicateElement
 }) => {
   const { language } = useI18n();
-
-  // Handle case when elements is undefined
-  if (!elements || elements.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-white p-4 rounded-md border">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">
-              {language === 'ar' ? 'تنسيق النموذج العام' : 'Global form styling'}
-            </h3>
-          </div>
-        </div>
-        
-        <div className="bg-white p-8 rounded-md border text-center text-gray-500">
-          {language === 'ar' ? 'لا توجد عناصر في النموذج' : 'No elements in the form'}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">

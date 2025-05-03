@@ -1,108 +1,127 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
+// Define language types
 type Language = 'en' | 'ar';
 
+// Create context
 interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
-  dir: () => 'ltr' | 'rtl';
 }
 
-const translations: Record<string, Record<Language, string>> = {
-  loading: {
-    en: 'Loading...',
-    ar: 'جار التحميل...'
-  },
-  shopifyConnectionIssue: {
-    en: 'Shopify Connection Issue',
-    ar: 'مشكلة في الاتصال بـ Shopify'
-  },
-  pleaseConnect: {
-    en: 'Please connect your Shopify store to continue using this application.',
-    ar: 'يرجى الاتصال بمتجر Shopify للاستمرار في استخدام هذا التطبيق.'
-  },
-  connectToShopifyNow: {
-    en: 'Connect to Shopify Now',
-    ar: 'الاتصال بـ Shopify الآن'
-  },
-  forceReconnect: {
-    en: 'Force Reconnect',
-    ar: 'إعادة الاتصال بشكل إجباري'
-  },
-  'shopify.integration': {
-    en: 'Shopify Integration',
-    ar: 'تكامل Shopify'
-  },
-  'shopify.connection_required': {
-    en: 'You need to connect to Shopify to use this feature.',
-    ar: 'تحتاج إلى الاتصال بـ Shopify لاستخدام هذه الميزة.'
-  },
-  'shopify.connect_now': {
-    en: 'Connect to Shopify',
-    ar: 'الاتصال بـ Shopify'
-  },
-  'shopify.connected': {
-    en: 'Connected to Shopify',
-    ar: 'متصل بـ Shopify'
-  }
-};
-
-// Create I18n context
 const I18nContext = createContext<I18nContextType>({
   language: 'en',
   setLanguage: () => {},
   t: () => '',
-  dir: () => 'ltr'
 });
 
-export const useI18n = () => useContext(I18nContext);
+// Define translations
+const translations = {
+  en: {
+    dashboard: 'Dashboard',
+    forms: 'Forms',
+    orders: 'Orders',
+    landingPages: 'Landing Pages',
+    quickOffers: 'Quick Offers',
+    quantityOffers: 'Quantity Offers',
+    settings: 'Settings',
+    ordersTitle: 'Orders',
+    formBuilder: 'Form Builder',
+    save: 'Save',
+    publish: 'Publish',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    preview: 'Preview',
+    newForm: 'New Form',
+    formTemplates: 'Form Templates',
+    elements: 'Elements',
+    addElement: 'Add Element',
+    formSettings: 'Form Settings',
+    formDesign: 'Form Design',
+    elementSettings: 'Element Settings',
+    next: 'Next',
+    previous: 'Previous',
+    submitOrder: 'Submit Order',
+    fullName: 'Full Name',
+    phoneNumber: 'Phone Number',
+    city: 'City',
+    address: 'Address',
+  },
+  ar: {
+    dashboard: 'لوحة التحكم',
+    forms: 'النماذج',
+    orders: 'الطلبات',
+    landingPages: 'صفحات الهبوط',
+    quickOffers: 'العروض السريعة',
+    quantityOffers: 'عروض الكمية',
+    settings: 'الإعدادات',
+    ordersTitle: 'الطلبات',
+    formBuilder: 'منشئ النماذج',
+    save: 'حفظ',
+    publish: 'نشر',
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    edit: 'تعديل',
+    preview: 'معاينة',
+    newForm: 'نموذج جديد',
+    formTemplates: 'قوالب النماذج',
+    elements: 'العناصر',
+    addElement: 'إضافة عنصر',
+    formSettings: 'إعدادات النموذج',
+    formDesign: 'تصميم النموذج',
+    elementSettings: 'إعدادات العنصر',
+    next: 'التالي',
+    previous: 'السابق',
+    submitOrder: 'إرسال الطلب',
+    fullName: 'الاسم الكامل',
+    phoneNumber: 'رقم الهاتف',
+    city: 'المدينة',
+    address: 'العنوان',
+  }
+};
 
-export const I18nProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  // Try to get language from localStorage, default to en
-  const [language, setLanguageState] = useState<Language>(
-    () => {
-      try {
-        const savedLanguage = localStorage.getItem('language');
-        return (savedLanguage === 'ar' || savedLanguage === 'en') 
-          ? savedLanguage 
-          : 'en';
-      } catch {
-        return 'en';
-      }
+// Provider component
+interface I18nProviderProps {
+  children: ReactNode;
+}
+
+export const I18nProvider = ({ children }: I18nProviderProps) => {
+  const [language, setLanguage] = useState<Language>('en');
+
+  // Load language from localStorage on component mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar')) {
+      setLanguage(savedLanguage);
     }
-  );
+  }, []);
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    try {
-      localStorage.setItem('language', lang);
-      // Update document direction
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.lang = lang;
-    } catch (e) {
-      console.error('Failed to save language preference:', e);
-    }
-  };
-
-  const t = (key: string): string => {
-    return translations[key]?.[language] || key;
-  };
-
-  const dir = (): 'ltr' | 'rtl' => {
-    return language === 'ar' ? 'rtl' : 'ltr';
-  };
-
-  // Set initial document direction
-  React.useEffect(() => {
+  // Save language to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('language', language);
+    // Set RTL for Arabic
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
   }, [language]);
 
+  // Translation function
+  const t = (key: string): string => {
+    if (!key) return '';
+    
+    // Safely access translations with type checking
+    const langTranslations = translations[language] || {};
+    return (langTranslations as Record<string, string>)[key] || key;
+  };
+
   return (
-    <I18nContext.Provider value={{ language, setLanguage, t, dir }}>
+    <I18nContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </I18nContext.Provider>
   );
 };
+
+// Custom hook for using translations
+export const useI18n = () => useContext(I18nContext);

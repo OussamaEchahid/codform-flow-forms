@@ -1,353 +1,511 @@
 
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { ShopifyIcon } from "@/components/icons/ShopifyIcon";
-import { useAuth } from "@/lib/auth";
-import { toast } from "sonner";
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
+import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-export default function Shopify() {
-  const [shop, setShop] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+// تنظيف نطاق المتجر
+function cleanShopDomain(shop: string): string {
+  let cleanedShop = shop.trim();
+  
+  // إزالة البروتوكول إذا كان موجودًا
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+      console.log("تنظيف عنوان متجر:", cleanedShop);
+    } catch (e) {
+      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
+    }
+  }
+  
+  // التأكد من أنه ينتهي بـ myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+      console.log("إضافة .myshopify.com للمتجر:", cleanedShop);
+    }
+  }
+  
+  return cleanedShop;
+}
+
+const DebugPanel = ({ data }: { data: any }) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <div className="mt-4 border rounded-md overflow-hidden">
+      <div 
+        className="bg-gray-100 p-2 flex justify-between items-center cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <p className="text-sm font-bold">معلومات التصحيح</p>
+        <Button variant="ghost" size="sm">{expanded ? 'إخفاء' : 'عرض'}</Button>
+      </div>
+      {expanded && (
+        <div className="p-4 bg-gray-50 text-xs overflow-auto max-h-72">
+          <pre>{JSON.stringify(data, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ConnectionStatus = ({ 
+  isConnected, 
+  shop, 
+  onReturn 
+}: { 
+  isConnected: boolean, 
+  shop?: string, 
+  onReturn: () => void 
+}) => {
+  const { language } = useI18n();
+  
+  if (isConnected && shop) {
+    return (
+      <Card className="p-6 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-green-100">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">
+              {language === 'ar' ? 'متصل بنجاح' : 'Successfully Connected'}
+            </h3>
+            <p className="text-gray-700 mb-2">
+              {language === 'ar' 
+                ? `أنت متصل بمتجر: ${shop}` 
+                : `You are connected to store: ${shop}`}
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={onReturn}
+            >
+              {language === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to Dashboard'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+  
+  return null;
+};
+
+const Shopify = () => {
+  const { t, language } = useI18n();
   const navigate = useNavigate();
-  const { shopifyConnected, shop: connectedShop, refreshShopifyConnection } = useAuth();
-  
-  // معالج للمحاولات المتكررة
-  const cleanupSessionState = useCallback(() => {
-    sessionStorage.removeItem('shopify_connecting');
-    sessionStorage.removeItem('shopify_redirect_attempts');
-    sessionStorage.removeItem('shopify_callback_attempts');
-  }, []);
-  
-  // معالجة معلمات URL والاتصال الحالي
+  const location = useLocation();
+  const { shopifyConnected, shop } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>({});
+  const [authStarted, setAuthStarted] = useState(false);
+  const [popupWindow, setPopupWindow] = useState<Window | null>(null);
+
   useEffect(() => {
-    console.log("Shopify page mounted, checking parameters");
-    cleanupSessionState();
-    
-    const params = new URLSearchParams(window.location.search);
-    const forceReconnect = params.get("force") === "true";
-    const shopParam = params.get("shop");
-    
-    // تعيين القيمة الموجودة بشكل افتراضي إذا كنا متصلين بالفعل
-    if (shopifyConnected && connectedShop) {
-      console.log(`Already connected to ${connectedShop}, showing reconnect option`);
-      setShop(connectedShop);
-    } 
-    // إذا كان لدينا معلمة متجر، استخدمها لملء الحقل
-    else if (shopParam) {
-      setShop(shopParam);
-    }
-    // محاولة استرداد المتجر المخزن
-    else {
-      const tempShop = localStorage.getItem('shopify_temp_store');
-      if (tempShop) {
-        setShop(tempShop);
-      } else if (localStorage.getItem('shopify_store')) {
-        setShop(localStorage.getItem('shopify_store') || '');
-      }
-    }
-    
-    // إذا كانت إعادة الاتصال القسرية محددة، امسح بيانات الاتصال
-    if (forceReconnect) {
-      console.log("Force reconnect requested, clearing connection data");
-      
-      // مسح بيانات اتصال Shopify
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_connect_time');
-      
-      // إعادة تعيين حالة إعادة المحاولة
-      localStorage.setItem('shopify_connection_attempts', '0');
-      
-      // تحديث سياق المصادقة
-      if (refreshShopifyConnection) {
-        refreshShopifyConnection();
-      }
-    }
-    
-    // تنظيف معلمات URL
-    if (window.history.replaceState) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    // تأخير قصير ثم التحقق مما إذا كنا متصلين بالفعل
-    setTimeout(() => {
-      setIsCheckingConnection(false);
-    }, 500);
-  }, [refreshShopifyConnection, shopifyConnected, connectedShop, cleanupSessionState]);
+    const checkAuth = async () => {
+      try {
+        // التحقق من وجود متجر Shopify في Supabase
+        const { data: shopifyStore, error } = await supabase
+          .rpc('get_user_shop')
+          .single();
 
-  // نهج اتصال OAuth المباشر - أكثر موثوقية
-  const handleConnect = async () => {
-    if (!shop.trim()) {
-      setError("يرجى إدخال رابط متجر Shopify الخاص بك");
-      return;
-    }
+        if (shopifyStore) {
+          // تم العثور على المتجر، تحديث localStorage
+          localStorage.setItem('shopify_store', shopifyStore);
+          localStorage.setItem('shopify_connected', 'true');
+          setDebugInfo(prev => ({ ...prev, shopifyStore }));
+        }
 
-    setIsLoading(true);
-    setError(null);
+        // التحقق من معلمات URL
+        const params = new URLSearchParams(location.search);
+        const shopParam = params.get("shop");
+        const shopifySuccess = params.get("shopify_success");
+
+        if (shopifySuccess === "true" && shopParam) {
+          toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+          localStorage.setItem('shopify_store', shopParam);
+          localStorage.setItem('shopify_connected', 'true');
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        console.error("خطأ في التحقق من المصادقة:", err);
+      }
+    };
+
+    checkAuth();
+  }, [location.search, navigate]);
+
+  // إضافة تحقق للنافذة المنبثقة
+  useEffect(() => {
+    if (popupWindow && popupWindow.closed) {
+      console.log("تم إغلاق النافذة المنبثقة");
+      setIsProcessing(false);
+      
+      // تحقق من localStorage بعد إغلاق النافذة المنبثقة
+      const connected = localStorage.getItem('shopify_connected');
+      const storeUrl = localStorage.getItem('shopify_store');
+      
+      if (connected === 'true' && storeUrl) {
+        toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+        navigate('/dashboard');
+      } else {
+        setError('تم إغلاق نافذة المصادقة قبل إكمال العملية. يرجى المحاولة مرة أخرى.');
+      }
+      
+      setPopupWindow(null);
+    }
+    
+    // تحقق كل ثانية من حالة النافذة المنبثقة
+    const checkPopupInterval = popupWindow ? setInterval(() => {
+      if (popupWindow.closed) {
+        clearInterval(checkPopupInterval);
+        setIsProcessing(false);
+        setPopupWindow(null);
+        
+        // تحقق من localStorage مرة أخرى
+        const connected = localStorage.getItem('shopify_connected');
+        const storeUrl = localStorage.getItem('shopify_store');
+        
+        if (connected === 'true' && storeUrl) {
+          toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+          navigate('/dashboard');
+        }
+      }
+    }, 1000) : null;
+    
+    return () => {
+      if (checkPopupInterval) clearInterval(checkPopupInterval);
+    };
+  }, [popupWindow, navigate]);
+
+  const handleConnectShopify = async () => {
+    // طلب تحسين: استخدام طريقة عارض بدلاً من prompt 
+    let shopDomain = window.prompt(
+      language === 'ar' 
+        ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
+        : "Enter your Shopify store domain (example: your-store.myshopify.com)"
+    );
+    
+    if (!shopDomain) return;
     
     try {
-      // تنظيف حالات الجلسة
-      cleanupSessionState();
+      setIsProcessing(true);
+      setAuthStarted(true);
+      setError(null);
       
-      // تخزين بيانات المتجر المؤقتة
-      localStorage.setItem('shopify_temp_store', shop);
-      localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+      // تنظيف عنوان URL للمتجر من أي بروتوكولات
+      shopDomain = cleanShopDomain(shopDomain);
       
-      // إضافة طابع زمني وقيمة عشوائية لتجنب التخزين المؤقت
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(7);
+      const response = await fetch(
+        `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(shopDomain)}`, 
+        { method: 'GET' }
+      );
       
-      // إظهار نخبة للمستخدم
-      toast.info("جاري الاتصال بـ Shopify...");
+      if (!response.ok) {
+        throw new Error(`فشل الطلب برمز الحالة ${response.status}`);
+      }
       
-      try {
-        // استدعاء واجهة برمجة تطبيقات اتصال Shopify
-        const authEndpointUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(shop)}&ts=${timestamp}&r=${randomStr}&client=${encodeURIComponent(window.location.origin)}&debug=true`;
+      const data = await response.json();
+      setDebugInfo({ response: data, shopDomain });
+      
+      if (data.redirect) {
+        // تخزين المعلومات المؤقتة
+        localStorage.setItem('shopify_temp_store', shopDomain);
         
-        console.log("Calling auth endpoint:", authEndpointUrl);
+        console.log("إعادة التوجيه إلى مصادقة Shopify:", data.redirect);
         
-        // وضع علامة على الاتصال الجاري
-        sessionStorage.setItem('shopify_connecting', 'true');
-        sessionStorage.setItem('shopify_connecting_time', Date.now().toString());
+        // تحسين فتح النافذة المنبثقة
+        const width = 1000;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
         
-        const response = await fetch(authEndpointUrl, { 
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
-          },
-          cache: 'no-store'
-        });
+        // فتح النافذة المنبثقة مع المزيد من الخيارات
+        const popup = window.open(
+          data.redirect,
+          "ShopifyAuth", 
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
+        );
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Auth endpoint error:", errorText);
-          throw new Error(`فشل الاتصال: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log("Auth endpoint response:", data);
-        
-        if (data.redirect) {
-          // تسجيل إعادة التوجيه
-          console.log(`Redirecting to Shopify OAuth URL: ${data.redirect}`);
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          // فشل في فتح النافذة المنبثقة
+          setError("تم حظر النوافذ المنبثقة. الرجاء السماح بالنوافذ المنبثقة وإعادة المحاولة.");
+          setIsProcessing(false);
           
-          // تأكد من إكمال أي وظائف متزامنة قبل إعادة التوجيه
+          // يمكن محاولة الفتح التلقائي مرة أخرى بعد إخبار المستخدم
           setTimeout(() => {
-            // إظهار نخبة نجاح
-            toast.success("جاري توجيهك إلى Shopify...", { duration: 3000 });
-            
-            // إعادة التوجيه إلى صفحة مصادقة Shopify
-            window.location.href = data.redirect;
+            const confirmRetry = window.confirm("تم حظر النوافذ المنبثقة. هل تريد المحاولة مرة أخرى؟ تأكد من السماح بالنوافذ المنبثقة في متصفحك.");
+            if (confirmRetry) {
+              // محاولة فتح النافذة مرة أخرى
+              const retryPopup = window.open(
+                data.redirect,
+                "ShopifyAuth", 
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
+              );
+              
+              if (retryPopup) {
+                setPopupWindow(retryPopup);
+                retryPopup.focus();
+              } else {
+                // إذا فشلت المحاولة الثانية، اقترح الاتصال المباشر
+                setError("لا يزال يتم حظر النوافذ المنبثقة. يرجى استخدام خيار 'الاتصال المباشر' بدلاً من ذلك.");
+              }
+            }
           }, 500);
-          
-          return; // إيقاف التنفيذ هنا
-        } else if (data.success && data.hasExistingToken) {
-          // تعامل مع الحالة التي يكون فيها لدينا رمز وصول موجود
-          console.log("Found existing access token, redirecting to dashboard");
-          
-          // تخزين بيانات المتجر
-          localStorage.setItem('shopify_store', data.shop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_last_connect_time', Date.now().toString());
-          
-          // تحديث سياق المصادقة
-          if (refreshShopifyConnection) {
-            refreshShopifyConnection();
-          }
-          
-          // إظهار نخبة نجاح
-          toast.success(`تم الاتصال بنجاح بمتجر ${data.shop}`);
-          
-          // إعادة التوجيه إلى لوحة التحكم
-          window.location.href = data.redirect;
-          return;
         } else {
-          throw new Error("لم يتم توفير عنوان URL لإعادة التوجيه");
+          // تم فتح النافذة المنبثقة بنجاح
+          setPopupWindow(popup);
+          // محاولة تركيز النافذة المنبثقة
+          popup.focus();
         }
-      } catch (fetchError) {
-        console.error("Auth endpoint error:", fetchError);
-        
-        // جرب النهج الاحتياطي
-        console.log("Using fallback redirect method");
-        
-        // إظهار نخبة للمستخدم
-        toast.info("جاري استخدام طريقة بديلة للاتصال...");
-        
-        // استخدم مسار auth المضمن
-        setTimeout(() => {
-          window.location.href = `/auth?shop=${encodeURIComponent(shop)}&ts=${timestamp}&r=${randomStr}&force=true`;
-        }, 1000);
+      } else if (data.error) {
+        setError(data.error);
+        toast.error(data.error);
+        setIsProcessing(false);
       }
     } catch (err) {
-      console.error("Connection error:", err);
-      setError(err instanceof Error ? err.message : "حدث خطأ أثناء محاولة الاتصال");
+      console.error("خطأ في بدء مصادقة Shopify:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال بـ Shopify");
       toast.error("فشل الاتصال بـ Shopify. يرجى المحاولة مرة أخرى.");
-      
-      // مسح حالة الاتصال الجارية
-      cleanupSessionState();
-    } finally {
-      // إعادة تعيين حالة التحميل بعد تأخير للسماح بإعادة التوجيه
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 5000);
+      setIsProcessing(false);
     }
   };
 
-  // إذا كنا متصلين بالفعل، اعرض خيار إعادة الاتصال
-  if (!isCheckingConnection && shopifyConnected && connectedShop) {
-    return (
-      <div className="container mx-auto max-w-md py-12" dir="rtl">
-        <Card className="shadow-lg border-green-100">
-          <CardHeader>
-            <div className="flex items-center justify-center mb-4">
-              <ShopifyIcon className="h-16 w-16 text-[#95BF47]" />
-            </div>
-            <CardTitle className="text-2xl text-center">متصل بـ Shopify</CardTitle>
-            <CardDescription className="text-center text-lg">
-              أنت متصل حاليًا بمتجر {connectedShop}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-green-50 border-l-4 border-green-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="mr-3">
-                  <p className="text-sm text-green-700">
-                    تم الاتصال بنجاح بمتجرك. يمكنك الآن استخدام جميع ميزات التكامل مع Shopify.
+  // طريقة بديلة للاتصال بدون نافذة منبثقة
+  const handleDirectConnect = () => {
+    let shopDomain = window.prompt(
+      language === 'ar' 
+        ? "أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)"
+        : "Enter your Shopify store domain (example: your-store.myshopify.com)"
+    );
+    
+    if (!shopDomain) return;
+    
+    try {
+      setIsProcessing(true);
+      setAuthStarted(true);
+      setError(null);
+      
+      // تنظيف عنوان URL للمتجر
+      shopDomain = cleanShopDomain(shopDomain);
+      console.log("تم تنظيف عنوان المتجر:", shopDomain);
+      
+      // تخزين معلومات المتجر مؤقتًا
+      localStorage.setItem('shopify_temp_store', shopDomain);
+      
+      // توجيه مباشر إلى ShopifyRedirect بدلاً من Auth مباشرة
+      const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
+      console.log("التوجيه مباشرة إلى:", redirectUrl);
+      
+      // توجيه مباشر بدون نافذة منبثقة
+      navigate(redirectUrl);
+    } catch (err) {
+      console.error("خطأ أثناء الاتصال المباشر:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ أثناء الاتصال المباشر");
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex-1 p-8">
+        <div className="max-w-[800px] mx-auto">
+          <Button 
+            variant="ghost" 
+            className="mb-6" 
+            onClick={() => navigate('/dashboard')}
+          >
+            {language === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to Dashboard'}
+          </Button>
+          
+          <h1 className="text-3xl font-bold mb-6">
+            {language === 'ar' ? 'تكامل متجر Shopify' : 'Shopify Integration'}
+          </h1>
+          
+          {isProcessing && (
+            <Card className="p-6 mb-6 border-purple-300 bg-purple-50">
+              <div className="flex items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}
+                  </h3>
+                  <p className="text-gray-600">
+                    {language === 'ar' ? 'جاري بدء عملية المصادقة مع متجر Shopify...' : 'Starting authentication process with Shopify...'}
                   </p>
                 </div>
               </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4 w-full">
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                className="bg-gray-500 hover:bg-gray-600"
-              >
-                العودة للوحة التحكم
-              </Button>
-              <Button 
-                onClick={() => {
-                  // مسح بيانات الاتصال
-                  localStorage.removeItem('shopify_store');
-                  localStorage.removeItem('shopify_connected');
-                  localStorage.removeItem('shopify_temp_store');
-                  localStorage.removeItem('shopify_last_connect_time');
-                  
-                  // مسح حالات الجلسة
-                  cleanupSessionState();
-                  
-                  // تحديث سياق المصادقة
-                  if (refreshShopifyConnection) {
-                    refreshShopifyConnection();
-                  }
-                  
-                  // إعادة تحميل الصفحة
-                  window.location.reload();
-                }} 
-                variant="outline"
-              >
-                إعادة الاتصال
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto max-w-md py-12" dir="rtl">
-      <Card className="w-full shadow-lg border-purple-100">
-        <CardHeader>
-          <div className="flex items-center justify-center mb-4">
-            <ShopifyIcon className="h-16 w-16 text-[#95BF47]" />
-          </div>
-          <CardTitle className="text-2xl text-center">ربط متجر Shopify</CardTitle>
-          <CardDescription className="text-center text-lg">
-            قم بتوصيل متجرك بـ CODFORM للاستفادة من نماذج الطلب الأكثر تقدمًا
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-5 w-5" />
-              <AlertTitle className="font-bold">خطأ</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+              <DebugPanel data={debugInfo} />
+            </Card>
           )}
           
-          <div className="mb-6">
-            <Label htmlFor="shop" className="text-lg mb-2 block">رابط متجر Shopify</Label>
-            <div className="mt-1">
-              <Input
-                id="shop"
-                value={shop}
-                onChange={(e) => setShop(e.target.value)}
-                placeholder="your-store.myshopify.com"
-                disabled={isLoading}
-                className="text-lg p-5 h-14"
-              />
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              أدخل عنوان متجرك بتنسيق your-store.myshopify.com
-            </p>
-          </div>
-          
-          <div className="space-y-4 mt-8">
-            <Button 
-              onClick={handleConnect} 
-              className="w-full bg-[#5E6EBF] hover:bg-[#4E5EAF] h-14 text-lg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                  جاري الاتصال...
+          {error && (
+            <Card className="p-6 mb-6 border-red-300 bg-red-50">
+              <div className="flex items-center gap-4">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {language === 'ar' ? 'خطأ' : 'Error'}
+                  </h3>
+                  <p className="text-red-600">{error}</p>
                 </div>
-              ) : (
-                <>الاتصال بمتجر Shopify</>
-              )}
-            </Button>
-            
-            {/* إضافة زر احتياطي للمساعدة في حل مشكلات الاتصال */}
-            {!isLoading && (
-              <div className="text-center mt-4">
-                <button 
-                  onClick={() => {
-                    cleanupSessionState();
-                    window.location.href = `/auth?shop=bestform-app.myshopify.com&force=true&ts=${Date.now()}`;
-                  }}
-                  className="text-sm text-gray-500 underline hover:text-gray-700"
-                >
-                  استخدام المتجر الافتراضي (bestform-app.myshopify.com)
-                </button>
               </div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4 bg-slate-50 rounded-b-lg p-4">
-          <div className="text-sm text-gray-500 text-center w-full">
-            بالنقر على "اتصال"، أنت توافق على <a href="https://codform.co/terms" className="underline text-[#5E6EBF]" target="_blank" rel="noopener noreferrer">شروط الخدمة</a> الخاصة بنا.
-          </div>
-        </CardFooter>
-      </Card>
+              <DebugPanel data={debugInfo} />
+            </Card>
+          )}
+          
+          <ConnectionStatus 
+            isConnected={!!shopifyConnected} 
+            shop={shop} 
+            onReturn={() => navigate('/dashboard')}
+          />
+          
+          {!shopifyConnected && (
+            <Card className="p-6">
+              <div className="flex flex-col items-center text-center p-4">
+                <div className="p-4 bg-[#F4F1FE] rounded-full mb-4">
+                  <ShoppingBag className="h-12 w-12 text-purple-600" />
+                </div>
+                
+                <h2 className="text-2xl font-bold mb-2">
+                  {language === 'ar' ? 'اتصل بمتجر Shopify' : 'Connect Shopify Store'}
+                </h2>
+                
+                <p className="text-gray-600 mb-6 max-w-md">
+                  {language === 'ar' 
+                    ? 'قم بتوصيل متجر Shopify الخاص بك للاستفادة من ميزات تكامل نماذج الدفع عند الاستلام'
+                    : 'Connect your Shopify store to use all the features of the COD form integration'
+                  }
+                </p>
+                
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <Button 
+                    size="lg"
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={handleConnectShopify}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing 
+                      ? (language === 'ar' ? 'جارٍ الاتصال...' : 'Connecting...') 
+                      : (language === 'ar' ? 'اتصل بـ Shopify (نافذة منبثقة)' : 'Connect with Popup')}
+                  </Button>
+                  
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    className="border-purple-300"
+                    onClick={handleDirectConnect}
+                    disabled={isProcessing}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {language === 'ar' ? 'اتصل مباشرة (صفحة كاملة)' : 'Direct Connect (Full Page)'}
+                  </Button>
+                </div>
+                
+                {authStarted && !isProcessing && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="text-amber-700">
+                      {language === 'ar'
+                        ? 'تم بدء عملية المصادقة. إذا لم يتم إعادة توجيهك تلقائيًا، يرجى التحقق من النافذة المنبثقة أو تجربة خيار الاتصال المباشر.'
+                        : 'Authentication process started. If you were not redirected automatically, please check for popup windows or try the direct connect option.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+          
+          <Card className="p-6 mt-8">
+            <h3 className="text-xl font-bold mb-4">
+              {language === 'ar' ? 'تعليمات الاتصال' : 'Connection Instructions'}
+            </h3>
+            
+            <div className="space-y-4 text-gray-700">
+              <p>
+                {language === 'ar' 
+                  ? '1. انقر على زر "اتصل بـ Shopify" أعلاه'
+                  : '1. Click the "Connect to Shopify" button above'
+                }
+              </p>
+              <p>
+                {language === 'ar'
+                  ? '2. أدخل دومين متجر Shopify الخاص بك (مثال: your-store.myshopify.com)'
+                  : '2. Enter your Shopify store domain (example: your-store.myshopify.com)'
+                }
+              </p>
+              <p>
+                {language === 'ar'
+                  ? '3. قم بتسجيل الدخول إلى حسابك في Shopify إذا طُلب منك ذلك'
+                  : '3. Log in to your Shopify account if prompted'
+                }
+              </p>
+              <p>
+                {language === 'ar'
+                  ? '4. وافق على أذونات التطبيق للسماح بالوصول إلى متجرك'
+                  : '4. Approve the app permissions to allow access to your store'
+                }
+              </p>
+              <p>
+                {language === 'ar'
+                  ? '5. ستتم إعادة توجيهك تلقائياً إلى لوحة التحكم'
+                  : '5. You will be automatically redirected back to the dashboard'
+                }
+              </p>
+            </div>
+          </Card>
+          
+          <Card className="p-6 mt-8 bg-yellow-50 border-yellow-200">
+            <h3 className="text-xl font-bold mb-4">
+              {language === 'ar' ? 'استكشاف الأخطاء وإصلاحها' : 'Troubleshooting'}
+            </h3>
+            
+            <div className="space-y-4 text-gray-700">
+              <p>
+                {language === 'ar' 
+                  ? 'إذا واجهت مشكلات في الاتصال، تحقق مما يلي:'
+                  : 'If you encounter connection issues, check the following:'}
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  {language === 'ar'
+                    ? 'تأكد من أن متجر Shopify الخاص بك نشط ومتاح'
+                    : 'Make sure your Shopify store is active and accessible'}
+                </li>
+                <li>
+                  {language === 'ar'
+                    ? 'تحقق من السماح بالنوافذ المنبثقة في متصفحك'
+                    : 'Ensure popups are allowed in your browser'}
+                </li>
+                <li>
+                  {language === 'ar'
+                    ? 'إذا لم تعمل النافذة المنبثقة، جرب خيار "الاتصال المباشر" بدلاً من ذلك'
+                    : 'If popup windows do not work, try the "Direct Connect" option instead'}
+                </li>
+                <li>
+                  {language === 'ar'
+                    ? 'حاول مسح ذاكرة التخزين المؤقت للمتصفح وملفات تعريف الارتباط'
+                    : 'Try clearing your browser cache and cookies'}
+                </li>
+                <li>
+                  {language === 'ar'
+                    ? 'تحقق من سجل وحدة التحكم في المتصفح للحصول على أي أخطاء'
+                    : 'Check your browser console for any errors'}
+                </li>
+              </ul>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default Shopify;
