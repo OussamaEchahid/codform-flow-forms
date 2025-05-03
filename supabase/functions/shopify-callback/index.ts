@@ -72,13 +72,14 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // نغير هنا - لا نستخدم const بل let لأننا سنقوم بتغيير القيمة لاحقًا
+    // نستخدم let بدلاً من const لأننا قد نحتاج لتغيير القيمة
     let shop = url.searchParams.get("shop") || "";
-    const hmac = url.searchParams.get("hmac");
-    const code = url.searchParams.get("code");
-    const state = url.searchParams.get("state");
+    let hmac = url.searchParams.get("hmac");
+    let code = url.searchParams.get("code");
+    let state = url.searchParams.get("state");
     const timestamp = Date.now();
     const isPopup = url.searchParams.get("popup") === "true";
+    let forceUpdate = url.searchParams.get("force_update") === "true";
     
     console.log("Callback params:", {
       shop,
@@ -102,33 +103,35 @@ serve(async (req) => {
         }
         
         // إذا لم يكن لدينا code من URL نأخذه من body
-        let codeFromBody = body.code;
-        let hmacFromBody = body.hmac;
-        let stateFromBody = body.state;
+        if (!code && body.code) {
+          code = body.code;
+        }
         
-        if (!shop || !codeFromBody) {
+        // إذا لم يكن لدينا hmac من URL نأخذه من body
+        if (!hmac && body.hmac) {
+          hmac = body.hmac;
+        }
+        
+        // إذا لم يكن لدينا state من URL نأخذه من body
+        if (!state && body.state) {
+          state = body.state;
+        }
+        
+        // تحديث forceUpdate من body إذا كان موجوداً
+        if (body.forceUpdate !== undefined) {
+          forceUpdate = body.forceUpdate;
+        }
+        
+        if (!shop || !code) {
           throw new Error("Missing required parameters in POST body");
         }
         
-        // استخدام القيم من body إذا لم تكن متوفرة في URL
-        if (!code && codeFromBody) {
-          // نحن هنا نستخدم متغير جديد بدلاً من code الثابت
-          let codeParam = codeFromBody;
-          let hmacParam = hmacFromBody || hmac;
-          let stateParam = stateFromBody || state;
-          
-          // الآن نستخدم المتغيرات الجديدة للمعالجة
-          // وبهذه الطريقة نتجنب الخطأ Assignment to constant variable
-          shop = cleanShopDomain(shop);
-          
-          // باقي المعالجة تستخدم هذه المتغيرات الجديدة
-          console.log("Using values from body:", {
-            shop,
-            code: codeParam,
-            hmac: hmacParam,
-            state: stateParam
-          });
-        }
+        console.log("Using values from body:", {
+          shop,
+          code,
+          hmac,
+          state
+        });
       } catch (jsonError) {
         console.error("Error parsing POST body:", jsonError);
         return new Response(

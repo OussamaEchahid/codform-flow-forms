@@ -19,7 +19,7 @@ const Shopify = () => {
   const [shopUrl, setShopUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [resetConnections, setResetConnections] = useState<boolean>(false);
-  const { shopifyConnected, shop } = useAuth();
+  const { shopifyConnected, shop, setShop } = useAuth();
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectedShop, setConnectedShop] = useState<string | null>(null);
   
@@ -36,7 +36,13 @@ const Shopify = () => {
     if (lastUrlShop && !shopUrl) {
       setShopUrl(lastUrlShop);
     }
-  }, [shop, shopifyConnected]);
+    
+    // Synchronize connection state
+    if (activeStore && setShop && !shopifyConnected) {
+      console.log("Synchronizing connection state with AuthProvider");
+      setShop(activeStore);
+    }
+  }, [shop, shopifyConnected, setShop]);
   
   // وظيفة للاتصال بـ Shopify
   const connectToShopify = async (usePopup = false) => {
@@ -50,6 +56,12 @@ const Shopify = () => {
     try {
       // تخزين عنوان المتجر للاستخدام المستقبلي
       shopifyConnectionManager.saveLastUrlShop(shopUrl);
+      
+      // Update local state immediately to improve user experience
+      shopifyConnectionManager.addOrUpdateStore(shopUrl, true, resetConnections);
+      if (setShop) {
+        setShop(shopUrl);
+      }
       
       // تحديد URL الاستدعاء المرتد بناءً على ما إذا كنا نستخدم نافذة منبثقة أم لا
       let redirectUrl = `${window.location.origin}/shopify-redirect?shop=${encodeURIComponent(shopUrl)}`;
@@ -91,7 +103,7 @@ const Shopify = () => {
             window.removeEventListener('message', messageHandler);
             
             setTimeout(() => {
-              navigate('/dashboard?shopify_connected=true');
+              navigate('/dashboard');
             }, 1000);
           }
         };
@@ -106,6 +118,19 @@ const Shopify = () => {
       toast.error('حدث خطأ أثناء محاولة الاتصال بـ Shopify');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleGoToDashboard = () => {
+    navigate('/dashboard');
+  };
+  
+  const handleResetConnection = () => {
+    setIsConnected(false);
+    setConnectedShop(null);
+    // Also reset in AuthContext if possible
+    if (setShop) {
+      setShop("");
     }
   };
   
@@ -126,10 +151,10 @@ const Shopify = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setIsConnected(false)}>
+              <Button variant="outline" onClick={handleResetConnection}>
                 Reset Connection
               </Button>
-              <Button onClick={() => navigate('/dashboard')}>
+              <Button onClick={handleGoToDashboard}>
                 Back to Dashboard
               </Button>
             </CardFooter>

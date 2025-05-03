@@ -86,6 +86,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Add to connection manager
       shopifyConnectionManager.addOrUpdateStore(storedShop, true);
+      
+      // Update shops list
+      setShops([storedShop]);
+      
       return true;
     }
     
@@ -147,6 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           setShop(shopDomain);
           setShopifyConnected(true);
+          setShops([shopDomain]);
         } else {
           // Update connection manager with database shops
           // But don't clear existing shops to avoid losing local state
@@ -158,10 +163,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const activeShop = data.find(store => store.is_active)?.shop || data[0].shop;
           setShop(activeShop);
           setShopifyConnected(true);
+          setShops(data.map(store => store.shop));
         }
-        
-        // Update shops list
-        setShops(data.map(store => store.shop));
       }
     } catch (error) {
       console.error("Error loading shops from database:", error);
@@ -183,9 +186,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           setShop(shopDomain);
           setShopifyConnected(true);
+          setShops([shopDomain]);
         } else {
           // Setup Shopify shop from other sources
           const shopConnected = setupShopFromUrl();
+          
+          if (shopConnected) {
+            // Get the active store again to ensure it's updated
+            const activeStore = shopifyConnectionManager.getActiveStore();
+            if (activeStore) {
+              setShop(activeStore);
+              setShopifyConnected(true);
+              
+              // Get all stores for the shops list
+              const allStores = shopifyConnectionManager.getAllStores();
+              setShops(allStores.map(store => store.domain));
+            }
+          }
         
           // For development, create a default user if not authenticated
           if (process.env.NODE_ENV === 'development' && !shopConnected) {
@@ -195,12 +212,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             setShop(defaultShop);
             setShopifyConnected(true);
+            setShops([defaultShop]);
             
             // Create a default user for development
             const devUser = { id: 'shopify-user', email: 'dev@example.com' };
             setUser(devUser);
-            setLoading(false);
-            return;
           }
         }
         
@@ -250,6 +266,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Use the popstate event to detect URL changes
     window.addEventListener('popstate', handleUrlChange);
+
+    // Perform an immediate check for connection state
+    setTimeout(() => {
+      const activeStore = shopifyConnectionManager.getActiveStore();
+      if (activeStore && !shopifyConnected) {
+        console.log("Connection state inconsistency detected, syncing state...");
+        setShop(activeStore);
+        setShopifyConnected(true);
+        const allStores = shopifyConnectionManager.getAllStores();
+        setShops(allStores.map(store => store.domain));
+      }
+    }, 500);
 
     return () => {
       authListener.subscription.unsubscribe();
