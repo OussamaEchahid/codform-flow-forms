@@ -12,6 +12,7 @@ export const useShopify = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [tokenError, setTokenError] = useState<boolean>(false);
   const { shop, shopifyConnected } = useAuth();
 
   // جلب المنتجات عندما يتغير اتصال المتجر
@@ -32,24 +33,40 @@ export const useShopify = () => {
 
     setIsLoading(true);
     setError(null);
+    setTokenError(false);
+    
     try {
       console.log(`Fetching products for shop: ${shop}`);
       // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token')
+        .select('access_token, updated_at')
         .eq('shop', shop)
         .single();
       
       if (storeError || !storeData || !storeData.access_token) {
         console.error('Store access token error:', storeError || 'No access token found');
-        throw new Error('Could not retrieve store access token');
+        setTokenError(true);
+        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
       }
       
-      console.log('Access token retrieved successfully');
+      // التحقق من تاريخ تحديث رمز الوصول
+      const tokenUpdatedAt = new Date(storeData.updated_at);
+      const currentDate = new Date();
+      const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceUpdate > 7) {
+        console.warn('Access token might be expired, it was updated', daysSinceUpdate, 'days ago');
+      }
+      
+      console.log('Access token retrieved successfully, last updated:', storeData.updated_at);
 
       // إنشاء مثيل API بالرمز ونطاق المتجر
       const api = createShopifyAPI(storeData.access_token, shop);
+      
+      // التحقق من صحة الاتصال قبل جلب المنتجات
+      await api.verifyConnection();
+      
       const fetchedProducts = await api.getProducts();
       console.log(`Retrieved ${fetchedProducts.length} products`);
       setProducts(fetchedProducts);
@@ -57,10 +74,33 @@ export const useShopify = () => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
       setError(errorMessage);
       console.error('Error fetching products:', err);
+      
+      // تحديد إذا كان الخطأ متعلق برمز الوصول
+      if (errorMessage.includes('Authentication error') || 
+          errorMessage.includes('access token') ||
+          errorMessage.includes('401') ||
+          errorMessage.includes('403')) {
+        setTokenError(true);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [shop, shopifyConnected]);
+
+  const refreshConnection = useCallback(async () => {
+    if (!shop) return;
+    
+    setIsLoading(true);
+    try {
+      // إعادة توجيه المستخدم لإعادة المصادقة مع Shopify
+      localStorage.setItem('shopify_force_refresh', 'true');
+      window.location.href = `/shopify?shop=${encodeURIComponent(shop)}&force_update=true`;
+    } catch (error) {
+      console.error('Error refreshing connection:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shop]);
 
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
     if (!shopifyConnected || !shop) {
@@ -84,17 +124,18 @@ export const useShopify = () => {
       // الحصول على رمز وصول المتجر
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token')
+        .select('access_token, updated_at')
         .eq('shop', shop)
         .single();
       
       if (storeError || !storeData || !storeData.access_token) {
         console.error('Store access token error:', storeError || 'No access token found');
-        throw new Error('Could not retrieve store access token');
+        setTokenError(true);
+        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
       }
       
       console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
-      console.log('First 4 chars of token:', storeData.access_token.substring(0, 4) + '...');
+      console.log('Token last updated:', storeData.updated_at);
 
       // حفظ إعدادات المنتج في قاعدة البيانات أولاً
       try {
@@ -145,7 +186,15 @@ export const useShopify = () => {
         console.log('Auto-sync completed successfully');
       } catch (syncError) {
         console.error('Auto-sync error:', syncError);
-        throw new Error(syncError instanceof Error ? syncError.message : 'Failed to set up auto-sync with Shopify');
+        
+        // تحديد إذا كان الخطأ متعلق برمز الوصول المنتهي الصلاحية
+        const errorMessage = syncError instanceof Error ? syncError.message : 'Unknown error';
+        if (errorMessage.includes('Authentication error') || errorMessage.includes('401') || errorMessage.includes('403')) {
+          setTokenError(true);
+          throw new Error('رمز الوصول للمتجر غير صالح أو منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر');
+        }
+        
+        throw new Error(errorMessage);
       }
       
       // حفظ ارتباط النموذج بالمتجر
@@ -178,7 +227,9 @@ export const useShopify = () => {
     error,
     syncFormWithShopify,
     fetchProducts,
+    refreshConnection,
     isConnected: !!shopifyConnected,
-    isSyncing
+    isSyncing,
+    tokenError
   };
 };

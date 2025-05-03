@@ -27,7 +27,8 @@ class ShopifyAPI {
         query: query.substring(0, 50) + '...', // Log part of the query for debugging
         accessTokenPresent: this.accessToken ? true : false,
         accessTokenLength: this.accessToken ? this.accessToken.length : 0,
-        accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none'
+        accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none',
+        timestamp: new Date().toISOString()
       });
       
       const response = await fetch(url, {
@@ -41,6 +42,8 @@ class ShopifyAPI {
           shop: normalizedShopDomain,
           accessToken: this.accessToken
         }),
+        // إضافة خيارات لمنع التخزين المؤقت
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -113,6 +116,9 @@ class ShopifyAPI {
     `;
 
     try {
+      // تحقق من الاتصال أولاً
+      await this.verifyConnection();
+      
       const data = await this.fetchAPI(query);
       console.log('Products fetched successfully, transforming data');
       return this.transformProducts(data.products);
@@ -182,7 +188,8 @@ class ShopifyAPI {
     `;
 
     // إعداد مصدر السكريبت مع البيانات المطلوبة
-    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}`;
+    const timestamp = new Date().getTime();
+    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}&v=${timestamp}`;
     
     const variables = {
       input: {
@@ -238,7 +245,38 @@ class ShopifyAPI {
       `;
       
       console.log('Sending verification query to Shopify API');
-      const result = await this.fetchAPI(query);
+      
+      // إضافة معلمة لمنع التخزين المؤقت
+      const timestamp = new Date().getTime();
+      const url = `/api/shopify-proxy?t=${timestamp}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query,
+          shop: normalizedShopDomain,
+          accessToken: this.accessToken
+        }),
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response (Verify):', errorText, 'Status:', response.status);
+        throw new Error(`Shopify API error (${response.status}): ${response.statusText}`);
+      }
+
+      const json = await response.json();
+      
+      if (json.errors) {
+        console.error('GraphQL Verification Errors:', json.errors);
+        throw new Error(`GraphQL Error: ${json.errors[0].message}`);
+      }
+      
+      const result = json.data;
       
       if (!result || !result.shop || !result.shop.name) {
         console.error('Invalid verification response:', result);
@@ -246,41 +284,6 @@ class ShopifyAPI {
       }
       
       console.log('Connection verified successfully, shop name:', result.shop.name);
-      
-      // Now that basic connection works, get more details if needed
-      try {
-        const detailQuery = `
-          {
-            shop {
-              name
-              email
-              primaryDomain {
-                url
-                host
-              }
-              plan {
-                displayName
-                partnerDevelopment
-                shopifyPlus
-              }
-            }
-          }
-        `;
-        
-        const detailResult = await this.fetchAPI(detailQuery);
-        if (detailResult && detailResult.shop) {
-          console.log('Shop details:', {
-            name: detailResult.shop.name,
-            email: detailResult.shop.email,
-            domain: detailResult.shop.primaryDomain,
-            plan: detailResult.shop.plan
-          });
-        }
-      } catch (detailError) {
-        // Just log this error but don't fail the connection check
-        console.warn('Could not fetch shop details (but connection works):', detailError);
-      }
-      
       return true;
     } catch (error) {
       console.error('Connection verification failed:', error);

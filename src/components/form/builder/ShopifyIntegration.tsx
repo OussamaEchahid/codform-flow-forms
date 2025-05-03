@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
-import { Loader, AlertCircle, Info, Check } from 'lucide-react';
+import { Loader, AlertCircle, Info, Check, RefreshCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
@@ -42,7 +42,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { language } = useI18n();
   const { shopifyConnected, shop } = useAuth();
   const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
-  const { products, isLoading: loadingProducts } = useShopify();
+  const { products, isLoading: loadingProducts, error, tokenError, refreshConnection } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -64,7 +64,18 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     } else {
       setConnectionStatus('idle');
     }
-  }, [shopifyConnected, shop]);
+    
+    // إذا كان هناك خطأ في رمز الوصول، تحديث حالة الاتصال
+    if (tokenError) {
+      setConnectionStatus('error');
+      setSaveError(language === 'ar' 
+        ? 'رمز الوصول للمتجر غير صالح أو منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر'
+        : 'Your store access token is invalid or expired. Please reconnect to Shopify.');
+    } else if (error) {
+      setConnectionStatus('error');
+      setSaveError(error);
+    }
+  }, [shopifyConnected, shop, tokenError, error, language]);
   
   const handleSave = async () => {
     if (!shopifyConnected || !shop) {
@@ -120,6 +131,28 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
+  const handleRefreshConnection = async () => {
+    if (!shop) {
+      toast.error(language === 'ar' 
+        ? 'لا يوجد متجر متصل حاليًا'
+        : 'No store is currently connected');
+      return;
+    }
+    
+    try {
+      toast.info(language === 'ar' 
+        ? 'سيتم إعادة توجيهك لتحديث الاتصال بـ Shopify'
+        : 'You will be redirected to refresh your Shopify connection');
+      
+      await refreshConnection();
+    } catch (error) {
+      console.error('Error refreshing connection:', error);
+      toast.error(language === 'ar' 
+        ? 'حدث خطأ أثناء محاولة تحديث الاتصال'
+        : 'An error occurred while trying to refresh the connection');
+    }
+  };
+
   const renderConnectionStatus = () => {
     if (connectionStatus === 'checking') {
       return (
@@ -149,6 +182,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             {language === 'ar' ? 'فشل الاتصال بالمتجر' : 'Connection failed'}
           </AlertTitle>
           {saveError && <AlertDescription>{saveError}</AlertDescription>}
+          
+          <div className="mt-3">
+            <Button size="sm" variant="outline" onClick={handleRefreshConnection} className="flex items-center">
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'إعادة الاتصال بالمتجر' : 'Reconnect to Shopify'}
+            </Button>
+          </div>
         </Alert>
       );
     }
@@ -236,20 +276,32 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </AlertDescription>
             </Alert>
 
-            <Button
-              onClick={handleSave}
-              className="w-full mt-4"
-              disabled={isSaving || isSyncing}
-            >
-              {(isSaving || isSyncing) ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
-                </>
-              ) : (
-                language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
-              )}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={handleRefreshConnection}
+                className="flex-1"
+                disabled={isSaving || isSyncing}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'تحديث الاتصال' : 'Refresh Connection'}
+              </Button>
+
+              <Button
+                onClick={handleSave}
+                className="flex-1"
+                disabled={isSaving || isSyncing || tokenError}
+              >
+                {(isSaving || isSyncing) ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
+                  </>
+                ) : (
+                  language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
+                )}
+              </Button>
+            </div>
           </>
         ) : (
           <div className="space-y-4">
