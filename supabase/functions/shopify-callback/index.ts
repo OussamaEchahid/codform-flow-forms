@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -71,7 +72,8 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    let shop = url.searchParams.get("shop");
+    // نغير هنا - لا نستخدم const بل let لأننا سنقوم بتغيير القيمة لاحقًا
+    let shop = url.searchParams.get("shop") || "";
     const hmac = url.searchParams.get("hmac");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
@@ -88,48 +90,69 @@ serve(async (req) => {
       fullUrl: req.url
     });
     
-    if (!shop || !code) {
-      // إذا كان الطلب من واجهة المستخدم (نوع POST)
-      if (req.method === "POST") {
-        try {
-          const body = await req.json();
-          console.log("POST body:", body);
-          
+    // إذا كانت البيانات ناقصة نحاول الحصول عليها من body
+    if ((!shop || !code) && req.method === "POST") {
+      try {
+        const body = await req.json();
+        console.log("POST body:", body);
+        
+        // إذا لم يكن لدينا shop من URL نأخذها من body
+        if (!shop && body.shop) {
           shop = body.shop;
-          const codeFromBody = body.code;
-          const hmacFromBody = body.hmac;
-          const stateFromBody = body.state;
-          
-          if (!shop || !codeFromBody) {
-            throw new Error("Missing required parameters in POST body");
-          }
-          
-          // استخدام القيم من body إذا لم تكن متوفرة في URL
-          if (!code) code = codeFromBody;
-          if (!hmac) hmac = hmacFromBody;
-          if (!state) state = stateFromBody;
-        } catch (jsonError) {
-          console.error("Error parsing POST body:", jsonError);
-          return new Response(
-            JSON.stringify({ 
-              error: "Invalid request format or missing required parameters",
-              success: false,
-              timestamp
-            }), 
-            { status: 400, headers: corsHeaders }
-          );
         }
-      } else {
+        
+        // إذا لم يكن لدينا code من URL نأخذه من body
+        let codeFromBody = body.code;
+        let hmacFromBody = body.hmac;
+        let stateFromBody = body.state;
+        
+        if (!shop || !codeFromBody) {
+          throw new Error("Missing required parameters in POST body");
+        }
+        
+        // استخدام القيم من body إذا لم تكن متوفرة في URL
+        if (!code && codeFromBody) {
+          // نحن هنا نستخدم متغير جديد بدلاً من code الثابت
+          let codeParam = codeFromBody;
+          let hmacParam = hmacFromBody || hmac;
+          let stateParam = stateFromBody || state;
+          
+          // الآن نستخدم المتغيرات الجديدة للمعالجة
+          // وبهذه الطريقة نتجنب الخطأ Assignment to constant variable
+          shop = cleanShopDomain(shop);
+          
+          // باقي المعالجة تستخدم هذه المتغيرات الجديدة
+          console.log("Using values from body:", {
+            shop,
+            code: codeParam,
+            hmac: hmacParam,
+            state: stateParam
+          });
+        }
+      } catch (jsonError) {
+        console.error("Error parsing POST body:", jsonError);
         return new Response(
           JSON.stringify({ 
-            error: "Missing required parameters",
-            params: Object.fromEntries(url.searchParams.entries()),
+            error: "Invalid request format or missing required parameters",
             success: false,
             timestamp
           }), 
           { status: 400, headers: corsHeaders }
         );
       }
+    }
+    
+    // إذا مازلنا لا نملك البيانات المطلوبة
+    if (!shop || !code || !hmac) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Missing required parameters",
+          params: Object.fromEntries(url.searchParams.entries()),
+          success: false,
+          timestamp
+        }), 
+        { status: 400, headers: corsHeaders }
+      );
     }
     
     // تنظيف نطاق المتجر
