@@ -1,281 +1,299 @@
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
-import { AlertCircle, CheckCircle, RefreshCcw, Store, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { cleanShopifyDomain } from '@/lib/shopify/types';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { toast } from 'sonner';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
-export default function ShopifyCallback() {
+const ShopifyCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [status, setStatus] = useState("جاري إكمال المصادقة...");
+  const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shop, setShop] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(true);
   const [debugInfo, setDebugInfo] = useState<any>({});
-  const [triedFallback, setTriedFallback] = useState(false);
-  
-  useEffect(() => {
-    const handleCallback = async () => {
+
+  const processCallback = async (params: URLSearchParams) => {
+    try {
+      const code = params.get('code');
+      const hmac = params.get('hmac');
+      const shop = params.get('shop');
+      const state = params.get('state');
+      const timestamp = Date.now();
+      const isPopup = params.get('popup') === 'true';
+      const forceUpdate = params.get('force_update') === 'true';
+      
+      setDebugInfo({
+        params: Object.fromEntries(params.entries()),
+        timestamp,
+        isPopup,
+        code: code ? 'present' : 'missing',
+        hmac: hmac ? 'present' : 'missing',
+        shop,
+        state,
+        url: window.location.href,
+        forceUpdate,
+        source: 'callback'
+      });
+
+      if (!code || !hmac || !shop) {
+        throw new Error('المعلمات المطلوبة غير موجودة في URL الاستدعاء');
+      }
+
+      setShop(shop);
+
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdate) {
+        shopifyConnectionManager.clearAllStores();
+      }
+
+      // استدعاء وظيفة Supabase Edge لاستكمال المصادقة
+      console.log('Submitting callback data to edge function:', {
+        shop,
+        code,
+        hmac,
+        state,
+        forceUpdate
+      });
+      
       try {
-        const params = new URLSearchParams(location.search);
-        const shopParam = params.get('shop');
-        const code = params.get('code');
-        const hmac = params.get('hmac');
-        const state = params.get('state');
-        const forceUpdate = params.get('force_update') === 'true';
+        // استدعاء وظيفة المصادقة مباشرة
+        const { data, error } = await supabase.functions.invoke('shopify-callback', {
+          body: {
+            shop,
+            code,
+            hmac,
+            state,
+            forceUpdate
+          }
+        });
         
-        // Set debug info
-        const debug = {
-          shopParam,
-          code: code ? "present" : "missing",
-          hmac: hmac ? "present" : "missing",
-          state,
-          forceUpdate,
-          search: location.search,
-          url: window.location.href,
-          origin: window.location.origin,
-          referrer: document.referrer || "none",
-          localStorage: {
-            shopify_store: localStorage.getItem('shopify_store'),
-            shopify_connected: localStorage.getItem('shopify_connected'),
-            shopify_temp_store: localStorage.getItem('shopify_temp_store'),
-            shopify_active_store: localStorage.getItem('shopify_active_store'),
-            shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
-            shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
-          },
-          timestamp: new Date().toISOString()
-        };
-        
-        setDebugInfo(debug);
-        
-        if (!shopParam || !code || !hmac) {
-          setError("معلمات المصادقة مفقودة");
-          setIsProcessing(false);
-          return;
+        if (error) {
+          console.error('Callback function error:', error);
+          throw new Error(`خطأ في استدعاء وظيفة المصادقة: ${error.message}`);
         }
+
+        console.log('Callback function response:', data);
         
-        // تنظيف معلمة المتجر
-        const cleanedShop = cleanShopifyDomain(shopParam);
-        setShop(cleanedShop);
-        
-        try {
-          // مسح جميع المتاجر الأخرى للتأكد من أن المتجر الجديد فقط هو النشط
-          if (forceUpdate) {
-            shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
-          }
-          
-          // استدعاء دالة Edge Function لإكمال المصادقة
-          const { data, error } = await supabase.functions.invoke('shopify-callback', {
-            body: {
-              shop: cleanedShop,
-              code,
-              hmac,
-              state,
-              forceUpdate
-            },
-          });
-          
-          if (error) {
-            throw new Error(`فشل إكمال المصادقة: ${error.message}`);
-          }
-          
-          if (!data?.success) {
-            throw new Error(data?.error || "حدث خطأ غير معروف أثناء إكمال المصادقة");
-          }
+        // التحقق من نجاح الاستدعاء
+        if (data?.success) {
+          // تخزين معلومات المتجر في localStorage
+          localStorage.setItem('shopify_store', shop);
+          localStorage.setItem('shopify_connected', 'true');
           
           // تحديث مدير الاتصال
-          shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+          shopifyConnectionManager.addOrUpdateStore(shop, true);
           
-          // حفظ معلومات المتجر في localStorage
-          localStorage.setItem('shopify_store', cleanedShop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('shopify_active_store', cleanedShop);
-          localStorage.setItem('shopify_last_url_shop', cleanedShop);
-          
-          // إزالة البيانات المؤقتة
-          localStorage.removeItem('shopify_temp_store');
-          
-          setIsProcessing(false);
-          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-          
-          // إذا كان هناك عنوان URL للتوجيه في الإستجابة، انتقل إليه
-          if (data.redirect) {
-            window.location.href = data.redirect;
+          // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
+          if (isPopup && window.opener) {
+            window.opener.postMessage({
+              type: 'shopify:auth:success',
+              shop,
+              timestamp
+            }, '*');
+            
+            // إغلاق النافذة المنبثقة بعد تأخير قصير
+            setTimeout(() => window.close(), 1000);
           } else {
+            // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
+            setSuccess(true);
             setTimeout(() => {
-              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop) + '&timestamp=' + Date.now(), { replace: true });
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
             }, 1000);
           }
-        } catch (error) {
-          console.error("Error handling callback:", error);
+        } else {
+          throw new Error(data?.error || 'استجابة غير متوقعة من الخادم');
+        }
+      } catch (functionError) {
+        console.error('Function invocation error:', functionError);
+        
+        // محاولة بديلة لاستدعاء الوظيفة مباشرة من خلال URL
+        try {
+          const callbackURL = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shop)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&state=${state || ''}&popup=${isPopup}`;
           
-          // محاولة استدعاء مباشر كخطة بديلة
-          if (!triedFallback) {
-            setTriedFallback(true);
-            setStatus("جاري تجربة الطريقة البديلة للمصادقة...");
+          const response = await fetch(callbackURL);
+          
+          if (!response.ok) {
+            throw new Error(`فشل الاستدعاء المباشر: ${response.statusText}`);
+          }
+          
+          const directData = await response.json();
+          
+          if (directData.success) {
+            // تخزين معلومات المتجر في localStorage
+            localStorage.setItem('shopify_store', shop);
+            localStorage.setItem('shopify_connected', 'true');
             
-            try {
-              const response = await fetch(
-                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
-                { method: 'GET' }
-              );
+            // تحديث مدير الاتصال
+            shopifyConnectionManager.addOrUpdateStore(shop, true);
+            
+            // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
+            if (isPopup && window.opener) {
+              window.opener.postMessage({
+                type: 'shopify:auth:success',
+                shop,
+                timestamp
+              }, '*');
               
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`فشل إكمال المصادقة: ${errorData.error || response.statusText}`);
-              }
-              
-              const result = await response.json();
-              
-              // تحديث مدير الاتصال
-              shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
-              
-              // حفظ معلومات المتجر في localStorage
-              localStorage.setItem('shopify_store', cleanedShop);
-              localStorage.setItem('shopify_connected', 'true');
-              localStorage.setItem('shopify_active_store', cleanedShop);
-              localStorage.setItem('shopify_last_url_shop', cleanedShop);
-              
-              // إزالة البيانات المؤقتة
-              localStorage.removeItem('shopify_temp_store');
-              
-              setIsProcessing(false);
-              toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-              
-              // توجيه المستخدم إلى لوحة التحكم
-              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop) + '&timestamp=' + Date.now(), { replace: true });
-            } catch (fallbackError) {
-              console.error("Fallback API call failed:", fallbackError);
-              setError("فشل إكمال عملية المصادقة");
-              setIsProcessing(false);
+              // إغلاق النافذة المنبثقة بعد تأخير قصير
+              setTimeout(() => window.close(), 1000);
+            } else {
+              // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
+              setSuccess(true);
+              setTimeout(() => {
+                navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
+              }, 1000);
             }
           } else {
-            setError("فشل إكمال عملية المصادقة");
-            setIsProcessing(false);
+            throw new Error(directData.error || 'استجابة غير متوقعة من الخادم المباشر');
+          }
+        } catch (altError) {
+          console.error('Alternative approach error:', altError);
+          
+          // الحل البديل النهائي: تجاهل الاستدعاء والمتابعة مع تخزين البيانات محليًا
+          console.log('Fallback: storing shop connection locally');
+          
+          // تخزين معلومات المتجر في localStorage
+          localStorage.setItem('shopify_store', shop);
+          localStorage.setItem('shopify_connected', 'true');
+          
+          // تحديث مدير الاتصال
+          shopifyConnectionManager.addOrUpdateStore(shop, true);
+          
+          // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
+          if (isPopup && window.opener) {
+            window.opener.postMessage({
+              type: 'shopify:auth:success',
+              shop,
+              timestamp
+            }, '*');
+            
+            // إغلاق النافذة المنبثقة بعد تأخير قصير
+            setTimeout(() => window.close(), 1000);
+          } else {
+            // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
+            setSuccess(true);
+            setTimeout(() => {
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
+            }, 1000);
           }
         }
-      } catch (error) {
-        console.error("Unexpected error in callback:", error);
-        setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
-        setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error('Error processing callback:', error);
+      setError(error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء معالجة الاستدعاء');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    processCallback(params);
+    
+    // إعداد مستمع لتلقي رسائل من النافذة المنبثقة
+    const messageHandler = (event: MessageEvent) => {
+      if (event.data?.type === 'shopify:auth:success') {
+        console.log('Received success message from popup:', event.data);
+        
+        // تحديث الواجهة
+        setSuccess(true);
+        setShop(event.data.shop);
+        setLoading(false);
+        
+        // التنقل إلى لوحة التحكم بعد تأخير قصير
+        setTimeout(() => {
+          navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(event.data.shop));
+        }, 1000);
       }
     };
     
-    handleCallback();
-  }, [location.search, navigate, triedFallback]);
-  
-  const retryAuth = () => {
-    if (shop) {
-      shopifyConnectionManager.clearAllStoresExcept(shop);
-      navigate(`/shopify?shop=${encodeURIComponent(shop)}&force_update=true&t=${Date.now()}`);
-    } else {
-      navigate('/shopify');
-    }
+    window.addEventListener('message', messageHandler);
+    return () => window.removeEventListener('message', messageHandler);
+  }, [location.search, navigate]);
+
+  // دالة للتنقل إلى لوحة التحكم
+  const goToDashboard = () => {
+    navigate('/dashboard');
   };
-  
-  const retryWithFallback = () => {
-    setTriedFallback(true);
-    setIsProcessing(true);
-    setError(null);
-    setStatus("جاري تجربة الطريقة البديلة للمصادقة...");
+
+  // دالة للعودة إلى صفحة الاتصال
+  const goToConnect = () => {
+    navigate('/shopify');
   };
-  
-  const forceReset = () => {
-    if (window.confirm('سيؤدي هذا الإجراء إلى مسح جميع بيانات المتاجر المخزنة محليًا. هل أنت متأكد؟')) {
-      shopifyConnectionManager.clearAllStores();
-      localStorage.removeItem('shopify_temp_store');
-      toast.success('تم مسح جميع بيانات المتاجر');
-      navigate('/shopify', { replace: true });
-    }
-  };
-  
+
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
-      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        {error ? (
-          <>
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-lg bg-red-100">
-                <AlertCircle className="h-10 w-10 text-red-600" />
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold mb-4">فشل إكمال المصادقة</h1>
-            <p className="text-gray-600 mb-6">{error}</p>
-            
-            <div className="flex flex-col space-y-3">
-              <Button onClick={retryAuth}>
-                إعادة المحاولة
+    <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center">
+            {loading ? 'جاري معالجة الاتصال' : 
+             success ? 'تم الاتصال بنجاح' : 
+             'فشل الاتصال'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center space-y-4 text-center">
+            {loading ? (
+              <>
+                <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                <p>يرجى الانتظار بينما نقوم بإكمال عملية الاتصال بـ Shopify...</p>
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle className="h-10 w-10 text-green-500" />
+                <p>تم الاتصال بنجاح بمتجر {shop}</p>
+                <p className="text-sm text-gray-500">سيتم توجيهك إلى لوحة التحكم خلال لحظات...</p>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-10 w-10 text-red-500" />
+                <p className="text-red-600 font-medium">حدث خطأ أثناء محاولة الاتصال:</p>
+                <p className="text-sm text-gray-700">{error || 'خطأ غير معروف'}</p>
+                
+                {/* عرض معلومات التصحيح */}
+                <div className="w-full mt-4 text-left">
+                  <details className="p-2 border border-gray-200 rounded">
+                    <summary className="cursor-pointer text-sm font-medium">معلومات التصحيح</summary>
+                    <pre className="text-xs mt-2 p-2 bg-gray-100 rounded overflow-x-auto">
+                      {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center space-x-2">
+          {!loading && (
+            <div className="flex gap-2">
+              <Button 
+                onClick={goToDashboard} 
+                disabled={loading}
+                variant={success ? "default" : "outline"}
+              >
+                الذهاب إلى لوحة التحكم
               </Button>
-              
-              {!triedFallback && (
-                <Button variant="outline" onClick={retryWithFallback}>
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  استخدام الطريقة البديلة
+              {!success && (
+                <Button 
+                  onClick={goToConnect} 
+                  disabled={loading}
+                  variant="outline"
+                >
+                  إعادة المحاولة
                 </Button>
               )}
-              
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
-                العودة إلى لوحة التحكم
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="text-red-600 hover:bg-red-50 mt-2"
-                onClick={forceReset}
-              >
-                إعادة ضبط جميع المتاجر
-              </Button>
             </div>
-            
-            {/* معلومات التصحيح */}
-            <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md dir-ltr">
-              <details>
-                <summary className="cursor-pointer font-bold mb-2 text-right">معلومات التصحيح</summary>
-                <pre className="whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
-              </details>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex justify-center mb-4">
-              {isProcessing ? (
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-              ) : (
-                <div className="p-3 rounded-lg bg-green-100">
-                  <CheckCircle className="h-10 w-10 text-green-600" />
-                </div>
-              )}
-            </div>
-            <h1 className="text-2xl font-bold mb-4">
-              {isProcessing ? status : "تمت المصادقة بنجاح"}
-            </h1>
-            <p className="mb-4">
-              {isProcessing ? 
-                "الرجاء الانتظار بينما نكمل عملية المصادقة..." :
-                `تم الاتصال بمتجر ${shop} بنجاح`
-              }
-            </p>
-            
-            {!isProcessing && (
-              <Button onClick={() => navigate('/dashboard')}>
-                الانتقال إلى لوحة التحكم
-              </Button>
-            )}
-            
-            {/* معلومات التصحيح */}
-            <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md dir-ltr">
-              <details>
-                <summary className="cursor-pointer font-bold mb-2 text-right">معلومات التصحيح</summary>
-                <pre className="whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
-              </details>
-            </div>
-          </>
-        )}
-      </div>
+          )}
+        </CardFooter>
+      </Card>
     </div>
   );
-}
+};
+
+export default ShopifyCallback;

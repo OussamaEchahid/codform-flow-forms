@@ -47,13 +47,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (shopDomain && isShopifyRequest) {
       console.log("Found shop in URL, setting as active and clearing others:", shopDomain);
       
-      // If shop from URL is different from current shop, clear all other stores
+      // If shop from URL is different from current shop, clear other stores
       if (shop !== shopDomain) {
         // Clear other stores and only keep this one
-        shopifyConnectionManager.clearAllStoresExcept(shopDomain);
-      } else {
-        shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
+        shopifyConnectionManager.clearAllStores();
       }
+      
+      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       setShop(shopDomain);
       setShopifyConnected(true);
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!shopDomain) return;
       
       // Update in connection manager
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       // Update state
       setShop(shopDomain);
@@ -142,8 +142,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Will be handled by the authentication flow - we just continue
           }
           
-          // Update connection manager
-          shopifyConnectionManager.clearAllStoresExcept(shopDomain);
+          // Update connection manager - but clear all existing first to avoid confusion
+          shopifyConnectionManager.clearAllStores();
           
           setShop(shopDomain);
           setShopifyConnected(true);
@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (shopDomain && isShopifyRequest) {
           console.log("URL contains Shopify parameters:", shopDomain);
           // Clear any other stores to avoid confusion, only keep this one
-          shopifyConnectionManager.clearAllStoresExcept(shopDomain);
+          shopifyConnectionManager.clearAllStores();
           
           setShop(shopDomain);
           setShopifyConnected(true);

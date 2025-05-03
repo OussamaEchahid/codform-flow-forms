@@ -145,9 +145,8 @@ serve(async (req) => {
         .from('shopify_auth')
         .insert({
           shop,
-          state,
-          created_at: new Date().toISOString(),
-          force_update: forceUpdate
+          state
+          // لقد حذفنا field force_update لأنه غير موجود في الجدول
         });
       
       if (error) {
@@ -173,7 +172,8 @@ serve(async (req) => {
         shop,
         state,
         success: true,
-        callbackUrl: CALLBACK_URL
+        callbackUrl: CALLBACK_URL,
+        forceUpdate: forceUpdate // إضافة flag للاستخدام في واجهة المستخدم
       }),
       { status: 200, headers: corsHeaders }
     );

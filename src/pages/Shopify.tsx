@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -129,7 +130,7 @@ const Shopify = () => {
       
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdateParam === 'true') {
-        shopifyConnectionManager.clearAllStoresExcept(shopParam);
+        shopifyConnectionManager.clearAllStores();
       }
     }
     
@@ -215,7 +216,7 @@ const Shopify = () => {
       
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdate) {
-        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+        shopifyConnectionManager.clearAllStores();
       }
       
       try {
@@ -247,13 +248,14 @@ const Shopify = () => {
         // تعديل رابط إعادة التوجيه للتأكد من استخدام المسار الصحيح
         let redirectUrl = data.redirect;
         
-        // إذا كان الرابط يحتوي على /shopify-callback/، قم بتصحيحه إلى /shopify-callback فقط
-        if (redirectUrl.includes('/shopify-callback/')) {
-          redirectUrl = redirectUrl.replace('/shopify-callback/', '/shopify-callback');
+        // إضافة معلمات إضافية للإشارة إلى النافذة المنبثقة وforceUpdate
+        redirectUrl = `${redirectUrl}${redirectUrl.includes('?') ? '&' : '?'}popup=true`;
+        if (forceUpdate) {
+          redirectUrl += `&force_update=${forceUpdate}`;
         }
         
         const popup = window.open(
-          `${redirectUrl}${redirectUrl.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
+          redirectUrl,
           'ShopifyAuth',
           `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
         );
@@ -291,7 +293,7 @@ const Shopify = () => {
         try {
           // محاولة استدعاء مباشر
           const authResponse = await fetch(
-            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`, 
+            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`, 
             { method: 'GET' }
           );
           
@@ -305,13 +307,14 @@ const Shopify = () => {
             // تصحيح رابط إعادة التوجيه
             let authRedirectUrl = authData.redirect;
             
-            // إذا كان الرابط يحتوي على /shopify-callback/، قم بتصحيحه إلى /shopify-callback فقط
-            if (authRedirectUrl.includes('/shopify-callback/')) {
-              authRedirectUrl = authRedirectUrl.replace('/shopify-callback/', '/shopify-callback');
+            // إضافة معلمات إضافية للإشارة إلى النافذة المنبثقة وforceUpdate
+            authRedirectUrl = `${authRedirectUrl}${authRedirectUrl.includes('?') ? '&' : '?'}popup=true`;
+            if (forceUpdate) {
+              authRedirectUrl += `&force_update=${forceUpdate}`;
             }
             
             const popup = window.open(
-              `${authRedirectUrl}${authRedirectUrl.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
+              authRedirectUrl,
               'ShopifyAuth',
               `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
             );
@@ -350,8 +353,8 @@ const Shopify = () => {
         } catch (directError) {
           console.error("فشل النهج المباشر:", directError);
           
-          // استخدام كخطة احتياطية نهائية - مع تصحيح المسار
-          window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`;
+          // استخدام كخطة احتياطية نهائية
+          window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
         }
       }
     } catch (e) {
@@ -379,11 +382,11 @@ const Shopify = () => {
       
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdate) {
-        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+        shopifyConnectionManager.clearAllStores();
       }
       
       // التنقل إلى صفحة إعادة التوجيه مع معلمة المتجر
-      navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`);
+      navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`);
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة:', e);
       setError(e instanceof Error ? e.message : 'حدث خطأ أثناء بدء عملية المصادقة');
@@ -411,7 +414,7 @@ const Shopify = () => {
       
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdate) {
-        shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+        shopifyConnectionManager.clearAllStores();
       }
       
       // رابط مباشر إلى نقطة نهاية Remix auth
