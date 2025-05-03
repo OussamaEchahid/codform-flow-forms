@@ -79,3 +79,21 @@ export interface ProductSettingsResponse {
   formId?: string;
   blockId?: string;
 }
+
+// إضافة أنواع جديدة لدعم متاجر متعددة
+export interface ShopifyStoreConnection {
+  shop: string;
+  isActive: boolean;
+  connectedAt: string;
+  lastUsed?: string;
+}
+
+export interface ShopifyConnectionManager {
+  stores: ShopifyStoreConnection[];
+  activeStore?: string;
+  addStore: (shop: string) => void;
+  setActiveStore: (shop: string) => void;
+  removeStore: (shop: string) => void;
+  getActiveStore: () => ShopifyStoreConnection | undefined;
+  getAllStores: () => ShopifyStoreConnection[];
+}

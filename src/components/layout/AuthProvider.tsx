@@ -4,6 +4,8 @@ import { AuthContext } from '@/lib/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { cleanShopDomain } from '@/utils/shopify-helpers';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -11,125 +13,148 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState({
     shopifyConnected: false,
     shop: undefined as string | undefined,
-    user: undefined as any
+    user: undefined as any,
+    shops: [] as string[]
   });
   const [authChecked, setAuthChecked] = useState(false);
+
+  // تحديث المتجر في حالة المصادقة
+  const setShop = (shop: string | undefined) => {
+    if (shop) {
+      setAuthState(prev => ({
+        ...prev,
+        shopifyConnected: true,
+        shop
+      }));
+    } else {
+      setAuthState(prev => ({
+        ...prev,
+        shopifyConnected: false,
+        shop: undefined
+      }));
+    }
+  };
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Check for Shopify redirect parameters
+        // فحص معلمات إعادة التوجيه من Shopify
         const params = new URLSearchParams(window.location.search);
-        const shop = params.get("shop");
+        const shopParam = params.get("shop");
         const shopifyConnected = params.get("shopify_connected");
         const shopifySuccess = params.get("shopify_success");
         const hmac = params.get("hmac");
         const timestamp = params.get("timestamp");
         const authSuccess = params.get("auth_success");
 
-        // Get saved Shopify data from localStorage
-        const savedShop = localStorage.getItem('shopify_store');
-        const savedConnected = localStorage.getItem('shopify_connected');
-        const tempShop = localStorage.getItem('shopify_temp_store');
+        // تحميل جميع المتاجر من مدير الاتصال
+        const allStores = shopifyConnectionManager.getAllStores();
+        const activeStore = shopifyConnectionManager.getActiveStore();
 
-        // Log auth parameters for debugging
+        // تسجيل معلومات المصادقة للتصحيح
         console.log('Auth parameters:', { 
-          shop, shopifyConnected, shopifySuccess, hmac, authSuccess,
+          shopParam, shopifyConnected, shopifySuccess, hmac, authSuccess,
           pathname: location.pathname,
-          search: location.search
+          search: location.search,
+          activeStore: activeStore?.shop,
+          allStores: allStores.map(s => s.shop)
         });
 
-        // Check if we have a shop in Supabase
-        const { data: shopifyStore, error } = await supabase
-          .rpc('get_user_shop')
-          .single();
+        // التحقق من وجود متجر في Supabase
+        try {
+          const { data: shopifyStoreFromDB, error } = await supabase
+            .rpc('get_user_shop')
+            .single();
 
-        if (shopifyStore) {
-          console.log('Found Shopify store in database:', shopifyStore);
-          setAuthState({
-            shopifyConnected: true,
-            shop: shopifyStore,
-            user: { id: 'shopify-user' }
-          });
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', shopifyStore);
-          localStorage.setItem('shopify_connected', 'true');
-          
-          setAuthChecked(true);
-          return;
+          if (shopifyStoreFromDB && !error) {
+            console.log('Found Shopify store in database:', shopifyStoreFromDB);
+            
+            // إضافة المتجر من قاعدة البيانات إلى مدير الاتصال إذا لم يكن موجودًا بالفعل
+            shopifyConnectionManager.addStore(shopifyStoreFromDB);
+            
+            // تعيين حالة المصادقة
+            setAuthState({
+              shopifyConnected: true,
+              shop: shopifyConnectionManager.activeStore,
+              user: { id: 'shopify-user' },
+              shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
+            });
+            
+            setAuthChecked(true);
+            return;
+          }
+        } catch (dbError) {
+          console.error("Error checking database for shop:", dbError);
         }
 
-        // Check for Shopify success parameters
-        if (shopifySuccess === "true" && shop) {
-          console.log('Shopify connection success:', shop);
+        // التحقق من نجاح الاتصال بـ Shopify
+        if (shopifySuccess === "true" && shopParam) {
+          console.log('Shopify connection success:', shopParam);
+          
+          const cleanedShop = cleanShopDomain(shopParam);
+          shopifyConnectionManager.addStore(cleanedShop);
           
           setAuthState({
             shopifyConnected: true,
-            shop: shop,
-            user: { id: 'shopify-user' }
+            shop: shopifyConnectionManager.activeStore,
+            user: { id: 'shopify-user' },
+            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
           });
           
-          localStorage.setItem('shopify_store', shop);
-          localStorage.setItem('shopify_connected', 'true');
+          // إظهار رسالة نجاح
+          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
           
-          // Remove any temporary data
-          localStorage.removeItem('shopify_temp_store');
-          
-          // Show success message if not already shown
-          if (!toast.success) {
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
-          }
-          
-          // Remove URL parameters if we're on dashboard
+          // إزالة معلمات URL إذا كنا على لوحة التحكم
           if (location.pathname === '/dashboard' && window.history.replaceState) {
             window.history.replaceState({}, document.title, '/dashboard');
           }
         }
-        // Check for new Shopify parameters from successful auth
-        else if (shopifyConnected === "true" && shop) {
-          console.log('New Shopify connection detected:', shop);
+        // التحقق من معلمات Shopify الجديدة
+        else if (shopifyConnected === "true" && shopParam) {
+          console.log('New Shopify connection detected:', shopParam);
           
-          // Update auth state and save to localStorage
+          const cleanedShop = cleanShopDomain(shopParam);
+          shopifyConnectionManager.addStore(cleanedShop);
+          
+          // تحديث حالة المصادقة
           setAuthState({
             shopifyConnected: true,
-            shop: shop,
-            user: { id: 'shopify-user' }
+            shop: shopifyConnectionManager.activeStore,
+            user: { id: 'shopify-user' },
+            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
           });
           
-          localStorage.setItem('shopify_store', shop);
-          localStorage.setItem('shopify_connected', 'true');
-          
-          // Remove any temporary data
-          localStorage.removeItem('shopify_temp_store');
-          
-          // Show success message
-          if (authSuccess === "true" && !toast.success) {
-            toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+          // إظهار رسالة نجاح
+          if (authSuccess === "true") {
+            toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
           }
           
-          // Remove URL parameters if we're on dashboard
+          // إزالة معلمات URL إذا كنا على لوحة التحكم
           if (location.pathname === '/dashboard' && window.history.replaceState) {
             window.history.replaceState({}, document.title, '/dashboard');
           }
         } 
-        // Restore previous connection state from localStorage if available
-        else if (savedConnected === 'true' && savedShop) {
-          console.log('Restoring saved Shopify connection:', savedShop);
+        // استعادة حالة الاتصال من مدير الاتصال
+        else if (activeStore) {
+          console.log('Restoring saved Shopify connection from connection manager:', activeStore.shop);
           
           setAuthState({
             shopifyConnected: true,
-            shop: savedShop,
-            user: { id: 'shopify-user' }
+            shop: activeStore.shop,
+            user: { id: 'shopify-user' },
+            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
           });
         }
-        // If we have temporary store info but auth didn't complete
-        else if (tempShop && location.pathname === '/dashboard') {
-          console.log('Temp store data exists, but auth didn\'t complete:', tempShop);
+        // إذا لم يكن هناك متجر نشط ولم نجد متجر في قاعدة البيانات
+        else {
+          console.log('No active Shopify store found');
           
-          // If on dashboard, show message to user
-          toast.error("لم تكتمل عملية مصادقة Shopify. الرجاء المحاولة مرة أخرى.");
-          localStorage.removeItem('shopify_temp_store');
+          setAuthState({
+            shopifyConnected: false,
+            shop: undefined,
+            user: undefined,
+            shops: []
+          });
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
@@ -141,7 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     handleAuth();
   }, [location.pathname, location.search, navigate]);
 
-  // Show loading state until auth is checked
+  // عرض حالة التحميل حتى يتم التحقق من المصادقة
   if (!authChecked) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -151,7 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={authState}>
+    <AuthContext.Provider value={{ ...authState, setShop }}>
       {children}
     </AuthContext.Provider>
   );

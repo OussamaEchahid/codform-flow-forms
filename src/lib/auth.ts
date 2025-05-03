@@ -1,16 +1,22 @@
 
-import { createContext, useContext } from 'react';
+import React, { useContext } from 'react';
 
-type AuthContextType = {
+// تحديث واجهة السياق لدعم المتاجر المتعددة
+export interface AuthContextType {
   shopifyConnected: boolean;
   shop?: string;
   user?: any;
-};
+  shops: string[];
+  setShop?: (shop: string | undefined) => void;
+}
 
-export const AuthContext = createContext<AuthContextType>({
-  shopifyConnected: false
+// القيمة الافتراضية للسياق
+export const AuthContext = React.createContext<AuthContextType>({
+  shopifyConnected: false,
+  shop: undefined,
+  user: undefined,
+  shops: []
 });
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+// هوك للوصول إلى سياق المصادقة
+export const useAuth = () => useContext(AuthContext);

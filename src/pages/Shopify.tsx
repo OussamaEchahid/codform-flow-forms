@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Store } from 'lucide-react';
 
 // تنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
@@ -102,7 +102,7 @@ const Shopify = () => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
-  const { shopifyConnected, shop } = useAuth();
+  const { shopifyConnected, shop, shops } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -329,6 +329,23 @@ const Shopify = () => {
           <h1 className="text-3xl font-bold mb-6">
             {language === 'ar' ? 'تكامل متجر Shopify' : 'Shopify Integration'}
           </h1>
+          
+          {/* إضافة زر للوصول إلى صفحة إدارة المتاجر إذا كان لديه متاجر متصلة */}
+          {shops && shops.length > 0 && (
+            <div className="mb-6">
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/shopify-stores')}
+                className="flex items-center gap-1"
+              >
+                <Store className="h-4 w-4" />
+                {language === 'ar' ? 'إدارة المتاجر المتصلة' : 'Manage Connected Stores'}
+                <span className="inline-flex items-center justify-center rounded-full bg-purple-100 text-purple-800 px-2 py-1 text-xs ml-2">
+                  {shops.length}
+                </span>
+              </Button>
+            </div>
+          )}
           
           {isProcessing && (
             <Card className="p-6 mb-6 border-purple-300 bg-purple-50">
