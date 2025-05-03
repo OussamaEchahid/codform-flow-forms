@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { ShieldOff, ToggleRight, Trash2, RefreshCcw, Store } from 'lucide-react';
+import { ShieldOff, ToggleRight, Trash2, RefreshCw, Store, AlertTriangle } from 'lucide-react';
 import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 import { toast } from 'sonner';
 
@@ -38,19 +38,7 @@ const ShopifyDebugPanel = () => {
   const loadConnectionData = () => {
     setIsLoading(true);
     try {
-      const data = {
-        shopConnected: localStorage.getItem('shopify_connected') || 'null',
-        shop: localStorage.getItem('shopify_shop') || 'null',
-        shopifyStore: localStorage.getItem('shopify_store') || 'null',
-        tempStore: localStorage.getItem('shopify_temp_store') || 'null',
-        lastCheckTime: localStorage.getItem('shopify_last_check_time') || 'null',
-        lastConnectTime: localStorage.getItem('shopify_last_connect_time') || 'null',
-        connectAttempts: localStorage.getItem('shopify_connect_attempts') || '0',
-        throttleUntil: localStorage.getItem('shopify_throttle_until') || 'null',
-        lastConnectAttempt: localStorage.getItem('shopify_last_connect_attempt') || 'null',
-        sessionId: sessionStorage.getItem('shopify_session_id') || 'null',
-        emergencyDisabled: localStorage.getItem('emergency_disable_shopify_checks') || 'false',
-      };
+      const data = ShopifyConnectionManager.getDebugState();
       setConnectionData(data);
     } catch (err) {
       console.error('Error loading debug data', err);
@@ -67,16 +55,8 @@ const ShopifyDebugPanel = () => {
   const clearConnectionData = () => {
     try {
       // Clear all Shopify related data
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_shop');
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_last_check_time');
-      localStorage.removeItem('shopify_last_connect_time');
-      localStorage.removeItem('shopify_connect_attempts');
-      localStorage.removeItem('shopify_throttle_until');
-      localStorage.removeItem('shopify_last_connect_attempt');
-      localStorage.removeItem('shopify_temp_store');
-      sessionStorage.removeItem('shopify_session_id');
+      ShopifyConnectionManager.clearConnectionData();
+      ShopifyConnectionManager.resetAttempts();
       
       toast.success('Cleared all Shopify connection data');
       loadConnectionData();
@@ -104,6 +84,10 @@ const ShopifyDebugPanel = () => {
     }
     
     try {
+      // Clear any existing connection data first
+      ShopifyConnectionManager.clearConnectionData();
+      ShopifyConnectionManager.resetAttempts();
+      
       // Save the store domain as the temporary target
       ShopifyConnectionManager.setTempStore(shopDomain);
       setRedirecting(true);
@@ -113,7 +97,13 @@ const ShopifyDebugPanel = () => {
       setTimeout(() => {
         // Redirect to the auth endpoint with the shop parameter
         const clientUrl = window.location.origin;
-        const redirectUrl = `/auth?shop=${encodeURIComponent(shopDomain)}&timestamp=${Date.now()}&client=${encodeURIComponent(clientUrl)}`;
+        const cleanShopDomain = shopDomain.includes('.myshopify.com') ? 
+          shopDomain : 
+          `${shopDomain}.myshopify.com`;
+        
+        // Generate a more reliable redirect URL
+        const redirectUrl = `/auth?shop=${encodeURIComponent(cleanShopDomain)}&timestamp=${Date.now()}&client=${encodeURIComponent(clientUrl)}&force=true`;
+        
         window.location.href = redirectUrl;
       }, 500);
     } catch (err) {
@@ -133,11 +123,16 @@ const ShopifyDebugPanel = () => {
             size="sm" 
             onClick={loadConnectionData} 
             className="ml-2"
+            disabled={isLoading}
           >
-            <RefreshCcw className="h-4 w-4" />
+            {isLoading ? (
+              <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
           </Button>
         </CardTitle>
-        <CardDescription>Connect to any Shopify store</CardDescription>
+        <CardDescription>Debug and manage Shopify store connections</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -164,7 +159,7 @@ const ShopifyDebugPanel = () => {
           <div className="p-4 bg-white border rounded-md">
             <h3 className="text-md font-medium mb-2 flex items-center">
               <Store className="h-4 w-4 mr-2" />
-              Connect to Shopify Store
+              Connect to Specific Shopify Store
             </h3>
             <div className="space-y-3">
               <div>
@@ -196,6 +191,23 @@ const ShopifyDebugPanel = () => {
                   'Connect to Store'
                 )}
               </Button>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 p-3 border border-amber-200 rounded-md">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-amber-800">Important Note</h3>
+                <p className="text-sm text-amber-700">
+                  If you're experiencing connection issues with multiple stores, try:
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Clear all connection data first (button below)</li>
+                    <li>Then connect to the specific store you want</li>
+                    <li>Keep emergency mode enabled until connection succeeds</li>
+                  </ul>
+                </p>
+              </div>
             </div>
           </div>
 

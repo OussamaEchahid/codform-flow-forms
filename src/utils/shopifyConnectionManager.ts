@@ -91,6 +91,11 @@ export const ShopifyConnectionManager = {
     localStorage.removeItem('shopify_last_check_time');
     localStorage.removeItem('shopify_temp_store');
     localStorage.removeItem('shopify_session_id');
+    sessionStorage.removeItem('shopify_session_id');
+    sessionStorage.removeItem('shopify_redirect_attempts');
+    localStorage.removeItem('shopify_connection_verified');
+    localStorage.removeItem('shopify_connection_status');
+    localStorage.removeItem('shopify_connection_status_check');
     // Keep the attempt data for throttling
   },
   
@@ -210,6 +215,24 @@ export const ShopifyConnectionManager = {
       console.warn('[ShopifyConnectionManager] Too many connection attempts detected, enabling emergency mode');
       this.toggleEmergencyDisable(true);
     }
+  },
+  
+  /**
+   * Get all connection state for debugging
+   */
+  getDebugState(): Record<string, any> {
+    return {
+      connected: localStorage.getItem('shopify_connected') === 'true',
+      store: localStorage.getItem('shopify_store'),
+      tempStore: localStorage.getItem('shopify_temp_store'),
+      lastCheckTime: localStorage.getItem('shopify_last_check_time'),
+      lastConnectTime: localStorage.getItem('shopify_last_connect_time'),
+      attempts: this.getAttemptCount(),
+      lastAttempt: this.getLastAttemptTime(),
+      throttleUntil: localStorage.getItem('shopify_throttle_until'),
+      emergencyDisabled: this.isEmergencyDisabled(),
+      sessionId: sessionStorage.getItem('shopify_session_id')
+    };
   }
 };
 
