@@ -19,6 +19,10 @@ const FormBuilderPage = () => {
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
   
+  // Check localStorage as fallback
+  const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const actualHasAccess = hasAccess || localStorageConnected;
+  
   useEffect(() => {
     if (formId) {
       setActiveTab('editor');
@@ -28,7 +32,7 @@ const FormBuilderPage = () => {
     }
   }, [formId, fetchForms]);
 
-  if (!hasAccess) {
+  if (!actualHasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="text-center py-8">
@@ -48,6 +52,16 @@ const FormBuilderPage = () => {
         <FormBuilderDashboard />
       ) : (
         <FormBuilderEditor formId={formId} />
+      )}
+      
+      {/* Debug info */}
+      {process.env.NODE_ENV !== 'production' && !formId && (
+        <div className="fixed bottom-2 right-2 p-2 bg-gray-100 text-xs rounded opacity-70 hover:opacity-100">
+          <div>User: {user?.id || 'None'}</div>
+          <div>Shop: {shop || localStorage.getItem('shopify_store') || 'None'}</div>
+          <div>AuthContext Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
+          <div>localStorage Connected: {localStorageConnected ? 'Yes' : 'No'}</div>
+        </div>
       )}
     </div>
   );

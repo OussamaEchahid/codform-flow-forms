@@ -12,7 +12,26 @@ const Forms = () => {
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
 
+  console.log("Forms page access check:", { 
+    user, 
+    shopifyConnected, 
+    shop,
+    hasAccess,
+    localStorageConnected: localStorage.getItem('shopify_connected'),
+    localStorageShop: localStorage.getItem('shopify_store')
+  });
+
   if (!hasAccess) {
+    // Double-check local storage as a fallback
+    const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+    const localStorageShop = localStorage.getItem('shopify_store');
+    
+    // If localStorage indicates a connection but context doesn't, override
+    if (localStorageConnected && localStorageShop) {
+      console.log("Using localStorage fallback for authentication");
+      return <FormBuilderDashboard />;
+    }
+    
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="text-center py-8">

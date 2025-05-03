@@ -10,8 +10,13 @@ const Orders = () => {
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
+  
+  // Check localStorage as fallback
+  const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const actualHasAccess = hasAccess || localStorageConnected;
+  const actualShop = shop || localStorage.getItem('shopify_store');
 
-  if (!hasAccess) {
+  if (!actualHasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="text-center py-8">
@@ -43,9 +48,10 @@ const Orders = () => {
         {process.env.NODE_ENV !== 'production' && (
           <div className="mt-4 p-2 bg-gray-100 text-xs rounded">
             <div>User ID: {user?.id || 'Not logged in'}</div>
-            <div>Shop: {shop || 'No shop connected'}</div>
-            <div>Shopify Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
-            <div>Has Access: {hasAccess ? 'Yes' : 'No'}</div>
+            <div>Shop: {actualShop || 'No shop connected'}</div>
+            <div>AuthContext Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
+            <div>localStorage Connected: {localStorageConnected ? 'Yes' : 'No'}</div>
+            <div>Has Access: {actualHasAccess ? 'Yes' : 'No'}</div>
           </div>
         )}
       </div>

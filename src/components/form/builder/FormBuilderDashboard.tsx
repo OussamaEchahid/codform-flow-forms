@@ -20,17 +20,27 @@ const FormBuilderDashboard = () => {
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
+  
+  // Fallback check for local storage 
+  const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const localStorageShop = localStorage.getItem('shopify_store');
+  const actualShop = shop || localStorageShop;
+  
+  // This is true if we have a valid shop reference from any source
+  const hasValidShopConnection = (shopifyConnected || localStorageConnected) && !!actualShop;
 
   const handleCreateForm = async () => {
     try {
-      if (!hasAccess) {
+      // If not authenticated at all, show error
+      if (!hasAccess && !hasValidShopConnection) {
         toast.error(language === 'ar' 
           ? 'يجب تسجيل الدخول أو الاتصال بمتجر Shopify لإنشاء نموذج' 
           : 'You must be logged in or have a Shopify store connected to create a form');
         return;
       }
       
-      if (!shop) {
+      // If we have connection but no shop reference, show error
+      if (!actualShop) {
         toast.error(language === 'ar' 
           ? 'يجب ربط متجر Shopify لإنشاء نموذج' 
           : 'You must connect a Shopify store to create a form');
@@ -39,7 +49,7 @@ const FormBuilderDashboard = () => {
       
       console.log("Creating default form...");
       console.log("Current user:", user || "Using Shopify connection");
-      console.log("Current shop:", shop);
+      console.log("Current shop:", actualShop);
       
       const newForm = await createDefaultForm();
       if (newForm) {
@@ -111,8 +121,10 @@ const FormBuilderDashboard = () => {
         {process.env.NODE_ENV !== 'production' && (
           <div className="mb-4 p-2 bg-gray-100 text-xs rounded">
             <div>User ID: {user?.id || 'Not logged in'}</div>
-            <div>Shop: {shop || 'No shop connected'}</div>
-            <div>Shopify Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
+            <div>Shop: {actualShop || 'No shop connected'}</div>
+            <div>AuthContext Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
+            <div>localStorage Connected: {localStorageConnected ? 'Yes' : 'No'}</div>
+            <div>Has Valid Shop: {hasValidShopConnection ? 'Yes' : 'No'}</div>
             <div>Has Access: {hasAccess ? 'Yes' : 'No'}</div>
           </div>
         )}
