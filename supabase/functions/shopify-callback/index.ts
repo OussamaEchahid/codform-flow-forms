@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -62,17 +61,22 @@ serve(async (req) => {
     const hmac = url.searchParams.get("hmac");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
+    const timestamp = Date.now();
     
     console.log("Callback received with params:", {
       shop,
       hmac: hmac ? "present" : "missing", 
       code: code ? "present" : "missing", 
-      state
+      state,
+      timestamp
     });
     
-    if (!shop || !code || !hmac) {
+    if (!shop || !code) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }), 
+        JSON.stringify({ 
+          error: "Missing required parameters",
+          timestamp
+        }), 
         { status: 400, headers: corsHeaders }
       );
     }
@@ -159,15 +163,69 @@ serve(async (req) => {
         }
       }
       
-      // Redirect URL back to the app's dashboard
-      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}`;
+      // Return HTML for closing popup if it's in a popup
+      const isPopup = url.searchParams.get("popup") === "true";
+      
+      if (isPopup) {
+        const htmlResponse = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Authentication Successful</title>
+          <script>
+            window.opener.postMessage({
+              type: 'shopify:auth:success',
+              shop: '${shop}',
+            }, '*');
+            setTimeout(function() {
+              window.close();
+            }, 1000);
+          </script>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              text-align: center;
+              padding: 2rem;
+            }
+            .success {
+              color: #10B981;
+              font-size: 3rem;
+              margin-bottom: 1rem;
+            }
+            h1 {
+              color: #4B5563;
+            }
+            p {
+              color: #6B7280;
+            }
+          </style>
+        </head>
+        <body dir="rtl">
+          <div class="success">✓</div>
+          <h1>تم الاتصال بنجاح!</h1>
+          <p>تم اتصال متجرك بنجاح. يمكنك إغلاق هذه النافذة.</p>
+        </body>
+        </html>
+        `;
+        
+        return new Response(htmlResponse, { 
+          headers: { 
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          } 
+        });
+      }
+      
+      // Otherwise, redirect back to the app
+      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(
         JSON.stringify({
           success: true,
           shop,
-          redirect: redirectUrl
+          redirect: redirectUrl,
+          timestamp
         }),
         { headers: corsHeaders }
       );

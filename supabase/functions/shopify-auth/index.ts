@@ -12,7 +12,13 @@ const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da
 
 // Our app's URL
 const APP_URL = "https://codform-flow-forms.lovable.app";
-const AUTH_CALLBACK_URL = `${APP_URL}/api/shopify-callback`;
+
+// Use both API and direct callback paths
+const AUTH_CALLBACK_PATHS = [
+  "/shopify-callback",
+  "/api/shopify-callback",
+  "/auth/callback"
+];
 
 // CORS headers
 const corsHeaders = {
@@ -65,13 +71,17 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     let shop = url.searchParams.get("shop");
+    const timestamp = Date.now();
     
     console.log("Request params:", Object.fromEntries(url.searchParams.entries()));
     
     // No shop provided
     if (!shop) {
       return new Response(
-        JSON.stringify({ error: "Missing shop parameter" }), 
+        JSON.stringify({ 
+          error: "Missing shop parameter",
+          timestamp
+        }), 
         { status: 400, headers: corsHeaders }
       );
     }
@@ -88,6 +98,7 @@ serve(async (req) => {
       const { error: insertError } = await supabase.from('shopify_auth').insert({
         shop: cleanedShop,
         state,
+        created_at: new Date().toISOString(),
       });
       
       if (insertError) {
@@ -97,18 +108,25 @@ serve(async (req) => {
         console.log("Auth state saved successfully");
       }
       
-      // Create the authentication URL
+      // Create the authentication URLs with different redirect paths
       const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
-      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(AUTH_CALLBACK_URL)}&state=${state}`;
+      
+      // Use the first redirect path for auth
+      const authCallbackUrl = `${APP_URL}${AUTH_CALLBACK_PATHS[0]}`; 
+      const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(authCallbackUrl)}&state=${state}`;
       
       console.log("Generated auth URL:", authUrl);
+      console.log("Using callback URL:", authCallbackUrl);
       
       return new Response(JSON.stringify({
+        success: true,
         redirect: authUrl,
         shop: cleanedShop,
         state,
         appUrl: APP_URL,
-        callbackUrl: AUTH_CALLBACK_URL
+        callbackUrl: authCallbackUrl,
+        timestamp,
+        version: "v3"
       }), { headers: corsHeaders });
     } catch (error) {
       console.error("Error initiating authentication:", error);
@@ -117,6 +135,7 @@ serve(async (req) => {
           error: "Error initiating authentication",
           details: error instanceof Error ? error.message : "Unknown error",
           shop: cleanedShop,
+          timestamp
         }),
         { status: 500, headers: corsHeaders }
       );

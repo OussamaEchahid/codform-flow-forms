@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, RefreshCcw } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCcw, Store, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Clean the shop domain
@@ -50,7 +50,7 @@ const ShopifyRedirect = () => {
         const state = params.get("state");
         const host = params.get("host");
         
-        // تنظيف معلمة المتجر والاحتفاظ بالقيمة الأصلية للتشخيص
+        // Save original shop for debugging
         const originalShop = shopParam;
         
         // Update debug info
@@ -83,7 +83,7 @@ const ShopifyRedirect = () => {
           // Check for temp shop during auth
           const tempShop = localStorage.getItem('shopify_temp_store');
           
-          console.log("Stored data:", { savedShop, savedConnected, tempShop });
+          console.log("Stored shop data:", { savedShop, savedConnected, tempShop });
           
           if (savedShop && savedConnected === 'true') {
             // If we have stored shop data, redirect directly to dashboard
@@ -134,6 +134,7 @@ const ShopifyRedirect = () => {
             }
             
             const callbackResult = await callbackResponse.json();
+            setDebug(prev => ({ ...prev, callbackResult }));
             
             if (callbackResult.success) {
               // Save shop data in localStorage
@@ -165,7 +166,7 @@ const ShopifyRedirect = () => {
           try {
             // Use Edge Function directly to get auth URL
             const authResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}`, 
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&timestamp=${Date.now()}`, 
               { method: 'GET' }
             );
             
@@ -231,7 +232,7 @@ const ShopifyRedirect = () => {
   // Handle retry with direct approach
   const handleRetryDirectly = () => {
     // Try the Remix auth endpoint directly
-    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop || 'bestform-app.myshopify.com';
+    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop;
     if (shop) {
       // Using URL with timestamp to avoid caching
       window.location.href = `/auth?shop=${encodeURIComponent(cleanShopDomain(shop))}&_t=${Date.now()}`;
@@ -241,79 +242,101 @@ const ShopifyRedirect = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
-      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        {error ? (
-          <>
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-lg bg-red-100">
-                <AlertCircle className="h-8 w-8 text-red-600" />
+    <div className="flex min-h-screen bg-gray-50" dir="rtl">
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          {error ? (
+            <>
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-lg bg-red-100">
+                  <AlertCircle className="h-8 w-8 text-red-600" />
+                </div>
               </div>
-            </div>
-            <h1 className="text-2xl font-bold mb-4">{status}</h1>
-            <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-              {error}
-            </div>
-            
-            {/* Recovery options */}
-            <div className="mb-6 space-y-3">
-              <Button 
-                className="w-full"
-                onClick={handleDirectAuth}
-              >
-                محاولة الاتصال مباشرة
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={handleRetryDirectly}
-                className="w-full flex items-center justify-center"
-              >
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                محاولة الاتصال باستخدام مسار Node.js
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={() => navigate('/shopify')}
-                className="w-full"
-              >
-                العودة إلى صفحة الاتصال بـ Shopify
-              </Button>
-            </div>
-            
-            {/* Debug information */}
-            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-              <p className="font-bold mb-2">معلومات التصحيح:</p>
-              <pre>{JSON.stringify(debug, null, 2)}</pre>
-            </div>
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-            >
-              العودة إلى لوحة التحكم
-            </button>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold mb-4">{status}</h1>
-            <div className="flex justify-center mb-6">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-            </div>
-            <p className="mb-4">سيتم توجيهك تلقائيًا خلال لحظات...</p>
-            {isLoading && retryCount > 0 && (
-              <div className="mb-4 bg-yellow-50 border border-yellow-200 p-3 rounded-md">
-                <p className="text-yellow-800">
-                  محاولة رقم {retryCount}/3: جاري تجربة طريقة اتصال بديلة...
-                </p>
+              <h1 className="text-2xl font-bold mb-4">{status}</h1>
+              <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+                {error}
               </div>
-            )}
-            <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-              <p className="font-bold mb-2">معلومات التصحيح:</p>
-              <pre>{JSON.stringify(debug, null, 2)}</pre>
-            </div>
-          </>
-        )}
+              
+              {/* Recovery options */}
+              <div className="mb-6 space-y-3">
+                <Button 
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={handleDirectAuth}
+                >
+                  <Store className="h-4 w-4" />
+                  محاولة الاتصال مباشرة
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={handleRetryDirectly}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  محاولة الاتصال باستخدام مسار Node.js
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/shopify')}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  العودة إلى صفحة الاتصال بـ Shopify
+                </Button>
+              </div>
+              
+              {/* Debug information */}
+              <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
+                <p className="font-bold mb-2">معلومات التصحيح:</p>
+                <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+              </div>
+              <Button 
+                onClick={() => navigate('/dashboard')} 
+                variant="link"
+                className="mt-4"
+              >
+                العودة إلى لوحة التحكم
+              </Button>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold mb-4">{status}</h1>
+              <div className="flex justify-center mb-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+              </div>
+              <p className="mb-4">سيتم توجيهك تلقائيًا خلال لحظات...</p>
+              {isLoading && retryCount > 0 && (
+                <div className="mb-4 bg-yellow-50 border border-yellow-200 p-3 rounded-md">
+                  <p className="text-yellow-800">
+                    محاولة رقم {retryCount}/3: جاري تجربة طريقة اتصال بديلة...
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* Debug information panel (always visible) */}
+      <div className="fixed bottom-0 right-0 m-4 p-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const debugPanel = document.getElementById('debug-panel');
+            if (debugPanel) {
+              debugPanel.classList.toggle('hidden');
+            }
+          }}
+        >
+          عرض/إخفاء التصحيح
+        </Button>
+        
+        <div id="debug-panel" className="hidden mt-2 p-4 bg-white border rounded shadow-lg text-left text-xs overflow-auto max-h-80 max-w-lg">
+          <p className="font-bold mb-2">معلومات التصحيح:</p>
+          <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+        </div>
       </div>
     </div>
   );
