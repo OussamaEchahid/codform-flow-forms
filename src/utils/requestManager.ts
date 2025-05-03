@@ -9,6 +9,7 @@ export const DEFAULT_THROTTLE_TIME = 30 * 1000; // 30 ثانية
 // إنشاء متتبع للطلبات لتجنب الطلبات المتكررة
 export const createRequestTracker = () => {
   const inProgressRequests: Record<string, boolean> = {};
+  const timeouts: Record<string, ReturnType<typeof setTimeout>> = {};
 
   return {
     // تتبع حالة الطلب
@@ -16,7 +17,7 @@ export const createRequestTracker = () => {
       inProgressRequests[key] = inProgress;
       if (!inProgress) {
         // إضافة تأخير صغير قبل إزالة حالة "في التقدم" لمنع الطلبات المتزامنة
-        setTimeout(() => {
+        timeouts[`track_${key}`] = setTimeout(() => {
           inProgressRequests[key] = false;
         }, 100);
       }
@@ -36,6 +37,15 @@ export const createRequestTracker = () => {
           inProgressRequests[k] = false;
         });
       }
+    },
+    
+    // مسح جميع المهلات
+    clearAllTimeouts: () => {
+      Object.keys(timeouts).forEach((key) => {
+        if (timeouts[key]) {
+          clearTimeout(timeouts[key]);
+        }
+      });
     }
   };
 };
