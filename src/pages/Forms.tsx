@@ -6,11 +6,22 @@ import { useI18n } from '@/lib/i18n';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 
 const Forms = () => {
-  const { user } = useAuth();
+  const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
 
-  if (!user) {
-    return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى قسم النماذج' : 'Please login to access forms'}</div>;
+  // Allow access if either authenticated with user or connected with Shopify
+  const hasAccess = !!user || shopifyConnected;
+
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-center py-8">
+          {language === 'ar' 
+            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم النماذج' 
+            : 'Please login or connect a Shopify store to access forms'}
+        </div>
+      </div>
+    );
   }
 
   return (

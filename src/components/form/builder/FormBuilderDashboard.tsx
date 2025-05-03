@@ -16,22 +16,29 @@ const FormBuilderDashboard = () => {
   const { t, language } = useI18n();
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
-  const { user, shop } = useAuth();
+  const { user, shop, shopifyConnected } = useAuth();
+  
+  // Allow access if either authenticated with user or connected with Shopify
+  const hasAccess = !!user || shopifyConnected;
 
   const handleCreateForm = async () => {
     try {
-      if (!user) {
-        toast.error(language === 'ar' ? 'يجب تسجيل الدخول لإنشاء نموذج' : 'You must be logged in to create a form');
+      if (!hasAccess) {
+        toast.error(language === 'ar' 
+          ? 'يجب تسجيل الدخول أو الاتصال بمتجر Shopify لإنشاء نموذج' 
+          : 'You must be logged in or have a Shopify store connected to create a form');
         return;
       }
       
       if (!shop) {
-        toast.error(language === 'ar' ? 'يجب ربط متجر Shopify لإنشاء نموذج' : 'You must connect a Shopify store to create a form');
+        toast.error(language === 'ar' 
+          ? 'يجب ربط متجر Shopify لإنشاء نموذج' 
+          : 'You must connect a Shopify store to create a form');
         return;
       }
       
       console.log("Creating default form...");
-      console.log("Current user:", user);
+      console.log("Current user:", user || "Using Shopify connection");
       console.log("Current shop:", shop);
       
       const newForm = await createDefaultForm();
@@ -100,11 +107,13 @@ const FormBuilderDashboard = () => {
           </div>
         </div>
         
-        {/* User and Shop Debug Info (only in development) */}
+        {/* Auth and Shop Debug Info (only in development) */}
         {process.env.NODE_ENV !== 'production' && (
           <div className="mb-4 p-2 bg-gray-100 text-xs rounded">
             <div>User ID: {user?.id || 'Not logged in'}</div>
             <div>Shop: {shop || 'No shop connected'}</div>
+            <div>Shopify Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
+            <div>Has Access: {hasAccess ? 'Yes' : 'No'}</div>
           </div>
         )}
         

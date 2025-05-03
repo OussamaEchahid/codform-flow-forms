@@ -10,11 +10,14 @@ import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
-  const { user } = useAuth();
+  const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
+  
+  // Allow access if either authenticated with user or connected with Shopify
+  const hasAccess = !!user || shopifyConnected;
   
   useEffect(() => {
     if (formId) {
@@ -25,8 +28,16 @@ const FormBuilderPage = () => {
     }
   }, [formId, fetchForms]);
 
-  if (!user) {
-    return <div className="text-center py-8">{language === 'ar' ? 'يرجى تسجيل الدخول للوصول إلى منشئ النماذج' : 'Please login to access the form builder'}</div>;
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-center py-8">
+          {language === 'ar' 
+            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى منشئ النماذج' 
+            : 'Please login or connect a Shopify store to access the form builder'}
+        </div>
+      </div>
+    );
   }
 
   return (

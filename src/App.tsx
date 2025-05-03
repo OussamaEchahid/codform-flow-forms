@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 import Dashboard from "@/pages/Dashboard";
 import Index from "@/pages/Index";
 import FormBuilderPage from "@/pages/FormBuilderPage";
-import Forms from "@/pages/Forms"; // نستورد صفحة النماذج الجديدة
+import Forms from "@/pages/Forms"; 
 import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
@@ -26,9 +27,9 @@ import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 
 const queryClient = new QueryClient();
 
-// Protected route that checks for Shopify connection
+// Protected route that checks for Shopify connection OR user authentication
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
-  const { shopifyConnected, shop, loading } = useAuth();
+  const { shopifyConnected, user, shop, loading } = useAuth();
   
   // If still loading, we can show a loading state
   if (loading) {
@@ -39,20 +40,26 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   
-  // Use all available sources to determine if actually connected
-  const isActuallyConnected = shopifyConnected || localStorageConnected || !!activeStore;
+  // Use all available sources to determine if user has access
+  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore;
+  const isAuthenticated = !!user; // Check if user is authenticated
+  
+  // User has access if they're authenticated OR have a Shopify connection
+  const hasAccess = isAuthenticated || hasShopifyAccess;
   
   console.log("Protected route check:", {
     authContextConnected: shopifyConnected,
     localStorageConnected,
     activeStore,
-    isActuallyConnected,
+    hasShopifyAccess,
+    isAuthenticated,
+    hasAccess,
     requireAuth
   });
   
-  // If authentication is required and no connection methods show we're connected
-  if (requireAuth && !isActuallyConnected) {
-    console.log("Not connected, redirecting to /shopify");
+  // If authentication is required and user doesn't have access
+  if (requireAuth && !hasAccess) {
+    console.log("No authentication or Shopify connection, redirecting to /shopify");
     return <Navigate to="/shopify" replace />;
   }
   
