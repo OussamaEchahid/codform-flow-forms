@@ -27,17 +27,19 @@ const Shopify = () => {
   useEffect(() => {
     // استخدام مكتبة الاتصال للحصول على حالة الاتصال
     const activeStore = shopifyConnectionManager.getActiveStore();
-    const isStoreConnected = !!activeStore || !!shop || shopifyConnected;
+    const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+    const isStoreConnected = !!activeStore || !!shop || shopifyConnected || localStorageConnected;
     
     console.log("Connection status check:", { 
       activeStore, 
       shopContextShop: shop, 
-      shopifyConnected, 
+      shopifyConnected,
+      localStorageConnected,
       isStoreConnected 
     });
     
     setIsConnected(isStoreConnected);
-    setConnectedShop(activeStore || shop);
+    setConnectedShop(activeStore || shop || localStorage.getItem('shopify_store'));
     
     // حفظ القيمة الأولية للمتجر
     const lastUrlShop = shopifyConnectionManager.getLastUrlShop() || activeStore;
@@ -49,6 +51,15 @@ const Shopify = () => {
     if (activeStore && setShop && !shopifyConnected) {
       console.log("Synchronizing connection state with AuthProvider");
       setShop(activeStore);
+    }
+    
+    // Force update auth context if inconsistency detected
+    if (isStoreConnected && !shopifyConnected && setShop) {
+      const shopToUse = activeStore || shop || localStorage.getItem('shopify_store');
+      if (shopToUse) {
+        console.log("Forcing auth context update due to state inconsistency");
+        setShop(shopToUse);
+      }
     }
   }, [shop, shopifyConnected, setShop]);
   
@@ -70,6 +81,10 @@ const Shopify = () => {
       if (setShop) {
         setShop(shopUrl);
       }
+      
+      // Ensure localStorage is updated
+      localStorage.setItem('shopify_store', shopUrl);
+      localStorage.setItem('shopify_connected', 'true');
       
       // تحديد URL الاستدعاء المرتد بناءً على ما إذا كنا نستخدم نافذة منبثقة أم لا
       let redirectUrl = `${window.location.origin}/shopify-redirect?shop=${encodeURIComponent(shopUrl)}`;
@@ -162,12 +177,17 @@ const Shopify = () => {
     toast.success('تم إعادة تعيين الاتصال بنجاح');
   };
   
+  // Force check and fix connection state before rendering
+  const actuallyConnected = isConnected || shopifyConnected || 
+    localStorage.getItem('shopify_connected') === 'true' || 
+    !!shopifyConnectionManager.getActiveStore();
+
   return (
     <div className="container mx-auto py-6 max-w-5xl" dir="rtl">
       <h1 className="text-2xl font-bold mb-6">Shopify Integration</h1>
       
       <div className="grid gap-6">
-        {isConnected ? (
+        {actuallyConnected ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -175,7 +195,7 @@ const Shopify = () => {
                 <span>Successfully Connected</span>
               </CardTitle>
               <CardDescription>
-                You are connected to store: {connectedShop}
+                You are connected to store: {connectedShop || shop || localStorage.getItem('shopify_store')}
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between">

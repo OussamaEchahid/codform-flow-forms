@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,6 +22,7 @@ import Settings from "@/pages/Settings";
 
 // Components
 import { Toaster } from "sonner";
+import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 
 const queryClient = new QueryClient();
 
@@ -35,14 +35,28 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Check for connection in localStorage as fallback
+  // Multi-layer check for connection status
+  const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
-  const isConnected = shopifyConnected || localStorageConnected;
   
-  if (requireAuth && !isConnected) {
+  // Use all available sources to determine if actually connected
+  const isActuallyConnected = shopifyConnected || localStorageConnected || !!activeStore;
+  
+  console.log("Protected route check:", {
+    authContextConnected: shopifyConnected,
+    localStorageConnected,
+    activeStore,
+    isActuallyConnected,
+    requireAuth
+  });
+  
+  // If authentication is required and no connection methods show we're connected
+  if (requireAuth && !isActuallyConnected) {
+    console.log("Not connected, redirecting to /shopify");
     return <Navigate to="/shopify" replace />;
   }
   
+  // Otherwise, render the child routes
   return <Outlet />;
 };
 

@@ -22,4 +22,23 @@ export const AuthContext = React.createContext<AuthContextType>({
 });
 
 // هوك للوصول إلى سياق المصادقة
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  
+  // Fallback check if context is missing information
+  const activeStore = localStorage.getItem('shopify_store');
+  const isConnected = localStorage.getItem('shopify_connected') === 'true';
+  
+  // If context says not connected but localStorage says yes,
+  // use localStorage as source of truth
+  if (!context.shopifyConnected && isConnected && activeStore) {
+    return {
+      ...context,
+      shopifyConnected: true,
+      shop: activeStore,
+      shops: context.shops || [activeStore]
+    };
+  }
+  
+  return context;
+};

@@ -71,7 +71,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Get all stores for the shops list
       const allStores = shopifyConnectionManager.getAllStores();
-      setShops(allStores.map(store => store.domain));
+      if (allStores && allStores.length > 0) {
+        setShops(allStores.map(store => store.domain));
+      }
       
       return true;
     }
@@ -117,7 +119,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update list of shops
       const allStores = shopifyConnectionManager.getAllStores();
-      setShops(allStores.map(store => store.domain));
+      if (allStores && allStores.length > 0) {
+        setShops(allStores.map(store => store.domain));
+      } else {
+        setShops([shopDomain]);
+      }
       
       console.log(`Active shop set to: ${shopDomain}`);
     } catch (error) {
@@ -178,6 +184,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to forcibly synchronize connection state
+  const syncConnectionState = () => {
+    // Check localStorage first as the most reliable source
+    const storedShop = localStorage.getItem('shopify_store');
+    const isConnected = localStorage.getItem('shopify_connected') === 'true';
+    
+    // Check connection manager
+    const activeStore = shopifyConnectionManager.getActiveStore();
+    const allStores = shopifyConnectionManager.getAllStores();
+    
+    console.log("Synchronizing connection state:", {
+      localStorage: { storedShop, isConnected },
+      connectionManager: { activeStore, storeCount: allStores.length },
+      currentState: { shop, shopifyConnected }
+    });
+    
+    // If any valid source shows a connection, update state to match
+    if ((storedShop && isConnected) || activeStore) {
+      const shopToUse = activeStore || storedShop;
+      
+      if (shopToUse) {
+        setShop(shopToUse);
+        setShopifyConnected(true);
+        
+        if (allStores && allStores.length > 0) {
+          setShops(allStores.map(store => store.domain));
+        } else if (shopToUse) {
+          setShops([shopToUse]);
+        }
+        
+        console.log("Connection state synchronized to connected with shop:", shopToUse);
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   useEffect(() => {
     const setupAuth = async () => {
       try {
@@ -207,7 +251,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               // Get all stores for the shops list
               const allStores = shopifyConnectionManager.getAllStores();
-              setShops(allStores.map(store => store.domain));
+              if (allStores && allStores.length > 0) {
+                setShops(allStores.map(store => store.domain));
+              } else {
+                setShops([activeStore]);
+              }
             }
           }
         
@@ -229,6 +277,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Try to load all shops from database
         await loadShopsFromDatabase();
+        
+        // After all attempts, forcibly synchronize state
+        syncConnectionState();
         
         // Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
@@ -274,21 +325,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Use the popstate event to detect URL changes
     window.addEventListener('popstate', handleUrlChange);
 
-    // Perform an immediate check for connection state
-    setTimeout(() => {
-      const activeStore = shopifyConnectionManager.getActiveStore();
-      if (activeStore && !shopifyConnected) {
-        console.log("Connection state inconsistency detected, syncing state...");
-        setShop(activeStore);
-        setShopifyConnected(true);
-        const allStores = shopifyConnectionManager.getAllStores();
-        setShops(allStores.map(store => store.domain));
+    // Perform regular checks to make sure connection state is synchronized
+    const intervalId = setInterval(() => {
+      // Only run when not loading
+      if (!loading) {
+        // This will check local storage and connection manager
+        // to ensure authContext stays consistent with them
+        syncConnectionState();
       }
-    }, 500);
+    }, 3000);
 
     return () => {
       authListener.subscription.unsubscribe();
       window.removeEventListener('popstate', handleUrlChange);
+      clearInterval(intervalId);
     };
   }, []);
 

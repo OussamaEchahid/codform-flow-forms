@@ -1,88 +1,156 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useI18n } from '@/lib/i18n';
-import { toast } from 'sonner';
 
-// Change the import from default to named import
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ShopifyDebugPanel } from '@/components/shopify/ShopifyDebugPanel';
 
 const Settings = () => {
-  const { t, language } = useI18n();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
+  const { shop, shopifyConnected } = useAuth();
+  
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="flex-1 p-8">
-        <div className="max-w-[800px] mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">
-              {language === 'ar' ? 'الإعدادات' : 'Settings'}
-            </h1>
-            <p className="text-gray-600">
-              {language === 'ar' ? 'تخصيص تجربة التطبيق' : 'Customize your app experience'}
-            </p>
-          </div>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">الإعدادات</h1>
+      
+      <div className="grid gap-6">
+        <Tabs defaultValue="general">
+          <TabsList className="mb-4">
+            <TabsTrigger value="general">عام</TabsTrigger>
+            <TabsTrigger value="shopify">Shopify</TabsTrigger>
+            <TabsTrigger value="advanced">متقدم</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-8">
+          <TabsContent value="general" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>{language === 'ar' ? 'المظهر' : 'Theme'}</CardTitle>
+                <CardTitle>الإعدادات العامة</CardTitle>
                 <CardDescription>
-                  {language === 'ar' ? 'تخصيص مظهر التطبيق' : 'Customize the appearance of the app'}
+                  إعدادات عامة للتطبيق
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">{language === 'ar' ? 'اختر المظهر' : 'Choose Theme'}</Label>
-                  <Select value={theme} onValueChange={(value: any) => setTheme(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'ar' ? 'اختر المظهر' : 'Select a theme'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">{language === 'ar' ? 'فاتح' : 'Light'}</SelectItem>
-                      <SelectItem value="dark">{language === 'ar' ? 'داكن' : 'Dark'}</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="dark-mode">الوضع الداكن</Label>
+                    <Switch id="dark-mode" />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="notifications">الإشعارات</Label>
+                    <Switch id="notifications" defaultChecked />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div>
+                    <Button variant="destructive">حذف الحساب</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="shopify" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>إعدادات Shopify</CardTitle>
+                <CardDescription>
+                  إدارة اتصال متجر Shopify الخاص بك
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">حالة الاتصال</p>
+                      <p className="text-sm text-gray-500">
+                        {shopifyConnected ? `متصل بـ ${shop}` : 'غير متصل'}
+                      </p>
+                    </div>
+                    <Button
+                      variant={shopifyConnected ? "outline" : "default"}
+                      onClick={() => window.location.href = '/shopify'}
+                    >
+                      {shopifyConnected ? 'إدارة الاتصال' : 'اتصل الآن'}
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="auto-sync">المزامنة التلقائية للطلبات</Label>
+                      <Switch id="auto-sync" defaultChecked />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="show-badge">عرض شارة التطبيق على صفحات المتجر</Label>
+                      <Switch id="show-badge" defaultChecked />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             
+            {/* لوحة تصحيح Shopify */}
             <Card>
               <CardHeader>
-                <CardTitle>{language === 'ar' ? 'اللغة' : 'Language'}</CardTitle>
+                <CardTitle>معلومات تصحيح Shopify</CardTitle>
                 <CardDescription>
-                  {language === 'ar' ? 'تغيير لغة التطبيق' : 'Change the app language'}
+                  عرض معلومات تفصيلية حول اتصال Shopify
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="language">{language === 'ar' ? 'اختر اللغة' : 'Choose Language'}</Label>
-                  <Select value={language} onValueChange={(value: any) => {
-                    window.location.href = `/?lng=${value}`;
-                    toast.success(language === 'ar' ? 'تم تغيير اللغة بنجاح' : 'Language changed successfully');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'ar' ? 'اختر اللغة' : 'Select a language'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ar">{language === 'ar' ? 'العربية' : 'Arabic'}</SelectItem>
-                      <SelectItem value="en">{language === 'ar' ? 'الإنجليزية' : 'English'}</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <CardContent>
+                <ShopifyDebugPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>الإعدادات المتقدمة</CardTitle>
+                <CardDescription>
+                  إعدادات متقدمة للمستخدمين ذوي الخبرة
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="debug-mode">وضع التصحيح</Label>
+                    <Switch id="debug-mode" />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="api-access">وصول API</Label>
+                    <Switch id="api-access" />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="legacy-mode">وضع الدعم القديم</Label>
+                    <Switch id="legacy-mode" />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full">
+                      تصدير البيانات
+                    </Button>
+                    
+                    <Button variant="outline" className="w-full">
+                      استيراد البيانات
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            
-            {/* ShopifyDebugPanel is already a named export, so we use it directly */}
-            <ShopifyDebugPanel />
-            
-            {/* ... keep existing code (مكونات إضافية إن وجدت) */}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

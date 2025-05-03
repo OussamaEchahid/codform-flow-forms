@@ -93,9 +93,11 @@ export const ShopifyDebugPanel = () => {
       setDebugData(debugInfo);
       
       // التحقق من اتساق البيانات بين المصادر المختلفة
-      const activeStoreConsistent = activeStore && 
-                                   ((activeStore === localStorageData.shopify_store) && 
-                                   (!!shopifyConnected === (localStorageData.shopify_connected === 'true')));
+      const localStorageConnected = localStorageData.shopify_connected === 'true';
+      const activeStoreConsistent = 
+        (!!activeStore === !!shop) && // either both have shop or both don't
+        (!!activeStore === shopifyConnected) && // connection state matches
+        (localStorageConnected === shopifyConnected); // local storage and auth context agree
       
       setIsConsistent(activeStoreConsistent);
       
@@ -150,6 +152,16 @@ export const ShopifyDebugPanel = () => {
         
         // إعادة تحميل الصفحة
         window.location.reload();
+      } else if (shop) {
+        // If we have a shop in auth context but it's not synced elsewhere
+        shopifyConnectionManager.addOrUpdateStore(shop, true);
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+        
+        toast.success("تم استعادة بيانات الاتصال من auth context");
+        
+        // إعادة تحميل الصفحة
+        window.location.reload();
       } else {
         toast.error("لا توجد بيانات كافية لإصلاح الاختلافات");
       }
@@ -198,7 +210,7 @@ export const ShopifyDebugPanel = () => {
           onClick={collectDebugInfo}
           disabled={loading}
         >
-          <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           <span className="mr-2">تحديث</span>
         </Button>
       </div>
