@@ -23,9 +23,9 @@ export const ShopifyConnectionManager = {
     // If we've made too many attempts, increase the throttle time
     if (attempts > 5) {
       // Throttle more aggressively
-      localStorage.setItem('shopify_throttle_until', (now + 120000).toString()); // 2 minutes
+      localStorage.setItem('shopify_throttle_until', (now + 300000).toString()); // 5 minutes
     } else if (attempts > 3) {
-      localStorage.setItem('shopify_throttle_until', (now + 60000).toString()); // 1 minute
+      localStorage.setItem('shopify_throttle_until', (now + 120000).toString()); // 2 minutes
     }
   },
   
@@ -58,13 +58,13 @@ export const ShopifyConnectionManager = {
       return true;
     }
     
-    // If it's been less than 10 seconds since the last attempt
-    if ((now - lastAttempt) < 10000 && lastAttempt > 0) {
+    // If it's been less than 30 seconds since the last attempt (increased from 10s)
+    if ((now - lastAttempt) < 30000 && lastAttempt > 0) {
       return true;
     }
     
     // If we've made too many attempts in succession
-    if (attemptCount > 3 && (now - lastAttempt) < 60000) {
+    if (attemptCount > 3 && (now - lastAttempt) < 120000) { // 2 minutes (increased from 1 minute)
       return true;
     }
     
@@ -99,10 +99,10 @@ export const ShopifyConnectionManager = {
     if (lastAttempt === 0) return 0;
     
     if (attemptCount > 3) {
-      return Math.max(0, 60000 - (now - lastAttempt));
+      return Math.max(0, 120000 - (now - lastAttempt)); // 2 minutes (increased from 1 minute)
     }
     
-    return Math.max(0, 10000 - (now - lastAttempt));
+    return Math.max(0, 30000 - (now - lastAttempt)); // 30 seconds (increased from 10 seconds)
   },
   
   /**
@@ -114,8 +114,8 @@ export const ShopifyConnectionManager = {
     const lastAttempt = this.getLastAttemptTime();
     const now = Date.now();
     
-    // If we've tried more than 10 times in the last 2 minutes
-    if (attempts > 10 && (now - lastAttempt) < 120000) {
+    // If we've tried more than 10 times in the last 5 minutes
+    if (attempts > 10 && (now - lastAttempt) < 300000) {
       // This might be a connection storm, reset state
       console.warn('Detected possible connection storm, resetting state');
       this.resetAttempts();
@@ -124,5 +124,21 @@ export const ShopifyConnectionManager = {
     }
     
     return false;
+  },
+
+  /**
+   * EMERGENCY DISABLE - Completely disable automatic connection checks
+   */
+  isEmergencyDisabled(): boolean {
+    return localStorage.getItem('emergency_disable_shopify_checks') === 'true';
+  },
+
+  /**
+   * Toggle emergency disable mode
+   */
+  toggleEmergencyDisable(value?: boolean): boolean {
+    const newValue = value !== undefined ? value : !this.isEmergencyDisabled();
+    localStorage.setItem('emergency_disable_shopify_checks', newValue.toString());
+    return newValue;
   }
 };

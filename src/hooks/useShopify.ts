@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 
 // Define proper return type for the hook
 export interface UseShopifyReturn {
@@ -46,6 +47,12 @@ export const useShopify = (): UseShopifyReturn => {
 
   // Check initial connection status with improved caching - ONCE only
   useEffect(() => {
+    // Check for emergency disabled mode first
+    if (ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log('[useShopify] Emergency disable mode is active, skipping all automatic connection checks');
+      return;
+    }
+
     // Only run once per component mount
     if (initialCheckDone.current || isInitialized.current) {
       return;
@@ -71,33 +78,22 @@ export const useShopify = (): UseShopifyReturn => {
       setConnectionStatus(cachedConnected);
     }
     
-    // Only verify if we have a cached shop - once per component mount
-    // And don't do it immediately to prevent render loops
-    if (cachedShop && !connectionCheckInProgress.current) {
-      const now = Date.now();
-      lastCheckTime.current = now;
-      
-      // We'll use the lastCheckTime to determine if it's necessary to recheck
-      const storedLastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
-      const checkInterval = 5 * 60 * 1000; // 5 minutes
-      
-      // Only verify if it's been more than the interval since last check
-      if ((now - storedLastCheckTime) > checkInterval) {
-        // Use a much longer delay to prevent connection storms
-        const timer = setTimeout(() => {
-          verifyShopifyConnection().catch(err => {
-            console.error('[useShopify] Initial connection check failed:', err);
-          });
-        }, 10000); // 10 seconds delay
-        
-        return () => clearTimeout(timer);
-      }
-    }
+    // Skip verification completely in most cases to prevent connection storms
+    const now = Date.now();
+    lastCheckTime.current = now;
+    localStorage.setItem('shopify_last_check_time', now.toString());
   }, []); // Empty dependency array ensures this only runs once
   
   // Simple manual reconnect function - explicitly void return type
   const manualReconnect = useCallback((): void => {
     try {
+      // Emergency disabled mode check
+      if (ShopifyConnectionManager.isEmergencyDisabled()) {
+        console.log('[useShopify] Emergency disable mode is active, skipping reconnect');
+        toast.error('Connection checks are disabled. Please re-enable them first.');
+        return;
+      }
+
       // Check if we recently attempted to connect - use ref for more stability
       const now = Date.now();
       const lastAttemptTime = lastConnectionAttempt || 0;
@@ -140,6 +136,12 @@ export const useShopify = (): UseShopifyReturn => {
   
   // Verify connection status with improved stability
   const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
+    // Emergency disabled mode check
+    if (ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log('[useShopify] Emergency disable mode is active, skipping verification');
+      return isConnected;
+    }
+
     try {
       // Don't check if already in progress
       if (connectionCheckInProgress.current) {
@@ -167,39 +169,15 @@ export const useShopify = (): UseShopifyReturn => {
       
       console.log(`[useShopify] Verifying connection for shop: ${cachedShop}`);
       
-      // Check for an access token in database
-      try {
-        const { data: storeData, error: storeError } = await supabase
-          .from('shopify_stores')
-          .select('access_token, updated_at')
-          .eq('shop', cachedShop)
-          .maybeSingle();
-        
-        if (storeError) {
-          console.error('[useShopify] Error checking database for token:', storeError);
-          setError('Database error checking Shopify connection');
-          connectionCheckInProgress.current = false;
-          setIsLoading(false);
-          return false;
-        }
-        
-        // If we have a token in the database, we're connected
-        const hasValidToken = !!(storeData?.access_token);
-        
-        // Update local cache and state
-        localStorage.setItem('shopify_connected', hasValidToken ? 'true' : 'false');
-        localStorage.setItem('shopify_last_check_time', now.toString());
-        
-        console.log('[useShopify] Connection verification result:', { hasValidToken });
-        setConnectionStatus(hasValidToken);
-        setIsConnected(hasValidToken);
-        
-        return hasValidToken;
-      } catch (dbError) {
-        console.error('[useShopify] Database error during verification:', dbError);
-        setError('Error verifying Shopify connection');
-        return false;
-      }
+      // Use a simpler check to avoid database queries - just return the cached value
+      const hasValidToken = !!localStorage.getItem('shopify_connected');
+      setConnectionStatus(hasValidToken);
+      setIsConnected(hasValidToken);
+      
+      // Update timestamp to prevent excessive checks
+      localStorage.setItem('shopify_last_check_time', now.toString());
+      
+      return hasValidToken;
     } catch (error) {
       console.error('[useShopify] Error verifying connection:', error);
       return false;
@@ -211,6 +189,12 @@ export const useShopify = (): UseShopifyReturn => {
   
   // Refresh connection status with much stronger throttling
   const refreshConnection = useCallback(async (): Promise<boolean | undefined> => {
+    // Emergency disabled mode check
+    if (ShopifyConnectionManager.isEmergencyDisabled()) {
+      console.log('[useShopify] Emergency disable mode is active, skipping refresh');
+      return connectionStatus;
+    }
+    
     try {
       const now = Date.now();
       
@@ -245,8 +229,12 @@ export const useShopify = (): UseShopifyReturn => {
       // Update timestamp in localStorage to prevent unnecessary rechecks
       localStorage.setItem('shopify_last_check_time', now.toString());
       
-      // Simply check connection status
-      return await verifyShopifyConnection();
+      // Simply use cached connection status instead of making actual requests
+      const cachedConnected = localStorage.getItem('shopify_connected') === 'true';
+      setIsConnected(cachedConnected);
+      setConnectionStatus(cachedConnected);
+      
+      return cachedConnected;
     } catch (error) {
       console.error('[useShopify] Error refreshing connection:', error);
       return undefined;
@@ -256,7 +244,7 @@ export const useShopify = (): UseShopifyReturn => {
         connectionAttemptCount.current = 0;
       }, 60000);
     }
-  }, [verifyShopifyConnection, connectionStatus]);
+  }, [connectionStatus]);
   
   // Simplified form sync function
   const syncFormWithShopify = useCallback(async (formData: any): Promise<boolean> => {
