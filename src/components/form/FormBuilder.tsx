@@ -4,6 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { v4 as uuidv4 } from 'uuid';
 
 // Interface para el constructor de formularios
 export interface FormBuilderProps {
@@ -31,90 +32,111 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
   const { language } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [pendingOperation, setPendingOperation] = useState<string | null>(null);
   
-  // التحقق من الآداء
+  // Generate unique IDs for fields that may be missing them
   useEffect(() => {
-    // تتبع وقت العمليات الطويلة
-    const startTime = performance.now();
-    
-    // التحقق من صحة البيانات
-    try {
-      if (formData && Array.isArray(formData) && formData.length > 100) {
-        console.warn('Large form data detected, this might cause performance issues:', formData.length, 'fields');
-      }
+    if (formData && Array.isArray(formData)) {
+      let hasChanges = false;
       
-      // تسجيل وقت معالجة البيانات
-      const endTime = performance.now();
-      const processingTime = endTime - startTime;
-      
-      if (processingTime > 100) {
-        console.warn(`Form data processing took ${processingTime.toFixed(2)}ms, which might cause UI lag`);
-      }
-    } catch (e) {
-      console.error('Error validating form data:', e);
-    }
-  }, [formData]);
-  
-  // إضافة حقل جديد إلى النموذج
-  const addField = async (type: string) => {
-    try {
-      setIsProcessing(true);
-      setError(null);
-      
-      // إنشاء حقل جديد
-      const newField = {
-        id: `field-${Date.now()}`,
-        type,
-        label: language === 'ar' ? 'حقل جديد' : 'New Field',
-        required: false,
-        placeholder: language === 'ar' ? 'أدخل قيمة' : 'Enter value',
-        style: {
-          color: "#333333", 
-          fontSize: "1rem", 
-          borderColor: "#e2e8f0", 
-          borderWidth: "1px", 
-          borderRadius: "0.5rem", 
-          backgroundColor: "#ffffff"
+      const updatedFormData = formData.map(field => {
+        if (!field.id) {
+          hasChanges = true;
+          return {
+            ...field,
+            id: `field-${uuidv4().substring(0, 8)}` // Generate ID for fields missing one
+          };
         }
-      };
+        return field;
+      });
       
-      // إضافة الحقل إلى البيانات
-      const updatedFormData = [...formData, newField];
-      onChange(updatedFormData);
-      
-      // تخزين محلي للتغييرات
-      try {
-        localStorage.setItem('form_builder_last_field', JSON.stringify(newField));
-      } catch (cacheError) {
-        console.error('Error caching last field:', cacheError);
+      if (hasChanges) {
+        console.log('Fixed missing field IDs in form data');
+        onChange(updatedFormData);
       }
-    } catch (error) {
-      console.error('Error adding field:', error);
-      setError(language === 'ar' 
-        ? 'حدث خطأ أثناء إضافة الحقل. يرجى المحاولة مرة أخرى.' 
-        : 'An error occurred while adding the field. Please try again.');
-    } finally {
-      setIsProcessing(false);
     }
+  }, [formData, onChange]);
+  
+  // Debounce implementation to prevent rapid clicks
+  useEffect(() => {
+    if (pendingOperation && !isProcessing) {
+      setIsProcessing(true);
+      
+      const timer = setTimeout(() => {
+        try {
+          if (pendingOperation.startsWith('add:')) {
+            const fieldType = pendingOperation.split(':')[1];
+            
+            // Create new field with proper ID and name attributes
+            const fieldId = `field-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+            const newField = {
+              id: fieldId,
+              name: fieldId, // Add name attribute
+              type: fieldType,
+              label: language === 'ar' ? 'حقل جديد' : 'New Field',
+              required: false,
+              placeholder: language === 'ar' ? 'أدخل قيمة' : 'Enter value',
+              style: {
+                color: "#333333", 
+                fontSize: "1rem", 
+                borderColor: "#e2e8f0", 
+                borderWidth: "1px", 
+                borderRadius: "0.5rem", 
+                backgroundColor: "#ffffff"
+              }
+            };
+            
+            // Add the field to form data
+            const updatedFormData = [...formData, newField];
+            onChange(updatedFormData);
+            
+            // Cache last field for recovery if needed
+            try {
+              localStorage.setItem('form_builder_last_field', JSON.stringify(newField));
+            } catch (cacheError) {
+              console.error('Error caching last field:', cacheError);
+            }
+          } else if (pendingOperation.startsWith('remove:')) {
+            const index = parseInt(pendingOperation.split(':')[1]);
+            if (!isNaN(index)) {
+              const updatedFormData = [...formData];
+              updatedFormData.splice(index, 1);
+              onChange(updatedFormData);
+            }
+          }
+        } catch (error) {
+          console.error('Error processing operation:', error);
+          setError(language === 'ar' 
+            ? 'حدث خطأ أثناء معالجة العملية. يرجى المحاولة مرة أخرى.' 
+            : 'An error occurred processing the operation. Please try again.');
+        } finally {
+          setIsProcessing(false);
+          setPendingOperation(null);
+        }
+      }, 300); // Debounce delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pendingOperation, isProcessing, formData, onChange, language]);
+  
+  // Add field to the form
+  const addField = (type: string) => {
+    if (isProcessing) return;
+    
+    setError(null);
+    setPendingOperation(`add:${type}`);
   };
   
-  // حذف حقل من النموذج
+  // Remove field from the form
   const removeField = (index: number) => {
-    try {
-      const updatedFormData = [...formData];
-      updatedFormData.splice(index, 1);
-      onChange(updatedFormData);
-    } catch (error) {
-      console.error('Error removing field:', error);
-      setError(language === 'ar' 
-        ? 'حدث خطأ أثناء حذف الحقل.' 
-        : 'Error removing field.');
-    }
+    if (isProcessing) return;
+    
+    setPendingOperation(`remove:${index}`);
   };
   
   return (
     <div className="form-builder space-y-4">
-      {/* عرض رسائل الخطأ */}
+      {/* Error messages */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -122,7 +144,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         </Alert>
       )}
       
-      {/* قائمة الحقول الحالية */}
+      {/* Field list */}
       {formData && formData.length > 0 ? (
         <div className="space-y-2">
           {formData.map((field, index) => (
@@ -140,7 +162,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
                 variant="ghost" 
                 size="sm" 
                 onClick={() => removeField(index)} 
+                disabled={isProcessing}
                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                type="button"
               >
                 {language === 'ar' ? 'حذف' : 'Remove'}
               </Button>
@@ -155,7 +179,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         </div>
       )}
       
-      {/* أزرار إضافة حقل */}
+      {/* Field type buttons */}
       <div className="pt-4 border-t">
         <h3 className="mb-2 font-medium">
           {language === 'ar' ? 'إضافة حقل جديد' : 'Add New Field'}
@@ -169,6 +193,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
               onClick={() => addField(type.id)}
               className="flex items-center"
               disabled={isProcessing}
+              type="button"
             >
               <PlusCircle className="w-4 h-4 mr-1" />
               {language === 'ar' ? type.name : type.name_en}
@@ -177,7 +202,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         </div>
       </div>
       
-      {/* عرض معلومات الوضع غير المتصل */}
+      {/* Offline mode indicator */}
       {isOfflineMode && (
         <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-sm border border-yellow-200 rounded-md">
           {language === 'ar'
@@ -190,3 +215,4 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
 };
 
 export default FormBuilder;
+
