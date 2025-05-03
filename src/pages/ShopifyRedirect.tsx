@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -238,7 +237,7 @@ const ShopifyRedirect = () => {
               const authData = await authResponse.json();
               
               if (authData.redirect) {
-                // توجيه المستخدم إلى صفحة المصادقة Shopify
+                // توجيه المستخدم إلى ��فحة المصادقة Shopify
                 window.location.href = authData.redirect;
               } else {
                 setError("لم يتم استلام عنوان URL للمصادقة");

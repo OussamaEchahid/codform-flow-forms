@@ -10,13 +10,13 @@ export type ShopifyStoreConnection = {
 // واجهة لمدير اتصال Shopify
 export interface ShopifyConnectionManager {
   // إضافة متجر جديد أو تحديث متجر موجود
-  addOrUpdateStore(shopDomain: string, isActive?: boolean): boolean;
+  addOrUpdateStore(shopDomain: string, isActive?: boolean, forceUpdate?: boolean): boolean;
   
   // الحصول على المتجر النشط
   getActiveStore(): string | null;
   
   // تعيين المتجر النشط
-  setActiveStore(shopDomain: string): boolean;
+  setActiveStore(shopDomain: string, forceUpdate?: boolean): boolean;
   
   // الحصول على جميع المتاجر
   getAllStores(): ShopifyStoreConnection[];
@@ -27,6 +27,9 @@ export interface ShopifyConnectionManager {
   // مسح جميع المتاجر
   clearAllStores(): boolean;
   
+  // مسح جميع المتاجر ماعدا متجر محدد
+  clearAllStoresExcept(shopDomain: string | null): boolean;
+  
   // التحقق مما إذا كان وضع الطوارئ مفعلاً
   isEmergencyMode(): boolean;
   
@@ -35,6 +38,9 @@ export interface ShopifyConnectionManager {
   
   // تعطيل وضع الطوارئ
   disableEmergencyMode(): boolean;
+  
+  // الحصول على آخر متجر من URL
+  getLastUrlShop(): string | null;
 }
 
 // دالة مساعدة لتنظيف اسم نطاق المتجر
