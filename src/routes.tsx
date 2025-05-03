@@ -1,6 +1,6 @@
+
 import { RouteObject } from "react-router-dom";
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
-import FormBuilder from '@/components/form/builder/FormBuilder';
 import Settings from '@/pages/Settings';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
@@ -12,8 +12,7 @@ export const routes: RouteObject[] = [
   {
     index: true,
     path: '/',
-    Component: Index,
-    loader: Index.loader
+    Component: Index
   },
   {
     path: '/dashboard',
@@ -21,7 +20,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/form-builder/:formId',
-    Component: FormBuilder,
+    Component: FormBuilderDashboard,
   },
   {
     path: '/settings',
