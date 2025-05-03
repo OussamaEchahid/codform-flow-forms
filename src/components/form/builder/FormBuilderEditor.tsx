@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,18 @@ import FormBuilder from '@/components/form/FormBuilder';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
+// مساعد لضمان عدم إهدار الموارد بكثرة التحديثات
+const useDebounce = <T,>(value: T, delay: number = 500): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'new' }) => {
   const { language } = useI18n();
   const navigate = useNavigate();
@@ -24,7 +36,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
   const { getFormById, saveForm, createNewForm } = useFormTemplates();
   const { syncFormWithShopify, isSyncing } = useShopify();
   
-  // Form state
+  // حالة النموذج
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [formData, setFormData] = useState<any[]>([]);
@@ -34,25 +46,55 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isNewForm, setIsNewForm] = useState(false);
   const [renderKey, setRenderKey] = useState<number>(Date.now());
+  
+  // متغيرات مرجعية للتتبع
+  const hasLoadedRef = useRef(false);
+  const formDataRef = useRef(formData);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // تأخير تحديثات FormData لمنع التحديثات المفرطة
+  const debouncedFormData = useDebounce(formData, 300);
+  
+  // تتبع التغييرات في بيانات النموذج
+  useEffect(() => {
+    formDataRef.current = debouncedFormData;
+    if (hasLoadedRef.current) {
+      setIsDirty(true);
+    }
+    
+    // حفظ تلقائي إلى التخزين المحلي بعد التغييرات
+    if (resolvedFormId) {
+      try {
+        localStorage.setItem(`form_draft_${resolvedFormId}`, JSON.stringify({
+          title,
+          description, 
+          data: debouncedFormData,
+          lastModified: new Date().toISOString()
+        }));
+      } catch (err) {
+        console.error('خطأ في حفظ مسودة النموذج في التخزين المحلي:', err);
+      }
+    }
+  }, [debouncedFormData, title, description, resolvedFormId]);
 
-  // Load form data on startup
+  // تحميل بيانات النموذج عند بدء التشغيل
   useEffect(() => {
     const loadForm = async () => {
       setIsLoading(true);
       setSaveError(null);
       
       try {
-        // Handle new form case
+        // معالجة حالة النموذج الجديد
         if (resolvedFormId === 'new') {
-          console.log('FormBuilderEditor: Creating new form');
+          console.log('FormBuilderEditor: إنشاء نموذج جديد');
           setIsNewForm(true);
           setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
           setDescription('');
           setFormData([]);
         } 
-        // Load existing form
+        // تحميل نموذج موجود
         else if (resolvedFormId) {
-          console.log(`FormBuilderEditor: Loading form ${resolvedFormId}`);
+          console.log(`FormBuilderEditor: تحميل النموذج ${resolvedFormId}`);
           const form = await getFormById(resolvedFormId);
           
           if (!form) {
@@ -66,19 +108,19 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
           setDescription(form.description || '');
           setFormData(Array.isArray(form.data) ? form.data : []);
         } 
-        // Error case - no form ID
+        // حالة خطأ - عدم وجود معرف للنموذج
         else {
-          console.error('FormBuilderEditor: No form ID provided');
+          console.error('FormBuilderEditor: لم يتم توفير معرف النموذج');
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
           navigate('/forms', { replace: true });
         }
       } catch (error) {
-        console.error('Error loading form:', error);
+        console.error('خطأ في تحميل النموذج:', error);
         setSaveError(language === 'ar' 
           ? 'خطأ في تحميل النموذج' 
           : 'Error loading form');
         
-        // Try to load from localStorage as backup
+        // محاولة التحميل من التخزين المحلي كنسخة احتياطية
         try {
           const cachedForm = localStorage.getItem(`form_${resolvedFormId}`);
           if (cachedForm) {
@@ -91,31 +133,31 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
               ? 'تم استخدام بيانات محلية نظرًا لمشكلة في الاتصال'
               : 'Using local data due to connection issue');
           } else {
-            // Default empty form
+            // نموذج فارغ افتراضي
             setTitle(language === 'ar' ? 'نموذج جديد' : 'New Form');
             setDescription('');
             setFormData([]);
           }
         } catch (localError) {
-          console.error('Error loading from local storage:', localError);
+          console.error('خطأ في التحميل من التخزين المحلي:', localError);
         }
       } finally {
         setIsLoading(false);
-        setIsDirty(false); // Reset dirty state after loading
-        setRenderKey(Date.now()); // Force re-render with new key
+        setIsDirty(false); // إعادة تعيين حالة التعديل بعد التحميل
+        setRenderKey(Date.now()); // فرض إعادة العرض بمفتاح جديد
+        hasLoadedRef.current = true;
       }
     };
 
     loadForm();
   }, [resolvedFormId, getFormById, navigate, language]);
 
-  // Handle form builder changes
-  const handleFormDataChange = (newFormData: any[]) => {
+  // معالجة تغييرات منشئ النموذج - استخدام useCallback لتحسين الأداء
+  const handleFormDataChange = useCallback((newFormData: any[]) => {
     setFormData(newFormData);
-    setIsDirty(true);
-  };
+  }, []);
 
-  // Save form
+  // حفظ النموذج
   const handleSave = async () => {
     if (isSaving) return;
     
@@ -125,7 +167,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
     try {
       let savedForm;
       
-      // Check for required values
+      // التحقق من القيم المطلوبة
       if (!title.trim()) {
         toast.error(language === 'ar' ? 'عنوان النموذج مطلوب' : 'Form title is required');
         setIsSaving(false);
@@ -138,9 +180,9 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
         data: formData,
       };
 
-      // Create new form or update existing form
+      // إنشاء نموذج جديد أو تحديث نموذج موجود
       if (isNewForm) {
-        console.log('FormBuilderEditor: Creating new form', formToSave);
+        console.log('FormBuilderEditor: إنشاء نموذج جديد', formToSave);
         savedForm = await createNewForm(formToSave);
         
         if (savedForm) {
@@ -148,16 +190,16 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
             ? 'تم إنشاء النموذج بنجاح' 
             : 'Form created successfully');
           
-          // Navigate to the new form
+          // الانتقال إلى النموذج الجديد
           navigate(`/form-builder/${savedForm.id}`, { replace: true });
           setIsNewForm(false);
         } else {
-          throw new Error('Failed to create form');
+          throw new Error('فشل في إنشاء النموذج');
         }
       } 
-      // Update existing form
+      // تحديث النموذج الموجود
       else if (resolvedFormId && resolvedFormId !== 'new') {
-        console.log(`FormBuilderEditor: Updating form ${resolvedFormId}`, formToSave);
+        console.log(`FormBuilderEditor: تحديث النموذج ${resolvedFormId}`, formToSave);
         savedForm = await saveForm(resolvedFormId, formToSave);
         
         if (savedForm) {
@@ -165,22 +207,24 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
             ? 'تم حفظ النموذج بنجاح' 
             : 'Form saved successfully');
         } else {
-          throw new Error('Failed to update form');
+          throw new Error('فشل في تحديث النموذج');
         }
       }
       
-      // Update local cache
+      // تحديث التخزين المؤقت المحلي
       try {
         if (savedForm) {
           localStorage.setItem(`form_${savedForm.id}`, JSON.stringify(savedForm));
+          // حذف المسودة بعد الحفظ بنجاح
+          localStorage.removeItem(`form_draft_${resolvedFormId}`);
         }
       } catch (cacheError) {
-        console.error('Error updating localStorage:', cacheError);
+        console.error('خطأ في تحديث التخزين المحلي:', cacheError);
       }
       
-      setIsDirty(false); // Reset dirty state after save
+      setIsDirty(false); // إعادة تعيين حالة التعديل بعد الحفظ
     } catch (error) {
-      console.error('Error saving form:', error);
+      console.error('خطأ في حفظ النموذج:', error);
       setSaveError(language === 'ar' 
         ? 'خطأ في حفظ النموذج' 
         : 'Error saving form');
@@ -189,7 +233,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
         ? 'حدث خطأ أثناء حفظ النموذج' 
         : 'Error saving form');
       
-      // Try to save to localStorage if server save fails
+      // محاولة الحفظ في التخزين المحلي في حالة فشل الحفظ على الخادم
       try {
         localStorage.setItem(`form_draft_${resolvedFormId || 'new'}`, JSON.stringify({
           title,
@@ -202,15 +246,15 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
           ? 'تم حفظ النموذج محليًا كنسخة احتياطية'
           : 'Form saved locally as backup');
       } catch (localError) {
-        console.error('Error saving to localStorage:', localError);
+        console.error('خطأ في الحفظ إلى التخزين المحلي:', localError);
       }
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle Shopify integration
-  const handleShopifyIntegration = async (settings: ShopifyFormData) => {
+  // إدارة تكامل Shopify - منع الاستدعاءات المتكررة باستخدام useCallback
+  const handleShopifyIntegration = useCallback(async (settings: ShopifyFormData) => {
     try {
       if (resolvedFormId === 'new') {
         toast.error(language === 'ar' 
@@ -228,14 +272,14 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
         ? 'تم تكوين تكامل Shopify بنجاح' 
         : 'Shopify integration configured successfully');
     } catch (error) {
-      console.error('Error configuring Shopify integration:', error);
+      console.error('خطأ في تكوين تكامل Shopify:', error);
       toast.error(language === 'ar' 
         ? 'خطأ في تكوين تكامل Shopify' 
         : 'Error configuring Shopify integration');
     }
-  };
+  }, [syncFormWithShopify, resolvedFormId, language]);
 
-  // Show loading state
+  // عرض حالة التحميل
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -246,7 +290,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
 
   return (
     <div className="p-6" key={renderKey}>
-      {/* Page header with action buttons */}
+      {/* رأس الصفحة مع أزرار الإجراءات */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <Button 
@@ -284,7 +328,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
         </Button>
       </div>
       
-      {/* Show error if it exists */}
+      {/* عرض الخطأ إذا كان موجودًا */}
       {saveError && (
         <Alert className="bg-red-50 border-red-300 mb-4">
           <AlertCircle className="h-4 w-4 text-red-600" />
@@ -294,9 +338,9 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
         </Alert>
       )}
       
-      {/* Edit form */}
+      {/* تعديل النموذج */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content - form builder and form settings */}
+        {/* المحتوى الرئيسي - منشئ النماذج وإعدادات النموذج */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-lg border p-4 shadow-sm">
             <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'تفاصيل النموذج' : 'Form Details'}</h2>
@@ -338,7 +382,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
             </div>
           </div>
           
-          {/* Form builder */}
+          {/* منشئ النموذج */}
           <div className="bg-white rounded-lg border p-4 shadow-sm">
             <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'محتوى النموذج' : 'Form Content'}</h2>
             
@@ -349,9 +393,9 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
           </div>
         </div>
         
-        {/* Sidebar - integrations and settings */}
+        {/* الشريط الجانبي - التكاملات والإعدادات */}
         <div className="space-y-6">
-          {/* Shopify integration */}
+          {/* تكامل Shopify */}
           <div className="bg-white rounded-lg border p-4 shadow-sm">
             <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'تكاملات' : 'Integrations'}</h2>
             
@@ -362,7 +406,7 @@ const FormBuilderEditor: React.FC<{ formId?: string | 'new' }> = ({ formId = 'ne
             />
           </div>
           
-          {/* Form settings - more can be added here */}
+          {/* إعدادات النموذج - يمكن إضافة المزيد هنا */}
           <div className="bg-white rounded-lg border p-4 shadow-sm">
             <h2 className="text-lg font-medium mb-4">{language === 'ar' ? 'إعدادات النموذج' : 'Form Settings'}</h2>
             

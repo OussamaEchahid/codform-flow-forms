@@ -22,46 +22,53 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const { isConnected, manualReconnect, refreshConnection } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   
-  // Track time of last connection check to prevent too frequent checks
+  // تتبع وقت آخر عملية تحقق من الاتصال لمنع التحققات المتكررة
   const lastCheckTimeRef = useRef<number>(0);
-  const CHECK_THROTTLE_TIME = 30000; // 30 seconds minimum between checks
-
-  // Only check connection once when component loads, not on every render
+  const initialCheckPerformedRef = useRef<boolean>(false);
+  const CHECK_THROTTLE_TIME = 30000; // 30 ثانية كحد أدنى بين عمليات التحقق
+  
+  // تحقق من الاتصال مرة واحدة فقط عند تحميل المكوّن
   useEffect(() => {
+    // منع التحقق المتكرر من الاتصال عند التحديثات المتكررة للمكون
+    if (initialCheckPerformedRef.current) return;
+    
     const checkConnectionOnce = async () => {
       const now = Date.now();
       
-      // Skip if checked recently
+      // تخطي إذا تم التحقق مؤخراً
       if (now - lastCheckTimeRef.current < CHECK_THROTTLE_TIME) {
-        console.log('Skipping connection check - checked too recently');
+        console.log('تخطي التحقق من الاتصال - تم التحقق مؤخراً');
         return;
       }
       
-      // Skip if no refresh function
+      // تخطي إذا لم تكن هناك وظيفة تحديث
       if (!refreshConnection) return;
       
       try {
-        console.log('Performing initial connection check on component mount');
+        console.log('إجراء فحص أولي للاتصال عند تحميل المكوّن');
         await refreshConnection();
         lastCheckTimeRef.current = now;
+        initialCheckPerformedRef.current = true;
       } catch (error) {
-        console.error('Error in initial connection check:', error);
+        console.error('خطأ في التحقق الأولي من الاتصال:', error);
       }
     };
     
-    // Only check if connected
-    if (isConnected) {
-      checkConnectionOnce();
+    // تحقق فقط إذا كان متصلاً
+    if (isConnected && !initialCheckPerformedRef.current) {
+      // تأخير التحقق الأولي لمنع التحميل المتزامن للعديد من الطلبات
+      const timeoutId = setTimeout(checkConnectionOnce, 2000);
+      return () => clearTimeout(timeoutId);
     }
   }, [refreshConnection, isConnected]);
 
-  // Handle manual check connection with throttling
+  // معالجة التحقق اليدوي من الاتصال مع الحد من معدل الطلبات
   const handleCheckConnection = async () => {
     if (!refreshConnection || isCheckingConnection) return;
     
     const now = Date.now();
     
-    // Prevent rapid rechecking
+    // منع إعادة التحقق السريع
     if (now - lastCheckTimeRef.current < CHECK_THROTTLE_TIME) {
       toast.info(
         language === 'ar' 
@@ -73,7 +80,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     
     setIsCheckingConnection(true);
     try {
-      console.log('Manually checking Shopify connection');
+      console.log('التحقق يدوياً من اتصال Shopify');
       const connected = await refreshConnection();
       lastCheckTimeRef.current = Date.now();
       
@@ -84,7 +91,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
         );
       }
     } catch (error) {
-      console.error('Error verifying connection:', error);
+      console.error('خطأ في التحقق من الاتصال:', error);
       toast.error(language === 'ar' ? 'خطأ في التحقق من الاتصال' : 'Connection check error');
     } finally {
       setIsCheckingConnection(false);
