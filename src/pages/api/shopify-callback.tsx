@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -31,7 +32,13 @@ export default function ShopifyCallback() {
           state,
           search: location.search,
           url: window.location.href,
+          origin: window.location.origin,
           referrer: document.referrer || "none",
+          localStorage: {
+            shopify_store: localStorage.getItem('shopify_store'),
+            shopify_connected: localStorage.getItem('shopify_connected'),
+            shopify_temp_store: localStorage.getItem('shopify_temp_store')
+          },
           timestamp: new Date().toISOString()
         };
         
@@ -47,33 +54,22 @@ export default function ShopifyCallback() {
         
         try {
           // Call Supabase Edge Function to complete the auth
-          // Include popup=true to get HTML response if this is in a popup
-          const isPopup = window.opener != null;
-          const popupParam = isPopup ? "&popup=true" : "";
+          const { data, error } = await supabase.functions.invoke('shopify-callback', {
+            body: {
+              shop: shopParam,
+              code,
+              hmac,
+              state
+            },
+          });
           
-          const response = await fetch(
-            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?${location.search.substring(1)}${popupParam}`,
-            { method: 'GET' }
-          );
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`فشل إكمال المصادقة: ${errorData.error || response.statusText}`);
+          if (error) {
+            throw new Error(`فشل إكمال المصادقة: ${error.message}`);
           }
           
-          // We could get HTML or JSON depending on popup parameter
-          const contentType = response.headers.get("content-type") || "";
-          
-          if (contentType.includes("text/html")) {
-            // For popup flow, let the HTML handle the closing
-            document.open();
-            document.write(await response.text());
-            document.close();
-            return;
+          if (!data?.success) {
+            throw new Error(data?.error || "حدث خطأ غير معروف أثناء إكمال المصادقة");
           }
-          
-          // Otherwise handle JSON response for full page flow
-          const result = await response.json();
           
           // Store shop information in localStorage
           localStorage.setItem('shopify_store', shopParam);
@@ -82,20 +78,56 @@ export default function ShopifyCallback() {
           // Remove temporary data
           localStorage.removeItem('shopify_temp_store');
           
+          setIsProcessing(false);
           toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
           
-          // Close popup window or redirect based on context
-          if (isPopup) {
-            window.close();
-          } else if (result.redirect) {
-            window.location.href = result.redirect;
+          // If there's a redirect URL in the response, navigate to it
+          if (data.redirect) {
+            window.location.href = data.redirect;
           } else {
-            navigate('/dashboard', { replace: true });
+            setTimeout(() => {
+              navigate('/dashboard', { replace: true });
+            }, 1000);
           }
         } catch (error) {
           console.error("Error handling callback:", error);
-          setError("فشل إكمال عملية المصادقة");
-          setIsProcessing(false);
+          
+          // Fallback to direct API call
+          try {
+            // Try direct API call as a fallback
+            const response = await fetch(
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shopParam)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
+              { method: 'GET' }
+            );
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`فشل إكمال المصادقة: ${errorData.error || response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            // Store shop information in localStorage
+            localStorage.setItem('shopify_store', shopParam);
+            localStorage.setItem('shopify_connected', 'true');
+            
+            // Remove temporary data
+            localStorage.removeItem('shopify_temp_store');
+            
+            setIsProcessing(false);
+            toast.success(`تم الاتصال بمتجر ${shopParam} بنجاح`);
+            
+            // If there's a redirect URL in the response, navigate to it
+            if (result.redirect) {
+              window.location.href = result.redirect;
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
+          } catch (fallbackError) {
+            console.error("Fallback API call failed:", fallbackError);
+            setError("فشل إكمال عملية المصادقة");
+            setIsProcessing(false);
+          }
         }
       } catch (error) {
         console.error("Unexpected error in callback:", error);
@@ -135,9 +167,9 @@ export default function ShopifyCallback() {
             </Button>
             
             {/* Debug information */}
-            <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md">
+            <div className="mt-6 p-4 bg-gray-100 text-xs text-left rounded-md dir-ltr">
               <details>
-                <summary className="cursor-pointer font-bold mb-2">معلومات التصحيح</summary>
+                <summary className="cursor-pointer font-bold mb-2 text-right">معلومات التصحيح</summary>
                 <pre className="whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
               </details>
             </div>

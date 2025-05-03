@@ -27,8 +27,8 @@ scopes = "write_products,read_products,read_orders,write_orders,write_script_tag
 
 [auth]
 redirect_urls = [
-  "https://codform-flow-forms.lovable.app/api/shopify-callback",
   "https://codform-flow-forms.lovable.app/shopify-callback",
+  "https://codform-flow-forms.lovable.app/api/shopify-callback",
   "https://codform-flow-forms.lovable.app/auth/callback",
   "https://codform-flow-forms.lovable.app/auth/offline",
   "https://codform-flow-forms.lovable.app/auth/token",
@@ -36,7 +36,9 @@ redirect_urls = [
   "https://codform-flow-forms.lovable.app/shopify",
   "https://codform-flow-forms.lovable.app/shopify-redirect",
   "https://codform-flow-forms.lovable.app/dashboard",
-  "https://codform-flow-forms.lovable.app"
+  "https://codform-flow-forms.lovable.app",
+  "https://admin.shopify.com/store/*/apps/*/auth/callback",
+  "https://admin.shopify.com/store/*/auth/callback"
 ]
 
 [pos]

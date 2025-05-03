@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -50,6 +51,13 @@ function cleanShopDomain(shop: string): string {
 }
 
 serve(async (req) => {
+  // Log the full request for debugging
+  console.log("Callback received:", {
+    url: req.url,
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries()),
+  });
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,19 +70,22 @@ serve(async (req) => {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const timestamp = Date.now();
+    const isPopup = url.searchParams.get("popup") === "true";
     
-    console.log("Callback received with params:", {
+    console.log("Callback params:", {
       shop,
       hmac: hmac ? "present" : "missing", 
       code: code ? "present" : "missing", 
       state,
-      timestamp
+      timestamp,
+      isPopup
     });
     
     if (!shop || !code) {
       return new Response(
         JSON.stringify({ 
           error: "Missing required parameters",
+          params: Object.fromEntries(url.searchParams.entries()),
           timestamp
         }), 
         { status: 400, headers: corsHeaders }
@@ -99,7 +110,7 @@ serve(async (req) => {
           console.log("Error checking state:", stateError);
           // Continue anyway, don't fail the authentication just because of state verification
         } else if (stateRecord) {
-          console.log("State verified successfully");
+          console.log("State verified successfully:", stateRecord);
         } else {
           console.log("No matching state found, but continuing");
         }
@@ -130,14 +141,31 @@ serve(async (req) => {
       
       try {
         // Store the token in Supabase
-        const { error: upsertError } = await supabase
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        const userId = userData?.user?.id;
+        console.log("Current user:", userId || "No authenticated user");
+        
+        const storeData = {
+          shop,
+          access_token: tokenData.access_token,
+          scope: tokenData.scope,
+          updated_at: new Date().toISOString(),
+          is_active: true
+        };
+        
+        // Add user_id if available
+        if (userId) {
+          Object.assign(storeData, { user_id: userId });
+        }
+        
+        // Use upsert to handle both new stores and updates
+        const { error: upsertError, data: insertedStore } = await supabase
           .from('shopify_stores')
-          .upsert({
-            shop,
-            access_token: tokenData.access_token,
-            scope: tokenData.scope,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'shop' });
+          .upsert(storeData, { 
+            onConflict: 'shop', 
+            returning: 'minimal' 
+          });
           
         if (upsertError) {
           console.error("Error storing token:", upsertError);
@@ -164,28 +192,44 @@ serve(async (req) => {
       }
       
       // Return HTML for closing popup if it's in a popup
-      const isPopup = url.searchParams.get("popup") === "true";
-      
       if (isPopup) {
         const htmlResponse = `
         <!DOCTYPE html>
-        <html>
+        <html dir="rtl">
         <head>
-          <title>Authentication Successful</title>
+          <title>تمت المصادقة بنجاح</title>
           <script>
-            window.opener.postMessage({
-              type: 'shopify:auth:success',
-              shop: '${shop}',
-            }, '*');
-            setTimeout(function() {
-              window.close();
-            }, 1000);
+            // Send message to parent window about successful auth
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'shopify:auth:success',
+                shop: '${shop}',
+              }, '*');
+              
+              // Store shop info in localStorage before closing
+              try {
+                localStorage.setItem('shopify_store', '${shop}');
+                localStorage.setItem('shopify_connected', 'true');
+                console.log('Shop data saved to localStorage');
+              } catch(e) {
+                console.error('Error saving to localStorage:', e);
+              }
+              
+              // Close the popup after a short delay
+              setTimeout(function() {
+                window.close();
+              }, 1000);
+            } else {
+              // If not in popup, redirect
+              window.location.href = '${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}';
+            }
           </script>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
               text-align: center;
               padding: 2rem;
+              direction: rtl;
             }
             .success {
               color: #10B981;
@@ -200,10 +244,10 @@ serve(async (req) => {
             }
           </style>
         </head>
-        <body dir="rtl">
+        <body>
           <div class="success">✓</div>
           <h1>تم الاتصال بنجاح!</h1>
-          <p>تم اتصال متجرك بنجاح. يمكنك إغلاق هذه النافذة.</p>
+          <p>تم اتصال متجرك بنجاح. يمكنك إغلاق هذه النافذة والعودة إلى التطبيق.</p>
         </body>
         </html>
         `;

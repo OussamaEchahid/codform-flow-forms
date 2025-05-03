@@ -109,9 +109,13 @@ export const createConnectionManager = (): ShopifyConnectionManager => {
       connectionManager.activeStore = shop;
       saveActiveStore(shop);
 
-      // تحديث وقت آخر استخدام
-      const storeIndex = connectionManager.stores.findIndex(store => store.shop === shop);
-      connectionManager.stores[storeIndex].lastUsed = new Date().toISOString();
+      // تحديث حالة النشاط وتحديث وقت آخر استخدام لجميع المتاجر
+      connectionManager.stores = connectionManager.stores.map(store => ({
+        ...store,
+        isActive: store.shop === shop,
+        lastUsed: store.shop === shop ? new Date().toISOString() : store.lastUsed
+      }));
+      
       saveStores(connectionManager.stores);
     },
 

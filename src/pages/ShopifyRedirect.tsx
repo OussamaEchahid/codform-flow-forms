@@ -4,22 +4,23 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertCircle, ExternalLink, RefreshCcw, Store, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
-// Clean the shop domain
+// دالة تنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
   let cleanedShop = shop.trim();
   
-  // Remove protocol if present
+  // إزالة البروتوكول إذا كان موجودًا
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
       cleanedShop = url.hostname;
     } catch (e) {
-      console.error("Error cleaning shop URL:", e);
+      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
     }
   }
   
-  // Ensure it ends with myshopify.com
+  // التأكد من أنه ينتهي بـ myshopify.com
   if (!cleanedShop.endsWith('myshopify.com')) {
     if (!cleanedShop.includes('.')) {
       cleanedShop = `${cleanedShop}.myshopify.com`;
@@ -41,7 +42,7 @@ const ShopifyRedirect = () => {
   useEffect(() => {
     const redirectToAuthEndpoint = async () => {
       try {
-        // Get URL parameters
+        // الحصول على معلمات URL
         const params = new URLSearchParams(location.search);
         let shopParam = params.get("shop");
         const hmac = params.get("hmac");
@@ -50,10 +51,10 @@ const ShopifyRedirect = () => {
         const state = params.get("state");
         const host = params.get("host");
         
-        // Save original shop for debugging
+        // حفظ المتجر الأصلي للتصحيح
         const originalShop = shopParam;
         
-        // Update debug info
+        // تحديث معلومات التصحيح
         const debugInfo = { 
           originalShop,
           hmac, 
@@ -73,31 +74,31 @@ const ShopifyRedirect = () => {
         };
         
         setDebug(debugInfo);
-        console.log("ShopifyRedirect parameters:", debugInfo);
+        console.log("معلمات ShopifyRedirect:", debugInfo);
         
-        // Check for shop parameter
+        // التحقق من معلمة المتجر
         if (!shopParam) {
-          // If no shop parameter, check for previously stored shop
+          // إذا لم تكن هناك معلمة متجر، تحقق من المتجر المخزن مسبقًا
           const savedShop = localStorage.getItem('shopify_store');
           const savedConnected = localStorage.getItem('shopify_connected');
-          // Check for temp shop during auth
+          // تحقق من المتجر المؤقت أثناء المصادقة
           const tempShop = localStorage.getItem('shopify_temp_store');
           
-          console.log("Stored shop data:", { savedShop, savedConnected, tempShop });
+          console.log("بيانات المتجر المخزنة:", { savedShop, savedConnected, tempShop });
           
           if (savedShop && savedConnected === 'true') {
-            // If we have stored shop data, redirect directly to dashboard
-            console.log("Using stored shop data for redirect...");
+            // إذا كانت لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
+            console.log("استخدام بيانات المتجر المخزنة لإعادة التوجيه...");
             navigate(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(savedShop)}`);
             return;
           }
           
           if (tempShop) {
-            // Use temporary shop data
+            // استخدام بيانات المتجر المؤقتة
             shopParam = tempShop;
-            console.log("Using temporary shop data to continue auth:", shopParam);
+            console.log("استخدام بيانات المتجر المؤقتة لمواصلة المصادقة:", shopParam);
           } else {
-            // If no shop parameter or stored data, show error
+            // إذا لم تكن هناك معلمة متجر أو بيانات مخزنة، عرض خطأ
             setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
             setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
             setIsLoading(false);
@@ -105,102 +106,161 @@ const ShopifyRedirect = () => {
           }
         }
         
-        // Clean shop domain
+        // تنظيف نطاق المتجر
         let cleanedShop = cleanShopDomain(shopParam);
-        console.log("Cleaned shop domain:", cleanedShop);
+        console.log("نطاق متجر منظف:", cleanedShop);
         
-        // Store shop info in localStorage for use if auth flow is interrupted
+        // تخزين معلومات المتجر في localStorage للاستخدام إذا تمت مقاطعة تدفق المصادقة
         try {
           localStorage.setItem('shopify_temp_store', cleanedShop);
-          console.log("Temp shop info saved:", cleanedShop);
+          console.log("تم حفظ معلومات المتجر المؤقتة:", cleanedShop);
         } catch (e) {
-          console.error("Error saving temp data:", e);
+          console.error("خطأ في حفظ البيانات المؤقتة:", e);
         }
         
-        // If we have code and hmac, we're in the callback redirect after auth
+        // إذا كان لدينا رمز وhmac، فنحن في إعادة توجيه المكالمة بعد المصادقة
         if (code && hmac) {
           setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
           
           try {
-            // Call Supabase Edge Function to complete the auth
-            const callbackResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
-              { method: 'GET' }
-            );
+            // استدعاء Supabase Edge Function لإكمال المصادقة
+            const { data: callbackResult, error: callbackError } = await supabase.functions.invoke('shopify-callback', {
+              body: { 
+                shop: cleanedShop,
+                code,
+                hmac,
+                state
+              },
+            });
             
-            if (!callbackResponse.ok) {
-              const errorData = await callbackResponse.json();
-              throw new Error(`فشل التحقق من الرمز: ${errorData.error || callbackResponse.statusText}`);
+            if (callbackError) {
+              throw new Error(`فشل التحقق من الرمز: ${callbackError.message}`);
             }
             
-            const callbackResult = await callbackResponse.json();
             setDebug(prev => ({ ...prev, callbackResult }));
             
-            if (callbackResult.success) {
-              // Save shop data in localStorage
+            if (callbackResult?.success) {
+              // حفظ بيانات المتجر في localStorage
               localStorage.setItem('shopify_store', cleanedShop);
               localStorage.setItem('shopify_connected', 'true');
               localStorage.removeItem('shopify_temp_store');
               
               toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
               
-              // Check if there's a redirect URL from the response
+              // التحقق مما إذا كان هناك عنوان URL لإعادة التوجيه من الاستجابة
               if (callbackResult.redirect) {
                 window.location.href = callbackResult.redirect;
               } else {
                 navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
               }
             } else {
-              setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
+              setError(`فشل استكمال عملية المصادقة: ${callbackResult?.error || "سبب غير معروف"}`);
               setIsLoading(false);
             }
           } catch (e) {
-            console.error("Error completing authentication:", e);
-            setError(e instanceof Error ? e.message : "حدث خطأ أثناء استكمال عملية المصادقة");
-            setIsLoading(false);
+            console.error("خطأ في استكمال المصادقة:", e);
+            
+            try {
+              // الخطة البديلة: استخدام نقطة النهاية مباشرة
+              const callbackResponse = await fetch(
+                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}`,
+                { method: 'GET' }
+              );
+              
+              if (!callbackResponse.ok) {
+                const errorData = await callbackResponse.json();
+                throw new Error(`فشل التحقق من الرمز: ${errorData.error || callbackResponse.statusText}`);
+              }
+              
+              const callbackResult = await callbackResponse.json();
+              
+              if (callbackResult.success) {
+                // حفظ بيانات المتجر في localStorage
+                localStorage.setItem('shopify_store', cleanedShop);
+                localStorage.setItem('shopify_connected', 'true');
+                localStorage.removeItem('shopify_temp_store');
+                
+                toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+                
+                // التحقق مما إذا كان هناك عنوان URL لإعادة التوجيه من الاستجابة
+                if (callbackResult.redirect) {
+                  window.location.href = callbackResult.redirect;
+                } else {
+                  navigate('/dashboard?shopify_success=true&shop=' + encodeURIComponent(cleanedShop));
+                }
+              } else {
+                setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
+                setIsLoading(false);
+              }
+            } catch (fallbackError) {
+              console.error("فشل الطريقة البديلة:", fallbackError);
+              setError(e instanceof Error ? e.message : "حدث خطأ أثناء استكمال عملية المصادقة");
+              setIsLoading(false);
+            }
           }
         } else {
-          // Redirect the user directly to the server auth path
+          // توجيه المستخدم مباشرة إلى مسار المصادقة على الخادم
           setStatus(`جاري توجيهك للمصادقة مع متجر ${cleanedShop}...`);
           
           try {
-            // Use Edge Function directly to get auth URL
-            const authResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&timestamp=${Date.now()}`, 
-              { method: 'GET' }
-            );
+            // استخدام Supabase Edge Function للحصول على عنوان URL للمصادقة
+            const { data, error } = await supabase.functions.invoke('shopify-auth', {
+              body: { shop: cleanedShop },
+            });
             
-            if (!authResponse.ok) {
-              const errorData = await authResponse.json();
-              throw new Error(`فشل بدء عملية المصادقة: ${errorData.error || authResponse.statusText}`);
+            if (error) {
+              throw new Error(`فشل بدء عملية المصادقة: ${error.message}`);
             }
             
-            const authData = await authResponse.json();
-            setDebug(prev => ({ ...prev, authResponse: authData }));
+            setDebug(prev => ({ ...prev, authResponse: data }));
             
-            if (authData.redirect) {
-              console.log("Redirecting to Shopify OAuth:", authData.redirect);
+            if (data?.redirect) {
+              console.log("إعادة توجيه إلى Shopify OAuth:", data.redirect);
               
-              // Direct redirect to auth URL
-              window.location.href = authData.redirect;
+              // إعادة توجيه مباشرة إلى عنوان URL للمصادقة
+              window.location.href = data.redirect;
             } else {
               throw new Error("لم يتم استلام عنوان URL للمصادقة من الخادم");
             }
           } catch (e) {
-            console.error("Error getting auth URL:", e);
+            console.error("خطأ في الحصول على عنوان URL للمصادقة:", e);
             
-            // If failed, try again with direct approach if we haven't reached max retries
+            // إذا فشل، حاول مرة أخرى بنهج مباشر إذا لم نصل إلى الحد الأقصى لعدد المحاولات
             if (retryCount < 3) {
               setRetryCount(prev => prev + 1);
               
-              // Use direct auth URL after failing to use Edge Function
-              const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
-              console.log("Trying direct auth URL as fallback:", directAuthUrl);
-              
-              // Use slight delay before redirect
-              setTimeout(() => {
-                window.location.href = directAuthUrl;
-              }, 500);
+              try {
+                // محاولة استخدام استدعاء مباشر
+                const authResponse = await fetch(
+                  `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`, 
+                  { method: 'GET' }
+                );
+                
+                if (!authResponse.ok) {
+                  throw new Error(`فشل استدعاء API: ${authResponse.statusText}`);
+                }
+                
+                const authData = await authResponse.json();
+                setDebug(prev => ({ ...prev, directAuthResponse: authData }));
+                
+                if (authData.redirect) {
+                  console.log("إعادة توجيه باستخدام URL مباشر:", authData.redirect);
+                  window.location.href = authData.redirect;
+                } else {
+                  throw new Error("لم يتم استلام عنوان URL للمصادقة");
+                }
+              } catch (directError) {
+                console.error("فشل النهج المباشر:", directError);
+                
+                // استخدام عنوان URL المباشر للمصادقة بعد فشل استخدام Edge Function
+                const directAuthUrl = `/auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
+                console.log("محاولة استخدام عنوان URL للمصادقة المباشرة كخطة احتياطية:", directAuthUrl);
+                
+                // استخدام تأخير قليل قبل إعادة التوجيه
+                setTimeout(() => {
+                  window.location.href = directAuthUrl;
+                }, 500);
+              }
             } else {
               setError(e instanceof Error ? e.message : "حدث خطأ أثناء بدء عملية المصادقة");
               setIsLoading(false);
@@ -208,7 +268,7 @@ const ShopifyRedirect = () => {
           }
         }
       } catch (error) {
-        console.error("Unexpected error during redirection:", error);
+        console.error("خطأ غير متوقع أثناء إعادة التوجيه:", error);
         setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
         setIsLoading(false);
       }
@@ -217,11 +277,11 @@ const ShopifyRedirect = () => {
     redirectToAuthEndpoint();
   }, [location, navigate, retryCount]);
   
-  // Direct auth alternative method
+  // طريقة المصادقة البديلة المباشرة
   const handleDirectAuth = () => {
     const shop = localStorage.getItem('shopify_temp_store');
     if (shop) {
-      // Using direct URL with additional params to avoid caching issues
+      // استخدام عنوان URL مباشر مع معلمات إضافية لتجنب مشكلات التخزين المؤقت
       const directAuthUrl = `/auth?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
       window.location.href = directAuthUrl;
     } else {
@@ -229,15 +289,49 @@ const ShopifyRedirect = () => {
     }
   };
 
-  // Handle retry with direct approach
+  // التعامل مع إعادة المحاولة بنهج مباشر
   const handleRetryDirectly = () => {
-    // Try the Remix auth endpoint directly
+    // تجربة نقطة نهاية المصادقة Remix مباشرة
     const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop;
     if (shop) {
-      // Using URL with timestamp to avoid caching
+      // استخدام عنوان URL مع طابع زمني لتجنب التخزين المؤقت
       window.location.href = `/auth?shop=${encodeURIComponent(cleanShopDomain(shop))}&_t=${Date.now()}`;
     } else {
       navigate('/shopify');
+    }
+  };
+  
+  // إعادة المحاولة باستخدام Edge Function
+  const handleRetryEdgeFunction = async () => {
+    const shop = localStorage.getItem('shopify_temp_store') || debug.originalShop;
+    if (!shop) {
+      toast.error("لا توجد معلومات متجر متاحة للاستخدام");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      const cleanedShop = cleanShopDomain(shop);
+      
+      // استخدام Edge Function
+      const { data, error } = await supabase.functions.invoke('shopify-auth', {
+        body: { shop: cleanedShop },
+      });
+      
+      if (error) {
+        throw new Error(`فشل بدء عملية المصادقة: ${error.message}`);
+      }
+      
+      if (data?.redirect) {
+        window.location.href = data.redirect;
+      } else {
+        throw new Error("لم يتم استلام عنوان URL للمصادقة من الخادم");
+      }
+    } catch (e) {
+      console.error("فشل إعادة المحاولة باستخدام Edge Function:", e);
+      setError(e instanceof Error ? e.message : "حدث خطأ أثناء بدء عملية المصادقة");
+      setIsLoading(false);
     }
   };
 
@@ -257,13 +351,22 @@ const ShopifyRedirect = () => {
                 {error}
               </div>
               
-              {/* Recovery options */}
+              {/* خيارات الاسترداد */}
               <div className="mb-6 space-y-3">
                 <Button 
                   className="w-full flex items-center justify-center gap-2"
-                  onClick={handleDirectAuth}
+                  onClick={handleRetryEdgeFunction}
                 >
                   <Store className="h-4 w-4" />
+                  إعادة محاولة الاتصال
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={handleDirectAuth}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
                   محاولة الاتصال مباشرة
                 </Button>
                 
@@ -286,9 +389,9 @@ const ShopifyRedirect = () => {
                 </Button>
               </div>
               
-              {/* Debug information */}
-              <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-                <p className="font-bold mb-2">معلومات التصحيح:</p>
+              {/* معلومات التصحيح */}
+              <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40 dir-ltr">
+                <p className="font-bold mb-2 text-right">معلومات التصحيح:</p>
                 <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
               </div>
               <Button 
@@ -318,7 +421,7 @@ const ShopifyRedirect = () => {
         </div>
       </div>
       
-      {/* Debug information panel (always visible) */}
+      {/* لوحة معلومات التصحيح */}
       <div className="fixed bottom-0 right-0 m-4 p-2">
         <Button
           variant="outline"
@@ -333,8 +436,8 @@ const ShopifyRedirect = () => {
           عرض/إخفاء التصحيح
         </Button>
         
-        <div id="debug-panel" className="hidden mt-2 p-4 bg-white border rounded shadow-lg text-left text-xs overflow-auto max-h-80 max-w-lg">
-          <p className="font-bold mb-2">معلومات التصحيح:</p>
+        <div id="debug-panel" className="hidden mt-2 p-4 bg-white border rounded shadow-lg text-left text-xs overflow-auto max-h-80 max-w-lg dir-ltr">
+          <p className="font-bold mb-2 text-right">معلومات التصحيح:</p>
           <pre className="whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
         </div>
       </div>

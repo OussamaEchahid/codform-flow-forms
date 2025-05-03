@@ -5,16 +5,15 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink } from 'lucide-react';
+import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Store } from 'lucide-react';
 
 // تنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
   let cleanedShop = shop.trim();
   
-  // إزالة البروتوكول إذا كان موجودًا
+  // إزالة البروتوكول إذا كان موجوداً
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
@@ -36,6 +35,7 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
+// مكوّن لعرض معلومات التصحيح
 const DebugPanel = ({ data }: { data: any }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -57,6 +57,7 @@ const DebugPanel = ({ data }: { data: any }) => {
   );
 };
 
+// مكوّن لعرض حالة الاتصال
 const ConnectionStatus = ({ 
   isConnected, 
   shop, 
@@ -99,6 +100,7 @@ const ConnectionStatus = ({
   return null;
 };
 
+// المكوّن الرئيسي
 const Shopify = () => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -110,9 +112,11 @@ const Shopify = () => {
   const [authStarted, setAuthStarted] = useState(false);
   const [shopInput, setShopInput] = useState('');
   const [popupWindow, setPopupWindow] = useState<Window | null>(null);
+  const [apiResponse, setApiResponse] = useState<any>(null);
 
+  // فحص معلمات URL وحالة المتاجر عند التحميل
   useEffect(() => {
-    // Check for URL parameters in the current location
+    // فحص معلمات URL في الموقع الحالي
     const params = new URLSearchParams(location.search);
     const shopParam = params.get("shop");
     const shopifySuccess = params.get("shopify_success");
@@ -122,7 +126,7 @@ const Shopify = () => {
       setShopInput(shopParam);
     }
     
-    // Data for debug panel
+    // بيانات لوحة التصحيح
     setDebugInfo({
       currentLocation: location.pathname,
       searchParams: Object.fromEntries(params.entries()),
@@ -134,6 +138,11 @@ const Shopify = () => {
       shops: shops || [],
       userAgent: navigator.userAgent,
       url: window.location.href,
+      localStorage: {
+        shopify_store: localStorage.getItem('shopify_store'),
+        shopify_connected: localStorage.getItem('shopify_connected'),
+        shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+      }
     });
 
     if (shopifySuccess === "true" && shopParam) {
@@ -144,9 +153,21 @@ const Shopify = () => {
     if (authError) {
       setError(params.get("error") || "حدث خطأ أثناء عملية المصادقة");
     }
+
+    // إعداد مستمع لرسائل النافذة المنبثقة
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'shopify:auth:success') {
+        console.log('Received success message from popup:', event.data);
+        toast.success(`تم الاتصال بمتجر ${event.data.shop} بنجاح`);
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [location.search, navigate, shop, shopifyConnected, shops]);
 
-  // Function to handle popup-based connection
+  // دالة للاتصال باستخدام النافذة المنبثقة
   const connectWithPopup = async () => {
     try {
       const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
@@ -159,49 +180,104 @@ const Shopify = () => {
       setIsProcessing(true);
       setError(null);
       
-      // Store the shop domain temporarily for the redirect page to use
+      // تخزين نطاق المتجر مؤقتًا للصفحة المعاد توجيهها
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
-      // Call the edge function directly
-      const authUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
-      
-      // Open popup window
-      const width = 800;
-      const height = 600;
-      const left = (window.innerWidth - width) / 2;
-      const top = (window.innerHeight - height) / 2;
-      
-      const popup = window.open(
-        authUrl,
-        'ShopifyAuth',
-        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-      );
-      
-      if (popup) {
-        setPopupWindow(popup);
-        setAuthStarted(true);
+      try {
+        // استدعاء دالة Supabase Edge Function مباشرة
+        const { data, error } = await supabase.functions.invoke('shopify-auth', {
+          body: { shop: cleanedShop },
+        });
         
-        // Check if the popup was closed
-        const checkPopup = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkPopup);
-            setIsProcessing(false);
-            
-            // Check if connection was successful after popup is closed
-            const connected = localStorage.getItem('shopify_connected');
-            const storeUrl = localStorage.getItem('shopify_store');
-            
-            if (connected === 'true' && storeUrl) {
-              toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
-              window.location.reload();
-            } else {
-              setError('تم إغلاق نافذة المصادقة قبل إكمال العملية');
+        if (error) {
+          throw new Error(`خطأ في استدعاء دالة المصادقة: ${error.message}`);
+        }
+        
+        setApiResponse(data);
+        console.log('API response:', data);
+        
+        if (!data?.redirect) {
+          throw new Error('لم يتم استلام عنوان URL للمصادقة من الخادم');
+        }
+        
+        // فتح نافذة منبثقة
+        const width = 800;
+        const height = 600;
+        const left = (window.innerWidth - width) / 2;
+        const top = (window.innerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.redirect,
+          'ShopifyAuth',
+          `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+        );
+        
+        if (popup) {
+          setPopupWindow(popup);
+          setAuthStarted(true);
+          
+          // التحقق من إغلاق النافذة المنبثقة
+          const checkPopup = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkPopup);
+              setIsProcessing(false);
+              
+              // التحقق مما إذا كان الاتصال ناجحًا بعد إغلاق النافذة المنبثقة
+              const connected = localStorage.getItem('shopify_connected');
+              const storeUrl = localStorage.getItem('shopify_store');
+              
+              if (connected === 'true' && storeUrl) {
+                toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+                window.location.reload();
+              } else {
+                setError('تم إغلاق نافذة المصادقة قبل إكمال العملية');
+              }
             }
-          }
-        }, 500);
-      } else {
-        setError('تم حظر النوافذ المنبثقة من قبل المتصفح. يرجى السماح بها وإعادة المحاولة.');
-        setIsProcessing(false);
+          }, 500);
+        } else {
+          setError('تم حظر النوافذ المنبثقة من قبل المتصفح. يرجى السماح بها وإعادة المحاولة.');
+          setIsProcessing(false);
+        }
+      } catch (e) {
+        console.error('خطأ في استدعاء API:', e);
+        
+        // الرجوع إلى استخدام URL المباشر إذا فشل استدعاء الدالة
+        const authUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
+        
+        const popup = window.open(
+          authUrl,
+          'ShopifyAuth',
+          `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
+        );
+        
+        if (popup) {
+          setPopupWindow(popup);
+          setAuthStarted(true);
+          
+          // التحقق من إغلاق النافذة المنبثقة
+          const checkPopup = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkPopup);
+              setIsProcessing(false);
+              
+              // التحقق مما إذا كان الاتصال ناجحًا بعد إغلاق النافذة المنبثقة
+              setTimeout(() => {
+                const connected = localStorage.getItem('shopify_connected');
+                const storeUrl = localStorage.getItem('shopify_store');
+                
+                if (connected === 'true' && storeUrl) {
+                  toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+                  window.location.reload();
+                } else {
+                  setError('تم إغلاق نافذة المصادقة قبل إكمال العملية');
+                }
+              }, 500);
+            }
+          }, 500);
+        } else {
+          setError('تم حظر النوافذ المنبثقة من قبل المتصفح. يرجى السماح بها وإعادة المحاولة.');
+          setIsProcessing(false);
+        }
       }
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة:', e);
@@ -210,7 +286,7 @@ const Shopify = () => {
     }
   };
   
-  // Function to redirect to full page for authentication
+  // دالة لإعادة التوجيه إلى صفحة كاملة للمصادقة
   const connectDirectly = () => {
     try {
       const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
@@ -223,10 +299,10 @@ const Shopify = () => {
       setIsProcessing(true);
       setError(null);
       
-      // Store the shop domain temporarily
+      // تخزين نطاق المتجر مؤقتًا
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
-      // Navigate to the redirect page with the shop parameter
+      // التنقل إلى صفحة إعادة التوجيه مع معلمة المتجر
       navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`);
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة:', e);
@@ -235,12 +311,12 @@ const Shopify = () => {
     }
   };
 
-  // Go back to the dashboard
+  // العودة إلى لوحة التحكم
   const returnToDashboard = () => {
     navigate('/dashboard');
   };
   
-  // Try direct auth with server endpoint
+  // تجربة المصادقة المباشرة مع نقطة نهاية الخادم
   const tryServerAuth = () => {
     try {
       const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
@@ -253,7 +329,7 @@ const Shopify = () => {
       setIsProcessing(true);
       setError(null);
       
-      // Direct link to the Remix auth endpoint
+      // رابط مباشر إلى نقطة نهاية Remix auth
       window.location.href = `/auth?shop=${encodeURIComponent(cleanedShop)}&timestamp=${Date.now()}`;
     } catch (e) {
       console.error('خطأ في بدء عملية المصادقة المباشرة:', e);
@@ -300,15 +376,15 @@ const Shopify = () => {
           </p>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4 mx-auto max-w-md">
               <div className="flex items-center">
-                <AlertCircle className="h-4 w-4 mr-2 text-red-500" />
+                <AlertCircle className="h-4 w-4 ml-2 text-red-500" />
                 <p>{error}</p>
               </div>
             </div>
           )}
           
-          <div className="mb-4">
+          <div className="mb-4 mx-auto max-w-md">
             <label className="block text-sm font-medium mb-1 text-right">
               {language === 'ar' ? 'أدخل نطاق متجرك على Shopify' : 'Enter your Shopify store domain'}
             </label>
@@ -322,14 +398,14 @@ const Shopify = () => {
             />
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-3 mx-auto max-w-md">
             <Button 
               className="w-full" 
               onClick={connectWithPopup}
               disabled={isProcessing || !shopInput}
             >
               {isProcessing ? (
-                <span className="flex items-center">
+                <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -373,9 +449,14 @@ const Shopify = () => {
       </Card>
       
       {/* Debug information */}
-      {process.env.NODE_ENV !== 'production' && (
-        <DebugPanel data={debugInfo} />
-      )}
+      <DebugPanel data={{
+        ...debugInfo,
+        apiResponse,
+        window: {
+          location: window.location.href,
+          opener: window.opener ? 'exists' : 'none'
+        }
+      }} />
     </div>
   );
 };

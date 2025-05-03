@@ -177,23 +177,29 @@ export type Database = {
         Row: {
           access_token: string
           id: string
+          is_active: boolean | null
           scope: string | null
           shop: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           access_token: string
           id?: string
+          is_active?: boolean | null
           scope?: string | null
           shop: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           access_token?: string
           id?: string
+          is_active?: boolean | null
           scope?: string | null
           shop?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -203,13 +209,14 @@ export type Database = {
     }
     Functions: {
       get_shopify_store_data: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { store_domain?: string }
         Returns: {
           id: string
           shop: string
           access_token: string
           scope: string
           updated_at: string
+          is_active: boolean
         }[]
       }
       get_user_shop: {

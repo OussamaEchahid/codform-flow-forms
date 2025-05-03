@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
 import { toast } from 'sonner';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ interface AuthContextType {
   loading: boolean;
   shopifyConnected: boolean;
   shop: string | null;
+  shops: string[] | null;
+  setShop: (shopDomain: string) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -22,6 +25,8 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
   shopifyConnected: false,
   shop: null,
+  shops: null,
+  setShop: () => {},
   signIn: async () => {},
   signOut: async () => {},
 });
@@ -30,6 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState<string | null>(null);
+  const [shops, setShops] = useState<string[] | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState(false);
 
   // Function to detect and store shop
@@ -43,21 +49,102 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('shopify_connected', 'true');
       setShop(shopDomain);
       setShopifyConnected(true);
+      
+      // Update connection manager
+      shopifyConnectionManager.addStore(shopDomain);
+      shopifyConnectionManager.setActiveStore(shopDomain);
+      
       return true;
     }
     
-    // If not in URL, check localStorage
+    // If not in URL, check connection manager first
+    const activeStore = shopifyConnectionManager.getActiveStore();
+    if (activeStore) {
+      console.log("Setting active shop from connection manager:", activeStore.shop);
+      setShop(activeStore.shop);
+      setShopifyConnected(true);
+      
+      // Get all stores for the shops list
+      const allStores = shopifyConnectionManager.getAllStores();
+      setShops(allStores.map(store => store.shop));
+      
+      return true;
+    }
+    
+    // As fallback check localStorage (legacy approach)
     const storedShop = localStorage.getItem('shopify_store');
     const isConnected = localStorage.getItem('shopify_connected') === 'true';
     
     if (storedShop && isConnected) {
-      console.log("Setting shop from localStorage:", storedShop);
+      console.log("Setting shop from localStorage (legacy):", storedShop);
       setShop(storedShop);
       setShopifyConnected(true);
+      
+      // Add to connection manager
+      shopifyConnectionManager.addStore(storedShop);
       return true;
     }
     
     return false;
+  };
+
+  // Handler for setting active shop
+  const handleSetShop = (shopDomain: string) => {
+    try {
+      if (!shopDomain) return;
+      
+      // Update in connection manager
+      shopifyConnectionManager.addStore(shopDomain);
+      shopifyConnectionManager.setActiveStore(shopDomain);
+      
+      // Update state
+      setShop(shopDomain);
+      setShopifyConnected(true);
+      
+      // Update list of shops
+      const allStores = shopifyConnectionManager.getAllStores();
+      setShops(allStores.map(store => store.shop));
+      
+      console.log(`Active shop set to: ${shopDomain}`);
+    } catch (error) {
+      console.error("Error setting active shop:", error);
+      toast.error("حدث خطأ أثناء تعيين المتجر النشط");
+    }
+  };
+
+  // Load shops from database
+  const loadShopsFromDatabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .select('shop, is_active, updated_at')
+        .order('is_active', { ascending: false })
+        .order('updated_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        console.log("Loaded shops from database:", data);
+        
+        // Update connection manager with database shops
+        data.forEach(storeRecord => {
+          shopifyConnectionManager.addStore(storeRecord.shop);
+          if (storeRecord.is_active) {
+            shopifyConnectionManager.setActiveStore(storeRecord.shop);
+          }
+        });
+        
+        // Update state
+        const activeShop = data.find(store => store.is_active)?.shop || data[0].shop;
+        setShop(activeShop);
+        setShopifyConnected(true);
+        setShops(data.map(store => store.shop));
+      }
+    } catch (error) {
+      console.error("Error loading shops from database:", error);
+    }
   };
 
   useEffect(() => {
@@ -76,6 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('shopify_connected', 'true');
           setShop(defaultShop);
           setShopifyConnected(true);
+          shopifyConnectionManager.addStore(defaultShop);
           
           // Create a default user for development
           const devUser = { id: 'shopify-user', email: 'dev@example.com' };
@@ -83,6 +171,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setLoading(false);
           return;
         }
+        
+        // Try to load all shops from database
+        await loadShopsFromDatabase();
         
         // Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
@@ -144,6 +235,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         loading,
         shopifyConnected,
         shop,
+        shops,
+        setShop: handleSetShop,
         signIn,
         signOut,
       }}

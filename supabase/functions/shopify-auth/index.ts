@@ -10,14 +10,15 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIU
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-// Our app's URL
+// Our app's URL - make sure this is the exact URL of your app
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// Use both API and direct callback paths
+// Define all valid callback paths
 const AUTH_CALLBACK_PATHS = [
   "/shopify-callback",
+  "/auth/callback",
   "/api/shopify-callback",
-  "/auth/callback"
+  "/auth/offline"
 ];
 
 // CORS headers
@@ -59,10 +60,17 @@ function cleanShopDomain(shop: string): string {
 
 // Create nonce for security
 function generateNonce(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return crypto.randomUUID();
 }
 
 serve(async (req) => {
+  // Log the full request for debugging
+  console.log("Request received:", {
+    url: req.url,
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries()),
+  });
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -80,7 +88,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Missing shop parameter",
-          timestamp
+          timestamp,
+          url: req.url,
+          params: Object.fromEntries(url.searchParams.entries())
         }), 
         { status: 400, headers: corsHeaders }
       );
@@ -94,6 +104,18 @@ serve(async (req) => {
     const state = generateNonce();
     
     try {
+      // Check if this shop already exists in our database
+      const { data: existingShops, error: queryError } = await supabase
+        .from('shopify_stores')
+        .select('*')
+        .eq('shop', cleanedShop);
+      
+      if (queryError) {
+        console.error("Error checking existing shops:", queryError);
+      } else {
+        console.log("Existing shop check result:", existingShops);
+      }
+      
       // Save the temporary state and shop to verify later
       const { error: insertError } = await supabase.from('shopify_auth').insert({
         shop: cleanedShop,
@@ -103,7 +125,6 @@ serve(async (req) => {
       
       if (insertError) {
         console.error("Error saving auth state:", insertError);
-        // Continue anyway - non-critical error
       } else {
         console.log("Auth state saved successfully");
       }
