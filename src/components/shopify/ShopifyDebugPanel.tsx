@@ -210,7 +210,7 @@ export const ShopifyDebugPanel = () => {
           onClick={collectDebugInfo}
           disabled={loading}
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           <span className="mr-2">تحديث</span>
         </Button>
       </div>
