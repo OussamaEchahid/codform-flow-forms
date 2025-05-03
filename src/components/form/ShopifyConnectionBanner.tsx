@@ -7,60 +7,87 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
+import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 
 interface ShopifyConnectionBannerProps {
   onReconnect?: () => void;
 }
 
 const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onReconnect }) => {
-  const { shopifyConnected, shop, refreshShopifyConnection } = useAuth();
-  const { verifyShopifyConnection, manualReconnect } = useShopify();
+  const { shopifyConnected, shop } = useAuth();
+  const { verifyShopifyConnection, manualReconnect, refreshConnection, lastConnectionAttempt } = useShopify();
   const { language } = useI18n();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isConnectionWarning, setIsConnectionWarning] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
-  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<number>(0);
-
-  // Check connection status when component loads, but not too frequently
+  const [showThrottleMessage, setShowThrottleMessage] = useState(false);
+  const [throttleTime, setThrottleTime] = useState(0);
+  
+  // Check connection status when component loads, with throttling
   useEffect(() => {
-    // Don't check if there's no connected shop
     if (!shop) {
       setIsConnectionWarning(false);
       return;
     }
     
-    // Only check if we have a supposedly active connection
-    // and the last check was more than 5 minutes ago
-    const now = Date.now();
-    if (shopifyConnected && (now - lastCheckTimestamp > 300000)) {
-      const checkConnection = async () => {
-        setIsCheckingConnection(true);
+    const checkIfNeeded = async () => {
+      const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
+      const now = Date.now();
+      
+      // Only check if the last check was more than 5 minutes ago
+      if (shopifyConnected && (now - lastCheckTime > 300000)) {
         try {
+          setIsCheckingConnection(true);
           const isConnected = await verifyShopifyConnection();
           setIsConnectionWarning(!isConnected);
-          setLastCheckTimestamp(now);
+          
+          // Update check time
+          localStorage.setItem('shopify_last_check_time', now.toString());
         } catch (error) {
           console.error('Error checking Shopify connection:', error);
           setIsConnectionWarning(true);
         } finally {
           setIsCheckingConnection(false);
         }
-      };
+      } else {
+        // Use the cached connection status
+        setIsConnectionWarning(!shopifyConnected);
+      }
+    };
+    
+    // Delay check to prevent issues during initial render
+    const timer = setTimeout(() => {
+      checkIfNeeded();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [shopifyConnected, shop, verifyShopifyConnection]);
+
+  // Update throttle message timer
+  useEffect(() => {
+    if (showThrottleMessage && throttleTime > 0) {
+      const intervalId = setInterval(() => {
+        const timeLeft = ShopifyConnectionManager.getTimeToWait();
+        setThrottleTime(timeLeft);
+        
+        if (timeLeft <= 0) {
+          setShowThrottleMessage(false);
+          clearInterval(intervalId);
+        }
+      }, 1000);
       
-      checkConnection();
+      return () => clearInterval(intervalId);
     }
-  }, [shopifyConnected, shop, verifyShopifyConnection, lastCheckTimestamp]);
+  }, [showThrottleMessage, throttleTime]);
 
   const handleCheckConnection = async () => {
     if (isCheckingConnection) return;
     
     setIsCheckingConnection(true);
     try {
-      let isConnected = false;
-      if (refreshShopifyConnection) {
-        await refreshShopifyConnection();
-        // Don't check truthiness on void returns
-        isConnected = await verifyShopifyConnection();
+      // Use the refreshConnection method
+      if (refreshConnection) {
+        const isConnected = await refreshConnection();
         setIsConnectionWarning(!isConnected);
         
         if (isConnected) {
@@ -69,7 +96,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
           toast.error(language === 'ar' ? 'فشل التحقق من الاتصال' : 'Connection verification failed');
         }
       } else {
-        isConnected = await verifyShopifyConnection();
+        const isConnected = await verifyShopifyConnection();
         setIsConnectionWarning(!isConnected);
         
         if (isConnected) {
@@ -84,19 +111,30 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       setIsConnectionWarning(true);
     } finally {
       setIsCheckingConnection(false);
-      setLastCheckTimestamp(Date.now());
     }
   };
 
   const handleReconnect = () => {
     if (isRedirecting) return;
     
+    // Check if we should throttle reconnection attempts
+    if (ShopifyConnectionManager.shouldThrottle()) {
+      const timeToWait = ShopifyConnectionManager.getTimeToWait();
+      setThrottleTime(timeToWait);
+      setShowThrottleMessage(true);
+      
+      toast.info(language === 'ar' 
+        ? `يرجى الانتظار ${Math.ceil(timeToWait/1000)} ثوانٍ قبل إعادة المحاولة` 
+        : `Please wait ${Math.ceil(timeToWait/1000)} seconds before trying again`);
+      return;
+    }
+    
     setIsRedirecting(true);
+    ShopifyConnectionManager.recordAttempt();
     
     try {
       // Clear old connection data
-      localStorage.removeItem('shopify_connected');
-      localStorage.setItem('shopify_last_reconnect', Date.now().toString());
+      ShopifyConnectionManager.clearConnectionData();
       
       // Use custom reconnect handler if provided
       if (onReconnect) {
@@ -104,13 +142,9 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
         return;
       }
       
-      // Use general reconnect function - Fixed: Don't check return value of void function
+      // Use general reconnect function
       if (manualReconnect && typeof manualReconnect === 'function') {
         manualReconnect();
-        // Don't use return value, just redirect after a short delay
-        setTimeout(() => {
-          window.location.href = `/shopify?force=true&ts=${Date.now()}`;
-        }, 500);
       } else {
         // Direct redirect if no reconnect function available
         window.location.href = `/shopify?force=true&ts=${Date.now()}`;
@@ -136,9 +170,15 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
           : 'Alert: Shopify Connection Issue'}</AlertTitle>
       </div>
       <AlertDescription className="mb-6 text-lg">
-        {language === 'ar' 
-          ? 'يبدو أن هناك مشكلة في الاتصال مع متجر Shopify الخاص بك. قد يؤثر هذا على عمل النماذج. يرجى الضغط على الزر أدناه لإعادة الاتصال.' 
-          : 'There seems to be an issue with your Shopify store connection. This may affect how forms work. Please click the button below to reconnect.'}
+        {showThrottleMessage ? (
+          language === 'ar' 
+            ? `تم إجراء العديد من محاولات الاتصال مؤخرًا. يرجى الانتظار ${Math.ceil(throttleTime/1000)} ثوانٍ قبل المحاولة مرة أخرى.`
+            : `Too many connection attempts recently. Please wait ${Math.ceil(throttleTime/1000)} seconds before trying again.`
+        ) : (
+          language === 'ar' 
+            ? 'يبدو أن هناك مشكلة في الاتصال مع متجر Shopify الخاص بك. قد يؤثر هذا على عمل النماذج. يرجى الضغط على الزر أدناه لإعادة الاتصال.' 
+            : 'There seems to be an issue with your Shopify store connection. This may affect how forms work. Please click the button below to reconnect.'
+        )}
       </AlertDescription>
 
       <div className="flex flex-wrap justify-center gap-4">
@@ -146,7 +186,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
           onClick={handleReconnect}
           size="lg"
           className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md text-lg font-medium"
-          disabled={isRedirecting}
+          disabled={isRedirecting || showThrottleMessage}
         >
           {isRedirecting ? (
             <div className="flex items-center">

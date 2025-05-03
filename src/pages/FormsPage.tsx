@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import ShopifyConnectionBanner from '@/components/form/ShopifyConnectionBanner';
+import ShopifyDebugger from '@/components/debug/ShopifyDebugger';
 
 const FormsPage = () => {
   const { language } = useI18n();
@@ -22,34 +23,46 @@ const FormsPage = () => {
     hasPending: false,
     pendingCount: 0
   });
+  const [showDebugger, setShowDebugger] = useState(false);
 
-  // Comprobar periódicamente datos pendientes de sincronización
+  // Check URL for debug mode
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === 'true') {
+      setShowDebugger(true);
+      // Remove the parameter from URL without reloading
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
+
+  // Check for pending sync data periodically
   useEffect(() => {
     const checkPending = () => {
       const pending = checkPendingData();
       setPendingSync(pending);
     };
     
-    // Comprobar al inicio
+    // Check at start
     checkPending();
     
-    // Establecer intervalo para comprobar periódicamente
+    // Set interval to check periodically
     const intervalId = setInterval(checkPending, 30000);
     
     return () => clearInterval(intervalId);
   }, [checkPendingData]);
   
-  // Intentar sincronizar automáticamente cuando se recupera la conexión
+  // Try to sync automatically when connection is restored
   useEffect(() => {
     if (networkStatus === 'online' && pendingSync.hasPending) {
       const attemptSync = async () => {
         try {
           await syncPendingData();
-          // Actualizar estado de sincronización pendiente
+          // Update pending sync state
           const newPendingState = checkPendingData();
           setPendingSync(newPendingState);
           
-          // Recargar la lista si se sincronizaron formularios
+          // Reload the list if forms were synced
           if (newPendingState.pendingCount < pendingSync.pendingCount) {
             fetchForms();
           }
@@ -62,7 +75,7 @@ const FormsPage = () => {
     }
   }, [networkStatus, pendingSync.hasPending, syncPendingData, checkPendingData, fetchForms, pendingSync.pendingCount]);
 
-  // Cargar formularios al cargar la página con mejor manejo de errores
+  // Load forms when page loads with better error handling
   useEffect(() => {
     console.log('FormsPage: Loading forms... Attempt:', retryCount);
     
@@ -79,12 +92,12 @@ const FormsPage = () => {
     
     loadForms();
     
-    // Configurar un reintento automático si la carga inicial falla
+    // Set up auto-retry if initial load fails
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     if (error && retryCount < 3 && !initialLoadAttempted) {
       retryTimer = setTimeout(() => {
         setRetryCount(prev => prev + 1);
-      }, 3000); // Reintentar después de 3 segundos
+      }, 3000); // Retry after 3 seconds
     }
     
     return () => {
@@ -92,15 +105,15 @@ const FormsPage = () => {
     };
   }, [fetchForms, retryCount, error, initialLoadAttempted]);
 
-  // Manejar actualización manual con retroalimentación visual
+  // Handle manual refresh with visual feedback
   const handleRefresh = useCallback(() => {
     console.log('FormsPage: Manual refresh requested');
     setIsManualRefresh(true);
     
-    // Restablecer cualquier estado de error e incrementar contador de reintentos
+    // Reset any error state and increment retry counter
     setRetryCount(prevCount => prevCount + 1);
     
-    // Intentar obtener formularios nuevamente
+    // Try to fetch forms again
     fetchForms()
       .then(() => {
         if (!error) {
@@ -116,7 +129,7 @@ const FormsPage = () => {
       });
   }, [fetchForms, language, error]);
   
-  // Manejar sincronización manual de datos pendientes
+  // Handle manual sync of pending data
   const handleSyncPending = async () => {
     if (!pendingSync.hasPending) return;
     
@@ -132,10 +145,10 @@ const FormsPage = () => {
           ? 'تمت مزامنة البيانات المحلية بنجاح' 
           : 'Local data synced successfully');
         
-        // Actualizar lista de formularios
+        // Update forms list
         fetchForms();
         
-        // Actualizar estado de sincronización pendiente
+        // Update pending sync state
         setPendingSync(checkPendingData());
       } else {
         toast.error(language === 'ar' 
@@ -150,30 +163,24 @@ const FormsPage = () => {
     }
   };
 
-  // Manejar selección de formulario
+  // Handle form selection
   const handleSelectForm = (formId: string) => {
     navigate(`/form-builder/${formId}`);
   };
 
-  // Manejar creación de nuevo formulario
+  // Handle creating new form
   const handleCreateNew = () => {
     navigate('/form-builder/new');
   };
 
-  // Registro de depuración
-  console.log('FormsPage render state:', { 
-    isLoading, 
-    formsCount: forms?.length || 0, 
-    hasError: !!error,
-    hasInitiallyLoaded,
-    initialLoadAttempted,
-    networkStatus,
-    pendingSync
-  });
+  // Debug mode toggle
+  const toggleDebugMode = () => {
+    setShowDebugger(prev => !prev);
+  };
 
   return (
     <div className="container mx-auto p-6">
-      {/* Shopify Connection Banner (si es necesario) */}
+      {/* Shopify Connection Banner (if needed) */}
       <ShopifyConnectionBanner />
 
       <div className="flex justify-between items-center mb-6">
@@ -181,7 +188,7 @@ const FormsPage = () => {
           {language === 'ar' ? 'النماذج' : 'Forms'}
         </h1>
         <div className="flex gap-2">
-          {/* Estado de conexión */}
+          {/* Connection status */}
           <div className={`px-3 py-1 rounded-full flex items-center gap-1 text-sm ${
             networkStatus === 'online' 
               ? 'bg-green-100 text-green-700' 
@@ -200,7 +207,7 @@ const FormsPage = () => {
             )}
           </div>
           
-          {/* Botón de sincronización para datos pendientes */}
+          {/* Sync button for pending data */}
           {pendingSync.hasPending && (
             <Button 
               variant="outline" 
@@ -228,7 +235,7 @@ const FormsPage = () => {
               </>
             ) : (
               <>
-                <RefreshCcw className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
                 {language === 'ar' ? 'تحديث' : 'Refresh'}
               </>
             )}
@@ -241,7 +248,7 @@ const FormsPage = () => {
         </div>
       </div>
 
-      {/* Mostrar estado offline */}
+      {/* Show offline state */}
       {networkStatus === 'offline' && (
         <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200">
           <WifiOff className="h-4 w-4 text-amber-600" />
@@ -274,6 +281,21 @@ const FormsPage = () => {
           isOffline={networkStatus === 'offline'}
         />
       </div>
+      
+      {/* Add debug button (small and subtle) */}
+      <div className="fixed bottom-4 left-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-xs opacity-50 hover:opacity-100"
+          onClick={toggleDebugMode}
+        >
+          {language === 'ar' ? 'وضع التصحيح' : 'Debug Mode'}
+        </Button>
+      </div>
+      
+      {/* Add Shopify Debugger */}
+      {showDebugger && <ShopifyDebugger />}
     </div>
   );
 };

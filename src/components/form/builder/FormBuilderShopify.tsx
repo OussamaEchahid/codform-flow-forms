@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
 import { RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 
 interface FormBuilderShopifyProps {
   onShopifyIntegration?: (settings: any) => Promise<void>;
@@ -20,6 +21,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const { t, language } = useI18n();
   const { isConnected, manualReconnect, refreshConnection } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Connection checking with throttling
   const handleCheckConnection = async () => {
@@ -45,8 +47,35 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   };
 
   const handleConnectClick = () => {
+    // Check if we're already connecting
+    if (isConnecting) {
+      return;
+    }
+    
+    // Check if we should throttle connection attempts
+    if (ShopifyConnectionManager.shouldThrottle()) {
+      const timeToWait = ShopifyConnectionManager.getTimeToWait();
+      
+      toast.info(language === 'ar' 
+        ? `يرجى الانتظار ${Math.ceil(timeToWait/1000)} ثوانٍ قبل إعادة المحاولة` 
+        : `Please wait ${Math.ceil(timeToWait/1000)} seconds before trying again`);
+      return;
+    }
+    
+    // Record this attempt
+    ShopifyConnectionManager.recordAttempt();
+    setIsConnecting(true);
+    
     if (!isConnected && manualReconnect) {
-      manualReconnect();
+      // Execute the reconnect function
+      try {
+        manualReconnect();
+        // No need to check return value - the function will handle redirection
+      } catch (err) {
+        console.error('Error initiating Shopify connection:', err);
+        toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');
+        setIsConnecting(false);
+      }
     }
   };
 
@@ -66,10 +95,17 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
           <Button 
             onClick={handleConnectClick}
             className="w-full"
-            disabled={isSyncing}
+            disabled={isSyncing || isConnecting}
             type="button"
           >
-            {t('shopify.connect_now') || 'Connect to Shopify'}
+            {isConnecting ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
+              </div>
+            ) : (
+              t('shopify.connect_now') || 'Connect to Shopify'
+            )}
           </Button>
         </div>
       ) : (
