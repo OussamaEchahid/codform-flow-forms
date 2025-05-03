@@ -1,5 +1,6 @@
 
 import { redirect } from "@remix-run/node";
+import { cleanShopifyDomain } from "../lib/shopify/types";
 
 export async function loader({ request }) {
   const url = new URL(request.url);
@@ -17,23 +18,11 @@ export async function loader({ request }) {
     headers: Object.fromEntries(request.headers.entries())
   });
   
-  // تنظيف عنوان URL للمتجر إذا كان يحتوي على بروتوكول
+  // تنظيف عنوان URL للمتجر باستخدام الوظيفة المساعدة
   if (shopifyReferrer) {
     try {
-      // إذا كان يبدأ بـ http:// أو https://، خذ فقط اسم النطاق
-      if (shopifyReferrer.startsWith('http')) {
-        const shopUrl = new URL(shopifyReferrer);
-        shopifyReferrer = shopUrl.hostname;
-        console.log("Cleaned shop parameter:", shopifyReferrer);
-      }
-      
-      // تأكد من أنه ينتهي بـ myshopify.com
-      if (!shopifyReferrer.endsWith('myshopify.com')) {
-        if (!shopifyReferrer.includes('.')) {
-          shopifyReferrer = `${shopifyReferrer}.myshopify.com`;
-          console.log("Added myshopify.com to shop:", shopifyReferrer);
-        }
-      }
+      shopifyReferrer = cleanShopifyDomain(shopifyReferrer);
+      console.log("Cleaned shop parameter:", shopifyReferrer);
     } catch (e) {
       console.error("Error cleaning shop URL:", e);
     }

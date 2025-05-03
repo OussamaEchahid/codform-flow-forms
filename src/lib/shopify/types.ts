@@ -4,7 +4,7 @@ export type ShopifyStoreConnection = {
   domain: string;          // نطاق المتجر مثل store.myshopify.com
   lastConnected: string;   // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
   isActive: boolean;       // ما إذا كان هذا هو المتجر النشط حالياً
-  shop?: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
+  shop: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
 };
 
 // واجهة لمدير اتصال Shopify

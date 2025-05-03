@@ -1,6 +1,7 @@
 
 import { authenticate, login } from "../shopify.server";
 import { redirect } from "@remix-run/node";
+import { cleanShopifyDomain } from "../lib/shopify/types";
 
 export const loader = async ({ request }) => {
   console.log("Server Auth route hit with URL:", request.url);
@@ -22,24 +23,11 @@ export const loader = async ({ request }) => {
     path: url.pathname
   });
   
-  // قم بتنظيف عنوان URL الخاص بالمتجر إذا كان يحتوي على بروتوكول
+  // قم بتنظيف عنوان URL الخاص بالمتجر باستخدام الوظيفة المساعدة
   if (shop) {
     try {
-      // إذا كان يبدأ بـ http:// أو https:// خذ فقط اسم النطاق
-      if (shop.startsWith('http')) {
-        const shopUrl = new URL(shop);
-        shop = shopUrl.hostname;
-        console.log("Cleaned shop parameter:", shop);
-      }
-      
-      // تأكد من أن المتجر ينتهي بـ myshopify.com
-      if (!shop.endsWith('myshopify.com')) {
-        console.log("Shop domain does not end with myshopify.com:", shop);
-        if (!shop.includes('.')) {
-          shop = `${shop}.myshopify.com`;
-          console.log("Added myshopify.com to shop:", shop);
-        }
-      }
+      shop = cleanShopifyDomain(shop);
+      console.log("Cleaned shop parameter:", shop);
     } catch (e) {
       console.error("Error cleaning shop URL:", e);
     }
@@ -67,13 +55,8 @@ export const loader = async ({ request }) => {
         const { session } = await authenticate.admin(request);
         console.log("Authentication successful for shop:", session.shop);
         
-        // حفظ معلومات الجلسة في ملف تعريف الارتباط
-        if (session) {
-          console.log("Setting session cookie with shop:", session.shop);
-        }
-        
         // بعد المصادقة الناجحة، قم بتوجيه المستخدم مباشرة إلى لوحة التحكم
-        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
+        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}&new_connection=true`;
         console.log("Redirecting to:", redirectUrl);
         
         return redirect(redirectUrl, {
@@ -141,7 +124,7 @@ export const action = async ({ request }) => {
     console.log("POST auth action called with URL:", request.url);
     const { session } = await authenticate.admin(request);
     console.log("POST auth action successful for shop:", session.shop);
-    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&from_action=true`);
+    return redirect(`/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&from_action=true&new_connection=true`);
   } catch (error) {
     console.error("Authentication action error:", error);
     return redirect("/dashboard?auth_error=true&error=action_failed");

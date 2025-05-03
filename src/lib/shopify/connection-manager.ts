@@ -1,5 +1,5 @@
 
-import { ShopifyStoreConnection, ShopifyConnectionManager } from "./types";
+import { ShopifyStoreConnection, ShopifyConnectionManager, cleanShopifyDomain } from "./types";
 
 // المفتاح الذي سيتم استخدامه لتخزين المتاجر في localStorage
 const STORES_STORAGE_KEY = 'shopify_connected_stores';
@@ -37,8 +37,20 @@ const saveStores = (stores: ShopifyStoreConnection[]): void => {
 export const shopifyConnectionManager: ShopifyConnectionManager = {
   // إضافة متجر جديد أو تحديث متجر موجود
   addOrUpdateStore: (shopDomain: string, isActive = false) => {
+    if (!shopDomain) {
+      console.error("Cannot add/update store: No shop domain provided");
+      return false;
+    }
+    
+    const cleanedDomain = cleanShopifyDomain(shopDomain);
+    if (!cleanedDomain) {
+      console.error("Cannot add/update store: Invalid shop domain");
+      return false;
+    }
+    
+    console.log(`Adding/updating store: ${cleanedDomain}, isActive: ${isActive}`);
     const stores = loadStores();
-    const existingStoreIndex = stores.findIndex(store => store.domain === shopDomain);
+    const existingStoreIndex = stores.findIndex(store => store.domain === cleanedDomain);
     
     if (existingStoreIndex >= 0) {
       // تحديث المتجر الموجود
@@ -46,16 +58,25 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
         ...stores[existingStoreIndex],
         lastConnected: new Date().toISOString(),
         isActive: isActive,
-        shop: shopDomain // تحديث حقل shop
+        shop: cleanedDomain // تحديث حقل shop
       };
     } else {
       // إضافة متجر جديد
       stores.push({
-        domain: shopDomain,
-        shop: shopDomain, // إضافة حقل shop
+        domain: cleanedDomain,
+        shop: cleanedDomain, // إضافة حقل shop
         lastConnected: new Date().toISOString(),
         isActive: isActive
       });
+    }
+    
+    // إذا تم تعيين المتجر الحالي كنشط، قم بتحديث جميع المتاجر الأخرى كغير نشطة
+    if (isActive) {
+      for (let i = 0; i < stores.length; i++) {
+        if (i !== existingStoreIndex && existingStoreIndex >= 0) {
+          stores[i].isActive = false;
+        }
+      }
     }
     
     // حفظ التغييرات
@@ -63,9 +84,10 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
     
     // إذا كان المتجر نشطًا، قم بتعيينه كمتجر نشط
     if (isActive) {
-      localStorage.setItem(ACTIVE_STORE_KEY, shopDomain);
-      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
       localStorage.setItem('shopify_connected', 'true');
+      console.log(`Set active store to ${cleanedDomain}`);
     }
     
     return true;
@@ -73,34 +95,82 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
   
   // الحصول على المتجر النشط
   getActiveStore: () => {
-    const activeStore = localStorage.getItem(ACTIVE_STORE_KEY) || localStorage.getItem('shopify_store');
-    return activeStore || null;
+    try {
+      // أولاً، تحقق من مفتاح المتجر النشط المخصص
+      const activeStore = localStorage.getItem(ACTIVE_STORE_KEY);
+      
+      if (activeStore) {
+        console.log("Retrieved active store from ACTIVE_STORE_KEY:", activeStore);
+        return activeStore;
+      }
+      
+      // ثانيًا، تحقق من المفتاح التقليدي
+      const legacyStore = localStorage.getItem('shopify_store');
+      if (legacyStore) {
+        console.log("Retrieved active store from legacy key:", legacyStore);
+        return legacyStore;
+      }
+      
+      // ثالثًا، تحقق من قائمة المتاجر المخزنة
+      const stores = loadStores();
+      const activeFromList = stores.find(store => store.isActive);
+      
+      if (activeFromList) {
+        console.log("Retrieved active store from stores list:", activeFromList.domain);
+        return activeFromList.domain;
+      }
+      
+      // إذا وجدنا أي متجر، استخدم الأول
+      if (stores.length > 0) {
+        console.log("No active store found, using first store:", stores[0].domain);
+        return stores[0].domain;
+      }
+      
+      console.log("No stores found");
+      return null;
+    } catch (error) {
+      console.error("Error getting active store:", error);
+      return null;
+    }
   },
   
   // إعداد المتجر النشط
   setActiveStore: (shopDomain: string) => {
+    if (!shopDomain) {
+      console.error("Cannot set active store: No shop domain provided");
+      return false;
+    }
+    
+    const cleanedDomain = cleanShopifyDomain(shopDomain);
+    if (!cleanedDomain) {
+      console.error("Cannot set active store: Invalid shop domain");
+      return false;
+    }
+    
+    console.log(`Setting active store to: ${cleanedDomain}`);
     const stores = loadStores();
     
     // التحقق من وجود المتجر في القائمة
-    const storeExists = stores.some(store => store.domain === shopDomain);
+    const storeExists = stores.some(store => store.domain === cleanedDomain);
     
     if (storeExists) {
       // تحديث المتجر النشط
       const updatedStores = stores.map(store => ({
         ...store,
-        isActive: store.domain === shopDomain
+        isActive: store.domain === cleanedDomain
       }));
       
       // حفظ التغييرات
       saveStores(updatedStores);
-      localStorage.setItem(ACTIVE_STORE_KEY, shopDomain);
-      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
       localStorage.setItem('shopify_connected', 'true');
       
       return true;
+    } else {
+      // إذا لم يكن المتجر موجودًا، أضفه وقم بتعيينه كنشط
+      return shopifyConnectionManager.addOrUpdateStore(cleanedDomain, true);
     }
-    
-    return false;
   },
   
   // الحصول على جميع المتاجر
@@ -110,17 +180,31 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
   
   // حذف متجر
   removeStore: (shopDomain: string) => {
+    if (!shopDomain) {
+      console.error("Cannot remove store: No shop domain provided");
+      return false;
+    }
+    
+    const cleanedDomain = cleanShopifyDomain(shopDomain);
+    if (!cleanedDomain) {
+      console.error("Cannot remove store: Invalid shop domain");
+      return false;
+    }
+    
+    console.log(`Removing store: ${cleanedDomain}`);
     const stores = loadStores();
-    const updatedStores = stores.filter(store => store.domain !== shopDomain);
+    const updatedStores = stores.filter(store => store.domain !== cleanedDomain);
     
     // إذا كان المتجر المحذوف هو النشط، قم بإزالة المتجر النشط
-    if (localStorage.getItem(ACTIVE_STORE_KEY) === shopDomain) {
+    if (localStorage.getItem(ACTIVE_STORE_KEY) === cleanedDomain) {
       localStorage.removeItem(ACTIVE_STORE_KEY);
       
       // إذا كانت هناك متاجر متبقية، قم بتعيين أول متجر كنشط
       if (updatedStores.length > 0) {
         localStorage.setItem(ACTIVE_STORE_KEY, updatedStores[0].domain);
         localStorage.setItem('shopify_store', updatedStores[0].domain);
+        // تحديث العلم النشط لأول متجر
+        updatedStores[0].isActive = true;
       } else {
         localStorage.removeItem('shopify_store');
         localStorage.removeItem('shopify_connected');

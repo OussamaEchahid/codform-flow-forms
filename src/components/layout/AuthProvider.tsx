@@ -51,8 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setShopifyConnected(true);
       
       // Update connection manager
-      shopifyConnectionManager.addOrUpdateStore(shopDomain);
-      shopifyConnectionManager.setActiveStore(shopDomain);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       return true;
     }
@@ -81,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setShopifyConnected(true);
       
       // Add to connection manager
-      shopifyConnectionManager.addOrUpdateStore(storedShop);
+      shopifyConnectionManager.addOrUpdateStore(storedShop, true);
       return true;
     }
     
@@ -94,8 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!shopDomain) return;
       
       // Update in connection manager
-      shopifyConnectionManager.addOrUpdateStore(shopDomain);
-      shopifyConnectionManager.setActiveStore(shopDomain);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       // Update state
       setShop(shopDomain);
@@ -130,10 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Update connection manager with database shops
         data.forEach(storeRecord => {
-          shopifyConnectionManager.addOrUpdateStore(storeRecord.shop);
-          if (storeRecord.is_active) {
-            shopifyConnectionManager.setActiveStore(storeRecord.shop);
-          }
+          shopifyConnectionManager.addOrUpdateStore(storeRecord.shop, storeRecord.is_active);
         });
         
         // Update state
@@ -163,7 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('shopify_connected', 'true');
           setShop(defaultShop);
           setShopifyConnected(true);
-          shopifyConnectionManager.addOrUpdateStore(defaultShop);
+          shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
           
           // Create a default user for development
           const devUser = { id: 'shopify-user', email: 'dev@example.com' };
@@ -182,7 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(session.user);
         } else if (shopConnected) {
           // If we have a shop connection but no user, create a temporary user
-          const tempUser = { id: 'shopify-user', email: `shopify@${shop?.replace('.myshopify.com', '')}.app` };
+          const tempUser = { id: 'shopify-user', email: shop ? `shopify@${shop.replace('.myshopify.com', '')}.app` : 'shopify@unknown.app' };
           console.log("Creating temporary Shopify user:", tempUser);
           setUser(tempUser);
         }

@@ -60,6 +60,16 @@ function generateNonce(): string {
   return crypto.randomUUID();
 }
 
+// التحقق من صحة عنوان URL للمتجر
+function isValidShopifyDomain(shop: string): boolean {
+  if (!shop) return false;
+  
+  // نمط النطاق الأساسي لـ Shopify
+  const shopifyDomainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
+  
+  return shopifyDomainPattern.test(shop);
+}
+
 serve(async (req) => {
   // سجل الطلب كاملاً للتصحيح
   console.log("Request received:", {
@@ -98,6 +108,19 @@ serve(async (req) => {
         // تنظيف نطاق المتجر
         const cleanedShop = cleanShopDomain(shop);
         console.log("Cleaned shop domain:", cleanedShop);
+
+        // التحقق من صحة نطاق المتجر
+        if (!isValidShopifyDomain(cleanedShop)) {
+          return new Response(
+            JSON.stringify({ 
+              error: "Invalid Shopify domain",
+              invalidDomain: cleanedShop,
+              timestamp,
+              success: false
+            }), 
+            { status: 400, headers: corsHeaders }
+          );
+        }
 
         // إنشاء معرف فريد لهذه الجلسة
         const state = generateNonce();
@@ -185,6 +208,19 @@ serve(async (req) => {
       // تنظيف نطاق المتجر
       const cleanedShop = cleanShopDomain(shop);
       console.log("Cleaned shop domain:", cleanedShop);
+      
+      // التحقق من صحة نطاق المتجر
+      if (!isValidShopifyDomain(cleanedShop)) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid Shopify domain",
+            invalidDomain: cleanedShop,
+            timestamp,
+            success: false
+          }), 
+          { status: 400, headers: corsHeaders }
+        );
+      }
 
       // إنشاء معرف فريد لهذه المصادقة
       const state = generateNonce();

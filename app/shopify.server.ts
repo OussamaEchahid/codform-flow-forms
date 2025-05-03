@@ -20,13 +20,14 @@ const shopify = shopifyApp({
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
   apiVersion: ApiVersion.January25,
   // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
-  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes"],
+  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes", "read_content", "write_content"],
   appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
-  // تعديل هذا الإعداد ليكون false حتى يعمل التطبيق بشكل مستقل
+  // هذا الإعداد مهم جداً - التطبيق غير مضمن
   isEmbeddedApp: false,
+  // إضافة المزيد من النطاقات المسموح بها
   hooks: {
     afterAuth: async ({ session, admin }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
@@ -59,7 +60,7 @@ const shopify = shopifyApp({
         });
 
         // إضافة المزيد من معلومات التصحيح للتوجيه
-        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}`;
+        const redirectUrl = `/dashboard?shopify_connected=true&shop=${encodeURIComponent(session.shop)}&auth_success=true&timestamp=${Date.now()}&session_id=${session.id}&new_connection=true`;
         console.log("Redirecting to:", redirectUrl);
         
         return {
@@ -101,6 +102,18 @@ console.log("Shopify app initialized with options:", {
   apiVersion: ApiVersion.January25,
   distribution: "app_store",
   isEmbeddedApp: false,
+  validRedirectUrls: [
+    "https://codform-flow-forms.lovable.app/shopify-callback",
+    "https://codform-flow-forms.lovable.app/api/shopify-callback",
+    "https://codform-flow-forms.lovable.app/auth/callback",
+    "https://codform-flow-forms.lovable.app/auth/offline",
+    "https://codform-flow-forms.lovable.app/auth/token",
+    "https://codform-flow-forms.lovable.app/auth",
+    "https://codform-flow-forms.lovable.app/shopify",
+    "https://codform-flow-forms.lovable.app/shopify-redirect",
+    "https://codform-flow-forms.lovable.app/dashboard",
+    "https://codform-flow-forms.lovable.app"
+  ]
 });
 
 export default shopify;

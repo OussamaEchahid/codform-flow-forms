@@ -47,6 +47,16 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
+// التحقق من صحة عنوان URL للمتجر
+function isValidShopifyDomain(shop: string): boolean {
+  if (!shop) return false;
+  
+  // نمط النطاق الأساسي لـ Shopify
+  const shopifyDomainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
+  
+  return shopifyDomainPattern.test(shop);
+}
+
 serve(async (req) => {
   // سجل الطلب كاملاً للتصحيح
   console.log("Callback received:", {
@@ -125,6 +135,19 @@ serve(async (req) => {
     // تنظيف نطاق المتجر
     shop = cleanShopDomain(shop);
     console.log("Cleaned shop domain for callback:", shop);
+    
+    // التحقق من صحة نطاق المتجر
+    if (!isValidShopifyDomain(shop)) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid Shopify domain",
+          invalidDomain: shop,
+          timestamp,
+          success: false
+        }), 
+        { status: 400, headers: corsHeaders }
+      );
+    }
     
     try {
       // التحقق من حالة المصادقة إن وجدت
@@ -258,7 +281,7 @@ serve(async (req) => {
               }, 1000);
             } else {
               // إذا لم تكن في نافذة منبثقة، إعادة التوجيه
-              window.location.href = '${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}';
+              window.location.href = '${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&new_connection=true';
             }
           </script>
           <style>
@@ -298,7 +321,7 @@ serve(async (req) => {
       }
       
       // إعادة التوجيه إلى التطبيق
-      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}`;
+      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(
