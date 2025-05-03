@@ -69,12 +69,18 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      // Check if user exists before proceeding
+      if (!user) {
+        toast.error('يجب تسجيل الدخول لإنشاء نموذج');
+        console.error("No user found when creating form");
+        return null;
+      }
+      
       // Generate a valid UUID for user_id if not available
-      const userId = user?.id && user.id !== 'shopify-user' 
-        ? user.id 
-        : uuidv4();
+      const userId = user?.id || uuidv4();
       
       console.log("Creating form with user ID:", userId);
+      console.log("Current shop:", shop);
       
       const formData = {
         title: selectedTemplate.title,
@@ -85,11 +91,12 @@ export const useFormTemplates = () => {
         user_id: userId // Use the generated or actual user ID
       };
       
-      console.log("Creating form with data:", formData);
+      console.log("Creating form with data:", JSON.stringify(formData));
       
+      // Use upsert to avoid conflicts
       const { data, error } = await supabase
         .from('forms')
-        .insert(formData)
+        .upsert([formData])
         .select();
       
       if (error) {
@@ -123,10 +130,11 @@ export const useFormTemplates = () => {
 
   const saveForm = async (formId: string, formData: any) => {
     try {
-      // Generate a valid UUID for user_id if not available
-      const userId = user?.id && user.id !== 'shopify-user' 
-        ? user.id 
-        : uuidv4();
+      // Make sure we have a user
+      if (!user?.id) {
+        toast.error('يجب تسجيل الدخول لحفظ النموذج');
+        return false;
+      }
         
       const updateData = {
         title: formData.title,
@@ -134,7 +142,7 @@ export const useFormTemplates = () => {
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
         shop_id: shop || null, // Use null instead of empty string if shop doesn't exist
-        user_id: userId // Use generated or actual user ID
+        user_id: user.id // Use actual user ID
       };
       
       const { error } = await supabase

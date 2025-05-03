@@ -9,16 +9,31 @@ import { useI18n } from '@/lib/i18n';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { Dialog } from '@/components/ui/dialog';
+import { useAuth } from '@/lib/auth';
 
 const FormBuilderDashboard = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
+  const { user, shop } = useAuth();
 
   const handleCreateForm = async () => {
     try {
+      if (!user) {
+        toast.error(language === 'ar' ? 'يجب تسجيل الدخول لإنشاء نموذج' : 'You must be logged in to create a form');
+        return;
+      }
+      
+      if (!shop) {
+        toast.error(language === 'ar' ? 'يجب ربط متجر Shopify لإنشاء نموذج' : 'You must connect a Shopify store to create a form');
+        return;
+      }
+      
       console.log("Creating default form...");
+      console.log("Current user:", user);
+      console.log("Current shop:", shop);
+      
       const newForm = await createDefaultForm();
       if (newForm) {
         console.log("New form created:", newForm);
@@ -84,6 +99,14 @@ const FormBuilderDashboard = () => {
             </Button>
           </div>
         </div>
+        
+        {/* User and Shop Debug Info (only in development) */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="mb-4 p-2 bg-gray-100 text-xs rounded">
+            <div>User ID: {user?.id || 'Not logged in'}</div>
+            <div>Shop: {shop || 'No shop connected'}</div>
+          </div>
+        )}
         
         <FormList 
           forms={forms} 

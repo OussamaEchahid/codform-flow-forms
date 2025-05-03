@@ -1,259 +1,153 @@
 
-import { ReactNode, useEffect, useState } from 'react';
-import { AuthContext } from '@/lib/auth';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { cleanShopDomain } from '@/utils/shopify-helpers';
+import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
+import { toast } from 'sonner';
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [authState, setAuthState] = useState({
-    shopifyConnected: false,
-    shop: undefined as string | undefined,
-    user: undefined as any,
-    shops: [] as string[]
-  });
-  const [authChecked, setAuthChecked] = useState(false);
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
 
-  // تحديث المتجر في حالة المصادقة
-  const setShop = (shop: string | undefined) => {
-    if (shop) {
-      setAuthState(prev => ({
-        ...prev,
-        shopifyConnected: true,
-        shop
-      }));
-    } else {
-      setAuthState(prev => ({
-        ...prev,
-        shopifyConnected: false,
-        shop: undefined
-      }));
-    }
-  };
+interface AuthContextType {
+  user: any;
+  loading: boolean;
+  shopifyConnected: boolean;
+  shop: string | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
 
-  // وظيفة لاكتشاف المتجر من معلمات URL
-  const detectShopFromURL = () => {
-    const params = new URLSearchParams(window.location.search);
-    const shopParam = params.get("shop");
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  shopifyConnected: false,
+  shop: null,
+  signIn: async () => {},
+  signOut: async () => {},
+});
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [shop, setShop] = useState<string | null>(null);
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+
+  // Function to detect and store shop
+  const setupShopFromUrl = () => {
+    // First try to get shop from URL
+    const { shopDomain, isShopifyRequest } = parseShopifyParams();
     
-    if (shopParam) {
-      console.log("Detected shop from URL parameters:", shopParam);
-      return cleanShopDomain(shopParam);
-    }
-    
-    // Check URL for embedded app hmac parameters which would indicate we're in Shopify
-    const hmac = params.get("hmac");
-    const host = params.get("host");
-    
-    if (hmac && host && shopParam) {
-      console.log("Detected in Shopify admin with shop:", shopParam);
-      return cleanShopDomain(shopParam);
+    if (shopDomain && isShopifyRequest) {
+      console.log("Setting shop from URL params:", shopDomain);
+      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem('shopify_connected', 'true');
+      setShop(shopDomain);
+      setShopifyConnected(true);
+      return true;
     }
     
-    return null;
+    // If not in URL, check localStorage
+    const storedShop = localStorage.getItem('shopify_store');
+    const isConnected = localStorage.getItem('shopify_connected') === 'true';
+    
+    if (storedShop && isConnected) {
+      console.log("Setting shop from localStorage:", storedShop);
+      setShop(storedShop);
+      setShopifyConnected(true);
+      return true;
+    }
+    
+    return false;
   };
 
   useEffect(() => {
-    const handleAuth = async () => {
+    const setupAuth = async () => {
       try {
-        // تحقق من وجود معلمات متجر في URL
-        const shopFromURL = detectShopFromURL();
+        setLoading(true);
         
-        // سجل معلمات URL للتصحيح
-        console.log('URL parameters:', {
-          pathname: location.pathname,
-          search: location.search,
-          fullURL: window.location.href
-        });
+        // Setup Shopify shop first
+        const shopConnected = setupShopFromUrl();
         
-        // فحص معلمات إعادة التوجيه من Shopify
-        const params = new URLSearchParams(window.location.search);
-        const shopParam = params.get("shop");
-        const shopifyConnected = params.get("shopify_connected");
-        const shopifySuccess = params.get("shopify_success");
-        const hmac = params.get("hmac");
-        const timestamp = params.get("timestamp");
-        const authSuccess = params.get("auth_success");
-
-        // تحميل جميع المتاجر من مدير الاتصال
-        const allStores = shopifyConnectionManager.getAllStores();
-        const activeStore = shopifyConnectionManager.getActiveStore();
-
-        // تسجيل معلومات المصادقة للتصحيح
-        console.log('Auth parameters:', { 
-          shopParam, shopifyConnected, shopifySuccess, hmac, authSuccess,
-          activeStore: activeStore?.shop,
-          allStores: allStores.map(s => s.shop),
-          shopFromURL
-        });
-
-        // إذا وجدنا متجراً في URL، تعيينه كمتجر نشط
-        if (shopFromURL) {
-          console.log("Setting active store from URL:", shopFromURL);
-          try {
-            // التحقق مما إذا كان المتجر موجوداً بالفعل، وإذا لم يكن كذلك، قم بإضافته
-            const storeExists = allStores.some(s => s.shop === shopFromURL);
-            if (!storeExists) {
-              shopifyConnectionManager.addStore(shopFromURL);
-              console.log("Added new store from URL:", shopFromURL);
-            }
-            
-            // تعيين المتجر كنشط
-            shopifyConnectionManager.setActiveStore(shopFromURL);
-            
-            // تحديث حالة المصادقة
-            setAuthState({
-              shopifyConnected: true,
-              shop: shopFromURL,
-              user: { id: 'shopify-user' },
-              shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
-            });
-            
-            setAuthChecked(true);
-            return;
-          } catch (error) {
-            console.error("Error setting active store from URL:", error);
-          }
-        }
-
-        // التحقق من وجود متجر في Supabase
-        try {
-          const { data: shopifyStoreFromDB, error } = await supabase
-            .rpc('get_user_shop')
-            .single();
-
-          if (shopifyStoreFromDB && !error) {
-            console.log('Found Shopify store in database:', shopifyStoreFromDB);
-            
-            // إضافة المتجر من قاعدة البيانات إلى مدير الاتصال إذا لم يكن موجودًا بالفعل
-            const storeExists = allStores.some(s => s.shop === shopifyStoreFromDB);
-            if (!storeExists) {
-              shopifyConnectionManager.addStore(shopifyStoreFromDB);
-              console.log("Added store from database:", shopifyStoreFromDB);
-            }
-            
-            // تعيين حالة المصادقة
-            setAuthState({
-              shopifyConnected: true,
-              shop: shopifyConnectionManager.activeStore,
-              user: { id: 'shopify-user' },
-              shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
-            });
-            
-            setAuthChecked(true);
-            return;
-          }
-        } catch (dbError) {
-          console.error("Error checking database for shop:", dbError);
-        }
-
-        // التحقق من نجاح الاتصال بـ Shopify
-        if (shopifySuccess === "true" && shopParam) {
-          console.log('Shopify connection success:', shopParam);
+        // For development, create a default user if not authenticated
+        if (process.env.NODE_ENV === 'development' && !shopConnected) {
+          console.log("Development mode: Using default shop and user");
+          const defaultShop = 'dev-store.myshopify.com';
+          localStorage.setItem('shopify_store', defaultShop);
+          localStorage.setItem('shopify_connected', 'true');
+          setShop(defaultShop);
+          setShopifyConnected(true);
           
-          const cleanedShop = cleanShopDomain(shopParam);
-          shopifyConnectionManager.addStore(cleanedShop);
-          shopifyConnectionManager.setActiveStore(cleanedShop);
-          
-          setAuthState({
-            shopifyConnected: true,
-            shop: shopifyConnectionManager.activeStore,
-            user: { id: 'shopify-user' },
-            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
-          });
-          
-          // إظهار رسالة نجاح
-          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-          
-          // إزالة معلمات URL إذا كنا على لوحة التحكم
-          if (location.pathname === '/dashboard' && window.history.replaceState) {
-            window.history.replaceState({}, document.title, '/dashboard');
-          }
-          
-          setAuthChecked(true);
+          // Create a default user for development
+          const devUser = { id: 'shopify-user', email: 'dev@example.com' };
+          setUser(devUser);
+          setLoading(false);
           return;
         }
-        // التحقق من معلمات Shopify الجديدة
-        else if (shopifyConnected === "true" && shopParam) {
-          console.log('New Shopify connection detected:', shopParam);
-          
-          const cleanedShop = cleanShopDomain(shopParam);
-          shopifyConnectionManager.addStore(cleanedShop);
-          shopifyConnectionManager.setActiveStore(cleanedShop);
-          
-          // تحديث حالة المصادقة
-          setAuthState({
-            shopifyConnected: true,
-            shop: shopifyConnectionManager.activeStore,
-            user: { id: 'shopify-user' },
-            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
-          });
-          
-          // إظهار رسالة نجاح
-          if (authSuccess === "true") {
-            toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-          }
-          
-          // إزالة معلمات URL إذا كنا على لوحة التحكم
-          if (location.pathname === '/dashboard' && window.history.replaceState) {
-            window.history.replaceState({}, document.title, '/dashboard');
-          }
-          
-          setAuthChecked(true);
-          return;
-        } 
-        // استعادة حالة الاتصال من مدير الاتصال
-        else if (activeStore) {
-          console.log('Restoring saved Shopify connection from connection manager:', activeStore.shop);
-          
-          setAuthState({
-            shopifyConnected: true,
-            shop: activeStore.shop,
-            user: { id: 'shopify-user' },
-            shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
-          });
-          
-          setAuthChecked(true);
-          return;
-        }
-        // إذا لم يكن هناك متجر نشط ولم نجد متجر في قاعدة البيانات
-        else {
-          console.log('No active Shopify store found');
-          
-          setAuthState({
-            shopifyConnected: false,
-            shop: undefined,
-            user: undefined,
-            shops: []
-          });
-          
-          setAuthChecked(true);
-          return;
+        
+        // Check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          setUser(session.user);
+        } else if (shopConnected) {
+          // If we have a shop connection but no user, create a temporary user
+          const tempUser = { id: 'shopify-user', email: `shopify@${shop?.replace('.myshopify.com', '')}.app` };
+          console.log("Creating temporary Shopify user:", tempUser);
+          setUser(tempUser);
         }
       } catch (error) {
-        console.error("Error checking auth state:", error);
-        setAuthChecked(true);
+        console.error("Error setting up auth:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    handleAuth();
-  }, [location.pathname, location.search, navigate]);
+    setupAuth();
 
-  // عرض حالة التحميل حتى يتم التحقق من المصادقة
-  if (!authChecked) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          // Don't clear Shopify connection when signing out
+        }
+      }
     );
-  }
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(`خطأ في تسجيل الدخول: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(`خطأ في تسجيل الخروج: ${error.message}`);
+      throw error;
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ ...authState, setShop }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        shopifyConnected,
+        shop,
+        signIn,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
