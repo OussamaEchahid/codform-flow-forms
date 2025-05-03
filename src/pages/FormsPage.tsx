@@ -235,7 +235,7 @@ const FormsPage = () => {
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCcw className="h-4 w-4" />
                 {language === 'ar' ? 'تحديث' : 'Refresh'}
               </>
             )}
@@ -301,3 +301,4 @@ const FormsPage = () => {
 };
 
 export default FormsPage;
+

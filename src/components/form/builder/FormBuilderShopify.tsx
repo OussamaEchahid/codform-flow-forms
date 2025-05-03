@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
-import { RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { RefreshCcw, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 
@@ -133,7 +133,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
                 </>
               ) : (
                 <>
-                  <RefreshCw className="mr-1 h-3 w-3" />
+                  <RefreshCcw className="mr-1 h-3 w-3" />
                   {language === 'ar' ? 'التحقق من الاتصال' : 'Verify Connection'}
                 </>
               )}
