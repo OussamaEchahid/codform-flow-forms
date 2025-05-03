@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ShopifyFormData } from '@/lib/shopify/types';
@@ -21,31 +21,62 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const { t, language } = useI18n();
   const { isConnected, manualReconnect, refreshConnection } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
-  const [lastConnectionCheck, setLastConnectionCheck] = useState<number>(0);
+  
+  // Track time of last connection check to prevent too frequent checks
+  const lastCheckTimeRef = useRef<number>(0);
+  const CHECK_THROTTLE_TIME = 30000; // 30 seconds minimum between checks
 
-  // التحقق من الاتصال عند تحميل المكون
+  // Only check connection once when component loads, not on every render
   useEffect(() => {
-    const checkConnection = async () => {
-      if (refreshConnection && Date.now() - lastConnectionCheck > 30000) {
-        setLastConnectionCheck(Date.now());
-        try {
-          await refreshConnection();
-        } catch (error) {
-          console.error('Error checking connection:', error);
-        }
+    const checkConnectionOnce = async () => {
+      const now = Date.now();
+      
+      // Skip if checked recently
+      if (now - lastCheckTimeRef.current < CHECK_THROTTLE_TIME) {
+        console.log('Skipping connection check - checked too recently');
+        return;
+      }
+      
+      // Skip if no refresh function
+      if (!refreshConnection) return;
+      
+      try {
+        console.log('Performing initial connection check on component mount');
+        await refreshConnection();
+        lastCheckTimeRef.current = now;
+      } catch (error) {
+        console.error('Error in initial connection check:', error);
       }
     };
     
-    checkConnection();
-  }, [refreshConnection, lastConnectionCheck]);
+    // Only check if connected
+    if (isConnected) {
+      checkConnectionOnce();
+    }
+  }, [refreshConnection, isConnected]);
 
-  // معالج لتشغيل التحقق اليدوي من الاتصال
+  // Handle manual check connection with throttling
   const handleCheckConnection = async () => {
     if (!refreshConnection || isCheckingConnection) return;
     
+    const now = Date.now();
+    
+    // Prevent rapid rechecking
+    if (now - lastCheckTimeRef.current < CHECK_THROTTLE_TIME) {
+      toast.info(
+        language === 'ar' 
+          ? 'الرجاء الانتظار قبل التحقق مرة أخرى' 
+          : 'Please wait before checking again'
+      );
+      return;
+    }
+    
     setIsCheckingConnection(true);
     try {
+      console.log('Manually checking Shopify connection');
       const connected = await refreshConnection();
+      lastCheckTimeRef.current = Date.now();
+      
       if (connected !== undefined) {
         toast.success(connected
           ? (language === 'ar' ? 'تم التحقق من اتصال Shopify بنجاح' : 'Shopify connection verified successfully')
@@ -119,7 +150,6 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
             </Button>
           </div>
 
-          {/* هنا ستضاف إعدادات النموذج في تنفيذ أكثر اكتمالاً */}
           {formId && (
             <div className="bg-gray-50 p-3 rounded-md mt-2">
               <p className="text-sm text-gray-600">

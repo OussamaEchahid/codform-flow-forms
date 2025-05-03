@@ -3,11 +3,16 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { toast } from 'sonner';
+import { 
+  createRequestTracker, 
+  createCacheManager, 
+  DEFAULT_CACHE_TTL, 
+  DEFAULT_THROTTLE_TIME
+} from '@/utils/requestManager';
 
 // Constants for better maintainability
-const CACHE_TTL = 60000; // 1 minute cache
-const CONNECTION_CHECK_THROTTLE = 30000; // 30 seconds
-const REQUEST_DEBOUNCE_TIME = 500; // 500ms
+const CONNECTION_CHECK_THROTTLE = 300000; // 5 minutes
+const REQUEST_DEBOUNCE_TIME = 1000; // 1 second
 
 export const useShopify = () => {
   const { shop, shopifyConnected, forceReconnect, refreshShopifyConnection } = useAuth();
@@ -19,79 +24,40 @@ export const useShopify = () => {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<boolean>(false);
   
-  // Request state management
-  const activeRequestsRef = useRef<{[key: string]: boolean}>({});
-  const requestTimeoutsRef = useRef<{[key: string]: ReturnType<typeof setTimeout>}>({});
-  const connectionCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use refs for state that doesn't trigger renders
+  const initialCheckPerformed = useRef(false);
   const reconnectAttemptsRef = useRef<number>(0);
   
-  // Cache management
-  const cachedDataRef = useRef<{
-    products: { data: ShopifyProduct[] | null, timestamp: number },
-    connection: { status: boolean, timestamp: number }
-  }>({
-    products: { data: null, timestamp: 0 },
-    connection: { status: false, timestamp: 0 }
-  });
-
-  // Helper to check if a request is already in progress
-  const isRequestInProgress = (key: string): boolean => {
-    return !!activeRequestsRef.current[key];
-  };
-
-  // Helper to track request status and cleanup
-  const trackRequest = useCallback((key: string, inProgress: boolean) => {
-    if (inProgress) {
-      activeRequestsRef.current[key] = true;
-    } else {
-      // Clean up after a small delay to prevent rapid successive calls
-      if (requestTimeoutsRef.current[key]) {
-        clearTimeout(requestTimeoutsRef.current[key]);
-      }
-      
-      requestTimeoutsRef.current[key] = setTimeout(() => {
-        activeRequestsRef.current[key] = false;
-        delete requestTimeoutsRef.current[key];
-      }, REQUEST_DEBOUNCE_TIME);
-    }
-  }, []);
+  // Request and cache management using utility functions
+  const requestTracker = useRef(createRequestTracker()).current;
+  const cache = useRef(createCacheManager<any>()).current;
   
-  // Clear all request timeouts when unmounting
-  useEffect(() => {
-    return () => {
-      Object.values(requestTimeoutsRef.current).forEach(timeout => {
-        clearTimeout(timeout);
-      });
-      
-      if (connectionCheckTimeoutRef.current) {
-        clearTimeout(connectionCheckTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Connection check timeout ref
+  const connectionCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Improved products fetching with proper caching and throttling
   const refreshProducts = useCallback(async () => {
     // Skip if conditions aren't met
     if (!shopifyConnected || !shop) {
-      return cachedDataRef.current.products.data || [];
+      const cachedProducts = cache.get('products', DEFAULT_CACHE_TTL);
+      return cachedProducts.expired ? [] : (cachedProducts.data || []);
     }
 
     // Return cached data if a request is in progress
-    if (isRequestInProgress('refreshProducts')) {
+    if (requestTracker.isInProgress('refreshProducts')) {
       console.log('A products refresh is already in progress, using cached data');
-      return cachedDataRef.current.products.data || [];
+      const cachedProducts = cache.get('products', DEFAULT_CACHE_TTL);
+      return cachedProducts.expired ? [] : (cachedProducts.data || []);
     }
     
     // Return cached data if still valid
-    if (
-      cachedDataRef.current.products.data &&
-      Date.now() - cachedDataRef.current.products.timestamp < CACHE_TTL
-    ) {
+    const cachedProducts = cache.get('products', DEFAULT_CACHE_TTL);
+    if (!cachedProducts.expired && cachedProducts.data) {
       console.log('Using cached products data');
-      return cachedDataRef.current.products.data;
+      return cachedProducts.data;
     }
     
-    trackRequest('refreshProducts', true);
+    requestTracker.trackRequest('refreshProducts', true);
     setIsLoading(true);
     
     try {
@@ -119,10 +85,7 @@ export const useShopify = () => {
       ];
       
       // Cache the data
-      cachedDataRef.current.products = {
-        data: mockProducts,
-        timestamp: Date.now()
-      };
+      cache.set('products', mockProducts);
       
       setProducts(mockProducts);
       return mockProducts;
@@ -146,36 +109,37 @@ export const useShopify = () => {
       return offlineProducts;
     } finally {
       setIsLoading(false);
-      trackRequest('refreshProducts', false);
+      requestTracker.trackRequest('refreshProducts', false);
     }
-  }, [shop, shopifyConnected, trackRequest]);
+  }, [shop, shopifyConnected, cache, requestTracker]);
 
   // Improved connection verification with proper throttling
   const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
     if (!shop) return false;
     
     // Skip if we checked recently
-    if (Date.now() - lastCheck < CONNECTION_CHECK_THROTTLE) {
+    const now = Date.now();
+    if (now - lastCheck < CONNECTION_CHECK_THROTTLE) {
       console.log("Throttling connection verification - checked recently");
       return connectionStatus;
     }
     
     // Skip if already checking
-    if (isRequestInProgress('verifyConnection')) {
+    if (requestTracker.isInProgress('verifyConnection')) {
       console.log('Connection verification already in progress');
       return connectionStatus;
     }
     
-    trackRequest('verifyConnection', true);
-    setLastCheck(Date.now());
+    requestTracker.trackRequest('verifyConnection', true);
+    setLastCheck(now);
     
     try {
       console.log('Verifying Shopify connection for shop:', shop);
       
       // Check cached status first
-      const cachedTime = cachedDataRef.current.connection.timestamp;
-      if (Date.now() - cachedTime < CONNECTION_CHECK_THROTTLE) {
-        return cachedDataRef.current.connection.status;
+      const cachedConnection = cache.get('connection', CONNECTION_CHECK_THROTTLE);
+      if (!cachedConnection.expired) {
+        return cachedConnection.data?.status || false;
       }
       
       // For demo purposes, use the current shopifyConnected state
@@ -183,14 +147,14 @@ export const useShopify = () => {
       const isConnected = shopifyConnected && !!shop;
       
       // Update cache
-      cachedDataRef.current.connection = {
+      cache.set('connection', {
         status: isConnected,
-        timestamp: Date.now()
-      };
+        timestamp: now
+      });
       
       // Update storage for persistence
       localStorage.setItem('shopify_connection_status', String(isConnected));
-      localStorage.setItem('shopify_connection_check_time', String(Date.now()));
+      localStorage.setItem('shopify_connection_check_time', String(now));
       
       setConnectionStatus(isConnected);
       return isConnected;
@@ -199,9 +163,9 @@ export const useShopify = () => {
       setConnectionStatus(false);
       return false;
     } finally {
-      trackRequest('verifyConnection', false);
+      requestTracker.trackRequest('verifyConnection', false);
     }
-  }, [shop, shopifyConnected, connectionStatus, lastCheck]);
+  }, [shop, shopifyConnected, connectionStatus, lastCheck, cache, requestTracker]);
 
   // Manual reconnect with improved error handling
   const manualReconnect = useCallback(() => {
@@ -244,20 +208,20 @@ export const useShopify = () => {
       return false;
     }
 
-    if (isRequestInProgress('saveForm')) {
+    if (requestTracker.isInProgress('saveForm')) {
       toast.info('طلب حفظ آخر قيد التنفيذ، يرجى الانتظار...');
       return false;
     }
 
-    trackRequest('saveForm', true);
+    requestTracker.trackRequest('saveForm', true);
 
     try {
       console.log('Saving form settings to product:', formData);
       
       const formSettings = {
-        productId: formData.product_id,
+        productId: formData.product_id || 'all',
         formId: formData.form_id,
-        blockId: formData.settings?.blockId,
+        blockId: formData.settings?.blockId || 'codform-default',
         enabled: formData.settings?.enabled || true,
         shopId: shop,
       };
@@ -287,7 +251,7 @@ export const useShopify = () => {
       try {
         const offlineSettings = JSON.parse(localStorage.getItem('offline_shopify_settings') || '[]');
         offlineSettings.push({
-          product_id: formData.product_id,
+          product_id: formData.product_id || 'all',
           form_id: formData.form_id,
           settings: formData.settings,
           shop_id: shop,
@@ -303,18 +267,18 @@ export const useShopify = () => {
       
       return false;
     } finally {
-      trackRequest('saveForm', false);
+      requestTracker.trackRequest('saveForm', false);
     }
-  }, [shop, shopifyConnected, trackRequest]);
+  }, [shop, shopifyConnected, requestTracker]);
   
   // Sync form with Shopify
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData): Promise<boolean> => {
-    if (isSyncing || isRequestInProgress('syncForm')) {
+    if (isSyncing || requestTracker.isInProgress('syncForm')) {
       toast.info('طلب مزامنة آخر قيد التنفيذ، يرجى الانتظار...');
       return false;
     }
     
-    trackRequest('syncForm', true);
+    requestTracker.trackRequest('syncForm', true);
     setIsSyncing(true);
     
     try {
@@ -338,18 +302,18 @@ export const useShopify = () => {
       return false;
     } finally {
       setIsSyncing(false);
-      trackRequest('syncForm', false);
+      requestTracker.trackRequest('syncForm', false);
     }
-  }, [isSyncing, shopifyConnected, shop, saveFormToProduct, trackRequest]);
+  }, [isSyncing, shopifyConnected, shop, saveFormToProduct, requestTracker]);
   
   // Try to sync offline data when connection is restored
   useEffect(() => {
-    if (!shopifyConnected || !shop || isRequestInProgress('offlineSync')) {
+    if (!shopifyConnected || !shop || requestTracker.isInProgress('offlineSync')) {
       return;
     }
     
     const attemptOfflineSync = async () => {
-      trackRequest('offlineSync', true);
+      requestTracker.trackRequest('offlineSync', true);
       
       try {
         const offlineSettings = JSON.parse(localStorage.getItem('offline_shopify_settings') || '[]');
@@ -378,34 +342,40 @@ export const useShopify = () => {
       } catch (error) {
         console.error('Error syncing offline settings:', error);
       } finally {
-        trackRequest('offlineSync', false);
+        requestTracker.trackRequest('offlineSync', false);
       }
     };
     
-    // Delay sync to allow page to load first
-    const syncTimeout = setTimeout(attemptOfflineSync, 5000);
-    
-    return () => {
-      clearTimeout(syncTimeout);
-    };
-  }, [shopifyConnected, shop, saveFormToProduct, trackRequest]);
+    // Delay sync to allow page to load first but don't trigger on every render
+    const shouldSync = !initialCheckPerformed.current;
+    if (shouldSync) {
+      const syncTimeout = setTimeout(attemptOfflineSync, 5000);
+      initialCheckPerformed.current = true;
+      
+      return () => {
+        clearTimeout(syncTimeout);
+      };
+    }
+  }, [shopifyConnected, shop, saveFormToProduct, requestTracker]);
 
   // Check connection once on component mount, but don't keep polling
   useEffect(() => {
-    if (shopifyConnected && shop && !isRequestInProgress('initialConnectionCheck')) {
-      trackRequest('initialConnectionCheck', true);
+    if (shopifyConnected && shop && !initialCheckPerformed.current && !requestTracker.isInProgress('initialConnectionCheck')) {
+      requestTracker.trackRequest('initialConnectionCheck', true);
       
       // Do a single connection check when component mounts
       verifyShopifyConnection().finally(() => {
-        trackRequest('initialConnectionCheck', false);
+        requestTracker.trackRequest('initialConnectionCheck', false);
+        initialCheckPerformed.current = true;
       });
-      
-      // Do a single product refresh when component mounts
-      if (!cachedDataRef.current.products.data) {
-        refreshProducts();
-      }
     }
-  }, [shopifyConnected, shop, verifyShopifyConnection, refreshProducts, trackRequest]);
+    
+    return () => {
+      if (connectionCheckTimeoutRef.current) {
+        clearTimeout(connectionCheckTimeoutRef.current);
+      }
+    };
+  }, [shopifyConnected, shop, verifyShopifyConnection, requestTracker]);
 
   return {
     products,
