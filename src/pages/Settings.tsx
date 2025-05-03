@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 
-// استيراد لوحة تصحيح Shopify
-import ShopifyDebugPanel from '@/components/shopify/ShopifyDebugPanel';
+// Change the import from default to named import
+import { ShopifyDebugPanel } from '@/components/shopify/ShopifyDebugPanel';
 
 const Settings = () => {
   const { t, language } = useI18n();
@@ -77,7 +77,7 @@ const Settings = () => {
               </CardContent>
             </Card>
             
-            {/* إضافة لوحة تصحيح Shopify */}
+            {/* ShopifyDebugPanel is already a named export, so we use it directly */}
             <ShopifyDebugPanel />
             
             {/* ... keep existing code (مكونات إضافية إن وجدت) */}
