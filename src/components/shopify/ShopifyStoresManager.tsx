@@ -10,29 +10,16 @@ import { Store, Check, Trash2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ShopifyStoreConnection } from '@/lib/shopify/types';
 
-interface StoreDisplay {
-  shop: string;
-  isActive: boolean;
-  connectedAt: string;
-  lastUsed?: string;
-}
-
 export const ShopifyStoresManager: React.FC = () => {
   const { shop: activeShop, setShop } = useAuth();
   const navigate = useNavigate();
-  const [stores, setStores] = useState<StoreDisplay[]>([]);
+  const [stores, setStores] = useState<ShopifyStoreConnection[]>([]);
 
   // Load stores on component mount
   useEffect(() => {
     const loadStores = () => {
       const allStores = shopifyConnectionManager.getAllStores();
-      const displayStores: StoreDisplay[] = allStores.map(store => ({
-        shop: store.domain,
-        isActive: store.isActive,
-        connectedAt: store.lastConnected,
-        lastUsed: undefined // Could be filled from another source if needed
-      }));
-      setStores(displayStores);
+      setStores(allStores);
     };
     
     loadStores();
@@ -59,13 +46,7 @@ export const ShopifyStoresManager: React.FC = () => {
         setShop(storeUrl);
       }
       const allStores = shopifyConnectionManager.getAllStores();
-      const displayStores: StoreDisplay[] = allStores.map(store => ({
-        shop: store.domain,
-        isActive: store.isActive,
-        connectedAt: store.lastConnected,
-        lastUsed: undefined
-      }));
-      setStores(displayStores);
+      setStores(allStores);
       toast.success(`تم تعيين ${storeUrl} كمتجر نشط`);
     } catch (error) {
       toast.error(`فشل في تعيين المتجر النشط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
@@ -78,13 +59,7 @@ export const ShopifyStoresManager: React.FC = () => {
       try {
         shopifyConnectionManager.removeStore(storeUrl);
         const allStores = shopifyConnectionManager.getAllStores();
-        const displayStores: StoreDisplay[] = allStores.map(store => ({
-          shop: store.domain,
-          isActive: store.isActive,
-          connectedAt: store.lastConnected,
-          lastUsed: undefined
-        }));
-        setStores(displayStores);
+        setStores(allStores);
         toast.success(`تم إزالة متجر ${storeUrl} بنجاح`);
       } catch (error) {
         toast.error(`فشل في إزالة المتجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
@@ -146,25 +121,21 @@ export const ShopifyStoresManager: React.FC = () => {
                   <tr>
                     <th className="text-right py-3 px-4 font-medium text-gray-700">المتجر</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-700">تاريخ الاتصال</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-700">آخر استخدام</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-700">الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stores.map((store, index) => (
-                    <tr key={store.shop} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${store.isActive ? 'bg-green-50' : ''}`}>
+                    <tr key={store.domain} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${store.isActive ? 'bg-green-50' : ''}`}>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
                           {store.isActive && <Check className="h-4 w-4 text-green-500 mr-2" />}
-                          <span className={store.isActive ? 'font-medium' : ''}>{store.shop}</span>
+                          <span className={store.isActive ? 'font-medium' : ''}>{store.domain}</span>
                           {store.isActive && <Badge className="mr-2 bg-green-100 text-green-800 border-green-200 ml-2">نشط</Badge>}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-gray-700">
-                        {formatDate(store.connectedAt)}
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">
-                        {formatDate(store.lastUsed)}
+                        {formatDate(store.lastConnected)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex justify-center space-x-2">
@@ -172,7 +143,7 @@ export const ShopifyStoresManager: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => setActiveStore(store.shop)}
+                              onClick={() => setActiveStore(store.domain)}
                               title="تعيين كمتجر نشط"
                             >
                               تفعيل
@@ -182,7 +153,7 @@ export const ShopifyStoresManager: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openStoreAdmin(store.shop)}
+                            onClick={() => openStoreAdmin(store.domain)}
                             title="فتح إدارة المتجر"
                           >
                             <ExternalLink className="h-4 w-4" />
@@ -192,7 +163,7 @@ export const ShopifyStoresManager: React.FC = () => {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeStore(store.shop)}
+                            onClick={() => removeStore(store.domain)}
                             title="إزالة المتجر"
                             disabled={stores.length === 1}
                           >

@@ -10,9 +10,10 @@ export async function loader({ request }) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const host = url.searchParams.get("host");
+  const session = url.searchParams.get("session");
   
   console.log("Root route accessed with params:", { 
-    shopifyReferrer, hmac, code, timestamp, state, host,
+    shopifyReferrer, hmac, code, timestamp, state, host, session,
     allParams: Object.fromEntries(url.searchParams.entries()),
     fullUrl: request.url,
     headers: Object.fromEntries(request.headers.entries())
@@ -40,9 +41,10 @@ export async function loader({ request }) {
     if (code) params.set("code", code);
     if (state) params.set("state", state);
     if (host) params.set("host", host);
+    if (session) params.set("session", session);
     
     // توجيه مباشر إلى نقطة النهاية للمصادقة على الخادم مع جميع المعلمات
-    return redirect(`/auth?${params.toString()}`, {
+    return redirect(`/auth?${params.toString()}&new_connection=true`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
         "Pragma": "no-cache",
@@ -55,6 +57,7 @@ export async function loader({ request }) {
   if (hmac || code) {
     console.log("Redirecting to auth with authentication parameters");
     const params = new URLSearchParams(url.search);
+    params.append("new_connection", "true");
     return redirect(`/auth?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

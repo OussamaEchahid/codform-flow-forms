@@ -85,7 +85,8 @@ serve(async (req) => {
       code: code ? "present" : "missing", 
       state,
       timestamp,
-      isPopup
+      isPopup,
+      fullUrl: req.url
     });
     
     if (!shop || !code) {
@@ -204,6 +205,19 @@ serve(async (req) => {
         
         console.log("Current user:", userId || "No authenticated user");
         
+        // تعطيل كافة المتاجر الأخرى
+        const { error: updateError } = await supabase
+          .from('shopify_stores')
+          .update({ is_active: false })
+          .neq('shop', shop);
+        
+        if (updateError) {
+          console.log("Error disabling other stores:", updateError);
+          // استمر على أي حال
+        } else {
+          console.log("Successfully disabled other stores");
+        }
+        
         // بيانات المتجر للحفظ
         const storeData = {
           shop,
@@ -270,6 +284,7 @@ serve(async (req) => {
               try {
                 localStorage.setItem('shopify_store', '${shop}');
                 localStorage.setItem('shopify_connected', 'true');
+                localStorage.setItem('shopify_active_store', '${shop}');
                 console.log('Shop data saved to localStorage');
               } catch(e) {
                 console.error('Error saving to localStorage:', e);
@@ -281,7 +296,7 @@ serve(async (req) => {
               }, 1000);
             } else {
               // إذا لم تكن في نافذة منبثقة، إعادة التوجيه
-              window.location.href = '${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&new_connection=true';
+              window.location.href = '${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true';
             }
           </script>
           <style>
@@ -307,7 +322,7 @@ serve(async (req) => {
         <body>
           <div class="success">✓</div>
           <h1>تم الاتصال بنجاح!</h1>
-          <p>تم اتصال متجرك بنجاح. يمكنك إغلاق هذه النافذة والعودة إلى التطبيق.</p>
+          <p>تم اتصال متجرك ${shop} بنجاح. يمكنك إغلاق هذه النافذة والعودة إلى التطبيق.</p>
         </body>
         </html>
         `;
@@ -321,7 +336,7 @@ serve(async (req) => {
       }
       
       // إعادة التوجيه إلى التطبيق
-      const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true`;
+      const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(

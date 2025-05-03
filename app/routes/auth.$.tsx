@@ -7,6 +7,7 @@ export const loader = async ({ request }) => {
   console.log("Server Auth route hit with URL:", request.url);
   const url = new URL(request.url);
   let shop = url.searchParams.get("shop");
+  const newConnection = url.searchParams.get("new_connection") === "true";
   
   // سجل جميع المعلومات للتشخيص
   console.log("Auth route complete parameters:", {
@@ -16,6 +17,8 @@ export const loader = async ({ request }) => {
     timestamp: url.searchParams.get("timestamp"),
     host: url.searchParams.get("host"),
     state: url.searchParams.get("state"),
+    session: url.searchParams.get("session"),
+    newConnection,
     allParams: Object.fromEntries(url.searchParams.entries()),
     headers: Object.fromEntries(request.headers.entries()),
     url: request.url,
@@ -45,6 +48,7 @@ export const loader = async ({ request }) => {
 
     const code = url.searchParams.get("code");
     const hmac = url.searchParams.get("hmac");
+    const session = url.searchParams.get("session");
     
     // إذا كان لدينا رمز وhmac، فنحن في استدعاء OAuth
     if (code && hmac) {
@@ -89,7 +93,11 @@ export const loader = async ({ request }) => {
       }
     }
     
-    // في حالة عدم وجود معلمة متجر
+    // في حالة عدم وجود معلمة متجر أو وجود جلسة
+    if (session) {
+      return redirect(`/dashboard?shopify_connected=true&session=${encodeURIComponent(session)}`);
+    }
+    
     return redirect("/dashboard?auth_error=true&error=no_shop_parameter");
   } catch (error) {
     console.error("Authentication error:", error.message);

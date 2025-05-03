@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 export default function ShopifyCallback() {
   const navigate = useNavigate();
@@ -37,7 +38,8 @@ export default function ShopifyCallback() {
           localStorage: {
             shopify_store: localStorage.getItem('shopify_store'),
             shopify_connected: localStorage.getItem('shopify_connected'),
-            shopify_temp_store: localStorage.getItem('shopify_temp_store')
+            shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+            shopify_active_store: localStorage.getItem('shopify_active_store')
           },
           timestamp: new Date().toISOString()
         };
@@ -71,9 +73,13 @@ export default function ShopifyCallback() {
             throw new Error(data?.error || "حدث خطأ غير معروف أثناء إكمال المصادقة");
           }
           
+          // Update connection manager
+          shopifyConnectionManager.setActiveStore(shopParam);
+          
           // Store shop information in localStorage
           localStorage.setItem('shopify_store', shopParam);
           localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('shopify_active_store', shopParam);
           
           // Remove temporary data
           localStorage.removeItem('shopify_temp_store');
@@ -86,7 +92,7 @@ export default function ShopifyCallback() {
             window.location.href = data.redirect;
           } else {
             setTimeout(() => {
-              navigate('/dashboard', { replace: true });
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam), { replace: true });
             }, 1000);
           }
         } catch (error) {
@@ -107,9 +113,13 @@ export default function ShopifyCallback() {
             
             const result = await response.json();
             
+            // Update connection manager
+            shopifyConnectionManager.setActiveStore(shopParam);
+            
             // Store shop information in localStorage
             localStorage.setItem('shopify_store', shopParam);
             localStorage.setItem('shopify_connected', 'true');
+            localStorage.setItem('shopify_active_store', shopParam);
             
             // Remove temporary data
             localStorage.removeItem('shopify_temp_store');
@@ -121,7 +131,7 @@ export default function ShopifyCallback() {
             if (result.redirect) {
               window.location.href = result.redirect;
             } else {
-              navigate('/dashboard', { replace: true });
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam), { replace: true });
             }
           } catch (fallbackError) {
             console.error("Fallback API call failed:", fallbackError);

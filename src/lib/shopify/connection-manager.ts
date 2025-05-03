@@ -77,18 +77,15 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
           stores[i].isActive = false;
         }
       }
+      
+      // حفظ المتجر النشط في التخزين المحلي
+      localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
+      localStorage.setItem('shopify_connected', 'true');
     }
     
     // حفظ التغييرات
     saveStores(stores);
-    
-    // إذا كان المتجر نشطًا، قم بتعيينه كمتجر نشط
-    if (isActive) {
-      localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
-      localStorage.setItem('shopify_store', cleanedDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      console.log(`Set active store to ${cleanedDomain}`);
-    }
     
     return true;
   },
@@ -96,6 +93,16 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
   // الحصول على المتجر النشط
   getActiveStore: () => {
     try {
+      // تحقق من URL الحالي للمتجر (أعلى أولوية)
+      const urlParams = new URLSearchParams(window.location.search);
+      const shopParam = urlParams.get("shop");
+      
+      if (shopParam) {
+        const cleanedShop = cleanShopifyDomain(shopParam);
+        console.log("Retrieved shop from URL parameters:", cleanedShop);
+        return cleanedShop;
+      }
+      
       // أولاً، تحقق من مفتاح المتجر النشط المخصص
       const activeStore = localStorage.getItem(ACTIVE_STORE_KEY);
       
@@ -148,29 +155,35 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
     }
     
     console.log(`Setting active store to: ${cleanedDomain}`);
+    
+    // تحديث قاعدة البيانات المحلية أولاً
     const stores = loadStores();
     
-    // التحقق من وجود المتجر في القائمة
-    const storeExists = stores.some(store => store.domain === cleanedDomain);
+    // ضبط جميع المتاجر كغير نشطة
+    const updatedStores = stores.map(store => ({
+      ...store,
+      isActive: store.domain === cleanedDomain
+    }));
     
-    if (storeExists) {
-      // تحديث المتجر النشط
-      const updatedStores = stores.map(store => ({
-        ...store,
-        isActive: store.domain === cleanedDomain
-      }));
-      
-      // حفظ التغييرات
-      saveStores(updatedStores);
-      localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
-      localStorage.setItem('shopify_store', cleanedDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      
-      return true;
-    } else {
-      // إذا لم يكن المتجر موجودًا، أضفه وقم بتعيينه كنشط
-      return shopifyConnectionManager.addOrUpdateStore(cleanedDomain, true);
+    // إضافة المتجر إذا لم يكن موجودًا
+    if (!stores.some(store => store.domain === cleanedDomain)) {
+      updatedStores.push({
+        domain: cleanedDomain,
+        shop: cleanedDomain,
+        lastConnected: new Date().toISOString(),
+        isActive: true
+      });
     }
+    
+    // حفظ التغييرات
+    saveStores(updatedStores);
+    
+    // تحديث التخزين المحلي
+    localStorage.setItem(ACTIVE_STORE_KEY, cleanedDomain);
+    localStorage.setItem('shopify_store', cleanedDomain);
+    localStorage.setItem('shopify_connected', 'true');
+    
+    return true;
   },
   
   // الحصول على جميع المتاجر
