@@ -32,7 +32,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
   const { language } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [pendingOperation, setPendingOperation] = useState<string | null>(null);
   
   // Generate unique IDs for fields that may be missing them
   useEffect(() => {
@@ -69,83 +68,72 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
     }
   }, [formData, onChange]);
   
-  // Debounce implementation to prevent rapid clicks
-  useEffect(() => {
-    if (pendingOperation && !isProcessing) {
-      setIsProcessing(true);
-      
-      const timer = setTimeout(() => {
-        try {
-          if (pendingOperation.startsWith('add:')) {
-            const fieldType = pendingOperation.split(':')[1];
-            
-            // Create unique ID for field
-            const fieldId = `field-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-            
-            // Create new field with proper ID and name attributes
-            const newField = {
-              id: fieldId,
-              name: fieldId, // Explicitly add name attribute to match ID
-              type: fieldType,
-              label: language === 'ar' ? 'حقل جديد' : 'New Field',
-              required: false,
-              placeholder: language === 'ar' ? 'أدخل قيمة' : 'Enter value',
-              style: {
-                color: "#333333", 
-                fontSize: "1rem", 
-                borderColor: "#e2e8f0", 
-                borderWidth: "1px", 
-                borderRadius: "0.5rem", 
-                backgroundColor: "#ffffff"
-              }
-            };
-            
-            // Add the field to form data
-            const updatedFormData = [...formData, newField];
-            onChange(updatedFormData);
-            
-            // Cache last field for recovery if needed
-            try {
-              localStorage.setItem('form_builder_last_field', JSON.stringify(newField));
-            } catch (cacheError) {
-              console.error('Error caching last field:', cacheError);
-            }
-          } else if (pendingOperation.startsWith('remove:')) {
-            const index = parseInt(pendingOperation.split(':')[1]);
-            if (!isNaN(index)) {
-              const updatedFormData = [...formData];
-              updatedFormData.splice(index, 1);
-              onChange(updatedFormData);
-            }
-          }
-        } catch (error) {
-          console.error('Error processing operation:', error);
-          setError(language === 'ar' 
-            ? 'حدث خطأ أثناء معالجة العملية. يرجى المحاولة مرة أخرى.' 
-            : 'An error occurred processing the operation. Please try again.');
-        } finally {
-          setIsProcessing(false);
-          setPendingOperation(null);
-        }
-      }, 300); // Debounce delay
-      
-      return () => clearTimeout(timer);
-    }
-  }, [pendingOperation, isProcessing, formData, onChange, language]);
-  
-  // Add field to the form
+  // Add field to the form - direct implementation without debounce to fix the issue
   const addField = (type: string) => {
     if (isProcessing) return;
     
+    setIsProcessing(true);
     setError(null);
-    setPendingOperation(`add:${type}`);
+    
+    try {
+      // Create unique ID for field
+      const fieldId = `field-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      
+      // Create new field with proper ID and name attributes
+      const newField = {
+        id: fieldId,
+        name: fieldId, // Explicitly add name attribute to match ID
+        type: type,
+        label: language === 'ar' ? 'حقل جديد' : 'New Field',
+        required: false,
+        placeholder: language === 'ar' ? 'أدخل قيمة' : 'Enter value',
+        style: {
+          color: "#333333", 
+          fontSize: "1rem", 
+          borderColor: "#e2e8f0", 
+          borderWidth: "1px", 
+          borderRadius: "0.5rem", 
+          backgroundColor: "#ffffff"
+        }
+      };
+      
+      // Add the field to form data
+      const updatedFormData = [...formData, newField];
+      onChange(updatedFormData);
+      
+      // Cache last field for recovery if needed
+      try {
+        localStorage.setItem('form_builder_last_field', JSON.stringify(newField));
+      } catch (cacheError) {
+        console.error('Error caching last field:', cacheError);
+      }
+    } catch (error) {
+      console.error('Error adding field:', error);
+      setError(language === 'ar' 
+        ? 'حدث خطأ أثناء إضافة الحقل. يرجى المحاولة مرة أخرى.' 
+        : 'An error occurred adding the field. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
-  // Remove field from the form
+  // Remove field from the form - direct implementation without debounce
   const removeField = (index: number) => {
     if (isProcessing) return;
     
-    setPendingOperation(`remove:${index}`);
+    setIsProcessing(true);
+    try {
+      const updatedFormData = [...formData];
+      updatedFormData.splice(index, 1);
+      onChange(updatedFormData);
+    } catch (error) {
+      console.error('Error removing field:', error);
+      setError(language === 'ar' 
+        ? 'حدث خطأ أثناء إزالة الحقل. يرجى المحاولة مرة أخرى.' 
+        : 'An error occurred removing the field. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   return (

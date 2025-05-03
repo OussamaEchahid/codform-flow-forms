@@ -69,8 +69,8 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     if (!isConnected && manualReconnect) {
       // Execute the reconnect function
       try {
-        manualReconnect();
-        // No need to check return value - the function will handle redirection
+        manualReconnect(); // Don't check return value, the function is void
+        // manualReconnect will handle redirection
       } catch (err) {
         console.error('Error initiating Shopify connection:', err);
         toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');

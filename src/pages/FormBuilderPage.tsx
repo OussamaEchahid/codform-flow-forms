@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormFetch } from '@/lib/hooks/form/useFormFetch';
@@ -109,7 +108,7 @@ const FormActions = ({
         onClick={handlePreviewInShopify}
       >
         <Eye className="h-4 w-4 mr-2" />
-        {language === 'ar' ? 'معاينة في Shopify' : 'Preview in Shopify'}
+        {language === 'ar' ? '��عاينة في Shopify' : 'Preview in Shopify'}
       </Button>
     )}
   </div>
@@ -353,7 +352,7 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate, user?.id]);
   
-  // Form save handler
+  // Form save handler with fix for the UUID error
   const handleSave = async (isAutoSave = false) => {
     if (!title.trim() && !isAutoSave) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
@@ -372,7 +371,8 @@ const FormBuilderPage = () => {
         description: description || null,
         data: formData,
         user_id: user?.id,
-        shop_id: shopifyConnected ? shop : null,
+        // Fix: Make sure shop_id is null if shopifyConnected is false
+        shop_id: shopifyConnected && shop ? shop : null,
         is_published: true
       };
       
@@ -533,8 +533,8 @@ const FormBuilderPage = () => {
       } else if (!isAutoSave) {
         toast.error(
           language === 'ar' 
-            ? 'خطأ في حفظ النموذج' 
-            : 'Error saving form'
+            ? 'خطأ في حفظ النموذج: ' + (error.message || '')
+            : 'Error saving form: ' + (error.message || '')
         );
       }
     } finally {
