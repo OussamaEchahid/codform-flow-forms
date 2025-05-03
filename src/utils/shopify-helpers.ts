@@ -1,12 +1,15 @@
 
 /**
- * تنظيف نطاق المتجر
- * يقوم بإزالة البروتوكولات وتأكيد تنسيق myshopify.com
+ * Clean and normalize a Shopify store domain
+ * @param shop The shop domain to clean
+ * @returns The cleaned and normalized shop domain
  */
 export function cleanShopDomain(shop: string): string {
+  if (!shop) return "";
+  
   let cleanedShop = shop.trim();
   
-  // إزالة البروتوكول إذا كان موجودًا
+  // Remove protocol if present
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
@@ -16,7 +19,7 @@ export function cleanShopDomain(shop: string): string {
     }
   }
   
-  // التأكد من أنه ينتهي بـ myshopify.com
+  // Ensure it ends with myshopify.com
   if (!cleanedShop.endsWith('myshopify.com')) {
     if (!cleanedShop.includes('.')) {
       cleanedShop = `${cleanedShop}.myshopify.com`;
@@ -27,25 +30,53 @@ export function cleanShopDomain(shop: string): string {
 }
 
 /**
- * التحقق مما إذا كان الدومين صالحًا لـ Shopify
+ * Parse Shopify parameters from URL
+ * @returns Shop domain and other Shopify parameters if present
  */
-export function isValidShopifyDomain(domain: string): boolean {
-  // التأكد من أن النطاق ينتهي بـ myshopify.com
-  if (!domain.endsWith('myshopify.com')) {
-    return false;
+export function parseShopifyParams(): { 
+  shopDomain?: string;
+  hmac?: string; 
+  timestamp?: string;
+  host?: string;
+  isShopifyRequest: boolean;
+} {
+  const params = new URLSearchParams(window.location.search);
+  const shopParam = params.get("shop");
+  const hmac = params.get("hmac");
+  const timestamp = params.get("timestamp");
+  const host = params.get("host");
+  
+  // Determine if this is a request coming from Shopify
+  const isShopifyRequest = !!(shopParam && (hmac || host));
+  
+  return {
+    shopDomain: shopParam ? cleanShopDomain(shopParam) : undefined,
+    hmac: hmac || undefined,
+    timestamp: timestamp || undefined,
+    host: host || undefined,
+    isShopifyRequest
+  };
+}
+
+/**
+ * Detect current shop context from various sources
+ * @returns The detected shop domain or undefined
+ */
+export function detectCurrentShop(): string | undefined {
+  // First check URL parameters
+  const { shopDomain, isShopifyRequest } = parseShopifyParams();
+  
+  if (shopDomain && isShopifyRequest) {
+    return shopDomain;
   }
   
-  // التأكد من أن النطاق يحتوي على اسم متجر قبل myshopify.com
-  const storeName = domain.replace('.myshopify.com', '');
-  if (!storeName || storeName.length === 0) {
-    return false;
+  // Then check localStorage
+  const storedShop = localStorage.getItem('shopify_store');
+  const isConnected = localStorage.getItem('shopify_connected');
+  
+  if (storedShop && isConnected === 'true') {
+    return cleanShopDomain(storedShop);
   }
   
-  // التأكد من أن اسم المتجر لا يحتوي على أحرف غير صالحة
-  const validCharsRegex = /^[a-z0-9-]+$/;
-  if (!validCharsRegex.test(storeName)) {
-    return false;
-  }
-  
-  return true;
+  return undefined;
 }

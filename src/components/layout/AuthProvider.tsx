@@ -35,9 +35,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // وظيفة لاكتشاف المتجر من معلمات URL
+  const detectShopFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    const shopParam = params.get("shop");
+    
+    if (shopParam) {
+      console.log("Detected shop from URL parameters:", shopParam);
+      return cleanShopDomain(shopParam);
+    }
+    
+    // Check URL for embedded app hmac parameters which would indicate we're in Shopify
+    const hmac = params.get("hmac");
+    const host = params.get("host");
+    
+    if (hmac && host && shopParam) {
+      console.log("Detected in Shopify admin with shop:", shopParam);
+      return cleanShopDomain(shopParam);
+    }
+    
+    return null;
+  };
+
   useEffect(() => {
     const handleAuth = async () => {
       try {
+        // تحقق من وجود معلمات متجر في URL
+        const shopFromURL = detectShopFromURL();
+        
+        // سجل معلمات URL للتصحيح
+        console.log('URL parameters:', {
+          pathname: location.pathname,
+          search: location.search,
+          fullURL: window.location.href
+        });
+        
         // فحص معلمات إعادة التوجيه من Shopify
         const params = new URLSearchParams(window.location.search);
         const shopParam = params.get("shop");
@@ -54,11 +86,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // تسجيل معلومات المصادقة للتصحيح
         console.log('Auth parameters:', { 
           shopParam, shopifyConnected, shopifySuccess, hmac, authSuccess,
-          pathname: location.pathname,
-          search: location.search,
           activeStore: activeStore?.shop,
-          allStores: allStores.map(s => s.shop)
+          allStores: allStores.map(s => s.shop),
+          shopFromURL
         });
+
+        // إذا وجدنا متجراً في URL، تعيينه كمتجر نشط
+        if (shopFromURL) {
+          console.log("Setting active store from URL:", shopFromURL);
+          try {
+            // التحقق مما إذا كان المتجر موجوداً بالفعل، وإذا لم يكن كذلك، قم بإضافته
+            const storeExists = allStores.some(s => s.shop === shopFromURL);
+            if (!storeExists) {
+              shopifyConnectionManager.addStore(shopFromURL);
+              console.log("Added new store from URL:", shopFromURL);
+            }
+            
+            // تعيين المتجر كنشط
+            shopifyConnectionManager.setActiveStore(shopFromURL);
+            
+            // تحديث حالة المصادقة
+            setAuthState({
+              shopifyConnected: true,
+              shop: shopFromURL,
+              user: { id: 'shopify-user' },
+              shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
+            });
+            
+            setAuthChecked(true);
+            return;
+          } catch (error) {
+            console.error("Error setting active store from URL:", error);
+          }
+        }
 
         // التحقق من وجود متجر في Supabase
         try {
@@ -70,7 +130,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('Found Shopify store in database:', shopifyStoreFromDB);
             
             // إضافة المتجر من قاعدة البيانات إلى مدير الاتصال إذا لم يكن موجودًا بالفعل
-            shopifyConnectionManager.addStore(shopifyStoreFromDB);
+            const storeExists = allStores.some(s => s.shop === shopifyStoreFromDB);
+            if (!storeExists) {
+              shopifyConnectionManager.addStore(shopifyStoreFromDB);
+              console.log("Added store from database:", shopifyStoreFromDB);
+            }
             
             // تعيين حالة المصادقة
             setAuthState({
@@ -93,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           const cleanedShop = cleanShopDomain(shopParam);
           shopifyConnectionManager.addStore(cleanedShop);
+          shopifyConnectionManager.setActiveStore(cleanedShop);
           
           setAuthState({
             shopifyConnected: true,
@@ -108,6 +173,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (location.pathname === '/dashboard' && window.history.replaceState) {
             window.history.replaceState({}, document.title, '/dashboard');
           }
+          
+          setAuthChecked(true);
+          return;
         }
         // التحقق من معلمات Shopify الجديدة
         else if (shopifyConnected === "true" && shopParam) {
@@ -115,6 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           const cleanedShop = cleanShopDomain(shopParam);
           shopifyConnectionManager.addStore(cleanedShop);
+          shopifyConnectionManager.setActiveStore(cleanedShop);
           
           // تحديث حالة المصادقة
           setAuthState({
@@ -133,6 +202,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (location.pathname === '/dashboard' && window.history.replaceState) {
             window.history.replaceState({}, document.title, '/dashboard');
           }
+          
+          setAuthChecked(true);
+          return;
         } 
         // استعادة حالة الاتصال من مدير الاتصال
         else if (activeStore) {
@@ -144,6 +216,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user: { id: 'shopify-user' },
             shops: shopifyConnectionManager.getAllStores().map(s => s.shop)
           });
+          
+          setAuthChecked(true);
+          return;
         }
         // إذا لم يكن هناك متجر نشط ولم نجد متجر في قاعدة البيانات
         else {
@@ -155,10 +230,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user: undefined,
             shops: []
           });
+          
+          setAuthChecked(true);
+          return;
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
-      } finally {
         setAuthChecked(true);
       }
     };

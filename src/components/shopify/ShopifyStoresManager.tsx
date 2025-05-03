@@ -1,212 +1,193 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-import { Store, X, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useI18n } from '@/lib/i18n';
-import { cleanShopDomain } from '@/utils/shopify-helpers';
+import { useAuth } from '@/lib/auth';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { Store, Check, Trash2, ExternalLink } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export const ShopifyStoresManager: React.FC = () => {
-  const { language } = useI18n();
+  const { shop: activeShop, setShop } = useAuth();
   const navigate = useNavigate();
-  const { setShop } = useAuth();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newShopDomain, setNewShopDomain] = useState('');
-  const [stores, setStores] = useState(shopifyConnectionManager.getAllStores());
-  const [activeStore, setActiveStore] = useState(shopifyConnectionManager.activeStore);
+  const [stores, setStores] = useState<Array<{
+    shop: string;
+    isActive: boolean;
+    connectedAt: string;
+    lastUsed?: string;
+  }>>([]);
 
-  // تحديث القائمة عند تغيير المتجر النشط
-  const handleSetActiveStore = (shop: string) => {
-    try {
-      shopifyConnectionManager.setActiveStore(shop);
-      setActiveStore(shop);
-      setStores(shopifyConnectionManager.getAllStores());
-      
-      // تحديث حالة المصادقة
-      if (setShop) {
-        setShop(shop);
-      }
-      
-      toast.success(language === 'ar' 
-        ? `تم تفعيل متجر ${shop} بنجاح`
-        : `Store ${shop} activated successfully`);
-    } catch (error) {
-      toast.error(language === 'ar'
-        ? 'حدث خطأ أثناء تغيير المتجر النشط'
-        : 'Error changing active store');
-      console.error('Error setting active store:', error);
-    }
-  };
-
-  // إزالة متجر
-  const handleRemoveStore = (shop: string) => {
-    try {
-      shopifyConnectionManager.removeStore(shop);
-      setStores(shopifyConnectionManager.getAllStores());
-      setActiveStore(shopifyConnectionManager.activeStore);
-      
-      // تحديث حالة المصادقة
-      if (setShop && activeStore === shop) {
-        setShop(shopifyConnectionManager.activeStore);
-      }
-      
-      toast.success(language === 'ar'
-        ? `تم إزالة متجر ${shop} بنجاح`
-        : `Store ${shop} removed successfully`);
-    } catch (error) {
-      toast.error(language === 'ar'
-        ? 'حدث خطأ أثناء إزالة المتجر'
-        : 'Error removing store');
-      console.error('Error removing store:', error);
-    }
-  };
-
-  // إضافة متجر جديد
-  const handleAddNewStore = () => {
-    if (!newShopDomain || newShopDomain.trim() === '') {
-      toast.error(language === 'ar'
-        ? 'يرجى إدخال عنوان متجر صحيح'
-        : 'Please enter a valid shop domain');
-      return;
-    }
-
-    const cleanedDomain = cleanShopDomain(newShopDomain);
+  // Load stores on component mount
+  useEffect(() => {
+    const loadStores = () => {
+      const allStores = shopifyConnectionManager.getAllStores();
+      setStores(allStores);
+    };
     
-    // التوجه إلى صفحة الاتصال بالمتجر الجديد
-    navigate(`/shopify-redirect?shop=${encodeURIComponent(cleanedDomain)}`);
+    loadStores();
+    
+    // Add event listener for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'shopify_connected_stores' || e.key === 'shopify_active_store') {
+        loadStores();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Set a store as active
+  const setActiveStore = (storeUrl: string) => {
+    try {
+      shopifyConnectionManager.setActiveStore(storeUrl);
+      if (setShop) {
+        setShop(storeUrl);
+      }
+      setStores(shopifyConnectionManager.getAllStores());
+      toast.success(`تم تعيين ${storeUrl} كمتجر نشط`);
+    } catch (error) {
+      toast.error(`فشل في تعيين المتجر النشط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+    }
   };
 
-  // بدء الاتصال بمتجر جديد
-  const startNewConnection = () => {
+  // Remove a store
+  const removeStore = (storeUrl: string) => {
+    if (window.confirm(`هل أنت متأكد من رغبتك في إزالة متجر ${storeUrl}؟`)) {
+      try {
+        shopifyConnectionManager.removeStore(storeUrl);
+        setStores(shopifyConnectionManager.getAllStores());
+        toast.success(`تم إزالة متجر ${storeUrl} بنجاح`);
+      } catch (error) {
+        toast.error(`فشل في إزالة المتجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      }
+    }
+  };
+
+  // Navigate to Shopify page to add a new store
+  const addNewStore = () => {
     navigate('/shopify');
   };
 
+  // Open store in a new tab
+  const openStoreAdmin = (storeUrl: string) => {
+    window.open(`https://${storeUrl}/admin`, '_blank');
+  };
+
+  // Format date to human-readable format
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'غير معروف';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ar-SA', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>
-          {language === 'ar' ? 'إدارة متاجر Shopify' : 'Shopify Stores Management'}
+    <Card className="border rounded-lg shadow-sm overflow-hidden">
+      <CardHeader className="bg-slate-50 pb-4">
+        <CardTitle className="text-xl flex items-center justify-between">
+          <div className="flex items-center">
+            <Store className="h-5 w-5 mr-2" />
+            متاجر Shopify المتصلة
+          </div>
+          <Badge variant="outline" className="ml-2">
+            {stores.length} متجر
+          </Badge>
         </CardTitle>
-        <CardDescription>
-          {language === 'ar' 
-            ? 'إدارة اتصالات متاجر Shopify الخاصة بك'
-            : 'Manage your Shopify store connections'}
-        </CardDescription>
       </CardHeader>
-      
-      <CardContent>
+      <CardContent className="p-0">
         {stores.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Store className="h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-500 mb-4">
-              {language === 'ar' 
-                ? 'لا يوجد لديك أي متاجر متصلة حالياً'
-                : 'You don\'t have any connected stores yet'}
-            </p>
-            <Button onClick={startNewConnection}>
-              {language === 'ar' ? 'اتصل بمتجر جديد' : 'Connect a store'}
-            </Button>
+          <div className="p-6 text-center">
+            <p className="text-gray-500 mb-4">لا توجد متاجر متصلة حاليًا</p>
+            <Button onClick={addNewStore}>إضافة متجر جديد</Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* قائمة المتاجر المتصلة */}
-            <div className="rounded-md border">
-              <div className="bg-gray-50 p-3 font-medium">
-                {language === 'ar' ? 'المتاجر المتصلة' : 'Connected Stores'}
-              </div>
-              <div className="divide-y">
-                {stores.map((store) => (
-                  <div key={store.shop} className="flex items-center justify-between p-3">
-                    <div className="flex items-center gap-2">
-                      <Store className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium">{store.shop}</p>
-                        <p className="text-xs text-gray-500">
-                          {language === 'ar' ? 'متصل منذ: ' : 'Connected since: '}
-                          {new Date(store.connectedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {activeStore === store.shop ? (
-                        <Button variant="outline" size="sm" className="bg-green-50 text-green-600" disabled>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          {language === 'ar' ? 'نشط' : 'Active'}
-                        </Button>
-                      ) : (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleSetActiveStore(store.shop)}
-                        >
-                          {language === 'ar' ? 'تفعيل' : 'Activate'}
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => handleRemoveStore(store.shop)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div>
+            <div className="overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-right py-3 px-4 font-medium text-gray-700">المتجر</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-700">تاريخ الاتصال</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-700">آخر استخدام</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-700">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stores.map((store, index) => (
+                    <tr key={store.shop} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${store.isActive ? 'bg-green-50' : ''}`}>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          {store.isActive && <Check className="h-4 w-4 text-green-500 mr-2" />}
+                          <span className={store.isActive ? 'font-medium' : ''}>{store.shop}</span>
+                          {store.isActive && <Badge className="mr-2 bg-green-100 text-green-800 border-green-200 ml-2">نشط</Badge>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {formatDate(store.connectedAt)}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {formatDate(store.lastUsed)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-center space-x-2">
+                          {!store.isActive && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setActiveStore(store.shop)}
+                              title="تعيين كمتجر نشط"
+                            >
+                              تفعيل
+                            </Button>
+                          )}
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openStoreAdmin(store.shop)}
+                            title="فتح إدارة المتجر"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeStore(store.shop)}
+                            title="إزالة المتجر"
+                            disabled={stores.length === 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            
-            {/* إضافة متجر جديد */}
-            {isAdding ? (
-              <div className="border rounded-md p-4">
-                <h4 className="font-medium mb-2">
-                  {language === 'ar' ? 'إضافة متجر جديد' : 'Add New Store'}
-                </h4>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    placeholder={language === 'ar' ? 'اسم-المتجر.myshopify.com' : 'store-name.myshopify.com'}
-                    value={newShopDomain}
-                    onChange={(e) => setNewShopDomain(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setIsAdding(false)}>
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </Button>
-                  <Button onClick={handleAddNewStore}>
-                    {language === 'ar' ? 'اتصال' : 'Connect'}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => setIsAdding(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {language === 'ar' ? 'إضافة متجر جديد' : 'Add New Store'}
-              </Button>
-            )}
+            <div className="p-4 border-t">
+              <Button onClick={addNewStore} className="w-full">إضافة متجر جديد</Button>
+            </div>
           </div>
         )}
       </CardContent>
-      
-      <CardFooter>
-        <p className="text-xs text-gray-500 w-full text-center">
-          {language === 'ar'
-            ? 'يتم تخزين معلومات الاتصال بشكل آمن. يمكنك إدارة متاجرك في أي وقت.'
-            : 'Connection information is stored securely. You can manage your stores anytime.'}
-        </p>
-      </CardFooter>
     </Card>
   );
 };
-
-export default ShopifyStoresManager;
