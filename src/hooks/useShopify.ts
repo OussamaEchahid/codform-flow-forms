@@ -11,7 +11,7 @@ export interface UseShopifyReturn {
   products: any[];
   error: string | null;
   isRedirecting: boolean;
-  manualReconnect: () => void;
+  manualReconnect: () => void; // explicitly void return type
   verifyShopifyConnection: () => Promise<boolean>;
   refreshConnection: () => Promise<boolean | undefined>;
   syncFormWithShopify: (formData: any) => Promise<boolean>;
@@ -47,7 +47,7 @@ export const useShopify = (): UseShopifyReturn => {
     });
   }, []);
   
-  // Simple manual reconnect function
+  // Simple manual reconnect function - explicitly void return type
   const manualReconnect = useCallback((): void => {
     try {
       // Mark redirect in progress
@@ -140,7 +140,7 @@ export const useShopify = (): UseShopifyReturn => {
     isLoading,
     isSyncing,
     connectionStatus,
-    products: [], // Empty array for now
+    products, 
     error,
     isRedirecting,
     manualReconnect,

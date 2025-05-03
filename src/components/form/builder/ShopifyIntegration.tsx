@@ -243,10 +243,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     // Use the manualReconnect function from useShopify
     if (manualReconnect && typeof manualReconnect === 'function') {
-      const success = manualReconnect();
-      if (!success) {
-        fallbackReconnect();
-      }
+      // FIX: Don't check the return value since manualReconnect returns void
+      manualReconnect();
+      
+      // Set a timeout to use fallback in case manualReconnect doesn't work
+      setTimeout(() => {
+        if (localIsRedirecting) { // If we're still in redirecting state after a delay
+          fallbackReconnect();
+        }
+      }, 2000);
     } else {
       fallbackReconnect();
     }
@@ -264,8 +269,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     // Update auth context if available
     if (refreshShopifyConnection) {
-      const result = refreshShopifyConnection();
-      console.log("refreshShopifyConnection result:", result);
+      refreshShopifyConnection();
     }
     
     // Show message to user
