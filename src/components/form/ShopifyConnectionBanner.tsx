@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { AlertCircle, RefreshCcw, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -23,14 +23,21 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
   const [showThrottleMessage, setShowThrottleMessage] = useState(false);
   const [throttleTime, setThrottleTime] = useState(0);
   
+  // Use a ref to track if we've already checked the connection
+  const hasCheckedConnectionRef = useRef(false);
+  const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   // Check connection status when component loads, with throttling
   useEffect(() => {
-    if (!shop) {
-      setIsConnectionWarning(false);
+    // Exit if we've already done the check or if there's no shop
+    if (hasCheckedConnectionRef.current || !shop) {
       return;
     }
     
     const checkIfNeeded = async () => {
+      // Mark that we've done the check
+      hasCheckedConnectionRef.current = true;
+      
       const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
       const now = Date.now();
       
@@ -56,28 +63,37 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     };
     
     // Delay check to prevent issues during initial render
-    const timer = setTimeout(() => {
+    checkTimeoutRef.current = setTimeout(() => {
       checkIfNeeded();
-    }, 1000);
+    }, 2000);
     
-    return () => clearTimeout(timer);
+    // Clean up timeout on unmount
+    return () => {
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
+    };
   }, [shopifyConnected, shop, verifyShopifyConnection]);
 
-  // Update throttle message timer
+  // Update throttle message timer - with cleanup
   useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    
     if (showThrottleMessage && throttleTime > 0) {
-      const intervalId = setInterval(() => {
+      intervalId = setInterval(() => {
         const timeLeft = ShopifyConnectionManager.getTimeToWait();
         setThrottleTime(timeLeft);
         
         if (timeLeft <= 0) {
           setShowThrottleMessage(false);
-          clearInterval(intervalId);
+          if (intervalId) clearInterval(intervalId);
         }
       }, 1000);
-      
-      return () => clearInterval(intervalId);
     }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [showThrottleMessage, throttleTime]);
 
   const handleCheckConnection = async () => {
@@ -195,7 +211,7 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
             </div>
           ) : (
             <>
-              <RefreshCw className="h-5 w-5 mr-2" />
+              <RefreshCcw className="h-5 w-5 mr-2" />
               {language === 'ar' ? 'إعادة الاتصال بـ Shopify الآن' : 'Reconnect to Shopify Now'}
             </>
           )}

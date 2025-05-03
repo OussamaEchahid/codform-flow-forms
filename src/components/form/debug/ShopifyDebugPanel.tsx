@@ -14,6 +14,7 @@ const ShopifyDebugPanel: React.FC = () => {
   const [connectionInfo, setConnectionInfo] = useState<Record<string, any>>({});
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const { isConnected, shop, refreshConnection, verifyShopifyConnection } = useShopify();
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   
   // Fetch connection info on initial load and when expanded, with throttling
   const updateConnectionInfo = useCallback(() => {
@@ -27,16 +28,20 @@ const ShopifyDebugPanel: React.FC = () => {
     const info: Record<string, any> = {};
     
     // Get all shopify related items from localStorage
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('shopify_')) {
-        try {
-          const value = localStorage.getItem(key);
-          info[key] = value;
-        } catch (e) {
-          info[key] = 'Error reading value';
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('shopify_')) {
+          try {
+            const value = localStorage.getItem(key);
+            info[key] = value;
+          } catch (e) {
+            info[key] = 'Error reading value';
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+    }
     
     // Add hook state info
     info['hook_isConnected'] = isConnected;
@@ -64,7 +69,7 @@ const ShopifyDebugPanel: React.FC = () => {
       toast.success('All Shopify connection data cleared');
       updateConnectionInfo();
       
-      // Reload page to reset all states
+      // Reload page to reset all states - with slight delay
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -82,12 +87,15 @@ const ShopifyDebugPanel: React.FC = () => {
     }
     
     try {
+      setIsCheckingConnection(true);
       setLastRefreshTime(now);
       await verifyShopifyConnection();
       toast.success('Connection verification completed');
       updateConnectionInfo();
     } catch (e) {
       toast.error('Verification error: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setIsCheckingConnection(false);
     }
   };
   
@@ -122,10 +130,11 @@ const ShopifyDebugPanel: React.FC = () => {
               size="sm" 
               variant="outline" 
               onClick={handleForceRefresh}
+              disabled={isCheckingConnection}
               className="text-xs h-7 px-2"
             >
               <Code className="h-3 w-3 mr-1" />
-              Verify Connection
+              {isCheckingConnection ? 'Checking...' : 'Verify Connection'}
             </Button>
             <Button 
               size="sm" 

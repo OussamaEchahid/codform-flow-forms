@@ -52,23 +52,28 @@ export const useShopify = (): UseShopifyReturn => {
     // Check localStorage for cached connection status
     const cachedConnected = localStorage.getItem('shopify_connected') === 'true';
     const cachedShop = localStorage.getItem('shopify_shop');
-    const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
-    const now = Date.now();
     
     // Set initial states from cache
     setIsConnected(cachedConnected);
     setShop(cachedShop);
     setConnectionStatus(cachedConnected);
     
-    // Only verify if it's been more than 5 minutes since last check
-    const checkInterval = 5 * 60 * 1000; // 5 minutes
-    
-    if ((now - lastCheckTime) > checkInterval && cachedShop && !connectionCheckInProgress.current) {
-      // Delay the check to prevent issues during component mounting
+    // Only verify if we have a cached shop - once per component mount
+    // And don't do it immediately to prevent render loops
+    if (cachedShop && !connectionCheckInProgress.current) {
+      // Add a 2-second delay to prevent quick rechecks
       const timer = setTimeout(() => {
-        verifyShopifyConnection().catch(err => {
-          console.error('[useShopify] Initial connection check failed:', err);
-        });
+        // We'll use the lastCheckTime to determine if it's necessary to recheck
+        const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
+        const now = Date.now();
+        const checkInterval = 5 * 60 * 1000; // 5 minutes
+        
+        // Only verify if it's been more than the interval since last check
+        if ((now - lastCheckTime) > checkInterval) {
+          verifyShopifyConnection().catch(err => {
+            console.error('[useShopify] Initial connection check failed:', err);
+          });
+        }
       }, 2000);
       
       return () => clearTimeout(timer);

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, RefreshCcw, AlertCircle, Wifi, WifiOff, CloudOff } from 'lucide-react';
@@ -24,8 +24,13 @@ const FormsPage = () => {
     pendingCount: 0
   });
   const [showDebugger, setShowDebugger] = useState(false);
+  
+  // Use refs to prevent excessive re-renders and loops
+  const initialLoadRef = useRef(false);
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Check URL for debug mode
+  // Check URL for debug mode - only once on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('debug') === 'true') {
@@ -34,25 +39,36 @@ const FormsPage = () => {
       const newUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, newUrl);
     }
+    
+    // Cleanup function to clear any timers
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
   }, []);
 
-  // Check for pending sync data periodically
+  // Check for pending sync data once on mount and start timer
   useEffect(() => {
+    // Check function that we'll reuse
     const checkPending = () => {
-      const pending = checkPendingData();
-      setPendingSync(pending);
+      try {
+        const pending = checkPendingData();
+        setPendingSync(pending);
+      } catch (err) {
+        console.error("Error checking pending data:", err);
+      }
     };
     
     // Check at start
     checkPending();
     
-    // Set interval to check periodically
-    const intervalId = setInterval(checkPending, 30000);
+    // Set interval to check periodically - but not too frequently
+    const intervalId = setInterval(checkPending, 60000); // Once per minute is enough
     
     return () => clearInterval(intervalId);
   }, [checkPendingData]);
   
-  // Try to sync automatically when connection is restored
+  // Try to sync automatically when connection is restored - without causing re-renders
   useEffect(() => {
     if (networkStatus === 'online' && pendingSync.hasPending) {
       const attemptSync = async () => {
@@ -62,7 +78,7 @@ const FormsPage = () => {
           const newPendingState = checkPendingData();
           setPendingSync(newPendingState);
           
-          // Reload the list if forms were synced
+          // Reload the list if forms were synced and only if the counts changed
           if (newPendingState.pendingCount < pendingSync.pendingCount) {
             fetchForms();
           }
@@ -71,12 +87,25 @@ const FormsPage = () => {
         }
       };
       
-      attemptSync();
+      // Use a small delay to prevent rapid retries
+      checkTimerRef.current = setTimeout(() => {
+        attemptSync();
+      }, 2000);
+      
+      return () => {
+        if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+      };
     }
   }, [networkStatus, pendingSync.hasPending, syncPendingData, checkPendingData, fetchForms, pendingSync.pendingCount]);
 
-  // Load forms when page loads with better error handling
+  // Load forms when page loads with better error handling and prevention of multiple loads
   useEffect(() => {
+    // Skip if we've already done the initial load
+    if (initialLoadRef.current) {
+      return;
+    }
+    
+    initialLoadRef.current = true;
     console.log('FormsPage: Loading forms... Attempt:', retryCount);
     
     const loadForms = async () => {
@@ -92,26 +121,25 @@ const FormsPage = () => {
     
     loadForms();
     
-    // Set up auto-retry if initial load fails
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    // Set up auto-retry if initial load fails, but only a few times
     if (error && retryCount < 3 && !initialLoadAttempted) {
-      retryTimer = setTimeout(() => {
+      retryTimerRef.current = setTimeout(() => {
         setRetryCount(prev => prev + 1);
       }, 3000); // Retry after 3 seconds
     }
     
     return () => {
-      if (retryTimer) clearTimeout(retryTimer);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
   }, [fetchForms, retryCount, error, initialLoadAttempted]);
 
   // Handle manual refresh with visual feedback
   const handleRefresh = useCallback(() => {
+    // Prevent refresh if one is already in progress
+    if (isManualRefresh) return;
+    
     console.log('FormsPage: Manual refresh requested');
     setIsManualRefresh(true);
-    
-    // Reset any error state and increment retry counter
-    setRetryCount(prevCount => prevCount + 1);
     
     // Try to fetch forms again
     fetchForms()
@@ -127,11 +155,11 @@ const FormsPage = () => {
       .finally(() => {
         setIsManualRefresh(false);
       });
-  }, [fetchForms, language, error]);
+  }, [fetchForms, language, error, isManualRefresh]);
   
   // Handle manual sync of pending data
   const handleSyncPending = async () => {
-    if (!pendingSync.hasPending) return;
+    if (!pendingSync.hasPending || networkStatus !== 'online') return;
     
     try {
       toast.info(language === 'ar' 
@@ -176,11 +204,13 @@ const FormsPage = () => {
   // Debug mode toggle
   const toggleDebugMode = () => {
     setShowDebugger(prev => !prev);
+    // Save debug mode preference
+    localStorage.setItem('debug_mode', (!showDebugger).toString());
   };
 
   return (
     <div className="container mx-auto p-6">
-      {/* Shopify Connection Banner (if needed) */}
+      {/* Shopify Connection Banner (if needed) - conditionally rendered to prevent excessive checks */}
       <ShopifyConnectionBanner />
 
       <div className="flex justify-between items-center mb-6">
@@ -294,11 +324,10 @@ const FormsPage = () => {
         </Button>
       </div>
       
-      {/* Add Shopify Debugger */}
+      {/* Add Shopify Debugger - conditionally rendered */}
       {showDebugger && <ShopifyDebugger />}
     </div>
   );
 };
 
 export default FormsPage;
-

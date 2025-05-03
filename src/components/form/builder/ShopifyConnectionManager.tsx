@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,17 +15,37 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
   const { isConnected, shop, isLoading, refreshConnection, manualReconnect } = useShopify();
   const { language } = useI18n();
   const [showDebugger, setShowDebugger] = useState(false);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Check if debug mode is enabled from localStorage or URL
+  // Check if debug mode is enabled from localStorage or URL - but only once on mount
   useEffect(() => {
     const isDebugMode = localStorage.getItem('debug_mode') === 'true' || 
                        window.location.search.includes('debug=true');
     setShowDebugger(isDebugMode);
+    
+    // Cleanup any pending timeouts on unmount
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleRefreshConnection = async () => {
-    if (refreshConnection && !isLoading) {
-      await refreshConnection();
+    // Prevent multiple rapid refresh attempts
+    if (refreshConnection && !isLoading && !isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await refreshConnection();
+      } catch (error) {
+        console.error("Error refreshing Shopify connection:", error);
+      } finally {
+        // Add a small delay to prevent UI flickering
+        refreshTimeoutRef.current = setTimeout(() => {
+          setIsRefreshing(false);
+        }, 1000);
+      }
     }
   };
 
@@ -44,10 +64,10 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
               variant="outline"
               size="sm"
               onClick={handleRefreshConnection}
-              disabled={isLoading}
+              disabled={isLoading || isRefreshing}
               className="text-xs bg-white"
             >
-              {isLoading ? (
+              {isLoading || isRefreshing ? (
                 <div className="flex items-center">
                   <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-green-600 rounded-full mr-1"></div>
                   {language === 'ar' ? 'جارٍ التحقق...' : 'Verifying...'}
@@ -74,6 +94,7 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
               variant="outline"
               size="sm"
               onClick={manualReconnect}
+              disabled={isRefreshing || isLoading}
               className="text-xs bg-white"
             >
               {language === 'ar' ? 'توصيل Shopify' : 'Connect Shopify'}
