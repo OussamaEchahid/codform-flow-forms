@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader } from 'lucide-react';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -16,6 +16,7 @@ const FormBuilderDashboard = () => {
   const { t, language } = useI18n();
   const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
+  const [isCreatingForm, setIsCreatingForm] = React.useState(false);
   const { user, shop, shopifyConnected } = useAuth();
   
   // Allow access if either authenticated with user or connected with Shopify
@@ -47,6 +48,8 @@ const FormBuilderDashboard = () => {
         return;
       }
       
+      setIsCreatingForm(true);
+      
       console.log("Creating default form...");
       console.log("Current user:", user || "Using Shopify connection");
       console.log("Current shop:", actualShop);
@@ -62,6 +65,8 @@ const FormBuilderDashboard = () => {
     } catch (error: any) {
       console.error("Form creation error:", error);
       toast.error(`${language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Form creation error'}: ${error.message}`);
+    } finally {
+      setIsCreatingForm(false);
     }
   };
 
@@ -71,6 +76,7 @@ const FormBuilderDashboard = () => {
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
+      setIsCreatingForm(true);
       console.log("Selected template ID:", templateId);
       const newForm = await createFormFromTemplate(templateId);
       if (newForm) {
@@ -84,8 +90,10 @@ const FormBuilderDashboard = () => {
     } catch (error: any) {
       console.error("Template selection error:", error);
       toast.error(`${language === 'ar' ? 'خطأ في اختيار القالب' : 'Template selection error'}: ${error.message}`);
+    } finally {
+      setIsCreatingForm(false);
+      setIsTemplateDialogOpen(false);
     }
-    setIsTemplateDialogOpen(false);
   };
 
   return (
@@ -104,14 +112,20 @@ const FormBuilderDashboard = () => {
             <Button 
               onClick={() => setIsTemplateDialogOpen(true)} 
               variant="outline"
+              disabled={isCreatingForm}
             >
               {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
             </Button>
             <Button 
               onClick={handleCreateForm} 
               className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+              disabled={isCreatingForm}
             >
-              <Plus className="mr-2 h-4 w-4" />
+              {isCreatingForm ? (
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
               {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
             </Button>
           </div>

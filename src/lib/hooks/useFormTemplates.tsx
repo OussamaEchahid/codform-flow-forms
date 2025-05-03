@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -74,8 +75,9 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Generate a UUID to use if no user is available
-      const userId = user?.id || `shopify-${uuidv4()}`;
+      // Generate a clean UUID for the user ID if connected through Shopify
+      // This fixes the "invalid input syntax for type uuid" error
+      const userId = user?.id || uuidv4(); // Generate a clean UUID instead of prefixing with "shopify-"
       
       console.log("Creating form with user ID:", userId);
       console.log("Current shop:", actualShop);
@@ -92,7 +94,7 @@ export const useFormTemplates = () => {
         data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
         is_published: false,
         shop_id: actualShop, // Use the actual shop from any source
-        user_id: userId // Use the generated or actual user ID
+        user_id: userId // Use clean UUID
       };
       
       console.log("Creating form with data:", JSON.stringify(formData));
@@ -134,8 +136,8 @@ export const useFormTemplates = () => {
 
   const saveForm = async (formId: string, formData: any) => {
     try {
-      // Use user ID if available, otherwise generate one
-      const userId = user?.id || `shopify-${uuidv4()}`;
+      // Use clean UUID instead of shopify-prefixed string
+      const userId = user?.id || uuidv4();
         
       const updateData = {
         title: formData.title,
@@ -143,7 +145,7 @@ export const useFormTemplates = () => {
         data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
         updated_at: new Date().toISOString(),
         shop_id: actualShop || null, // Use null instead of empty string if shop doesn't exist
-        user_id: userId // Use actual user ID
+        user_id: userId // Use clean UUID
       };
       
       const { error } = await supabase
