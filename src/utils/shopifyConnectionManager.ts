@@ -1,3 +1,4 @@
+
 /**
  * Utility for managing Shopify connection state and throttling attempts
  */
@@ -18,6 +19,14 @@ export const ShopifyConnectionManager = {
     
     const attempts = this.getAttemptCount() + 1;
     localStorage.setItem('shopify_connect_attempts', attempts.toString());
+    
+    // If we've made too many attempts, increase the throttle time
+    if (attempts > 5) {
+      // Throttle more aggressively
+      localStorage.setItem('shopify_throttle_until', (now + 120000).toString()); // 2 minutes
+    } else if (attempts > 3) {
+      localStorage.setItem('shopify_throttle_until', (now + 60000).toString()); // 1 minute
+    }
   },
   
   /**
@@ -32,6 +41,7 @@ export const ShopifyConnectionManager = {
    */
   resetAttempts(): void {
     localStorage.setItem('shopify_connect_attempts', '0');
+    localStorage.removeItem('shopify_throttle_until');
   },
   
   /**
@@ -41,6 +51,12 @@ export const ShopifyConnectionManager = {
     const now = Date.now();
     const lastAttempt = this.getLastAttemptTime();
     const attemptCount = this.getAttemptCount();
+    const throttleUntil = parseInt(localStorage.getItem('shopify_throttle_until') || '0', 10);
+    
+    // If we're in a throttle period
+    if (throttleUntil > now) {
+      return true;
+    }
     
     // If it's been less than 10 seconds since the last attempt
     if ((now - lastAttempt) < 10000 && lastAttempt > 0) {
@@ -73,6 +89,12 @@ export const ShopifyConnectionManager = {
     const now = Date.now();
     const lastAttempt = this.getLastAttemptTime();
     const attemptCount = this.getAttemptCount();
+    const throttleUntil = parseInt(localStorage.getItem('shopify_throttle_until') || '0', 10);
+    
+    // If we're in a throttle period
+    if (throttleUntil > now) {
+      return throttleUntil - now;
+    }
     
     if (lastAttempt === 0) return 0;
     
@@ -81,5 +103,26 @@ export const ShopifyConnectionManager = {
     }
     
     return Math.max(0, 10000 - (now - lastAttempt));
+  },
+  
+  /**
+   * Check if we've been trying to connect too frequently
+   * If so, we might need to reset some state
+   */
+  detectConnectionStorm(): boolean {
+    const attempts = this.getAttemptCount();
+    const lastAttempt = this.getLastAttemptTime();
+    const now = Date.now();
+    
+    // If we've tried more than 10 times in the last 2 minutes
+    if (attempts > 10 && (now - lastAttempt) < 120000) {
+      // This might be a connection storm, reset state
+      console.warn('Detected possible connection storm, resetting state');
+      this.resetAttempts();
+      this.clearConnectionData();
+      return true;
+    }
+    
+    return false;
   }
 };

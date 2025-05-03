@@ -108,7 +108,7 @@ const FormActions = ({
         onClick={handlePreviewInShopify}
       >
         <Eye className="h-4 w-4 mr-2" />
-        {language === 'ar' ? '��عاينة في Shopify' : 'Preview in Shopify'}
+        {language === 'ar' ? '����عاينة في Shopify' : 'Preview in Shopify'}
       </Button>
     )}
   </div>
@@ -352,7 +352,7 @@ const FormBuilderPage = () => {
     loadForm();
   }, [formId, getFormById, language, navigate, user?.id]);
   
-  // Form save handler with fix for the UUID error
+  // Fix for the UUID error in the handleSave function
   const handleSave = async (isAutoSave = false) => {
     if (!title.trim() && !isAutoSave) {
       toast.error(language === 'ar' ? 'يرجى إدخال عنوان النموذج' : 'Please enter a form title');
@@ -366,13 +366,28 @@ const FormBuilderPage = () => {
     
     try {
       console.log('Saving form...');
+      
+      // FIX: Create a proper form payload with user_id as a UUID or null, not a string
+      // This will fix the "invalid input syntax for type uuid" error
+      let userIdValue = null;
+      
+      // Only use user.id if it's a valid UUID format, otherwise keep it null
+      if (user?.id) {
+        // Check if user.id is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(user.id)) {
+          userIdValue = user.id;
+        } else {
+          console.log('User ID is not a valid UUID format:', user.id);
+        }
+      }
+      
       const formPayload = {
         title: title || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
         description: description || null,
         data: formData,
-        user_id: user?.id,
-        // Fix: Make sure shop_id is a valid UUID or null, not a domain string
-        shop_id: null, // Set shop_id to null to avoid UUID syntax error
+        user_id: userIdValue, // Changed to userIdValue which is either a valid UUID or null
+        shop_id: null, // Keep shop_id as null to avoid UUID syntax error
         is_published: true
       };
       

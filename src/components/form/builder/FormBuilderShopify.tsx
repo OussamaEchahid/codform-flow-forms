@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
@@ -23,6 +23,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
+  const hasAttemptedConnection = useRef(false);
   
   // Connection checking with throttling
   const handleCheckConnection = async () => {
@@ -60,6 +61,11 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   };
 
   const handleConnectClick = () => {
+    // Only attempt once per component instance to prevent loops
+    if (hasAttemptedConnection.current) {
+      return;
+    }
+    
     // Check if we're already connecting
     if (isConnecting) {
       return;
@@ -75,8 +81,9 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
       return;
     }
     
-    // Record this attempt
+    // Record this attempt and mark as attempted
     ShopifyConnectionManager.recordAttempt();
+    hasAttemptedConnection.current = true;
     setIsConnecting(true);
     setLastAttemptTime(Date.now());
     

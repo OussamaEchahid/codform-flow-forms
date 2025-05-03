@@ -19,10 +19,17 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Check if debug mode is enabled from localStorage or URL - but only once on mount
+  // Use useRef to prevent this effect from creating infinite loops
+  const hasCheckedDebugMode = useRef(false);
+  
   useEffect(() => {
-    const isDebugMode = localStorage.getItem('debug_mode') === 'true' || 
-                       window.location.search.includes('debug=true');
-    setShowDebugger(isDebugMode);
+    // Only run once
+    if (!hasCheckedDebugMode.current) {
+      hasCheckedDebugMode.current = true;
+      const isDebugMode = localStorage.getItem('debug_mode') === 'true' || 
+                         window.location.search.includes('debug=true');
+      setShowDebugger(isDebugMode);
+    }
     
     // Cleanup any pending timeouts on unmount
     return () => {

@@ -24,6 +24,9 @@ export interface UseShopifyReturn {
  * Improved Shopify hook with connection stability
  */
 export const useShopify = (): UseShopifyReturn => {
+  // Create a ref to prevent multiple initializations
+  const isInitialized = useRef<boolean>(false);
+  
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<boolean | undefined>(undefined);
   const [shop, setShop] = useState<string | null>(null);
@@ -39,51 +42,63 @@ export const useShopify = (): UseShopifyReturn => {
   const connectionAttemptCount = useRef<number>(0);
   const initialCheckDone = useRef<boolean>(false);
   const maxConnectionAttempts = 3;
+  const lastCheckTime = useRef<number>(0);
 
   // Check initial connection status with improved caching - ONCE only
   useEffect(() => {
     // Only run once per component mount
-    if (initialCheckDone.current) {
+    if (initialCheckDone.current || isInitialized.current) {
       return;
     }
     
+    isInitialized.current = true;
     initialCheckDone.current = true;
     
     // Check localStorage for cached connection status
     const cachedConnected = localStorage.getItem('shopify_connected') === 'true';
     const cachedShop = localStorage.getItem('shopify_shop');
     
-    // Set initial states from cache
-    setIsConnected(cachedConnected);
-    setShop(cachedShop);
-    setConnectionStatus(cachedConnected);
+    // Set initial states from cache - don't trigger renders if not needed
+    if (cachedConnected !== isConnected) {
+      setIsConnected(cachedConnected);
+    }
+    
+    if (cachedShop !== shop) {
+      setShop(cachedShop);
+    }
+    
+    if (cachedConnected !== connectionStatus) {
+      setConnectionStatus(cachedConnected);
+    }
     
     // Only verify if we have a cached shop - once per component mount
     // And don't do it immediately to prevent render loops
     if (cachedShop && !connectionCheckInProgress.current) {
-      // Add a 2-second delay to prevent quick rechecks
-      const timer = setTimeout(() => {
-        // We'll use the lastCheckTime to determine if it's necessary to recheck
-        const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
-        const now = Date.now();
-        const checkInterval = 5 * 60 * 1000; // 5 minutes
-        
-        // Only verify if it's been more than the interval since last check
-        if ((now - lastCheckTime) > checkInterval) {
+      const now = Date.now();
+      lastCheckTime.current = now;
+      
+      // We'll use the lastCheckTime to determine if it's necessary to recheck
+      const storedLastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
+      const checkInterval = 5 * 60 * 1000; // 5 minutes
+      
+      // Only verify if it's been more than the interval since last check
+      if ((now - storedLastCheckTime) > checkInterval) {
+        // Use a much longer delay to prevent connection storms
+        const timer = setTimeout(() => {
           verifyShopifyConnection().catch(err => {
             console.error('[useShopify] Initial connection check failed:', err);
           });
-        }
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+        }, 10000); // 10 seconds delay
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, []); // Empty dependency array ensures this only runs once
   
   // Simple manual reconnect function - explicitly void return type
   const manualReconnect = useCallback((): void => {
     try {
-      // Check if we recently attempted to connect
+      // Check if we recently attempted to connect - use ref for more stability
       const now = Date.now();
       const lastAttemptTime = lastConnectionAttempt || 0;
       
@@ -109,7 +124,7 @@ export const useShopify = (): UseShopifyReturn => {
       
       console.log('[useShopify] Redirecting to Shopify auth page');
       
-      // Redirect with parameters to avoid caching
+      // Redirect with parameters to avoid caching - add a random param to force new request
       const clientUrl = window.location.origin;
       const redirectUrl = `/shopify?force=true&ts=${now}&client=${encodeURIComponent(clientUrl)}&r=${Math.random().toString(36).substring(7)}`;
       
@@ -135,12 +150,15 @@ export const useShopify = (): UseShopifyReturn => {
       connectionCheckInProgress.current = true;
       setIsLoading(true);
       
+      const now = Date.now();
+      lastCheckTime.current = now;
+      
       const cachedShop = localStorage.getItem('shopify_shop');
       if (!cachedShop) {
         console.log('[useShopify] No shop found in cache, connection verification failed');
         setConnectionStatus(false);
         setIsConnected(false);
-        localStorage.setItem('shopify_last_check_time', Date.now().toString());
+        localStorage.setItem('shopify_last_check_time', now.toString());
         localStorage.setItem('shopify_connected', 'false');
         connectionCheckInProgress.current = false;
         setIsLoading(false);
@@ -170,7 +188,7 @@ export const useShopify = (): UseShopifyReturn => {
         
         // Update local cache and state
         localStorage.setItem('shopify_connected', hasValidToken ? 'true' : 'false');
-        localStorage.setItem('shopify_last_check_time', Date.now().toString());
+        localStorage.setItem('shopify_last_check_time', now.toString());
         
         console.log('[useShopify] Connection verification result:', { hasValidToken });
         setConnectionStatus(hasValidToken);
@@ -195,11 +213,11 @@ export const useShopify = (): UseShopifyReturn => {
   const refreshConnection = useCallback(async (): Promise<boolean | undefined> => {
     try {
       const now = Date.now();
-      const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
       
-      // Strict throttling to prevent excessive checks
-      if ((now - lastCheckTime) < 30000) { // 30 seconds
-        console.log('[useShopify] Refresh check throttled, checked too recently');
+      // Strict throttling to prevent excessive checks - use ref for stability
+      const timeSinceLastCheck = now - lastCheckTime.current;
+      if (timeSinceLastCheck < 30000) { // 30 seconds
+        console.log('[useShopify] Refresh check throttled, checked too recently:', timeSinceLastCheck);
         return connectionStatus;
       }
       
@@ -208,6 +226,9 @@ export const useShopify = (): UseShopifyReturn => {
         console.log('[useShopify] Connection check already in progress, skipping refresh');
         return connectionStatus;
       }
+      
+      // Update the timestamp to prevent rapid rechecks
+      lastCheckTime.current = now;
       
       // Increment the attempt counter
       connectionAttemptCount.current += 1;
