@@ -153,27 +153,38 @@ const ShopifyConnectionStatus = () => {
     
     // إعادة تعيين علامات الاتصال في سياق المصادقة
     if (refreshShopifyConnection) {
-      refreshShopifyConnection();
+      const result = refreshShopifyConnection();
+      console.log('Result from refreshShopifyConnection:', result);
     }
     
     // استخدام وظيفة إعادة الاتصال اليدوية من useShopify إذا كانت متاحة
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
-      manualReconnect();
-      // Don't store or check the return value to avoid TypeScript errors
+      const success = manualReconnect();
+      console.log('Manual reconnect result:', success);
+      
+      // If manual reconnect failed, use fallback
+      if (!success) {
+        console.log('Manual reconnect failed, using fallback');
+        fallbackReconnect();
+      }
     } else {
       console.log('Using fallback reconnect implementation');
-      
-      // عرض رسالة للمستخدم
-      toast.info(language === 'ar' 
-        ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-        : 'Redirecting to connect to Shopify...');
-      
-      // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
-      setTimeout(() => {
-        window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
-      }, 500);
+      fallbackReconnect();
     }
+  };
+  
+  // Fallback reconnect method
+  const fallbackReconnect = () => {
+    // عرض رسالة للمستخدم
+    toast.info(language === 'ar' 
+      ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
+      : 'Redirecting to connect to Shopify...');
+    
+    // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
+    setTimeout(() => {
+      window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
+    }, 500);
   };
 
   // لا تظهر أي شيء إذا كنا متصلين أو لم يتم فحص الاتصال بعد

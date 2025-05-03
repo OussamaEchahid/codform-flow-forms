@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,9 +48,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { 
     isConnected, 
     isLoading,
-    isRedirecting: hookIsRedirecting = false,
-    error: shopifyError = null,
+    isSyncing: hookIsSyncing,
+    isRedirecting = false,
+    error = null,
     connectionStatus,
+    products = [],
     manualReconnect,
     verifyShopifyConnection,
   } = useShopify();
@@ -125,16 +126,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   // Handle different error cases
   useEffect(() => {
-    if (shopifyError) {
-      console.error('Shopify error detected:', shopifyError);
+    if (error) {
+      console.error('Shopify error detected:', error);
       setConnectionState('error');
-      setSaveError(shopifyError);
+      setSaveError(error);
     }
-  }, [shopifyError]);
+  }, [error]);
 
   const handleSave = async () => {
     // Prevent save if redirecting
-    if (hookIsRedirecting || localIsRedirecting) {
+    if (isRedirecting || localIsRedirecting) {
       toast.error(language === 'ar' 
         ? 'يرجى الانتظار حتى تكتمل عملية إعادة الاتصال'
         : 'Please wait until reconnection is complete');
@@ -231,7 +232,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Modified manual reconnect function to prevent redirect loops
   const handleManualReconnect = () => {
     // Prevent multiple clicks
-    if (hookIsRedirecting || localIsRedirecting) {
+    if (isRedirecting || localIsRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
         : 'Already redirecting, please wait...');
@@ -242,34 +243,42 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     // Use the manualReconnect function from useShopify
     if (manualReconnect && typeof manualReconnect === 'function') {
-      manualReconnect();
-      // We don't check the return value as we know it doesn't return a boolean anymore
-    } else {
-      // Clear stored connection data
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_reconnect_attempts');
-      localStorage.removeItem('shopify_last_connect_time');
-      localStorage.removeItem('shopify_last_redirect_time');
-      localStorage.removeItem('shopify_temp_store');
-      
-      // Update auth context if available
-      if (refreshShopifyConnection) {
-        refreshShopifyConnection();
+      const success = manualReconnect();
+      if (!success) {
+        fallbackReconnect();
       }
-      
-      // Show message to user
-      toast.info(language === 'ar' 
-        ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-        : 'Redirecting to connect to Shopify...');
-      
-      // Add a longer delay to prevent rapid redirections
-      setTimeout(() => {
-        console.log("Redirecting to Shopify connection page...");
-        // Use direct path for more reliable navigation
-        window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
-      }, 1500);
+    } else {
+      fallbackReconnect();
     }
+  };
+  
+  // Fallback reconnect method
+  const fallbackReconnect = () => {
+    // Clear stored connection data
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_reconnect_attempts');
+    localStorage.removeItem('shopify_last_connect_time');
+    localStorage.removeItem('shopify_last_redirect_time');
+    localStorage.removeItem('shopify_temp_store');
+    
+    // Update auth context if available
+    if (refreshShopifyConnection) {
+      const result = refreshShopifyConnection();
+      console.log("refreshShopifyConnection result:", result);
+    }
+    
+    // Show message to user
+    toast.info(language === 'ar' 
+      ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
+      : 'Redirecting to connect to Shopify...');
+    
+    // Add a longer delay to prevent rapid redirections
+    setTimeout(() => {
+      console.log("Redirecting to Shopify connection page...");
+      // Use direct path for more reliable navigation
+      window.location.href = '/shopify?reconnect=true&ts=' + Date.now();
+    }, 1500);
   };
 
   // Show a warning if Shopify is not connected based on connection state
@@ -317,9 +326,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button 
               onClick={handleManualReconnect}
               className="bg-[#95BF47] hover:bg-[#7AA93C] text-white w-full max-w-xs"
-              disabled={hookIsRedirecting || localIsRedirecting}
+              disabled={isRedirecting || localIsRedirecting}
             >
-              {hookIsRedirecting || localIsRedirecting ? (
+              {isRedirecting || localIsRedirecting ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ar' 

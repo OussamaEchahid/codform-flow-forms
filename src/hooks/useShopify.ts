@@ -12,7 +12,23 @@ interface ShopifyProduct {
   image?: string;
 }
 
-export const useShopify = () => {
+// Define return type for useShopify hook
+interface UseShopifyReturn {
+  isConnected: boolean;
+  shop: string | null;
+  isLoading: boolean;
+  isSyncing: boolean;
+  connectionStatus: boolean | undefined;
+  products: ShopifyProduct[];
+  error: string | null;
+  isRedirecting: boolean;
+  manualReconnect: () => boolean;
+  verifyShopifyConnection: () => Promise<boolean>;
+  refreshConnection: () => Promise<boolean | undefined>;
+  syncFormWithShopify: (formData: any) => Promise<boolean>;
+}
+
+export const useShopify = (): UseShopifyReturn => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<boolean | undefined>(undefined);
   const [shop, setShop] = useState<string | null>(null);
@@ -167,8 +183,8 @@ export const useShopify = () => {
     return () => clearTimeout(timer);
   }, [checkShopifyConnection]);
   
-  // Reconnect to Shopify
-  const manualReconnect = useCallback(() => {
+  // Reconnect to Shopify - returns boolean now
+  const manualReconnect = useCallback((): boolean => {
     // Throttle reconnection attempts
     const now = Date.now();
     if (now - lastConnectTimeRef.current < CONNECTION_ACTION_THROTTLE) {
@@ -194,10 +210,10 @@ export const useShopify = () => {
   }, []);
   
   // Verify connection by making API request - simplified
-  const verifyShopifyConnection = useCallback(async () => {
+  const verifyShopifyConnection = useCallback(async (): Promise<boolean> => {
     // Skip if already checking
     if (requestTrackerRef.current.isInProgress('verify_connection')) {
-      return connectionStatusRef.current;
+      return !!connectionStatusRef.current;
     }
     
     try {
@@ -207,12 +223,12 @@ export const useShopify = () => {
       // Return cached status if checked recently
       const now = Date.now();
       if (now - lastCheckTimeRef.current < CONNECTION_CHECK_THROTTLE) {
-        return connectionStatusRef.current;
+        return !!connectionStatusRef.current;
       }
       
       // Check connection status
       const newStatus = await checkShopifyConnection();
-      return newStatus;
+      return !!newStatus;
     } catch (error) {
       console.error('Error verifying Shopify connection:', error);
       return false;
@@ -223,7 +239,7 @@ export const useShopify = () => {
   }, [checkShopifyConnection]);
   
   // Simplified connection handler
-  const refreshConnection = useCallback(async () => {
+  const refreshConnection = useCallback(async (): Promise<boolean | undefined> => {
     // Skip if already refreshing
     if (requestTrackerRef.current.isInProgress('refresh_connection')) {
       return connectionStatusRef.current;
@@ -243,7 +259,7 @@ export const useShopify = () => {
   }, [verifyShopifyConnection]);
   
   // Sync form with Shopify - minimal implementation
-  const syncFormWithShopify = useCallback(async (formData: any) => {
+  const syncFormWithShopify = useCallback(async (formData: any): Promise<boolean> => {
     if (!isConnected) {
       throw new Error('Not connected to Shopify');
     }

@@ -56,18 +56,19 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     
     setIsCheckingConnection(true);
     try {
-      let result;
+      let isConnected = false;
       if (refreshShopifyConnection) {
-        result = await refreshShopifyConnection();
-        setIsConnectionWarning(result !== true);
+        const result = await refreshShopifyConnection();
+        isConnected = !!result;
+        setIsConnectionWarning(!isConnected);
         
-        if (result === true) {
+        if (isConnected) {
           toast.success(language === 'ar' ? 'تم التحقق من الاتصال بنجاح' : 'Connection verified successfully');
         } else {
           toast.error(language === 'ar' ? 'فشل التحقق من الاتصال' : 'Connection verification failed');
         }
       } else {
-        const isConnected = await verifyShopifyConnection();
+        isConnected = await verifyShopifyConnection();
         setIsConnectionWarning(!isConnected);
         
         if (isConnected) {
@@ -104,8 +105,11 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
       
       // Use general reconnect function
       if (manualReconnect && typeof manualReconnect === 'function') {
-        manualReconnect();
-        // Don't check return value, just continue with timeout to handle any case
+        const success = manualReconnect();
+        if (!success) {
+          // If reconnect wasn't successful, try direct redirect
+          window.location.href = `/shopify?force=true&ts=${Date.now()}`;
+        }
       } else {
         // Direct redirect if no reconnect function available
         window.location.href = `/shopify?force=true&ts=${Date.now()}`;
