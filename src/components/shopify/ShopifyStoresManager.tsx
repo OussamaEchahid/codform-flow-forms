@@ -72,7 +72,7 @@ export const ShopifyStoresManager: React.FC = () => {
   // Set a store as active
   const setActiveStore = (storeUrl: string) => {
     try {
-      shopifyConnectionManager.setActiveStore(storeUrl, true);
+      shopifyConnectionManager.setActiveStore(storeUrl);
       if (setShop) {
         setShop(storeUrl);
       }
@@ -119,9 +119,11 @@ export const ShopifyStoresManager: React.FC = () => {
   const clearAllExceptActive = () => {
     if (window.confirm('هل أنت متأكد من رغبتك في مسح جميع المتاجر غير النشطة؟')) {
       try {
-        shopifyConnectionManager.clearAllStoresExcept(activeShop);
-        refreshStores();
-        toast.success('تم مسح جميع المتاجر غير النشطة');
+        if (activeShop) {
+          shopifyConnectionManager.clearAllStoresExcept(activeShop);
+          refreshStores();
+          toast.success('تم مسح جميع المتاجر غير النشطة');
+        }
       } catch (error) {
         toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       }

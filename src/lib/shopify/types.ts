@@ -2,42 +2,36 @@
 // نوع لتمثيل اتصال متجر Shopify
 export type ShopifyStoreConnection = {
   domain: string;          // نطاق المتجر مثل store.myshopify.com
-  lastConnected: string;   // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
+  lastConnected?: string;  // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
   isActive: boolean;       // ما إذا كان هذا هو المتجر النشط حالياً
-  shop: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
+  shop?: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
 };
 
 // واجهة لمدير اتصال Shopify
 export interface ShopifyConnectionManager {
   // إضافة متجر جديد أو تحديث متجر موجود
-  addOrUpdateStore(shopDomain: string, isActive?: boolean, forceUpdate?: boolean): boolean;
+  addOrUpdateStore(shopDomain: string, isActive?: boolean, forceUpdate?: boolean): void;
   
   // الحصول على المتجر النشط
   getActiveStore(): string | null;
   
   // تعيين المتجر النشط
-  setActiveStore(shopDomain: string, forceUpdate?: boolean): boolean;
+  setActiveStore(shopDomain: string): void;
   
   // الحصول على جميع المتاجر
   getAllStores(): ShopifyStoreConnection[];
   
   // حذف متجر
-  removeStore(shopDomain: string): boolean;
+  removeStore(domain: string): void;
   
   // مسح جميع المتاجر
-  clearAllStores(): boolean;
+  clearAllStores(): void;
   
   // مسح جميع المتاجر ماعدا متجر محدد
-  clearAllStoresExcept(shopDomain: string | null): boolean;
+  clearAllStoresExcept(shopDomain: string): void;
   
-  // التحقق مما إذا كان وضع الطوارئ مفعلاً
-  isEmergencyMode(): boolean;
-  
-  // تمكين وضع الطوارئ
-  enableEmergencyMode(): boolean;
-  
-  // تعطيل وضع الطوارئ
-  disableEmergencyMode(): boolean;
+  // حفظ آخر متجر من URL
+  saveLastUrlShop(shopDomain: string): void;
   
   // الحصول على آخر متجر من URL
   getLastUrlShop(): string | null;

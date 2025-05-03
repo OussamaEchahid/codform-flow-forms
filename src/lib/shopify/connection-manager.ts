@@ -1,14 +1,7 @@
-
 // Correct implementation of the ShopifyConnectionManager class
-// We're removing the force_update field from database operations and
-// correctly implementing the methods
+// We're adding the missing methods and ensuring proper type usage
 
-import { cleanShopifyDomain } from './types';
-
-interface Store {
-  domain: string;
-  isActive: boolean;
-}
+import { cleanShopifyDomain, ShopifyStoreConnection } from './types';
 
 class ShopifyConnectionManager {
   private readonly ACTIVE_STORE_KEY = 'shopify_active_store';
@@ -19,9 +12,9 @@ class ShopifyConnectionManager {
    * Adds or updates a store in the connection manager
    * @param domain The store domain
    * @param isActive Whether the store is active
-   * @param clearOthers Whether to clear all other stores
+   * @param forceUpdate Whether to clear all other stores
    */
-  public addOrUpdateStore(domain: string, isActive = false, clearOthers = false): void {
+  public addOrUpdateStore(domain: string, isActive = false, forceUpdate = false): void {
     try {
       // Clean the domain first
       const cleanedDomain = cleanShopifyDomain(domain);
@@ -31,14 +24,20 @@ class ShopifyConnectionManager {
         return;
       }
       
-      console.log(`Adding/updating store: ${cleanedDomain}, isActive: ${isActive}, forceUpdate: ${clearOthers}`);
+      console.log(`Adding/updating store: ${cleanedDomain}, isActive: ${isActive}, forceUpdate: ${forceUpdate}`);
       
       // If we're clearing others, just set this as the only store
-      if (clearOthers) {
+      if (forceUpdate) {
         this.clearAllStores();
         
         // Set as the only and active store
-        const stores: Store[] = [{ domain: cleanedDomain, isActive: true }];
+        const currentTimestamp = new Date().toISOString();
+        const stores: ShopifyStoreConnection[] = [{ 
+          domain: cleanedDomain, 
+          shop: cleanedDomain, 
+          isActive: true,
+          lastConnected: currentTimestamp
+        }];
         localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
         localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
         
@@ -50,13 +49,20 @@ class ShopifyConnectionManager {
       
       // Find if this store already exists
       const existingIndex = existingStores.findIndex(s => s.domain === cleanedDomain);
+      const currentTimestamp = new Date().toISOString();
       
       if (existingIndex >= 0) {
         // Update existing store
         existingStores[existingIndex].isActive = isActive;
+        existingStores[existingIndex].lastConnected = currentTimestamp;
       } else {
         // Add new store
-        existingStores.push({ domain: cleanedDomain, isActive });
+        existingStores.push({ 
+          domain: cleanedDomain, 
+          shop: cleanedDomain, 
+          isActive,
+          lastConnected: currentTimestamp
+        });
       }
       
       // If this store is active, make all others inactive
@@ -120,15 +126,30 @@ class ShopifyConnectionManager {
   }
   
   /**
+   * Sets the active store
+   * @param domain The store domain to set active
+   */
+  public setActiveStore(domain: string): void {
+    try {
+      const cleanedDomain = cleanShopifyDomain(domain);
+      if (!cleanedDomain) return;
+      
+      this.addOrUpdateStore(cleanedDomain, true);
+    } catch (error) {
+      console.error('Error in setActiveStore:', error);
+    }
+  }
+  
+  /**
    * Gets all stored stores
    * @returns Array of store objects
    */
-  public getAllStores(): Store[] {
+  public getAllStores(): ShopifyStoreConnection[] {
     try {
       const storesJson = localStorage.getItem(this.STORES_KEY);
       
       if (storesJson) {
-        return JSON.parse(storesJson) as Store[];
+        return JSON.parse(storesJson) as ShopifyStoreConnection[];
       }
       
       // Check for legacy store
@@ -136,7 +157,12 @@ class ShopifyConnectionManager {
       if (legacyStore) {
         // Convert legacy store to new format
         const isConnected = localStorage.getItem('shopify_connected') === 'true';
-        return [{ domain: legacyStore, isActive: isConnected }];
+        return [{ 
+          domain: legacyStore, 
+          shop: legacyStore, 
+          isActive: isConnected,
+          lastConnected: new Date().toISOString()
+        }];
       }
       
       return [];
@@ -197,6 +223,38 @@ class ShopifyConnectionManager {
       localStorage.removeItem('shopify_temp_store');
     } catch (error) {
       console.error('Error in clearAllStores:', error);
+    }
+  }
+  
+  /**
+   * Clears all stores except the specified one
+   * @param shopDomain The shop domain to keep
+   */
+  public clearAllStoresExcept(shopDomain: string): void {
+    try {
+      const cleanedDomain = cleanShopifyDomain(shopDomain);
+      if (!cleanedDomain) return;
+      
+      const allStores = this.getAllStores();
+      const storeToKeep = allStores.find(s => s.domain === cleanedDomain);
+      
+      if (storeToKeep) {
+        // Keep only this store and make it active
+        const currentTimestamp = new Date().toISOString();
+        const stores: ShopifyStoreConnection[] = [{ 
+          ...storeToKeep, 
+          isActive: true,
+          lastConnected: currentTimestamp
+        }];
+        
+        localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
+        localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
+      } else {
+        // If the store doesn't exist in our list, clear everything
+        this.clearAllStores();
+      }
+    } catch (error) {
+      console.error('Error in clearAllStoresExcept:', error);
     }
   }
   

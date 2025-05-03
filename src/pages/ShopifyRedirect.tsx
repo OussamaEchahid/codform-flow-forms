@@ -102,7 +102,7 @@ const ShopifyRedirect = () => {
         // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
         if (forceUpdate) {
           console.log("تطبيق وضع التحديث الإجباري. مسح جميع المتاجر الأخرى.");
-          shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+          shopifyConnectionManager.clearAllStores();
         }
         
         // تخزين معلومات المتجر في localStorage للاستخدام إذا تمت مقاطعة تدفق المصادقة
@@ -137,8 +137,10 @@ const ShopifyRedirect = () => {
             setDebug(prev => ({ ...prev, callbackResult }));
             
             if (callbackResult?.success) {
-              // حفظ بيانات المتجر في localStorage
-              shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+              // Save store data in localStorage
+              if (cleanedShop) {
+                shopifyConnectionManager.setActiveStore(cleanedShop);
+              }
               
               // إزالة البيانات المؤقتة
               localStorage.removeItem('shopify_temp_store');
@@ -173,8 +175,10 @@ const ShopifyRedirect = () => {
               const callbackResult = await callbackResponse.json();
               
               if (callbackResult.success) {
-                // حفظ بيانات المتجر في localStorage
-                shopifyConnectionManager.clearAllStoresExcept(cleanedShop);
+                // Save store data
+                if (cleanedShop) {
+                  shopifyConnectionManager.setActiveStore(cleanedShop);
+                }
                 
                 // إزالة البيانات المؤقتة
                 localStorage.removeItem('shopify_temp_store');
@@ -237,7 +241,7 @@ const ShopifyRedirect = () => {
               const authData = await authResponse.json();
               
               if (authData.redirect) {
-                // توجيه المستخدم إلى ��فحة المصادقة Shopify
+                // توجيه المستخدم إلى ���فحة المصادقة Shopify
                 window.location.href = authData.redirect;
               } else {
                 setError("لم يتم استلام عنوان URL للمصادقة");
