@@ -26,7 +26,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const lastCheckTimeRef = useRef<number>(0);
   const initialCheckPerformedRef = useRef<boolean>(false);
   const checkInProgressRef = useRef<boolean>(false);
-  const CONNECTION_THROTTLE = 30000; // 30 seconds minimum between checks
+  const CONNECTION_THROTTLE = 60000; // Increase to 60 seconds minimum between checks
   
   // Reduced connection checking with better performance
   const handleCheckConnection = useCallback(async () => {
@@ -70,23 +70,11 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     }
   }, [refreshConnection, isCheckingConnection, language]);
   
-  // Initial connection check only once
+  // Disable initial connection check which was causing issues
   useEffect(() => {
-    if (isConnected && !initialCheckPerformedRef.current && !checkInProgressRef.current) {
-      // Only do initial check if actually connected
-      const initialCheckTimeout = setTimeout(() => {
-        initialCheckPerformedRef.current = true;
-        
-        if (refreshConnection) {
-          refreshConnection().catch(error => {
-            console.error('Error during initial connection check:', error);
-          });
-        }
-      }, 3000); // Delay initial check
-      
-      return () => clearTimeout(initialCheckTimeout);
-    }
-  }, [isConnected, refreshConnection]);
+    // Skip automatic checking completely
+    initialCheckPerformedRef.current = true;
+  }, []);
 
   const handleConnectClick = () => {
     if (!isConnected && manualReconnect) {
@@ -165,4 +153,3 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
 };
 
 export default FormBuilderShopify;
-

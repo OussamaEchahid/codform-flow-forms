@@ -40,18 +40,30 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
       let hasChanges = false;
       
       const updatedFormData = formData.map(field => {
-        if (!field.id) {
-          hasChanges = true;
-          return {
-            ...field,
-            id: `field-${uuidv4().substring(0, 8)}` // Generate ID for fields missing one
-          };
+        let updatedField = { ...field };
+        let needsUpdate = false;
+        
+        // Ensure ID exists
+        if (!updatedField.id) {
+          updatedField.id = `field-${uuidv4().substring(0, 8)}`; // Generate ID for fields missing one
+          needsUpdate = true;
         }
-        return field;
+        
+        // Ensure name attribute exists (fixes "form field element should have an id or name attribute" error)
+        if (!updatedField.name) {
+          updatedField.name = updatedField.id; // Use ID as name if missing
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          hasChanges = true;
+        }
+        
+        return updatedField;
       });
       
       if (hasChanges) {
-        console.log('Fixed missing field IDs in form data');
+        console.log('Fixed missing field IDs and names in form data');
         onChange(updatedFormData);
       }
     }
@@ -67,11 +79,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
           if (pendingOperation.startsWith('add:')) {
             const fieldType = pendingOperation.split(':')[1];
             
-            // Create new field with proper ID and name attributes
+            // Create unique ID for field
             const fieldId = `field-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+            
+            // Create new field with proper ID and name attributes
             const newField = {
               id: fieldId,
-              name: fieldId, // Add name attribute
+              name: fieldId, // Explicitly add name attribute to match ID
               type: fieldType,
               label: language === 'ar' ? 'حقل جديد' : 'New Field',
               required: false,
@@ -215,4 +229,3 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
 };
 
 export default FormBuilder;
-

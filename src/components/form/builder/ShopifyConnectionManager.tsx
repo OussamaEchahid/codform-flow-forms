@@ -30,7 +30,8 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
   // Use refs to track initial load and prevent excessive checks
   const hasPerformedInitialCheck = useRef(false);
   const lastCheckTimeRef = useRef<number>(0);
-  const requestTracker = useRef(createRequestTracker()).current;
+  // Create request tracker with proper reference to all methods
+  const requestTracker = useRef(createRequestTracker());
   
   // Minimum time between connection checks - 5 minutes (300000ms)
   const CONNECTION_CHECK_INTERVAL = 300000;
@@ -39,7 +40,7 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
   useEffect(() => {
     // Skip if any of these conditions are met
     if (!isConnected || !shop || hasPerformedInitialCheck.current || 
-        requestTracker.isInProgress('initialConnectionCheck')) {
+        requestTracker.current.isInProgress('initialConnectionCheck')) {
       return;
     }
     
@@ -55,7 +56,7 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
     }
     
     // Track this request to prevent duplicates
-    requestTracker.trackRequest('initialConnectionCheck', true);
+    requestTracker.current.trackRequest('initialConnectionCheck', true);
     
     const checkOnce = async () => {
       try {
@@ -73,7 +74,7 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
       } catch (error) {
         console.error('Error during initial connection check:', error);
       } finally {
-        requestTracker.trackRequest('initialConnectionCheck', false);
+        requestTracker.current.trackRequest('initialConnectionCheck', false);
       }
     };
     
@@ -81,18 +82,18 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
     
     return () => {
       // Clean up any pending timeout
-      requestTracker.clearAllTimeouts();
+      requestTracker.current.clearAllTimeouts();
     };
-  }, [isConnected, shop, verifyShopifyConnection, requestTracker]);
+  }, [isConnected, shop, verifyShopifyConnection]);
 
   const handleCheckConnection = async () => {
-    if (isChecking || requestTracker.isInProgress('manualConnectionCheck')) {
+    if (isChecking || requestTracker.current.isInProgress('manualConnectionCheck')) {
       toast.info(language === 'ar' ? 'جاري التحقق بالفعل...' : 'Already checking...');
       return;
     }
     
     setIsChecking(true);
-    requestTracker.trackRequest('manualConnectionCheck', true);
+    requestTracker.current.trackRequest('manualConnectionCheck', true);
     
     try {
       const result = await verifyShopifyConnection();
@@ -110,7 +111,7 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({
       toast.error(language === 'ar' ? 'حدث خطأ أثناء التحقق من الاتصال' : 'Error checking connection');
     } finally {
       setIsChecking(false);
-      requestTracker.trackRequest('manualConnectionCheck', false);
+      requestTracker.current.trackRequest('manualConnectionCheck', false);
     }
   };
 
