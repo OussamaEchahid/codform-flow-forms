@@ -19,6 +19,7 @@ import Shopify from "@/pages/Shopify";
 import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/api/shopify-callback";
 import ShopifyStores from "@/pages/ShopifyStores";
+import Settings from "@/pages/Settings";
 
 // Components
 import { Toaster } from "sonner";
@@ -27,9 +28,18 @@ const queryClient = new QueryClient();
 
 // Protected route that checks for Shopify connection
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
-  const { shopifyConnected, shop } = useAuth();
+  const { shopifyConnected, shop, loading } = useAuth();
   
-  if (requireAuth && !shopifyConnected) {
+  // If still loading, we can show a loading state
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
+  }
+  
+  // Check for connection in localStorage as fallback
+  const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const isConnected = shopifyConnected || localStorageConnected;
+  
+  if (requireAuth && !isConnected) {
     return <Navigate to="/shopify" replace />;
   }
   
@@ -46,6 +56,7 @@ function AppRoutes() {
       
       {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
+      <Route path="/settings" element={<Settings />} />
       
       {/* Protected routes that require Shopify authentication */}
       <Route element={<ProtectedRoute requireAuth={true} />}>

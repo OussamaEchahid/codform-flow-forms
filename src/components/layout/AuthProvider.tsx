@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
@@ -101,12 +102,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!shopDomain) return;
       
+      console.log("Explicitly setting active shop to:", shopDomain);
+      
       // Update in connection manager
       shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
       
       // Update state
       setShop(shopDomain);
       setShopifyConnected(true);
+      
+      // Update localStorage for backward compatibility
+      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem('shopify_connected', 'true');
       
       // Update list of shops
       const allStores = shopifyConnectionManager.getAllStores();

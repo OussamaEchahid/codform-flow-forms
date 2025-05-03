@@ -27,8 +27,16 @@ const Shopify = () => {
   useEffect(() => {
     // استخدام مكتبة الاتصال للحصول على حالة الاتصال
     const activeStore = shopifyConnectionManager.getActiveStore();
+    const isStoreConnected = !!activeStore || !!shop || shopifyConnected;
     
-    setIsConnected(!!activeStore || !!shop || shopifyConnected);
+    console.log("Connection status check:", { 
+      activeStore, 
+      shopContextShop: shop, 
+      shopifyConnected, 
+      isStoreConnected 
+    });
+    
+    setIsConnected(isStoreConnected);
     setConnectedShop(activeStore || shop);
     
     // حفظ القيمة الأولية للمتجر
@@ -122,6 +130,19 @@ const Shopify = () => {
   };
   
   const handleGoToDashboard = () => {
+    // Update localStorage and connection manager to ensure consistent state
+    if (connectedShop) {
+      localStorage.setItem('shopify_store', connectedShop);
+      localStorage.setItem('shopify_connected', 'true');
+      shopifyConnectionManager.addOrUpdateStore(connectedShop, true);
+      
+      // Update auth context if needed
+      if (setShop && !shopifyConnected) {
+        setShop(connectedShop);
+      }
+    }
+    
+    // Navigate to dashboard
     navigate('/dashboard');
   };
   
@@ -132,6 +153,13 @@ const Shopify = () => {
     if (setShop) {
       setShop("");
     }
+    
+    // Clear localStorage and connection manager
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    shopifyConnectionManager.clearAllStores();
+    
+    toast.success('تم إعادة تعيين الاتصال بنجاح');
   };
   
   return (

@@ -10,7 +10,7 @@ import { RefreshCcw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const ShopifyDebugPanel = () => {
-  const { shopifyConnected, shop, shops } = useAuth();
+  const { shopifyConnected, shop, shops, setShop } = useAuth();
   const [loading, setLoading] = useState(false);
   const [debugData, setDebugData] = useState<any>({});
   const [isConsistent, setIsConsistent] = useState(true);
@@ -93,9 +93,9 @@ export const ShopifyDebugPanel = () => {
       setDebugData(debugInfo);
       
       // التحقق من اتساق البيانات بين المصادر المختلفة
-      const activeStoreConsistent = (activeStore === shopFromDB) && 
-                                   (activeStore === localStorageData.shopify_store) && 
-                                   (shopifyConnected === (localStorageData.shopify_connected === 'true'));
+      const activeStoreConsistent = activeStore && 
+                                   ((activeStore === localStorageData.shopify_store) && 
+                                   (!!shopifyConnected === (localStorageData.shopify_connected === 'true')));
       
       setIsConsistent(activeStoreConsistent);
       
@@ -125,6 +125,11 @@ export const ShopifyDebugPanel = () => {
         localStorage.setItem('shopify_store', activeStore);
         localStorage.setItem('shopify_connected', 'true');
         
+        // Update auth context if setShop is available
+        if (setShop) {
+          setShop(activeStore);
+        }
+        
         toast.success("تم إصلاح اختلافات البيانات المحلية");
         
         // إعادة تحميل الصفحة لتحديث حالة الاتصال في AuthProvider
@@ -135,6 +140,11 @@ export const ShopifyDebugPanel = () => {
         shopifyConnectionManager.addOrUpdateStore(dbShop, true);
         localStorage.setItem('shopify_store', dbShop);
         localStorage.setItem('shopify_connected', 'true');
+        
+        // Update auth context if setShop is available
+        if (setShop) {
+          setShop(dbShop);
+        }
         
         toast.success("تم استعادة بيانات الاتصال من قاعدة البيانات");
         
@@ -157,6 +167,11 @@ export const ShopifyDebugPanel = () => {
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_temp_store');
       localStorage.removeItem('shopify_emergency_mode');
+      
+      // Update auth context if setShop is available
+      if (setShop) {
+        setShop("");
+      }
       
       toast.success("تم مسح جميع بيانات المتاجر المحلية");
       
