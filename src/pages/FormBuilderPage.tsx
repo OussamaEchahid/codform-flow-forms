@@ -371,8 +371,8 @@ const FormBuilderPage = () => {
         description: description || null,
         data: formData,
         user_id: user?.id,
-        // Fix: Make sure shop_id is null if shopifyConnected is false
-        shop_id: shopifyConnected && shop ? shop : null,
+        // Fix: Make sure shop_id is a valid UUID or null, not a domain string
+        shop_id: null, // Set shop_id to null to avoid UUID syntax error
         is_published: true
       };
       

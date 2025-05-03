@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
@@ -22,12 +22,23 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const { isConnected, manualReconnect, refreshConnection } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   
   // Connection checking with throttling
   const handleCheckConnection = async () => {
     if (!refreshConnection || isCheckingConnection) return;
     
+    // Prevent too frequent checks
+    const now = Date.now();
+    if (now - lastAttemptTime < 5000) { // 5 seconds minimum between checks
+      toast.info(language === 'ar' 
+        ? 'الرجاء الانتظار قبل التحقق مرة أخرى' 
+        : 'Please wait before checking again');
+      return;
+    }
+    
     setIsCheckingConnection(true);
+    setLastAttemptTime(now);
     
     try {
       const connected = await refreshConnection();
@@ -42,7 +53,9 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
       console.error('Error checking connection:', error);
       toast.error(language === 'ar' ? 'خطأ في التحقق من الاتصال' : 'Connection check error');
     } finally {
-      setIsCheckingConnection(false);
+      setTimeout(() => {
+        setIsCheckingConnection(false);
+      }, 1000);
     }
   };
 
@@ -65,6 +78,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     // Record this attempt
     ShopifyConnectionManager.recordAttempt();
     setIsConnecting(true);
+    setLastAttemptTime(Date.now());
     
     if (!isConnected && manualReconnect) {
       // Execute the reconnect function
@@ -74,7 +88,9 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
       } catch (err) {
         console.error('Error initiating Shopify connection:', err);
         toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');
-        setIsConnecting(false);
+        setTimeout(() => {
+          setIsConnecting(false);
+        }, 1000);
       }
     }
   };

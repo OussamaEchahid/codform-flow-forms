@@ -6,14 +6,14 @@ import { PlusCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { v4 as uuidv4 } from 'uuid';
 
-// Interface para el constructor de formularios
+// Interface for the form builder
 export interface FormBuilderProps {
   formData: any[];
   onChange: (newFormData: any[]) => void;
   isOfflineMode?: boolean;
 }
 
-// Tipos de campos para el formulario
+// Field types for the form
 const FIELD_TYPES = [
   { id: 'text', name: 'نص', name_en: 'Text' },
   { id: 'number', name: 'رقم', name_en: 'Number' },
@@ -32,6 +32,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
   const { language } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [lastFieldAdded, setLastFieldAdded] = useState<number>(0);
   
   // Generate unique IDs for fields that may be missing them
   useEffect(() => {
@@ -68,16 +69,25 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
     }
   }, [formData, onChange]);
   
-  // Add field to the form - direct implementation without debounce to fix the issue
+  // Add field to the form with rate limiting
   const addField = (type: string) => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      return;
+    }
+    
+    // Prevent rapid clicks (throttling)
+    const now = Date.now();
+    if (now - lastFieldAdded < 1000) { // 1 second cooldown
+      return;
+    }
     
     setIsProcessing(true);
     setError(null);
+    setLastFieldAdded(now);
     
     try {
-      // Create unique ID for field
-      const fieldId = `field-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      // Create field with unique ID using current timestamp
+      const fieldId = `field-${Date.now()}`;
       
       // Create new field with proper ID and name attributes
       const newField = {
@@ -113,11 +123,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         ? 'حدث خطأ أثناء إضافة الحقل. يرجى المحاولة مرة أخرى.' 
         : 'An error occurred adding the field. Please try again.');
     } finally {
-      setIsProcessing(false);
+      // Add a small delay to prevent rapid clicks
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
     }
   };
   
-  // Remove field from the form - direct implementation without debounce
+  // Remove field from the form
   const removeField = (index: number) => {
     if (isProcessing) return;
     
@@ -132,7 +145,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         ? 'حدث خطأ أثناء إزالة الحقل. يرجى المحاولة مرة أخرى.' 
         : 'An error occurred removing the field. Please try again.');
     } finally {
-      setIsProcessing(false);
+      // Add a small delay to prevent rapid clicks
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 500);
     }
   };
   

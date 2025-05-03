@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,10 +37,18 @@ export const useShopify = (): UseShopifyReturn => {
   // Use refs to prevent excessive connection checks
   const connectionCheckInProgress = useRef<boolean>(false);
   const connectionAttemptCount = useRef<number>(0);
+  const initialCheckDone = useRef<boolean>(false);
   const maxConnectionAttempts = 3;
 
-  // Check initial connection status with improved caching
+  // Check initial connection status with improved caching - ONCE only
   useEffect(() => {
+    // Only run once per component mount
+    if (initialCheckDone.current) {
+      return;
+    }
+    
+    initialCheckDone.current = true;
+    
     // Check localStorage for cached connection status
     const cachedConnected = localStorage.getItem('shopify_connected') === 'true';
     const cachedShop = localStorage.getItem('shopify_shop');
@@ -54,7 +63,7 @@ export const useShopify = (): UseShopifyReturn => {
     // Only verify if it's been more than 5 minutes since last check
     const checkInterval = 5 * 60 * 1000; // 5 minutes
     
-    if ((now - lastCheckTime) > checkInterval && cachedShop) {
+    if ((now - lastCheckTime) > checkInterval && cachedShop && !connectionCheckInProgress.current) {
       // Delay the check to prevent issues during component mounting
       const timer = setTimeout(() => {
         verifyShopifyConnection().catch(err => {
@@ -64,15 +73,7 @@ export const useShopify = (): UseShopifyReturn => {
       
       return () => clearTimeout(timer);
     }
-    
-    // Log status for debugging
-    console.log('[useShopify] Initial state from cache:', { 
-      cachedConnected, 
-      cachedShop,
-      lastCheckTime: new Date(lastCheckTime).toISOString(),
-      checkNeeded: (now - lastCheckTime) > checkInterval
-    });
-  }, []);
+  }, []); // Empty dependency array ensures this only runs once
   
   // Simple manual reconnect function - explicitly void return type
   const manualReconnect = useCallback((): void => {
@@ -185,15 +186,21 @@ export const useShopify = (): UseShopifyReturn => {
     }
   }, [isConnected]);
   
-  // Refresh connection status
+  // Refresh connection status with much stronger throttling
   const refreshConnection = useCallback(async (): Promise<boolean | undefined> => {
     try {
       const now = Date.now();
       const lastCheckTime = parseInt(localStorage.getItem('shopify_last_check_time') || '0', 10);
       
-      // Throttle checks to prevent too many requests
+      // Strict throttling to prevent excessive checks
       if ((now - lastCheckTime) < 30000) { // 30 seconds
         console.log('[useShopify] Refresh check throttled, checked too recently');
+        return connectionStatus;
+      }
+      
+      // Check and limit connection attempts
+      if (connectionCheckInProgress.current) {
+        console.log('[useShopify] Connection check already in progress, skipping refresh');
         return connectionStatus;
       }
       

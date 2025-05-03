@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,17 @@ interface ShopifyConnectionManagerProps {
 const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ formId }) => {
   const { isConnected, shop, isLoading, refreshConnection, manualReconnect } = useShopify();
   const { language } = useI18n();
-  const isDebug = localStorage.getItem('debug_mode') === 'true' || 
-                 window.location.search.includes('debug=true');
+  const [showDebugger, setShowDebugger] = useState(false);
+  
+  // Check if debug mode is enabled from localStorage or URL
+  useEffect(() => {
+    const isDebugMode = localStorage.getItem('debug_mode') === 'true' || 
+                       window.location.search.includes('debug=true');
+    setShowDebugger(isDebugMode);
+  }, []);
 
   const handleRefreshConnection = async () => {
-    if (refreshConnection) {
+    if (refreshConnection && !isLoading) {
       await refreshConnection();
     }
   };
@@ -31,8 +37,8 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
           <AlertDescription className="flex justify-between items-center text-green-700">
             <span>
               {language === 'ar'
-                ? `متصل بمتجر Shopify: ${shop}`
-                : `Connected to Shopify store: ${shop}`}
+                ? `متصل بمتجر Shopify: ${shop || ''}`
+                : `Connected to Shopify store: ${shop || ''}`}
             </span>
             <Button
               variant="outline"
@@ -76,8 +82,8 @@ const ShopifyConnectionManager: React.FC<ShopifyConnectionManagerProps> = ({ for
         </Alert>
       )}
       
-      {/* Debug panel for troubleshooting */}
-      {isDebug && <ShopifyDebugPanel />}
+      {/* Debug panel for troubleshooting - only show if debug mode is enabled */}
+      {showDebugger && <ShopifyDebugPanel />}
     </div>
   );
 };

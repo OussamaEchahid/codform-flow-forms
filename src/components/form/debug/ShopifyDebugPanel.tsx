@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { Button } from '@/components/ui/button';
 import { Trash2, RotateCw, Bug, Code } from 'lucide-react';
@@ -12,17 +12,18 @@ import { toast } from 'sonner';
 const ShopifyDebugPanel: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState<Record<string, any>>({});
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const { isConnected, shop, refreshConnection, verifyShopifyConnection } = useShopify();
   
-  // Fetch connection info
-  useEffect(() => {
-    if (isExpanded) {
-      updateConnectionInfo();
+  // Fetch connection info on initial load and when expanded, with throttling
+  const updateConnectionInfo = useCallback(() => {
+    const now = Date.now();
+    // Only refresh if it's been more than 2 seconds since last refresh
+    if (now - lastRefreshTime < 2000) {
+      return;
     }
-  }, [isExpanded, isConnected, shop]);
-  
-  // Update connection info
-  const updateConnectionInfo = () => {
+    
+    setLastRefreshTime(now);
     const info: Record<string, any> = {};
     
     // Get all shopify related items from localStorage
@@ -42,7 +43,14 @@ const ShopifyDebugPanel: React.FC = () => {
     info['hook_shop'] = shop;
     
     setConnectionInfo(info);
-  };
+  }, [isConnected, shop, lastRefreshTime]);
+  
+  // Only refresh data when panel is expanded
+  useEffect(() => {
+    if (isExpanded) {
+      updateConnectionInfo();
+    }
+  }, [isExpanded, updateConnectionInfo]);
   
   // Clear all Shopify connection data
   const handleClearAll = () => {
@@ -65,9 +73,16 @@ const ShopifyDebugPanel: React.FC = () => {
     }
   };
   
-  // Force refresh connection
+  // Force refresh connection with throttling
   const handleForceRefresh = async () => {
+    const now = Date.now();
+    if (now - lastRefreshTime < 3000) {
+      toast.info('Please wait a few seconds before refreshing again');
+      return;
+    }
+    
     try {
+      setLastRefreshTime(now);
       await verifyShopifyConnection();
       toast.success('Connection verification completed');
       updateConnectionInfo();
