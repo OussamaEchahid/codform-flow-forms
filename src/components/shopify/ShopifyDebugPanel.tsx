@@ -51,12 +51,14 @@ export const ShopifyDebugPanel: React.FC = () => {
         const { data: storeData, error: storeError } = await supabase
           .rpc('get_shopify_store_data');
           
-        if (storeData) {
+        if (storeData && storeData.length > 0) {
+          // Fix: Access the first item in the array since storeData is now recognized as an array
+          const storeItem = storeData[0];
           dbInfo.storeData = {
-            store: storeData,
-            hasToken: !!storeData.access_token,
-            tokenLength: storeData.access_token ? storeData.access_token.length : 0,
-            tokenFirstChars: storeData.access_token ? `${storeData.access_token.substring(0, 4)}...` : 'none'
+            store: storeItem,
+            hasToken: !!storeItem.access_token,
+            tokenLength: storeItem.access_token ? storeItem.access_token.length : 0,
+            tokenFirstChars: storeItem.access_token ? `${storeItem.access_token.substring(0, 4)}...` : 'none'
           };
         } else {
           dbInfo.storeDataError = storeError ? storeError.message : 'No store data found';
