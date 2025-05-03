@@ -47,14 +47,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const navigate = useNavigate();
   const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
   const { 
-    products, 
-    isLoading: loadingProducts, 
-    error: shopifyError, 
-    isRedirecting, 
+    isConnected, 
+    isLoading,
+    isRedirecting: hookIsRedirecting = false,
+    error: shopifyError = null,
+    connectionStatus,
     manualReconnect,
     verifyShopifyConnection,
-    connectionStatus
   } = useShopify();
+  
+  // Since product selection is coming soon, we'll use an empty array
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -132,7 +134,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   const handleSave = async () => {
     // Prevent save if redirecting
-    if (isRedirecting || localIsRedirecting) {
+    if (hookIsRedirecting || localIsRedirecting) {
       toast.error(language === 'ar' 
         ? 'يرجى الانتظار حتى تكتمل عملية إعادة الاتصال'
         : 'Please wait until reconnection is complete');
@@ -229,7 +231,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Modified manual reconnect function to prevent redirect loops
   const handleManualReconnect = () => {
     // Prevent multiple clicks
-    if (isRedirecting || localIsRedirecting) {
+    if (hookIsRedirecting || localIsRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...'
         : 'Already redirecting, please wait...');
@@ -240,10 +242,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     
     // Use the manualReconnect function from useShopify
     if (manualReconnect && typeof manualReconnect === 'function') {
-      const success = manualReconnect();
-      if (!success) {
-        setLocalIsRedirecting(false);
-      }
+      manualReconnect();
+      // We don't check the return value as we know it doesn't return a boolean anymore
     } else {
       // Clear stored connection data
       localStorage.removeItem('shopify_store');
@@ -317,9 +317,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Button 
               onClick={handleManualReconnect}
               className="bg-[#95BF47] hover:bg-[#7AA93C] text-white w-full max-w-xs"
-              disabled={isRedirecting || localIsRedirecting}
+              disabled={hookIsRedirecting || localIsRedirecting}
             >
-              {isRedirecting || localIsRedirecting ? (
+              {hookIsRedirecting || localIsRedirecting ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ar' 

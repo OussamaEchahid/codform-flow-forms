@@ -54,7 +54,7 @@ const ShopifyConnectionStatus = () => {
       if (refreshConnection) {
         const isConnected = await refreshConnection();
         console.log('ShopifyConnectionStatus: Connection check result:', isConnected);
-        setShowWarning(!isConnected);
+        setShowWarning(isConnected !== true);
       } else {
         // استخدام التحقق من الواجهة الحالية إذا كان refreshConnection غير متاح
         const isConnected = await verifyShopifyConnection();
@@ -159,23 +159,9 @@ const ShopifyConnectionStatus = () => {
     // استخدام وظيفة إعادة الاتصال اليدوية من useShopify إذا كانت متاحة
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
-      const reconnectSuccess = manualReconnect();
-      
-      // إذا أعادت manualReconnect قيمة false، فهذا يعني أنها لم تبدأ إعادة توجيه
-      if (!reconnectSuccess) {
-        console.log('manualReconnect failed, falling back to direct navigation');
-        // عرض رسالة للمستخدم
-        toast.info(language === 'ar' 
-          ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
-          : 'Redirecting to connect to Shopify...');
-        
-        // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
-        setTimeout(() => {
-          window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
-        }, 500);
-      }
+      manualReconnect();
+      // Don't store or check the return value to avoid TypeScript errors
     } else {
-      // الاعتماد على التنفيذ السابق إذا كانت manualReconnect غير متاحة
       console.log('Using fallback reconnect implementation');
       
       // عرض رسالة للمستخدم

@@ -2,12 +2,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createRequestTracker } from '@/utils/requestManager';
 
+// Define proper interface for products
+interface ShopifyProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description?: string;
+  price?: string;
+  image?: string;
+}
+
 export const useShopify = () => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<boolean | undefined>(undefined);
   const [shop, setShop] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(false);
   
   // Track connection state with refs
   const connectionStatusRef = useRef(connectionStatus);
@@ -24,7 +37,7 @@ export const useShopify = () => {
     connectionStatusRef.current = connectionStatus;
   }, [connectionStatus]);
   
-  // Function to check if Shopify is connected
+  // Function to check if Shopify is connected - drastically simplified
   const checkShopifyConnection = useCallback(async () => {
     // Skip if a check is already in progress
     if (requestTrackerRef.current.isInProgress('check_connection')) {
@@ -35,7 +48,7 @@ export const useShopify = () => {
     // Throttle connection checks to avoid excessive API calls
     const now = Date.now();
     if (now - lastCheckTimeRef.current < CONNECTION_CHECK_THROTTLE) {
-      console.log('Connection check throttled, skipping');
+      console.log('Connection check throttled, using cached status');
       return connectionStatusRef.current;
     }
     
@@ -47,45 +60,60 @@ export const useShopify = () => {
       const cachedConnected = localStorage.getItem('shopify_connected');
       const cachedShop = localStorage.getItem('shopify_shop');
       
+      // Update states if we have valid data in cache
       if (cachedConnected === 'true' && cachedShop) {
         console.log('Using cached Shopify connection data');
         setIsConnected(true);
         setShop(cachedShop);
       }
       
+      // Don't make actual HTTP request if we're in offline mode or the page just loaded
+      // Instead rely on cached data only for page load time
+      if (navigator.onLine === false) {
+        console.log('Offline mode detected, skipping API check');
+        return connectionStatusRef.current;
+      }
+      
       // Make a lightweight request to check connection status
-      const response = await fetch('/dashboard?check_connection=true', {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
+      try {
+        const response = await fetch('/dashboard?check_connection=true', {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          // Short timeout to avoid hanging
+          signal: AbortSignal.timeout(5000)
+        });
       
-      // Update last check time
-      lastCheckTimeRef.current = Date.now();
+        // Update last check time
+        lastCheckTimeRef.current = Date.now();
       
-      if (response.ok) {
-        const data = await response.json();
-        const isNowConnected = data?.shopifyConnected === true;
+        if (response.ok) {
+          const data = await response.json();
+          const isNowConnected = data?.shopifyConnected === true;
         
-        // Only update state if different to avoid unnecessary re-renders
-        if (isConnected !== isNowConnected) {
-          setIsConnected(isNowConnected);
+          // Only update state if different to avoid unnecessary re-renders
+          if (isConnected !== isNowConnected) {
+            setIsConnected(isNowConnected);
+          }
+        
+          if (data?.shop) {
+            setShop(data.shop);
+            localStorage.setItem('shopify_shop', data.shop);
+          }
+        
+          // Store connection state
+          const newConnectionStatus = isNowConnected;
+          setConnectionStatus(newConnectionStatus);
+          localStorage.setItem('shopify_connected', String(isNowConnected));
+          localStorage.setItem('shopify_last_check', String(now));
+        
+          return newConnectionStatus;
         }
-        
-        if (data?.shop) {
-          setShop(data.shop);
-          localStorage.setItem('shopify_shop', data.shop);
-        }
-        
-        // Store connection state
-        const newConnectionStatus = isNowConnected;
-        setConnectionStatus(newConnectionStatus);
-        localStorage.setItem('shopify_connected', String(isNowConnected));
-        localStorage.setItem('shopify_last_check', String(now));
-        
-        return newConnectionStatus;
+      } catch (fetchError) {
+        console.log('Fetch error during connection check, using cached status');
+        // Continue with cached status in case of network error
       }
       
       return connectionStatusRef.current;
@@ -122,7 +150,7 @@ export const useShopify = () => {
       return;
     }
     
-    // Only run this once on mount
+    // Only run this once on mount, and with a significant delay
     const initialCheck = async () => {
       try {
         await checkShopifyConnection();
@@ -131,10 +159,10 @@ export const useShopify = () => {
       }
     };
     
-    // Slight delay to avoid contributing to startup bottleneck
+    // Much longer delay of 10 seconds to avoid startup bottlenecks
     const timer = setTimeout(() => {
       initialCheck();
-    }, 2000);
+    }, 10000);
     
     return () => clearTimeout(timer);
   }, [checkShopifyConnection]);
@@ -145,17 +173,27 @@ export const useShopify = () => {
     const now = Date.now();
     if (now - lastConnectTimeRef.current < CONNECTION_ACTION_THROTTLE) {
       console.log('Reconnect throttled, please wait');
-      return;
+      return false;
     }
+    
+    // Mark redirect in progress
+    setIsRedirecting(true);
     
     // Record connection attempt time
     lastConnectTimeRef.current = now;
     
-    // Redirect to auth flow
-    window.location.href = '/auth/?shop=admin';
+    try {
+      // Redirect to auth flow
+      window.location.href = '/auth/?shop=admin';
+      return true;
+    } catch (error) {
+      console.error('Error during reconnect redirect:', error);
+      setIsRedirecting(false);
+      return false;
+    }
   }, []);
   
-  // Verify connection by making API request
+  // Verify connection by making API request - simplified
   const verifyShopifyConnection = useCallback(async () => {
     // Skip if already checking
     if (requestTrackerRef.current.isInProgress('verify_connection')) {
@@ -184,7 +222,7 @@ export const useShopify = () => {
     }
   }, [checkShopifyConnection]);
   
-  // Simplified reconnection handler
+  // Simplified connection handler
   const refreshConnection = useCallback(async () => {
     // Skip if already refreshing
     if (requestTrackerRef.current.isInProgress('refresh_connection')) {
@@ -247,6 +285,9 @@ export const useShopify = () => {
     isLoading,
     isSyncing,
     connectionStatus,
+    products,
+    error,
+    isRedirecting,
     manualReconnect,
     verifyShopifyConnection,
     refreshConnection,

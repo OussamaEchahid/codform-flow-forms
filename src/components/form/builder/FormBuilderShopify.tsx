@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ShopifyFormData } from '@/lib/shopify/types';
@@ -24,13 +24,11 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   
   // Use refs to track checking state
   const lastCheckTimeRef = useRef<number>(0);
-  const initialCheckPerformedRef = useRef<boolean>(false);
-  const checkInProgressRef = useRef<boolean>(false);
-  const CONNECTION_THROTTLE = 60000; // Increase to 60 seconds minimum between checks
+  const CONNECTION_THROTTLE = 60000; // 60 seconds minimum between checks
   
-  // Reduced connection checking with better performance
-  const handleCheckConnection = useCallback(async () => {
-    if (!refreshConnection || isCheckingConnection || checkInProgressRef.current) return;
+  // Improved connection checking with throttling
+  const handleCheckConnection = async () => {
+    if (!refreshConnection || isCheckingConnection) return;
     
     const now = Date.now();
     
@@ -45,7 +43,6 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     }
     
     setIsCheckingConnection(true);
-    checkInProgressRef.current = true;
     
     try {
       const connected = await refreshConnection();
@@ -62,19 +59,8 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
       toast.error(language === 'ar' ? 'خطأ في التحقق من الاتصال' : 'Connection check error');
     } finally {
       setIsCheckingConnection(false);
-      
-      // Add slight delay before allowing another check
-      setTimeout(() => {
-        checkInProgressRef.current = false;
-      }, 1000);
     }
-  }, [refreshConnection, isCheckingConnection, language]);
-  
-  // Disable initial connection check which was causing issues
-  useEffect(() => {
-    // Skip automatic checking completely
-    initialCheckPerformedRef.current = true;
-  }, []);
+  };
 
   const handleConnectClick = () => {
     if (!isConnected && manualReconnect) {
@@ -120,7 +106,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
               size="sm"
               className="text-xs"
               onClick={handleCheckConnection}
-              disabled={isCheckingConnection || checkInProgressRef.current}
+              disabled={isCheckingConnection}
               type="button"
             >
               {isCheckingConnection ? (
