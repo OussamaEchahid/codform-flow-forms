@@ -1,4 +1,3 @@
-
 /**
  * Utility for managing Shopify connection state and throttling attempts
  */
@@ -90,6 +89,8 @@ export const ShopifyConnectionManager = {
     localStorage.removeItem('shopify_shop');
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_last_check_time');
+    localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('shopify_session_id');
     // Keep the attempt data for throttling
   },
   
@@ -141,14 +142,55 @@ export const ShopifyConnectionManager = {
     
     return false;
   },
-
+  
+  /**
+   * Get the current store we're trying to connect to
+   * Allows storing a temporary store before we have a successful connection
+   */
+  getCurrentStoreTarget(): string | null {
+    // First check for a successfully connected store
+    const connectedStore = localStorage.getItem('shopify_store');
+    if (connectedStore) {
+      return connectedStore;
+    }
+    
+    // Then check for a temporary store we're trying to connect to
+    return localStorage.getItem('shopify_temp_store') || null;
+  },
+  
+  /**
+   * Set a temporary store we want to connect to
+   * This will be used during the auth flow
+   */
+  setTempStore(storeName: string): void {
+    if (!storeName) return;
+    
+    // Clean up the store name
+    let store = storeName.trim();
+    
+    // If it doesn't end with myshopify.com, add it
+    if (!store.endsWith('myshopify.com') && !store.includes('.')) {
+      store = `${store}.myshopify.com`;
+    }
+    
+    console.log(`[ShopifyConnectionManager] Setting temporary store to: ${store}`);
+    localStorage.setItem('shopify_temp_store', store);
+  },
+  
+  /**
+   * Clear the temporary store
+   */
+  clearTempStore(): void {
+    localStorage.removeItem('shopify_temp_store');
+  },
+  
   /**
    * EMERGENCY DISABLE - Completely disable automatic connection checks
    */
   isEmergencyDisabled(): boolean {
     return localStorage.getItem('emergency_disable_shopify_checks') === 'true';
   },
-
+  
   /**
    * Toggle emergency disable mode
    */
@@ -158,7 +200,7 @@ export const ShopifyConnectionManager = {
     console.log(`[ShopifyConnectionManager] Emergency mode ${newValue ? 'ENABLED' : 'DISABLED'}`);
     return newValue;
   },
-
+  
   /**
    * Set an initial disabled state if connection storm is detected
    */

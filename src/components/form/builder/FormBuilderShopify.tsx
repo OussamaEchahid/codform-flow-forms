@@ -3,9 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
-import { RefreshCcw, AlertCircle, CheckCircle } from 'lucide-react';
+import { RefreshCcw, AlertCircle, CheckCircle, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
+import { Input } from '@/components/ui/input';
 
 interface FormBuilderShopifyProps {
   onShopifyIntegration?: (settings: any) => Promise<void>;
@@ -24,6 +25,15 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const hasAttemptedConnection = useRef(false);
+  const [shopDomain, setShopDomain] = useState('');
+  
+  // Load any existing temporary store when component mounts
+  useEffect(() => {
+    const tempStore = ShopifyConnectionManager.getCurrentStoreTarget();
+    if (tempStore) {
+      setShopDomain(tempStore);
+    }
+  }, []);
   
   // Connection checking with throttling
   const handleCheckConnection = async () => {
@@ -61,8 +71,11 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   };
 
   const handleConnectClick = () => {
-    // Only attempt once per component instance to prevent loops
-    if (hasAttemptedConnection.current) {
+    // Check if we have a shop domain
+    if (!shopDomain) {
+      toast.error(language === 'ar' 
+        ? 'يرجى إدخال اسم المتجر' 
+        : 'Please enter a shop domain');
       return;
     }
     
@@ -87,18 +100,20 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
     setIsConnecting(true);
     setLastAttemptTime(Date.now());
     
-    if (!isConnected && manualReconnect) {
-      // Execute the reconnect function
-      try {
-        manualReconnect(); // Don't check return value, the function is void
-        // manualReconnect will handle redirection
-      } catch (err) {
-        console.error('Error initiating Shopify connection:', err);
-        toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');
-        setTimeout(() => {
-          setIsConnecting(false);
-        }, 1000);
-      }
+    // Save the store domain as the temporary target
+    ShopifyConnectionManager.setTempStore(shopDomain);
+    
+    try {
+      // Use the provided reconnect function with our shop domain
+      const clientUrl = window.location.origin;
+      const redirectUrl = `/auth?shop=${encodeURIComponent(shopDomain)}&timestamp=${Date.now()}&client=${encodeURIComponent(clientUrl)}`;
+      window.location.href = redirectUrl;
+    } catch (err) {
+      console.error('Error initiating Shopify connection:', err);
+      toast.error(language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Error connecting to Shopify');
+      setTimeout(() => {
+        setIsConnecting(false);
+      }, 1000);
     }
   };
 
@@ -115,21 +130,47 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
               'You need to connect to Shopify to use this feature.'}
             </p>
           </div>
-          <Button 
-            onClick={handleConnectClick}
-            className="w-full"
-            disabled={isSyncing || isConnecting}
-            type="button"
-          >
-            {isConnecting ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
+          
+          <div className="space-y-2">
+            <div>
+              <label htmlFor="formShopDomain" className="block text-sm font-medium text-gray-700 mb-1">
+                {language === 'ar' ? 'اسم المتجر' : 'Shop Domain'}
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="formShopDomain"
+                  placeholder="your-store.myshopify.com"
+                  value={shopDomain}
+                  onChange={(e) => setShopDomain(e.target.value)}
+                  className="flex-1"
+                  disabled={isConnecting}
+                />
+                <Button 
+                  onClick={handleConnectClick}
+                  disabled={isSyncing || isConnecting || !shopDomain}
+                  type="button"
+                  className="whitespace-nowrap"
+                >
+                  {isConnecting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
+                    </div>
+                  ) : (
+                    <>
+                      <Store className="h-4 w-4 mr-1" />
+                      {t('shopify.connect_now') || 'Connect'}
+                    </>
+                  )}
+                </Button>
               </div>
-            ) : (
-              t('shopify.connect_now') || 'Connect to Shopify'
-            )}
-          </Button>
+              <p className="text-xs text-gray-500 mt-1">
+                {language === 'ar' 
+                  ? 'أدخل اسم متجر Shopify الخاص بك (مثال: your-store.myshopify.com)'
+                  : 'Enter your Shopify store domain (e.g., your-store.myshopify.com)'}
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

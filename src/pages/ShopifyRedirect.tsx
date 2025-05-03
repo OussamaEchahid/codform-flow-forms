@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
+import { ShopifyConnectionManager } from '@/utils/shopifyConnectionManager';
 
 const ShopifyRedirect = () => {
   const navigate = useNavigate();
@@ -24,9 +25,24 @@ const ShopifyRedirect = () => {
         
         // If we have a shop parameter, store it
         if (shop) {
+          // Before setting the connected store, check if it matches the temp store we expected
+          const tempStore = ShopifyConnectionManager.getCurrentStoreTarget();
+          
+          if (tempStore && tempStore !== shop && !tempStore.includes(shop) && !shop.includes(tempStore)) {
+            console.warn(`[ShopifyRedirect] Received shop (${shop}) doesn't match the expected temporary store (${tempStore})`);
+            // Log it but continue anyway - don't block the flow
+          }
+          
+          // Store the connected shop
           localStorage.setItem('shopify_store', shop);
           localStorage.setItem('shopify_connected', 'true');
           localStorage.setItem('shopify_last_connect_time', Date.now().toString());
+          
+          // Clear the temporary store as we now have a proper connection
+          ShopifyConnectionManager.clearTempStore();
+          
+          // Reset connection attempts as we succeeded
+          ShopifyConnectionManager.resetAttempts();
           
           // Refresh the connection status in the auth context
           if (refreshShopifyConnection) {
