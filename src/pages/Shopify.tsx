@@ -3,37 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { AlertCircle, ShoppingBag, CheckCircle, ExternalLink, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-// تنظيف نطاق المتجر
-function cleanShopDomain(shop: string): string {
-  let cleanedShop = shop.trim();
-  
-  // إزالة البروتوكول إذا كان موجوداً
-  if (cleanedShop.startsWith('http')) {
-    try {
-      const url = new URL(cleanedShop);
-      cleanedShop = url.hostname;
-      console.log("تنظيف عنوان متجر:", cleanedShop);
-    } catch (e) {
-      console.error("خطأ في تنظيف عنوان URL للمتجر:", e);
-    }
-  }
-  
-  // التأكد من أنه ينتهي بـ myshopify.com
-  if (!cleanedShop.endsWith('myshopify.com')) {
-    if (!cleanedShop.includes('.')) {
-      cleanedShop = `${cleanedShop}.myshopify.com`;
-      console.log("إضافة .myshopify.com للمتجر:", cleanedShop);
-    }
-  }
-  
-  return cleanedShop;
-}
+import { cleanShopifyDomain } from '@/lib/shopify/types';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 // مكوّن لعرض معلومات التصحيح
 const DebugPanel = ({ data }: { data: any }) => {
@@ -105,7 +80,9 @@ const Shopify = () => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
-  const { shopifyConnected, shop, shops } = useAuth();
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [shop, setShop] = useState<string | null>(null);
+  const [shops, setShops] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -122,9 +99,22 @@ const Shopify = () => {
     const shopifySuccess = params.get("shopify_success");
     const authError = params.get("auth_error");
     
+    // الحصول على حالة المتجر من localStorage
+    const storedShop = localStorage.getItem('shopify_store');
+    const isConnected = localStorage.getItem('shopify_connected') === 'true';
+    
+    // الحصول على حالة المتجر من مدير الاتصال
+    const activeStore = shopifyConnectionManager.getActiveStore();
+    const allStores = shopifyConnectionManager.getAllStores();
+    
     if (shopParam) {
       setShopInput(shopParam);
     }
+    
+    // تعيين حالة الاتصال بـ Shopify
+    setShopifyConnected(isConnected);
+    setShop(activeStore);
+    setShops(allStores.map(store => store.domain));
     
     // بيانات لوحة التصحيح
     setDebugInfo({
@@ -133,15 +123,18 @@ const Shopify = () => {
       shopParam,
       shopifySuccess,
       authError,
-      shopifyConnected,
-      shop,
-      shops: shops || [],
+      shopifyConnected: isConnected,
+      shop: activeStore,
+      shops: allStores.map(store => store.domain),
       userAgent: navigator.userAgent,
       url: window.location.href,
       localStorage: {
-        shopify_store: localStorage.getItem('shopify_store'),
-        shopify_connected: localStorage.getItem('shopify_connected'),
+        shopify_store: storedShop,
+        shopify_connected: isConnected ? 'true' : 'false',
         shopify_temp_store: localStorage.getItem('shopify_temp_store'),
+        shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
+        shopify_active_store: localStorage.getItem('shopify_active_store'),
+        shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
       }
     });
 
@@ -165,12 +158,12 @@ const Shopify = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [location.search, navigate, shop, shopifyConnected, shops]);
+  }, [location.search, navigate]);
 
   // دالة للاتصال باستخدام النافذة المنبثقة
   const connectWithPopup = async () => {
     try {
-      const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
+      const cleanedShop = shopInput ? cleanShopifyDomain(shopInput) : '';
       
       if (!cleanedShop) {
         setError('يرجى إدخال اسم متجر Shopify الخاص بك');
@@ -242,41 +235,62 @@ const Shopify = () => {
         console.error('خطأ في استدعاء API:', e);
         
         // الرجوع إلى استخدام URL المباشر إذا فشل استدعاء الدالة
-        const authUrl = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
-        
-        const popup = window.open(
-          authUrl,
-          'ShopifyAuth',
-          `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
-        );
-        
-        if (popup) {
-          setPopupWindow(popup);
-          setAuthStarted(true);
+        try {
+          // محاولة استدعاء مباشر
+          const authResponse = await fetch(
+            `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`, 
+            { method: 'GET' }
+          );
           
-          // التحقق من إغلاق النافذة المنبثقة
-          const checkPopup = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(checkPopup);
-              setIsProcessing(false);
+          if (!authResponse.ok) {
+            throw new Error(`فشل استدعاء API: ${authResponse.statusText}`);
+          }
+          
+          const authData = await authResponse.json();
+          
+          if (authData.redirect) {
+            const popup = window.open(
+              authData.redirect,
+              'ShopifyAuth',
+              `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
+            );
+            
+            if (popup) {
+              setPopupWindow(popup);
+              setAuthStarted(true);
               
-              // التحقق مما إذا كان الاتصال ناجحًا بعد إغلاق النافذة المنبثقة
-              setTimeout(() => {
-                const connected = localStorage.getItem('shopify_connected');
-                const storeUrl = localStorage.getItem('shopify_store');
-                
-                if (connected === 'true' && storeUrl) {
-                  toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
-                  window.location.reload();
-                } else {
-                  setError('تم إغلاق نافذة المصادقة قبل إكمال العملية');
+              // التحقق من إغلاق النافذة المنبثقة
+              const checkPopup = setInterval(() => {
+                if (popup.closed) {
+                  clearInterval(checkPopup);
+                  setIsProcessing(false);
+                  
+                  // التحقق مما إذا كان الاتصال ناجحًا بعد إغلاق النافذة المنبثقة
+                  setTimeout(() => {
+                    const connected = localStorage.getItem('shopify_connected');
+                    const storeUrl = localStorage.getItem('shopify_store');
+                    
+                    if (connected === 'true' && storeUrl) {
+                      toast.success(`تم الاتصال بمتجر ${storeUrl} بنجاح`);
+                      window.location.reload();
+                    } else {
+                      setError('تم إغلاق نافذة المصادقة قبل إكمال العملية');
+                    }
+                  }, 500);
                 }
               }, 500);
+            } else {
+              setError('تم حظر النوافذ المنبثقة من قبل المتصفح. يرجى السماح بها وإعادة المحاولة.');
+              setIsProcessing(false);
             }
-          }, 500);
-        } else {
-          setError('تم حظر النوافذ المنبثقة من قبل المتصفح. يرجى السماح بها وإعادة المحاولة.');
-          setIsProcessing(false);
+          } else {
+            throw new Error("لم يتم استلام عنوان URL للمصادقة");
+          }
+        } catch (directError) {
+          console.error("فشل النهج المباشر:", directError);
+          
+          // استخدام كخطة احتياطية نهائية
+          window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&_t=${Date.now()}`;
         }
       }
     } catch (e) {
@@ -289,7 +303,7 @@ const Shopify = () => {
   // دالة لإعادة التوجيه إلى صفحة كاملة للمصادقة
   const connectDirectly = () => {
     try {
-      const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
+      const cleanedShop = shopInput ? cleanShopifyDomain(shopInput) : '';
       
       if (!cleanedShop) {
         setError('يرجى إدخال اسم متجر Shopify الخاص بك');
@@ -319,7 +333,7 @@ const Shopify = () => {
   // تجربة المصادقة المباشرة مع نقطة نهاية الخادم
   const tryServerAuth = () => {
     try {
-      const cleanedShop = shopInput ? cleanShopDomain(shopInput) : '';
+      const cleanedShop = shopInput ? cleanShopifyDomain(shopInput) : '';
       
       if (!cleanedShop) {
         setError('يرجى إدخال اسم متجر Shopify الخاص بك');

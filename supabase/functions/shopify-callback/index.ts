@@ -2,18 +2,18 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Replace these with your actual Supabase URL and key
+// إعدادات Supabase
 const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
 
-// The Shopify app credentials
+// إعدادات تطبيق Shopify
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-// Our app's URL
+// عنوان URL لتطبيقنا
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// CORS headers
+// إعداد عناوين CORS
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -23,14 +23,11 @@ const corsHeaders = {
   "Expires": "0",
 };
 
-// Initialize Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Function to clean shop domain
+// دالة لتنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
   let cleanedShop = shop.trim();
   
-  // Remove protocol if present
+  // إزالة البروتوكول إذا كان موجوداً
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
@@ -40,7 +37,7 @@ function cleanShopDomain(shop: string): string {
     }
   }
   
-  // Ensure it ends with myshopify.com
+  // التأكد من أنه ينتهي بـ myshopify.com
   if (!cleanedShop.endsWith('myshopify.com')) {
     if (!cleanedShop.includes('.')) {
       cleanedShop = `${cleanedShop}.myshopify.com`;
@@ -51,16 +48,16 @@ function cleanShopDomain(shop: string): string {
 }
 
 serve(async (req) => {
-  // Log the full request for debugging
+  // سجل الطلب كاملاً للتصحيح
   console.log("Callback received:", {
     url: req.url,
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
   });
 
-  // Handle CORS preflight requests
+  // التعامل مع طلبات CORS
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 200 });
   }
 
   try {
@@ -82,24 +79,59 @@ serve(async (req) => {
     });
     
     if (!shop || !code) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Missing required parameters",
-          params: Object.fromEntries(url.searchParams.entries()),
-          timestamp
-        }), 
-        { status: 400, headers: corsHeaders }
-      );
+      // إذا كان الطلب من واجهة المستخدم (نوع POST)
+      if (req.method === "POST") {
+        try {
+          const body = await req.json();
+          console.log("POST body:", body);
+          
+          shop = body.shop;
+          const codeFromBody = body.code;
+          const hmacFromBody = body.hmac;
+          const stateFromBody = body.state;
+          
+          if (!shop || !codeFromBody) {
+            throw new Error("Missing required parameters in POST body");
+          }
+          
+          // استخدام القيم من body إذا لم تكن متوفرة في URL
+          if (!code) code = codeFromBody;
+          if (!hmac) hmac = hmacFromBody;
+          if (!state) state = stateFromBody;
+        } catch (jsonError) {
+          console.error("Error parsing POST body:", jsonError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Invalid request format or missing required parameters",
+              success: false,
+              timestamp
+            }), 
+            { status: 400, headers: corsHeaders }
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            error: "Missing required parameters",
+            params: Object.fromEntries(url.searchParams.entries()),
+            success: false,
+            timestamp
+          }), 
+          { status: 400, headers: corsHeaders }
+        );
+      }
     }
     
-    // Clean shop domain
+    // تنظيف نطاق المتجر
     shop = cleanShopDomain(shop);
     console.log("Cleaned shop domain for callback:", shop);
     
     try {
-      // Verify state if needed
+      // التحقق من حالة المصادقة إن وجدت
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      
       if (state) {
-        // Check if the state exists in our database
+        // التحقق من وجود حالة المصادقة في قاعدة البيانات
         const { data: stateRecord, error: stateError } = await supabase
           .from('shopify_auth')
           .select('*')
@@ -108,7 +140,7 @@ serve(async (req) => {
         
         if (stateError) {
           console.log("Error checking state:", stateError);
-          // Continue anyway, don't fail the authentication just because of state verification
+          // استمر على أي حال، لا تفشل المصادقة فقط بسبب التحقق من الحالة
         } else if (stateRecord) {
           console.log("State verified successfully:", stateRecord);
         } else {
@@ -116,7 +148,7 @@ serve(async (req) => {
         }
       }
     
-      // Exchange code for access token
+      // استبدال الرمز بتوكن الوصول
       const accessTokenResponse = await fetch(
         `https://${shop}/admin/oauth/access_token`,
         {
@@ -139,13 +171,17 @@ serve(async (req) => {
       const tokenData = await accessTokenResponse.json();
       console.log("Token data received:", { ...tokenData, access_token: "REDACTED" });
       
+      // حفظ الرمز المميز (token) في قاعدة البيانات Supabase
       try {
-        // Store the token in Supabase
-        const { data: userData, error: userError } = await supabase.auth.getUser();
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         
+        // الحصول على معلومات المستخدم الحالي إن وجدت
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         const userId = userData?.user?.id;
+        
         console.log("Current user:", userId || "No authenticated user");
         
+        // بيانات المتجر للحفظ
         const storeData = {
           shop,
           access_token: tokenData.access_token,
@@ -154,13 +190,13 @@ serve(async (req) => {
           is_active: true
         };
         
-        // Add user_id if available
+        // إضافة معرف المستخدم إن وجد
         if (userId) {
           Object.assign(storeData, { user_id: userId });
         }
         
-        // Use upsert to handle both new stores and updates
-        const { error: upsertError, data: insertedStore } = await supabase
+        // استخدام عملية upsert للتعامل مع المتاجر الجديدة والتحديثات
+        const { error: upsertError } = await supabase
           .from('shopify_stores')
           .upsert(storeData, { 
             onConflict: 'shop', 
@@ -169,29 +205,30 @@ serve(async (req) => {
           
         if (upsertError) {
           console.error("Error storing token:", upsertError);
-          // Continue anyway, we got the token which is the important part
+          // استمر على أي حال، حصلنا على الرمز وهو الجزء المهم
         } else {
           console.log("Token stored successfully");
         }
       } catch (storeError) {
         console.error("Error in store operation:", storeError);
-        // Continue anyway
+        // استمر على أي حال
       }
       
-      // Clean up the temporary state record
+      // تنظيف سجل الحالة المؤقت
       if (state) {
         try {
           await supabase
             .from('shopify_auth')
             .delete()
             .eq('state', state);
+          console.log("Temporary state record cleaned up");
         } catch (cleanupError) {
           console.log("Error cleaning up state record:", cleanupError);
-          // Non-critical error, continue
+          // خطأ غير حرج، استمر
         }
       }
       
-      // Return HTML for closing popup if it's in a popup
+      // إعادة استجابة HTML لإغلاق النافذة المنبثقة إذا كانت في نافذة منبثقة
       if (isPopup) {
         const htmlResponse = `
         <!DOCTYPE html>
@@ -199,14 +236,14 @@ serve(async (req) => {
         <head>
           <title>تمت المصادقة بنجاح</title>
           <script>
-            // Send message to parent window about successful auth
+            // إرسال رسالة إلى النافذة الأم حول نجاح المصادقة
             if (window.opener) {
               window.opener.postMessage({
                 type: 'shopify:auth:success',
                 shop: '${shop}',
               }, '*');
               
-              // Store shop info in localStorage before closing
+              // تخزين معلومات المتجر في localStorage قبل الإغلاق
               try {
                 localStorage.setItem('shopify_store', '${shop}');
                 localStorage.setItem('shopify_connected', 'true');
@@ -215,12 +252,12 @@ serve(async (req) => {
                 console.error('Error saving to localStorage:', e);
               }
               
-              // Close the popup after a short delay
+              // إغلاق النافذة المنبثقة بعد تأخير قصير
               setTimeout(function() {
                 window.close();
               }, 1000);
             } else {
-              // If not in popup, redirect
+              // إذا لم تكن في نافذة منبثقة، إعادة التوجيه
               window.location.href = '${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}';
             }
           </script>
@@ -260,7 +297,7 @@ serve(async (req) => {
         });
       }
       
-      // Otherwise, redirect back to the app
+      // إعادة التوجيه إلى التطبيق
       const redirectUrl = `${APP_URL}/dashboard?shopify_success=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}`;
       console.log("Redirecting back to app:", redirectUrl);
       
@@ -271,7 +308,7 @@ serve(async (req) => {
           redirect: redirectUrl,
           timestamp
         }),
-        { headers: corsHeaders }
+        { status: 200, headers: corsHeaders }
       );
     } catch (error) {
       console.error("Error in Shopify OAuth flow:", error);
@@ -279,6 +316,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: error instanceof Error ? error.message : "Unknown error in OAuth flow",
           errorType: error instanceof Error ? error.name : "Unknown",
+          success: false,
           timestamp: new Date().toISOString()
         }),
         { status: 500, headers: corsHeaders }
@@ -290,6 +328,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Critical error in callback handler",
         errorDetails: error instanceof Error ? error.stack : "Unknown stack",
+        success: false,
         timestamp: new Date().toISOString()
       }),
       { status: 500, headers: corsHeaders }

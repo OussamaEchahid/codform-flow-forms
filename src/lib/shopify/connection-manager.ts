@@ -4,173 +4,155 @@ import { ShopifyStoreConnection, ShopifyConnectionManager } from "./types";
 // المفتاح الذي سيتم استخدامه لتخزين المتاجر في localStorage
 const STORES_STORAGE_KEY = 'shopify_connected_stores';
 const ACTIVE_STORE_KEY = 'shopify_active_store';
+const EMERGENCY_MODE_KEY = 'shopify_emergency_mode';
 
 // وظيفة لتحميل المتاجر من localStorage
 const loadStores = (): ShopifyStoreConnection[] => {
   try {
     const storesJson = localStorage.getItem(STORES_STORAGE_KEY);
-    return storesJson ? JSON.parse(storesJson) : [];
-  } catch (error) {
-    console.error('Error loading Shopify stores from localStorage:', error);
-    return [];
+    if (storesJson) {
+      return JSON.parse(storesJson);
+    }
+  } catch (e) {
+    console.error("Error loading stores from localStorage:", e);
   }
+  return [];
 };
 
 // وظيفة لحفظ المتاجر في localStorage
 const saveStores = (stores: ShopifyStoreConnection[]): void => {
   try {
     localStorage.setItem(STORES_STORAGE_KEY, JSON.stringify(stores));
-  } catch (error) {
-    console.error('Error saving Shopify stores to localStorage:', error);
+  } catch (e) {
+    console.error("Error saving stores to localStorage:", e);
   }
 };
 
-// وظيفة لحفظ المتجر النشط في localStorage
-const saveActiveStore = (shop: string | undefined): void => {
-  try {
-    if (shop) {
-      localStorage.setItem(ACTIVE_STORE_KEY, shop);
+// تنفيذ لمدير الاتصال بـ Shopify
+export const shopifyConnectionManager: ShopifyConnectionManager = {
+  // إضافة متجر جديد أو تحديث متجر موجود
+  addOrUpdateStore: (shopDomain: string, isActive = false) => {
+    const stores = loadStores();
+    const existingStoreIndex = stores.findIndex(store => store.domain === shopDomain);
+    
+    if (existingStoreIndex >= 0) {
+      // تحديث المتجر الموجود
+      stores[existingStoreIndex] = {
+        ...stores[existingStoreIndex],
+        lastConnected: new Date().toISOString(),
+        isActive: isActive
+      };
     } else {
-      localStorage.removeItem(ACTIVE_STORE_KEY);
+      // إضافة متجر جديد
+      stores.push({
+        domain: shopDomain,
+        lastConnected: new Date().toISOString(),
+        isActive: isActive
+      });
     }
-  } catch (error) {
-    console.error('Error saving active Shopify store to localStorage:', error);
-  }
-};
-
-// وظيفة لتحميل المتجر النشط من localStorage
-const loadActiveStore = (): string | undefined => {
-  try {
-    return localStorage.getItem(ACTIVE_STORE_KEY) || undefined;
-  } catch (error) {
-    console.error('Error loading active Shopify store from localStorage:', error);
-    return undefined;
-  }
-};
-
-// إنشاء مدير الاتصال بمتاجر Shopify
-export const createConnectionManager = (): ShopifyConnectionManager => {
-  // تحميل المتاجر والمتجر النشط من localStorage
-  const stores = loadStores();
-  let activeStore = loadActiveStore();
-
-  // التأكد من أن المتجر النشط موجود في قائمة المتاجر
-  if (activeStore && !stores.some(store => store.shop === activeStore)) {
-    activeStore = stores.length > 0 ? stores[0].shop : undefined;
-    saveActiveStore(activeStore);
-  }
-
-  const connectionManager: ShopifyConnectionManager = {
-    stores,
-    activeStore,
-
-    // إضافة متجر جديد
-    addStore: (shop: string) => {
-      // التحقق إذا كان المتجر موجود بالفعل
-      const existingStoreIndex = connectionManager.stores.findIndex(
-        store => store.shop === shop
-      );
-
-      if (existingStoreIndex >= 0) {
-        // تحديث المتجر الموجود
-        connectionManager.stores[existingStoreIndex] = {
-          ...connectionManager.stores[existingStoreIndex],
-          lastUsed: new Date().toISOString(),
-        };
-      } else {
-        // إضافة متجر جديد
-        connectionManager.stores.push({
-          shop,
-          isActive: true,
-          connectedAt: new Date().toISOString(),
-          lastUsed: new Date().toISOString(),
-        });
-      }
-
-      // إذا لم يكن هناك متجر نشط، قم بتعيين المتجر الجديد كنشط
-      if (!connectionManager.activeStore) {
-        connectionManager.activeStore = shop;
-        saveActiveStore(shop);
-      }
-
-      // حفظ المتاجر
-      saveStores(connectionManager.stores);
-    },
-
-    // تعيين متجر كنشط
-    setActiveStore: (shop: string) => {
-      // التأكد من أن المتجر موجود
-      const storeExists = connectionManager.stores.some(store => store.shop === shop);
-      if (!storeExists) {
-        throw new Error(`Cannot set active store: Store ${shop} does not exist`);
-      }
-
+    
+    // حفظ التغييرات
+    saveStores(stores);
+    
+    // إذا كان المتجر نشطًا، قم بتعيينه كمتجر نشط
+    if (isActive) {
+      localStorage.setItem(ACTIVE_STORE_KEY, shopDomain);
+      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem('shopify_connected', 'true');
+    }
+    
+    return true;
+  },
+  
+  // الحصول على المتجر النشط
+  getActiveStore: () => {
+    const activeStore = localStorage.getItem(ACTIVE_STORE_KEY) || localStorage.getItem('shopify_store');
+    return activeStore || null;
+  },
+  
+  // إعداد المتجر النشط
+  setActiveStore: (shopDomain: string) => {
+    const stores = loadStores();
+    
+    // التحقق من وجود المتجر في القائمة
+    const storeExists = stores.some(store => store.domain === shopDomain);
+    
+    if (storeExists) {
       // تحديث المتجر النشط
-      connectionManager.activeStore = shop;
-      saveActiveStore(shop);
-
-      // تحديث حالة النشاط وتحديث وقت آخر استخدام لجميع المتاجر
-      connectionManager.stores = connectionManager.stores.map(store => ({
+      const updatedStores = stores.map(store => ({
         ...store,
-        isActive: store.shop === shop,
-        lastUsed: store.shop === shop ? new Date().toISOString() : store.lastUsed
+        isActive: store.domain === shopDomain
       }));
       
-      saveStores(connectionManager.stores);
-    },
-
-    // إزالة متجر
-    removeStore: (shop: string) => {
-      // حذف المتجر من القائمة
-      connectionManager.stores = connectionManager.stores.filter(store => store.shop !== shop);
-      saveStores(connectionManager.stores);
-
-      // إذا كان المتجر المحذوف هو النشط، قم بتعيين متجر آخر كنشط
-      if (connectionManager.activeStore === shop) {
-        connectionManager.activeStore = connectionManager.stores.length > 0 
-          ? connectionManager.stores[0].shop 
-          : undefined;
-        saveActiveStore(connectionManager.activeStore);
-      }
-    },
-
-    // الحصول على المتجر النشط
-    getActiveStore: () => {
-      if (!connectionManager.activeStore) return undefined;
-      return connectionManager.stores.find(store => store.shop === connectionManager.activeStore);
-    },
-
-    // الحصول على جميع المتاجر
-    getAllStores: () => {
-      return [...connectionManager.stores];
+      // حفظ التغييرات
+      saveStores(updatedStores);
+      localStorage.setItem(ACTIVE_STORE_KEY, shopDomain);
+      localStorage.setItem('shopify_store', shopDomain);
+      localStorage.setItem('shopify_connected', 'true');
+      
+      return true;
     }
-  };
-
-  return connectionManager;
-};
-
-// تصدير مدير الاتصال لاستخدامه في أي مكان في التطبيق
-export const shopifyConnectionManager = createConnectionManager();
-
-// التوافق مع النظام القديم - للتسهيل أثناء الانتقال
-export const setupLegacyCompatibility = () => {
-  // إعداد التوافق مع النظام القديم
-  const activeStore = shopifyConnectionManager.getActiveStore();
-  
-  if (activeStore) {
-    // حفظ المتجر النشط في المفاتيح القديمة للحفاظ على التوافق
-    localStorage.setItem('shopify_store', activeStore.shop);
-    localStorage.setItem('shopify_connected', 'true');
-  } else {
-    // استعادة المعلومات من المفاتيح القديمة إذا كانت موجودة
-    const legacyShop = localStorage.getItem('shopify_store');
-    const legacyConnected = localStorage.getItem('shopify_connected');
     
-    if (legacyShop && legacyConnected === 'true') {
-      shopifyConnectionManager.addStore(legacyShop);
+    return false;
+  },
+  
+  // الحصول على جميع المتاجر
+  getAllStores: () => {
+    return loadStores();
+  },
+  
+  // حذف متجر
+  removeStore: (shopDomain: string) => {
+    const stores = loadStores();
+    const updatedStores = stores.filter(store => store.domain !== shopDomain);
+    
+    // إذا كان المتجر المحذوف هو النشط، قم بإزالة المتجر النشط
+    if (localStorage.getItem(ACTIVE_STORE_KEY) === shopDomain) {
+      localStorage.removeItem(ACTIVE_STORE_KEY);
+      
+      // إذا كانت هناك متاجر متبقية، قم بتعيين أول متجر كنشط
+      if (updatedStores.length > 0) {
+        localStorage.setItem(ACTIVE_STORE_KEY, updatedStores[0].domain);
+        localStorage.setItem('shopify_store', updatedStores[0].domain);
+      } else {
+        localStorage.removeItem('shopify_store');
+        localStorage.removeItem('shopify_connected');
+      }
     }
+    
+    // حفظ التغييرات
+    saveStores(updatedStores);
+    
+    return updatedStores.length !== stores.length;
+  },
+  
+  // مسح جميع المتاجر
+  clearAllStores: () => {
+    localStorage.removeItem(STORES_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_STORE_KEY);
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_connected');
+    
+    return true;
+  },
+  
+  // التحقق مما إذا كان وضع الطوارئ مفعلاً
+  isEmergencyMode: () => {
+    return localStorage.getItem(EMERGENCY_MODE_KEY) === 'true';
+  },
+  
+  // تمكين وضع الطوارئ
+  enableEmergencyMode: () => {
+    localStorage.setItem(EMERGENCY_MODE_KEY, 'true');
+    return true;
+  },
+  
+  // تعطيل وضع الطوارئ
+  disableEmergencyMode: () => {
+    localStorage.removeItem(EMERGENCY_MODE_KEY);
+    return true;
   }
 };
 
-// إعداد التوافق مع النظام القديم عند تحميل الملف
-setupLegacyCompatibility();
+// صادر مدير الاتصال افتراضياً
+export default shopifyConnectionManager;

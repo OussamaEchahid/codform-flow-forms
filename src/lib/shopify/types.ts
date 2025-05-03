@@ -1,99 +1,63 @@
 
-export interface ShopifyProduct {
-  id: string;
-  title: string;
-  handle: string;
-  price: string;
-  images: string[];
-  variants: ShopifyVariant[];
-}
+// نوع لتمثيل اتصال متجر Shopify
+export type ShopifyStoreConnection = {
+  domain: string;          // نطاق المتجر مثل store.myshopify.com
+  lastConnected: string;   // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
+  isActive: boolean;       // ما إذا كان هذا هو المتجر النشط حالياً
+};
 
-export interface ShopifyVariant {
-  id: string;
-  title: string;
-  price: string;
-  available: boolean;
-}
-
-export interface ShopifyOrder {
-  id: string;
-  name: string;
-  total_price: string;
-  created_at: string;
-  items: ShopifyLineItem[];
-  customer?: ShopifyCustomer;
-}
-
-export interface ShopifyLineItem {
-  id: string;
-  product_id: string;
-  variant_id: string;
-  title: string;
-  quantity: number;
-  price: string;
-  total: string;
-}
-
-export interface ShopifyCustomer {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-}
-
-export interface ShopifyFormData {
-  formId: string;
-  shopDomain: string;
-  settings: {
-    position: 'product-page' | 'cart-page' | 'checkout';
-    style: {
-      primaryColor: string;
-      fontSize: string;
-      borderRadius: string;
-    };
-    products?: string[];
-    blockId?: string;
-  };
-}
-
-// إضافة أنواع للاتصال API بشوبيفاي
-export interface ShopifyAPIResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface ProductSettingsRequest {
-  productId: string;
-  formId: string;
-  enabled: boolean;
-  blockId?: string;
-}
-
-export interface ProductSettingsResponse {
-  success?: boolean;
-  error?: string;
-  productId?: string;
-  formId?: string;
-  blockId?: string;
-}
-
-// إضافة أنواع جديدة لدعم متاجر متعددة
-export interface ShopifyStoreConnection {
-  shop: string;
-  isActive: boolean;
-  connectedAt: string;
-  lastUsed?: string;
-}
-
+// واجهة لمدير اتصال Shopify
 export interface ShopifyConnectionManager {
-  stores: ShopifyStoreConnection[];
-  activeStore?: string;
-  addStore: (shop: string) => void;
-  setActiveStore: (shop: string) => void;
-  removeStore: (shop: string) => void;
-  getActiveStore: () => ShopifyStoreConnection | undefined;
-  getAllStores: () => ShopifyStoreConnection[];
+  // إضافة متجر جديد أو تحديث متجر موجود
+  addOrUpdateStore(shopDomain: string, isActive?: boolean): boolean;
+  
+  // الحصول على المتجر النشط
+  getActiveStore(): string | null;
+  
+  // تعيين المتجر النشط
+  setActiveStore(shopDomain: string): boolean;
+  
+  // الحصول على جميع المتاجر
+  getAllStores(): ShopifyStoreConnection[];
+  
+  // حذف متجر
+  removeStore(shopDomain: string): boolean;
+  
+  // مسح جميع المتاجر
+  clearAllStores(): boolean;
+  
+  // التحقق مما إذا كان وضع الطوارئ مفعلاً
+  isEmergencyMode(): boolean;
+  
+  // تمكين وضع الطوارئ
+  enableEmergencyMode(): boolean;
+  
+  // تعطيل وضع الطوارئ
+  disableEmergencyMode(): boolean;
 }
+
+// دالة مساعدة لتنظيف اسم نطاق المتجر
+export const cleanShopifyDomain = (domain: string): string => {
+  if (!domain) return "";
+  
+  let cleanedDomain = domain.trim();
+  
+  // إزالة البروتوكول إذا كان موجوداً
+  if (cleanedDomain.startsWith('http')) {
+    try {
+      const url = new URL(cleanedDomain);
+      cleanedDomain = url.hostname;
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // التأكد من الانتهاء بـ myshopify.com
+  if (!cleanedDomain.endsWith('myshopify.com')) {
+    if (!cleanedDomain.includes('.')) {
+      cleanedDomain = `${cleanedDomain}.myshopify.com`;
+    }
+  }
+  
+  return cleanedDomain;
+};
