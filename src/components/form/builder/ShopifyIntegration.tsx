@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -7,6 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Select,
@@ -15,9 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
-import { Loader } from 'lucide-react';
+import { Loader, AlertCircle, Info, Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
@@ -35,41 +41,118 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { language } = useI18n();
   const { shopifyConnected, shop } = useAuth();
-  const [position, setPosition] = React.useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
+  const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
   const { products, isLoading: loadingProducts } = useShopify();
-  const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
-  const [blockId, setBlockId] = React.useState<string>('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [blockId, setBlockId] = useState<string>('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   
-  // Generate a random block ID if not already set
+  // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
   React.useEffect(() => {
     if (!blockId) {
       const randomId = Math.random().toString(36).substring(2, 10);
       setBlockId(`codform-${randomId}`);
     }
   }, [blockId]);
+
+  // التحقق من حالة الاتصال بالمتجر
+  React.useEffect(() => {
+    if (shopifyConnected && shop) {
+      setConnectionStatus('success');
+    } else {
+      setConnectionStatus('idle');
+    }
+  }, [shopifyConnected, shop]);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!shopifyConnected || !shop) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
       return;
     }
-
-    onSave({
-      formId,
-      shopDomain: shop,
-      settings: {
-        position,
-        style: {
-          primaryColor: '#000000',
-          fontSize: '16px',
-          borderRadius: '4px',
+    
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      setConnectionStatus('checking');
+      
+      // تسجيل بيانات النموذج للتصحيح
+      const formData = {
+        formId,
+        shopDomain: shop,
+        settings: {
+          position,
+          style: {
+            primaryColor: '#000000',
+            fontSize: '16px',
+            borderRadius: '4px',
+          },
+          products: selectedProducts,
+          blockId: blockId
         },
-        products: selectedProducts,
-        blockId: blockId
-      },
-    });
+      };
+      
+      console.log('Saving Shopify integration with data:', formData);
+      
+      // استدعاء وظيفة الحفظ المقدمة من المكون الأب
+      await onSave(formData);
+      setConnectionStatus('success');
+      
+      toast.success(language === 'ar' 
+        ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+        : 'Shopify settings saved successfully');
+    } catch (error) {
+      console.error('Error saving Shopify settings:', error);
+      setConnectionStatus('error');
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : language === 'ar' 
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'An error occurred while saving Shopify settings';
+      
+      setSaveError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderConnectionStatus = () => {
+    if (connectionStatus === 'checking') {
+      return (
+        <Alert className="bg-blue-50 border-blue-200 mb-4">
+          <Loader className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+          <AlertTitle>
+            {language === 'ar' ? 'جاري التحقق من الاتصال...' : 'Verifying connection...'}
+          </AlertTitle>
+        </Alert>
+      );
+    } else if (connectionStatus === 'success') {
+      return (
+        <Alert className="bg-green-50 border-green-200 mb-4">
+          <Check className="h-4 w-4 text-green-500 mr-2" />
+          <AlertTitle>
+            {language === 'ar' 
+              ? `متصل بمتجر: ${shop}` 
+              : `Connected to store: ${shop}`}
+          </AlertTitle>
+        </Alert>
+      );
+    } else if (connectionStatus === 'error') {
+      return (
+        <Alert className="bg-red-50 border-red-200 mb-4">
+          <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
+          <AlertTitle>
+            {language === 'ar' ? 'فشل الاتصال بالمتجر' : 'Connection failed'}
+          </AlertTitle>
+          {saveError && <AlertDescription>{saveError}</AlertDescription>}
+        </Alert>
+      );
+    }
+    return null;
   };
 
   return (
@@ -87,13 +170,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       <CardContent className="space-y-4">
         {shopifyConnected ? (
           <>
-            <div className="bg-green-50 rounded p-3 mb-4 border border-green-200">
-              <p className="text-green-700 text-sm">
-                {language === 'ar' 
-                  ? `أنت متصل بمتجر: ${shop}`
-                  : `Connected to store: ${shop}`}
-              </p>
-            </div>
+            {renderConnectionStatus()}
+            
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 {language === 'ar' ? 'موقع النموذج' : 'Form Position'}
@@ -146,26 +224,27 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </p>
             </div>
 
-            <div className="mt-4">
-              <p className="text-sm font-medium mb-2">
+            <Alert className="mt-4 bg-blue-50 border-blue-100">
+              <Info className="h-4 w-4 text-blue-500 mr-2" />
+              <AlertTitle className="text-sm font-medium mb-1">
                 {language === 'ar' ? 'تذكير هام' : 'Important Reminder'}
-              </p>
-              <div className="text-xs text-gray-600 bg-blue-50 rounded p-3 border border-blue-100">
+              </AlertTitle>
+              <AlertDescription className="text-xs text-gray-600">
                 {language === 'ar'
                   ? 'بعد حفظ التكامل، يجب عليك الذهاب إلى محرر موضوعات متجرك في شوبيفاي وإضافة بلوك "نموذج الدفع عند الاستلام" في قالب المنتج. تأكد من تعيين نفس معرف النموذج الذي اخترته في إعدادات البلوك.'
                   : 'After saving the integration, you need to go to your Shopify theme editor and add the "Cash on Delivery Form" block in your product template. Make sure to set the same form ID you selected in the block settings.'}
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
 
             <Button
               onClick={handleSave}
               className="w-full mt-4"
-              disabled={isSyncing}
+              disabled={isSaving || isSyncing}
             >
-              {isSyncing ? (
+              {(isSaving || isSyncing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ar' ? 'جارٍ المزامنة...' : 'Syncing...'}
+                  {language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                 </>
               ) : (
                 language === 'ar' ? 'حفظ التكامل' : 'Save Integration'
@@ -174,13 +253,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </>
         ) : (
           <div className="space-y-4">
-            <div className="bg-yellow-50 rounded p-3 border border-yellow-200">
-              <p className="text-yellow-700 text-sm">
+            <Alert className="bg-yellow-50 border-yellow-200">
+              <AlertCircle className="h-4 w-4 text-yellow-500 mr-2" />
+              <AlertTitle>
                 {language === 'ar' 
                   ? 'أنت غير متصل بـ Shopify. قم بتسجيل الدخول لاستخدام هذه الميزة.'
                   : 'You are not connected to Shopify. Sign in to use this feature.'}
-              </p>
-            </div>
+              </AlertTitle>
+            </Alert>
             
             <Button 
               variant="secondary"
@@ -191,15 +271,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             </Button>
           </div>
         )}
-
-        <div className="mt-4">
-          <p className="text-sm text-gray-500">
-            {language === 'ar'
-              ? 'سيتم مزامنة النموذج تلقائياً عند تحديث المنتجات في متجرك'
-              : 'The form will automatically sync when products are updated in your store'}
-          </p>
-        </div>
       </CardContent>
+      <CardFooter>
+        <p className="text-sm text-gray-500 w-full text-center">
+          {language === 'ar'
+            ? 'سيتم مزامنة النموذج تلقائياً عند تحديث المنتجات في متجرك'
+            : 'The form will automatically sync when products are updated in your store'}
+        </p>
+      </CardFooter>
     </Card>
   );
 };

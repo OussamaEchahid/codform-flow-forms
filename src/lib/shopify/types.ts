@@ -53,6 +53,29 @@ export interface ShopifyFormData {
       borderRadius: string;
     };
     products?: string[];
-    blockId?: string; // Add the blockId field to the settings type
+    blockId?: string;
   };
+}
+
+// إضافة أنواع للاتصال API بشوبيفاي
+export interface ShopifyAPIResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface ProductSettingsRequest {
+  productId: string;
+  formId: string;
+  enabled: boolean;
+  blockId?: string;
+}
+
+export interface ProductSettingsResponse {
+  success?: boolean;
+  error?: string;
+  productId?: string;
+  formId?: string;
+  blockId?: string;
 }

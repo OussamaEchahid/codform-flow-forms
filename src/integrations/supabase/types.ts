@@ -130,6 +130,7 @@ export type Database = {
       }
       shopify_product_settings: {
         Row: {
+          block_id: string | null
           enabled: boolean
           form_id: string
           id: string
@@ -138,6 +139,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          block_id?: string | null
           enabled?: boolean
           form_id: string
           id?: string
@@ -146,6 +148,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          block_id?: string | null
           enabled?: boolean
           form_id?: string
           id?: string
