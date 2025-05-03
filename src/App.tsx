@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -43,7 +42,7 @@ function AppRoutes() {
       <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
       <Route path="/auth/*" element={<Auth />} />
-      <Route path="/api/shopify-callback" element={<ShopifyCallback />} />
+      <Route path="/shopify-callback" element={<ShopifyCallback />} />
       
       {/* Protected routes that require Shopify authentication */}
       <Route element={<ProtectedRoute requireAuth={true} />}>

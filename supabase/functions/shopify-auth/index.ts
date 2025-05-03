@@ -1,6 +1,25 @@
 
+// تعديل مسار الرد على المصادقة لاستخدام المسار الصحيح
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { v4 as uuidv4 } from "https://esm.sh/uuid@9";
+
+// إعدادات Supabase
+const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
+
+// إعدادات تطبيق Shopify
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
+
+// صلاحيات التطبيق
+const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+
+// عنوان URL للتطبيق المستضاف
+const APP_URL = "https://codform-flow-forms.lovable.app";
+
+// عنوان URL لرد المصادقة - تحديث المسار هنا
+const CALLBACK_URL = `${APP_URL}/shopify-callback`;
 
 // إعداد عناوين CORS
 const corsHeaders = {
@@ -12,30 +31,11 @@ const corsHeaders = {
   "Expires": "0",
 };
 
-// إعدادات Supabase
-const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
-
-// إعدادات تطبيق Shopify
-const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
-const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
-
-// عنوان URL لتطبيقنا
-const APP_URL = "https://codform-flow-forms.lovable.app";
-
-// تعريف جميع مسارات إعادة التوجيه الصالحة
-const AUTH_CALLBACK_PATHS = [
-  "/shopify-callback",
-  "/auth/callback",
-  "/api/shopify-callback",
-  "/auth/offline"
-];
-
 // دالة لتنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
   let cleanedShop = shop.trim();
   
-  // إزالة البروتوكول إذا كان موجوداً
+  // إزالة البروتوكول إذا كان موجودًا
   if (cleanedShop.startsWith('http')) {
     try {
       const url = new URL(cleanedShop);
@@ -53,11 +53,6 @@ function cleanShopDomain(shop: string): string {
   }
   
   return cleanedShop;
-}
-
-// دالة لإنشاء معرف فريد للأمان
-function generateNonce(): string {
-  return crypto.randomUUID();
 }
 
 // التحقق من صحة عنوان URL للمتجر
@@ -84,215 +79,110 @@ serve(async (req) => {
   }
 
   try {
+    // استخراج المعلمات من URL أو body
+    let shop = "";
+    let forceUpdate = false;
+    
     const url = new URL(req.url);
-    const timestamp = Date.now();
-
-    // التعامل مع طلب POST (إذا كان الطلب من واجهة المستخدم)
-    if (req.method === "POST") {
+    const shopParam = url.searchParams.get("shop");
+    
+    if (shopParam) {
+      // إذا كانت المعلمة في URL
+      shop = cleanShopDomain(shopParam);
+      forceUpdate = url.searchParams.get("force_update") === "true";
+    } else if (req.method === "POST") {
+      // إذا كانت المعلمة في body
       try {
         const body = await req.json();
         console.log("Request body:", body);
-        let shop = body.shop;
-
-        if (!shop) {
-          return new Response(
-            JSON.stringify({ 
-              error: "Missing shop parameter",
-              timestamp,
-              success: false
-            }), 
-            { status: 400, headers: corsHeaders }
-          );
-        }
         
-        // تنظيف نطاق المتجر
-        const cleanedShop = cleanShopDomain(shop);
-        console.log("Cleaned shop domain:", cleanedShop);
-
-        // التحقق من صحة نطاق المتجر
-        if (!isValidShopifyDomain(cleanedShop)) {
-          return new Response(
-            JSON.stringify({ 
-              error: "Invalid Shopify domain",
-              invalidDomain: cleanedShop,
-              timestamp,
-              success: false
-            }), 
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        // إنشاء معرف فريد لهذه الجلسة
-        const state = generateNonce();
-        
-        try {
-          // تخزين حالة المصادقة المؤقتة
-          const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-          
-          const { error: insertError } = await supabase.from('shopify_auth').insert({
-            shop: cleanedShop,
-            state,
-            created_at: new Date().toISOString(),
-          });
-          
-          if (insertError) {
-            console.error("Error saving auth state:", insertError);
-            throw new Error("Failed to save authentication state");
-          } else {
-            console.log("Auth state saved successfully");
-          }
-          
-          // إنشاء عناوين URL للمصادقة
-          const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
-          
-          // استخدام المسار الأول لإعادة التوجيه بعد المصادقة
-          const authCallbackUrl = `${APP_URL}${AUTH_CALLBACK_PATHS[0]}`; 
-          const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(authCallbackUrl)}&state=${state}`;
-          
-          console.log("Generated auth URL:", authUrl);
-          console.log("Using callback URL:", authCallbackUrl);
-          
-          return new Response(JSON.stringify({
-            success: true,
-            redirect: authUrl,
-            shop: cleanedShop,
-            state,
-            appUrl: APP_URL,
-            callbackUrl: authCallbackUrl,
-            timestamp
-          }), { status: 200, headers: corsHeaders });
-        } catch (error) {
-          console.error("Error initiating authentication:", error);
-          return new Response(
-            JSON.stringify({ 
-              error: "Error initiating authentication",
-              details: error instanceof Error ? error.message : "Unknown error",
-              shop: cleanedShop,
-              success: false,
-              timestamp
-            }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-      } catch (jsonError) {
-        console.error("Error parsing request body:", jsonError);
+        shop = cleanShopDomain(body.shop || "");
+        forceUpdate = body.forceUpdate === true;
+      } catch (e) {
+        console.error("Error parsing request body:", e);
         return new Response(
           JSON.stringify({ 
-            error: "Invalid JSON in request body",
-            success: false,
-            timestamp: Date.now()
+            error: "Invalid request format", 
+            success: false 
           }),
           { status: 400, headers: corsHeaders }
-        );
-      }
-    } else {
-      // التعامل مع طلبات GET
-      let shop = url.searchParams.get("shop");
-      
-      console.log("GET Request params:", Object.fromEntries(url.searchParams.entries()));
-      
-      // لا يوجد متجر محدد
-      if (!shop) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Missing shop parameter",
-            timestamp,
-            url: req.url,
-            params: Object.fromEntries(url.searchParams.entries()),
-            success: false
-          }), 
-          { status: 400, headers: corsHeaders }
-        );
-      }
-      
-      // تنظيف نطاق المتجر
-      const cleanedShop = cleanShopDomain(shop);
-      console.log("Cleaned shop domain:", cleanedShop);
-      
-      // التحقق من صحة نطاق المتجر
-      if (!isValidShopifyDomain(cleanedShop)) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Invalid Shopify domain",
-            invalidDomain: cleanedShop,
-            timestamp,
-            success: false
-          }), 
-          { status: 400, headers: corsHeaders }
-        );
-      }
-
-      // إنشاء معرف فريد لهذه المصادقة
-      const state = generateNonce();
-      
-      try {
-        // التحقق من وجود هذا المتجر في قاعدة البيانات
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        const { data: existingShops, error: queryError } = await supabase
-          .from('shopify_stores')
-          .select('*')
-          .eq('shop', cleanedShop);
-        
-        if (queryError) {
-          console.error("Error checking existing shops:", queryError);
-        } else {
-          console.log("Existing shop check result:", existingShops);
-        }
-        
-        // حفظ حالة المصادقة المؤقتة
-        const { error: insertError } = await supabase.from('shopify_auth').insert({
-          shop: cleanedShop,
-          state,
-          created_at: new Date().toISOString(),
-        });
-        
-        if (insertError) {
-          console.error("Error saving auth state:", insertError);
-          throw new Error("Failed to save authentication state");
-        }
-        
-        // إنشاء عناوين URL للمصادقة
-        const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
-        
-        // استخدام المسار الأول لإعادة التوجيه
-        const authCallbackUrl = `${APP_URL}${AUTH_CALLBACK_PATHS[0]}`; 
-        const authUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(authCallbackUrl)}&state=${state}`;
-        
-        console.log("Generated auth URL:", authUrl);
-        console.log("Using callback URL:", authCallbackUrl);
-        
-        return new Response(JSON.stringify({
-          success: true,
-          redirect: authUrl,
-          shop: cleanedShop,
-          state,
-          appUrl: APP_URL,
-          callbackUrl: authCallbackUrl,
-          timestamp
-        }), { status: 200, headers: corsHeaders });
-      } catch (error) {
-        console.error("Error initiating authentication:", error);
-        return new Response(
-          JSON.stringify({ 
-            error: "Error initiating authentication",
-            details: error instanceof Error ? error.message : "Unknown error",
-            shop: cleanedShop,
-            success: false,
-            timestamp
-          }),
-          { status: 500, headers: corsHeaders }
         );
       }
     }
-  } catch (error) {
-    console.error("Critical error in auth function:", error);
+    
+    if (!shop) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Shop parameter is required", 
+          success: false 
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
+    console.log("Cleaned shop domain:", shop);
+    
+    // التحقق من صحة نطاق المتجر
+    if (!isValidShopifyDomain(shop)) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid Shopify domain", 
+          invalidDomain: shop,
+          success: false
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
+    // إنشاء حالة مصادقة فريدة
+    const state = uuidv4();
+    
+    // حفظ حالة المصادقة في قاعدة البيانات
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      
+      const { error } = await supabase
+        .from('shopify_auth')
+        .insert({
+          shop,
+          state,
+          created_at: new Date().toISOString(),
+          force_update: forceUpdate
+        });
+      
+      if (error) {
+        console.error("Error saving auth state:", error);
+      } else {
+        console.log("Auth state saved successfully");
+      }
+    } catch (e) {
+      console.error("Database error:", e);
+      // استمر على الرغم من الخطأ
+    }
+    
+    // إنشاء عنوان URL للمصادقة
+    console.log("Using callback URL:", CALLBACK_URL);
+    
+    const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&state=${state}`;
+    
+    console.log("Generated auth URL:", authUrl);
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Internal server error",
-        stack: error instanceof Error ? error.stack : undefined,
-        success: false,
-        timestamp: new Date().toISOString()
+        redirect: authUrl,
+        shop,
+        state,
+        success: true,
+        callbackUrl: CALLBACK_URL
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        success: false
       }),
       { status: 500, headers: corsHeaders }
     );

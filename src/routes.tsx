@@ -6,6 +6,7 @@ import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
 import ShopifyStores from '@/pages/ShopifyStores';
 import Index from '@/pages/Index';
+import ShopifyCallback from '@/pages/api/shopify-callback';
 
 // إضافة مسار إدارة متاجر Shopify
 export const routes: RouteObject[] = [
@@ -38,4 +39,8 @@ export const routes: RouteObject[] = [
     path: '/shopify-stores',
     element: <ShopifyStores />
   },
+  {
+    path: '/shopify-callback',
+    Component: ShopifyCallback,
+  }
 ];

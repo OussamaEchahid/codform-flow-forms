@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -245,8 +244,16 @@ const Shopify = () => {
         const left = (window.innerWidth - width) / 2;
         const top = (window.innerHeight - height) / 2;
         
+        // تعديل رابط إعادة التوجيه للتأكد من استخدام المسار الصحيح
+        let redirectUrl = data.redirect;
+        
+        // إذا كان الرابط يحتوي على /shopify-callback/، قم بتصحيحه إلى /shopify-callback فقط
+        if (redirectUrl.includes('/shopify-callback/')) {
+          redirectUrl = redirectUrl.replace('/shopify-callback/', '/shopify-callback');
+        }
+        
         const popup = window.open(
-          `${data.redirect}${data.redirect.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
+          `${redirectUrl}${redirectUrl.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
           'ShopifyAuth',
           `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
         );
@@ -295,8 +302,16 @@ const Shopify = () => {
           const authData = await authResponse.json();
           
           if (authData.redirect) {
+            // تصحيح رابط إعادة التوجيه
+            let authRedirectUrl = authData.redirect;
+            
+            // إذا كان الرابط يحتوي على /shopify-callback/، قم بتصحيحه إلى /shopify-callback فقط
+            if (authRedirectUrl.includes('/shopify-callback/')) {
+              authRedirectUrl = authRedirectUrl.replace('/shopify-callback/', '/shopify-callback');
+            }
+            
             const popup = window.open(
-              `${authData.redirect}${authData.redirect.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
+              `${authRedirectUrl}${authRedirectUrl.includes('?') ? '&' : '?'}popup=true&force_update=${forceUpdate}`,
               'ShopifyAuth',
               `width=800,height=600,top=${(window.innerHeight - 600) / 2},left=${(window.innerWidth - 800) / 2},resizable=yes,scrollbars=yes,status=yes`
             );
@@ -335,7 +350,7 @@ const Shopify = () => {
         } catch (directError) {
           console.error("فشل النهج المباشر:", directError);
           
-          // استخدام كخطة احتياطية نهائية
+          // استخدام كخطة احتياطية نهائية - مع تصحيح المسار
           window.location.href = `/shopify-redirect?shop=${encodeURIComponent(cleanedShop)}&force_update=${forceUpdate}&_t=${Date.now()}`;
         }
       }

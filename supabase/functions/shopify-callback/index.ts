@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -335,7 +334,7 @@ serve(async (req) => {
         });
       }
       
-      // إعادة التوجيه إلى التطبيق
+      // إعادة التوجيه إلى التطبيق - مع تصحيح المسار
       const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true`;
       console.log("Redirecting back to app:", redirectUrl);
       
