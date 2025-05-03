@@ -8,22 +8,31 @@ import { useAuth } from '@/lib/auth';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { Store, Check, Trash2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ShopifyStoreConnection } from '@/lib/shopify/types';
+
+interface StoreDisplay {
+  shop: string;
+  isActive: boolean;
+  connectedAt: string;
+  lastUsed?: string;
+}
 
 export const ShopifyStoresManager: React.FC = () => {
   const { shop: activeShop, setShop } = useAuth();
   const navigate = useNavigate();
-  const [stores, setStores] = useState<Array<{
-    shop: string;
-    isActive: boolean;
-    connectedAt: string;
-    lastUsed?: string;
-  }>>([]);
+  const [stores, setStores] = useState<StoreDisplay[]>([]);
 
   // Load stores on component mount
   useEffect(() => {
     const loadStores = () => {
       const allStores = shopifyConnectionManager.getAllStores();
-      setStores(allStores);
+      const displayStores: StoreDisplay[] = allStores.map(store => ({
+        shop: store.domain,
+        isActive: store.isActive,
+        connectedAt: store.lastConnected,
+        lastUsed: undefined // Could be filled from another source if needed
+      }));
+      setStores(displayStores);
     };
     
     loadStores();
@@ -49,7 +58,14 @@ export const ShopifyStoresManager: React.FC = () => {
       if (setShop) {
         setShop(storeUrl);
       }
-      setStores(shopifyConnectionManager.getAllStores());
+      const allStores = shopifyConnectionManager.getAllStores();
+      const displayStores: StoreDisplay[] = allStores.map(store => ({
+        shop: store.domain,
+        isActive: store.isActive,
+        connectedAt: store.lastConnected,
+        lastUsed: undefined
+      }));
+      setStores(displayStores);
       toast.success(`تم تعيين ${storeUrl} كمتجر نشط`);
     } catch (error) {
       toast.error(`فشل في تعيين المتجر النشط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
@@ -61,7 +77,14 @@ export const ShopifyStoresManager: React.FC = () => {
     if (window.confirm(`هل أنت متأكد من رغبتك في إزالة متجر ${storeUrl}؟`)) {
       try {
         shopifyConnectionManager.removeStore(storeUrl);
-        setStores(shopifyConnectionManager.getAllStores());
+        const allStores = shopifyConnectionManager.getAllStores();
+        const displayStores: StoreDisplay[] = allStores.map(store => ({
+          shop: store.domain,
+          isActive: store.isActive,
+          connectedAt: store.lastConnected,
+          lastUsed: undefined
+        }));
+        setStores(displayStores);
         toast.success(`تم إزالة متجر ${storeUrl} بنجاح`);
       } catch (error) {
         toast.error(`فشل في إزالة المتجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);

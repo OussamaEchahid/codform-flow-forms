@@ -11,7 +11,12 @@ const loadStores = (): ShopifyStoreConnection[] => {
   try {
     const storesJson = localStorage.getItem(STORES_STORAGE_KEY);
     if (storesJson) {
-      return JSON.parse(storesJson);
+      const stores = JSON.parse(storesJson);
+      // تأكد من أن كل متجر يحتوي على حقل shop (مرادف لـ domain)
+      return stores.map((store: ShopifyStoreConnection) => ({
+        ...store,
+        shop: store.domain // إضافة حقل shop كمرادف لـ domain
+      }));
     }
   } catch (e) {
     console.error("Error loading stores from localStorage:", e);
@@ -40,12 +45,14 @@ export const shopifyConnectionManager: ShopifyConnectionManager = {
       stores[existingStoreIndex] = {
         ...stores[existingStoreIndex],
         lastConnected: new Date().toISOString(),
-        isActive: isActive
+        isActive: isActive,
+        shop: shopDomain // تحديث حقل shop
       };
     } else {
       // إضافة متجر جديد
       stores.push({
         domain: shopDomain,
+        shop: shopDomain, // إضافة حقل shop
         lastConnected: new Date().toISOString(),
         isActive: isActive
       });

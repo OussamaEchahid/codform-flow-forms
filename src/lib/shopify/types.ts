@@ -4,6 +4,7 @@ export type ShopifyStoreConnection = {
   domain: string;          // نطاق المتجر مثل store.myshopify.com
   lastConnected: string;   // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
   isActive: boolean;       // ما إذا كان هذا هو المتجر النشط حالياً
+  shop?: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
 };
 
 // واجهة لمدير اتصال Shopify
@@ -61,3 +62,69 @@ export const cleanShopifyDomain = (domain: string): string => {
   
   return cleanedDomain;
 };
+
+// واجهة الطلب إعدادات المنتج
+export interface ProductSettingsRequest {
+  productId: string;
+  formId: string;
+  blockId?: string;
+  enabled?: boolean;
+}
+
+// واجهة الاستجابة إعدادات المنتج
+export interface ProductSettingsResponse {
+  success?: boolean;
+  error?: string;
+  productId?: string;
+  formId?: string;
+  blockId?: string;
+}
+
+// واجهة منتج Shopify
+export interface ShopifyProduct {
+  id: string;
+  title: string;
+  handle: string;
+  price: string;
+  images: string[];
+  variants: Array<{
+    id: string;
+    title: string;
+    price: string;
+    available: boolean;
+  }>;
+}
+
+// واجهة طلب Shopify
+export interface ShopifyOrder {
+  id: string;
+  orderNumber: string;
+  totalPrice: string;
+  createdAt: string;
+  customer?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  lineItems: Array<{
+    title: string;
+    quantity: number;
+    price: string;
+  }>;
+}
+
+// واجهة بيانات نموذج Shopify
+export interface ShopifyFormData {
+  formId: string;
+  shopDomain?: string;
+  settings: {
+    position?: 'product-page' | 'cart-page' | 'checkout';
+    style?: {
+      primaryColor?: string;
+      fontSize?: string;
+      borderRadius?: string;
+    };
+    products?: string[];
+    blockId?: string;
+  };
+}

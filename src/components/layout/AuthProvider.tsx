@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setShopifyConnected(true);
       
       // Update connection manager
-      shopifyConnectionManager.addStore(shopDomain);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain);
       shopifyConnectionManager.setActiveStore(shopDomain);
       
       return true;
@@ -60,13 +60,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // If not in URL, check connection manager first
     const activeStore = shopifyConnectionManager.getActiveStore();
     if (activeStore) {
-      console.log("Setting active shop from connection manager:", activeStore.shop);
-      setShop(activeStore.shop);
+      console.log("Setting active shop from connection manager:", activeStore);
+      setShop(activeStore);
       setShopifyConnected(true);
       
       // Get all stores for the shops list
       const allStores = shopifyConnectionManager.getAllStores();
-      setShops(allStores.map(store => store.shop));
+      setShops(allStores.map(store => store.domain));
       
       return true;
     }
@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setShopifyConnected(true);
       
       // Add to connection manager
-      shopifyConnectionManager.addStore(storedShop);
+      shopifyConnectionManager.addOrUpdateStore(storedShop);
       return true;
     }
     
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!shopDomain) return;
       
       // Update in connection manager
-      shopifyConnectionManager.addStore(shopDomain);
+      shopifyConnectionManager.addOrUpdateStore(shopDomain);
       shopifyConnectionManager.setActiveStore(shopDomain);
       
       // Update state
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update list of shops
       const allStores = shopifyConnectionManager.getAllStores();
-      setShops(allStores.map(store => store.shop));
+      setShops(allStores.map(store => store.domain));
       
       console.log(`Active shop set to: ${shopDomain}`);
     } catch (error) {
@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Update connection manager with database shops
         data.forEach(storeRecord => {
-          shopifyConnectionManager.addStore(storeRecord.shop);
+          shopifyConnectionManager.addOrUpdateStore(storeRecord.shop);
           if (storeRecord.is_active) {
             shopifyConnectionManager.setActiveStore(storeRecord.shop);
           }
@@ -163,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('shopify_connected', 'true');
           setShop(defaultShop);
           setShopifyConnected(true);
-          shopifyConnectionManager.addStore(defaultShop);
+          shopifyConnectionManager.addOrUpdateStore(defaultShop);
           
           // Create a default user for development
           const devUser = { id: 'shopify-user', email: 'dev@example.com' };
