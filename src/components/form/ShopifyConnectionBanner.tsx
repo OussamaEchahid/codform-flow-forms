@@ -58,8 +58,9 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
     try {
       let isConnected = false;
       if (refreshShopifyConnection) {
-        const result = await refreshShopifyConnection();
-        isConnected = !!result;
+        await refreshShopifyConnection();
+        // Don't check truthiness on void returns
+        isConnected = await verifyShopifyConnection();
         setIsConnectionWarning(!isConnected);
         
         if (isConnected) {
@@ -103,13 +104,13 @@ const ShopifyConnectionBanner: React.FC<ShopifyConnectionBannerProps> = ({ onRec
         return;
       }
       
-      // Use general reconnect function
+      // Use general reconnect function - Fixed: Don't check return value of void function
       if (manualReconnect && typeof manualReconnect === 'function') {
-        const success = manualReconnect();
-        if (!success) {
-          // If reconnect wasn't successful, try direct redirect
+        manualReconnect();
+        // Don't use return value, just redirect after a short delay
+        setTimeout(() => {
           window.location.href = `/shopify?force=true&ts=${Date.now()}`;
-        }
+        }, 500);
       } else {
         // Direct redirect if no reconnect function available
         window.location.href = `/shopify?force=true&ts=${Date.now()}`;

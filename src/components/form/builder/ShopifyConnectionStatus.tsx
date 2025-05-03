@@ -20,7 +20,7 @@ const ShopifyConnectionStatus = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   
-  // وظيفة للتحقق من الاتصال بـ Shopify
+  // Function to check connection with Shopify
   const checkConnection = async () => {
     if (!shop) {
       console.log('ShopifyConnectionStatus: No shop to verify');
@@ -33,7 +33,7 @@ const ShopifyConnectionStatus = () => {
     console.log(`ShopifyConnectionStatus: Verifying connection for shop: ${shop}`);
     
     try {
-      // 1. التحقق من وجود رمز وصول صالح في قاعدة البيانات
+      // 1. Check if there's a valid access token in the database
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
         .select('access_token, updated_at')
@@ -50,13 +50,13 @@ const ShopifyConnectionStatus = () => {
       
       console.log('ShopifyConnectionStatus: Found token in database');
       
-      // استخدام دالة التحقق من useShopify إذا كانت متاحة
+      // Use the verification function from useShopify if available
       if (refreshConnection) {
         const isConnected = await refreshConnection();
         console.log('ShopifyConnectionStatus: Connection check result:', isConnected);
         setShowWarning(isConnected !== true);
       } else {
-        // استخدام التحقق من الواجهة الحالية إذا كان refreshConnection غير متاح
+        // Use current interface verification if refreshConnection is not available
         const isConnected = await verifyShopifyConnection();
         console.log('ShopifyConnectionStatus: Legacy connection check result:', isConnected);
         setShowWarning(!isConnected);
@@ -72,17 +72,17 @@ const ShopifyConnectionStatus = () => {
     }
   };
   
-  // فحص الاتصال عند بدء التشغيل مع منع التحقق المتكرر
+  // Check connection on startup while preventing frequent checks
   useEffect(() => {
-    // تحقق من وقت آخر فحص لمنع الفحوصات المتكررة
+    // Check the last check time to prevent frequent checks
     const lastCheck = parseInt(localStorage.getItem('shopify_connection_status_check') || '0', 10);
     const now = Date.now();
     
     if ((now - lastCheck) > 60000 || !localStorage.getItem('shopify_connection_status')) {
-      // تأخير للسماح بتحميل المكونات أولاً
+      // Delay to allow components to load first
       const timer = setTimeout(() => {
         checkConnection().then(() => {
-          // تخزين نتيجة الفحص ووقت الفحص
+          // Store check result and time
           localStorage.setItem('shopify_connection_status', showWarning ? 'warning' : 'ok');
           localStorage.setItem('shopify_connection_status_check', now.toString());
         });
@@ -90,14 +90,14 @@ const ShopifyConnectionStatus = () => {
       
       return () => clearTimeout(timer);
     } else {
-      // استخدام النتيجة المخزنة
+      // Use stored result
       const savedStatus = localStorage.getItem('shopify_connection_status');
       setShowWarning(savedStatus === 'warning');
       setConnectionChecked(true);
     }
   }, [shop, shopifyConnected]);
   
-  // إضافة دالة للتحقق اليدوي من الاتصال
+  // Add function for manual connection check
   const handleCheckNow = async () => {
     if (isCheckingConnection) return;
     
@@ -106,7 +106,7 @@ const ShopifyConnectionStatus = () => {
     try {
       await checkConnection();
       
-      // تحديث حالة الاتصال في العارض
+      // Update connection status in the UI
       if (!showWarning) {
         toast.success(language === 'ar' 
           ? 'تم التحقق من الاتصال بنجاح' 
@@ -117,9 +117,9 @@ const ShopifyConnectionStatus = () => {
     }
   };
   
-  // معالجة نقرة زر إعادة الاتصال - نستخدم منهجًا محسنًا
+  // Handle reconnect button click - use improved approach
   const handleConnectShopify = () => {
-    // منع النقرات المتعددة أو إعادة الاتصال خلال 10 ثوان
+    // Prevent multiple clicks or reconnection within 10 seconds
     if (isRedirecting) {
       toast.info(language === 'ar' 
         ? 'جاري بالفعل إعادة التوجيه، يرجى الانتظار...' 
@@ -127,7 +127,7 @@ const ShopifyConnectionStatus = () => {
       return;
     }
     
-    // منع محاولات إعادة الاتصال إذا كان لدينا واحدة في آخر 10 ثوان
+    // Prevent reconnection attempts if we have one in the last 10 seconds
     const timeSinceLastAttempt = Date.now() - lastReconnectAttempt;
     if (timeSinceLastAttempt < 10000) {
       toast.info(language === 'ar' 
@@ -139,7 +139,7 @@ const ShopifyConnectionStatus = () => {
     setIsRedirecting(true);
     setLastReconnectAttempt(Date.now());
     
-    // مسح جميع بيانات التخزين أولاً
+    // Clear all storage data first
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
@@ -151,23 +151,22 @@ const ShopifyConnectionStatus = () => {
     sessionStorage.removeItem('shopify_connecting');
     sessionStorage.removeItem('shopify_callback_attempts');
     
-    // إعادة تعيين علامات الاتصال في سياق المصادقة
+    // Reset connection flags in auth context
     if (refreshShopifyConnection) {
-      const result = refreshShopifyConnection();
-      console.log('Result from refreshShopifyConnection:', result);
+      refreshShopifyConnection();
     }
     
-    // استخدام وظيفة إعادة الاتصال اليدوية من useShopify إذا كانت متاحة
+    // Use the manual reconnect function from useShopify if available
     if (manualReconnect && typeof manualReconnect === 'function') {
       console.log('Using manualReconnect function from useShopify');
-      const success = manualReconnect();
-      console.log('Manual reconnect result:', success);
+      manualReconnect();
       
-      // If manual reconnect failed, use fallback
-      if (!success) {
-        console.log('Manual reconnect failed, using fallback');
-        fallbackReconnect();
-      }
+      // Set a timeout to use fallback in case manualReconnect doesn't redirect
+      setTimeout(() => {
+        if (!document.hidden) { // If we're still on the page
+          fallbackReconnect();
+        }
+      }, 2000);
     } else {
       console.log('Using fallback reconnect implementation');
       fallbackReconnect();
@@ -176,18 +175,18 @@ const ShopifyConnectionStatus = () => {
   
   // Fallback reconnect method
   const fallbackReconnect = () => {
-    // عرض رسالة للمستخدم
+    // Show message to user
     toast.info(language === 'ar' 
       ? 'جاري إعادة توجيهك للاتصال بـ Shopify...'
       : 'Redirecting to connect to Shopify...');
     
-    // استخدام المسار المباشر لتنقل أكثر موثوقية، مع تأخير قصير
+    // Use direct path for more reliable navigation, with short delay
     setTimeout(() => {
       window.location.href = `/shopify?reconnect=true&force=true&ts=${Date.now()}&random=${Math.random().toString(36).substring(7)}`;
     }, 500);
   };
 
-  // لا تظهر أي شيء إذا كنا متصلين أو لم يتم فحص الاتصال بعد
+  // Don't show anything if we're connected or haven't checked connection yet
   if ((connectionChecked && !showWarning) || isVerifying || !connectionChecked) {
     return null;
   }

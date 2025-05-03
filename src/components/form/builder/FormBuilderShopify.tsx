@@ -1,14 +1,13 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { ShopifyFormData } from '@/lib/shopify/types';
 import { useShopify } from '@/hooks/useShopify';
 import { RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FormBuilderShopifyProps {
-  onShopifyIntegration?: (settings: ShopifyFormData) => Promise<void>;
+  onShopifyIntegration?: (settings: any) => Promise<void>;
   isSyncing?: boolean;
   formId?: string | null;
 }
@@ -22,31 +21,14 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
   const { isConnected, manualReconnect, refreshConnection } = useShopify();
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   
-  // Use refs to track checking state
-  const lastCheckTimeRef = useRef<number>(0);
-  const CONNECTION_THROTTLE = 60000; // 60 seconds minimum between checks
-  
-  // Improved connection checking with throttling
+  // Connection checking with throttling
   const handleCheckConnection = async () => {
     if (!refreshConnection || isCheckingConnection) return;
-    
-    const now = Date.now();
-    
-    // Throttle connection checks
-    if (now - lastCheckTimeRef.current < CONNECTION_THROTTLE) {
-      toast.info(
-        language === 'ar' 
-          ? 'الرجاء الانتظار قبل التحقق مرة أخرى' 
-          : 'Please wait before checking again'
-      );
-      return;
-    }
     
     setIsCheckingConnection(true);
     
     try {
       const connected = await refreshConnection();
-      lastCheckTimeRef.current = Date.now();
       
       if (connected !== undefined) {
         toast.success(connected
@@ -55,7 +37,7 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
         );
       }
     } catch (error) {
-      console.error('خطأ في التحقق من الاتصال:', error);
+      console.error('Error checking connection:', error);
       toast.error(language === 'ar' ? 'خطأ في التحقق من الاتصال' : 'Connection check error');
     } finally {
       setIsCheckingConnection(false);
@@ -99,7 +81,6 @@ const FormBuilderShopify: React.FC<FormBuilderShopifyProps> = ({
             </p>
           </div>
           
-          {/* Connection verification button */}
           <div className="flex justify-end">
             <Button
               variant="outline"

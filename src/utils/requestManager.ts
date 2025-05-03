@@ -1,87 +1,57 @@
 
 /**
- * Request tracker utility to prevent duplicate requests and manage timeouts
+ * Simple request tracker to prevent duplicate requests and infinite loops
  */
-type RequestMap = {
-  [key: string]: {
-    inProgress: boolean;
-    timeout?: number;
-  };
-};
-
 export const createRequestTracker = () => {
-  const requests: RequestMap = {};
+  // Track in-progress requests
+  const inProgressRequests: Record<string, boolean> = {};
+  
+  // Timeouts for cleanup
+  const timeouts: Record<string, number> = {};
   
   return {
     /**
-     * Track if a request is in progress
+     * Track a request in progress
+     * @param key Identifier for the request
+     * @param inProgress Whether the request is in progress
      */
     trackRequest: (key: string, inProgress: boolean) => {
-      if (!requests[key]) {
-        requests[key] = { inProgress: false };
+      inProgressRequests[key] = inProgress;
+      
+      // Auto-clean after 30 seconds to prevent stale state
+      if (inProgress) {
+        // Clear any existing timeout
+        if (timeouts[key]) {
+          clearTimeout(timeouts[key]);
+        }
+        
+        // Set new timeout
+        timeouts[key] = window.setTimeout(() => {
+          inProgressRequests[key] = false;
+        }, 30000);
+      } else {
+        // Clear timeout when request completes
+        if (timeouts[key]) {
+          clearTimeout(timeouts[key]);
+          delete timeouts[key];
+        }
       }
-      requests[key].inProgress = inProgress;
     },
     
     /**
      * Check if a request is in progress
      */
     isInProgress: (key: string): boolean => {
-      return requests[key]?.inProgress === true;
+      return !!inProgressRequests[key];
     },
     
     /**
-     * Reset tracking status
+     * Clear all timeouts
      */
-    reset: (key?: string) => {
-      if (key) {
-        delete requests[key];
-      } else {
-        Object.keys(requests).forEach(k => delete requests[k]);
-      }
-    },
-    
-    /**
-     * Set a timeout and track it
-     */
-    setTimeout: (key: string, callback: () => void, delay: number): void => {
-      // Clear any existing timeout first
-      if (requests[key]?.timeout) {
-        clearTimeout(requests[key].timeout);
-      }
-      
-      // Create new timeout and store its ID
-      if (!requests[key]) {
-        requests[key] = { inProgress: false };
-      }
-      
-      requests[key].timeout = window.setTimeout(() => {
-        if (callback) callback();
-        if (requests[key]) {
-          requests[key].timeout = undefined;
-        }
-      }, delay);
-    },
-    
-    /**
-     * Clear a specific timeout
-     */
-    clearTimeout: (key: string): void => {
-      if (requests[key]?.timeout) {
-        clearTimeout(requests[key].timeout);
-        requests[key].timeout = undefined;
-      }
-    },
-    
-    /**
-     * Clear all tracked timeouts
-     */
-    clearAllTimeouts: (): void => {
-      Object.keys(requests).forEach(key => {
-        if (requests[key]?.timeout) {
-          clearTimeout(requests[key].timeout);
-          requests[key].timeout = undefined;
-        }
+    clearAllTimeouts: () => {
+      Object.keys(timeouts).forEach(key => {
+        clearTimeout(timeouts[key]);
+        delete timeouts[key];
       });
     }
   };
