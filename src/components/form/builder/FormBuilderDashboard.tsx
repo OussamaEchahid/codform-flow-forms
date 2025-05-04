@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { Plus, Loader, AlertCircle, RefreshCw, CheckCircle, ShieldAlert } from 'lucide-react';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -33,24 +33,50 @@ const FormBuilderDashboard = () => {
     isLoading: shopifyLoading,
     isRetrying,
     pendingSyncForms,
-    resyncPendingForms
+    resyncPendingForms,
+    emergencyReset
   } = useShopify();
   const [connectionTestDone, setConnectionTestDone] = useState(false);
   const [connectionOK, setConnectionOK] = useState(false);
-  const [lastConnectionTest, setLastConnectionTest] = useState(0);
+  const connectionTestTimestamp = useRef(0);
+  const [resetClickCount, setResetClickCount] = useState(0);
   
-  // Test connection silently on component load with throttling
+  // Track connection retries
+  const [connectionRetries, setConnectionRetries] = useState(0);
+  const maxConnectionRetries = 3;
+  
+  // Test connection silently on component load but with strict rate limiting
   useEffect(() => {
+    // Skip automatic connection tests if in fail-safe mode
+    if (failSafeMode) {
+      console.log("In fail-safe mode, skipping automatic connection test");
+      setConnectionTestDone(true);
+      setConnectionOK(false);
+      return;
+    }
+    
+    // Skip automatic connection tests if bypass is enabled
+    if (connectionBypassMode) {
+      console.log("In bypass mode, skipping automatic connection test");
+      setConnectionTestDone(true);
+      return;
+    }
+    
     const checkConnection = async () => {
-      // Skip if we've tested in the last 30 seconds
+      // Only test connection if sufficient time has passed
       const now = Date.now();
-      if (now - lastConnectionTest < 30000) {
+      
+      // Test at most once every 5 minutes (300000ms)
+      if (now - connectionTestTimestamp.current < 300000) {
+        console.log("Skipping connection test, last test was too recent");
         return;
       }
       
       try {
-        setLastConnectionTest(now);
-        const connected = await testConnection();
+        connectionTestTimestamp.current = now;
+        localStorage.setItem('last_connection_test', now.toString());
+        
+        const connected = await testConnection(false); // silent test, no force refresh
         setConnectionOK(connected);
         console.log("Silent connection test result:", connected);
       } catch (err) {
@@ -61,8 +87,14 @@ const FormBuilderDashboard = () => {
       }
     };
     
-    checkConnection();
-  }, [testConnection, lastConnectionTest]);
+    // Only run check if we have a shop and are supposedly connected
+    if (shop && shopifyConnected && !connectionTestDone) {
+      checkConnection();
+    } else if (!shop || !shopifyConnected) {
+      // Mark test as done even if we didn't run it
+      setConnectionTestDone(true);
+    }
+  }, [testConnection, shopifyConnected, shop, failSafeMode, connectionBypassMode]);
   
   // Fallback check for local storage 
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
@@ -76,9 +108,25 @@ const FormBuilderDashboard = () => {
   // Allow operation in bypass mode when there's a connection problem but shop reference exists
   const canOperateInBypassMode = !!actualShop && (tokenError || !connectionOK) && connectionTestDone;
   
-  // Handle retry connection
+  // Handle retry connection with backoff
   const handleConnectionRetry = async () => {
     try {
+      // Check if we've tried too many times
+      if (connectionRetries >= maxConnectionRetries) {
+        // Enable bypass mode after too many retries
+        toast.error(language === 'ar' 
+          ? 'تم تجاوز الحد الأقصى لمحاولات الاتصال، تم تفعيل وضع التجاوز تلقائيًا'
+          : 'Maximum connection attempts exceeded, bypass mode activated automatically');
+        
+        setConnectionBypassMode(true);
+        toggleFailSafeMode(true);
+        return;
+      }
+      
+      // Increment retry counter
+      setConnectionRetries(prev => prev + 1);
+      
+      // Try connecting
       toast.loading(language === 'ar' ? 'جاري الاتصال...' : 'Connecting...');
       const result = await testConnection(true);
       
@@ -87,18 +135,28 @@ const FormBuilderDashboard = () => {
           ? `تم الاتصال بمتجر: ${actualShop}` 
           : `Connected to store: ${actualShop}`);
         setConnectionOK(true);
+        setConnectionRetries(0); // Reset counter on success
       } else {
-        toast.error(language === 'ar' 
-          ? 'فشل الاتصال، تم تفعيل وضع التجاوز' 
-          : 'Connection failed, bypass mode activated');
-        setConnectionBypassMode(true);
-        toggleFailSafeMode(true);
+        // Notify based on retry count
+        if (connectionRetries >= maxConnectionRetries - 1) {
+          toast.error(language === 'ar' 
+            ? 'فشل الاتصال، تم تفعيل وضع التجاوز' 
+            : 'Connection failed, bypass mode activated');
+          setConnectionBypassMode(true);
+          toggleFailSafeMode(true);
+        } else {
+          toast.error(language === 'ar'
+            ? `فشل الاتصال (محاولة ${connectionRetries}/${maxConnectionRetries})`
+            : `Connection failed (attempt ${connectionRetries}/${maxConnectionRetries})`);
+        }
       }
     } catch (error) {
       console.error("Connection retry error:", error);
       toast.error(language === 'ar' 
         ? 'حدث خطأ أثناء الاتصال' 
         : 'Error connecting');
+      
+      // Enable bypass after error
       setConnectionBypassMode(true);
       toggleFailSafeMode(true);
     }
@@ -112,6 +170,31 @@ const FormBuilderDashboard = () => {
     toast.info(language === 'ar' 
       ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج.' 
       : 'Bypass mode activated. You can continue managing forms.');
+  };
+  
+  // Emergency reset handler with click counter
+  const handleEmergencyReset = () => {
+    setResetClickCount(prev => prev + 1);
+    
+    if (resetClickCount >= 2) {
+      // Reset has been clicked 3 times, perform actual reset
+      emergencyReset();
+      setResetClickCount(0);
+      
+      toast.success(language === 'ar' 
+        ? 'تم إعادة ضبط حالة الاتصال بالكامل. يرجى الانتظار...'
+        : 'Connection state has been completely reset. Please wait...');
+        
+      // Reload page after short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      // Show confirmation toast
+      toast.info(language === 'ar'
+        ? `اضغط مرة أخرى للتأكيد (${3 - resetClickCount} نقرات متبقية)`
+        : `Click again to confirm (${3 - resetClickCount} clicks remaining)`);
+    }
   };
 
   const handleCreateForm = async () => {
@@ -220,6 +303,12 @@ const FormBuilderDashboard = () => {
     await resyncPendingForms();
   };
 
+  // Check if we need to show emergency reset option
+  const showEmergencyReset = 
+    failSafeMode || 
+    localStorage.getItem('shopify_recovery_mode') === 'true' ||
+    localStorage.getItem('shopify_failsafe') === 'true';
+
   return (
     <div className="flex-1 p-8">
       <div className="max-w-[1400px] mx-auto">
@@ -259,6 +348,18 @@ const FormBuilderDashboard = () => {
               >
                 {language === 'ar' ? 'متابعة على أي حال' : 'Continue anyway'}
               </Button>
+              
+              {showEmergencyReset && (
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={handleEmergencyReset}
+                  className="border-red-300"
+                >
+                  <ShieldAlert className="mr-2 h-3 w-3" />
+                  {language === 'ar' ? 'إعادة ضبط الحالة' : 'Reset State'}
+                </Button>
+              )}
             </div>
           </Alert>
         )}
@@ -353,7 +454,10 @@ const FormBuilderDashboard = () => {
             <div>Bypass Mode: {connectionBypassMode ? 'Enabled' : 'Disabled'}</div>
             <div>Can Operate in Bypass: {canOperateInBypassMode ? 'Yes' : 'No'}</div>
             <div>Fail-Safe Mode: {failSafeMode ? 'Enabled' : 'Disabled'}</div>
+            <div>Connection Retries: {connectionRetries}/{maxConnectionRetries}</div>
             <div>Pending Syncs: {pendingSyncForms.length}</div>
+            <div>Last Connection Test: {new Date(connectionTestTimestamp.current).toLocaleString()}</div>
+            <div>Recovery Mode: {localStorage.getItem('shopify_recovery_mode') === 'true' ? 'Yes' : 'No'}</div>
           </div>
         )}
         

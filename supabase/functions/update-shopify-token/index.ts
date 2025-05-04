@@ -98,6 +98,21 @@ serve(async (req) => {
     
     console.log(`Token type: ${tokenType} (detected: ${detectedTokenType})`);
     
+    // If forceActivate is true (default), first deactivate all stores
+    // This should happen BEFORE updating the current store
+    if (forceActivate) {
+      console.log("Force activate is true, deactivating all other stores first");
+      const { error: deactivateError } = await supabase
+        .from('shopify_stores')
+        .update({ is_active: false })
+        .not('shop', 'eq', shopDomain);
+      
+      if (deactivateError) {
+        console.error("Error deactivating other stores:", deactivateError);
+        // Continue anyway, this is not a critical error
+      }
+    }
+    
     // First check if the store exists
     const { data: existingStore, error: queryError } = await supabase
       .from('shopify_stores')
@@ -116,29 +131,14 @@ serve(async (req) => {
     
     let result;
     
-    // If forceActivate is true (default), first deactivate all stores
-    // This should happen BEFORE updating the current store
-    if (forceActivate) {
-      console.log("Force activate is true, deactivating all other stores first");
-      const { error: deactivateError } = await supabase
-        .from('shopify_stores')
-        .update({ is_active: false })
-        .not('shop', 'eq', shopDomain);
-      
-      if (deactivateError) {
-        console.error("Error deactivating other stores:", deactivateError);
-        // Continue anyway, this is not a critical error
-      }
-    }
-    
     if (existingStore) {
-      // Update existing store
+      // Update existing store - ALWAYS set is_active to true here
       const { data, error } = await supabase
         .from('shopify_stores')
         .update({ 
           access_token: accessToken,
           token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: forceActivate === true ? true : false,  // Make this explicit
+          is_active: true,  // Always set to true regardless of forceActivate
           updated_at: new Date().toISOString()
         })
         .eq('shop', shopDomain)
@@ -155,14 +155,14 @@ serve(async (req) => {
       
       result = { data, updated: true };
     } else {
-      // Insert new store
+      // Insert new store - ALWAYS set is_active to true here
       const { data, error } = await supabase
         .from('shopify_stores')
         .insert([{ 
           shop: shopDomain, 
           access_token: accessToken,
           token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: forceActivate === true ? true : false,  // Make this explicit
+          is_active: true,  // Always set to true regardless of forceActivate
           updated_at: new Date().toISOString()
         }])
         .select();
@@ -182,29 +182,27 @@ serve(async (req) => {
     // Also run the ensure_single_active_store function as a fallback
     await supabase.rpc('ensure_single_active_store');
     
-    // Double-check the store was set to active if forceActivate is true
-    if (forceActivate) {
-      const { data: verifyActive, error: verifyError } = await supabase
+    // Double-check the store was set to active
+    const { data: verifyActive, error: verifyError } = await supabase
+      .from('shopify_stores')
+      .select('is_active')
+      .eq('shop', shopDomain)
+      .single();
+      
+    if (verifyError || !verifyActive || !verifyActive.is_active) {
+      console.log("Store not set to active as expected, forcing update", { verifyError, verifyActive });
+      
+      // Force update the store to be active
+      const { error: forceError } = await supabase
         .from('shopify_stores')
-        .select('is_active')
-        .eq('shop', shopDomain)
-        .single();
+        .update({ is_active: true })
+        .eq('shop', shopDomain);
         
-      if (verifyError || !verifyActive || !verifyActive.is_active) {
-        console.log("Store not set to active as expected, forcing update", { verifyError, verifyActive });
-        
-        // Force update the store to be active
-        const { error: forceError } = await supabase
-          .from('shopify_stores')
-          .update({ is_active: true })
-          .eq('shop', shopDomain);
-          
-        if (forceError) {
-          console.error("Error forcing store active:", forceError);
-        }
-      } else {
-        console.log("Verified store is active:", verifyActive);
+      if (forceError) {
+        console.error("Error forcing store active:", forceError);
       }
+    } else {
+      console.log("Verified store is active:", verifyActive);
     }
     
     // Return success response

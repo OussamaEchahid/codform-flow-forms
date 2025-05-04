@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
 import { toast } from 'sonner';
@@ -38,6 +38,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [shops, setShops] = useState<string[] | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const syncAttempts = useRef(0);
+  const lastErrorHash = useRef<string>('');
+  const inRecoveryMode = useRef(false);
+  
+  // Circuit breaker to prevent too many sync attempts
+  const MAX_SYNC_ATTEMPTS = 5;
+  const SYNC_INTERVAL = 30000; // 30 seconds instead of 3 seconds
+  const RECOVERY_TIMEOUT = 300000; // 5 minutes
+  const SYNC_ATTEMPT_RESET = 60000; // Reset attempt counter after 1 minute of successful syncs
 
   // Function to detect and store shop
   const setupShopFromUrl = async () => {
@@ -63,6 +72,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setShop(shopDomain);
       setShopifyConnected(true);
       
+      // Reset circuit breaker on successful URL shop detection
+      syncAttempts.current = 0;
+      inRecoveryMode.current = false;
+      
       return true;
     }
     
@@ -78,9 +91,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (allStores && allStores.length > 0) {
         setShops(allStores.map(store => store.domain));
       }
-      
-      // Also ensure this store is active in the database
-      await shopifyConnectionService.forceActivateStore(activeStore);
       
       return true;
     }
@@ -99,9 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update shops list
       setShops([storedShop]);
-      
-      // Also ensure this store is active in the database
-      await shopifyConnectionService.forceActivateStore(storedShop);
       
       return true;
     }
@@ -134,6 +141,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update list of shops
       setShops([shopDomain]);
+      
+      // Reset circuit breaker states
+      syncAttempts.current = 0;
+      inRecoveryMode.current = false;
+      lastErrorHash.current = '';
       
       console.log(`Active shop set to: ${shopDomain}`);
     } catch (error) {
@@ -201,15 +213,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Function to forcibly synchronize connection state
+  // Function to forcibly synchronize connection state with circuit breaker
   const syncConnectionState = async () => {
+    // Don't sync if in recovery mode
+    if (inRecoveryMode.current) {
+      console.log("In recovery mode, skipping connection sync");
+      return false;
+    }
+    
     // Only sync if enough time has passed since last sync
     const now = Date.now();
-    if (now - lastSyncTime < 3000) { // 3 second minimum between syncs
+    if (now - lastSyncTime < SYNC_INTERVAL) {
+      return false;
+    }
+    
+    // Check if we've reached max attempts and enter recovery mode if needed
+    if (syncAttempts.current >= MAX_SYNC_ATTEMPTS) {
+      console.log(`Too many sync attempts (${syncAttempts.current}), entering recovery mode`);
+      inRecoveryMode.current = true;
+      localStorage.setItem('shopify_recovery_mode', 'true');
+      
+      // Force enable bypass auth as a last resort
+      localStorage.setItem('bypass_auth', 'true');
+      
+      // Schedule recovery mode exit
+      setTimeout(() => {
+        console.log("Exiting recovery mode");
+        inRecoveryMode.current = false;
+        syncAttempts.current = 0;
+        localStorage.removeItem('shopify_recovery_mode');
+      }, RECOVERY_TIMEOUT);
+      
       return false;
     }
     
     setLastSyncTime(now);
+    syncAttempts.current += 1;
     
     // Check localStorage first as the most reliable source
     const storedShop = localStorage.getItem('shopify_store');
@@ -219,10 +258,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const activeStore = shopifyConnectionManager.getActiveStore();
     const allStores = shopifyConnectionManager.getAllStores();
     
+    // Create an error hash to detect repeated errors
+    const stateHash = JSON.stringify({
+      storedShop, 
+      isConnected, 
+      activeStore, 
+      shopCount: allStores.length,
+      shop, 
+      shopifyConnected
+    });
+    
+    // If same error state persists, increase attempt count
+    if (stateHash === lastErrorHash.current) {
+      console.log("Same connection state issue detected, incrementing attempt counter");
+    } else {
+      // If state changed, update hash and reset counter if it was successful
+      lastErrorHash.current = stateHash;
+      
+      // If valid connection exists, consider resetting attempt counter
+      if ((storedShop && isConnected) || activeStore) {
+        // Only reset counter if this is a valid state for a while
+        setTimeout(() => {
+          if (!inRecoveryMode.current) {
+            syncAttempts.current = 0;
+            console.log("Connection appears stable, reset sync attempts counter");
+          }
+        }, SYNC_ATTEMPT_RESET);
+      }
+    }
+    
     console.log("Synchronizing connection state:", {
       localStorage: { storedShop, isConnected },
       connectionManager: { activeStore, storeCount: allStores.length },
       currentState: { shop, shopifyConnected },
+      syncAttempts: syncAttempts.current,
+      inRecovery: inRecoveryMode.current,
       timestamp: now
     });
     
@@ -250,9 +320,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           shopifyConnectionManager.addOrUpdateStore(shopToUse, true);
         }
         
-        // Also ensure this store is active in the database
-        await shopifyConnectionService.forceActivateStore(shopToUse);
-        
         console.log("Connection state synchronized to connected with shop:", shopToUse);
         return true;
       }
@@ -265,6 +332,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     
     return false;
+  };
+
+  // Full connection reset to fix issues
+  const resetEntireConnectionState = async () => {
+    try {
+      console.log("Performing full connection state reset");
+      
+      // Clear localStorage
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_recovery_mode');
+      
+      // Reset connection manager
+      shopifyConnectionManager.clearAllStores();
+      
+      // Reset state
+      setShop(null);
+      setShopifyConnected(false);
+      setShops(null);
+      
+      // Reset circuit breaker
+      syncAttempts.current = 0;
+      inRecoveryMode.current = false;
+      lastErrorHash.current = '';
+      
+      // Delay before trying to reload data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Try to load from URL or database
+      const fromUrl = await setupShopFromUrl();
+      if (!fromUrl) {
+        await loadShopsFromDatabase();
+      }
+      
+      console.log("Connection state reset complete");
+    } catch (error) {
+      console.error("Error during connection reset:", error);
+    }
   };
 
   useEffect(() => {
@@ -290,7 +396,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('shopify_connected', 'true');
         } else {
           // Setup Shopify shop from other sources
-          const shopConnected = setupShopFromUrl();
+          const shopConnected = await setupShopFromUrl();
           
           if (shopConnected) {
             // Get the active store again to ensure it's updated
@@ -337,7 +443,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await loadShopsFromDatabase();
         
         // After all attempts, forcibly synchronize state
-        syncConnectionState();
+        await syncConnectionState();
         
         // Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
@@ -384,14 +490,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     window.addEventListener('popstate', handleUrlChange);
 
     // Perform regular checks to make sure connection state is synchronized
+    // But with reduced frequency and with circuit breaker
     const intervalId = setInterval(() => {
       // Only run when not loading
       if (!loading) {
-        // This will check local storage and connection manager
-        // to ensure authContext stays consistent with them
         syncConnectionState();
       }
-    }, 3000);
+    }, SYNC_INTERVAL);
+
+    // Expose emergency reset function globally for debugging
+    (window as any).resetShopifyConnection = resetEntireConnectionState;
 
     return () => {
       authListener.subscription.unsubscribe();
