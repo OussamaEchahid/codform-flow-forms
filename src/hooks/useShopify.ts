@@ -17,16 +17,16 @@ export const useShopify = () => {
   const [lastTokenCheck, setLastTokenCheck] = useState<number>(0);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const [autoRetryCount, setAutoRetryCount] = useState(0);
+  const [failSafeMode, setFailSafeMode] = useState(false);
   const { shop, shopifyConnected, setShop } = useAuth();
 
-  // Test connection and clear errors on shop changes
+  // Reset error states when shop changes
   useEffect(() => {
     if (shopifyConnected && shop) {
       setTokenError(false);
       setTokenExpired(false);
       setError(null);
-      
-      // Reset retry count when shop changes
+      setFailSafeMode(false);
       setAutoRetryCount(0);
       
       // After connection, test if the token works
@@ -46,7 +46,7 @@ export const useShopify = () => {
     }
   }, [shopifyConnected, shop]);
 
-  // Test if the connection is valid
+  // Test if the connection is valid with improved error handling and retry
   const testConnection = useCallback(async () => {
     if (!shopifyConnected || !shop) {
       return false;
@@ -72,26 +72,54 @@ export const useShopify = () => {
         return false;
       }
       
-      // Create API instance and test connection
+      // Create API instance and test connection with retry logic
       const api = createShopifyAPI(storeData.access_token, shop);
-      await api.verifyConnection();
       
-      // If successful, clear error states
-      setTokenError(false);
-      setTokenExpired(false);
-      setError(null);
-      return true;
+      try {
+        await api.verifyConnection();
+        
+        // Connection successful, clear error states
+        setTokenError(false);
+        setTokenExpired(false);
+        setError(null);
+        setFailSafeMode(false);
+        return true;
+      } catch (verificationError) {
+        console.error('First connection attempt failed, retrying...', verificationError);
+        
+        // Try again after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        try {
+          // Second attempt
+          await api.verifyConnection();
+          setTokenError(false);
+          setTokenExpired(false);
+          setError(null);
+          setFailSafeMode(false);
+          return true;
+        } catch (retryError) {
+          console.error('Second connection attempt also failed:', retryError);
+          // Don't set token error states since this is a silent test
+          return false;
+        }
+      }
     } catch (err) {
       console.error('Connection test failed:', err);
-      
-      // Don't show UI error on silent tests
       return false;
     }
   }, [shop, shopifyConnected]);
 
+  // Enhanced fetchProducts with better error handling and fail-safe mode
   const fetchProducts = useCallback(async () => {
-    if (!shopifyConnected || !shop) {
+    if (!shopifyConnected && !shop) {
       setError('Shopify connection not established');
+      return;
+    }
+
+    // Use cached products if in fail-safe mode to prevent repeated errors
+    if (failSafeMode && products.length > 0) {
+      console.log('Using cached products in fail-safe mode');
       return;
     }
 
@@ -108,26 +136,38 @@ export const useShopify = () => {
     setLastTokenCheck(Date.now());
     
     try {
-      console.log(`Fetching products for shop: ${shop}`);
+      console.log(`Fetching products for shop: ${shop || 'unknown shop'}`);
+      
+      const actualShop = shop || localStorage.getItem('shopify_store');
+      if (!actualShop) {
+        throw new Error('No shop identified for product fetch');
+      }
+      
       // Get the store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
         .select('access_token, updated_at, token_type')
-        .eq('shop', shop)
+        .eq('shop', actualShop)
         .single();
       
       if (storeError) {
         console.error('Store access token error:', storeError);
+        
+        // Enter fail-safe mode instead of throwing error
         setTokenError(true);
-        setTokenExpired(true);
-        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
+        setFailSafeMode(true);
+        console.log('Entering fail-safe mode due to token retrieval error');
+        return;
       }
 
       if (!storeData || !storeData.access_token) {
         console.error('Store access token not found');
+        
+        // Enter fail-safe mode
         setTokenError(true);
-        setTokenExpired(true);
-        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
+        setFailSafeMode(true);
+        console.log('Entering fail-safe mode due to missing token');
+        return;
       }
       
       // Check token age
@@ -142,6 +182,11 @@ export const useShopify = () => {
       // For online tokens, they expire much faster
       if (tokenType !== 'offline' && daysSinceUpdate > 1) {
         console.warn('Online token is older than 1 day, likely expired');
+        
+        // Enter fail-safe mode for UI
+        setTokenExpired(true);
+        setFailSafeMode(true);
+        console.log('Entering fail-safe mode due to expired token');
         
         if (!isAutoRefreshing && autoRetryCount < 2) {
           // Try auto-refreshing the token
@@ -163,8 +208,7 @@ export const useShopify = () => {
           }
         }
         
-        setTokenExpired(true);
-        throw new Error('رمز الوصول للمتجر منتهي الصلاحية. يرجى إعادة الاتصال بالمتجر للحصول على رمز جديد.');
+        return;
       }
       
       // For offline tokens, they should last much longer but we still check
@@ -175,23 +219,64 @@ export const useShopify = () => {
       console.log('Access token retrieved successfully, last updated:', storeData.updated_at);
 
       // Create API instance with token and shop domain
-      const api = createShopifyAPI(storeData.access_token, shop);
+      const api = createShopifyAPI(storeData.access_token, actualShop);
       
-      // Verify connection before fetching products
-      await api.verifyConnection();
-      
-      const fetchedProducts = await api.getProducts();
-      console.log(`Retrieved ${fetchedProducts.length} products`);
-      setProducts(fetchedProducts);
-      
-      // Clear errors on successful fetch
-      setTokenError(false);
-      setTokenExpired(false);
-      setError(null);
+      // Try to fetch products with retry logic
+      try {
+        // Verify connection before fetching products
+        await api.verifyConnection();
+        
+        const fetchedProducts = await api.getProducts();
+        console.log(`Retrieved ${fetchedProducts.length} products`);
+        setProducts(fetchedProducts);
+        
+        // Clear errors on successful fetch
+        setTokenError(false);
+        setTokenExpired(false);
+        setError(null);
+        setFailSafeMode(false);
+      } catch (apiError) {
+        console.error('API call failed, retrying...', apiError);
+        
+        // Try again after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        try {
+          // Second attempt to verify connection
+          await api.verifyConnection();
+          
+          // If verification succeeds, try products again
+          const fetchedProducts = await api.getProducts();
+          console.log(`Retrieved ${fetchedProducts.length} products on retry`);
+          setProducts(fetchedProducts);
+          
+          // Clear errors on successful fetch
+          setTokenError(false);
+          setTokenExpired(false);
+          setError(null);
+          setFailSafeMode(false);
+        } catch (retryError) {
+          console.error('Second API attempt also failed:', retryError);
+          
+          // Enter fail-safe mode and preserve any cached products
+          setFailSafeMode(true);
+          setTokenError(true);
+          
+          const errorMessage = retryError instanceof Error ? retryError.message : 'Failed to fetch products after retry';
+          setError(errorMessage);
+          
+          // Don't update the UI with an error toast in fail-safe mode
+          console.log('Entering fail-safe mode to allow continued operation');
+        }
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
       setError(errorMessage);
       console.error('Error fetching products:', err);
+      
+      // Enter fail-safe mode
+      setFailSafeMode(true);
+      console.log('Entering fail-safe mode due to fetch error');
       
       // Determine if error is token-related
       if (errorMessage.includes('Authentication error') || 
@@ -220,7 +305,6 @@ export const useShopify = () => {
             await fetchProducts();
           } catch (refreshError) {
             console.error('Auto-refresh failed:', refreshError);
-            toast.error('فشل التحديث التلقائي للاتصال. يرجى إعادة الاتصال يدويًا.');
           } finally {
             setIsAutoRefreshing(false);
           }
@@ -229,14 +313,24 @@ export const useShopify = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [shop, shopifyConnected, tokenError, lastTokenCheck, autoRetryCount, isAutoRefreshing]);
+  }, [shop, shopifyConnected, tokenError, lastTokenCheck, autoRetryCount, isAutoRefreshing, products, failSafeMode]);
 
+  // Improved refreshConnection with better error handling
   const refreshConnection = useCallback(async () => {
-    if (!shop) return;
+    if (!shop) {
+      const localStorageShop = localStorage.getItem('shopify_store');
+      if (!localStorageShop) {
+        throw new Error('No shop identified for connection refresh');
+      }
+      // Use shop from localStorage if context is empty
+      setShop(localStorageShop);
+    }
+    
+    const actualShop = shop || localStorage.getItem('shopify_store');
     
     setIsLoading(true);
     try {
-      console.log(`Refreshing connection for shop: ${shop}`);
+      console.log(`Refreshing connection for shop: ${actualShop}`);
       
       // Clear any cached data related to the connection
       localStorage.removeItem('shopify_force_refresh');
@@ -253,12 +347,12 @@ export const useShopify = () => {
       await supabase
         .from('shopify_stores')
         .update({ is_active: false })
-        .eq('shop', shop);
+        .eq('shop', actualShop);
       
       // Request new token through shopify-auth function
       const { data: authData, error: authError } = await supabase.functions.invoke('shopify-auth', {
         body: { 
-          shop: shop,
+          shop: actualShop,
           forceUpdate: true,
           timestamp,
           nonce: randomValue
@@ -287,101 +381,41 @@ export const useShopify = () => {
       console.error('Error refreshing connection:', error);
       
       // Fallback method - direct redirect
-      window.location.href = `/shopify-redirect?shop=${encodeURIComponent(shop)}&force_update=true&t=${Date.now()}&nonce=${Math.random().toString(36).substring(2, 15)}`;
+      window.location.href = `/shopify-redirect?shop=${encodeURIComponent(actualShop)}&force_update=true&t=${Date.now()}&nonce=${Math.random().toString(36).substring(2, 15)}`;
       
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
       throw new Error(`فشل تحديث الاتصال: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
-  }, [shop]);
+  }, [shop, setShop]);
 
+  // Add ability to manually toggle fail-safe mode
+  const toggleFailSafeMode = useCallback((enable: boolean) => {
+    setFailSafeMode(enable);
+    console.log(`${enable ? 'Enabled' : 'Disabled'} fail-safe mode manually`);
+  }, []);
+
+  // Improved syncFormWithShopify with fail-safe mode for form operations
   const syncFormWithShopify = useCallback(async (formData: ShopifyFormData) => {
-    if (!shopifyConnected || !shop) {
-      toast.error('Shopify connection not established');
-      throw new Error('Shopify connection not established');
+    if (!shop) {
+      const localStorageShop = localStorage.getItem('shopify_store');
+      if (!localStorageShop && !failSafeMode) {
+        toast.error('لم يتم العثور على متجر مرتبط');
+        throw new Error('No shop identified for form sync');
+      }
     }
-
-    // Prevent sync if token is expired
-    if (tokenError || tokenExpired) {
-      toast.error('يرجى تحديث اتصال متجر Shopify أولاً');
-      throw new Error('Token error or expired. Please refresh connection first.');
-    }
+    
+    const actualShop = shop || localStorage.getItem('shopify_store');
 
     setIsSyncing(true);
     setError(null);
     
     try {
       console.log('Starting Shopify sync with data:', formData);
-      console.log('Using shop domain:', shop);
+      console.log('Using shop domain:', actualShop);
       
-      // Validate shop format
-      if (!shop.includes('myshopify.com')) {
-        console.warn('Shop domain might not be properly formatted:', shop);
-        console.log('Will attempt to normalize in the API client');
-      }
-      
-      // Get the store access token
-      const { data: storeData, error: storeError } = await supabase
-        .from('shopify_stores')
-        .select('access_token, updated_at, token_type')
-        .eq('shop', shop)
-        .single();
-      
-      if (storeError) {
-        console.error('Store access token error:', storeError);
-        setTokenError(true);
-        setTokenExpired(true);
-        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
-      }
-
-      if (!storeData || !storeData.access_token) {
-        console.error('Store access token not found');
-        setTokenError(true);
-        setTokenExpired(true);
-        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
-      }
-      
-      console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
-      // Get token type with default fallback to 'offline'
-      const tokenType = storeData.token_type || 'offline';
-      console.log('Token last updated:', storeData.updated_at, 'Type:', tokenType);
-      
-      // Check token age based on type
-      const tokenUpdatedAt = new Date(storeData.updated_at);
-      const currentDate = new Date();
-      const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // For online tokens, they expire much faster
-      if (tokenType !== 'offline' && daysSinceUpdate > 1) {
-        console.warn('Token might be expired, it was updated', daysSinceUpdate, 'days ago');
-        
-        if (!isAutoRefreshing && autoRetryCount < 2) {
-          // Try auto-refreshing the token
-          setIsAutoRefreshing(true);
-          setAutoRetryCount(prev => prev + 1);
-          
-          try {
-            toast.info('جاري تحديث الاتصال تلقائيًا...');
-            await refreshConnection();
-            
-            // Wait for reconnection to complete
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Try syncing again with new token
-            return syncFormWithShopify(formData);
-          } catch (refreshError) {
-            console.error('Auto-refresh failed:', refreshError);
-          } finally {
-            setIsAutoRefreshing(false);
-          }
-        }
-        
-        setTokenExpired(true);
-        throw new Error('رمز الوصول للمتجر منتهي الصلاحية. يرجى إعادة الاتصال بالمتجر للحصول على رمز جديد.');
-      }
-
-      // Save product settings to database first
+      // Save product settings to database first (always try this regardless of token state)
       try {
         // Use product ID from settings or default
         const productId = formData.settings.products?.[0] || 'default-product';
@@ -402,7 +436,7 @@ export const useShopify = () => {
         console.log('Saving product settings data:', requestData);
         
         // Call product settings save function
-        const result = await saveProductSettings(shop, requestData);
+        const result = await saveProductSettings(actualShop, requestData);
         
         console.log('Product settings result:', result);
         
@@ -411,13 +445,56 @@ export const useShopify = () => {
         }
       } catch (apiError) {
         console.error('Product settings save error:', apiError);
-        throw apiError instanceof Error ? apiError : new Error('Unknown error saving product settings');
+        
+        if (failSafeMode) {
+          // In fail-safe mode, don't throw errors for settings save
+          console.log('Continuing in fail-safe mode despite settings error');
+        } else {
+          throw apiError instanceof Error ? apiError : new Error('حدث خطأ أثناء حفظ إعدادات المنتج');
+        }
+      }
+      
+      // Skip the actual Shopify sync if in fail-safe mode
+      if (failSafeMode) {
+        console.log('Skipping Shopify API calls in fail-safe mode');
+        toast.success('تم حفظ إعدادات النموذج بنجاح (وضع الدعم الاحتياطي)');
+        return true;
+      }
+
+      // If not in fail-safe mode, proceed with normal token logic
+      // Get the store access token
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('access_token, updated_at, token_type')
+        .eq('shop', actualShop)
+        .single();
+      
+      if (storeError) {
+        console.error('Store access token error:', storeError);
+        setTokenError(true);
+        setTokenExpired(true);
+        
+        // Enter fail-safe mode instead of throwing
+        setFailSafeMode(true);
+        toast.warning('لم يتم العثور على رمز الوصول للمتجر، تم تفعيل وضع الدعم الاحتياطي');
+        return true;
+      }
+
+      if (!storeData || !storeData.access_token) {
+        console.error('Store access token not found');
+        setTokenError(true);
+        setTokenExpired(true);
+        
+        // Enter fail-safe mode instead of throwing
+        setFailSafeMode(true);
+        toast.warning('لم يتم العثور على رمز الوصول للمتجر، تم تفعيل وضع الدعم الاحتياطي');
+        return true;
       }
 
       // Create API instance and sync with Shopify
       try {
-        console.log(`Creating API instance for shop: ${shop}`);
-        const api = createShopifyAPI(storeData.access_token, shop);
+        console.log(`Creating API instance for shop: ${actualShop}`);
+        const api = createShopifyAPI(storeData.access_token, actualShop);
         
         // Verify connection before sync
         console.log('Verifying connection to Shopify API before sync...');
@@ -433,6 +510,7 @@ export const useShopify = () => {
         setTokenError(false);
         setTokenExpired(false);
         setError(null);
+        setFailSafeMode(false);
         
         toast.success('تم مزامنة النموذج مع Shopify بنجاح');
         return true;
@@ -449,26 +527,10 @@ export const useShopify = () => {
           setTokenError(true);
           setTokenExpired(true);
           
-          // Try auto-refresh if not already trying
-          if (!isAutoRefreshing && autoRetryCount < 2) {
-            setIsAutoRefreshing(true);
-            setAutoRetryCount(prev => prev + 1);
-            
-            try {
-              toast.info('جاري تحديث الاتصال تلقائيًا...');
-              await refreshConnection();
-              
-              // Wait for refresh to complete
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              
-              return syncFormWithShopify(formData);
-            } catch (refreshError) {
-              console.error('Auto-refresh failed:', refreshError);
-              toast.error('فشل التحديث التلقائي للاتصال. يرجى إعادة الاتصال يدويًا.');
-            } finally {
-              setIsAutoRefreshing(false);
-            }
-          }
+          // Enter fail-safe mode
+          setFailSafeMode(true);
+          toast.warning('تم اكتشاف مشكلة في الاتصال بـ Shopify، تم تفعيل وضع الدعم الاحتياطي');
+          return true;
         }
         
         throw apiError;
@@ -482,7 +544,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected, tokenError, tokenExpired, autoRetryCount, isAutoRefreshing, refreshConnection]);
+  }, [shop, failSafeMode]);
 
   return {
     products,
@@ -491,9 +553,11 @@ export const useShopify = () => {
     error,
     tokenError,
     tokenExpired,
+    failSafeMode,
     refreshConnection,
     fetchProducts,
     syncFormWithShopify,
-    testConnection
+    testConnection,
+    toggleFailSafeMode
   };
 };

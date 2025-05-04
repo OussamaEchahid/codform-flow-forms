@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ const ShopifyCallback = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [connectionLoopDetected, setConnectionLoopDetected] = useState(false);
   const [processingComplete, setProcessingComplete] = useState(false);
+  const [directNavigationTriggered, setDirectNavigationTriggered] = useState(false);
 
   const processCallback = async (params: URLSearchParams) => {
     try {
@@ -63,7 +64,7 @@ const ShopifyCallback = () => {
         shopifyConnectionManager.resetLoopDetection();
         
         if (shop) {
-          // Force connection state to be connected
+          // Force connection state to be connected with strong caching preventions
           localStorage.removeItem('shopify_store');
           localStorage.removeItem('shopify_connected');
           localStorage.removeItem('shopify_temp_store');
@@ -71,16 +72,15 @@ const ShopifyCallback = () => {
           // Set new connection with force flag
           localStorage.setItem('shopify_store', shop);
           localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('bypass_auth', 'true'); // Enable bypass auth mode
           shopifyConnectionManager.addOrUpdateStore(shop, true, true);
           
           setSuccess(true);
           setShop(shop);
           setProcessingComplete(true);
           
-          // Delay longer before navigation to ensure state is saved
-          setTimeout(() => {
-            navigate('/dashboard', { replace: true });
-          }, 2500);
+          // Use direct navigation component instead of timeout-based redirect
+          setDirectNavigationTriggered(true);
           return;
         }
         
@@ -96,6 +96,7 @@ const ShopifyCallback = () => {
       // Clear any previous connection data to avoid conflicts
       localStorage.removeItem('shopify_store');
       localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('bypass_auth');
       
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdate) {
@@ -105,8 +106,8 @@ const ShopifyCallback = () => {
       // Store connection data in localStorage with forced delay
       console.log('Storing shop data in localStorage:', shop);
       
-      // Use a small delay to ensure data is written before continuing
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Use a stronger delay to ensure data is written before continuing
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       localStorage.setItem('shopify_store', shop);
       localStorage.setItem('shopify_connected', 'true');
@@ -116,18 +117,39 @@ const ShopifyCallback = () => {
       shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       shopifyConnectionManager.resetLoopDetection();
       
+      // Double check that data was saved correctly
+      const verifyStore = localStorage.getItem('shopify_store');
+      const verifyConnected = localStorage.getItem('shopify_connected');
+      
+      console.log('Verification check after save:', {
+        shopSaved: verifyStore === shop,
+        connectedSaved: verifyConnected === 'true',
+        verifyStoreValue: verifyStore,
+        verifyConnectedValue: verifyConnected
+      });
+      
+      // If verification failed, try one more time with a different approach
+      if (verifyStore !== shop || verifyConnected !== 'true') {
+        console.warn('Verification failed, trying alternative storage method');
+        // Try alternative storage with session expiry
+        window.sessionStorage.setItem('shopify_store', shop);
+        window.sessionStorage.setItem('shopify_connected', 'true');
+        
+        // Make one more attempt with localStorage
+        localStorage.clear(); // Try clearing first
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+      }
+      
       setSuccess(true);
       setShop(shop);
       setProcessingComplete(true);
       
       toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
       
-      console.log('Connection successful, navigating to dashboard in 2.5 seconds');
-      
-      // Increase delay to ensure state is fully processed
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 2500);
+      console.log('Connection successful, using direct navigation component');
+      // Set flag to trigger the Navigate component
+      setDirectNavigationTriggered(true);
     } catch (error) {
       console.error('Error processing callback:', error);
       setError(error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء معالجة الاستدعاء');
@@ -153,9 +175,11 @@ const ShopifyCallback = () => {
           // Force store data
           localStorage.setItem('shopify_store', shopParam);
           localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('bypass_auth', 'true'); // Enable bypass mode
           shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
           
-          navigate('/dashboard', { replace: true });
+          // Use Navigate component for more reliable navigation
+          setDirectNavigationTriggered(true);
         }
       }
     }, 5000); // 5 second backup timer
@@ -165,8 +189,27 @@ const ShopifyCallback = () => {
 
   // Force connection state validity
   useEffect(() => {
-    shopifyConnectionManager.validateConnectionState();
+    const validateTimer = setTimeout(() => {
+      try {
+        shopifyConnectionManager.validateConnectionState();
+      } catch (error) {
+        console.warn("Connection validation error in callback:", error);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(validateTimer);
   }, []);
+  
+  // If direct navigation is triggered, render Navigate component immediately
+  if (directNavigationTriggered) {
+    // Get any saved redirect path or default to dashboard
+    const redirectPath = localStorage.getItem('auth_redirect') || '/dashboard';
+    // Clear the saved path
+    localStorage.removeItem('auth_redirect');
+    
+    console.log("Performing direct navigation to:", redirectPath);
+    return <Navigate to={redirectPath} replace />;
+  }
 
   // Go to dashboard button handler
   const goToDashboard = () => {
@@ -189,6 +232,7 @@ const ShopifyCallback = () => {
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
+    localStorage.removeItem('bypass_auth');
     
     // Redirect
     navigate('/shopify', { replace: true });

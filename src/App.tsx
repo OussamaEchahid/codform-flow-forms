@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,7 +36,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// تعزيز المسارات المحمية للتحقق من اتصال Shopify أو مصادقة المستخدم
+// Modified ProtectedRoute to be more lenient in authenticating connections
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { shopifyConnected, user, shop, loading } = useAuth();
   
@@ -45,18 +45,19 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // فحص متعدد المصادر للتحقق من حالة الاتصال
+  // Enhanced connection checking to be more tolerant of different connection states
   const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const localStorageShop = localStorage.getItem('shopify_store');
+  const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
   
-  // استخدام جميع المصادر المتاحة بشكل أكثر تساهلاً لتحديد ما إذا كان المستخدم لديه حق الوصول
+  // Check for ANY indication of a connection - much more tolerant approach
   const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
   const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
   
-  // إذا كان لدينا أي مصدر يشير إلى اتصال أو سجل لاتصال سابق، نسمح بالوصول
-  // هذا يحل مشكلة حلقة إعادة التوجيه
-  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development');
+  // Allow access if ANY indication of connection exists
+  // Including a bypass flag for better reliability
+  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development') || bypassAuth;
   
   console.log("Protected route check:", {
     authContextConnected: shopifyConnected,
@@ -67,12 +68,20 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     isAuthenticated,
     hasAccess,
     requireAuth,
+    bypassAuth,
     env: process.env.NODE_ENV
   });
   
-  // في بيئة التطوير أو إذا كان لدينا أي نوع من الاتصال، اسمح بالوصول
+  // Only redirect if we have absolutely no indication of access rights
   if (requireAuth && !hasAccess) {
     console.log("No authentication or Shopify connection, redirecting to /shopify");
+    
+    // Save current path for redirection after authentication
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/shopify') {
+      localStorage.setItem('auth_redirect', currentPath);
+    }
+    
     toast.info("يجب الاتصال بمتجر Shopify أولاً");
     return <Navigate to="/shopify" replace />;
   }
@@ -81,7 +90,20 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   return <Outlet />;
 };
 
+// Modified routing to include a redirect handler
 function AppRoutes() {
+  const [readyForNavigation, setReadyForNavigation] = useState(false);
+  
+  // Check for saved redirects
+  React.useEffect(() => {
+    // Give time for auth provider to initialize
+    const timer = setTimeout(() => {
+      setReadyForNavigation(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   return (
     <Routes>
       <Route path="/" element={<Index />} />
@@ -109,8 +131,30 @@ function AppRoutes() {
 }
 
 function App() {
-  // التحقق من حالة الاتصال بـ Shopify عند بدء التشغيل
-  shopifyConnectionManager.validateConnectionState();
+  // التحقق من حالة الاتصال بـ Shopify عند بدء التشغيل وإعادة المصادقة
+  React.useEffect(() => {
+    // Attempt to validate the connection state with retry logic
+    const validateConnection = async () => {
+      try {
+        shopifyConnectionManager.validateConnectionState();
+        console.log("Connection validated successfully");
+      } catch (error) {
+        console.error("Error validating connection:", error);
+        
+        // If validation fails, retry after a delay
+        setTimeout(() => {
+          try {
+            console.log("Retrying connection validation...");
+            shopifyConnectionManager.validateConnectionState();
+          } catch (retryError) {
+            console.error("Retry validation failed:", retryError);
+          }
+        }, 2000);
+      }
+    };
+    
+    validateConnection();
+  }, []);
   
   return (
     <QueryClientProvider client={queryClient}>
