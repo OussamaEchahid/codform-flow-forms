@@ -19,9 +19,10 @@ export async function POST(request: Request) {
           status: 400,
           headers: { 
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0',
+            'Surrogate-Control': 'no-store',
           }
         }
       );
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
     console.log(`Proxying GraphQL request to Shopify for shop: ${normalizedShopDomain}`);
     
-    // Log request information
+    // Log request information with additional debug info
     console.log('Request details:', {
       shopDomain: normalizedShopDomain,
       queryFirstChars: query.substring(0, 50) + '...',
@@ -42,21 +43,26 @@ export async function POST(request: Request) {
       requestId: requestId || 'not provided',
       accessTokenPresent: accessToken ? true : false,
       accessTokenLength: accessToken ? accessToken.length : 0,
-      requestTime: new Date().toISOString()
+      accessTokenFirstChars: accessToken ? accessToken.substring(0, 5) + '...' : 'none',
+      requestTime: new Date().toISOString(),
+      uniqueId: Math.random().toString(36).substring(2, 9) // Add unique ID to prevent any caching
     });
     
     try {
-      const response = await fetch(`https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`, {
+      // Generate a unique cache-busting URL with timestamp and random string
+      const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      const response = await fetch(`https://${normalizedShopDomain}/admin/api/2024-01/graphql.json?cb=${cacheBuster}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0',
+          'X-Request-ID': requestId || Math.random().toString(36).substring(2, 15),
         },
         body: JSON.stringify({ query, variables }),
-        // إضافة خيارات لمنع التخزين المؤقت
         cache: 'no-store',
       });
 
@@ -67,20 +73,22 @@ export async function POST(request: Request) {
         const responseText = await response.text();
         console.error('Response text (first 500 chars):', responseText.substring(0, 500));
         
-        // If the response contains <!DOCTYPE html> or similar, it's likely an authentication error
-        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        // Detect authentication errors more accurately
+        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || response.status === 401 || response.status === 403) {
           return new Response(
             JSON.stringify({ 
               error: 'Authentication error with Shopify API',
-              details: 'The server returned an HTML page instead of JSON data. This usually indicates an invalid access token or incorrect shop domain.',
+              details: 'Your access token is invalid or has expired. Please reconnect your Shopify store.',
               statusCode: response.status,
-              contentType: contentType || 'unknown'
+              contentType: contentType || 'unknown',
+              errorType: 'token_expired',
+              timestamp: Date.now()
             }),
             { 
               status: 401,
               headers: { 
                 'Content-Type': 'application/json',
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
                 'Pragma': 'no-cache',
                 'Expires': '0',
               }
@@ -94,13 +102,15 @@ export async function POST(request: Request) {
             error: 'Invalid response from Shopify API - expected JSON but received HTML/text',
             details: 'The server returned non-JSON content, which may indicate an authentication error or invalid shop domain',
             statusCode: response.status,
-            contentType: contentType || 'unknown'
+            contentType: contentType || 'unknown',
+            errorType: 'invalid_response',
+            timestamp: Date.now()
           }),
           { 
             status: 502,
             headers: { 
               'Content-Type': 'application/json',
-              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
               'Pragma': 'no-cache',
               'Expires': '0',
             }
@@ -111,6 +121,37 @@ export async function POST(request: Request) {
       // Parse the Shopify response
       const data = await response.json();
       
+      // Check for GraphQL errors that might indicate token issues
+      if (data.errors) {
+        const errorMessages = data.errors.map((err: any) => err.message).join(', ');
+        
+        // Check if any errors are related to authentication
+        if (errorMessages.toLowerCase().includes('access') || 
+            errorMessages.toLowerCase().includes('token') || 
+            errorMessages.toLowerCase().includes('auth') ||
+            errorMessages.toLowerCase().includes('unauthorized')) {
+          
+          return new Response(
+            JSON.stringify({ 
+              error: 'Shopify API authentication error',
+              details: 'Your access token may have expired. Please reconnect your Shopify store.',
+              errorMessages,
+              errorType: 'token_expired',
+              timestamp: Date.now()
+            }),
+            { 
+              status: 401,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+              }
+            }
+          );
+        }
+      }
+      
       // Return the Shopify response data
       return new Response(
         JSON.stringify(data),
@@ -118,7 +159,7 @@ export async function POST(request: Request) {
           status: response.status,
           headers: { 
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0',
           }
@@ -129,13 +170,15 @@ export async function POST(request: Request) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to communicate with Shopify API',
-          details: fetchError instanceof Error ? fetchError.message : 'Unknown error'
+          details: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+          errorType: 'api_communication_error',
+          timestamp: Date.now()
         }),
         { 
           status: 500,
           headers: { 
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0',
           }
@@ -147,13 +190,15 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({ 
         error: 'Server error processing request',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorType: 'server_error',
+        timestamp: Date.now()
       }),
       { 
         status: 500,
         headers: { 
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0',
         }
@@ -169,7 +214,7 @@ export function GET() {
       status: 405,
       headers: { 
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0',
       }

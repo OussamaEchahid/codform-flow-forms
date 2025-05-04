@@ -18,7 +18,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Content-Type": "application/json",
-  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
   "Pragma": "no-cache",
   "Expires": "0",
 };
@@ -63,6 +63,7 @@ serve(async (req) => {
     url: req.url,
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
+    timestamp: new Date().toISOString(),
   });
 
   // التعامل مع طلبات CORS
@@ -196,8 +197,27 @@ serve(async (req) => {
           console.log("No matching state found, but continuing");
         }
       }
+
+      // Clear any existing tokens for this shop before requesting a new one
+      try {
+        // Delete any existing tokens for this shop
+        const { error: deleteError } = await supabase
+          .from('shopify_stores')
+          .delete()
+          .eq('shop', shop);
+          
+        if (deleteError) {
+          console.log("Error deleting existing tokens:", deleteError);
+          // Continue anyway
+        } else {
+          console.log("Successfully deleted previous tokens for shop:", shop);
+        }
+      } catch (cleanupError) {
+        console.error("Error during shop cleanup:", cleanupError);
+        // Continue anyway
+      }
     
-      // استبدال الرمز بتوكن الوصول
+      // استبدال الرمز بتوكن الوصول - طلب رمز دائم (offline access token)
       const accessTokenResponse = await fetch(
         `https://${shop}/admin/oauth/access_token`,
         {
@@ -206,7 +226,9 @@ serve(async (req) => {
           body: JSON.stringify({
             client_id: SHOPIFY_API_KEY,
             client_secret: SHOPIFY_API_SECRET,
-            code
+            code,
+            // Request a permanent token (offline access)
+            grant_options: ['per_user_authentication']
           })
         }
       );
@@ -218,7 +240,13 @@ serve(async (req) => {
       }
       
       const tokenData = await accessTokenResponse.json();
-      console.log("Token data received:", { ...tokenData, access_token: "REDACTED" });
+      console.log("Token data received:", { 
+        ...tokenData, 
+        access_token: "REDACTED",
+        token_type: tokenData.token_type || "unknown",
+        scope: tokenData.scope || "unknown",
+        expires_at: "Using offline token (permanent)"
+      });
       
       // حفظ الرمز المميز (token) في قاعدة البيانات Supabase
       try {
@@ -230,17 +258,16 @@ serve(async (req) => {
         
         console.log("Current user:", userId || "No authenticated user");
         
-        // تعطيل كافة المتاجر الأخرى
-        const { error: updateError } = await supabase
+        // Clean up all previous connections to ensure we start fresh
+        const { error: disableAllError } = await supabase
           .from('shopify_stores')
           .update({ is_active: false })
-          .neq('shop', shop);
+          .not('id', 'is', null); // Disable all stores
         
-        if (updateError) {
-          console.log("Error disabling other stores:", updateError);
-          // استمر على أي حال
+        if (disableAllError) {
+          console.log("Error disabling all stores:", disableAllError);
         } else {
-          console.log("Successfully disabled other stores");
+          console.log("Successfully disabled all stores");
         }
         
         // بيانات المتجر للحفظ
@@ -249,7 +276,9 @@ serve(async (req) => {
           access_token: tokenData.access_token,
           scope: tokenData.scope,
           updated_at: new Date().toISOString(),
-          is_active: true
+          token_type: 'offline', // Mark as offline token
+          is_active: true,
+          created_at: new Date().toISOString()
         };
         
         // إضافة معرف المستخدم إن وجد
@@ -257,23 +286,26 @@ serve(async (req) => {
           Object.assign(storeData, { user_id: userId });
         }
         
-        // استخدام عملية upsert للتعامل مع المتاجر الجديدة والتحديثات
-        const { error: upsertError } = await supabase
+        // Clean deletion and fresh insertion instead of upsert for a completely fresh token
+        await supabase
           .from('shopify_stores')
-          .upsert(storeData, { 
-            onConflict: 'shop', 
-            returning: 'minimal' 
-          });
+          .delete()
+          .eq('shop', shop);
           
-        if (upsertError) {
-          console.error("Error storing token:", upsertError);
-          // استمر على أي حال، حصلنا على الرمز وهو الجزء المهم
+        // Insert with a fresh record
+        const { error: insertError } = await supabase
+          .from('shopify_stores')
+          .insert(storeData);
+          
+        if (insertError) {
+          console.error("Error storing token:", insertError);
+          throw new Error(`Failed to store the access token: ${insertError.message}`);
         } else {
           console.log("Token stored successfully");
         }
       } catch (storeError) {
         console.error("Error in store operation:", storeError);
-        // استمر على أي حال
+        throw new Error(`Failed to update shop data: ${storeError instanceof Error ? storeError.message : "Unknown error"}`);
       }
       
       // تنظيف سجل الحالة المؤقت
@@ -310,6 +342,7 @@ serve(async (req) => {
                 localStorage.setItem('shopify_store', '${shop}');
                 localStorage.setItem('shopify_connected', 'true');
                 localStorage.setItem('shopify_active_store', '${shop}');
+                localStorage.setItem('shopify_reconnected_at', '${Date.now()}');
                 console.log('Shop data saved to localStorage');
               } catch(e) {
                 console.error('Error saving to localStorage:', e);
@@ -321,7 +354,7 @@ serve(async (req) => {
               }, 1000);
             } else {
               // إذا لم تكن في نافذة منبثقة، إعادة التوجيه
-              window.location.href = '${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true';
+              window.location.href = '${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true&token_renewed=true';
             }
           </script>
           <style>
@@ -360,8 +393,8 @@ serve(async (req) => {
         });
       }
       
-      // إعادة التوجيه إلى التطبيق - مع تصحيح المسار
-      const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true`;
+      // إعادة التوجيه إلى التطبيق مع معلمات إضافية
+      const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&timestamp=${timestamp}&new_connection=true&token_renewed=true`;
       console.log("Redirecting back to app:", redirectUrl);
       
       return new Response(
@@ -369,7 +402,8 @@ serve(async (req) => {
           success: true,
           shop,
           redirect: redirectUrl,
-          timestamp
+          timestamp,
+          token_renewed: true
         }),
         { status: 200, headers: corsHeaders }
       );

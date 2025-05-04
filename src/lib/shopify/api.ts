@@ -19,9 +19,10 @@ class ShopifyAPI {
       ? this.shopDomain 
       : `${this.shopDomain}.myshopify.com`;
     
-    // Instead of direct API call, use our proxy endpoint with cache-busting parameters
+    // Generate strong cache-busting parameters
     const timestamp = Date.now();
-    const url = `/api/shopify-proxy?t=${timestamp}&rid=${this.requestId}`;
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    const url = `/api/shopify-proxy?t=${timestamp}&rid=${this.requestId}&uid=${uniqueId}`;
     
     console.log(`Making API request through proxy to Shopify GraphQL API`);
     
@@ -34,7 +35,8 @@ class ShopifyAPI {
         accessTokenLength: this.accessToken ? this.accessToken.length : 0,
         accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none',
         timestamp,
-        requestId: this.requestId
+        requestId: this.requestId,
+        uniqueId
       });
       
       const response = await fetch(url, {
@@ -42,9 +44,10 @@ class ShopifyAPI {
         headers: {
           'Content-Type': 'application/json',
           // Add cache control headers
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'X-Unique-Id': uniqueId
         },
         body: JSON.stringify({ 
           query,
@@ -54,7 +57,7 @@ class ShopifyAPI {
           timestamp,
           requestId: this.requestId
         }),
-        // إضافة خيارات لمنع التخزين المؤقت
+        // Explicitly prevent caching
         cache: 'no-store',
       });
 
@@ -65,6 +68,15 @@ class ShopifyAPI {
         // Try to parse the error as JSON first
         try {
           const errorJson = JSON.parse(errorText);
+          
+          // Check if this is a token expiration error
+          if (errorJson.errorType === 'token_expired' || 
+              response.status === 401 || 
+              response.status === 403 || 
+              (errorJson.error && errorJson.error.toLowerCase().includes('auth'))) {
+            throw new Error(`Authentication error: Your access token is invalid or has expired. Please reconnect your Shopify store.`);
+          }
+          
           throw new Error(`Shopify API error (${response.status}): ${errorJson.error || errorJson.details || response.statusText}`);
         } catch (parseError) {
           // If parsing fails, return the raw error text
@@ -73,8 +85,20 @@ class ShopifyAPI {
       }
 
       const json = await response.json();
+      
+      // Check for GraphQL errors
       if (json.errors) {
         console.error('GraphQL Errors:', json.errors);
+        
+        // Check specifically for authentication errors
+        const errorMessages = json.errors.map((err: any) => err.message).join(', ');
+        if (errorMessages.toLowerCase().includes('access') || 
+            errorMessages.toLowerCase().includes('token') || 
+            errorMessages.toLowerCase().includes('auth') ||
+            errorMessages.toLowerCase().includes('unauthorized')) {
+          throw new Error(`Authentication error: Your access token may have expired. Please reconnect your Shopify store.`);
+        }
+        
         throw new Error(`GraphQL Error: ${json.errors[0].message}`);
       }
 
@@ -139,7 +163,7 @@ class ShopifyAPI {
     `;
 
     try {
-      // تحقق من الاتصال أولاً
+      // Verify connection first
       await this.verifyConnection();
       
       const data = await this.fetchAPI(query);
@@ -194,7 +218,7 @@ class ShopifyAPI {
   async syncFormData(formData: ShopifyFormData): Promise<void> {
     console.log('Syncing form data with Shopify');
     
-    // تحسين استعلام GraphQL لدعم الإعدادات المحددة
+    // Improve GraphQL mutation for better error handling
     const mutation = `
       mutation createScriptTag($input: ScriptTagInput!) {
         scriptTagCreate(input: $input) {
@@ -210,9 +234,10 @@ class ShopifyAPI {
       }
     `;
 
-    // إعداد مصدر السكريبت مع البيانات المطلوبة
+    // Generate a cache-busting script URL with timestamp
     const timestamp = Date.now();
-    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}&v=${timestamp}`;
+    const uniqueId = Math.random().toString(36).substring(2, 9);
+    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}&v=${timestamp}&uid=${uniqueId}`;
     
     const variables = {
       input: {
@@ -233,7 +258,7 @@ class ShopifyAPI {
         throw new Error(`Errors creating script tag: ${errors}`);
       }
       
-      // التحقق من وجود scriptTag في النتيجة
+      // Check for script tag in result
       if (!result?.scriptTagCreate?.scriptTag?.id) {
         throw new Error('Failed to create script tag: No script tag ID returned');
       }
@@ -258,7 +283,7 @@ class ShopifyAPI {
     console.log('Access token first 5 chars:', this.accessToken ? this.accessToken.substring(0, 5) + '...' : 'none');
     
     try {
-      // Use the simplest possible query first to test the connection
+      // Use the simplest possible query to test the connection
       const query = `
         {
           shop {
@@ -269,25 +294,26 @@ class ShopifyAPI {
       
       console.log('Sending verification query to Shopify API');
       
-      // إضافة معلمة لمنع التخزين المؤقت
+      // Add strong cache-busting parameters
       const timestamp = Date.now();
-      const requestId = Math.random().toString(36).substring(2, 15);
-      const url = `/api/shopify-proxy?t=${timestamp}&rid=${requestId}&ver=1`;
+      const uniqueId = Math.random().toString(36).substring(2, 15);
+      const url = `/api/shopify-proxy?t=${timestamp}&rid=${uniqueId}&ver=1`;
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'X-Unique-Id': uniqueId
         },
         body: JSON.stringify({ 
           query,
           shop: normalizedShopDomain,
           accessToken: this.accessToken,
           timestamp,
-          requestId
+          requestId: uniqueId
         }),
         cache: 'no-store',
       });
