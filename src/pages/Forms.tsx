@@ -8,9 +8,10 @@ import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 const Forms = () => {
-  const { user, shopifyConnected, shop } = useAuth();
+  const { user, shopifyConnected, shop, setShop } = useAuth();
   const { tokenError, failSafeMode, toggleFailSafeMode } = useShopify();
   const { language } = useI18n();
   const [bypassEnabled, setBypassEnabled] = useState(false);
@@ -38,6 +39,29 @@ const Forms = () => {
     }
   }, []);
   
+  useEffect(() => {
+    // Try to validate connection state on page load
+    const validateConnectionState = async () => {
+      try {
+        const connectionValid = shopifyConnectionManager.validateConnectionState();
+        console.log("Connection state validation:", connectionValid);
+        
+        // If connection in localStorage but not in context, try to update context
+        const storedShop = localStorage.getItem('shopify_store');
+        const storedConnected = localStorage.getItem('shopify_connected') === 'true';
+        
+        if (storedShop && storedConnected && !shop && setShop) {
+          console.log("Sync missing shop from localStorage to context:", storedShop);
+          setShop(storedShop);
+        }
+      } catch (err) {
+        console.error("Error validating connection state:", err);
+      }
+    };
+    
+    validateConnectionState();
+  }, [shop, setShop]);
+  
   console.log("Forms page access check:", { 
     user, 
     shopifyConnected, 
@@ -63,6 +87,32 @@ const Forms = () => {
     toast.success(language === 'ar' 
       ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج' 
       : 'Bypass mode activated. You can continue managing forms.');
+  };
+
+  // This function forces the shop to be active in both local storage and database
+  const forceActivateShop = async () => {
+    try {
+      const storedShop = localStorage.getItem('shopify_store');
+      if (!storedShop) return;
+      
+      console.log("Forcing shop to be active:", storedShop);
+      
+      // Update local connection state
+      localStorage.setItem('shopify_connected', 'true');
+      
+      // Update connection manager
+      shopifyConnectionManager.addOrUpdateStore(storedShop, true, true);
+      
+      // Update context if available
+      if (setShop && !shop) {
+        setShop(storedShop);
+      }
+      
+      // Force refresh the page to apply changes
+      window.location.reload();
+    } catch (err) {
+      console.error("Error forcing shop activation:", err);
+    }
   };
 
   if (!actualAccess) {
@@ -112,10 +162,20 @@ const Forms = () => {
       {(tokenError || failSafeMode) && (
         <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
           <Alert variant="warning" className="bg-amber-50 border-amber-200">
-            <AlertDescription className="text-amber-700">
-              {language === 'ar' 
-                ? 'هناك مشكلة في اتصال Shopify، تم تفعيل وضع الدعم الاحتياطي. يمكنك الاستمرار في إدارة النماذج.'
-                : 'There is an issue with the Shopify connection. Fail-safe mode enabled. You can continue managing forms.'}
+            <AlertDescription className="text-amber-700 flex justify-between items-center">
+              <span>
+                {language === 'ar' 
+                  ? 'هناك مشكلة في اتصال Shopify، تم تفعيل وضع الدعم الاحتياطي. يمكنك الاستمرار في إدارة النماذج.'
+                  : 'There is an issue with the Shopify connection. Fail-safe mode enabled. You can continue managing forms.'}
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={forceActivateShop}
+                className="ml-2"
+              >
+                {language === 'ar' ? 'إصلاح الاتصال' : 'Fix Connection'}
+              </Button>
             </AlertDescription>
           </Alert>
         </div>

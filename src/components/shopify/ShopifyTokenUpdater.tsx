@@ -94,7 +94,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
           body: {
             shopDomain: cleanedDomain,
             accessToken: accessToken.trim(),
-            forceActivate,
+            forceActivate, // Always pass forceActivate (default true)
             tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
           }
         });
@@ -148,7 +148,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
         body: JSON.stringify({
           shopDomain: cleanedDomain,
           accessToken: accessToken.trim(),
-          forceActivate,
+          forceActivate: true, // Always force activate to true to make sure the store is set as active
           tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
         }),
         cache: 'no-store'

@@ -79,7 +79,7 @@ serve(async (req) => {
       }, 400);
     }
     
-    const { shopDomain, accessToken, forceActivate, tokenType: requestedTokenType } = data;
+    const { shopDomain, accessToken, forceActivate = true, tokenType: requestedTokenType } = data;
     
     if (!shopDomain || !accessToken) {
       console.error("Missing required parameters:", { hasShop: !!shopDomain, hasToken: !!accessToken });
@@ -89,7 +89,7 @@ serve(async (req) => {
       }, 400);
     }
     
-    console.log(`Updating access token for shop: ${shopDomain}`);
+    console.log(`Updating access token for shop: ${shopDomain}, forceActivate: ${forceActivate}`);
     
     // Determine token type - Admin API tokens start with 'shpat_'
     const detectedTokenType = accessToken.startsWith('shpat_') ? 'admin' : 'offline';
@@ -116,6 +116,21 @@ serve(async (req) => {
     
     let result;
     
+    // If forceActivate is true (default), first deactivate all stores
+    // This should happen BEFORE updating the current store
+    if (forceActivate) {
+      console.log("Force activate is true, deactivating all other stores first");
+      const { error: deactivateError } = await supabase
+        .from('shopify_stores')
+        .update({ is_active: false })
+        .not('shop', 'eq', shopDomain);
+      
+      if (deactivateError) {
+        console.error("Error deactivating other stores:", deactivateError);
+        // Continue anyway, this is not a critical error
+      }
+    }
+    
     if (existingStore) {
       // Update existing store
       const { data, error } = await supabase
@@ -123,7 +138,7 @@ serve(async (req) => {
         .update({ 
           access_token: accessToken,
           token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: forceActivate === true,
+          is_active: forceActivate === true ? true : false,  // Make this explicit
           updated_at: new Date().toISOString()
         })
         .eq('shop', shopDomain)
@@ -139,14 +154,6 @@ serve(async (req) => {
       }
       
       result = { data, updated: true };
-      
-      // If forcing active, deactivate all other stores
-      if (forceActivate) {
-        await supabase
-          .from('shopify_stores')
-          .update({ is_active: false })
-          .neq('shop', shopDomain);
-      }
     } else {
       // Insert new store
       const { data, error } = await supabase
@@ -155,7 +162,7 @@ serve(async (req) => {
           shop: shopDomain, 
           access_token: accessToken,
           token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: forceActivate === true,
+          is_active: forceActivate === true ? true : false,  // Make this explicit
           updated_at: new Date().toISOString()
         }])
         .select();
@@ -174,6 +181,31 @@ serve(async (req) => {
     
     // Also run the ensure_single_active_store function as a fallback
     await supabase.rpc('ensure_single_active_store');
+    
+    // Double-check the store was set to active if forceActivate is true
+    if (forceActivate) {
+      const { data: verifyActive, error: verifyError } = await supabase
+        .from('shopify_stores')
+        .select('is_active')
+        .eq('shop', shopDomain)
+        .single();
+        
+      if (verifyError || !verifyActive || !verifyActive.is_active) {
+        console.log("Store not set to active as expected, forcing update", { verifyError, verifyActive });
+        
+        // Force update the store to be active
+        const { error: forceError } = await supabase
+          .from('shopify_stores')
+          .update({ is_active: true })
+          .eq('shop', shopDomain);
+          
+        if (forceError) {
+          console.error("Error forcing store active:", forceError);
+        }
+      } else {
+        console.log("Verified store is active:", verifyActive);
+      }
+    }
     
     // Return success response
     return jsonResponse({ 
