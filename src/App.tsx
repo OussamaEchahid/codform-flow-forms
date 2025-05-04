@@ -22,7 +22,7 @@ import ShopifyStores from "@/pages/ShopifyStores";
 import Settings from "@/pages/Settings";
 
 // Components
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
