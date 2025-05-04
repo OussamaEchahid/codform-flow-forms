@@ -27,11 +27,15 @@ serve(async (req) => {
     // التحقق من وجود الأعمدة المطلوبة في جدول shopify_stores
     const hasTokenTypeMigration = await ensureTokenTypeColumn(supabase);
     
+    // التحقق من وجود الدالة المطلوبة create_form_with_shop
+    const hasCreateFormFunction = await ensureCreateFormFunction(supabase);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         migrations: {
-          hasTokenTypeMigration
+          hasTokenTypeMigration,
+          hasCreateFormFunction
         },
         message: "تم تحديث مخطط قاعدة البيانات بنجاح" 
       }),
@@ -122,6 +126,80 @@ async function ensureTokenTypeColumn(supabase) {
     return false;
   } catch (error) {
     console.error("Error in ensureTokenTypeColumn:", error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود وظيفة create_form_with_shop
+async function ensureCreateFormFunction(supabase) {
+  try {
+    // التحقق من وجود الوظيفة عن طريق استدعائها بطريقة آمنة
+    const { data: testData, error: testError } = await supabase.rpc(
+      'function_exists',
+      { 
+        function_name: 'create_form_with_shop'
+      }
+    );
+    
+    // إذا فشل الاستعلام أو كان ناتجه سلبيًا، نفترض أن الوظيفة غير موجودة
+    if (testError || !testData) {
+      console.log("Creating create_form_with_shop function...");
+      
+      // إنشاء الوظيفة إذا لم تكن موجودة
+      const createFunctionSQL = `
+        CREATE OR REPLACE FUNCTION public.create_form_with_shop(
+          p_title TEXT,
+          p_description TEXT,
+          p_data JSONB,
+          p_shop_id TEXT,
+          p_user_id UUID
+        ) RETURNS UUID
+        LANGUAGE plpgsql
+        SECURITY DEFINER
+        AS $$
+        DECLARE
+          v_form_id UUID;
+        BEGIN
+          INSERT INTO public.forms (title, description, data, shop_id, user_id, is_published)
+          VALUES (p_title, p_description, p_data, p_shop_id, p_user_id, false)
+          RETURNING id INTO v_form_id;
+          
+          RETURN v_form_id;
+        END;
+        $$;
+        
+        CREATE OR REPLACE FUNCTION public.function_exists(function_name TEXT)
+        RETURNS BOOLEAN
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+          RETURN EXISTS (
+            SELECT 1
+            FROM pg_proc
+            JOIN pg_namespace ON pg_namespace.oid = pg_proc.pronamespace
+            WHERE pg_proc.proname = function_name
+            AND pg_namespace.nspname = 'public'
+          );
+        END;
+        $$;
+      `;
+      
+      // تنفيذ استعلام إنشاء الوظيفة
+      const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
+      
+      if (createError) {
+        // محاولة تنفيذ SQL مباشرة باستخدام دالة أخرى
+        console.error("Error creating function via RPC:", createError);
+        return "manual_intervention_needed";
+      }
+      
+      return true;
+    }
+    
+    // الوظيفة موجودة بالفعل
+    return false;
+  } catch (error) {
+    console.error("Error in ensureCreateFormFunction:", error);
     return false;
   }
 }

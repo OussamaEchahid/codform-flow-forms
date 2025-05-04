@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,6 +17,17 @@ export interface FormData {
   user_id: string;
   shop_id?: string;
   updated_at?: string;
+}
+
+// Update TypeScript by augmenting the Supabase database types
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient {
+    rpc<T = any>(
+      fn: 'get_shopify_store_data' | 'get_user_shop' | 'create_form_with_shop' | 'function_exists' | 'exec_sql',
+      params?: object,
+      options?: any
+    ): { data: T; error: Error | null };
+  }
 }
 
 export const useFormTemplates = () => {
@@ -329,137 +341,11 @@ export const useFormTemplates = () => {
     isLoading,
     selectedTemplate,
     fetchForms,
-    createDefaultForm: useCallback(async () => {
-      return createFormFromTemplate(1); // Use template ID 1 as default
-    }, [createFormFromTemplate]),
+    createDefaultForm,
     createFormFromTemplate,
-    saveForm: async (formId: string, formData: any) => {
-      try {
-        // Use clean UUID
-        const userId = user?.id || uuidv4();
-          
-        // Check that user ID is a valid UUID
-        if (typeof userId !== 'string' || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          console.error("Invalid UUID format for user_id when saving:", userId);
-          toast.error('معرف المستخدم غير صالح. يرجى إعادة الاتصال بالمتجر');
-          return false;
-        }
-        
-        const updateData = {
-          title: formData.title,
-          description: formData.description,
-          data: formData.data as unknown as Json, // Safe type assertion with unknown as intermediary
-          updated_at: new Date().toISOString(),
-          shop_id: actualShop || null, // Use null instead of empty string if shop doesn't exist
-          user_id: userId // Use clean UUID
-        };
-        
-        const { error } = await supabase
-          .from('forms')
-          .update(updateData)
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error saving form:", error);
-          if (error.message.includes('row-level security policy')) {
-            toast.error('خطأ في الصلاحيات: لا يمكن حفظ النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
-          } else {
-            toast.error(`خطأ في حفظ النموذج: ${error.message}`);
-          }
-          throw error;
-        }
-        
-        toast.success('تم حفظ النموذج بنجاح');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ في حفظ النموذج: ${error.message}`);
-        return false;
-      }
-    },
-    publishForm: async (formId: string, isPublished: boolean) => {
-      try {
-        const { error } = await supabase
-          .from('forms')
-          .update({ is_published: isPublished })
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error publishing form:", error);
-          if (error.message.includes('row-level security policy')) {
-            toast.error('خطأ في الصلاحيات: لا يمكن نشر النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
-          } else {
-            toast.error(`خطأ: ${error.message}`);
-          }
-          throw error;
-        }
-        
-        toast.success(isPublished ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ: ${error.message}`);
-        return false;
-      }
-    },
-    deleteForm: async (formId: string) => {
-      try {
-        const { error } = await supabase
-          .from('forms')
-          .delete()
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error deleting form:", error);
-          if (error.message.includes('row-level security policy')) {
-            toast.error('خطأ في الصلاحيات: لا يمكن حذف النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
-          } else {
-            toast.error(`خطأ: ${error.message}`);
-          }
-          throw error;
-        }
-        
-        toast.success('تم حذف النموذج بنجاح');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ: ${error.message}`);
-        return false;
-      }
-    },
-    getFormById: async (formId: string) => {
-      if (!formId) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('id', formId)
-          .single();
-        
-        if (error) {
-          console.error("Error getting form by ID:", error);
-          if (error.message.includes('row-level security policy')) {
-            toast.error('خطأ في الصلاحيات: لا يمكن عرض النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
-          } else {
-            toast.error(`خطأ في جلب النموذج: ${error.message}`);
-          }
-          throw error;
-        }
-        
-        if (!data) {
-          toast.error('النموذج غير موجود');
-          return null;
-        }
-        
-        return {
-          ...data,
-          data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
-        } as FormData;
-      } catch (error: any) {
-        toast.error(`خطأ في جلب النموذج: ${error.message}`);
-        return null;
-      }
-    }
+    saveForm,
+    publishForm,
+    deleteForm,
+    getFormById
   };
 };
