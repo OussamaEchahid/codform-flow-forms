@@ -466,12 +466,6 @@ export const useShopify = () => {
   }, [shop, setShop]);
 
   // Add ability to manually toggle fail-safe mode
-  const toggleFailSafeMode = useCallback((enable: boolean) => {
-    setFailSafeMode(enable);
-    console.log(`${enable ? 'Enabled' : 'Disabled'} fail-safe mode manually`);
-  }, []);
-
-  // Add ability to manually toggle fail-safe mode
   const toggleFailSafeMode = useCallback((enabled: boolean) => {
     setFailSafeMode(enabled);
     if (enabled) {

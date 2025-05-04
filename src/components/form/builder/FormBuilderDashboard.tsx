@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useShopify } from '@/hooks/useShopify';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { supabase } from '@/integrations/supabase/client';
 
 const FormBuilderDashboard = () => {
   const navigate = useNavigate();
