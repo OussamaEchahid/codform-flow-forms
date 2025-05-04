@@ -242,6 +242,10 @@ export type Database = {
         Args: { sql: string }
         Returns: undefined
       }
+      function_exists: {
+        Args: { function_name: string; function_schema?: string }
+        Returns: boolean
+      }
       get_shopify_store_data: {
         Args: Record<PropertyKey, never> | { store_domain?: string }
         Returns: {
