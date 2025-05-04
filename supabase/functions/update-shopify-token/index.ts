@@ -14,33 +14,56 @@ const corsHeaders = {
   "Expires": "0",
 };
 
+// Helper function to ensure we always return a proper JSON response
+const jsonResponse = (data: any, status: number = 200) => {
+  return new Response(
+    JSON.stringify(data),
+    { 
+      headers: corsHeaders,
+      status: status
+    }
+  );
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
   
   try {
     console.log("Request received to update Shopify token");
     
     // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase environment variables");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Missing Supabase environment variables" 
-        }),
-        { 
-          headers: corsHeaders,
-          status: 500 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    // Better validation for environment variables
+    if (!supabaseUrl || supabaseUrl.length < 10) {
+      console.error("Invalid or missing SUPABASE_URL:", supabaseUrl);
+      return jsonResponse({ 
+        success: false, 
+        error: "Missing or invalid Supabase URL environment variable",
+        env_status: {
+          has_url: !!supabaseUrl,
+          url_length: supabaseUrl?.length || 0
         }
-      );
+      }, 500);
     }
     
+    if (!supabaseKey || supabaseKey.length < 10) {
+      console.error("Invalid or missing SUPABASE_SERVICE_ROLE_KEY");
+      return jsonResponse({ 
+        success: false, 
+        error: "Missing or invalid Supabase service role key environment variable",
+        env_status: {
+          has_key: !!supabaseKey,
+          key_length: supabaseKey?.length || 0
+        }
+      }, 500);
+    }
+    
+    console.log("Supabase environment variables validated");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
@@ -49,33 +72,21 @@ serve(async (req) => {
       data = await req.json();
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Invalid JSON in request body",
-          details: parseError instanceof Error ? parseError.message : String(parseError)
-        }),
-        { 
-          headers: corsHeaders,
-          status: 400 
-        }
-      );
+      return jsonResponse({ 
+        success: false, 
+        error: "Invalid JSON in request body",
+        details: parseError instanceof Error ? parseError.message : String(parseError)
+      }, 400);
     }
     
     const { shopDomain, accessToken, forceActivate, tokenType: requestedTokenType } = data;
     
     if (!shopDomain || !accessToken) {
       console.error("Missing required parameters:", { hasShop: !!shopDomain, hasToken: !!accessToken });
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Shop domain and access token are required" 
-        }),
-        { 
-          headers: corsHeaders,
-          status: 400 
-        }
-      );
+      return jsonResponse({ 
+        success: false, 
+        error: "Shop domain and access token are required" 
+      }, 400);
     }
     
     console.log(`Updating access token for shop: ${shopDomain}`);
@@ -96,17 +107,11 @@ serve(async (req) => {
     
     if (queryError) {
       console.error("Error querying store:", queryError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Failed to query store", 
-          details: queryError.message 
-        }),
-        { 
-          headers: corsHeaders,
-          status: 500 
-        }
-      );
+      return jsonResponse({ 
+        success: false, 
+        error: "Failed to query store", 
+        details: queryError.message 
+      }, 500);
     }
     
     let result;
@@ -126,17 +131,11 @@ serve(async (req) => {
       
       if (error) {
         console.error("Error updating store:", error);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Failed to update store", 
-            details: error.message 
-          }),
-          { 
-            headers: corsHeaders,
-            status: 500 
-          }
-        );
+        return jsonResponse({ 
+          success: false, 
+          error: "Failed to update store", 
+          details: error.message 
+        }, 500);
       }
       
       result = { data, updated: true };
@@ -163,17 +162,11 @@ serve(async (req) => {
       
       if (error) {
         console.error("Error inserting store:", error);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Failed to insert store", 
-            details: error.message 
-          }),
-          { 
-            headers: corsHeaders,
-            status: 500 
-          }
-        );
+        return jsonResponse({ 
+          success: false, 
+          error: "Failed to insert store", 
+          details: error.message 
+        }, 500);
       }
       
       result = { data, inserted: true };
@@ -182,36 +175,22 @@ serve(async (req) => {
     // Also run the ensure_single_active_store function as a fallback
     await supabase.rpc('ensure_single_active_store');
     
-    // Make sure we're always returning properly formatted JSON with correct content-type
-    const responseBody = JSON.stringify({ 
+    // Return success response
+    return jsonResponse({ 
       success: true, 
       message: "Access token updated successfully",
       shop: shopDomain,
       tokenType: tokenType,
       result: result
-    });
-    
-    return new Response(
-      responseBody,
-      { 
-        headers: corsHeaders,
-        status: 200 
-      }
-    );
+    }, 200);
     
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: "Unexpected error occurred", 
-        details: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        headers: corsHeaders,
-        status: 500 
-      }
-    );
+    return jsonResponse({ 
+      success: false, 
+      error: "Unexpected error occurred", 
+      details: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    }, 500);
   }
 });
