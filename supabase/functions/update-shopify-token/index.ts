@@ -40,6 +40,10 @@ serve(async (req) => {
     
     console.log(`Updating access token for shop: ${shopDomain}`);
     
+    // Determine token type - Admin API tokens start with 'shpat_'
+    const tokenType = accessToken.startsWith('shpat_') ? 'admin' : 'offline';
+    console.log(`Detected token type: ${tokenType}`);
+    
     // First check if the store exists
     const { data: existingStore, error: queryError } = await supabase
       .from('shopify_stores')
@@ -70,6 +74,7 @@ serve(async (req) => {
         .from('shopify_stores')
         .update({ 
           access_token: accessToken,
+          token_type: tokenType,  // Explicitly set the token type based on detection
           is_active: forceActivate === true,
           updated_at: new Date().toISOString()
         })
@@ -91,8 +96,8 @@ serve(async (req) => {
         .insert([{ 
           shop: shopDomain, 
           access_token: accessToken,
+          token_type: tokenType,  // Explicitly set the token type based on detection
           is_active: forceActivate === true,
-          token_type: 'admin',
           updated_at: new Date().toISOString()
         }]);
       
@@ -121,7 +126,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Access token updated successfully",
-        shop: shopDomain
+        shop: shopDomain,
+        tokenType: tokenType
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
