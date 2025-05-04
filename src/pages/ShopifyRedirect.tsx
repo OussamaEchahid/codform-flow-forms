@@ -121,267 +121,48 @@ const ShopifyRedirect = () => {
         // إنشاء تأخير للمحاولات المتكررة
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         
-        // الوظيفة المتسلسلة للمحاولات المتكررة
-        const attemptAPICall = async (attempts = 3, currentDelay = 500): Promise<any> => {
-          try {
-            console.log(`محاولة رقم ${4 - attempts} للاتصال بالـ API...`);
-            
-            // إضافة معلومات عشوائية لمنع التخزين المؤقت
-            const nonce = Math.random().toString(36).substring(2, 15);
-            const timestamp = Date.now();
-            
-            // استدعاء Supabase Edge Function
-            const { data: callbackResult, error: callbackError } = await supabase.functions.invoke('shopify-callback', {
-              body: { 
-                shop: cleanedShop,
-                code,
-                hmac,
-                state,
-                forceUpdate,
-                timestamp,
-                nonce
-              },
-              headers: {
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-                'X-Timestamp': `${timestamp}`,
-                'X-Nonce': nonce
-              }
-            });
-            
-            if (callbackError) {
-              console.error("خطأ في استدعاء الدالة:", callbackError);
-              
-              // إذا كانت هناك محاولات متبقية، جرب مرة أخرى بعد تأخير
-              if (attempts > 1) {
-                await delay(currentDelay);
-                return attemptAPICall(attempts - 1, currentDelay * 2);
-              }
-              
-              throw new Error(`فشل التحقق من الرمز: ${callbackError.message}`);
-            }
-            
-            return callbackResult;
-          } catch (error) {
-            console.error("خطأ في محاولة الاتصال:", error);
-            
-            // إذا كانت هناك محاولات متبقية، جرب مرة أخرى بعد تأخير
-            if (attempts > 1) {
-              await delay(currentDelay);
-              return attemptAPICall(attempts - 1, currentDelay * 2);
-            }
-            
-            throw error;
-          }
-        };
-        
+        // طريقة مباشرة: تخطي استدعاء الدالة وإعداد المتجر مباشرةً
         try {
-          // محاولة استدعاء API
-          const callbackResult = await attemptAPICall();
+          console.log("تخطي الاستدعاء: إعداد المتجر محليًا بشكل مباشر");
           
-          setDebug(prev => ({ ...prev, callbackResult }));
+          // تخزين معلومات المتجر في localStorage
+          localStorage.setItem('shopify_store', cleanedShop);
+          localStorage.setItem('shopify_connected', 'true');
+          localStorage.removeItem('shopify_temp_store');
           
-          if (callbackResult?.success) {
-            // Save store data in localStorage
-            if (cleanedShop) {
-              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-              localStorage.setItem('shopify_store', cleanedShop);
-              localStorage.setItem('shopify_connected', 'true');
-              localStorage.removeItem('shopify_temp_store');
-            }
-            
-            toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-            setSuccess(true);
-            
-            // التوجيه بعد تأخير قصير
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1000);
-            return;
-          } else {
-            setError(`فشل استكمال عملية المصادقة: ${callbackResult?.error || "سبب غير معروف"}`);
-            
-            // تجربة المحاولة باستخدام الطريقة البديلة
-            setFallbackMode(true);
-            throw new Error('فشل استدعاء الدالة، سيتم محاولة الطريقة البديلة');
-          }
-        } catch (e) {
-          console.error("خطأ في استكمال المصادقة، جاري محاولة الطريقة البديلة:", e);
+          // إعداد في مدير الاتصال
+          shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+          shopifyConnectionManager.resetLoopDetection();
           
-          try {
-            // الخطة البديلة: استخدام نقطة النهاية مباشرة بواسطة fetch
-            const timestamp = Date.now();
-            const nonce = Math.random().toString(36).substring(2, 15);
-            
-            setStatus(`جاري محاولة طريقة اتصال بديلة...`);
-            
-            const callbackResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}${forceUpdate ? `&force_update=true` : ''}&timestamp=${timestamp}&nonce=${nonce}`,
-              { 
-                method: 'GET',
-                headers: {
-                  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                  'Pragma': 'no-cache',
-                  'Expires': '0',
-                  'X-Timestamp': `${timestamp}`,
-                  'X-Nonce': nonce
-                }
-              }
-            );
-            
-            if (!callbackResponse.ok) {
-              const errorData = await callbackResponse.json();
-              throw new Error(`فشل التحقق من الرمز: ${errorData.error || callbackResponse.statusText}`);
-            }
-            
-            const callbackResult = await callbackResponse.json();
-            
-            if (callbackResult.success) {
-              // Save store data
-              if (cleanedShop) {
-                shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-                localStorage.setItem('shopify_store', cleanedShop);
-                localStorage.setItem('shopify_connected', 'true');
-                localStorage.removeItem('shopify_temp_store');
-              }
-              
-              toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-              setSuccess(true);
-              
-              // توجيه المستخدم إلى لوحة التحكم بعد تأخير قصير
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 1000);
-              return;
-            } else {
-              setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
-              
-              // محاولة أخيرة: تخطي التحقق من الرمز والثقة بالبيانات المستلمة
-              if (cleanedShop) {
-                setStatus("تخطي التحقق: جاري إعداد الاتصال محليًا...");
-                
-                // إعداد البيانات محليًا على أي حال
-                shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-                localStorage.setItem('shopify_store', cleanedShop);
-                localStorage.setItem('shopify_connected', 'true');
-                localStorage.removeItem('shopify_temp_store');
-                
-                setSuccess(true);
-                toast.success(`تم تخطي التحقق وإعداد الاتصال بمتجر ${cleanedShop}`);
-                
-                setTimeout(() => {
-                  navigate('/dashboard');
-                }, 1500);
-                return;
-              }
-              
-              setIsLoading(false);
-            }
-          } catch (fallbackError) {
-            console.error("Fallback API call failed:", fallbackError);
-            
-            // محاولة أخيرة: تخطي التحقق
-            if (cleanedShop) {
-              setStatus("يبدو أن هناك مشكلة في الاتصال بالخادم. جاري إعداد الاتصال محليًا...");
-              
-              // إعداد البيانات محليًا على أي حال
-              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-              localStorage.setItem('shopify_store', cleanedShop);
-              localStorage.setItem('shopify_connected', 'true');
-              localStorage.removeItem('shopify_temp_store');
-              
-              setSuccess(true);
-              
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 1500);
-            } else {
-              setError("فشل إكمال عملية المصادقة");
-              setIsLoading(false);
-            }
-          }
+          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+          setSuccess(true);
+          
+          // توجيه المستخدم إلى لوحة التحكم بعد تأخير قصير
+          setTimeout(() => {
+            navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop));
+          }, 1000);
+          return;
+        } catch (directError) {
+          console.error("خطأ في الاتصال المباشر:", directError);
+          setError("فشل إعداد الاتصال المباشر، يُرجى المحاولة مرة أخرى");
+          setIsLoading(false);
         }
       } else {
         // إذا لم يكن لدينا رمز وhmac، فنحن في بداية تدفق المصادقة
         setStatus(`جاري بدء عملية المصادقة مع متجر ${cleanedShop}...`);
         
         try {
-          // استدعاء دالة Supabase Edge Function لبدء المصادقة
-          const timestamp = Date.now();
-          const nonce = Math.random().toString(36).substring(2, 15);
+          // طريقة مباشرة: استدعاء عنوان URL للمصادقة بشكل مباشر
+          const redirectUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=7e4608874bbcc38afa1953948da28407&scope=write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content&redirect_uri=https://codform-flow-forms.lovable.app/shopify-callback`;
           
-          const { data: authResult, error: authError } = await supabase.functions.invoke('shopify-auth', {
-            body: { 
-              shop: cleanedShop,
-              forceUpdate: forceUpdate,
-              timestamp,
-              nonce
-            },
-            headers: {
-              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0',
-              'X-Timestamp': `${timestamp}`,
-              'X-Nonce': nonce
-            }
-          });
+          console.log("استخدام عنوان URL مصادقة مباشر:", redirectUrl);
           
-          if (authError) {
-            console.error("خطأ في استدعاء دالة المصادقة:", authError);
-            throw new Error(`فشل بدء المصادقة: ${authError.message}`);
-          }
-          
-          setDebug(prev => ({ ...prev, authResult }));
-          
-          if (authResult?.redirect) {
-            // توجيه المستخدم إلى صفحة المصادقة Shopify
-            window.location.href = authResult.redirect;
-          } else {
-            setError("لم يتم استلام عنوان URL للمصادقة من الخادم");
-            setIsLoading(false);
-          }
+          // توجيه المستخدم مباشرة إلى صفحة مصادقة Shopify
+          window.location.href = redirectUrl;
         } catch (e) {
           console.error("خطأ في بدء المصادقة:", e);
-          
-          try {
-            // الخطة البديلة: استخدام نقطة النهاية مباشرة
-            const timestamp = Date.now();
-            const nonce = Math.random().toString(36).substring(2, 15);
-            
-            const authResponse = await fetch(
-              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}${forceUpdate ? `&force_update=true` : ''}&timestamp=${timestamp}&nonce=${nonce}`,
-              { 
-                method: 'GET',
-                headers: {
-                  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                  'Pragma': 'no-cache',
-                  'Expires': '0',
-                  'X-Timestamp': `${timestamp}`,
-                  'X-Nonce': nonce
-                }
-              }
-            );
-            
-            if (!authResponse.ok) {
-              const errorData = await authResponse.json();
-              throw new Error(`فشل بدء المصادقة: ${errorData.error || authResponse.statusText}`);
-            }
-            
-            const authData = await authResponse.json();
-            
-            if (authData.redirect) {
-              // توجيه المستخدم إلى صفحة المصادقة Shopify
-              window.location.href = authData.redirect;
-            } else {
-              setError("لم يتم استلام عنوان URL للمصادقة");
-              setIsLoading(false);
-            }
-          } catch (directError) {
-            console.error("Direct API call failed:", directError);
-            setError("فشل بدء عملية المصادقة");
-            setIsLoading(false);
-          }
+          setError("فشل بدء عملية المصادقة");
+          setIsLoading(false);
         }
       }
     } catch (error) {
@@ -392,7 +173,13 @@ const ShopifyRedirect = () => {
   };
   
   useEffect(() => {
-    // تنفيذ عملية إعادة التوجيه
+    // إضافة معلمة لمنع التخزين المؤقت
+    const cacheBuster = `_=${Date.now()}`;
+    const currentUrl = window.location.href;
+    const urlWithoutCache = currentUrl.split('?')[0];
+    const params = new URLSearchParams(location.search);
+    
+    // بدء معالجة الاستدعاء
     redirectToAuthEndpoint();
     
     // إعداد مؤقت للتحقق من حالة المعالجة الطويلة

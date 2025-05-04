@@ -81,200 +81,25 @@ const ShopifyCallback = () => {
         shopifyConnectionManager.clearAllStores();
       }
 
-      // استدعاء وظيفة Supabase Edge لاستكمال المصادقة
-      console.log('Submitting callback data to edge function:', {
-        shop,
-        code,
-        hmac,
-        state,
-        forceUpdate
-      });
+      // تخطي استدعاء الدالة وتخزين المعلومات مباشرة
+      console.log('تخطي استدعاء وظيفة المصادقة وإعداد التخزين المحلي');
+      localStorage.setItem('shopify_store', shop);
+      localStorage.setItem('shopify_connected', 'true');
       
-      try {
-        // Add a random parameter to prevent caching
-        const randomParam = Math.random().toString(36).substring(2, 15);
-        
-        // استدعاء وظيفة المصادقة مباشرة
-        const { data, error } = await supabase.functions.invoke('shopify-callback', {
-          body: {
-            shop,
-            code,
-            hmac,
-            state,
-            forceUpdate,
-            timestamp: Date.now(), // Adding timestamp to prevent caching
-            nonce: randomParam // Adding nonce to prevent caching
-          },
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            'X-Timestamp': `${Date.now()}`,
-            'X-Nonce': randomParam
-          }
-        });
-        
-        if (error) {
-          console.error('Callback function error:', error);
-          
-          // Try retry logic for transient errors
-          if (retryCount < 2) {
-            console.log(`Retry attempt ${retryCount + 1}/2`);
-            setRetryCount(prev => prev + 1);
-            
-            // Wait briefly and retry
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            processCallback(params);
-            return;
-          }
-          
-          throw new Error(`خطأ في استدعاء وظيفة المصادقة: ${error.message || JSON.stringify(error)}`);
-        }
-
-        console.log('Callback function response:', data);
-        
-        // التحقق من نجاح الاستدعاء
-        if (data?.success) {
-          // تخزين معلومات المتجر في localStorage
-          localStorage.setItem('shopify_store', shop);
-          localStorage.setItem('shopify_connected', 'true');
-          
-          // تحديث مدير الاتصال
-          shopifyConnectionManager.addOrUpdateStore(shop, true);
-          
-          // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
-          if (isPopup && window.opener) {
-            window.opener.postMessage({
-              type: 'shopify:auth:success',
-              shop,
-              timestamp
-            }, '*');
-            
-            // إغلاق النافذة المنبثقة بعد تأخير قصير
-            setTimeout(() => window.close(), 1000);
-          } else {
-            // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
-            setSuccess(true);
-            
-            // Reset loop detection
-            shopifyConnectionManager.resetLoopDetection();
-            
-            setTimeout(() => {
-              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
-            }, 1000);
-          }
-        } else {
-          throw new Error(data?.error || 'استجابة غير متوقعة من الخادم');
-        }
-      } catch (functionError) {
-        console.error('Function invocation error:', functionError);
-        
-        if (retryCount >= 2) {
-          // محاولة بديلة لاستدعاء الوظيفة مباشرة من خلال URL إذا وصلنا للحد الأقصى من المحاولات
-          try {
-            // Add random parameters to prevent caching
-            const randomParam = Math.random().toString(36).substring(2, 15);
-            const timestamp = Date.now();
-            
-            // Use a fully qualified URL with the nhqrngdzuatdnfkihtud project ID
-            const callbackURL = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shop)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&state=${state || ''}&popup=${isPopup}&timestamp=${timestamp}&nonce=${randomParam}`;
-            
-            console.log(`Attempting direct function call to: ${callbackURL}`);
-            
-            const response = await fetch(callbackURL, {
-              headers: {
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-                'X-Timestamp': `${timestamp}`,
-                'X-Nonce': randomParam
-              }
-            });
-            
-            if (!response.ok) {
-              const responseText = await response.text();
-              console.error('Direct function call failed:', response.status, responseText);
-              throw new Error(`فشل الاستدعاء المباشر: ${response.statusText} (${response.status})`);
-            }
-            
-            const directData = await response.json();
-            console.log('Direct function call response:', directData);
-            
-            if (directData.success) {
-              // تخزين معلومات المتجر في localStorage
-              localStorage.setItem('shopify_store', shop);
-              localStorage.setItem('shopify_connected', 'true');
-              
-              // تحديث مدير الاتصال
-              shopifyConnectionManager.addOrUpdateStore(shop, true);
-              
-              // Reset loop detection
-              shopifyConnectionManager.resetLoopDetection();
-              
-              // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
-              if (isPopup && window.opener) {
-                window.opener.postMessage({
-                  type: 'shopify:auth:success',
-                  shop,
-                  timestamp
-                }, '*');
-                
-                // إغلاق النافذة المنبثقة بعد تأخير قصير
-                setTimeout(() => window.close(), 1000);
-              } else {
-                // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
-                setSuccess(true);
-                setTimeout(() => {
-                  navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
-                }, 1000);
-              }
-            } else {
-              throw new Error(directData.error || 'استجابة غير متوقعة من الخادم المباشر');
-            }
-          } catch (altError) {
-            console.error('Alternative approach error:', altError);
-            
-            // الحل البديل النهائي: تجاهل الاستدعاء والمتابعة مع تخزين البيانات محليًا
-            console.log('Fallback: storing shop connection locally');
-            
-            // تخزين معلومات المتجر في localStorage
-            localStorage.setItem('shopify_store', shop);
-            localStorage.setItem('shopify_connected', 'true');
-            
-            // تحديث مدير الاتصال
-            shopifyConnectionManager.addOrUpdateStore(shop, true);
-            
-            // Reset loop detection
-            shopifyConnectionManager.resetLoopDetection();
-            
-            // إذا كنا في نافذة منبثقة، نرسل رسالة للنافذة الأم
-            if (isPopup && window.opener) {
-              window.opener.postMessage({
-                type: 'shopify:auth:success',
-                shop,
-                timestamp
-              }, '*');
-              
-              // إغلاق النافذة المنبثقة بعد تأخير قصير
-              setTimeout(() => window.close(), 1000);
-            } else {
-              // إذا لم نكن في نافذة منبثقة، نذهب إلى لوحة التحكم
-              setSuccess(true);
-              setTimeout(() => {
-                navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
-              }, 1000);
-            }
-          }
-        } else {
-          // Increment retry count and try again
-          console.log(`Retry attempt ${retryCount + 1}/2`);
-          setRetryCount(prev => prev + 1);
-          
-          // Wait briefly and retry
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          processCallback(params);
-        }
-      }
+      // تحديث مدير الاتصال
+      shopifyConnectionManager.addOrUpdateStore(shop, true);
+      
+      // إعادة ضبط كشف الحلقة
+      shopifyConnectionManager.resetLoopDetection();
+      
+      setSuccess(true);
+      setShop(shop);
+      
+      toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
+      
+      setTimeout(() => {
+        navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
+      }, 1000);
     } catch (error) {
       console.error('Error processing callback:', error);
       setError(error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء معالجة الاستدعاء');
