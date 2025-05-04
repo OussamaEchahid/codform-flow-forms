@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       accessTokenPresent: accessToken ? true : false,
       accessTokenLength: accessToken ? accessToken.length : 0,
       accessTokenFirstChars: accessToken ? accessToken.substring(0, 5) + '...' : 'none',
+      accessTokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
       requestTime: new Date().toISOString(),
       uniqueId: Math.random().toString(36).substring(2, 9) // Add unique ID to prevent any caching
     });
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
               statusCode: response.status,
               contentType: contentType || 'unknown',
               errorType: 'token_expired',
+              tokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
               timestamp: Date.now()
             }),
             { 
@@ -137,6 +139,7 @@ export async function POST(request: Request) {
               details: 'Your access token may have expired. Please reconnect your Shopify store.',
               errorMessages,
               errorType: 'token_expired',
+              tokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
               timestamp: Date.now()
             }),
             { 

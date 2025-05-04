@@ -16,6 +16,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
   const [shopDomain, setShopDomain] = useState(shop || '');
   const [forceActivate, setForceActivate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   const handleUpdateToken = async () => {
     if (!shopDomain.trim()) {
@@ -35,14 +36,24 @@ export const ShopifyTokenUpdater: React.FC = () => {
     }
     
     setIsLoading(true);
+    setDebugInfo(null);
     
     try {
-      // Call edge function to update token
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-shopify-token`, {
+      console.log(`Attempting to update token for shop: ${cleanedDomain}`);
+      
+      // Use direct URL to avoid any route resolution issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+      
+      const fullUrl = `${supabaseUrl}/functions/v1/update-shopify-token`;
+      console.log(`Calling Edge Function at: ${fullUrl}`);
+      
+      // Call edge function to update token with detailed error handling
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${supabaseKey}`
         },
         body: JSON.stringify({
           shopDomain: cleanedDomain,
@@ -51,13 +62,37 @@ export const ShopifyTokenUpdater: React.FC = () => {
         })
       });
       
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        // We received a non-JSON response, which is an error
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse);
+        setDebugInfo({
+          error: 'Non-JSON response received',
+          statusCode: response.status,
+          contentType,
+          textResponsePreview: textResponse.substring(0, 500)
+        });
+        throw new Error(`Received non-JSON response with status ${response.status}`);
+      }
+      
       const result = await response.json();
+      
+      console.log('Update token result:', result);
       
       if (!result.success) {
         throw new Error(result.error || 'حدث خطأ غير معروف');
       }
       
       toast.success('تم تحديث رمز الوصول بنجاح');
+      
+      setDebugInfo({
+        success: true,
+        result,
+        tokenType: result.tokenType || 'unknown'
+      });
       
       // Update local state
       if (forceActivate) {
@@ -83,7 +118,19 @@ export const ShopifyTokenUpdater: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating token:', error);
-      toast.error(`فشل تحديث الرمز: ${error.message}`);
+      
+      let errorMessage = 'فشل تحديث الرمز';
+      if (error instanceof Error) {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
+      
+      // Save debug info for troubleshooting
+      setDebugInfo({
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +177,15 @@ export const ShopifyTokenUpdater: React.FC = () => {
             تعيين كمتجر نشط وإعادة تحميل التطبيق
           </Label>
         </div>
+        
+        {debugInfo && (
+          <div className="mt-4 p-3 text-xs bg-gray-100 rounded-md overflow-auto max-h-64">
+            <p className="font-medium mb-1">معلومات التصحيح:</p>
+            <pre dir="ltr">
+              {JSON.stringify(debugInfo, null, 2)}
+            </pre>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="bg-slate-50 border-t">
         <Button 
