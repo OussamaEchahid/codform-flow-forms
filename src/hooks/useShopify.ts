@@ -58,12 +58,17 @@ export const useShopify = () => {
       // Get the store access token
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
-        .select('access_token, updated_at')
+        .select('access_token, updated_at, token_type')
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error('Store access token error:', storeError || 'No access token found');
+      if (storeError) {
+        console.error('Store access token error:', storeError);
+        return false;
+      }
+      
+      if (!storeData || !storeData.access_token) {
+        console.error('Store access token not found');
         return false;
       }
       
