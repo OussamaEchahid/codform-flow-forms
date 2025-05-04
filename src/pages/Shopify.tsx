@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Store, ArrowRight, Info, CircleAlert, ArrowRightCircle } from 'lucide-react';
+import { Store, ArrowRight, Info, CircleAlert, ArrowRightCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cleanShopifyDomain } from '@/lib/shopify/types';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
@@ -216,6 +215,39 @@ const Shopify = () => {
     navigate('/dashboard');
   };
 
+  // Add new function for complete reset
+  const handleCompleteReset = () => {
+    if (window.confirm('هذا سيؤدي إلى مسح جميع بيانات الاتصال بشكل نهائي. هل أنت متأكد؟')) {
+      try {
+        // Call the complete reset function
+        shopifyConnectionManager.clearAllStores();
+        shopifyConnectionManager.resetLoopDetection();
+        
+        // Clear all localStorage items related to Shopify
+        localStorage.removeItem('shopify_store');
+        localStorage.removeItem('shopify_connected');
+        localStorage.removeItem('shopify_temp_store');
+        localStorage.removeItem('shopify_last_url_shop');
+        localStorage.removeItem('shopify_last_error');
+        localStorage.removeItem('shopify_recovery_attempt');
+        localStorage.removeItem('shopify_connection_timestamp');
+        localStorage.removeItem('shopify_failsafe');
+        localStorage.removeItem('bypass_auth');
+        localStorage.removeItem('pending_form_syncs');
+        
+        toast.success('تم إعادة تعيين جميع بيانات الاتصال بنجاح');
+        
+        // Force page reload to ensure all state is reset
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        console.error("خطأ في إع��دة التعيين الكاملة:", error);
+        toast.error('حدث خطأ أثناء إعادة التعيين');
+      }
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
       <div className="max-w-md w-full p-4">
@@ -226,147 +258,124 @@ const Shopify = () => {
                 <Store className="h-8 w-8 text-purple-600" />
               </div>
             </div>
-            <CardTitle className="text-2xl">اتصال Shopify</CardTitle>
+            <CardTitle className="text-xl">ربط المتجر مع Shopify</CardTitle>
             <CardDescription>
-              {connected 
-                ? `متصل بنجاح بمتجر ${connectedShop}`
-                : 'قم بتوصيل تطبيقك بمتجر Shopify الخاص بك'}
+              {connected ? `متجر متصل: ${connectedShop}` : 'قم بإدخال عنوان متجر Shopify الخاص بك للاتصال'}
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             {connected ? (
-              <div className="space-y-4 text-center">
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-green-700 font-medium">
-                    تم الاتصال بنجاح بمتجر {connectedShop}
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    تم تحديث حالة الاتصال: {new Date(lastConnectionCheck).toLocaleTimeString()}
-                  </p>
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-green-800 font-medium">متصل بمتجر {connectedShop}</p>
+                    <p className="text-sm text-green-700">يمكنك الآن استخدام الميزات المتكاملة مع Shopify</p>
+                  </div>
                 </div>
                 
-                <p className="text-gray-600">
-                  يمكنك الآن استخدام جميع ميزات التطبيق مع متجر Shopify الخاص بك.
-                </p>
-                
-                <div className="flex justify-center">
-                  <Button 
-                    onClick={handleContinue}
-                    variant="default"
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
-                  >
-                    متابعة إلى لوحة التحكم
-                    <ArrowRightCircle className="h-4 w-4" />
+                <div className="flex flex-col space-y-2">
+                  <Button onClick={handleContinue} variant="default">
+                    الذهاب إلى لوحة التحكم
+                    <ArrowRightCircle className="mr-2 h-4 w-4" />
                   </Button>
+                  
+                  <Button onClick={handleDisconnect} variant="outline">
+                    قطع الاتصال
+                  </Button>
+                  
+                  <div className="pt-4 border-t border-gray-200 mt-4">
+                    <p className="text-sm text-gray-500 mb-3">خيارات متقدمة:</p>
+                    
+                    <div className="flex flex-col space-y-2">
+                      <Button 
+                        onClick={handleCompleteReset} 
+                        variant="outline"
+                        className="border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                      >
+                        <RefreshCw className="ml-2 h-4 w-4" />
+                        إعادة تعيين كاملة للاتصال
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleForceAccess} 
+                        variant="outline"
+                        className="border-gray-200 text-gray-700"
+                      >
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                        تجاوز فحص الاتصال
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleConnect} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="shop">عنوان متجر Shopify الخاص بك</Label>
-                  <Input
-                    id="shop"
-                    placeholder="متجرك.myshopify.com"
-                    value={shop}
-                    onChange={(e) => setShop(e.target.value)}
-                    disabled={isLoading}
-                    autoComplete="off"
-                  />
-                  <p className="text-xs text-gray-500">
-                    أدخل عنوان URL الكامل لمتجر Shopify الخاص بك، على سبيل المثال: store.myshopify.com
-                  </p>
-                </div>
-                
-                <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                  <div className="flex">
-                    <Info className="h-5 w-5 text-blue-500 ml-2" />
-                    <p className="text-sm text-blue-700">
-                      سيتم توجيهك إلى Shopify للموافقة على الاتصال، ثم ستتم إعادتك إلى هنا بعد الانتهاء.
-                    </p>
+                  <Label htmlFor="shop">عنوان متجر Shopify</Label>
+                  <div className="flex space-x-2 items-center">
+                    <Input
+                      id="shop"
+                      placeholder="your-store.myshopify.com"
+                      value={shop}
+                      onChange={(e) => setShop(e.target.value)}
+                      className="flex-grow ml-2"
+                      dir="ltr"
+                    />
                   </div>
+                  <p className="text-xs text-gray-500">أدخل عنوان متجرك على Shopify (مثال: your-store.myshopify.com)</p>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading || !shop.trim()}>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
-                    <div className="flex items-center">
-                      <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin ml-2"></div>
-                      جاري الاتصال...
-                    </div>
+                    <>
+                      <span className="ml-2">جاري الاتصال...</span>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    </>
                   ) : (
-                    <div className="flex items-center">
-                      توصيل المتجر
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                    </div>
+                    <>
+                      <span>الاتصال بـ Shopify</span>
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
                   )}
                 </Button>
+                
+                <div className="pt-4 border-t border-gray-200 mt-4">
+                  <p className="text-sm text-gray-500 mb-3">خيارات متقدمة:</p>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Button 
+                      onClick={handleCompleteReset} 
+                      variant="outline"
+                      type="button"
+                      className="border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                    >
+                      <RefreshCw className="ml-2 h-4 w-4" />
+                      إعادة تعيين كاملة للاتصال
+                    </Button>
+                  </div>
+                </div>
               </form>
             )}
-            
-            {!connected && (
-              <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="flex">
-                  <CircleAlert className="h-5 w-5 text-yellow-500 ml-2" />
-                  <p className="text-sm text-yellow-700">
-                    تأكد من أن لديك صلاحيات الوصول كمسؤول لمتجرك على Shopify لإكمال الاتصال بنجاح.
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
-          
-          <CardFooter className="flex justify-center">
-            {connected ? (
-              <div className="flex gap-2">
-                <Button onClick={handleContinue} variant="default">
-                  متابعة إلى لوحة التحكم
-                </Button>
-                <Button onClick={handleDisconnect} variant="outline">
-                  قطع الاتصال
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col w-full gap-2">
-                <Button 
-                  onClick={handleSetup} 
-                  variant="outline" 
-                  className="w-full"
-                  disabled={!connectedShop && !localStorage.getItem('shopify_store')}>
-                  استخدام اتصال سابق
-                </Button>
-                
-                <Button
-                  onClick={handleForceAccess}
-                  variant="ghost"
-                  className="w-full text-gray-500"
-                  size="sm"
-                >
-                  تجاوز التحقق والاستمرار
-                </Button>
-              </div>
-            )}
-          </CardFooter>
         </Card>
         
-        {/* معلومات التشخيص للتصحيح */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 text-xs text-gray-500">
-            <details className="p-2 border border-gray-200 rounded-md">
-              <summary className="cursor-pointer font-medium">معلومات التشخيص</summary>
-              <div className="p-2 mt-2 bg-gray-100 rounded">
-                <p>تحقق من حالة الاتصال: {lastConnectionCheck ? new Date(lastConnectionCheck).toLocaleString() : 'لم يتم التحقق بعد'}</p>
-                <p>متصل: {connected ? 'نعم' : 'لا'}</p>
-                <p>المتجر المتصل: {connectedShop || 'لا يوجد'}</p>
-                <p>متجر في التخزين المحلي: {localStorage.getItem('shopify_store') || 'لا يوجد'}</p>
-                <p>حالة الاتصال في التخزين المحلي: {localStorage.getItem('shopify_connected') || 'لا يوجد'}</p>
-                <p>المتجر النشط من مدير الاتصال: {shopifyConnectionManager.getActiveStore() || 'لا يوجد'}</p>
-              </div>
-            </details>
-          </div>
-        )}
+        <div className="mt-8">
+          <details className="text-xs">
+            <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">معلومات تشخيصية</summary>
+            <div className="bg-gray-100 p-4 rounded-md">
+              <p className="font-medium mb-2">حالة الاتصال:</p>
+              <ul className="list-disc list-inside">
+                <li>الاتصال: {connected ? 'متصل' : 'غير متصل'}</li>
+                <li>متجر: {connectedShop || 'لا يوجد'}</li>
+                <li>localStorage (shopify_store): {localStorage.getItem('shopify_store') || 'لا يوجد'}</li>
+                <li>localStorage (shopify_connected): {localStorage.getItem('shopify_connected') || 'لا يوجد'}</li>
+                <li>آخر تحديث: {new Date(lastConnectionCheck).toLocaleTimeString()}</li>
+              </ul>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   );

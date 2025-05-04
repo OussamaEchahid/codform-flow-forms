@@ -371,6 +371,7 @@ class ShopifyConnectionManager {
     try {
       localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
       localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
+      localStorage.removeItem(this.LAST_ERROR_KEY);
     } catch (error) {
       console.error('Error in resetLoopDetection:', error);
     }

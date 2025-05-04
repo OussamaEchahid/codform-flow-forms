@@ -224,6 +224,16 @@ export type Database = {
         Args: { p_table: string; p_column: string }
         Returns: boolean
       }
+      create_form_with_shop: {
+        Args: {
+          p_title: string
+          p_description: string
+          p_data: Json
+          p_shop_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       ensure_single_active_store: {
         Args: Record<PropertyKey, never>
         Returns: undefined

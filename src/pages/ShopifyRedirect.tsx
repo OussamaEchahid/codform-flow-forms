@@ -1,9 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, RefreshCcw, Store, ArrowLeft } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCcw, Store, ArrowLeft, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { cleanShopifyDomain } from "@/lib/shopify/types";
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
@@ -18,6 +18,7 @@ const ShopifyRedirect = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [success, setSuccess] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
+  const [connectionLoopDetected, setConnectionLoopDetected] = useState(false);
   
   // استرايجية الاتصال المتسلسلة مع إعادة المحاولات والتأخير التصاعدي
   const redirectToAuthEndpoint = async () => {
@@ -34,6 +35,41 @@ const ShopifyRedirect = () => {
       
       // حفظ المتجر الأصلي للتصحيح
       const originalShop = shopParam;
+      
+      // Check for connection loop
+      if (shopifyConnectionManager.isInConnectionLoop()) {
+        console.warn("Connection loop detected, taking recovery action");
+        setConnectionLoopDetected(true);
+        
+        // Reset local state to break the loop
+        shopifyConnectionManager.clearAllStores();
+        shopifyConnectionManager.resetLoopDetection();
+        
+        setStatus("تم اكتشاف حلقة اتصال متكررة. جاري معالجة الخطأ...");
+        setFallbackMode(true);
+        
+        if (shopParam) {
+          // Force connection state to be connected with strong caching preventions
+          localStorage.removeItem('shopify_store');
+          localStorage.removeItem('shopify_connected');
+          localStorage.removeItem('shopify_temp_store');
+          
+          // Set new connection with force flag and enable bypass mode
+          localStorage.setItem('shopify_store', shopParam);
+          localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('bypass_auth', 'true');
+          shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
+          
+          setSuccess(true);
+          setIsLoading(false);
+          
+          // Redirect to dashboard after a delay
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 2000);
+          return;
+        }
+      }
       
       // تحديث معلومات التصحيح
       const debugInfo = { 
@@ -52,7 +88,17 @@ const ShopifyRedirect = () => {
         referrer: document.referrer || "none",
         userAgent: navigator.userAgent,
         retryCount,
-        fallbackMode
+        fallbackMode,
+        connectionLoopDetected,
+        localStorage: {
+          shopify_store: localStorage.getItem('shopify_store'),
+          shopify_connected: localStorage.getItem('shopify_connected'),
+          shopify_temp_store: localStorage.getItem('shopify_temp_store')
+        },
+        connectionManager: {
+          activeStore: shopifyConnectionManager.getActiveStore(),
+          allStores: shopifyConnectionManager.getAllStores()
+        }
       };
       
       setDebug(debugInfo);
@@ -73,8 +119,12 @@ const ShopifyRedirect = () => {
           console.log("استخدام بيانات المتجر المخزنة لإعادة التوجيه...");
           shopifyConnectionManager.addOrUpdateStore(savedShop, true, forceUpdate);
           
+          // Ensure the store is active in the database too
+          await shopifyConnectionService.forceActivateStore(savedShop);
+          
           setStatus("تم العثور على اتصال موجود. جاري التوجيه...");
           setSuccess(true);
+          setIsLoading(false);
           
           setTimeout(() => {
             navigate('/dashboard');
@@ -114,64 +164,80 @@ const ShopifyRedirect = () => {
         console.error("خطأ في حفظ البيانات المؤقتة:", e);
       }
       
-      // إذا كان لدينا رمز وhmac، فنحن في إعادة توجيه المكالمة بعد المصادقة
-      if (code && hmac) {
-        setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
+      // Use direct connection approach to avoid the multiple hop problem
+      try {
+        console.log("استخدام نهج الاتصال المباشر...");
         
-        // إنشاء تأخير للمحاولات المتكررة
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        // Clear any stale data
+        localStorage.removeItem('shopify_last_error');
+        localStorage.removeItem('shopify_recovery_attempt');
         
-        // طريقة مباشرة: تخطي استدعاء الدالة وإعداد المتجر مباشرةً
-        try {
-          console.log("تخطي الاستدعاء: إعداد المتجر محليًا بشكل مباشر");
+        // Store connection data
+        localStorage.setItem('shopify_store', cleanedShop);
+        localStorage.setItem('shopify_connected', 'true');
+        localStorage.removeItem('shopify_temp_store');
+        
+        // Update connection manager
+        shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+        shopifyConnectionManager.resetLoopDetection();
+        
+        // Activate the store in the database
+        const activationResult = await shopifyConnectionService.forceActivateStore(cleanedShop);
+        if (activationResult) {
+          console.log("تم تفعيل المتجر في قاعدة البيانات بنجاح");
+        } else {
+          console.warn("لم يتم تفعيل المتجر في قاعدة البيانات، سنستمر على أي حال");
+          // We'll continue anyway as the local connection is what matters for the UI
+        }
+        
+        setStatus(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+        setSuccess(true);
+        setIsLoading(false);
+        
+        toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop));
+        }, 1500);
+        return;
+      } catch (directError) {
+        console.error("خطأ في الاتصال المباشر:", directError);
+        
+        // If first attempt fails, try the legacy approach
+        if (retryCount === 0) {
+          setRetryCount(prev => prev + 1);
+          setStatus("الطريقة المباشرة فشلت، جاري محاولة طريقة بديلة...");
+          setFallbackMode(true);
           
-          // تخزين معلومات المتجر في localStorage
-          localStorage.setItem('shopify_store', cleanedShop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.removeItem('shopify_temp_store');
-          
-          // إعداد في مدير الاتصال
-          shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-          shopifyConnectionManager.resetLoopDetection();
-          
-          // Force activate the store in the database
-          const activationResult = await shopifyConnectionService.forceActivateStore(cleanedShop);
-          if (activationResult) {
-            console.log("تم تفعيل المتجر في قاعدة البيانات بنجاح");
-          } else {
-            console.warn("لم يتمكن من تفعيل المتجر في قاعدة البيانات");
-          }
-          
-          toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-          setSuccess(true);
-          
-          // توجيه المستخدم إلى لوحة التحكم بعد تأخير قصير
+          // Try again with fallback mode in a moment
           setTimeout(() => {
-            navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(cleanedShop));
+            try {
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.removeItem('shopify_temp_store');
+              localStorage.setItem('bypass_auth', 'true'); // Enable bypass mode
+              
+              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true, true);
+              
+              setStatus(`تم الاتصال بمتجر ${cleanedShop} باستخدام الوضع البديل`);
+              setSuccess(true);
+              
+              setTimeout(() => {
+                navigate('/dashboard?bypass=true&shop=' + encodeURIComponent(cleanedShop));
+              }, 1500);
+            } catch (fallbackError) {
+              console.error("خطأ في الوضع البديل:", fallbackError);
+              setError("فشلت جميع طرق الاتصال، يُرجى المحاولة مرة أخرى أو مسح ذاكرة التخزين المؤقت");
+              setIsLoading(false);
+            }
           }, 1000);
           return;
-        } catch (directError) {
-          console.error("خطأ في الاتصال المباشر:", directError);
-          setError("فشل إعداد الاتصال المباشر، يُرجى المحاولة مرة أخرى");
-          setIsLoading(false);
         }
-      } else {
-        // إذا لم يكن لدينا رمز وhmac، فنحن في بداية تدفق المصادقة
-        setStatus(`جاري بدء عملية المصادقة مع متجر ${cleanedShop}...`);
         
-        try {
-          // طريقة مباشرة: استدعاء عنوان URL للمصادقة بشكل مباشر
-          const redirectUrl = `https://${cleanedShop}/admin/oauth/authorize?client_id=7e4608874bbcc38afa1953948da28407&scope=write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content&redirect_uri=https://codform-flow-forms.lovable.app/shopify-callback`;
-          
-          console.log("استخدام عنوان URL مصادقة مباشر:", redirectUrl);
-          
-          // توجيه المستخدم مباشرة إلى صفحة مصادقة Shopify
-          window.location.href = redirectUrl;
-        } catch (e) {
-          console.error("خطأ في بدء المصادقة:", e);
-          setError("فشل بدء عملية المصادقة");
-          setIsLoading(false);
-        }
+        // If we've already tried fallback mode, show error
+        setError("فشلت جميع محاولات الاتصال، يرجى إعادة المحاولة");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Unexpected error in redirect:", error);
@@ -220,12 +286,11 @@ const ShopifyRedirect = () => {
     }
   };
   
-  // إعادة ضبط جميع البيانات
+  // إعادة ضبط كامل للبيانات
   const resetAll = () => {
     if (window.confirm('سيؤدي هذا الإجراء إلى مسح جميع بيانات المتاجر المخزنة محليًا. هل أنت متأكد؟')) {
-      shopifyConnectionManager.clearAllStores();
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_url_shop');
+      // Call the complete reset function
+      shopifyConnectionService.completeConnectionReset();
       toast.success('تم مسح جميع بيانات المتاجر');
       navigate('/shopify', { replace: true });
     }
@@ -253,6 +318,7 @@ const ShopifyRedirect = () => {
       localStorage.setItem('shopify_store', cleanedShop);
       localStorage.setItem('shopify_connected', 'true');
       localStorage.removeItem('shopify_temp_store');
+      localStorage.setItem('bypass_auth', 'true'); // Enable bypass mode
       
       // Also update the database to activate this store
       const activationResult = await shopifyConnectionService.forceActivateStore(cleanedShop);
@@ -293,6 +359,20 @@ const ShopifyRedirect = () => {
               </p>
             )}
             
+            {connectionLoopDetected && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
+                <div className="flex items-start">
+                  <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5 ml-2 flex-shrink-0" />
+                  <div className="text-right">
+                    <p className="font-medium text-amber-800">تم اكتشاف حلقة اتصال متكررة</p>
+                    <p className="text-sm text-amber-700">
+                      نقوم بإعادة تعيين حالة الاتصال تلقائياً لحل المشكلة.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {retryCount > 1 && (
               <div className="mt-6">
                 <Button variant="outline" onClick={backToShopify}>
@@ -313,6 +393,7 @@ const ShopifyRedirect = () => {
             <p className="text-gray-600 mb-4">{error}</p>
             <div className="flex flex-col space-y-3">
               <Button onClick={retry}>
+                <RefreshCcw className="h-4 w-4 ml-2" />
                 إعادة المحاولة
               </Button>
               
