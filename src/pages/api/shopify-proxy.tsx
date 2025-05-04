@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   try {
     // Extract the required data from the request body
     const body = await request.json();
-    const { shop, accessToken, query, variables } = body;
+    const { shop, accessToken, query, variables, timestamp, requestId } = body;
 
     if (!shop || !accessToken || !query) {
       return new Response(
@@ -17,7 +17,12 @@ export async function POST(request: Request) {
         }), 
         { 
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
         }
       );
     }
@@ -29,17 +34,30 @@ export async function POST(request: Request) {
 
     console.log(`Proxying GraphQL request to Shopify for shop: ${normalizedShopDomain}`);
     
-    // Make the actual request to Shopify's GraphQL API
-    const shopifyUrl = `https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`;
+    // Log request information
+    console.log('Request details:', {
+      shopDomain: normalizedShopDomain,
+      queryFirstChars: query.substring(0, 50) + '...',
+      timestamp: timestamp || 'not provided',
+      requestId: requestId || 'not provided',
+      accessTokenPresent: accessToken ? true : false,
+      accessTokenLength: accessToken ? accessToken.length : 0,
+      requestTime: new Date().toISOString()
+    });
     
     try {
-      const response = await fetch(shopifyUrl, {
+      const response = await fetch(`https://${normalizedShopDomain}/admin/api/2024-01/graphql.json`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
         body: JSON.stringify({ query, variables }),
+        // إضافة خيارات لمنع التخزين المؤقت
+        cache: 'no-store',
       });
 
       // Check if response is JSON by examining content-type header
@@ -60,7 +78,12 @@ export async function POST(request: Request) {
             }),
             { 
               status: 401,
-              headers: { 'Content-Type': 'application/json' }
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+              }
             }
           );
         }
@@ -75,7 +98,12 @@ export async function POST(request: Request) {
           }),
           { 
             status: 502,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+            }
           }
         );
       }
@@ -88,7 +116,12 @@ export async function POST(request: Request) {
         JSON.stringify(data),
         { 
           status: response.status,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
         }
       );
     } catch (fetchError) {
@@ -100,7 +133,12 @@ export async function POST(request: Request) {
         }),
         { 
           status: 500,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
         }
       );
     }
@@ -113,7 +151,12 @@ export async function POST(request: Request) {
       }),
       { 
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
       }
     );
   }
@@ -124,7 +167,12 @@ export function GET() {
     JSON.stringify({ message: 'This endpoint only accepts POST requests' }),
     { 
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     }
   );
 }

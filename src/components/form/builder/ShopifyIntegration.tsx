@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyFormData } from '@/lib/shopify/types';
-import { Loader, AlertCircle, Info, Check, RefreshCcw } from 'lucide-react';
+import { Loader, AlertCircle, Info, Check, RefreshCcw, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
@@ -42,12 +42,21 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { language } = useI18n();
   const { shopifyConnected, shop } = useAuth();
   const [position, setPosition] = useState<'product-page' | 'cart-page' | 'checkout'>('product-page');
-  const { products, isLoading: loadingProducts, error, tokenError, refreshConnection } = useShopify();
+  const { 
+    products, 
+    isLoading: loadingProducts, 
+    error,
+    tokenError,
+    tokenExpired,
+    refreshConnection,
+    fetchProducts 
+  } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'checking' | 'success' | 'error' | 'expired'>('idle');
+  const [autoRefreshAttempted, setAutoRefreshAttempted] = useState(false);
   
   // تكوين معرف كتلة عشوائي إذا لم يكن موجودًا بالفعل
   React.useEffect(() => {
@@ -58,30 +67,65 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   }, [blockId]);
 
   // التحقق من حالة الاتصال بالمتجر
-  React.useEffect(() => {
+  useEffect(() => {
     if (shopifyConnected && shop) {
-      setConnectionStatus('success');
+      if (tokenExpired) {
+        setConnectionStatus('expired');
+        setSaveError(language === 'ar' 
+          ? 'رمز الوصول للمتجر منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر'
+          : 'Your store access token has expired. Please reconnect to Shopify.');
+      } else if (tokenError) {
+        setConnectionStatus('error');
+        setSaveError(language === 'ar' 
+          ? 'رمز الوصول للمتجر غير صالح، يرجى إعادة الاتصال بالمتجر'
+          : 'Your store access token is invalid. Please reconnect to Shopify.');
+      } else {
+        setConnectionStatus('success');
+      }
     } else {
       setConnectionStatus('idle');
     }
     
-    // إذا كان هناك خطأ في رمز الوصول، تحديث حالة الاتصال
-    if (tokenError) {
-      setConnectionStatus('error');
-      setSaveError(language === 'ar' 
-        ? 'رمز الوصول للمتجر غير صالح أو منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر'
-        : 'Your store access token is invalid or expired. Please reconnect to Shopify.');
-    } else if (error) {
-      setConnectionStatus('error');
+    if (error) {
       setSaveError(error);
+      
+      // If the error is related to token issues, update connection status
+      if (error.includes('token') || error.includes('access') || 
+          error.includes('auth') || error.includes('Authentication') || 
+          error.includes('صلاحية')) {
+        setConnectionStatus('error');
+      }
     }
-  }, [shopifyConnected, shop, tokenError, error, language]);
+  }, [shopifyConnected, shop, tokenError, tokenExpired, error, language]);
+
+  // Auto refresh attempt for token expired case
+  useEffect(() => {
+    if (tokenExpired && !autoRefreshAttempted && shopifyConnected && shop) {
+      setAutoRefreshAttempted(true);
+      toast.info(language === 'ar' 
+        ? 'رمز الوصول للمتجر منتهي الصلاحية. سنحاول تحديث الاتصال...'
+        : 'Your store access token has expired. Trying to refresh connection...');
+        
+      // Auto-try the refresh connection after a short delay
+      setTimeout(() => {
+        refreshConnection().catch(console.error);
+      }, 1500);
+    }
+  }, [tokenExpired, autoRefreshAttempted, refreshConnection, shopifyConnected, shop, language]);
   
   const handleSave = async () => {
     if (!shopifyConnected || !shop) {
       toast.error(language === 'ar' 
         ? 'يجب عليك الاتصال بـ Shopify أولاً'
         : 'You need to connect to Shopify first');
+      return;
+    }
+    
+    // Don't allow saving if token is expired/invalid
+    if (tokenError || tokenExpired) {
+      toast.error(language === 'ar' 
+        ? 'يرجى تحديث اتصال المتجر أولاً قبل المحاولة مرة أخرى'
+        : 'Please refresh your store connection first before trying again');
       return;
     }
     
@@ -126,6 +170,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       setSaveError(errorMessage);
       toast.error(errorMessage);
+      
+      // Check if the error is related to token and trigger a connection retry if needed
+      if (typeof errorMessage === 'string' && 
+         (errorMessage.includes('token') || errorMessage.includes('access') || 
+          errorMessage.includes('auth') || errorMessage.includes('Authentication') || 
+          errorMessage.includes('صلاحية'))) {
+        setConnectionStatus('expired');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -153,6 +205,40 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
+  // مكون خاص بإعادة محاولة الاتصال
+  const RetryConnectionButton = () => (
+    <Button 
+      size="sm" 
+      variant="default" 
+      onClick={handleRefreshConnection} 
+      className="flex items-center mt-4 bg-blue-500 hover:bg-blue-600"
+    >
+      <RefreshCcw className="h-4 w-4 mr-2" />
+      {language === 'ar' ? 'تحديث اتصال المتجر' : 'Refresh Store Connection'}
+    </Button>
+  );
+
+  // معالج مخصص للضغط على إعادة المحاولة مع العودة
+  const handleRetryWithFallback = async () => {
+    try {
+      // Attempt to refresh products first
+      setConnectionStatus('checking');
+      await fetchProducts();
+      
+      // If no error is thrown, connection is still valid
+      toast.success(language === 'ar'
+        ? 'تم تحديث الاتصال بنجاح'
+        : 'Connection refreshed successfully');
+      
+      setConnectionStatus('success');
+    } catch (error) {
+      console.error('Error refreshing connection status:', error);
+      
+      // If that fails, try full reconnection
+      handleRefreshConnection();
+    }
+  };
+
   const renderConnectionStatus = () => {
     if (connectionStatus === 'checking') {
       return (
@@ -174,20 +260,63 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </AlertTitle>
         </Alert>
       );
+    } else if (connectionStatus === 'expired') {
+      return (
+        <Alert className="bg-orange-50 border-orange-200 mb-4">
+          <AlertCircle className="h-4 w-4 text-orange-500 mr-2" />
+          <AlertTitle className="font-bold text-orange-700">
+            {language === 'ar' ? 'انتهت صلاحية الاتصال بالمتجر' : 'Store connection expired'}
+          </AlertTitle>
+          <AlertDescription className="mt-2">
+            {language === 'ar' 
+              ? 'انتهت صلاحية رمز الوصول للمتجر. يجب تحديث الاتصال للمتابعة.' 
+              : 'Your store access token has expired. You need to refresh the connection to continue.'}
+          </AlertDescription>
+          
+          <RetryConnectionButton />
+        </Alert>
+      );
     } else if (connectionStatus === 'error') {
       return (
         <Alert className="bg-red-50 border-red-200 mb-4">
           <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-          <AlertTitle>
+          <AlertTitle className="font-bold text-red-700">
             {language === 'ar' ? 'فشل الاتصال بالمتجر' : 'Connection failed'}
           </AlertTitle>
-          {saveError && <AlertDescription>{saveError}</AlertDescription>}
+          {saveError && <AlertDescription className="mt-2">{saveError}</AlertDescription>}
           
-          <div className="mt-3">
-            <Button size="sm" variant="outline" onClick={handleRefreshConnection} className="flex items-center">
+          <div className="mt-3 flex flex-col space-y-3">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleRetryWithFallback}
+              className="flex items-center w-full sm:w-auto"
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleRefreshConnection}
+              className="flex items-center w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
+            >
               <RefreshCcw className="h-4 w-4 mr-2" />
               {language === 'ar' ? 'إعادة الاتصال بالمتجر' : 'Reconnect to Shopify'}
             </Button>
+            
+            {shop && (
+              <Button 
+                size="sm" 
+                variant="link" 
+                className="flex items-center" 
+                onClick={() => window.open(`https://${shop}/admin`, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {language === 'ar' ? 'فتح لوحة تحكم Shopify' : 'Open Shopify Admin'}
+              </Button>
+            )}
           </div>
         </Alert>
       );
@@ -290,7 +419,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <Button
                 onClick={handleSave}
                 className="flex-1"
-                disabled={isSaving || isSyncing || tokenError}
+                disabled={isSaving || isSyncing || tokenError || tokenExpired || connectionStatus === 'error' || connectionStatus === 'expired'}
               >
                 {(isSaving || isSyncing) ? (
                   <>

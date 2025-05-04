@@ -4,10 +4,13 @@ import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 class ShopifyAPI {
   private accessToken: string;
   private shopDomain: string;
+  private requestId: string;
 
   constructor(accessToken: string, shopDomain: string) {
     this.accessToken = accessToken;
     this.shopDomain = shopDomain;
+    // Generate a unique request ID for this API instance
+    this.requestId = Math.random().toString(36).substring(2, 15);
   }
 
   private async fetchAPI(query: string, variables = {}) {
@@ -16,8 +19,10 @@ class ShopifyAPI {
       ? this.shopDomain 
       : `${this.shopDomain}.myshopify.com`;
     
-    // Instead of direct API call, use our proxy endpoint
-    const url = `/api/shopify-proxy`;
+    // Instead of direct API call, use our proxy endpoint with cache-busting parameters
+    const timestamp = Date.now();
+    const url = `/api/shopify-proxy?t=${timestamp}&rid=${this.requestId}`;
+    
     console.log(`Making API request through proxy to Shopify GraphQL API`);
     
     try {
@@ -28,19 +33,26 @@ class ShopifyAPI {
         accessTokenPresent: this.accessToken ? true : false,
         accessTokenLength: this.accessToken ? this.accessToken.length : 0,
         accessTokenFirstChars: this.accessToken ? this.accessToken.substring(0, 4) + '...' : 'none',
-        timestamp: new Date().toISOString()
+        timestamp,
+        requestId: this.requestId
       });
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Add cache control headers
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({ 
           query,
           variables,
           shop: normalizedShopDomain,
-          accessToken: this.accessToken
+          accessToken: this.accessToken,
+          timestamp,
+          requestId: this.requestId
         }),
         // إضافة خيارات لمنع التخزين المؤقت
         cache: 'no-store',
@@ -69,6 +81,17 @@ class ShopifyAPI {
       return json.data;
     } catch (error) {
       console.error('Error in fetchAPI:', error);
+      
+      // Improve error messages for authentication issues
+      if (error instanceof Error) {
+        if (error.message.includes('HTML') || 
+            error.message.includes('401') || 
+            error.message.includes('403') || 
+            error.message.includes('Authentication')) {
+          throw new Error(`Authentication error: Your access token is invalid or expired. Please reconnect your Shopify store.`);
+        }
+      }
+      
       throw new Error(`Network error while contacting Shopify API: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -188,7 +211,7 @@ class ShopifyAPI {
     `;
 
     // إعداد مصدر السكريبت مع البيانات المطلوبة
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
     const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}&v=${timestamp}`;
     
     const variables = {
@@ -247,18 +270,24 @@ class ShopifyAPI {
       console.log('Sending verification query to Shopify API');
       
       // إضافة معلمة لمنع التخزين المؤقت
-      const timestamp = new Date().getTime();
-      const url = `/api/shopify-proxy?t=${timestamp}`;
+      const timestamp = Date.now();
+      const requestId = Math.random().toString(36).substring(2, 15);
+      const url = `/api/shopify-proxy?t=${timestamp}&rid=${requestId}&ver=1`;
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({ 
           query,
           shop: normalizedShopDomain,
-          accessToken: this.accessToken
+          accessToken: this.accessToken,
+          timestamp,
+          requestId
         }),
         cache: 'no-store',
       });

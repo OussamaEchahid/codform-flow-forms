@@ -13,7 +13,18 @@ export const useShopify = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [tokenError, setTokenError] = useState<boolean>(false);
+  const [tokenExpired, setTokenExpired] = useState<boolean>(false);
+  const [lastTokenCheck, setLastTokenCheck] = useState<number>(0);
   const { shop, shopifyConnected } = useAuth();
+
+  // Clear errors when shop changes
+  useEffect(() => {
+    if (shopifyConnected && shop) {
+      setTokenError(false);
+      setTokenExpired(false);
+      setError(null);
+    }
+  }, [shopifyConnected, shop]);
 
   // جلب المنتجات عندما يتغير اتصال المتجر
   useEffect(() => {
@@ -31,9 +42,19 @@ export const useShopify = () => {
       return;
     }
 
+    // Avoid repeated attempts in a short timeframe
+    const now = Date.now();
+    if (tokenError && (now - lastTokenCheck < 60000)) {
+      console.log('Skipping fetch due to recent token error:', 
+        (now - lastTokenCheck) / 1000, 'seconds since last check');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setTokenError(false);
+    setTokenExpired(false);
+    setLastTokenCheck(Date.now());
     
     try {
       console.log(`Fetching products for shop: ${shop}`);
@@ -47,6 +68,7 @@ export const useShopify = () => {
       if (storeError || !storeData || !storeData.access_token) {
         console.error('Store access token error:', storeError || 'No access token found');
         setTokenError(true);
+        setTokenExpired(true);
         throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
       }
       
@@ -55,8 +77,13 @@ export const useShopify = () => {
       const currentDate = new Date();
       const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (daysSinceUpdate > 7) {
+      if (daysSinceUpdate > 5) {
         console.warn('Access token might be expired, it was updated', daysSinceUpdate, 'days ago');
+        
+        if (daysSinceUpdate > 7) {
+          setTokenExpired(true);
+          throw new Error('رمز الوصول للمتجر قديم وقد يكون منتهي الصلاحية. يرجى إعادة الاتصال بالمتجر للحصول على رمز جديد.');
+        }
       }
       
       console.log('Access token retrieved successfully, last updated:', storeData.updated_at);
@@ -78,23 +105,28 @@ export const useShopify = () => {
       // تحديد إذا كان الخطأ متعلق برمز الوصول
       if (errorMessage.includes('Authentication error') || 
           errorMessage.includes('access token') ||
+          errorMessage.includes('Received HTML') ||
           errorMessage.includes('401') ||
           errorMessage.includes('403')) {
         setTokenError(true);
+        setTokenExpired(true);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [shop, shopifyConnected]);
+  }, [shop, shopifyConnected, tokenError, lastTokenCheck]);
 
   const refreshConnection = useCallback(async () => {
     if (!shop) return;
     
     setIsLoading(true);
     try {
-      // إعادة توجيه المستخدم لإعادة المصادقة مع Shopify
+      // إعادة توجيه المستخدم لإعادة المصادقة مع Shopify بوضع التحديث الإجباري
       localStorage.setItem('shopify_force_refresh', 'true');
-      window.location.href = `/shopify?shop=${encodeURIComponent(shop)}&force_update=true`;
+      
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      window.location.href = `/shopify-redirect?shop=${encodeURIComponent(shop)}&force_update=true&t=${timestamp}`;
     } catch (error) {
       console.error('Error refreshing connection:', error);
     } finally {
@@ -106,6 +138,12 @@ export const useShopify = () => {
     if (!shopifyConnected || !shop) {
       toast.error('Shopify connection not established');
       throw new Error('Shopify connection not established');
+    }
+
+    // Prevent sync if token is expired
+    if (tokenError || tokenExpired) {
+      toast.error('يرجى تحديث اتصال متجر Shopify أولاً');
+      throw new Error('Token error or expired. Please refresh connection first.');
     }
 
     setIsSyncing(true);
@@ -131,11 +169,26 @@ export const useShopify = () => {
       if (storeError || !storeData || !storeData.access_token) {
         console.error('Store access token error:', storeError || 'No access token found');
         setTokenError(true);
+        setTokenExpired(true);
         throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
       }
       
       console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
       console.log('Token last updated:', storeData.updated_at);
+      
+      // التحقق من تاريخ تحديث رمز الوصول
+      const tokenUpdatedAt = new Date(storeData.updated_at);
+      const currentDate = new Date();
+      const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceUpdate > 5) {
+        console.warn('Access token might be expired, it was updated', daysSinceUpdate, 'days ago');
+        
+        if (daysSinceUpdate > 7) {
+          setTokenExpired(true);
+          throw new Error('رمز الوصول للمتجر قديم وقد يكون منتهي الصلاحية. يرجى إعادة الاتصال بالمتجر للحصول على رمز جديد.');
+        }
+      }
 
       // حفظ إعدادات المنتج في قاعدة البيانات أولاً
       try {
@@ -189,8 +242,12 @@ export const useShopify = () => {
         
         // تحديد إذا كان الخطأ متعلق برمز الوصول المنتهي الصلاحية
         const errorMessage = syncError instanceof Error ? syncError.message : 'Unknown error';
-        if (errorMessage.includes('Authentication error') || errorMessage.includes('401') || errorMessage.includes('403')) {
+        if (errorMessage.includes('Authentication error') || 
+            errorMessage.includes('Received HTML') || 
+            errorMessage.includes('401') || 
+            errorMessage.includes('403')) {
           setTokenError(true);
+          setTokenExpired(true);
           throw new Error('رمز الوصول للمتجر غير صالح أو منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر');
         }
         
@@ -219,7 +276,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [shop, shopifyConnected]);
+  }, [shop, shopifyConnected, tokenError, tokenExpired]);
 
   return {
     products,
@@ -230,6 +287,7 @@ export const useShopify = () => {
     refreshConnection,
     isConnected: !!shopifyConnected,
     isSyncing,
-    tokenError
+    tokenError,
+    tokenExpired
   };
 };
