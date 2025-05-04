@@ -135,10 +135,12 @@ export const useShopify = () => {
       const currentDate = new Date();
       const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
       
-      console.log(`Token is ${daysSinceUpdate} days old. Type: ${storeData.token_type || 'unknown'}`);
+      // Get token type with default fallback to 'offline'
+      const tokenType = storeData.token_type || 'offline';
+      console.log(`Token is ${daysSinceUpdate} days old. Type: ${tokenType}`);
       
       // For online tokens, they expire much faster
-      if (storeData.token_type !== 'offline' && daysSinceUpdate > 1) {
+      if (tokenType !== 'offline' && daysSinceUpdate > 1) {
         console.warn('Online token is older than 1 day, likely expired');
         
         if (!isAutoRefreshing && autoRetryCount < 2) {
@@ -166,7 +168,7 @@ export const useShopify = () => {
       }
       
       // For offline tokens, they should last much longer but we still check
-      if (storeData.token_type === 'offline' && daysSinceUpdate > 14) {
+      if (tokenType === 'offline' && daysSinceUpdate > 14) {
         console.warn('Offline token is older than 14 days, may need refresh');
       }
       
@@ -262,6 +264,7 @@ export const useShopify = () => {
       });
       
       if (authError) {
+        console.error('Shopify auth function error:', authError);
         throw new Error(`فشل تحديث الاتصال: ${authError.message}`);
       }
       
@@ -331,7 +334,9 @@ export const useShopify = () => {
       }
       
       console.log('Retrieved store access token successfully, token length:', storeData.access_token.length);
-      console.log('Token last updated:', storeData.updated_at, 'Type:', storeData.token_type || 'unknown');
+      // Get token type with default fallback to 'offline'
+      const tokenType = storeData.token_type || 'offline';
+      console.log('Token last updated:', storeData.updated_at, 'Type:', tokenType);
       
       // Check token age based on type
       const tokenUpdatedAt = new Date(storeData.updated_at);
@@ -339,7 +344,7 @@ export const useShopify = () => {
       const daysSinceUpdate = Math.floor((currentDate.getTime() - tokenUpdatedAt.getTime()) / (1000 * 60 * 60 * 24));
       
       // For online tokens, they expire much faster
-      if (storeData.token_type !== 'offline' && daysSinceUpdate > 1) {
+      if (tokenType !== 'offline' && daysSinceUpdate > 1) {
         console.warn('Token might be expired, it was updated', daysSinceUpdate, 'days ago');
         
         if (!isAutoRefreshing && autoRetryCount < 2) {

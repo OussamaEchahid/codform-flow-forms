@@ -75,9 +75,8 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Generate a clean UUID for the user ID if connected through Shopify
-      // This fixes the "invalid input syntax for type uuid" error
-      const userId = user?.id || uuidv4(); // Generate a clean UUID instead of prefixing with "shopify-"
+      // Generate a valid uuid for user_id when connected via Shopify
+      const userId = user?.id || uuidv4();
       
       console.log("Creating form with user ID:", userId);
       console.log("Current shop:", actualShop);
@@ -88,25 +87,37 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      // Check that user ID is a valid UUID
+      if (typeof userId !== 'string' || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error("Invalid UUID format for user_id:", userId);
+        toast.error('معرف المستخدم غير صالح. يرجى إعادة الاتصال بالمتجر');
+        return null;
+      }
+      
       const formData = {
         title: selectedTemplate.title,
         description: selectedTemplate.description,
         data: selectedTemplate.data as unknown as Json, // Cast to unknown first, then to Json
         is_published: false,
         shop_id: actualShop, // Use the actual shop from any source
-        user_id: userId // Use clean UUID
+        user_id: userId // Use UUID
       };
       
-      console.log("Creating form with data:", JSON.stringify(formData));
+      console.log("Creating form with data:", formData);
       
-      // Use upsert to avoid conflicts
+      // Use insert instead of upsert to ensure RLS policies are respected
       const { data, error } = await supabase
         .from('forms')
-        .upsert([formData])
+        .insert([formData])
         .select();
       
       if (error) {
         console.error("Error creating form:", error);
+        if (error.message.includes('row-level security policy')) {
+          toast.error('خطأ في الصلاحيات: لا يمكن إنشاء نموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
+        } else {
+          toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
+        }
         throw error;
       }
       
@@ -136,9 +147,16 @@ export const useFormTemplates = () => {
 
   const saveForm = async (formId: string, formData: any) => {
     try {
-      // Use clean UUID instead of shopify-prefixed string
+      // Use clean UUID
       const userId = user?.id || uuidv4();
         
+      // Check that user ID is a valid UUID
+      if (typeof userId !== 'string' || !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error("Invalid UUID format for user_id when saving:", userId);
+        toast.error('معرف المستخدم غير صالح. يرجى إعادة الاتصال بالمتجر');
+        return false;
+      }
+      
       const updateData = {
         title: formData.title,
         description: formData.description,
@@ -155,6 +173,11 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error("Error saving form:", error);
+        if (error.message.includes('row-level security policy')) {
+          toast.error('خطأ في الصلاحيات: لا يمكن حفظ النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
+        } else {
+          toast.error(`خطأ في حفظ النموذج: ${error.message}`);
+        }
         throw error;
       }
       
@@ -176,6 +199,11 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error("Error publishing form:", error);
+        if (error.message.includes('row-level security policy')) {
+          toast.error('خطأ في الصلاحيات: لا يمكن نشر النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
+        } else {
+          toast.error(`خطأ: ${error.message}`);
+        }
         throw error;
       }
       
@@ -197,6 +225,11 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error("Error deleting form:", error);
+        if (error.message.includes('row-level security policy')) {
+          toast.error('خطأ في الصلاحيات: لا يمكن حذف النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
+        } else {
+          toast.error(`خطأ: ${error.message}`);
+        }
         throw error;
       }
       
@@ -221,6 +254,11 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error("Error getting form by ID:", error);
+        if (error.message.includes('row-level security policy')) {
+          toast.error('خطأ في الصلاحيات: لا يمكن عرض النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
+        } else {
+          toast.error(`خطأ في جلب النموذج: ${error.message}`);
+        }
         throw error;
       }
       
@@ -251,74 +289,8 @@ export const useFormTemplates = () => {
     createDefaultForm,
     createFormFromTemplate,
     saveForm,
-    publishForm: async (formId: string, isPublished: boolean) => {
-      try {
-        const { error } = await supabase
-          .from('forms')
-          .update({ is_published: isPublished })
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error publishing form:", error);
-          throw error;
-        }
-        
-        toast.success(isPublished ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ: ${error.message}`);
-        return false;
-      }
-    },
-    deleteForm: async (formId: string) => {
-      try {
-        const { error } = await supabase
-          .from('forms')
-          .delete()
-          .eq('id', formId);
-        
-        if (error) {
-          console.error("Error deleting form:", error);
-          throw error;
-        }
-        
-        toast.success('تم حذف النموذج بنجاح');
-        await fetchForms();
-        return true;
-      } catch (error: any) {
-        toast.error(`خطأ: ${error.message}`);
-        return false;
-      }
-    },
-    getFormById: async (formId: string) => {
-      if (!formId) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('id', formId)
-          .single();
-        
-        if (error) {
-          console.error("Error getting form by ID:", error);
-          throw error;
-        }
-        
-        if (!data) {
-          toast.error('النموذج غير موجود');
-          return null;
-        }
-        
-        return {
-          ...data,
-          data: data.data as unknown as FormStep[] // Safe type assertion with unknown as intermediary
-        } as FormData;
-      } catch (error: any) {
-        toast.error(`خطأ في جلب النموذج: ${error.message}`);
-        return null;
-      }
-    }
+    publishForm,
+    deleteForm,
+    getFormById
   };
 };
