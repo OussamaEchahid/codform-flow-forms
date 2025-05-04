@@ -1,9 +1,9 @@
-
 import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
 import { toast } from 'sonner';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
 
   // Function to detect and store shop
-  const setupShopFromUrl = () => {
+  const setupShopFromUrl = async () => {
     // First try to get shop from URL (highest priority)
     const { shopDomain, isShopifyRequest } = parseShopifyParams();
     
@@ -56,6 +56,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
+      
+      // Also update database to ensure this store is active
+      await shopifyConnectionService.forceActivateStore(shopDomain);
       
       setShop(shopDomain);
       setShopifyConnected(true);
@@ -76,6 +79,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setShops(allStores.map(store => store.domain));
       }
       
+      // Also ensure this store is active in the database
+      await shopifyConnectionService.forceActivateStore(activeStore);
+      
       return true;
     }
     
@@ -94,6 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update shops list
       setShops([storedShop]);
       
+      // Also ensure this store is active in the database
+      await shopifyConnectionService.forceActivateStore(storedShop);
+      
       return true;
     }
     
@@ -101,7 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Handler for setting active shop
-  const handleSetShop = (shopDomain: string) => {
+  const handleSetShop = async (shopDomain: string) => {
     try {
       if (!shopDomain) return;
       
@@ -193,7 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Function to forcibly synchronize connection state
-  const syncConnectionState = () => {
+  const syncConnectionState = async () => {
     // Only sync if enough time has passed since last sync
     const now = Date.now();
     if (now - lastSyncTime < 3000) { // 3 second minimum between syncs
@@ -240,6 +249,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!activeStore || activeStore !== shopToUse) {
           shopifyConnectionManager.addOrUpdateStore(shopToUse, true);
         }
+        
+        // Also ensure this store is active in the database
+        await shopifyConnectionService.forceActivateStore(shopToUse);
         
         console.log("Connection state synchronized to connected with shop:", shopToUse);
         return true;

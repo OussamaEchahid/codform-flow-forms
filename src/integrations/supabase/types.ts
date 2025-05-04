@@ -211,6 +211,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_column_if_not_exists: {
+        Args: {
+          p_table: string
+          p_column: string
+          p_type: string
+          p_default?: string
+        }
+        Returns: undefined
+      }
+      check_column_exists: {
+        Args: { p_table: string; p_column: string }
+        Returns: boolean
+      }
+      ensure_single_active_store: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      exec_sql: {
+        Args: { sql: string }
+        Returns: undefined
+      }
       get_shopify_store_data: {
         Args: Record<PropertyKey, never> | { store_domain?: string }
         Returns: {
@@ -219,7 +240,6 @@ export type Database = {
           access_token: string
           scope: string
           updated_at: string
-          is_active: boolean
         }[]
       }
       get_user_shop: {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
 import { createShopifyAPI } from '@/lib/shopify/api';
@@ -61,6 +60,7 @@ export const useShopify = () => {
     try {
       setIsLoading(true);
       
+      // Use the improved RPC function with better error handling
       const { data, error } = await supabase.rpc(
         'get_shopify_store_data',
         { store_domain: shopDomain }
@@ -68,7 +68,20 @@ export const useShopify = () => {
       
       if (error) {
         console.error("Error fetching store data:", error);
-        return null;
+        
+        // Try direct query as fallback
+        const { data: directData, error: directError } = await supabase
+          .from('shopify_stores')
+          .select('access_token')
+          .eq('shop', shopDomain)
+          .single();
+          
+        if (directError || !directData) {
+          console.error("Direct query failed:", directError);
+          return null;
+        }
+        
+        return directData.access_token;
       }
       
       if (!data || !data.access_token) {
@@ -173,7 +186,7 @@ export const useShopify = () => {
       setIsLoading(true);
       setIsRetrying(true);
       
-      // Use service for verification
+      // Use improved connection service for verification
       const connected = await shopifyConnectionService.verifyConnection(shop, forceRefresh);
       
       if (connected) {
@@ -191,6 +204,9 @@ export const useShopify = () => {
         if (forceRefresh) {
           toast.success(`تم الاتصال بمتجر: ${shop}`);
         }
+        
+        // Also ensure store is active in database
+        await shopifyConnectionService.forceActivateStore(shop);
         
         return true;
       } else if (retryCount.current < maxRetries) {
@@ -281,11 +297,15 @@ export const useShopify = () => {
   }, []);
 
   // Manually change active shop
-  const changeShop = useCallback((newShop: string) => {
+  const changeShop = useCallback(async (newShop: string) => {
     if (newShop === shop) return;
     
     resetShopify();
     setShop(newShop);
+    
+    // Also ensure this shop is active in the database
+    await shopifyConnectionService.forceActivateStore(newShop);
+    
   }, [shop, setShop, resetShopify]);
 
   // Refresh the connection with Shopify
@@ -358,7 +378,7 @@ export const useShopify = () => {
           
           return true; // Return true to allow saving to continue
         } else {
-          toast.error('فشل مزامنة النموذج مع متجر Shopify');
+          toast.error('فشل مزامن�� النموذج مع متجر Shopify');
           return false;
         }
       }

@@ -14,6 +14,8 @@ export class ShopifyConnectionService {
   private static instance: ShopifyConnectionService;
   private tokenCache: Record<string, {token: string, timestamp: number}> = {};
   private dbErrorCount: number = 0;
+  private connectionRetryCount: number = 0;
+  private maxRetries: number = 3;
   
   /**
    * Get singleton instance
@@ -26,7 +28,7 @@ export class ShopifyConnectionService {
   }
   
   /**
-   * Verify connection to Shopify with retry capability
+   * Verify connection to Shopify with retry capability and enhanced error handling
    */
   public async verifyConnection(shop: string, forceRefresh = false): Promise<boolean> {
     try {
@@ -52,11 +54,12 @@ export class ShopifyConnectionService {
         }
       }
       
-      // If cache failed or we need fresh token, fetch from the database
+      // If cache failed or we need fresh token, implement a multi-step retrieval approach
       let token = null;
       
+      // Step 1: Try RPC function first (most reliable when it works)
       try {
-        // Direct query first approach
+        console.log("Attempting token retrieval via RPC function");
         const { data, error } = await supabase.rpc(
           'get_shopify_store_data',
           { store_domain: shop }
@@ -64,38 +67,64 @@ export class ShopifyConnectionService {
         
         if (error) {
           console.error("Error fetching Shopify token via RPC:", error);
-          this.dbErrorCount++;
-          
-          // Fall back to direct table query if RPC fails
-          if (this.dbErrorCount > 1) {
-            console.log("Trying direct query as fallback...");
-            const { data: directData, error: directError } = await supabase
+          // Continue to fallback methods
+        } else if (data && data.access_token) {
+          token = data.access_token;
+          console.log("Token successfully retrieved via RPC function");
+          // Reset error counter on success
+          this.dbErrorCount = 0;
+        }
+      } catch (rpcError) {
+        console.error("RPC token retrieval failed:", rpcError);
+        // Continue to fallback methods
+      }
+      
+      // Step 2: If RPC failed, try direct query
+      if (!token) {
+        try {
+          console.log("Attempting token retrieval via direct query");
+          const { data: directData, error: directError } = await supabase
+            .from('shopify_stores')
+            .select('access_token, is_active')
+            .eq('shop', shop)
+            .eq('is_active', true)
+            .single();
+            
+          if (directError) {
+            console.error("Direct query failed:", directError);
+            // Try one more without is_active filter as fallback
+            const { data: anyStoreData, error: anyStoreError } = await supabase
               .from('shopify_stores')
               .select('access_token')
               .eq('shop', shop)
               .single();
               
-            if (directError) {
-              console.error("Direct query also failed:", directError);
-              throw new Error("Failed to retrieve token from database");
+            if (anyStoreData && anyStoreData.access_token) {
+              token = anyStoreData.access_token;
+              console.log("Retrieved token from any store record (active or inactive)");
+              
+              // Also try to activate this store
+              try {
+                await supabase.rpc('ensure_single_active_store');
+              } catch (activationError) {
+                console.error("Failed to activate store:", activationError);
+              }
+            } else if (anyStoreError) {
+              console.error("Fallback direct query also failed:", anyStoreError);
             }
-            
-            if (directData && directData.access_token) {
-              token = directData.access_token;
-              console.log("Retrieved token via direct query");
-            }
-          } else {
-            throw error;
+          } else if (directData && directData.access_token) {
+            token = directData.access_token;
+            console.log("Token successfully retrieved via direct query");
           }
-        } else if (data && data.access_token) {
-          token = data.access_token;
-          // Reset error counter on success
-          this.dbErrorCount = 0;
+        } catch (dbError) {
+          console.error("Database error in direct token retrieval:", dbError);
+          this.dbErrorCount++;
         }
-      } catch (dbError) {
-        console.error("Database error in token retrieval:", dbError);
-        
-        // Last resort: check if we have token in localStorage (for development/testing)
+      }
+      
+      // Step 3: Last resort - check localStorage
+      if (!token) {
+        console.log("Database retrieval failed, checking localStorage");
         if (typeof window !== 'undefined') {
           const localToken = localStorage.getItem(`shopify_token_${shop}`);
           if (localToken) {
@@ -106,8 +135,19 @@ export class ShopifyConnectionService {
       }
       
       if (!token) {
-        console.error(`No access token found for shop: ${shop}`);
+        console.error(`No access token found for shop: ${shop} after trying all methods`);
         this.enableFailSafeMode();
+        
+        // If we're under max retries, try again with a delay
+        if (this.connectionRetryCount < this.maxRetries) {
+          this.connectionRetryCount++;
+          console.log(`Will retry connection in ${this.connectionRetryCount * 1000}ms (${this.connectionRetryCount}/${this.maxRetries})`);
+          
+          // Wait and try again
+          await new Promise(resolve => setTimeout(resolve, this.connectionRetryCount * 1000));
+          return this.verifyConnection(shop, true);
+        }
+        
         return false;
       }
       
@@ -125,6 +165,9 @@ export class ShopifyConnectionService {
         
         if (connected) {
           console.log(`Connection verified successfully for shop ${shop}`);
+          
+          // Reset retry counter on success
+          this.connectionRetryCount = 0;
           
           // Update connection status in localStorage for reliability
           localStorage.setItem('shopify_connected', 'true');
@@ -144,10 +187,32 @@ export class ShopifyConnectionService {
         
         // If connection failed, token might be invalid
         console.error(`Connection failed for shop ${shop} - token may be expired`);
+        
+        // If we're under max retries, try again with a delay
+        if (this.connectionRetryCount < this.maxRetries) {
+          this.connectionRetryCount++;
+          console.log(`Will retry connection in ${this.connectionRetryCount * 1000}ms (${this.connectionRetryCount}/${this.maxRetries})`);
+          
+          // Wait and try again with forced refresh
+          await new Promise(resolve => setTimeout(resolve, this.connectionRetryCount * 1000));
+          return this.verifyConnection(shop, true);
+        }
+        
         this.enableFailSafeMode();
         return false;
       } catch (apiError) {
         console.error("API verification error:", apiError);
+        
+        // If we're under max retries, try again with a delay
+        if (this.connectionRetryCount < this.maxRetries) {
+          this.connectionRetryCount++;
+          console.log(`API error, will retry connection in ${this.connectionRetryCount * 1000}ms (${this.connectionRetryCount}/${this.maxRetries})`);
+          
+          // Wait and try again with forced refresh
+          await new Promise(resolve => setTimeout(resolve, this.connectionRetryCount * 1000));
+          return this.verifyConnection(shop, true);
+        }
+        
         this.enableFailSafeMode();
         return false;
       }
@@ -211,20 +276,42 @@ export class ShopifyConnectionService {
       // Get token from cache first
       let accessToken = this.tokenCache[shop]?.token;
       
-      // If not in cache, get fresh from the database
+      // If not in cache, get fresh from the database using our improved method
       if (!accessToken) {
         try {
+          // Try RPC function first
           const { data: shopData, error: shopError } = await supabase.rpc(
             'get_shopify_store_data',
             { store_domain: shop }
           );
           
           if (shopError || !shopData || !shopData.access_token) {
-            console.error("Error fetching shop token:", shopError);
-            return false;
+            console.error("Error fetching shop token via RPC:", shopError);
+            
+            // Try direct query as fallback
+            const { data: directData, error: directError } = await supabase
+              .from('shopify_stores')
+              .select('access_token')
+              .eq('shop', shop)
+              .single();
+              
+            if (directError || !directData || !directData.access_token) {
+              console.error("Direct query also failed:", directError);
+              
+              // Last resort - check localStorage
+              const localToken = localStorage.getItem(`shopify_token_${shop}`);
+              if (localToken) {
+                accessToken = localToken;
+                console.log("Using localStorage token as last resort for form sync");
+              } else {
+                throw new Error("Could not retrieve access token via any method");
+              }
+            } else {
+              accessToken = directData.access_token;
+            }
+          } else {
+            accessToken = shopData.access_token;
           }
-          
-          accessToken = shopData.access_token;
         } catch (error) {
           console.error("Error fetching shop token:", error);
           return false;
@@ -330,11 +417,23 @@ export class ShopifyConnectionService {
       
       toast.info(`جاري مزامنة ${pendingSyncs.length} نماذج معلقة...`);
       
+      let successCount = 0;
+      let failCount = 0;
+      
       for (const formId of pendingSyncs) {
-        await this.syncFormWithShopify(formId, shop);
+        const success = await this.syncFormWithShopify(formId, shop);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
       }
       
-      toast.success('تمت مزامنة جميع النماذج المعلقة');
+      if (failCount === 0) {
+        toast.success('تمت مزامنة جميع النماذج المعلقة');
+      } else {
+        toast.success(`تمت مزامنة ${successCount} نماذج بنجاح، فشل مزامنة ${failCount} نماذج`);
+      }
     } catch (error) {
       console.error("Error resyncing pending forms:", error);
       toast.error('حدث خطأ أثناء مزامنة النماذج المعلقة');
@@ -348,7 +447,67 @@ export class ShopifyConnectionService {
     this.tokenCache = {};
     this.syncAttempts = 0;
     this.dbErrorCount = 0;
+    this.connectionRetryCount = 0;
     shopifyConnectionManager.resetLoopDetection();
+  }
+
+  /**
+   * Force activating a specific store in the database
+   */
+  public async forceActivateStore(shop: string): Promise<boolean> {
+    try {
+      console.log(`Attempting to force activate store: ${shop}`);
+      
+      // First try to find the store
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('id')
+        .eq('shop', shop)
+        .single();
+      
+      if (storeError || !storeData) {
+        console.error("Error finding store to activate:", storeError);
+        return false;
+      }
+      
+      // Deactivate all stores first
+      const { error: deactivateError } = await supabase
+        .from('shopify_stores')
+        .update({ is_active: false })
+        .neq('id', 'no-match'); // This will match all rows
+      
+      if (deactivateError) {
+        console.error("Error deactivating stores:", deactivateError);
+      }
+      
+      // Now activate the specific store
+      const { error: activateError } = await supabase
+        .from('shopify_stores')
+        .update({ 
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', storeData.id);
+      
+      if (activateError) {
+        console.error("Error activating store:", activateError);
+        return false;
+      }
+      
+      // Also call the RPC function as backup
+      try {
+        await supabase.rpc('ensure_single_active_store');
+      } catch (rpcError) {
+        console.error("Error in ensure_single_active_store RPC:", rpcError);
+        // Continue anyway as we've already tried direct updates
+      }
+      
+      console.log(`Successfully activated store: ${shop}`);
+      return true;
+    } catch (error) {
+      console.error("Error in forceActivateStore:", error);
+      return false;
+    }
   }
 }
 

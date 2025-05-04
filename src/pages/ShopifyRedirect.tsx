@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanShopifyDomain } from "@/lib/shopify/types";
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
+import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 
 const ShopifyRedirect = () => {
   const location = useLocation();
@@ -134,6 +134,14 @@ const ShopifyRedirect = () => {
           shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
           shopifyConnectionManager.resetLoopDetection();
           
+          // Force activate the store in the database
+          const activationResult = await shopifyConnectionService.forceActivateStore(cleanedShop);
+          if (activationResult) {
+            console.log("تم تفعيل المتجر في قاعدة البيانات بنجاح");
+          } else {
+            console.warn("لم يتمكن من تفعيل المتجر في قاعدة البيانات");
+          }
+          
           toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
           setSuccess(true);
           
@@ -233,7 +241,7 @@ const ShopifyRedirect = () => {
   };
   
   // مباشرة الاتصال من جديد
-  const forceConnection = () => {
+  const forceConnection = async () => {
     const params = new URLSearchParams(location.search);
     const shopParam = params.get("shop") || localStorage.getItem('shopify_temp_store');
     
@@ -246,7 +254,14 @@ const ShopifyRedirect = () => {
       localStorage.setItem('shopify_connected', 'true');
       localStorage.removeItem('shopify_temp_store');
       
-      toast.success(`تم إعداد الاتصال بمتجر ${cleanedShop} بشكل مباشر`);
+      // Also update the database to activate this store
+      const activationResult = await shopifyConnectionService.forceActivateStore(cleanedShop);
+      if (activationResult) {
+        toast.success(`تم إعداد الاتصال بمتجر ${cleanedShop} وتنشيطه في قاعدة البيانات`);
+      } else {
+        toast.info(`تم إعداد الاتصال بمتجر ${cleanedShop} محليًا، ولكن فشل التنشيط في قاعدة البيانات`);
+      }
+      
       navigate('/dashboard');
     } else {
       toast.error('لا يمكن إيجاد معلومات المتجر');
