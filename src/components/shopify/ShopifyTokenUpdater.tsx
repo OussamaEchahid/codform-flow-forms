@@ -27,10 +27,11 @@ export const ShopifyTokenUpdater: React.FC = () => {
   useEffect(() => {
     localStorage.removeItem('shopify_token_error');
     
-    // Use the Supabase URL from the client for the edge function
-    const url = supabase.functions.url('update-shopify-token');
-    setEdgeFunctionUrl(url);
-    console.log("Edge function URL set to:", url);
+    // Use the correct way to construct the Edge Function URL
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nhqrngdzuatdnfkihtud.supabase.co';
+    const functionUrl = `${supabaseUrl}/functions/v1/update-shopify-token`;
+    setEdgeFunctionUrl(functionUrl);
+    console.log("Edge function URL set to:", functionUrl);
   }, []);
   
   const validateToken = (token: string) => {
@@ -86,13 +87,6 @@ export const ShopifyTokenUpdater: React.FC = () => {
       console.log(`Attempting to update token for shop: ${cleanedDomain}`);
       console.log(`Token type: ${accessToken.startsWith('shpat_') ? 'admin' : 'offline'}`);
       
-      if (!edgeFunctionUrl) {
-        // If we don't have the edge function URL from Supabase client, fall back to constructing it
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nhqrngdzuatdnfkihtud.supabase.co';
-        setEdgeFunctionUrl(`${supabaseUrl}/functions/v1/update-shopify-token`);
-        console.log("Edge function URL set via fallback to:", `${supabaseUrl}/functions/v1/update-shopify-token`);
-      }
-
       // Use the Supabase functions client first
       try {
         console.log("Trying to use Supabase Functions client");
@@ -124,6 +118,14 @@ export const ShopifyTokenUpdater: React.FC = () => {
       }
       
       // Fallback to fetch API if Supabase client fails
+      if (!edgeFunctionUrl) {
+        // If we don't have the edge function URL, construct it
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nhqrngdzuatdnfkihtud.supabase.co';
+        const fallbackUrl = `${supabaseUrl}/functions/v1/update-shopify-token`;
+        setEdgeFunctionUrl(fallbackUrl);
+        console.log("Edge function URL set via fallback to:", fallbackUrl);
+      }
+
       const fullUrl = edgeFunctionUrl;
       console.log(`Calling Edge Function at: ${fullUrl}`);
       
