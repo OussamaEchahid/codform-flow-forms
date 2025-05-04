@@ -3,6 +3,7 @@ import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createShopifyAPI } from '@/lib/shopify/api';
+import { Json } from '@/integrations/supabase/types';
 
 /**
  * Service to manage Shopify connections with improved reliability
@@ -148,9 +149,25 @@ export class ShopifyConnectionService {
       }
       
       // Extract block ID from form data or generate a default one
-      const blockId = formData.data?.blockId || 
-                    (formData.data?.settings?.blockId) || 
-                    `codform-${formId.substring(0, 8)}`;
+      // Fix: Properly handle the data structure, accounting for the Json type
+      let blockId = `codform-${formId.substring(0, 8)}`; // Default value
+      
+      // Safely extract blockId from the data
+      const formDataJson = formData.data as Json;
+      if (typeof formDataJson === 'object' && formDataJson !== null) {
+        // Check if blockId exists directly in the data object
+        if ('blockId' in formDataJson && typeof formDataJson.blockId === 'string') {
+          blockId = formDataJson.blockId;
+        } 
+        // Check if it's in settings
+        else if ('settings' in formDataJson && 
+                typeof formDataJson.settings === 'object' && 
+                formDataJson.settings !== null && 
+                'blockId' in formDataJson.settings && 
+                typeof formDataJson.settings.blockId === 'string') {
+          blockId = formDataJson.settings.blockId;
+        }
+      }
       
       // Create API client and sync
       const api = createShopifyAPI(shopData.access_token, shop);
