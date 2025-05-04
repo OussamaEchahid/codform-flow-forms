@@ -180,6 +180,7 @@ export type Database = {
           is_active: boolean | null
           scope: string | null
           shop: string
+          token_type: string | null
           updated_at: string
           user_id: string | null
         }
@@ -189,6 +190,7 @@ export type Database = {
           is_active?: boolean | null
           scope?: string | null
           shop: string
+          token_type?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -198,6 +200,7 @@ export type Database = {
           is_active?: boolean | null
           scope?: string | null
           shop?: string
+          token_type?: string | null
           updated_at?: string
           user_id?: string | null
         }

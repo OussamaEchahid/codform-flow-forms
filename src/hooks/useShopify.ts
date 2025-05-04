@@ -111,8 +111,15 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error('Store access token error:', storeError || 'No access token found');
+      if (storeError) {
+        console.error('Store access token error:', storeError);
+        setTokenError(true);
+        setTokenExpired(true);
+        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
+      }
+
+      if (!storeData || !storeData.access_token) {
+        console.error('Store access token not found');
         setTokenError(true);
         setTokenExpired(true);
         throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
@@ -304,8 +311,15 @@ export const useShopify = () => {
         .eq('shop', shop)
         .single();
       
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error('Store access token error:', storeError || 'No access token found');
+      if (storeError) {
+        console.error('Store access token error:', storeError);
+        setTokenError(true);
+        setTokenExpired(true);
+        throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
+      }
+
+      if (!storeData || !storeData.access_token) {
+        console.error('Store access token not found');
         setTokenError(true);
         setTokenExpired(true);
         throw new Error('لم يتم العثور على رمز الوصول للمتجر، يرجى إعادة الاتصال بالمتجر');
