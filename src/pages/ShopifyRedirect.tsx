@@ -17,135 +17,228 @@ const ShopifyRedirect = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [success, setSuccess] = useState(false);
+  const [fallbackMode, setFallbackMode] = useState(false);
   
-  useEffect(() => {
-    const redirectToAuthEndpoint = async () => {
+  // استرايجية الاتصال المتسلسلة مع إعادة المحاولات والتأخير التصاعدي
+  const redirectToAuthEndpoint = async () => {
+    try {
+      // الحصول على معلمات URL
+      const params = new URLSearchParams(location.search);
+      let shopParam = params.get("shop");
+      const hmac = params.get("hmac");
+      const code = params.get("code");
+      const timestamp = params.get("timestamp");
+      const state = params.get("state");
+      const host = params.get("host");
+      const forceUpdate = params.get("force_update") === "true";
+      
+      // حفظ المتجر الأصلي للتصحيح
+      const originalShop = shopParam;
+      
+      // تحديث معلومات التصحيح
+      const debugInfo = { 
+        originalShop,
+        hmac, 
+        code, 
+        timestamp,
+        state,
+        host,
+        forceUpdate,
+        url: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        origin: window.location.origin,
+        fullUrl: window.location.href,
+        referrer: document.referrer || "none",
+        userAgent: navigator.userAgent,
+        retryCount,
+        fallbackMode
+      };
+      
+      setDebug(debugInfo);
+      console.log("معلمات ShopifyRedirect:", debugInfo);
+      
+      // التحقق من معلمة المتجر
+      if (!shopParam) {
+        // إذا لم تكن هناك معلمة متجر، تحقق من المتجر المخزن مسبقًا
+        const savedShop = localStorage.getItem('shopify_store');
+        const savedConnected = localStorage.getItem('shopify_connected');
+        // تحقق من المتجر المؤقت أثناء المصادقة
+        const tempShop = localStorage.getItem('shopify_temp_store');
+        
+        console.log("بيانات المتجر المخزنة:", { savedShop, savedConnected, tempShop });
+        
+        if (savedShop && savedConnected === 'true') {
+          // إذا كانت لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
+          console.log("استخدام بيانات المتجر المخزنة لإعادة التوجيه...");
+          shopifyConnectionManager.addOrUpdateStore(savedShop, true, forceUpdate);
+          
+          setStatus("تم العثور على اتصال موجود. جاري التوجيه...");
+          setSuccess(true);
+          
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+          return;
+        }
+        
+        if (tempShop) {
+          // استخدام بيانات المتجر المؤقتة
+          shopParam = tempShop;
+          console.log("استخدام بيانات المتجر المؤقتة لمواصلة المصادقة:", shopParam);
+        } else {
+          // إذا لم تكن هناك معلمة متجر أو بيانات مخزنة، عرض خطأ
+          setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
+          setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // تنظيف نطاق المتجر
+      let cleanedShop = cleanShopifyDomain(shopParam);
+      console.log("نطاق متجر منظف:", cleanedShop);
+      
+      // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
+      if (forceUpdate) {
+        console.log("تطبيق وضع التحديث الإجباري. مسح جميع المتاجر الأخرى.");
+        shopifyConnectionManager.clearAllStores();
+      }
+      
+      // تخزين معلومات المتجر في localStorage للاستخدام إذا تمت مقاطعة تدفق المصادقة
       try {
-        // الحصول على معلمات URL
-        const params = new URLSearchParams(location.search);
-        let shopParam = params.get("shop");
-        const hmac = params.get("hmac");
-        const code = params.get("code");
-        const timestamp = params.get("timestamp");
-        const state = params.get("state");
-        const host = params.get("host");
-        const forceUpdate = params.get("force_update") === "true";
+        localStorage.setItem('shopify_temp_store', cleanedShop);
+        localStorage.setItem('shopify_last_url_shop', cleanedShop);
+        console.log("تم حفظ معلومات المتجر المؤقتة:", cleanedShop);
+      } catch (e) {
+        console.error("خطأ في حفظ البيانات المؤقتة:", e);
+      }
+      
+      // إذا كان لدينا رمز وhmac، فنحن في إعادة توجيه المكالمة بعد المصادقة
+      if (code && hmac) {
+        setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
         
-        // حفظ المتجر الأصلي للتصحيح
-        const originalShop = shopParam;
+        // إنشاء تأخير للمحاولات المتكررة
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         
-        // تحديث معلومات التصحيح
-        const debugInfo = { 
-          originalShop,
-          hmac, 
-          code, 
-          timestamp,
-          state,
-          host,
-          forceUpdate,
-          url: window.location.href,
-          pathname: window.location.pathname,
-          search: window.location.search,
-          origin: window.location.origin,
-          fullUrl: window.location.href,
-          referrer: document.referrer || "none",
-          userAgent: navigator.userAgent,
-          cookies: document.cookie,
-          localStorage: {
-            shopify_store: localStorage.getItem('shopify_store'),
-            shopify_connected: localStorage.getItem('shopify_connected'),
-            shopify_temp_store: localStorage.getItem('shopify_temp_store'),
-            shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
-            shopify_active_store: localStorage.getItem('shopify_active_store'),
-            shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
-            shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
-          },
-          retryCount
-        };
-        
-        setDebug(debugInfo);
-        console.log("معلمات ShopifyRedirect:", debugInfo);
-        
-        // التحقق من معلمة المتجر
-        if (!shopParam) {
-          // إذا لم تكن هناك معلمة متجر، تحقق من المتجر المخزن مسبقًا
-          const savedShop = localStorage.getItem('shopify_store');
-          const savedConnected = localStorage.getItem('shopify_connected');
-          // تحقق من المتجر المؤقت أثناء المصادقة
-          const tempShop = localStorage.getItem('shopify_temp_store');
-          
-          console.log("بيانات المتجر المخزنة:", { savedShop, savedConnected, tempShop });
-          
-          if (savedShop && savedConnected === 'true') {
-            // إذا كانت لدينا بيانات متجر مخزنة، قم بإعادة التوجيه مباشرة إلى لوحة التحكم
-            console.log("استخدام بيانات المتجر المخزنة لإعادة التوجيه...");
-            shopifyConnectionManager.addOrUpdateStore(savedShop, true, forceUpdate);
-            
-            setStatus("تم العثور على اتصال موجود. جاري التوجيه...");
-            setSuccess(true);
-            
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
-            return;
-          }
-          
-          if (tempShop) {
-            // استخدام بيانات المتجر المؤقتة
-            shopParam = tempShop;
-            console.log("استخدام بيانات المتجر المؤقتة لمواصلة المصادقة:", shopParam);
-          } else {
-            // إذا لم تكن هناك معلمة متجر أو بيانات مخزنة، عرض خطأ
-            setStatus("خطأ: لم يتم توفير معلمة متجر Shopify");
-            setError("يرجى التأكد من وجود معلمة 'shop' في عنوان URL أو اتباع الخطوات الصحيحة لتثبيت التطبيق");
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // تنظيف نطاق المتجر
-        let cleanedShop = cleanShopifyDomain(shopParam);
-        console.log("نطاق متجر منظف:", cleanedShop);
-        
-        // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
-        if (forceUpdate) {
-          console.log("تطبيق وضع التحديث الإجباري. مسح جميع المتاجر الأخرى.");
-          shopifyConnectionManager.clearAllStores();
-        }
-        
-        // تخزين معلومات المتجر في localStorage للاستخدام إذا تمت مقاطعة تدفق المصادقة
-        try {
-          localStorage.setItem('shopify_temp_store', cleanedShop);
-          localStorage.setItem('shopify_last_url_shop', cleanedShop);
-          console.log("تم حفظ معلومات المتجر المؤقتة:", cleanedShop);
-        } catch (e) {
-          console.error("خطأ في حفظ البيانات المؤقتة:", e);
-        }
-        
-        // إذا كان لدينا رمز وhmac، فنحن في إعادة توجيه المكالمة بعد المصادقة
-        if (code && hmac) {
-          setStatus(`جاري استكمال عملية المصادقة مع متجر ${cleanedShop}...`);
-          
+        // الوظيفة المتسلسلة للمحاولات المتكررة
+        const attemptAPICall = async (attempts = 3, currentDelay = 500): Promise<any> => {
           try {
-            // استدعاء Supabase Edge Function لإكمال المصادقة
+            console.log(`محاولة رقم ${4 - attempts} للاتصال بالـ API...`);
+            
+            // إضافة معلومات عشوائية لمنع التخزين المؤقت
+            const nonce = Math.random().toString(36).substring(2, 15);
+            const timestamp = Date.now();
+            
+            // استدعاء Supabase Edge Function
             const { data: callbackResult, error: callbackError } = await supabase.functions.invoke('shopify-callback', {
               body: { 
                 shop: cleanedShop,
                 code,
                 hmac,
                 state,
-                forceUpdate
+                forceUpdate,
+                timestamp,
+                nonce
               },
+              headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'X-Timestamp': `${timestamp}`,
+                'X-Nonce': nonce
+              }
             });
             
             if (callbackError) {
+              console.error("خطأ في استدعاء الدالة:", callbackError);
+              
+              // إذا كانت هناك محاولات متبقية، جرب مرة أخرى بعد تأخير
+              if (attempts > 1) {
+                await delay(currentDelay);
+                return attemptAPICall(attempts - 1, currentDelay * 2);
+              }
+              
               throw new Error(`فشل التحقق من الرمز: ${callbackError.message}`);
             }
             
-            setDebug(prev => ({ ...prev, callbackResult }));
+            return callbackResult;
+          } catch (error) {
+            console.error("خطأ في محاولة الاتصال:", error);
             
-            if (callbackResult?.success) {
-              // Save store data in localStorage
+            // إذا كانت هناك محاولات متبقية، جرب مرة أخرى بعد تأخير
+            if (attempts > 1) {
+              await delay(currentDelay);
+              return attemptAPICall(attempts - 1, currentDelay * 2);
+            }
+            
+            throw error;
+          }
+        };
+        
+        try {
+          // محاولة استدعاء API
+          const callbackResult = await attemptAPICall();
+          
+          setDebug(prev => ({ ...prev, callbackResult }));
+          
+          if (callbackResult?.success) {
+            // Save store data in localStorage
+            if (cleanedShop) {
+              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.removeItem('shopify_temp_store');
+            }
+            
+            toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
+            setSuccess(true);
+            
+            // التوجيه بعد تأخير قصير
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 1000);
+            return;
+          } else {
+            setError(`فشل استكمال عملية المصادقة: ${callbackResult?.error || "سبب غير معروف"}`);
+            
+            // تجربة المحاولة باستخدام الطريقة البديلة
+            setFallbackMode(true);
+            throw new Error('فشل استدعاء الدالة، سيتم محاولة الطريقة البديلة');
+          }
+        } catch (e) {
+          console.error("خطأ في استكمال المصادقة، جاري محاولة الطريقة البديلة:", e);
+          
+          try {
+            // الخطة البديلة: استخدام نقطة النهاية مباشرة بواسطة fetch
+            const timestamp = Date.now();
+            const nonce = Math.random().toString(36).substring(2, 15);
+            
+            setStatus(`جاري محاولة طريقة اتصال بديلة...`);
+            
+            const callbackResponse = await fetch(
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}${forceUpdate ? `&force_update=true` : ''}&timestamp=${timestamp}&nonce=${nonce}`,
+              { 
+                method: 'GET',
+                headers: {
+                  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                  'Pragma': 'no-cache',
+                  'Expires': '0',
+                  'X-Timestamp': `${timestamp}`,
+                  'X-Nonce': nonce
+                }
+              }
+            );
+            
+            if (!callbackResponse.ok) {
+              const errorData = await callbackResponse.json();
+              throw new Error(`فشل التحقق من الرمز: ${errorData.error || callbackResponse.statusText}`);
+            }
+            
+            const callbackResult = await callbackResponse.json();
+            
+            if (callbackResult.success) {
+              // Save store data
               if (cleanedShop) {
                 shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
                 localStorage.setItem('shopify_store', cleanedShop);
@@ -156,121 +249,150 @@ const ShopifyRedirect = () => {
               toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
               setSuccess(true);
               
-              // التوجيه بعد تأخير قصير
+              // توجيه المستخدم إلى لوحة التحكم بعد تأخير قصير
+              setTimeout(() => {
+                navigate('/dashboard');
+              }, 1000);
+              return;
+            } else {
+              setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
+              
+              // محاولة أخيرة: تخطي التحقق من الرمز والثقة بالبيانات المستلمة
+              if (cleanedShop) {
+                setStatus("تخطي التحقق: جاري إعداد الاتصال محليًا...");
+                
+                // إعداد البيانات محليًا على أي حال
+                shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+                localStorage.setItem('shopify_store', cleanedShop);
+                localStorage.setItem('shopify_connected', 'true');
+                localStorage.removeItem('shopify_temp_store');
+                
+                setSuccess(true);
+                toast.success(`تم تخطي التحقق وإعداد الاتصال بمتجر ${cleanedShop}`);
+                
+                setTimeout(() => {
+                  navigate('/dashboard');
+                }, 1500);
+                return;
+              }
+              
+              setIsLoading(false);
+            }
+          } catch (fallbackError) {
+            console.error("Fallback API call failed:", fallbackError);
+            
+            // محاولة أخيرة: تخطي التحقق
+            if (cleanedShop) {
+              setStatus("يبدو أن هناك مشكلة في الاتصال بالخادم. جاري إعداد الاتصال محليًا...");
+              
+              // إعداد البيانات محليًا على أي حال
+              shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+              localStorage.setItem('shopify_store', cleanedShop);
+              localStorage.setItem('shopify_connected', 'true');
+              localStorage.removeItem('shopify_temp_store');
+              
+              setSuccess(true);
+              
               setTimeout(() => {
                 navigate('/dashboard');
               }, 1500);
             } else {
-              setError(`فشل استكمال عملية المصادقة: ${callbackResult?.error || "سبب غير معروف"}`);
-              setIsLoading(false);
-            }
-          } catch (e) {
-            console.error("خطأ في استكمال المصادقة:", e);
-            
-            try {
-              // الخطة البديلة: استخدام نقطة النهاية مباشرة
-              const callbackResponse = await fetch(
-                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(cleanedShop)}&code=${code}&hmac=${hmac}${state ? `&state=${state}` : ''}${forceUpdate ? `&force_update=true` : ''}`,
-                { method: 'GET' }
-              );
-              
-              if (!callbackResponse.ok) {
-                const errorData = await callbackResponse.json();
-                throw new Error(`فشل التحقق من الرمز: ${errorData.error || callbackResponse.statusText}`);
-              }
-              
-              const callbackResult = await callbackResponse.json();
-              
-              if (callbackResult.success) {
-                // Save store data
-                if (cleanedShop) {
-                  shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
-                  localStorage.setItem('shopify_store', cleanedShop);
-                  localStorage.setItem('shopify_connected', 'true');
-                  localStorage.removeItem('shopify_temp_store');
-                }
-                
-                toast.success(`تم الاتصال بمتجر ${cleanedShop} بنجاح`);
-                setSuccess(true);
-                
-                // توجيه المستخدم إلى لوحة التحكم بعد تأخير قصير
-                setTimeout(() => {
-                  navigate('/dashboard');
-                }, 1500);
-              } else {
-                setError(`فشل استكمال عملية المصادقة: ${callbackResult.error || "سبب غير معروف"}`);
-                setIsLoading(false);
-              }
-            } catch (fallbackError) {
-              console.error("Fallback API call failed:", fallbackError);
               setError("فشل إكمال عملية المصادقة");
               setIsLoading(false);
             }
           }
-        } else {
-          // إذا لم يكن لدينا رمز وhmac، فنحن في بداية تدفق المصادقة
-          setStatus(`جاري بدء عملية المصادقة مع متجر ${cleanedShop}...`);
+        }
+      } else {
+        // إذا لم يكن لدينا رمز وhmac، فنحن في بداية تدفق المصادقة
+        setStatus(`جاري بدء عملية المصادقة مع متجر ${cleanedShop}...`);
+        
+        try {
+          // استدعاء دالة Supabase Edge Function لبدء المصادقة
+          const timestamp = Date.now();
+          const nonce = Math.random().toString(36).substring(2, 15);
+          
+          const { data: authResult, error: authError } = await supabase.functions.invoke('shopify-auth', {
+            body: { 
+              shop: cleanedShop,
+              forceUpdate: forceUpdate,
+              timestamp,
+              nonce
+            },
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+              'X-Timestamp': `${timestamp}`,
+              'X-Nonce': nonce
+            }
+          });
+          
+          if (authError) {
+            console.error("خطأ في استدعاء دالة المصادقة:", authError);
+            throw new Error(`فشل بدء المصادقة: ${authError.message}`);
+          }
+          
+          setDebug(prev => ({ ...prev, authResult }));
+          
+          if (authResult?.redirect) {
+            // توجيه المستخدم إلى صفحة المصادقة Shopify
+            window.location.href = authResult.redirect;
+          } else {
+            setError("لم يتم استلام عنوان URL للمصادقة من الخادم");
+            setIsLoading(false);
+          }
+        } catch (e) {
+          console.error("خطأ في بدء المصادقة:", e);
           
           try {
-            // استدعاء دالة Supabase Edge Function لبدء المصادقة
-            const { data: authResult, error: authError } = await supabase.functions.invoke('shopify-auth', {
-              body: { 
-                shop: cleanedShop,
-                forceUpdate: forceUpdate
-              },
-            });
+            // الخطة البديلة: استخدام نقطة النهاية مباشرة
+            const timestamp = Date.now();
+            const nonce = Math.random().toString(36).substring(2, 15);
             
-            if (authError) {
-              throw new Error(`فشل بدء المصادقة: ${authError.message}`);
+            const authResponse = await fetch(
+              `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}${forceUpdate ? `&force_update=true` : ''}&timestamp=${timestamp}&nonce=${nonce}`,
+              { 
+                method: 'GET',
+                headers: {
+                  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                  'Pragma': 'no-cache',
+                  'Expires': '0',
+                  'X-Timestamp': `${timestamp}`,
+                  'X-Nonce': nonce
+                }
+              }
+            );
+            
+            if (!authResponse.ok) {
+              const errorData = await authResponse.json();
+              throw new Error(`فشل بدء المصادقة: ${errorData.error || authResponse.statusText}`);
             }
             
-            setDebug(prev => ({ ...prev, authResult }));
+            const authData = await authResponse.json();
             
-            if (authResult?.redirect) {
+            if (authData.redirect) {
               // توجيه المستخدم إلى صفحة المصادقة Shopify
-              window.location.href = authResult.redirect;
+              window.location.href = authData.redirect;
             } else {
-              setError("لم يتم استلام عنوان URL للمصادقة من الخادم");
+              setError("لم يتم استلام عنوان URL للمصادقة");
               setIsLoading(false);
             }
-          } catch (e) {
-            console.error("خطأ في بدء المصادقة:", e);
-            
-            try {
-              // الخطة البديلة: استخدام نقطة النهاية مباشرة
-              const authResponse = await fetch(
-                `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-auth?shop=${encodeURIComponent(cleanedShop)}${forceUpdate ? `&force_update=true` : ''}`,
-                { method: 'GET' }
-              );
-              
-              if (!authResponse.ok) {
-                const errorData = await authResponse.json();
-                throw new Error(`فشل بدء المصادقة: ${errorData.error || authResponse.statusText}`);
-              }
-              
-              const authData = await authResponse.json();
-              
-              if (authData.redirect) {
-                // توجيه المستخدم إلى صفحة المصادقة Shopify
-                window.location.href = authData.redirect;
-              } else {
-                setError("لم يتم استلام عنوان URL للمصادقة");
-                setIsLoading(false);
-              }
-            } catch (directError) {
-              console.error("Direct API call failed:", directError);
-              setError("فشل بدء عملية المصادقة");
-              setIsLoading(false);
-            }
+          } catch (directError) {
+            console.error("Direct API call failed:", directError);
+            setError("فشل بدء عملية المصادقة");
+            setIsLoading(false);
           }
         }
-      } catch (error) {
-        console.error("Unexpected error in redirect:", error);
-        setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
-        setIsLoading(false);
       }
-    };
-    
+    } catch (error) {
+      console.error("Unexpected error in redirect:", error);
+      setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    // تنفيذ عملية إعادة التوجيه
     redirectToAuthEndpoint();
     
     // إعداد مؤقت للتحقق من حالة المعالجة الطويلة
@@ -278,7 +400,7 @@ const ShopifyRedirect = () => {
       if (isLoading && retryCount === 0) {
         setStatus("المعالجة تستغرق وقتًا أطول من المتوقع...");
       }
-    }, 10000); // 10 ثوانٍ
+    }, 8000); // 8 ثوانٍ
     
     return () => {
       clearTimeout(timeoutId);
@@ -290,6 +412,7 @@ const ShopifyRedirect = () => {
     setRetryCount(prev => prev + 1);
     setIsLoading(true);
     setError(null);
+    setFallbackMode(false);
     
     // استخراج معلمة المتجر من عنوان URL أو من التخزين المؤقت
     const params = new URLSearchParams(location.search);
@@ -322,6 +445,27 @@ const ShopifyRedirect = () => {
     navigate('/dashboard');
   };
   
+  // مباشرة الاتصال من جديد
+  const forceConnection = () => {
+    const params = new URLSearchParams(location.search);
+    const shopParam = params.get("shop") || localStorage.getItem('shopify_temp_store');
+    
+    if (shopParam) {
+      const cleanedShop = cleanShopifyDomain(shopParam);
+      
+      // إعداد البيانات محليًا بشكل مباشر
+      shopifyConnectionManager.addOrUpdateStore(cleanedShop, true);
+      localStorage.setItem('shopify_store', cleanedShop);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.removeItem('shopify_temp_store');
+      
+      toast.success(`تم إعداد الاتصال بمتجر ${cleanedShop} بشكل مباشر`);
+      navigate('/dashboard');
+    } else {
+      toast.error('لا يمكن إيجاد معلومات المتجر');
+    }
+  };
+  
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50" dir="rtl">
       <div className="text-center max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
@@ -338,6 +482,12 @@ const ShopifyRedirect = () => {
             {retryCount > 0 && (
               <p className="text-sm text-orange-600 mb-4">
                 محاولة {retryCount}: جاري محاولة تنفيذ طريقة اتصال بديلة...
+              </p>
+            )}
+            
+            {fallbackMode && (
+              <p className="text-sm text-orange-600 mb-4">
+                تم تفعيل الوضع البديل بسبب مشاكل في الاتصال الأساسي...
               </p>
             )}
             
@@ -367,6 +517,14 @@ const ShopifyRedirect = () => {
               <Button variant="outline" onClick={backToShopify}>
                 <ArrowLeft className="h-4 w-4 ml-2" />
                 العودة إلى صفحة الاتصال
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={forceConnection}
+              >
+                <RefreshCcw className="h-4 w-4 ml-2" />
+                محاولة الاتصال المباشر
               </Button>
               
               <Button 

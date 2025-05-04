@@ -9,4 +9,3 @@ verify_jwt = false
 
 [functions.update-schema]
 verify_jwt = false
-

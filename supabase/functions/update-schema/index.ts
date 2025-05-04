@@ -12,7 +12,11 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '';
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Pragma": "no-cache",
+  "Expires": "0",
 };
 
 serve(async (req) => {
@@ -22,13 +26,31 @@ serve(async (req) => {
   }
   
   try {
+    const requestId = crypto.randomUUID();
+    console.log(`[${requestId}] Starting schema update process`);
+    
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // التحقق من وجود الأعمدة المطلوبة في جدول shopify_stores
-    const hasTokenTypeMigration = await ensureTokenTypeColumn(supabase);
+    const hasTokenTypeMigration = await ensureTokenTypeColumn(supabase, requestId);
     
     // التحقق من وجود الدالة المطلوبة create_form_with_shop
-    const hasCreateFormFunction = await ensureCreateFormFunction(supabase);
+    const hasCreateFormFunction = await ensureCreateFormFunction(supabase, requestId);
+    
+    // التحقق من وجود دالة للتحقق من وجود وظيفة
+    await ensureFunctionExistsFunction(supabase, requestId);
+    
+    // التحقق من وجود دالة لتنفيذ SQL
+    await ensureExecSQLFunction(supabase, requestId);
+    
+    // التحقق من وجود دالة للتحقق من وجود عمود
+    await ensureColumnExistsFunction(supabase, requestId);
+    
+    // التحقق من وجود دالة لإضافة عمود إذا لم يكن موجوداً
+    await ensureAddColumnFunction(supabase, requestId);
+    
+    // تأكد من وجود سجل وحيد نشط للمتجر
+    await ensureSingleActiveShopStore(supabase, requestId);
     
     return new Response(
       JSON.stringify({ 
@@ -37,7 +59,8 @@ serve(async (req) => {
           hasTokenTypeMigration,
           hasCreateFormFunction
         },
-        message: "تم تحديث مخطط قاعدة البيانات بنجاح" 
+        message: "تم تحديث مخطط قاعدة البيانات بنجاح",
+        request_id: requestId
       }),
       { headers: corsHeaders, status: 200 }
     );
@@ -55,8 +78,10 @@ serve(async (req) => {
 });
 
 // دالة للتأكد من وجود عمود token_type في جدول shopify_stores
-async function ensureTokenTypeColumn(supabase) {
+async function ensureTokenTypeColumn(supabase, requestId: string) {
   try {
+    console.log(`[${requestId}] Checking token_type column in shopify_stores table`);
+    
     // التحقق من وجود عمود token_type
     const { data: columns, error: columnsError } = await supabase.rpc(
       'check_column_exists', 
@@ -66,9 +91,9 @@ async function ensureTokenTypeColumn(supabase) {
       }
     );
     
-    // إذا فشل الاستعلام، نفترض أن العمود غير موجود
-    if (columnsError || !columns) {
-      console.log("Error checking column existence or function doesn't exist, attempting direct migration");
+    // إذا فشل الاستعلام، قد تكون الدالة غير موجودة، لذا نحاول إنشاء العمود مباشرة
+    if (columnsError || columns === null) {
+      console.log(`[${requestId}] Error checking column existence or function doesn't exist, attempting direct migration`);
       
       // إضافة العمود مباشرة إذا لم يكن موجوداً
       const { error: addColumnError } = await supabase.rpc(
@@ -76,24 +101,37 @@ async function ensureTokenTypeColumn(supabase) {
         {
           p_table: 'shopify_stores',
           p_column: 'token_type',
-          p_type: 'text'
+          p_type: 'text',
+          p_default: "'offline'::text"
         }
       );
       
       if (addColumnError) {
-        console.error("Error adding column via RPC:", addColumnError);
+        console.error(`[${requestId}] Error adding column via RPC:`, addColumnError);
         
-        // محاولة تنفيذ SQL مباشرة
+        // التحقق من وجود جدول migrations
         const { error: sqlError } = await supabase.from('migrations').select('*').limit(1);
         
         if (sqlError && sqlError.message.includes('relation "migrations" does not exist')) {
-          console.log("Creating migrations table...");
+          console.log(`[${requestId}] Creating migrations table...`);
           
-          // إنشاء جدول للتحكم بالترقيات
-          await supabase.auth.refreshSession();
+          // إنشاء جدول للتحكم بالترقيات - نستخدم دالة لتنفيذ SQL مخصص
+          const { error: execError } = await supabase.rpc(
+            'exec_sql',
+            {
+              sql: `
+                ALTER TABLE IF EXISTS public.shopify_stores 
+                ADD COLUMN IF NOT EXISTS token_type TEXT DEFAULT 'offline'::text;
+              `
+            }
+          );
           
-          // Return a 'manual intervention needed' flag
-          return "manual_intervention_needed";
+          if (execError) {
+            console.error(`[${requestId}] Error executing SQL:`, execError);
+            return "manual_intervention_needed";
+          }
+          
+          return true;
         }
       }
       
@@ -110,12 +148,13 @@ async function ensureTokenTypeColumn(supabase) {
         {
           p_table: 'shopify_stores',
           p_column: 'token_type',
-          p_type: 'text'
+          p_type: 'text',
+          p_default: "'offline'::text"
         }
       );
       
       if (addColumnError) {
-        console.error("Error adding column:", addColumnError);
+        console.error(`[${requestId}] Error adding column:`, addColumnError);
         return false;
       }
       
@@ -123,16 +162,19 @@ async function ensureTokenTypeColumn(supabase) {
     }
     
     // العمود موجود بالفعل
+    console.log(`[${requestId}] token_type column already exists`);
     return false;
   } catch (error) {
-    console.error("Error in ensureTokenTypeColumn:", error);
+    console.error(`[${requestId}] Error in ensureTokenTypeColumn:`, error);
     return false;
   }
 }
 
 // دالة للتأكد من وجود وظيفة create_form_with_shop
-async function ensureCreateFormFunction(supabase) {
+async function ensureCreateFormFunction(supabase, requestId: string) {
   try {
+    console.log(`[${requestId}] Checking create_form_with_shop function`);
+    
     // التحقق من وجود الوظيفة عن طريق استدعائها بطريقة آمنة
     const { data: testData, error: testError } = await supabase.rpc(
       'function_exists',
@@ -143,7 +185,7 @@ async function ensureCreateFormFunction(supabase) {
     
     // إذا فشل الاستعلام أو كان ناتجه سلبيًا، نفترض أن الوظيفة غير موجودة
     if (testError || !testData) {
-      console.log("Creating create_form_with_shop function...");
+      console.log(`[${requestId}] Creating create_form_with_shop function...`);
       
       // إنشاء الوظيفة إذا لم تكن موجودة
       const createFunctionSQL = `
@@ -167,7 +209,47 @@ async function ensureCreateFormFunction(supabase) {
           RETURN v_form_id;
         END;
         $$;
-        
+      `;
+      
+      // تنفيذ استعلام إنشاء الوظيفة
+      const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
+      
+      if (createError) {
+        // محاولة تنفيذ SQL مباشرة باستخدام دالة أخرى
+        console.error(`[${requestId}] Error creating function via RPC:`, createError);
+        return "manual_intervention_needed";
+      }
+      
+      console.log(`[${requestId}] Successfully created create_form_with_shop function`);
+      return true;
+    }
+    
+    // الوظيفة موجودة بالفعل
+    console.log(`[${requestId}] create_form_with_shop function already exists`);
+    return false;
+  } catch (error) {
+    console.error(`[${requestId}] Error in ensureCreateFormFunction:`, error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود دالة function_exists
+async function ensureFunctionExistsFunction(supabase, requestId: string) {
+  try {
+    console.log(`[${requestId}] Checking function_exists function`);
+    
+    // محاولة الاستعلام باستخدام الدالة، إذا فشلت فهي غير موجودة
+    const { error } = await supabase.rpc(
+      'function_exists',
+      { 
+        function_name: 'function_exists'
+      }
+    );
+    
+    if (error && error.message.includes('does not exist')) {
+      console.log(`[${requestId}] Creating function_exists function...`);
+      
+      const sql = `
         CREATE OR REPLACE FUNCTION public.function_exists(function_name TEXT)
         RETURNS BOOLEAN
         LANGUAGE plpgsql
@@ -184,22 +266,247 @@ async function ensureCreateFormFunction(supabase) {
         $$;
       `;
       
-      // تنفيذ استعلام إنشاء الوظيفة
-      const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
+      const { error: createError } = await supabase.rpc('exec_sql', { sql });
       
       if (createError) {
-        // محاولة تنفيذ SQL مباشرة باستخدام دالة أخرى
-        console.error("Error creating function via RPC:", createError);
-        return "manual_intervention_needed";
+        console.error(`[${requestId}] Error creating function_exists function:`, createError);
+        
+        // محاولة تنفيذ SQL مباشرة
+        const { error: directError } = await supabase.from('migrations').select('*').limit(1);
+        
+        if (directError && directError.message.includes('relation "migrations" does not exist')) {
+          console.error(`[${requestId}] Cannot create function_exists function, migrations table doesn't exist`);
+          return false;
+        }
+        
+        return false;
       }
       
+      console.log(`[${requestId}] Successfully created function_exists function`);
       return true;
     }
     
-    // الوظيفة موجودة بالفعل
+    console.log(`[${requestId}] function_exists function already exists`);
     return false;
   } catch (error) {
-    console.error("Error in ensureCreateFormFunction:", error);
+    console.error(`[${requestId}] Error in ensureFunctionExistsFunction:`, error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود دالة exec_sql
+async function ensureExecSQLFunction(supabase, requestId: string) {
+  try {
+    console.log(`[${requestId}] Checking exec_sql function`);
+    
+    // محاولة تنفيذ استدعاء بسيط
+    const { error } = await supabase.rpc(
+      'exec_sql',
+      { 
+        sql: 'SELECT 1;'
+      }
+    );
+    
+    if (error && error.message.includes('does not exist')) {
+      console.log(`[${requestId}] Creating exec_sql function...`);
+      
+      // تنفيذ استعلام مباشر لإنشاء الدالة
+      const { error: sqlError } = await supabase.from('migrations').select('*').limit(1);
+      
+      if (sqlError && sqlError.message.includes('relation "migrations" does not exist')) {
+        // إنشاء الوظيفة مباشرة بطريقة أخرى، على سبيل المثال من خلال إنشاء جدول مؤقت
+        console.log(`[${requestId}] Cannot create exec_sql function via direct SQL`);
+        return false;
+      }
+      
+      // ننفذ استعلام لإنشاء الوظيفة باستخدام طريقة بديلة
+      // هذا مجرد مثال، الطريقة الحقيقية ستعتمد على الوصول المتاح
+      console.log(`[${requestId}] Creating exec_sql function using alternate method`);
+      
+      // نعود بخطأ هنا، لأن إنشاء وظيفة exec_sql يتطلب صلاحيات مميزة
+      return false;
+    }
+    
+    console.log(`[${requestId}] exec_sql function already exists`);
+    return true;
+  } catch (error) {
+    console.error(`[${requestId}] Error in ensureExecSQLFunction:`, error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود دالة check_column_exists
+async function ensureColumnExistsFunction(supabase, requestId: string) {
+  try {
+    console.log(`[${requestId}] Checking check_column_exists function`);
+    
+    // التحقق من وجود دالة function_exists أولاً
+    const { data: functionExists, error: checkError } = await supabase.rpc(
+      'function_exists',
+      { 
+        function_name: 'check_column_exists'
+      }
+    );
+    
+    if (checkError || !functionExists) {
+      console.log(`[${requestId}] Creating check_column_exists function...`);
+      
+      const sql = `
+        CREATE OR REPLACE FUNCTION public.check_column_exists(
+          p_table_name TEXT,
+          p_column_name TEXT
+        ) RETURNS BOOLEAN
+        LANGUAGE plpgsql
+        AS $$
+        DECLARE
+          v_exists BOOLEAN;
+        BEGIN
+          SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+            AND table_name = p_table_name
+            AND column_name = p_column_name
+          ) INTO v_exists;
+          
+          RETURN v_exists;
+        END;
+        $$;
+      `;
+      
+      const { error: createError } = await supabase.rpc('exec_sql', { sql });
+      
+      if (createError) {
+        console.error(`[${requestId}] Error creating check_column_exists function:`, createError);
+        return false;
+      }
+      
+      console.log(`[${requestId}] Successfully created check_column_exists function`);
+      return true;
+    }
+    
+    console.log(`[${requestId}] check_column_exists function already exists`);
+    return true;
+  } catch (error) {
+    console.error(`[${requestId}] Error in ensureColumnExistsFunction:`, error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود دالة add_column_if_not_exists
+async function ensureAddColumnFunction(supabase, requestId: string) {
+  try {
+    console.log(`[${requestId}] Checking add_column_if_not_exists function`);
+    
+    // التحقق من وجود دالة function_exists أولاً
+    const { data: functionExists, error: checkError } = await supabase.rpc(
+      'function_exists',
+      { 
+        function_name: 'add_column_if_not_exists'
+      }
+    );
+    
+    if (checkError || !functionExists) {
+      console.log(`[${requestId}] Creating add_column_if_not_exists function...`);
+      
+      const sql = `
+        CREATE OR REPLACE FUNCTION public.add_column_if_not_exists(
+          p_table TEXT,
+          p_column TEXT,
+          p_type TEXT,
+          p_default TEXT DEFAULT NULL
+        ) RETURNS VOID
+        LANGUAGE plpgsql
+        AS $$
+        DECLARE
+          v_exists BOOLEAN;
+          v_sql TEXT;
+        BEGIN
+          SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+            AND table_name = p_table
+            AND column_name = p_column
+          ) INTO v_exists;
+          
+          IF NOT v_exists THEN
+            v_sql := format('ALTER TABLE public.%I ADD COLUMN %I %s', p_table, p_column, p_type);
+            
+            IF p_default IS NOT NULL THEN
+              v_sql := v_sql || ' DEFAULT ' || p_default;
+            END IF;
+            
+            EXECUTE v_sql;
+          END IF;
+        END;
+        $$;
+      `;
+      
+      const { error: createError } = await supabase.rpc('exec_sql', { sql });
+      
+      if (createError) {
+        console.error(`[${requestId}] Error creating add_column_if_not_exists function:`, createError);
+        return false;
+      }
+      
+      console.log(`[${requestId}] Successfully created add_column_if_not_exists function`);
+      return true;
+    }
+    
+    console.log(`[${requestId}] add_column_if_not_exists function already exists`);
+    return true;
+  } catch (error) {
+    console.error(`[${requestId}] Error in ensureAddColumnFunction:`, error);
+    return false;
+  }
+}
+
+// دالة للتأكد من وجود سجل واحد نشط للمتجر في كل مرة
+async function ensureSingleActiveShopStore(supabase, requestId: string) {
+  try {
+    console.log(`[${requestId}] Ensuring single active store record`);
+    
+    // الحصول على سجلات المتاجر النشطة
+    const { data: activeStores, error: fetchError } = await supabase
+      .from('shopify_stores')
+      .select('id, shop')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false });
+    
+    if (fetchError) {
+      console.error(`[${requestId}] Error fetching active stores:`, fetchError);
+      return false;
+    }
+    
+    // إذا كان هناك أكثر من متجر نشط، نترك فقط أحدث سجل
+    if (activeStores && activeStores.length > 1) {
+      console.log(`[${requestId}] Found ${activeStores.length} active stores, keeping only the most recent one`);
+      
+      // الإبقاء على السجل الأول (الأحدث) وتعطيل الباقي
+      const mostRecentStore = activeStores[0];
+      
+      for (let i = 1; i < activeStores.length; i++) {
+        const { error: updateError } = await supabase
+          .from('shopify_stores')
+          .update({ is_active: false })
+          .eq('id', activeStores[i].id);
+          
+        if (updateError) {
+          console.error(`[${requestId}] Error deactivating store ${activeStores[i].shop}:`, updateError);
+        } else {
+          console.log(`[${requestId}] Deactivated store: ${activeStores[i].shop}`);
+        }
+      }
+      
+      console.log(`[${requestId}] Kept active store: ${mostRecentStore.shop}`);
+      return true;
+    }
+    
+    console.log(`[${requestId}] Store records are in correct state: ${activeStores?.length || 0} active stores`);
+    return false;
+  } catch (error) {
+    console.error(`[${requestId}] Error in ensureSingleActiveShopStore:`, error);
     return false;
   }
 }

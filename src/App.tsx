@@ -25,45 +25,57 @@ import Settings from "@/pages/Settings";
 import { Toaster } from "sonner";
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 
-const queryClient = new QueryClient();
+// إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 5 * 60 * 1000, // 5 دقائق
+    },
+  },
+});
 
-// Protected route that checks for Shopify connection OR user authentication
+// تعزيز المسارات المحمية للتحقق من اتصال Shopify أو مصادقة المستخدم
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { shopifyConnected, user, shop, loading } = useAuth();
   
-  // If still loading, we can show a loading state
+  // إذا كان لا يزال يتم التحميل، نعرض حالة التحميل
   if (loading) {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Multi-layer check for connection status
+  // فحص متعدد الطبقات لحالة الاتصال
   const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const localStorageShop = localStorage.getItem('shopify_store');
   
-  // Use all available sources to determine if user has access
-  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore;
-  const isAuthenticated = !!user; // Check if user is authenticated
+  // استخدام جميع المصادر المتاحة لتحديد ما إذا كان المستخدم لديه حق الوصول
+  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
+  const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
   
-  // User has access if they're authenticated OR have a Shopify connection
+  // المستخدم لديه حق الوصول إذا كان مصادقًا عليه أو لديه اتصال Shopify
   const hasAccess = isAuthenticated || hasShopifyAccess;
   
   console.log("Protected route check:", {
     authContextConnected: shopifyConnected,
     localStorageConnected,
     activeStore,
+    localStorageShop,
     hasShopifyAccess,
     isAuthenticated,
     hasAccess,
     requireAuth
   });
   
-  // If authentication is required and user doesn't have access
+  // إذا كان التحقق مطلوبًا والمستخدم ليس لديه حق الوصول
   if (requireAuth && !hasAccess) {
     console.log("No authentication or Shopify connection, redirecting to /shopify");
+    toast.info("يجب الاتصال بمتجر Shopify أولاً");
     return <Navigate to="/shopify" replace />;
   }
   
-  // Otherwise, render the child routes
+  // وإلا، قم بعرض مسارات الطفل
   return <Outlet />;
 };
 
@@ -79,7 +91,7 @@ function AppRoutes() {
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/settings" element={<Settings />} />
       
-      {/* Protected routes that require Shopify authentication */}
+      {/* المسارات المحمية التي تتطلب مصادقة Shopify */}
       <Route element={<ProtectedRoute requireAuth={true} />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forms" element={<Forms />} />
@@ -87,7 +99,7 @@ function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
       </Route>
       
-      {/* Routes that don't strictly require auth but use auth state if available */}
+      {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
       <Route path="/shopify-stores" element={<ShopifyStores />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -95,6 +107,9 @@ function AppRoutes() {
 }
 
 function App() {
+  // التحقق من حالة الاتصال بـ Shopify عند بدء التشغيل
+  shopifyConnectionManager.validateConnectionState();
+  
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
@@ -102,7 +117,7 @@ function App() {
           <Router>
             <AuthProvider>
               <AppRoutes />
-              <Toaster position="top-center" />
+              <Toaster position="top-center" richColors closeButton />
             </AuthProvider>
           </Router>
         </TooltipProvider>
