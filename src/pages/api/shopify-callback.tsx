@@ -91,6 +91,9 @@ const ShopifyCallback = () => {
       });
       
       try {
+        // Add a random parameter to prevent caching
+        const randomParam = Math.random().toString(36).substring(2, 15);
+        
         // استدعاء وظيفة المصادقة مباشرة
         const { data, error } = await supabase.functions.invoke('shopify-callback', {
           body: {
@@ -100,14 +103,14 @@ const ShopifyCallback = () => {
             state,
             forceUpdate,
             timestamp: Date.now(), // Adding timestamp to prevent caching
-            nonce: Math.random().toString(36).substring(2, 15) // Adding nonce to prevent caching
+            nonce: randomParam // Adding nonce to prevent caching
           },
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
             'X-Timestamp': `${Date.now()}`,
-            'X-Nonce': Math.random().toString(36).substring(2, 15)
+            'X-Nonce': randomParam
           }
         });
         
@@ -125,7 +128,7 @@ const ShopifyCallback = () => {
             return;
           }
           
-          throw new Error(`خطأ في استدعاء وظيفة المصادقة: ${error.message}`);
+          throw new Error(`خطأ في استدعاء وظيفة المصادقة: ${error.message || JSON.stringify(error)}`);
         }
 
         console.log('Callback function response:', data);
@@ -169,21 +172,33 @@ const ShopifyCallback = () => {
         if (retryCount >= 2) {
           // محاولة بديلة لاستدعاء الوظيفة مباشرة من خلال URL إذا وصلنا للحد الأقصى من المحاولات
           try {
-            const callbackURL = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shop)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&state=${state || ''}&popup=${isPopup}&timestamp=${Date.now()}&nonce=${Math.random().toString(36).substring(2, 15)}`;
+            // Add random parameters to prevent caching
+            const randomParam = Math.random().toString(36).substring(2, 15);
+            const timestamp = Date.now();
+            
+            // Use a fully qualified URL with the nhqrngdzuatdnfkihtud project ID
+            const callbackURL = `https://nhqrngdzuatdnfkihtud.functions.supabase.co/shopify-callback?shop=${encodeURIComponent(shop)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&state=${state || ''}&popup=${isPopup}&timestamp=${timestamp}&nonce=${randomParam}`;
+            
+            console.log(`Attempting direct function call to: ${callbackURL}`);
             
             const response = await fetch(callbackURL, {
               headers: {
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
-                'Expires': '0'
+                'Expires': '0',
+                'X-Timestamp': `${timestamp}`,
+                'X-Nonce': randomParam
               }
             });
             
             if (!response.ok) {
-              throw new Error(`فشل الاستدعاء المباشر: ${response.statusText}`);
+              const responseText = await response.text();
+              console.error('Direct function call failed:', response.status, responseText);
+              throw new Error(`فشل الاستدعاء المباشر: ${response.statusText} (${response.status})`);
             }
             
             const directData = await response.json();
+            console.log('Direct function call response:', directData);
             
             if (directData.success) {
               // تخزين معلومات المتجر في localStorage
@@ -270,7 +285,13 @@ const ShopifyCallback = () => {
   };
 
   useEffect(() => {
+    // Add cache-busting query parameter
+    const cacheBuster = `_=${Date.now()}`;
+    const currentUrl = window.location.href;
+    const urlWithoutCache = currentUrl.split('?')[0];
     const params = new URLSearchParams(location.search);
+    
+    // Start processing the callback
     processCallback(params);
     
     // إعداد مستمع لتلقي رسائل من النافذة المنبثقة

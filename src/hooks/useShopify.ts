@@ -247,6 +247,7 @@ export const useShopify = () => {
       
       // Generate a timestamp to prevent caching
       const timestamp = Date.now();
+      const randomValue = Math.random().toString(36).substring(2, 15);
       
       // Force a new authentication flow by clearing session first
       await supabase
@@ -259,8 +260,16 @@ export const useShopify = () => {
         body: { 
           shop: shop,
           forceUpdate: true,
-          timestamp
+          timestamp,
+          nonce: randomValue
         },
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Timestamp': `${timestamp}`,
+          'X-Nonce': randomValue
+        }
       });
       
       if (authError) {
@@ -270,7 +279,7 @@ export const useShopify = () => {
       
       if (authData?.redirect) {
         // Navigate to auth page to get new token
-        window.location.href = `${authData.redirect}&t=${timestamp}&force=true`;
+        window.location.href = `${authData.redirect}&t=${timestamp}&force=true&nonce=${randomValue}`;
       } else {
         throw new Error('لم يتم استلام عنوان المصادقة من الخادم');
       }
@@ -278,7 +287,7 @@ export const useShopify = () => {
       console.error('Error refreshing connection:', error);
       
       // Fallback method - direct redirect
-      window.location.href = `/shopify-redirect?shop=${encodeURIComponent(shop)}&force_update=true&t=${Date.now()}`;
+      window.location.href = `/shopify-redirect?shop=${encodeURIComponent(shop)}&force_update=true&t=${Date.now()}&nonce=${Math.random().toString(36).substring(2, 15)}`;
       
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
       throw new Error(`فشل تحديث الاتصال: ${errorMessage}`);
@@ -420,23 +429,27 @@ export const useShopify = () => {
         await api.setupAutoSync(formData);
         console.log('Auto-sync completed successfully');
         
-        // Clear token error states on success
+        // Clear token error states on successful operation
         setTokenError(false);
         setTokenExpired(false);
-      } catch (syncError) {
-        console.error('Auto-sync error:', syncError);
+        setError(null);
         
-        // Check for token-related errors
-        const errorMessage = syncError instanceof Error ? syncError.message : 'Unknown error';
+        toast.success('تم مزامنة النموذج مع Shopify بنجاح');
+        return true;
+      } catch (apiError) {
+        console.error('API call error:', apiError);
+        
+        // Check for token related errors and attempt refresh
+        const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
+        
         if (errorMessage.includes('Authentication error') || 
-            errorMessage.includes('Received HTML') || 
             errorMessage.includes('401') || 
             errorMessage.includes('403')) {
-          
+            
           setTokenError(true);
           setTokenExpired(true);
           
-          // Try automatic refresh if not already trying
+          // Try auto-refresh if not already trying
           if (!isAutoRefreshing && autoRetryCount < 2) {
             setIsAutoRefreshing(true);
             setAutoRetryCount(prev => prev + 1);
@@ -445,79 +458,42 @@ export const useShopify = () => {
               toast.info('جاري تحديث الاتصال تلقائيًا...');
               await refreshConnection();
               
-              // Wait for reconnection to complete
+              // Wait for refresh to complete
               await new Promise(resolve => setTimeout(resolve, 1500));
               
-              // Try syncing again with new token
               return syncFormWithShopify(formData);
             } catch (refreshError) {
               console.error('Auto-refresh failed:', refreshError);
+              toast.error('فشل التحديث التلقائي للاتصال. يرجى إعادة الاتصال يدويًا.');
             } finally {
               setIsAutoRefreshing(false);
             }
           }
-          
-          throw new Error('رمز الوصول للمتجر غير صالح أو منتهي الصلاحية، يرجى إعادة الاتصال بالمتجر');
         }
         
-        throw new Error(errorMessage);
+        throw apiError;
       }
-      
-      // Save form-shop association in database
-      console.log('Updating form-shop association in database');
-      const { error: formUpdateError } = await supabase
-        .from('forms')
-        .update({ shop_id: shop })
-        .eq('id', formData.formId);
-        
-      if (formUpdateError) {
-        console.error('Form update error:', formUpdateError);
-        // Continue despite this error as it's not critical
-        console.log('Continuing despite form update error');
-      }
-
-      toast.success('تم مزامنة النموذج مع Shopify بنجاح');
-      
-      // Reset auto-retry count on success
-      setAutoRetryCount(0);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'فشل في مزامنة بيانات النموذج';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
+      toast.error(`فشل مزامنة النموذج: ${errorMessage}`);
       setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
+      
+      return false;
     } finally {
       setIsSyncing(false);
     }
   }, [shop, shopifyConnected, tokenError, tokenExpired, autoRetryCount, isAutoRefreshing, refreshConnection]);
 
-  // Force check connection on mount and periodically
-  useEffect(() => {
-    // Initial connection test
-    if (shopifyConnected && shop) {
-      testConnection();
-    }
-    
-    // Periodic connection test (every 5 minutes)
-    const intervalId = setInterval(() => {
-      if (shopifyConnected && shop) {
-        testConnection();
-      }
-    }, 5 * 60 * 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [shopifyConnected, shop, testConnection]);
-
   return {
     products,
     isLoading,
-    error,
-    syncFormWithShopify,
-    fetchProducts,
-    refreshConnection,
-    isConnected: !!shopifyConnected,
     isSyncing,
+    error,
     tokenError,
     tokenExpired,
-    isAutoRefreshing
+    refreshConnection,
+    fetchProducts,
+    syncFormWithShopify,
+    testConnection
   };
 };

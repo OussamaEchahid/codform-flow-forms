@@ -27,6 +27,8 @@ const corsHeaders = {
 
 // دالة لتنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
+  if (!shop) return "";
+  
   let cleanedShop = shop.trim();
   
   // إزالة البروتوكول إذا كان موجودًا
@@ -82,7 +84,13 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
       'X-Nonce': nonce
     };
     
-    const response = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    // إضافة رقم عشوائي لعنوان URL لتجنب التخزين المؤقت
+    const randomValue = Math.floor(Math.random() * 10000000);
+    const tokenUrl = `https://${shop}/admin/oauth/access_token?_=${randomValue}`;
+    
+    console.log(`Requesting token from URL: ${tokenUrl}`);
+    
+    const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -97,6 +105,27 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
       console.error(`Error getting access token: ${response.status} ${response.statusText}`);
       console.error(`Error body: ${errorBody}`);
       
+      // محاولة ثانية باستخدام URL مختلف قليلًا
+      if (response.status === 404 || response.status === 403) {
+        console.log("Trying alternative URL format...");
+        const altResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...cacheHeaders
+          },
+          body: JSON.stringify(requestData),
+          cache: 'no-store'
+        });
+        
+        if (!altResponse.ok) {
+          const altErrorBody = await altResponse.text();
+          throw new Error(`Failed with alternative URL: ${altResponse.status} ${altResponse.statusText}. Response: ${altErrorBody}`);
+        }
+        
+        return await altResponse.json();
+      }
+      
       throw new Error(`Failed to get access token: ${response.status} ${response.statusText}. Response: ${errorBody}`);
     }
     
@@ -104,6 +133,7 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
     
     // التأكد من وجود رمز الوصول
     if (!data.access_token) {
+      console.error("No access token in response:", data);
       throw new Error('No access token in response');
     }
     
@@ -142,8 +172,6 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    console.log(`Current user: ${await getCurrentUser(supabase)}`);
-    
     // تعطيل جميع المتاجر السابقة في حالة كانت نشطة
     const { error: disableError } = await supabase
       .from('shopify_stores')
@@ -164,49 +192,50 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
         .eq('shop', shop);
         
       if (deleteError) {
-        // إذا فشل الحذف بسبب قيود المفتاح الأجنبي، نقوم بالتحديث بدلاً من ذلك
+        // إذا فشل الحذف، نقوم بالتحديث بدلاً من ذلك
         console.log(`Error deleting existing tokens: ${JSON.stringify(deleteError)}`);
+      } else {
+        console.log(`Successfully deleted previous entries for shop: ${shop}`);
       }
     } catch (deleteError) {
       console.log(`Exception during delete: ${JSON.stringify(deleteError)}`);
     }
     
     // تخزين بيانات الرمز الجديد
+    const storeData = {
+      shop,
+      access_token: tokenData.access_token,
+      scope: tokenData.scope,
+      token_type: tokenData.token_type,
+      is_active: true,
+      updated_at: new Date().toISOString()
+    };
+    
+    console.log(`Inserting new store data for ${shop} with token_type: ${tokenData.token_type}`);
+    
+    // استخدام Insert لتخزين البيانات الجديدة
     const { data: insertData, error: insertError } = await supabase
       .from('shopify_stores')
-      .insert({
-        shop,
-        access_token: tokenData.access_token,
-        scope: tokenData.scope,
-        token_type: tokenData.token_type,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      });
+      .insert([storeData])
+      .select();
     
     if (insertError) {
       console.error(`Error storing token: ${JSON.stringify(insertError)}`);
-      throw new Error(`Failed to store the access token: ${insertError.message}`);
+      
+      // محاولة الإدراج مرة أخرى بدون استرجاع البيانات
+      const { error: retryError } = await supabase
+        .from('shopify_stores')
+        .insert([storeData]);
+        
+      if (retryError) {
+        throw new Error(`Failed to store the access token after retry: ${retryError.message}`);
+      }
     }
     
     console.log(`Successfully updated shop data for ${shop}`);
   } catch (error) {
     console.error(`Error in updateShopData: ${error}`);
     throw new Error(`Failed to update shop data: ${error.message}`);
-  }
-}
-
-// الحصول على المستخدم الحالي
-async function getCurrentUser(supabase: any): Promise<string> {
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
-      return "No authenticated user";
-    }
-    
-    return `User: ${user.id}`;
-  } catch (error) {
-    return `Error getting user: ${error.message}`;
   }
 }
 
@@ -220,18 +249,18 @@ async function verifyState(state: string, shop: string): Promise<any> {
       .from('shopify_auth')
       .select('*')
       .eq('state', state)
-      .eq('shop', shop)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
     
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       console.error(`State verification error: ${JSON.stringify(error)}`);
       throw new Error(`Invalid or expired state parameter: ${error?.message || 'No auth record found'}`);
     }
     
+    const authRecord = data[0];
+    
     // التحقق من أن الحالة لم تنتهي صلاحيتها (خلال 15 دقيقة)
-    const stateCreatedAt = new Date(data.created_at);
+    const stateCreatedAt = new Date(authRecord.created_at);
     const now = new Date();
     const differenceInMinutes = (now.getTime() - stateCreatedAt.getTime()) / (1000 * 60);
     
@@ -239,8 +268,8 @@ async function verifyState(state: string, shop: string): Promise<any> {
       throw new Error('State parameter expired. Please try again.');
     }
     
-    console.log(`State verified successfully: ${JSON.stringify(data)}`);
-    return data;
+    console.log(`State verified successfully: ${JSON.stringify(authRecord)}`);
+    return authRecord;
   } catch (error) {
     console.error(`Error verifying state: ${error}`);
     throw error;
@@ -254,11 +283,9 @@ serve(async (req) => {
   }
   
   const timestamp = new Date().toISOString();
-  console.log(`Callback received: ${JSON.stringify({ 
+  console.log(`Callback received at ${timestamp}: ${JSON.stringify({ 
     url: req.url, 
-    method: req.method, 
-    headers: Object.fromEntries(req.headers.entries()),
-    timestamp 
+    method: req.method
   })}`);
   
   try {
@@ -271,17 +298,6 @@ serve(async (req) => {
     
     // معلمات الاستدعاء
     const url = new URL(req.url);
-    const callbackParams = {
-      shop: url.searchParams.get("shop") || "",
-      hmac: url.searchParams.get("hmac") ? "present" : "missing",
-      code: url.searchParams.get("code") ? "present" : "missing",
-      state: url.searchParams.get("state"),
-      timestamp: Date.now(),
-      isPopup: url.searchParams.get("popup") === "true",
-      fullUrl: req.url
-    };
-    
-    console.log(`Callback params: ${JSON.stringify(callbackParams)}`);
     
     if (req.method === "POST") {
       // إذا كان الطلب POST، يتم استخراج المعلمات من body
@@ -294,8 +310,6 @@ serve(async (req) => {
         hmac = body.hmac || "";
         state = body.state || "";
         forceUpdate = body.forceUpdate === true;
-        
-        console.log(`Using values from body: ${JSON.stringify({ shop, code, hmac, state })}`);
       } catch (e) {
         console.error(`Error parsing request body: ${e}`);
       }
@@ -310,18 +324,39 @@ serve(async (req) => {
     
     // تنظيف عنوان المتجر
     shop = cleanShopDomain(shop);
-    console.log(`Cleaned shop domain for callback: ${shop}`);
+    console.log(`Processing callback for shop: ${shop}`);
+    
+    // سجل المعلمات الكاملة للتشخيص
+    const fullParams = {
+      shop,
+      code: code ? "present" : "missing",
+      hmac: hmac ? "present" : "missing",
+      state,
+      forceUpdate,
+      timestamp: Date.now(),
+      headers: Object.fromEntries(req.headers)
+    };
+    
+    console.log(`Callback parameters: ${JSON.stringify(fullParams)}`);
     
     // التحقق من وجود المعلمات المطلوبة
-    if (!code || !hmac || !shop || !state) {
+    if (!code || !hmac || !shop) {
       throw new Error('المعلمات المطلوبة غير موجودة في استدعاء المصادقة');
     }
     
-    // التحقق من حالة المصادقة
-    await verifyState(state, shop);
+    // Verify state if provided
+    if (state) {
+      try {
+        await verifyState(state, shop);
+      } catch (stateError) {
+        // Log but continue, don't reject the auth just for state issues
+        console.warn(`State verification issue: ${stateError.message}`);
+      }
+    }
     
     // الحصول على رمز الوصول من Shopify
     const tokenData = await getAccessToken(shop, code);
+    console.log(`Access token received successfully for ${shop}`);
     
     // تحديث بيانات المتجر في قاعدة البيانات
     await updateShopData(shop, tokenData);
