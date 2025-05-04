@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +48,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     tokenError,
     tokenExpired,
     refreshConnection,
-    fetchProducts 
   } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
@@ -221,9 +219,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // معالج مخصص للضغط على إعادة المحاولة مع العودة
   const handleRetryWithFallback = async () => {
     try {
-      // Attempt to refresh products first
+      // Attempt to refresh connection instead of fetching products
       setConnectionStatus('checking');
-      await fetchProducts();
+      // Using refreshConnection instead of fetchProducts
+      await refreshConnection();
       
       // If no error is thrown, connection is still valid
       toast.success(language === 'ar'

@@ -553,6 +553,46 @@ export const useShopify = () => {
     (window as any).resetShopifyConnection = emergencyReset;
   }, [emergencyReset]);
 
+  // Add the fetchProducts function to the return object
+  const fetchProducts = useCallback(async (): Promise<ShopifyProduct[]> => {
+    if (!shop) {
+      throw new Error('No shop is connected');
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Initialize API if needed
+      if (!shopifyAPI) {
+        await initializeShopifyAPI();
+      }
+      
+      if (!shopifyAPI) {
+        throw new Error('Failed to initialize Shopify API');
+      }
+      
+      // Attempt to fetch products
+      const fetchedProducts = await shopifyAPI.getProducts();
+      setProducts(fetchedProducts);
+      return fetchedProducts;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+        
+        // Check if this is a token error
+        if (error.message.includes('token') || 
+            error.message.includes('Authentication') ||
+            error.message.includes('auth')) {
+          setTokenError(true);
+        }
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shop, shopifyAPI, initializeShopifyAPI]);
+
   return {
     isLoading,
     isSyncing,
@@ -573,6 +613,7 @@ export const useShopify = () => {
     pendingSyncForms,
     resyncPendingForms,
     refreshConnection,
-    emergencyReset
+    emergencyReset,
+    fetchProducts
   };
 };
