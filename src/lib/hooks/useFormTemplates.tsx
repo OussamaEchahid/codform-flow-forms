@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -5,6 +6,8 @@ import { FormStep, formTemplates } from '@/lib/form-utils';
 import { useAuth } from '@/lib/auth';
 import { Json } from '@/integrations/supabase/types';
 import { v4 as uuidv4 } from 'uuid';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { useShopify } from '@/hooks/useShopify';
 
 export interface FormData {
   id: string;
@@ -34,6 +37,7 @@ export const useFormTemplates = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<FormData | null>(null);
   const { user, shop } = useAuth();
+  const { failSafeMode, syncFormWithShopify } = useShopify();
   
   // Enable fallback to localStorage if shop is not available from context
   const actualShop = shop || localStorage.getItem('shopify_store');
@@ -177,7 +181,7 @@ export const useFormTemplates = () => {
             console.error("Error with RPC bypass:", bypassError);
             
             // Try one more last-resort approach - direct local form creation
-            if (localStorage.getItem('bypass_auth') === 'true') {
+            if (localStorage.getItem('bypass_auth') === 'true' || failSafeMode) {
               console.log("Attempting offline emergency form creation with bypass_auth enabled");
               
               // Generate a client-side ID for the form
@@ -244,7 +248,7 @@ export const useFormTemplates = () => {
       toast.error(`خطأ في إنشاء النموذج: ${error.message}`);
       return null;
     }
-  }, [actualShop, user, fetchForms]);
+  }, [actualShop, user, fetchForms, failSafeMode]);
 
   const createDefaultForm = useCallback(async () => {
     return createFormFromTemplate(1); // Use template ID 1 as default
@@ -271,6 +275,7 @@ export const useFormTemplates = () => {
         user_id: userId // Use clean UUID
       };
       
+      // Save to database
       const { error } = await supabase
         .from('forms')
         .update(updateData)
@@ -284,6 +289,15 @@ export const useFormTemplates = () => {
           toast.error(`خطأ في حفظ النموذج: ${error.message}`);
         }
         throw error;
+      }
+      
+      // If save was successful, try to sync with Shopify
+      // This uses the improved syncFormWithShopify function from useShopify
+      try {
+        await syncFormWithShopify(formId);
+      } catch (syncError) {
+        console.error("Form saved but sync failed:", syncError);
+        // We don't throw here because the main save succeeded
       }
       
       toast.success('تم حفظ النموذج بنجاح');
@@ -310,6 +324,16 @@ export const useFormTemplates = () => {
           toast.error(`خطأ: ${error.message}`);
         }
         throw error;
+      }
+      
+      // Try to sync with Shopify after publishing status change
+      if (isPublished) {
+        try {
+          await syncFormWithShopify(formId);
+        } catch (syncError) {
+          console.error("Form published but sync failed:", syncError);
+          // We don't throw here because the main publish succeeded
+        }
       }
       
       toast.success(isPublished ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
@@ -351,6 +375,7 @@ export const useFormTemplates = () => {
     if (!formId) return null;
     
     try {
+      // First try database
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -359,6 +384,21 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error("Error getting form by ID:", error);
+        
+        // Check emergency cache if we hit permission errors
+        if (error.message.includes('row-level security policy') || error.code === 'PGRST301') {
+          const cachedForms = JSON.parse(localStorage.getItem('emergency_form_cache') || '[]');
+          const cachedForm = cachedForms.find((form: any) => form.id === formId);
+          
+          if (cachedForm) {
+            console.log("Form found in emergency cache:", cachedForm);
+            return {
+              ...cachedForm,
+              data: cachedForm.data as unknown as FormStep[]
+            } as FormData;
+          }
+        }
+        
         if (error.message.includes('row-level security policy')) {
           toast.error('خطأ في الصلاحيات: لا يمكن عرض النموذج. يرجى التأكد من تسجيل الدخول بشكل صحيح.');
         } else {

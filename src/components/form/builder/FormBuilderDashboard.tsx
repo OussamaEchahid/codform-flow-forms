@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader, AlertCircle } from 'lucide-react';
+import { Plus, Loader, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -18,19 +18,38 @@ import { supabase } from '@/integrations/supabase/client';
 const FormBuilderDashboard = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
-  const { forms, isLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = React.useState(false);
-  const [isCreatingForm, setIsCreatingForm] = React.useState(false);
-  const [connectionBypassMode, setConnectionBypassMode] = React.useState(false);
+  const { forms, isLoading: formsLoading, fetchForms, createDefaultForm, createFormFromTemplate } = useFormTemplates();
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [connectionBypassMode, setConnectionBypassMode] = useState(() => {
+    return localStorage.getItem('bypass_auth') === 'true';
+  });
   const { user, shop, shopifyConnected } = useAuth();
-  const { tokenError, testConnection } = useShopify();
-  const [connectionTestDone, setConnectionTestDone] = React.useState(false);
-  const [connectionOK, setConnectionOK] = React.useState(false);
+  const { 
+    tokenError, 
+    testConnection, 
+    failSafeMode, 
+    toggleFailSafeMode, 
+    isLoading: shopifyLoading,
+    isRetrying,
+    pendingSyncForms,
+    resyncPendingForms
+  } = useShopify();
+  const [connectionTestDone, setConnectionTestDone] = useState(false);
+  const [connectionOK, setConnectionOK] = useState(false);
+  const [lastConnectionTest, setLastConnectionTest] = useState(0);
   
-  // Test connection silently on component load
-  React.useEffect(() => {
+  // Test connection silently on component load with throttling
+  useEffect(() => {
     const checkConnection = async () => {
+      // Skip if we've tested in the last 30 seconds
+      const now = Date.now();
+      if (now - lastConnectionTest < 30000) {
+        return;
+      }
+      
       try {
+        setLastConnectionTest(now);
         const connected = await testConnection();
         setConnectionOK(connected);
         console.log("Silent connection test result:", connected);
@@ -43,7 +62,7 @@ const FormBuilderDashboard = () => {
     };
     
     checkConnection();
-  }, [testConnection]);
+  }, [testConnection, lastConnectionTest]);
   
   // Fallback check for local storage 
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
@@ -56,6 +75,44 @@ const FormBuilderDashboard = () => {
   
   // Allow operation in bypass mode when there's a connection problem but shop reference exists
   const canOperateInBypassMode = !!actualShop && (tokenError || !connectionOK) && connectionTestDone;
+  
+  // Handle retry connection
+  const handleConnectionRetry = async () => {
+    try {
+      toast.loading(language === 'ar' ? 'جاري الاتصال...' : 'Connecting...');
+      const result = await testConnection(true);
+      
+      if (result) {
+        toast.success(language === 'ar' 
+          ? `تم الاتصال بمتجر: ${actualShop}` 
+          : `Connected to store: ${actualShop}`);
+        setConnectionOK(true);
+      } else {
+        toast.error(language === 'ar' 
+          ? 'فشل الاتصال، تم تفعيل وضع التجاوز' 
+          : 'Connection failed, bypass mode activated');
+        setConnectionBypassMode(true);
+        toggleFailSafeMode(true);
+      }
+    } catch (error) {
+      console.error("Connection retry error:", error);
+      toast.error(language === 'ar' 
+        ? 'حدث خطأ أثناء الاتصال' 
+        : 'Error connecting');
+      setConnectionBypassMode(true);
+      toggleFailSafeMode(true);
+    }
+  };
+  
+  // Enable bypass mode
+  const enableBypass = () => {
+    setConnectionBypassMode(true);
+    localStorage.setItem('bypass_auth', 'true');
+    toggleFailSafeMode(true);
+    toast.info(language === 'ar' 
+      ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج.' 
+      : 'Bypass mode activated. You can continue managing forms.');
+  };
 
   const handleCreateForm = async () => {
     try {
@@ -157,6 +214,11 @@ const FormBuilderDashboard = () => {
       setIsTemplateDialogOpen(false);
     }
   };
+  
+  // Handle resyncing pending forms
+  const handleResyncForms = async () => {
+    await resyncPendingForms();
+  };
 
   return (
     <div className="flex-1 p-8">
@@ -173,25 +235,80 @@ const FormBuilderDashboard = () => {
                 ? 'هناك مشكلة في اتصال Shopify، لكن يمكنك الاستمرار في إدارة النماذج. بعض الوظائف قد لا تعمل بشكل صحيح.' 
                 : 'There is an issue with the Shopify connection, but you can continue managing forms. Some features may not work properly.'}
             </AlertDescription>
-            <div className="mt-2 flex justify-end">
+            <div className="mt-2 flex flex-wrap gap-2 justify-end">
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="border-amber-300 text-amber-800 hover:bg-amber-100"
-                onClick={() => {
-                  setConnectionBypassMode(true);
-                  localStorage.setItem('bypass_auth', 'true');
-                  toast.info(language === 'ar' 
-                    ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج.' 
-                    : 'Bypass mode activated. You can continue managing forms.');
-                }}
+                disabled={isRetrying || shopifyLoading}
+                onClick={handleConnectionRetry}
+              >
+                {isRetrying || shopifyLoading ? (
+                  <Loader className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                )}
+                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                onClick={enableBypass}
               >
                 {language === 'ar' ? 'متابعة على أي حال' : 'Continue anyway'}
               </Button>
             </div>
           </Alert>
         )}
-
+        
+        {/* Pending syncs banner */}
+        {pendingSyncForms.length > 0 && (
+          <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800">
+              {language === 'ar' ? 'نماذج معلقة للمزامنة' : 'Pending Forms Sync'}
+            </AlertTitle>
+            <AlertDescription className="text-blue-700">
+              {language === 'ar' 
+                ? `لديك ${pendingSyncForms.length} من النماذج المعلقة للمزامنة مع متجر Shopify.` 
+                : `You have ${pendingSyncForms.length} forms pending synchronization with your Shopify store.`}
+            </AlertDescription>
+            <div className="mt-2 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-blue-300 text-blue-800 hover:bg-blue-100"
+                onClick={handleResyncForms}
+                disabled={shopifyLoading}
+              >
+                {shopifyLoading ? (
+                  <Loader className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                )}
+                {language === 'ar' ? 'مزامنة الآن' : 'Sync Now'}
+              </Button>
+            </div>
+          </Alert>
+        )}
+        
+        {/* Success banner for active connection */}
+        {connectionTestDone && connectionOK && hasValidShopConnection && (
+          <Alert variant="default" className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">
+              {language === 'ar' ? 'متصل بنجاح' : 'Connected Successfully'}
+            </AlertTitle>
+            <AlertDescription className="text-green-700">
+              {language === 'ar' 
+                ? `أنت متصل بنجاح بمتجر ${actualShop}` 
+                : `You are successfully connected to store ${actualShop}`}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">
@@ -235,16 +352,18 @@ const FormBuilderDashboard = () => {
             <div>Connection Test: {connectionTestDone ? (connectionOK ? 'Success' : 'Failed') : 'Pending'}</div>
             <div>Bypass Mode: {connectionBypassMode ? 'Enabled' : 'Disabled'}</div>
             <div>Can Operate in Bypass: {canOperateInBypassMode ? 'Yes' : 'No'}</div>
+            <div>Fail-Safe Mode: {failSafeMode ? 'Enabled' : 'Disabled'}</div>
+            <div>Pending Syncs: {pendingSyncForms.length}</div>
           </div>
         )}
         
         <FormList 
           forms={forms} 
-          isLoading={isLoading}
+          isLoading={formsLoading}
           onSelectForm={handleSelectForm}
         />
         
-        {forms.length === 0 && !isLoading && (
+        {forms.length === 0 && !formsLoading && (
           <div className="text-center p-10 border rounded-lg bg-white">
             <p className="text-gray-500 mb-2">
               {language === 'ar' ? 'لا توجد نماذج متاحة' : 'No forms available'}
