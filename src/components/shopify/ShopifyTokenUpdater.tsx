@@ -19,6 +19,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
+  const [rawResponseText, setRawResponseText] = useState<string>('');
   
   // Clear any previous token errors on mount
   useEffect(() => {
@@ -72,6 +73,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
     
     setIsLoading(true);
     setDebugInfo(null);
+    setRawResponseText('');
     
     try {
       console.log(`Attempting to update token for shop: ${cleanedDomain}`);
@@ -81,47 +83,60 @@ export const ShopifyTokenUpdater: React.FC = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
       
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase environment variables');
+      }
+      
       const fullUrl = `${supabaseUrl}/functions/v1/update-shopify-token`;
       console.log(`Calling Edge Function at: ${fullUrl}`);
-      console.log(`Token starts with: ${accessToken.substring(0, 6)}...`);
+      
+      // Add a unique timestamp to prevent caching issues
+      const cacheBusterUrl = `${fullUrl}?t=${Date.now()}&r=${Math.random().toString(36).substring(7)}`;
+      console.log(`Adding cache busting parameters: ${cacheBusterUrl}`);
       
       // Call edge function to update token with detailed error handling
-      const response = await fetch(fullUrl, {
+      const response = await fetch(cacheBusterUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${supabaseKey}`,
           'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'X-Request-ID': `token-update-${Date.now()}`
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Request-ID': `token-update-${Date.now()}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           shopDomain: cleanedDomain,
           accessToken: accessToken.trim(),
           forceActivate,
           tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
-        })
+        }),
+        cache: 'no-store'
       });
       
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
+      // Always capture the raw response for debugging
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      setRawResponseText(responseText);
       
-      if (!contentType || !contentType.includes('application/json')) {
-        // We received a non-JSON response, which is an error
-        const textResponse = await response.text();
-        console.error('Non-JSON response received:', textResponse);
+      // Try to parse the response as JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('Parsed JSON result:', result);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
         setDebugInfo({
-          error: 'Non-JSON response received',
+          error: 'Failed to parse response as JSON',
+          rawResponse: responseText.substring(0, 1000), // First 1000 chars
+          parseErrorMessage: parseError instanceof Error ? parseError.message : String(parseError),
           statusCode: response.status,
-          contentType,
-          textResponsePreview: textResponse.substring(0, 500),
+          responseHeaders: Object.fromEntries([...response.headers.entries()]),
           timestamp: new Date().toISOString()
         });
         throw new Error(`Received non-JSON response with status ${response.status}`);
       }
-      
-      const result = await response.json();
-      
-      console.log('Update token result:', result);
       
       if (!result.success) {
         throw new Error(result.error || 'حدث خطأ غير معروف');
@@ -133,7 +148,9 @@ export const ShopifyTokenUpdater: React.FC = () => {
         success: true,
         result,
         tokenType: result.tokenType || 'unknown',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        responseStatus: response.status,
+        responseHeaders: Object.fromEntries([...response.headers.entries()])
       });
       
       // Update local state
@@ -180,7 +197,8 @@ export const ShopifyTokenUpdater: React.FC = () => {
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
         accessTokenPrefix: accessToken.substring(0, 6) + '...',
-        tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
+        tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline',
+        rawResponse: rawResponseText || 'No raw response captured'
       });
     } finally {
       setIsLoading(false);
@@ -247,10 +265,21 @@ export const ShopifyTokenUpdater: React.FC = () => {
           </Label>
         </div>
         
-        {debugInfo && (
+        {(debugInfo || rawResponseText) && (
           <div className="mt-4 p-3 text-xs bg-gray-100 rounded-md overflow-auto max-h-64">
             <p className="font-medium mb-1">معلومات التصحيح:</p>
-            <pre dir="ltr">
+            
+            {rawResponseText && (
+              <>
+                <p className="font-medium mt-2 mb-1">Raw Response:</p>
+                <div className="bg-red-100 p-2 rounded border border-red-200 overflow-x-auto whitespace-pre">
+                  {rawResponseText ? rawResponseText.substring(0, 1000) : 'No raw response'}
+                  {rawResponseText && rawResponseText.length > 1000 ? '... (truncated)' : ''}
+                </div>
+              </>
+            )}
+            
+            <pre dir="ltr" className="mt-2">
               {JSON.stringify(debugInfo, null, 2)}
             </pre>
           </div>

@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json", // Always set JSON content type
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
   "Pragma": "no-cache",
   "Expires": "0",
@@ -34,7 +35,7 @@ serve(async (req) => {
           error: "Missing Supabase environment variables" 
         }),
         { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: corsHeaders,
           status: 500 
         }
       );
@@ -55,7 +56,7 @@ serve(async (req) => {
           details: parseError instanceof Error ? parseError.message : String(parseError)
         }),
         { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: corsHeaders,
           status: 400 
         }
       );
@@ -71,7 +72,7 @@ serve(async (req) => {
           error: "Shop domain and access token are required" 
         }),
         { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: corsHeaders,
           status: 400 
         }
       );
@@ -102,7 +103,7 @@ serve(async (req) => {
           details: queryError.message 
         }),
         { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: corsHeaders,
           status: 500 
         }
       );
@@ -132,7 +133,7 @@ serve(async (req) => {
             details: error.message 
           }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: corsHeaders,
             status: 500 
           }
         );
@@ -169,7 +170,7 @@ serve(async (req) => {
             details: error.message 
           }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: corsHeaders,
             status: 500 
           }
         );
@@ -181,16 +182,19 @@ serve(async (req) => {
     // Also run the ensure_single_active_store function as a fallback
     await supabase.rpc('ensure_single_active_store');
     
+    // Make sure we're always returning properly formatted JSON with correct content-type
+    const responseBody = JSON.stringify({ 
+      success: true, 
+      message: "Access token updated successfully",
+      shop: shopDomain,
+      tokenType: tokenType,
+      result: result
+    });
+    
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Access token updated successfully",
-        shop: shopDomain,
-        tokenType: tokenType,
-        result: result
-      }),
+      responseBody,
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: corsHeaders,
         status: 200 
       }
     );
@@ -205,7 +209,7 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       }),
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: corsHeaders,
         status: 500 
       }
     );
