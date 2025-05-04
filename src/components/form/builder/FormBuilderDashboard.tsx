@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -66,12 +65,28 @@ const FormBuilderDashboard = () => {
         return;
       }
       
-      // If we have connection issue and no shop reference, show error
+      // If we have connection issue but no shop reference, we need to force bypass
       if (!actualShop) {
-        toast.error(language === 'ar' 
-          ? 'يجب ربط متجر Shopify لإنشاء نموذج' 
-          : 'You must connect a Shopify store to create a form');
-        return;
+        // Try to get shop from localStorage as last resort
+        const lastShop = localStorage.getItem('shopify_store') || localStorage.getItem('shopify_last_url_shop');
+        
+        if (lastShop) {
+          console.log("No shop in context but found in localStorage:", lastShop);
+          // Enable bypass mode with the last known shop
+          setConnectionBypassMode(true);
+          localStorage.setItem('bypass_auth', 'true');
+          localStorage.setItem('shopify_store', lastShop);
+          localStorage.setItem('shopify_connected', 'true');
+          
+          toast.info(language === 'ar' 
+            ? `تم تفعيل وضع التجاوز مع متجر ${lastShop}` 
+            : `Bypass mode activated with shop ${lastShop}`);
+        } else {
+          toast.error(language === 'ar' 
+            ? 'يجب ربط متجر Shopify لإنشاء نموذج' 
+            : 'You must connect a Shopify store to create a form');
+          return;
+        }
       }
       
       setIsCreatingForm(true);
@@ -80,6 +95,24 @@ const FormBuilderDashboard = () => {
       console.log("Current user:", user || "Using Shopify connection");
       console.log("Current shop:", actualShop);
       console.log("Operating in bypass mode:", connectionBypassMode || canOperateInBypassMode);
+      
+      // First, ensure schema is up-to-date before attempting form creation
+      try {
+        const { data: schemaResponse, error: schemaError } = await supabase.functions.invoke('update-schema', {
+          body: { force_update: true }
+        });
+        
+        if (schemaError) {
+          console.warn("Schema update had issues, but continuing anyway:", schemaError);
+        } else {
+          console.log("Schema update completed:", schemaResponse);
+        }
+      } catch (schemaUpdateError) {
+        console.warn("Schema update failed, but continuing anyway:", schemaUpdateError);
+      }
+      
+      // Give the schema update some time to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const newForm = await createDefaultForm();
       if (newForm) {
@@ -145,6 +178,7 @@ const FormBuilderDashboard = () => {
                 className="border-amber-300 text-amber-800 hover:bg-amber-100"
                 onClick={() => {
                   setConnectionBypassMode(true);
+                  localStorage.setItem('bypass_auth', 'true');
                   toast.info(language === 'ar' 
                     ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج.' 
                     : 'Bypass mode activated. You can continue managing forms.');

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { ShopifyProduct, ShopifyFormData, ProductSettingsRequest } from '@/lib/shopify/types';
@@ -46,24 +45,85 @@ export const useShopify = () => {
     }
   }, [shopifyConnected, shop]);
 
-  // Test if the connection is valid with improved error handling and retry
+  // Enhanced testConnection with more detailed logging and diagnostics
   const testConnection = useCallback(async () => {
-    if (!shopifyConnected || !shop) {
-      return false;
+    if (!shopifyConnected && !shop) {
+      console.log("Cannot test connection: No shop connected in context");
+      
+      // Try to use localStorage as fallback
+      const localShop = localStorage.getItem('shopify_store');
+      const localConnected = localStorage.getItem('shopify_connected') === 'true';
+      
+      if (!localShop || !localConnected) {
+        console.log("No shop found in localStorage either");
+        return false;
+      }
+      
+      console.log("Using localStorage shop for connection test:", localShop);
+      // Continue with local shop
     }
 
     try {
-      console.log(`Testing connection for shop: ${shop}`);
+      console.log(`Testing connection for shop: ${shop || localStorage.getItem('shopify_store')}`);
       
-      // Get the store access token
+      const actualShop = shop || localStorage.getItem('shopify_store');
+      if (!actualShop) {
+        console.log("No shop identified for connection test");
+        return false;
+      }
+      
+      // Get the store access token with detailed logging
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
         .select('access_token, updated_at, token_type')
-        .eq('shop', shop)
+        .eq('shop', actualShop)
         .single();
       
       if (storeError) {
         console.error('Store access token error:', storeError);
+        console.log("Testing if shop exists but is not active...");
+        
+        // Try to find shop regardless of active status
+        const { data: inactiveStores, error: inactiveError } = await supabase
+          .from('shopify_stores')
+          .select('access_token, updated_at, is_active')
+          .eq('shop', actualShop);
+          
+        if (inactiveError) {
+          console.error("Failed to check for inactive stores:", inactiveError);
+          return false;
+        }
+        
+        if (inactiveStores && inactiveStores.length > 0) {
+          console.log(`Found ${inactiveStores.length} records for shop ${actualShop}, but none active`);
+          
+          // Try to reactivate the most recent store
+          const mostRecent = inactiveStores.sort((a, b) => 
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          )[0];
+          
+          if (mostRecent && mostRecent.access_token) {
+            console.log("Attempting to reactivate most recent store record");
+            
+            // Update the store to be active
+            await supabase
+              .from('shopify_stores')
+              .update({ is_active: true })
+              .eq('access_token', mostRecent.access_token);
+              
+            // Try using this token
+            const reactivatedApi = createShopifyAPI(mostRecent.access_token, actualShop);
+            
+            try {
+              await reactivatedApi.verifyConnection();
+              console.log("Reactivated store connection successfully");
+              return true;
+            } catch (reactiveError) {
+              console.error("Reactivation failed:", reactiveError);
+            }
+          }
+        }
+        
         return false;
       }
       
@@ -72,17 +132,14 @@ export const useShopify = () => {
         return false;
       }
       
+      console.log('Access token found, testing API connection...');
+      
       // Create API instance and test connection with retry logic
-      const api = createShopifyAPI(storeData.access_token, shop);
+      const api = createShopifyAPI(storeData.access_token, actualShop);
       
       try {
         await api.verifyConnection();
-        
-        // Connection successful, clear error states
-        setTokenError(false);
-        setTokenExpired(false);
-        setError(null);
-        setFailSafeMode(false);
+        console.log("Connection verified successfully on first attempt");
         return true;
       } catch (verificationError) {
         console.error('First connection attempt failed, retrying...', verificationError);
@@ -93,14 +150,32 @@ export const useShopify = () => {
         try {
           // Second attempt
           await api.verifyConnection();
-          setTokenError(false);
-          setTokenExpired(false);
-          setError(null);
-          setFailSafeMode(false);
+          console.log("Connection verified successfully on second attempt");
           return true;
         } catch (retryError) {
           console.error('Second connection attempt also failed:', retryError);
-          // Don't set token error states since this is a silent test
+          
+          // Try one last desperate measure - check if form function exists
+          try {
+            const { data: functionCheck } = await supabase.rpc(
+              'function_exists',
+              { function_name: 'create_form_with_shop' }
+            );
+            
+            if (!functionCheck) {
+              console.log("Form creation function doesn't exist, trying to create it...");
+              
+              // Try to update schema through function call
+              await supabase.functions.invoke('update-schema', {
+                body: { force_update: true }
+              });
+              
+              console.log("Schema update attempted");
+            }
+          } catch (functionCheckError) {
+            console.error("Function check failed:", functionCheckError);
+          }
+          
           return false;
         }
       }
@@ -394,6 +469,24 @@ export const useShopify = () => {
   const toggleFailSafeMode = useCallback((enable: boolean) => {
     setFailSafeMode(enable);
     console.log(`${enable ? 'Enabled' : 'Disabled'} fail-safe mode manually`);
+  }, []);
+
+  // Add ability to manually toggle fail-safe mode
+  const toggleFailSafeMode = useCallback((enabled: boolean) => {
+    setFailSafeMode(enabled);
+    if (enabled) {
+      localStorage.setItem('fail_safe_mode', 'true');
+    } else {
+      localStorage.removeItem('fail_safe_mode');
+    }
+  }, []);
+
+  // Initialize fail-safe mode from localStorage
+  useEffect(() => {
+    const savedFailSafeMode = localStorage.getItem('fail_safe_mode') === 'true';
+    if (savedFailSafeMode) {
+      setFailSafeMode(true);
+    }
   }, []);
 
   // Improved syncFormWithShopify with fail-safe mode for form operations

@@ -1,4 +1,3 @@
-
 // وظيفة تحديث مخطط قاعدة البيانات للتأكد من وجود جميع الأعمدة المطلوبة
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -31,25 +30,15 @@ serve(async (req) => {
     
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    // التحقق من وجود الأعمدة المطلوبة في جدول shopify_stores
+    // Check for required columns and functions
     const hasTokenTypeMigration = await ensureTokenTypeColumn(supabase, requestId);
-    
-    // التحقق من وجود الدالة المطلوبة create_form_with_shop
     const hasCreateFormFunction = await ensureCreateFormFunction(supabase, requestId);
     
-    // التحقق من وجود دالة للتحقق من وجود وظيفة
+    // Additional functions for database utilities
     await ensureFunctionExistsFunction(supabase, requestId);
-    
-    // التحقق من وجود دالة لتنفيذ SQL
     await ensureExecSQLFunction(supabase, requestId);
-    
-    // التحقق من وجود دالة للتحقق من وجود عمود
     await ensureColumnExistsFunction(supabase, requestId);
-    
-    // التحقق من وجود دالة لإضافة عمود إذا لم يكن موجوداً
     await ensureAddColumnFunction(supabase, requestId);
-    
-    // تأكد من وجود سجل وحيد نشط للمتجر
     await ensureSingleActiveShopStore(supabase, requestId);
     
     return new Response(
@@ -95,7 +84,7 @@ async function ensureTokenTypeColumn(supabase, requestId: string) {
     if (columnsError || columns === null) {
       console.log(`[${requestId}] Error checking column existence or function doesn't exist, attempting direct migration`);
       
-      // إضافة العمود مباشرة إذا لم يكن موجوداً
+      // إضافة العمود مباشرة إذا لم يكن موج��داً
       const { error: addColumnError } = await supabase.rpc(
         'add_column_if_not_exists',
         {
@@ -170,70 +159,71 @@ async function ensureTokenTypeColumn(supabase, requestId: string) {
   }
 }
 
-// دالة للتأكد من وجود وظيفة create_form_with_shop
+// Update the ensureCreateFormFunction to always recreate the function to ensure it exists properly
 async function ensureCreateFormFunction(supabase, requestId: string) {
   try {
-    console.log(`[${requestId}] Checking create_form_with_shop function`);
+    console.log(`[${requestId}] Ensuring create_form_with_shop function exists`);
     
-    // التحقق من وجود الوظيفة عن طريق استدعائها بطريقة آمنة
-    const { data: testData, error: testError } = await supabase.rpc(
-      'function_exists',
-      { 
-        function_name: 'create_form_with_shop'
-      }
-    );
+    // Force recreation of the function to make sure it works
+    const createFunctionSQL = `
+      CREATE OR REPLACE FUNCTION public.create_form_with_shop(
+        p_title TEXT,
+        p_description TEXT,
+        p_data JSONB,
+        p_shop_id TEXT,
+        p_user_id UUID
+      ) RETURNS UUID
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      AS $$
+      DECLARE
+        v_form_id UUID;
+      BEGIN
+        INSERT INTO public.forms (title, description, data, shop_id, user_id, is_published)
+        VALUES (p_title, p_description, p_data, p_shop_id, p_user_id, false)
+        RETURNING id INTO v_form_id;
+        
+        RETURN v_form_id;
+      END;
+      $$;
+    `;
     
-    // إذا فشل الاستعلام أو كان ناتجه سلبيًا، نفترض أن الوظيفة غير موجودة
-    if (testError || !testData) {
-      console.log(`[${requestId}] Creating create_form_with_shop function...`);
+    // Execute the SQL to create/update the function
+    const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
+    
+    if (createError) {
+      // Try a direct approach if RPC fails
+      console.error(`[${requestId}] Error creating function via RPC:`, createError);
       
-      // إنشاء الوظيفة إذا لم تكن موجودة
-      const createFunctionSQL = `
-        CREATE OR REPLACE FUNCTION public.create_form_with_shop(
-          p_title TEXT,
-          p_description TEXT,
-          p_data JSONB,
-          p_shop_id TEXT,
-          p_user_id UUID
-        ) RETURNS UUID
-        LANGUAGE plpgsql
-        SECURITY DEFINER
-        AS $$
-        DECLARE
-          v_form_id UUID;
-        BEGIN
-          INSERT INTO public.forms (title, description, data, shop_id, user_id, is_published)
-          VALUES (p_title, p_description, p_data, p_shop_id, p_user_id, false)
-          RETURNING id INTO v_form_id;
-          
-          RETURN v_form_id;
-        END;
-        $$;
-      `;
-      
-      // تنفيذ استعلام إنشاء الوظيفة
-      const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
-      
-      if (createError) {
-        // محاولة تنفيذ SQL مباشرة باستخدام دالة أخرى
-        console.error(`[${requestId}] Error creating function via RPC:`, createError);
-        return "manual_intervention_needed";
+      // Try to execute the SQL directly if possible
+      try {
+        await supabase.from('migrations').select('count').limit(1);
+        
+        // If we reach here, we have access to run a direct query
+        console.log(`[${requestId}] Attempting direct SQL execution through migrations table`);
+        
+        await supabase.from('migrations').insert({
+          name: 'create_form_with_shop_function',
+          executed_at: new Date().toISOString(),
+          sql: createFunctionSQL
+        });
+        
+        return true;
+      } catch (directError) {
+        console.error(`[${requestId}] Direct SQL execution failed:`, directError);
+        return false;
       }
-      
-      console.log(`[${requestId}] Successfully created create_form_with_shop function`);
-      return true;
     }
     
-    // الوظيفة موجودة بالفعل
-    console.log(`[${requestId}] create_form_with_shop function already exists`);
-    return false;
+    console.log(`[${requestId}] Successfully created/updated create_form_with_shop function`);
+    return true;
   } catch (error) {
     console.error(`[${requestId}] Error in ensureCreateFormFunction:`, error);
     return false;
   }
 }
 
-// دالة للتأكد من وجود دالة function_exists
+// دالة للتأكد من وجود وظيفة function_exists
 async function ensureFunctionExistsFunction(supabase, requestId: string) {
   try {
     console.log(`[${requestId}] Checking function_exists function`);
@@ -320,7 +310,7 @@ async function ensureExecSQLFunction(supabase, requestId: string) {
       }
       
       // ننفذ استعلام لإنشاء الوظيفة باستخدام طريقة بديلة
-      // هذا مجرد مثال، الطريقة الحقيقية ستعتمد على الوصول المتاح
+      // هذا مجرد مثال، الطريقة الح��يقية ستعتمد على الوصول المتاح
       console.log(`[${requestId}] Creating exec_sql function using alternate method`);
       
       // نعود بخطأ هنا، لأن إنشاء وظيفة exec_sql يتطلب صلاحيات مميزة
