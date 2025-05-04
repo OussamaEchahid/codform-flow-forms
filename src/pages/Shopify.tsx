@@ -37,7 +37,8 @@ const Shopify = () => {
         
         if ((savedConnected && savedShop) || activeStore) {
           setConnected(true);
-          setConnectedShop(savedShop || activeStore?.shop || null);
+          // Fix: activeStore is potentially a string, not an object with a shop property
+          setConnectedShop(savedShop || (activeStore || null));
         }
       } catch (error) {
         console.error("خطأ في التحقق من حالة الاتصال:", error);
