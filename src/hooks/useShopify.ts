@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { ShopifyProduct } from '@/lib/shopify/types';
 
 /**
  * Enhanced useShopify hook with improved reliability and fail-safe mode
@@ -13,11 +14,15 @@ import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 export const useShopify = () => {
   const { shop, shopifyConnected, setShop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [tokenError, setTokenError] = useState<boolean>(false);
+  const [tokenExpired, setTokenExpired] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [shopifyAPI, setShopifyAPI] = useState<any>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
@@ -119,6 +124,7 @@ export const useShopify = () => {
         
         if (connected) {
           setTokenError(false);
+          setTokenExpired(false);
           
           // Check if we should disable fail-safe mode
           if (failSafeMode) {
@@ -140,6 +146,10 @@ export const useShopify = () => {
         setIsConnected(false);
         setFailSafeMode(true);
         localStorage.setItem('shopify_failsafe', 'true');
+        
+        if (error instanceof Error && error.message.includes('expired')) {
+          setTokenExpired(true);
+        }
       }
     } catch (error) {
       console.error("Error in initializeShopifyAPI:", error);
@@ -169,7 +179,9 @@ export const useShopify = () => {
       if (connected) {
         setIsConnected(true);
         setTokenError(false);
+        setTokenExpired(false);
         retryCount.current = 0;
+        setError(null);
         
         if (failSafeMode) {
           setFailSafeMode(false);
@@ -207,12 +219,47 @@ export const useShopify = () => {
       setIsConnected(false);
       setFailSafeMode(true);
       localStorage.setItem('shopify_failsafe', 'true');
+      
+      if (error instanceof Error) {
+        setError(error.message);
+        if (error.message.includes('expired')) {
+          setTokenExpired(true);
+        }
+      }
+      
       return false;
     } finally {
       setIsLoading(false);
       setIsRetrying(false);
     }
   }, [shop, failSafeMode]);
+
+  // Fetch products from Shopify API
+  const fetchProducts = useCallback(async (): Promise<ShopifyProduct[]> => {
+    if (!shop || !shopifyAPI) {
+      setError("No shop or API client available");
+      return [];
+    }
+    
+    try {
+      setIsLoading(true);
+      const fetchedProducts = await shopifyAPI.getProducts();
+      setProducts(fetchedProducts);
+      setError(null);
+      return fetchedProducts;
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      if (error instanceof Error) {
+        setError(error.message);
+        if (error.message.includes('expired')) {
+          setTokenExpired(true);
+        }
+      }
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shop, shopifyAPI]);
 
   // Initialize on load and when shop changes
   useEffect(() => {
@@ -227,6 +274,8 @@ export const useShopify = () => {
     setShopifyAPI(null);
     setIsConnected(null);
     setTokenError(false);
+    setTokenExpired(false);
+    setError(null);
     retryCount.current = 0;
     shopifyConnectionService.resetConnectionState();
   }, []);
@@ -239,25 +288,60 @@ export const useShopify = () => {
     setShop(newShop);
   }, [shop, setShop, resetShopify]);
 
+  // Refresh the connection with Shopify
+  const refreshConnection = useCallback(async (): Promise<boolean> => {
+    if (!shop) {
+      setError("No shop to refresh connection with");
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      setIsRetrying(true);
+      
+      // TODO: Add actual reconnection logic here...
+      // For now, just test the connection with force refresh
+      const result = await testConnection(true);
+      
+      if (result) {
+        setTokenExpired(false);
+        setTokenError(false);
+        setError(null);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error refreshing connection:", error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
+      return false;
+    } finally {
+      setIsLoading(false);
+      setIsRetrying(false);
+    }
+  }, [shop, testConnection]);
+
   // Sync form with Shopify with improved reliability
-  const syncFormWithShopify = useCallback(async (formId: string): Promise<boolean> => {
+  const syncFormWithShopify = useCallback(async (formData: any): Promise<boolean> => {
     if (!shop) {
       toast.error('يجب تحديد متجر Shopify لمزامنة النموذج');
       return false;
     }
     
     try {
+      setIsSyncing(true);
       setIsLoading(true);
       
       // Use connection service for syncing
-      const result = await shopifyConnectionService.syncFormWithShopify(formId, shop);
+      const result = await shopifyConnectionService.syncFormWithShopify(formData.formId, shop);
       
       if (result) {
         toast.success('تم مزامنة النموذج مع متجر Shopify بنجاح');
         
         // Refresh pending syncs list
         const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
-        setPendingSyncForms(pendingSyncs.filter((id: string) => id !== formId));
+        setPendingSyncForms(pendingSyncs.filter((id: string) => id !== formData.formId));
         
         return true;
       } else {
@@ -266,8 +350,8 @@ export const useShopify = () => {
           
           // Add to pending syncs
           const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
-          if (!pendingSyncs.includes(formId)) {
-            pendingSyncs.push(formId);
+          if (!pendingSyncs.includes(formData.formId)) {
+            pendingSyncs.push(formData.formId);
             localStorage.setItem('pending_form_syncs', JSON.stringify(pendingSyncs));
             setPendingSyncForms(pendingSyncs);
           }
@@ -283,6 +367,7 @@ export const useShopify = () => {
       toast.error('حدث خطأ أثناء مزامنة النموذج');
       return false;
     } finally {
+      setIsSyncing(false);
       setIsLoading(false);
     }
   }, [shop, failSafeMode]);
@@ -318,11 +403,15 @@ export const useShopify = () => {
 
   return {
     isLoading,
+    isSyncing,
     isRetrying,
     isConnected,
     tokenError,
+    tokenExpired,
     accessToken,
     shopifyAPI,
+    products,
+    error,
     testConnection,
     resetShopify,
     syncFormWithShopify,
@@ -330,6 +419,8 @@ export const useShopify = () => {
     failSafeMode,
     toggleFailSafeMode,
     pendingSyncForms,
-    resyncPendingForms
+    resyncPendingForms,
+    refreshConnection,
+    fetchProducts
   };
 };

@@ -16,8 +16,8 @@ import {
 import {
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
   arrayMove,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
@@ -29,7 +29,6 @@ import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { useShopify } from '@/hooks/useShopify';
-import { ShopifyFormData } from '@/lib/shopify/types';
 import { Dialog } from '@/components/ui/dialog';
 
 interface FormBuilderEditorProps {
@@ -208,7 +207,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
   };
 
-  const handleShopifyIntegration = async (settings: ShopifyFormData) => {
+  const handleShopifyIntegration = async (settings: any) => {
     try {
       await shopifyIntegration.syncFormWithShopify(settings);
       toast.success(

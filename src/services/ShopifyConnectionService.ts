@@ -147,13 +147,18 @@ export class ShopifyConnectionService {
         return false;
       }
       
+      // Extract block ID from form data or generate a default one
+      const blockId = formData.data?.blockId || 
+                    (formData.data?.settings?.blockId) || 
+                    `codform-${formId.substring(0, 8)}`;
+      
       // Create API client and sync
       const api = createShopifyAPI(shopData.access_token, shop);
       
       await api.setupAutoSync({
         formId: formId,
         settings: {
-          blockId: formData.block_id || '',
+          blockId: blockId
         }
       });
       
