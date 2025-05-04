@@ -35,6 +35,12 @@ export async function POST(request: Request) {
 
     console.log(`Proxying GraphQL request to Shopify for shop: ${normalizedShopDomain}`);
     
+    // Determine token type and set up appropriate API path
+    const isAdminToken = accessToken.startsWith('shpat_');
+    const apiPath = isAdminToken 
+      ? '/admin/api/2024-01/graphql.json' 
+      : '/admin/api/2024-01/graphql.json'; // Same path, different token type
+    
     // Log request information with additional debug info
     console.log('Request details:', {
       shopDomain: normalizedShopDomain,
@@ -44,8 +50,9 @@ export async function POST(request: Request) {
       accessTokenPresent: accessToken ? true : false,
       accessTokenLength: accessToken ? accessToken.length : 0,
       accessTokenFirstChars: accessToken ? accessToken.substring(0, 5) + '...' : 'none',
-      accessTokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
+      accessTokenType: isAdminToken ? 'admin' : 'offline',
       requestTime: new Date().toISOString(),
+      apiPath: apiPath,
       uniqueId: Math.random().toString(36).substring(2, 9) // Add unique ID to prevent any caching
     });
     
@@ -53,7 +60,7 @@ export async function POST(request: Request) {
       // Generate a unique cache-busting URL with timestamp and random string
       const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
-      const response = await fetch(`https://${normalizedShopDomain}/admin/api/2024-01/graphql.json?cb=${cacheBuster}`, {
+      const response = await fetch(`https://${normalizedShopDomain}${apiPath}?cb=${cacheBuster}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +90,7 @@ export async function POST(request: Request) {
               statusCode: response.status,
               contentType: contentType || 'unknown',
               errorType: 'token_expired',
-              tokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
+              tokenType: isAdminToken ? 'admin' : 'offline',
               timestamp: Date.now()
             }),
             { 
@@ -126,6 +133,7 @@ export async function POST(request: Request) {
       // Check for GraphQL errors that might indicate token issues
       if (data.errors) {
         const errorMessages = data.errors.map((err: any) => err.message).join(', ');
+        console.log('GraphQL errors received:', errorMessages);
         
         // Check if any errors are related to authentication
         if (errorMessages.toLowerCase().includes('access') || 
@@ -139,7 +147,7 @@ export async function POST(request: Request) {
               details: 'Your access token may have expired. Please reconnect your Shopify store.',
               errorMessages,
               errorType: 'token_expired',
-              tokenType: accessToken?.startsWith('shpat_') ? 'admin' : 'offline',
+              tokenType: isAdminToken ? 'admin' : 'offline',
               timestamp: Date.now()
             }),
             { 

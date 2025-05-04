@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { useAuth } from '@/lib/auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const ShopifyTokenUpdater: React.FC = () => {
   const { shop, setShop } = useAuth();
@@ -17,6 +18,34 @@ export const ShopifyTokenUpdater: React.FC = () => {
   const [forceActivate, setForceActivate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
+  
+  // Clear any previous token errors on mount
+  useEffect(() => {
+    localStorage.removeItem('shopify_token_error');
+  }, []);
+  
+  const validateToken = (token: string) => {
+    // Check if token has the expected format
+    if (token.startsWith('shpat_')) {
+      setIsTokenValid(true);
+      return true;
+    } else {
+      setIsTokenValid(false);
+      return false;
+    }
+  };
+  
+  const handleAccessTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newToken = e.target.value;
+    setAccessToken(newToken);
+    
+    if (newToken.length > 5) {
+      validateToken(newToken);
+    } else {
+      setIsTokenValid(null);
+    }
+  };
   
   const handleUpdateToken = async () => {
     if (!shopDomain.trim()) {
@@ -26,6 +55,12 @@ export const ShopifyTokenUpdater: React.FC = () => {
     
     if (!accessToken.trim()) {
       toast.error('يرجى إدخال رمز الوصول');
+      return;
+    }
+    
+    // Force validate token
+    if (!validateToken(accessToken)) {
+      toast.error('رمز الوصول غير صالح. يجب أن يبدأ بـ shpat_');
       return;
     }
     
@@ -40,6 +75,7 @@ export const ShopifyTokenUpdater: React.FC = () => {
     
     try {
       console.log(`Attempting to update token for shop: ${cleanedDomain}`);
+      console.log(`Token type: ${accessToken.startsWith('shpat_') ? 'admin' : 'offline'}`);
       
       // Use direct URL to avoid any route resolution issues
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -47,18 +83,22 @@ export const ShopifyTokenUpdater: React.FC = () => {
       
       const fullUrl = `${supabaseUrl}/functions/v1/update-shopify-token`;
       console.log(`Calling Edge Function at: ${fullUrl}`);
+      console.log(`Token starts with: ${accessToken.substring(0, 6)}...`);
       
       // Call edge function to update token with detailed error handling
       const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'X-Request-ID': `token-update-${Date.now()}`
         },
         body: JSON.stringify({
           shopDomain: cleanedDomain,
           accessToken: accessToken.trim(),
-          forceActivate
+          forceActivate,
+          tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
         })
       });
       
@@ -73,7 +113,8 @@ export const ShopifyTokenUpdater: React.FC = () => {
           error: 'Non-JSON response received',
           statusCode: response.status,
           contentType,
-          textResponsePreview: textResponse.substring(0, 500)
+          textResponsePreview: textResponse.substring(0, 500),
+          timestamp: new Date().toISOString()
         });
         throw new Error(`Received non-JSON response with status ${response.status}`);
       }
@@ -91,17 +132,24 @@ export const ShopifyTokenUpdater: React.FC = () => {
       setDebugInfo({
         success: true,
         result,
-        tokenType: result.tokenType || 'unknown'
+        tokenType: result.tokenType || 'unknown',
+        timestamp: new Date().toISOString()
       });
       
       // Update local state
       if (forceActivate) {
+        // Clear any token errors
+        localStorage.removeItem('shopify_token_error');
+        localStorage.removeItem('shopify_failsafe');
+        
+        // Update connection manager
         shopifyConnectionManager.clearAllStores();
         shopifyConnectionManager.addOrUpdateStore(cleanedDomain, true);
         
-        // Update local storage
+        // Update local storage with explicit token type
         localStorage.setItem('shopify_store', cleanedDomain);
         localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('shopify_token_type', accessToken.startsWith('shpat_') ? 'admin' : 'offline');
         
         // Update context
         if (setShop) {
@@ -110,7 +158,8 @@ export const ShopifyTokenUpdater: React.FC = () => {
         
         // Force page reload to apply changes
         setTimeout(() => {
-          window.location.href = '/dashboard?token_updated=true';
+          window.location.href = '/dashboard?token_updated=true&token_type=' + 
+            (accessToken.startsWith('shpat_') ? 'admin' : 'offline');
         }, 1500);
       } else {
         // Just refresh stores list
@@ -129,7 +178,9 @@ export const ShopifyTokenUpdater: React.FC = () => {
       // Save debug info for troubleshooting
       setDebugInfo({
         error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        accessTokenPrefix: accessToken.substring(0, 6) + '...',
+        tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline'
       });
     } finally {
       setIsLoading(false);
@@ -142,6 +193,24 @@ export const ShopifyTokenUpdater: React.FC = () => {
         <CardTitle className="text-xl">تحديث رمز وصول متجر Shopify</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
+        {accessToken && isTokenValid === false && (
+          <Alert variant="destructive" className="mb-4">
+            <Info className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              تحذير: الرمز الذي أدخلته لا يبدو أنه رمز API للمشرف، حيث يجب أن يبدأ بـ "shpat_"
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {accessToken && isTokenValid === true && (
+          <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+            <Info className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              رمز API المشرف صحيح الشكل
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="shopDomain">نطاق المتجر</Label>
           <Input
@@ -158,9 +227,9 @@ export const ShopifyTokenUpdater: React.FC = () => {
           <Input
             id="accessToken"
             value={accessToken}
-            onChange={(e) => setAccessToken(e.target.value)}
+            onChange={handleAccessTokenChange}
             placeholder="shpat_..."
-            className="w-full"
+            className={`w-full ${isTokenValid === false ? 'border-red-300' : isTokenValid === true ? 'border-green-300' : ''}`}
           />
           <p className="text-xs text-gray-500 mt-1">
             يجب أن يبدأ الرمز بـ "shpat_" كما هو موضح في لوحة تحكم Shopify
