@@ -18,6 +18,7 @@ const ShopifyCallback = () => {
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [retryCount, setRetryCount] = useState(0);
   const [connectionLoopDetected, setConnectionLoopDetected] = useState(false);
+  const [processingComplete, setProcessingComplete] = useState(false);
 
   const processCallback = async (params: URLSearchParams) => {
     try {
@@ -40,7 +41,16 @@ const ShopifyCallback = () => {
         url: window.location.href,
         forceUpdate,
         source: 'callback',
-        retryCount
+        retryCount,
+        localStorage: {
+          shopify_store: localStorage.getItem('shopify_store'),
+          shopify_connected: localStorage.getItem('shopify_connected'),
+          shopify_temp_store: localStorage.getItem('shopify_temp_store')
+        },
+        connectionManager: {
+          activeStore: shopifyConnectionManager.getActiveStore(),
+          allStores: shopifyConnectionManager.getAllStores()
+        }
       });
 
       // Check for connection loop
@@ -50,20 +60,27 @@ const ShopifyCallback = () => {
         
         // Reset local state to break the loop
         shopifyConnectionManager.clearAllStores();
+        shopifyConnectionManager.resetLoopDetection();
         
         if (shop) {
-          // Attempt one final automatic cleanup
+          // Force connection state to be connected
+          localStorage.removeItem('shopify_store');
+          localStorage.removeItem('shopify_connected');
+          localStorage.removeItem('shopify_temp_store');
+          
+          // Set new connection with force flag
           localStorage.setItem('shopify_store', shop);
           localStorage.setItem('shopify_connected', 'true');
           shopifyConnectionManager.addOrUpdateStore(shop, true, true);
           
-          setSuccess(true); // Force success
+          setSuccess(true);
           setShop(shop);
+          setProcessingComplete(true);
           
-          // Go directly to dashboard
+          // Delay longer before navigation to ensure state is saved
           setTimeout(() => {
-            navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
-          }, 1500);
+            navigate('/dashboard', { replace: true });
+          }, 2500);
           return;
         }
         
@@ -76,71 +93,74 @@ const ShopifyCallback = () => {
 
       setShop(shop);
 
+      // Clear any previous connection data to avoid conflicts
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      
       // إذا كان forceUpdate، قم بمسح جميع المتاجر الأخرى
       if (forceUpdate) {
         shopifyConnectionManager.clearAllStores();
       }
 
-      // تخطي استدعاء الدالة وتخزين المعلومات مباشرة
-      console.log('تخطي استدعاء وظيفة المصادقة وإعداد التخزين المحلي');
+      // Store connection data in localStorage with forced delay
+      console.log('Storing shop data in localStorage:', shop);
+      
+      // Use a small delay to ensure data is written before continuing
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       localStorage.setItem('shopify_store', shop);
       localStorage.setItem('shopify_connected', 'true');
+      localStorage.removeItem('shopify_temp_store');
       
-      // تحديث مدير الاتصال
-      shopifyConnectionManager.addOrUpdateStore(shop, true);
-      
-      // إعادة ضبط كشف الحلقة
+      // Update connection manager
+      shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       shopifyConnectionManager.resetLoopDetection();
       
       setSuccess(true);
       setShop(shop);
+      setProcessingComplete(true);
       
       toast.success(`تم الاتصال بمتجر ${shop} بنجاح`);
       
+      console.log('Connection successful, navigating to dashboard in 2.5 seconds');
+      
+      // Increase delay to ensure state is fully processed
       setTimeout(() => {
-        navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shop));
-      }, 1000);
+        navigate('/dashboard', { replace: true });
+      }, 2500);
     } catch (error) {
       console.error('Error processing callback:', error);
       setError(error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء معالجة الاستدعاء');
       setSuccess(false);
+      setProcessingComplete(true);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Add cache-busting query parameter
-    const cacheBuster = `_=${Date.now()}`;
-    const currentUrl = window.location.href;
-    const urlWithoutCache = currentUrl.split('?')[0];
+    // Process the callback immediately when component loads
     const params = new URLSearchParams(location.search);
-    
-    // Start processing the callback
     processCallback(params);
     
-    // إعداد مستمع لتلقي رسائل من النافذة المنبثقة
-    const messageHandler = (event: MessageEvent) => {
-      if (event.data?.type === 'shopify:auth:success') {
-        console.log('Received success message from popup:', event.data);
+    // Setup backup navigation if processCallback doesn't complete
+    const backupTimer = setTimeout(() => {
+      if (!processingComplete) {
+        console.log("Backup timer triggered - forcing navigation");
+        const shopParam = params.get("shop") || localStorage.getItem('shopify_temp_store');
         
-        // تحديث الواجهة
-        setSuccess(true);
-        setShop(event.data.shop);
-        setLoading(false);
-        
-        // Reset loop detection
-        shopifyConnectionManager.resetLoopDetection();
-        
-        // التنقل إلى لوحة التحكم بعد تأخير قصير
-        setTimeout(() => {
-          navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(event.data.shop));
-        }, 1000);
+        if (shopParam) {
+          // Force store data
+          localStorage.setItem('shopify_store', shopParam);
+          localStorage.setItem('shopify_connected', 'true');
+          shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
+          
+          navigate('/dashboard', { replace: true });
+        }
       }
-    };
+    }, 5000); // 5 second backup timer
     
-    window.addEventListener('message', messageHandler);
-    return () => window.removeEventListener('message', messageHandler);
+    return () => clearTimeout(backupTimer);
   }, [location.search, navigate]);
 
   // Force connection state validity
@@ -148,29 +168,30 @@ const ShopifyCallback = () => {
     shopifyConnectionManager.validateConnectionState();
   }, []);
 
-  // دالة للتنقل إلى لوحة التحكم
+  // Go to dashboard button handler
   const goToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
 
-  // دالة للعودة إلى صفحة الاتصال
+  // Back to connect page handler
   const goToConnect = () => {
     // Clear state before reconnecting
     shopifyConnectionManager.clearAllStores();
     shopifyConnectionManager.resetLoopDetection();
-    navigate('/shopify');
+    navigate('/shopify', { replace: true });
   };
   
-  // دالة لمسح التخزين المؤقت ثم إعادة التوجيه
+  // Clear cache and reconnect handler
   const clearCacheAndReconnect = () => {
-    // مسح التخزين المؤقت
+    // Clear cached data
     shopifyConnectionManager.clearAllStores();
     shopifyConnectionManager.resetLoopDetection();
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_temp_store');
     
-    // إعادة توجيه
-    navigate('/shopify');
+    // Redirect
+    navigate('/shopify', { replace: true });
   };
 
   return (
@@ -190,15 +211,18 @@ const ShopifyCallback = () => {
               <>
                 <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
                 <p>يرجى الانتظار بينما نقوم بإكمال عملية الاتصال بـ Shopify...</p>
-                {retryCount > 0 && (
-                  <p className="text-sm text-amber-600">محاولة {retryCount}/2 لإكمال الاتصال...</p>
-                )}
               </>
             ) : success ? (
               <>
                 <CheckCircle className="h-10 w-10 text-green-500" />
                 <p>تم الاتصال بنجاح بمتجر {shop}</p>
                 <p className="text-sm text-gray-500">سيتم توجيهك إلى لوحة التحكم خلال لحظات...</p>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md mt-4">
+                  <p className="text-green-700 font-medium">معلومات الاتصال:</p>
+                  <p className="text-sm">• تم حفظ بيانات المتجر</p>
+                  <p className="text-sm">• تم تعيين حالة الاتصال كنشطة</p>
+                  <p className="text-sm">• جاهز للاستخدام في لوحة التحكم</p>
+                </div>
               </>
             ) : connectionLoopDetected ? (
               <>
@@ -231,7 +255,7 @@ const ShopifyCallback = () => {
                   </ul>
                 </div>
                 
-                {/* عرض معلومات التصحيح */}
+                {/* Debug info */}
                 <div className="w-full mt-4 text-left">
                   <details className="p-2 border border-gray-200 rounded">
                     <summary className="cursor-pointer text-sm font-medium">معلومات التصحيح</summary>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Store, ArrowRight, Info, CircleAlert } from 'lucide-react';
+import { Store, ArrowRight, Info, CircleAlert, ArrowRightCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cleanShopifyDomain } from '@/lib/shopify/types';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
@@ -15,9 +15,10 @@ const Shopify = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connected, setConnected] = useState(false);
   const [connectedShop, setConnectedShop] = useState<string | null>(null);
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<number>(0);
   const navigate = useNavigate();
 
-  // عند تحميل الصفحة، نتحقق ما إذا كان لدينا متجر متصل بالفعل
+  // عند تحميل الصفحة، نتحقق ما إذا كان لدينا متجر متصل بالفعل من جميع المصادر المتاحة
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -27,26 +28,68 @@ const Shopify = () => {
         
         // تحقق من حالة الاتصال من مدير الاتصال
         const activeStore = shopifyConnectionManager.getActiveStore();
+        const allStores = shopifyConnectionManager.getAllStores();
         
-        console.log("حالة الاتصال:", { 
+        console.log("حالة الاتصال عند التحميل:", { 
           savedShop, 
           savedConnected, 
           activeStore,
-          allStores: shopifyConnectionManager.getAllStores() 
+          allStores,
+          timestamp: Date.now()
         });
         
-        if ((savedConnected && savedShop) || activeStore) {
+        setLastConnectionCheck(Date.now());
+        
+        // إذا كان هناك أي مؤشر على اتصال متجر، نعتبره متصلاً
+        if ((savedConnected && savedShop) || activeStore || (allStores && allStores.length > 0)) {
+          console.log("تم العثور على اتصال سابق، تعيين حالة الاتصال على متصل");
+          
           setConnected(true);
-          // Fix: activeStore is potentially a string, not an object with a shop property
-          setConnectedShop(savedShop || (activeStore || null));
+          // استخدام أول قيمة متاحة كاسم المتجر المتصل
+          const shopToUse = savedShop || activeStore || (allStores[0]?.domain);
+          setConnectedShop(shopToUse);
+          
+          // إذا كانت هناك حاجة، قم بتحديث التخزين المحلي
+          if (!savedConnected || !savedShop) {
+            console.log("تحديث التخزين المحلي بمعلومات المتجر النشط");
+            localStorage.setItem('shopify_connected', 'true');
+            if (shopToUse) localStorage.setItem('shopify_store', shopToUse);
+          }
+          
+          // تحديث مدير الاتصال
+          if (shopToUse && (!activeStore || activeStore !== shopToUse)) {
+            shopifyConnectionManager.addOrUpdateStore(shopToUse, true);
+          }
+          
+          return;
         }
+        
+        // إذا لم نجد أي اتصال سابق، نتأكد من تنظيف أي بيانات قديمة
+        console.log("لم يتم العثور على اتصال سابق، مسح البيانات القديمة");
+        setConnected(false);
+        setConnectedShop(null);
+        
+        // مسح أي بيانات من اتصال غير مكتمل
+        shopifyConnectionManager.clearAllStores();
+        shopifyConnectionManager.resetLoopDetection();
       } catch (error) {
         console.error("خطأ في التحقق من حالة الاتصال:", error);
       }
     };
     
     checkConnection();
-  }, []);
+    
+    // إعادة التحقق من الاتصال بشكل دوري للتأكد من حالة الاتصال محدثة
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      // التحقق من الاتصال كل 5 ثوانٍ فقط لتجنب التحقق المفرط
+      if (now - lastConnectionCheck > 5000) {
+        checkConnection();
+      }
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
+  }, [lastConnectionCheck]);
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +113,12 @@ const Shopify = () => {
       
       console.log(`بدء الاتصال مع متجر ${cleanedShop}`);
       
+      // مسح أي بيانات اتصال قديمة قبل بدء اتصال جديد
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      shopifyConnectionManager.clearAllStores();
+      shopifyConnectionManager.resetLoopDetection();
+      
       // حفظ متجر مؤقت للاستخدام في حالة توجيه مباشر دون معلمات
       localStorage.setItem('shopify_temp_store', cleanedShop);
       
@@ -78,7 +127,11 @@ const Shopify = () => {
       
       console.log("توجيه مباشر إلى عنوان URL المصادقة:", authUrl);
       
-      window.location.href = authUrl;
+      // إضافة معلمات منع التخزين المؤقت
+      const timestamp = Date.now();
+      const finalAuthUrl = `${authUrl}&t=${timestamp}`;
+      
+      window.location.href = finalAuthUrl;
     } catch (error) {
       console.error("خطأ في عملية الاتصال:", error);
       
@@ -97,6 +150,8 @@ const Shopify = () => {
   const handleDisconnect = () => {
     if (window.confirm('هل أنت متأكد أنك تريد قطع الاتصال بهذا المتجر؟')) {
       try {
+        console.log("قطع الاتصال وإزالة بيانات المتجر");
+        
         // حذف بيانات المتجر من التخزين المحلي
         localStorage.removeItem('shopify_store');
         localStorage.removeItem('shopify_connected');
@@ -118,12 +173,23 @@ const Shopify = () => {
   };
 
   const handleContinue = () => {
+    console.log("متابعة إلى لوحة التحكم مع المتجر:", connectedShop || "غير معروف");
+    
+    // تأكيد إضافي لحالة الاتصال قبل الانتقال
+    if (connectedShop) {
+      localStorage.setItem('shopify_store', connectedShop);
+      localStorage.setItem('shopify_connected', 'true');
+      shopifyConnectionManager.addOrUpdateStore(connectedShop, true);
+    }
+    
     navigate('/dashboard');
   };
   
   const handleSetup = () => {
     // تحقق من وجود متجر مخزن
     const shopToUse = connectedShop || localStorage.getItem('shopify_store');
+    
+    console.log("محاولة استخدام اتصال سابق:", shopToUse);
     
     if (shopToUse) {
       // إعادة تعيين حالة الاتصال للتأكد من التحديث الإجباري
@@ -135,6 +201,19 @@ const Shopify = () => {
     } else {
       toast.error('لم يتم العثور على بيانات متجر');
     }
+  };
+  
+  // تجاوز فحص الاتصال والذهاب مباشرة إلى لوحة التحكم
+  const handleForceAccess = () => {
+    console.log("تجاوز فحص الاتصال والذهاب مباشرة إلى لوحة التحكم");
+    
+    // ضبط حالة الاتصال ولكن بمتجر افتراضي
+    const defaultShop = connectedShop || localStorage.getItem('shopify_store') || 'store.myshopify.com';
+    localStorage.setItem('shopify_store', defaultShop);
+    localStorage.setItem('shopify_connected', 'true');
+    shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
+    
+    navigate('/dashboard');
   };
 
   return (
@@ -159,14 +238,28 @@ const Shopify = () => {
             {connected ? (
               <div className="space-y-4 text-center">
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-green-700">
+                  <p className="text-green-700 font-medium">
                     تم الاتصال بنجاح بمتجر {connectedShop}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    تم تحديث حالة الاتصال: {new Date(lastConnectionCheck).toLocaleTimeString()}
                   </p>
                 </div>
                 
                 <p className="text-gray-600">
                   يمكنك الآن استخدام جميع ميزات التطبيق مع متجر Shopify الخاص بك.
                 </p>
+                
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={handleContinue}
+                    variant="default"
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                  >
+                    متابعة إلى لوحة التحكم
+                    <ArrowRightCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleConnect} className="space-y-4">
@@ -187,7 +280,7 @@ const Shopify = () => {
                 
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <div className="flex">
-                    <Info className="h-5 w-5 text-blue-500 mr-2" />
+                    <Info className="h-5 w-5 text-blue-500 ml-2" />
                     <p className="text-sm text-blue-700">
                       سيتم توجيهك إلى Shopify للموافقة على الاتصال، ثم ستتم إعادتك إلى هنا بعد الانتهاء.
                     </p>
@@ -200,7 +293,7 @@ const Shopify = () => {
                   disabled={isLoading || !shop.trim()}>
                   {isLoading ? (
                     <div className="flex items-center">
-                      <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
+                      <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin ml-2"></div>
                       جاري الاتصال...
                     </div>
                   ) : (
@@ -244,10 +337,36 @@ const Shopify = () => {
                   disabled={!connectedShop && !localStorage.getItem('shopify_store')}>
                   استخدام اتصال سابق
                 </Button>
+                
+                <Button
+                  onClick={handleForceAccess}
+                  variant="ghost"
+                  className="w-full text-gray-500"
+                  size="sm"
+                >
+                  تجاوز التحقق والاستمرار
+                </Button>
               </div>
             )}
           </CardFooter>
         </Card>
+        
+        {/* معلومات التشخيص للتصحيح */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 text-xs text-gray-500">
+            <details className="p-2 border border-gray-200 rounded-md">
+              <summary className="cursor-pointer font-medium">معلومات التشخيص</summary>
+              <div className="p-2 mt-2 bg-gray-100 rounded">
+                <p>تحقق من حالة الاتصال: {lastConnectionCheck ? new Date(lastConnectionCheck).toLocaleString() : 'لم يتم التحقق بعد'}</p>
+                <p>متصل: {connected ? 'نعم' : 'لا'}</p>
+                <p>المتجر المتصل: {connectedShop || 'لا يوجد'}</p>
+                <p>متجر في التخزين المحلي: {localStorage.getItem('shopify_store') || 'لا يوجد'}</p>
+                <p>حالة الاتصال في التخزين المحلي: {localStorage.getItem('shopify_connected') || 'لا يوجد'}</p>
+                <p>المتجر النشط من مدير الاتصال: {shopifyConnectionManager.getActiveStore() || 'لا يوجد'}</p>
+              </div>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );
