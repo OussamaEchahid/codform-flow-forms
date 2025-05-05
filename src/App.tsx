@@ -19,6 +19,8 @@ import Shopify from "@/pages/Shopify";
 import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/api/shopify-callback";
 import ShopifyStores from "@/pages/ShopifyStores";
+import ShopifyTest from "@/pages/ShopifyTest";
+import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 
 // Components
@@ -114,6 +116,10 @@ function AppRoutes() {
       {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/settings" element={<Settings />} />
+      
+      {/* Add direct routes for ShopifyTest and ShopifyProducts */}
+      <Route path="/shopify-test" element={<ShopifyTest />} />
+      <Route path="/shopify-products" element={<ShopifyProducts />} />
       
       {/* المسارات المحمية التي تتطلب مصادقة لكن بشكل أكثر تساهلاً */}
       <Route element={<ProtectedRoute requireAuth={true} />}>

@@ -38,7 +38,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/shopify-stores',
-    element: <ShopifyStores />
+    Component: ShopifyStores,
   },
   {
     path: '/shopify-callback',
