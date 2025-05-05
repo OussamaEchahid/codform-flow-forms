@@ -74,6 +74,98 @@ export const shopifyConnectionService = {
   },
   
   /**
+   * Verify connection to Shopify store
+   * @param shopDomain The domain of the shop to verify
+   * @param forceRefresh Whether to force a refresh from database
+   * @returns True if connected, false if not
+   */
+  async verifyConnection(shopDomain: string, forceRefresh: boolean = false): Promise<boolean> {
+    if (!shopDomain) return false;
+    
+    try {
+      // Check if the store exists in database and has a valid token
+      const { data, error } = await supabase.rpc(
+        'get_shopify_store_data',
+        { store_domain: shopDomain }
+      );
+      
+      if (error || !data || !data.access_token) {
+        console.error("Error verifying connection:", error || "No access token found");
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error in verifyConnection:", error);
+      return false;
+    }
+  },
+  
+  /**
+   * Reset connection state
+   */
+  resetConnectionState(): void {
+    this.completeConnectionReset();
+  },
+  
+  /**
+   * Sync form with Shopify
+   * @param formId The ID of the form to sync
+   * @param shop The shop to sync with
+   * @returns True if successful, false if failed
+   */
+  async syncFormWithShopify(formId: string, shop: string): Promise<boolean> {
+    if (!formId || !shop) return false;
+    
+    try {
+      // Implement a simplified sync function
+      console.log(`Syncing form ${formId} with shop ${shop}`);
+      
+      // Simply update the form's shop_id in the database
+      const { error } = await supabase
+        .from('forms')
+        .update({ 
+          shop_id: shop,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', formId);
+      
+      if (error) {
+        console.error("Error syncing form with Shopify:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error in syncFormWithShopify:", error);
+      return false;
+    }
+  },
+  
+  /**
+   * Re-sync all pending forms
+   * @param shop The shop to sync with
+   */
+  async resyncPendingForms(shop: string): Promise<void> {
+    if (!shop) return;
+    
+    try {
+      // Get list of pending form syncs from localStorage
+      const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
+      
+      // Sync each pending form
+      for (const formId of pendingSyncs) {
+        await this.syncFormWithShopify(formId, shop);
+      }
+      
+      // Clear the pending syncs list
+      localStorage.setItem('pending_form_syncs', '[]');
+    } catch (error) {
+      console.error("Error in resyncPendingForms:", error);
+    }
+  },
+  
+  /**
    * Get current connection state
    * @returns Connection state information
    */

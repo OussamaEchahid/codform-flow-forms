@@ -26,15 +26,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-
-// Define ShopifyProduct type for TypeScript
-interface ShopifyProduct {
-  id: string;
-  title: string;
-  handle: string;
-  status: string;
-  image?: string;
-}
+import { ShopifyProduct } from '@/lib/shopify/types';
 
 /**
  * A component for integrating a form with Shopify products
@@ -167,7 +159,7 @@ const ShopifyIntegration = () => {
 
         // After saving settings, sync the form with Shopify
         if (formId) {
-          await syncForm(formId);
+          await syncForm({ formId });
           toast.success(language === 'ar' 
             ? 'تم حفظ الإعدادات وتزامن النموذج بنجاح!'
             : 'Settings saved and form synced successfully!');
@@ -312,7 +304,7 @@ const ShopifyIntegration = () => {
               {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
             </p>
           ) : (
-            products.map((product) => (
+            products.map((product: ShopifyProduct) => (
               <div key={product.id} className="flex items-center space-x-2 mb-2">
                 <Checkbox
                   id={`product-${product.id}`}
@@ -320,7 +312,7 @@ const ShopifyIntegration = () => {
                   onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
                 />
                 <Label htmlFor={`product-${product.id}`} className="flex-grow cursor-pointer">
-                  {product.title} {product.status !== 'active' && `(${product.status})`}
+                  {product.title}
                 </Label>
               </div>
             ))

@@ -179,7 +179,7 @@ export const useShopify = () => {
         setShopifyAPI(api);
         
         // Test connection
-        const connected = await api.verifyConnection();
+        const connected = await shopifyConnectionService.verifyConnection(shop);
         setIsConnected(connected);
         
         if (connected) {
@@ -386,7 +386,7 @@ export const useShopify = () => {
     setTokenExpired(false);
     setError(null);
     retryCount.current = 0;
-    shopifyConnectionService.resetConnectionState();
+    shopifyConnectionService.completeConnectionReset();
   }, []);
 
   // Manually change active shop
@@ -593,6 +593,21 @@ export const useShopify = () => {
     }
   }, [shop, shopifyAPI, initializeShopifyAPI]);
 
+  // Load products from Shopify
+  const loadProducts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const fetchedProducts = await fetchProducts();
+      return fetchedProducts;
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchProducts]);
+
   return {
     isLoading,
     isSyncing,
@@ -604,9 +619,10 @@ export const useShopify = () => {
     shopifyAPI,
     products,
     error,
+    shop,
     testConnection,
     resetShopify,
-    syncFormWithShopify,
+    syncForm: syncFormWithShopify,
     changeShop,
     failSafeMode,
     toggleFailSafeMode,
@@ -614,6 +630,7 @@ export const useShopify = () => {
     resyncPendingForms,
     refreshConnection,
     emergencyReset,
-    fetchProducts
+    fetchProducts,
+    loadProducts
   };
 };
