@@ -1,8 +1,20 @@
 import { useState } from 'react';
-import { useFormStore } from './useFormStore';
+import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-import { FormData } from '@/lib/form-utils';
+import { FormStep, FormField } from '@/lib/form-utils';
+
+// Export FormData interface
+export interface FormData {
+  id: string;
+  title: string;
+  description?: string;
+  data: FormStep[];
+  isPublished?: boolean;
+  is_published?: boolean;
+  shop_id?: string;
+  created_at?: string;
+}
 
 export interface FormTemplate {
   id: number;
@@ -12,34 +24,35 @@ export interface FormTemplate {
   data: FormStep[];
 }
 
-export interface FormStep {
-  step: number;
-  title: string;
-  fields: FormField[];
-}
-
-export interface FormField {
-  id: string;
-  type: string;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-  options?: string[];
-  content?: string;
-}
-
 export const useFormTemplates = () => {
   const { setFormState } = useFormStore();
   const { shopify } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [forms, setForms] = useState<FormData[]>([]);
 
+  // Fetch all forms
+  const fetchForms = async () => {
+    try {
+      setIsLoading(true);
+      // Mock implementation - in a real app, fetch from backend
+      setForms([]); // Reset forms
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching forms', error);
+      toast.error('Error fetching forms');
+      setIsLoading(false);
+    }
+  };
+
+  // Create a form from template
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
       const template = formTemplates.find(t => t.id === templateId);
       if (!template) {
         toast.error('Template not found');
-        return;
+        setIsLoading(false);
+        return null;
       }
 
       const newFormId = Math.random().toString(36).substring(2, 15);
@@ -55,31 +68,120 @@ export const useFormTemplates = () => {
       setFormState(formData);
       toast.success(`Created form from template ${template.title}`);
       
-      if (shopify.shop) {
-        await shopify.syncForm({
-          formId: newFormId,
-          shopDomain: shopify.shop,
-          settings: {
-            position: 'product-page',
-            blockId: `form-${newFormId}`
-          }
-        });
+      // Mock sync with Shopify
+      if (shopify?.shop) {
+        try {
+          await shopify.syncForm({
+            formId: newFormId,
+            shopDomain: shopify.shop,
+            settings: {
+              position: 'product-page',
+              blockId: `form-${newFormId}`
+            }
+          });
+        } catch (error) {
+          console.error("Error syncing form with Shopify:", error);
+        }
       }
       
+      setIsLoading(false);
+      return formData;
     } catch (error) {
       console.error('Error creating form from template', error);
       toast.error('Error creating form from template');
-    } finally {
       setIsLoading(false);
+      return null;
+    }
+  };
+
+  // Create a default form
+  const createDefaultForm = async () => {
+    try {
+      setIsLoading(true);
+      const defaultTemplate = formTemplates[0]; // Use first template as default
+
+      const newFormId = Math.random().toString(36).substring(2, 15);
+      const formData: FormData = {
+        id: newFormId,
+        title: 'New Form',
+        description: 'A new form',
+        data: defaultTemplate.data,
+        isPublished: false,
+        shop_id: shopify?.shop
+      };
+
+      setFormState(formData);
+      toast.success('Created new form');
+      
+      setIsLoading(false);
+      return formData;
+    } catch (error) {
+      console.error('Error creating default form', error);
+      toast.error('Error creating default form');
+      setIsLoading(false);
+      return null;
+    }
+  };
+
+  // Save form changes
+  const saveForm = async (formId: string, formData: Partial<FormData>) => {
+    try {
+      setIsLoading(true);
+      // Mock implementation - in a real app, save to backend
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error saving form', error);
+      toast.error('Error saving form');
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Publish or unpublish a form
+  const publishForm = async (formId: string, publish: boolean) => {
+    try {
+      setIsLoading(true);
+      // Mock implementation - in a real app, update in backend
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error publishing form', error);
+      toast.error('Error publishing form');
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Delete a form
+  const deleteForm = async (formId: string) => {
+    try {
+      setIsLoading(true);
+      // Mock implementation - in a real app, delete from backend
+      setForms(forms.filter(form => form.id !== formId));
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error deleting form', error);
+      toast.error('Error deleting form');
+      setIsLoading(false);
+      return false;
     }
   };
   
   return {
+    forms,
+    isLoading,
+    fetchForms,
     createFormFromTemplate,
-    isLoading
+    createDefaultForm,
+    saveForm,
+    publishForm,
+    deleteForm
   };
 };
 
+// Use the same template data as before
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,

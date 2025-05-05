@@ -6,6 +6,7 @@ import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
 import ShopifyStores from '@/pages/ShopifyStores';
 import ShopifyTest from '@/pages/ShopifyTest';
+import ShopifyProducts from '@/pages/ShopifyProducts';
 import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/api/shopify-callback';
 
@@ -46,5 +47,9 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-test',
     Component: ShopifyTest,
+  },
+  {
+    path: '/shopify-products',
+    Component: ShopifyProducts, 
   }
 ];

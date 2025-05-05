@@ -1,189 +1,129 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
-/**
- * Service to manage Shopify connections in a simplified way
- */
-export const shopifyConnectionService = {
-  /**
-   * Force activate a specific store in the database
-   * @param shopDomain The domain of the shop to activate
-   * @returns True if successful, false if failed
-   */
-  async forceActivateStore(shopDomain: string): Promise<boolean> {
-    if (!shopDomain) return false;
-    
-    try {
-      console.log(`Forcing activation of store: ${shopDomain}`);
-      
-      // First deactivate all stores
-      const { error: deactivateError } = await supabase
-        .from('shopify_stores')
-        .update({ is_active: false })
-        .not('shop', 'eq', shopDomain);
-      
-      if (deactivateError) {
-        console.warn("Error deactivating other stores:", deactivateError);
-        // Continue anyway since this is not critical
-      }
-      
-      // Activate the specified store
-      const { error: activateError } = await supabase
-        .from('shopify_stores')
-        .update({ 
-          is_active: true,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('shop', shopDomain);
-      
-      if (activateError) {
-        console.error("Error activating store:", activateError);
-        return false;
-      }
-      
-      // Update local state as well
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
-      localStorage.setItem('shopify_store', shopDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      
-      return true;
-    } catch (error) {
-      console.error("Unexpected error in forceActivateStore:", error);
-      return false;
-    }
-  },
-  
-  /**
-   * Complete reset of connection state - both client and server
-   */
-  completeConnectionReset(): void {
-    // Clear client state
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
-    localStorage.removeItem('shopify_temp_store');
-    localStorage.removeItem('shopify_recovery_mode');
-    localStorage.removeItem('shopify_failsafe');
-    localStorage.removeItem('bypass_auth');
-    
-    // Reset connection manager
-    shopifyConnectionManager.clearAllStores();
-    shopifyConnectionManager.resetLoopDetection();
-    
-    console.log("Complete connection reset performed");
-  },
-  
-  /**
-   * Verify connection to Shopify store
-   * @param shopDomain The domain of the shop to verify
-   * @param forceRefresh Whether to force a refresh from database
-   * @returns True if connected, false if not
-   */
-  async verifyConnection(shopDomain: string, forceRefresh: boolean = false): Promise<boolean> {
-    if (!shopDomain) return false;
-    
-    try {
-      // Check if the store exists in database and has a valid token
-      const { data, error } = await supabase.rpc(
-        'get_shopify_store_data',
-        { store_domain: shopDomain }
-      );
-      
-      if (error || !data || !data.access_token) {
-        console.error("Error verifying connection:", error || "No access token found");
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Error in verifyConnection:", error);
-      return false;
-    }
-  },
-  
-  /**
-   * Reset connection state
-   */
-  resetConnectionState(): void {
-    this.completeConnectionReset();
-  },
-  
-  /**
-   * Sync form with Shopify
-   * @param formId The ID of the form to sync
-   * @param shop The shop to sync with
-   * @returns True if successful, false if failed
-   */
-  async syncFormWithShopify(formId: string, shop: string): Promise<boolean> {
-    if (!formId || !shop) return false;
-    
-    try {
-      // Implement a simplified sync function
-      console.log(`Syncing form ${formId} with shop ${shop}`);
-      
-      // Simply update the form's shop_id in the database
-      const { error } = await supabase
-        .from('forms')
-        .update({ 
-          shop_id: shop,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', formId);
-      
-      if (error) {
-        console.error("Error syncing form with Shopify:", error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Error in syncFormWithShopify:", error);
-      return false;
-    }
-  },
-  
-  /**
-   * Re-sync all pending forms
-   * @param shop The shop to sync with
-   */
-  async resyncPendingForms(shop: string): Promise<void> {
-    if (!shop) return;
-    
-    try {
-      // Get list of pending form syncs from localStorage
-      const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
-      
-      // Sync each pending form
-      for (const formId of pendingSyncs) {
-        await this.syncFormWithShopify(formId, shop);
-      }
-      
-      // Clear the pending syncs list
-      localStorage.setItem('pending_form_syncs', '[]');
-    } catch (error) {
-      console.error("Error in resyncPendingForms:", error);
-    }
-  },
-  
-  /**
-   * Get current connection state
-   * @returns Connection state information
-   */
-  getConnectionState(): {
-    isConnected: boolean;
-    shop: string | null;
-    localStorageConnected: boolean;
-    connectionManagerConnected: boolean;
-  } {
-    const shop = localStorage.getItem('shopify_store');
-    const connected = localStorage.getItem('shopify_connected') === 'true';
-    const activeStore = shopifyConnectionManager.getActiveStore();
-    
-    return {
-      isConnected: connected || !!activeStore,
-      shop: activeStore || shop,
-      localStorageConnected: connected,
-      connectionManagerConnected: !!activeStore
-    };
+export class ShopifyConnectionService {
+  private static instance: ShopifyConnectionService;
+  private tokenCache: Map<string, { token: string; timestamp: number }> = new Map();
+  private cacheExpiration = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+  private constructor() {
+    // Private constructor for singleton
   }
-};
+
+  public static getInstance(): ShopifyConnectionService {
+    if (!ShopifyConnectionService.instance) {
+      ShopifyConnectionService.instance = new ShopifyConnectionService();
+    }
+    return ShopifyConnectionService.instance;
+  }
+
+  /**
+   * Get access token for a Shopify store
+   */
+  public async getAccessToken(shop: string): Promise<string> {
+    // Check cache first
+    const cachedToken = this.tokenCache.get(shop);
+    if (cachedToken && Date.now() - cachedToken.timestamp < this.cacheExpiration) {
+      return cachedToken.token;
+    }
+
+    try {
+      // Fetch from database
+      const { data, error } = await supabase
+        .from('shopify_tokens')
+        .select('*')
+        .eq('shop', shop)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching token:', error);
+        throw new Error(`Failed to get access token for ${shop}: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error(`No access token found for ${shop}`);
+      }
+
+      // Get the token field (handle potential property name differences)
+      const token = data[0].access_token || data[0].token || '';
+      
+      if (!token) {
+        throw new Error(`Invalid access token for ${shop}`);
+      }
+
+      // Update cache
+      this.tokenCache.set(shop, { token, timestamp: Date.now() });
+      
+      return token;
+    } catch (error) {
+      console.error('Error in getAccessToken:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test if a token is valid
+   */
+  public async isTokenValid(shop: string, token?: string): Promise<boolean> {
+    try {
+      // Use token provided or get from service
+      const accessToken = token || await this.getAccessToken(shop);
+      
+      // Call Shopify API to test token
+      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
+        body: { shop, accessToken }
+      });
+
+      if (error) {
+        console.error('Token validation error:', error);
+        return false;
+      }
+
+      return data?.success === true;
+    } catch (error) {
+      console.error('Error testing token validity:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Store a new access token
+   */
+  public async storeAccessToken(shop: string, accessToken: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('shopify_tokens')
+        .insert([
+          { shop, access_token: accessToken }
+        ]);
+
+      if (error) {
+        console.error('Error storing token:', error);
+        return false;
+      }
+
+      // Update cache
+      this.tokenCache.set(shop, { token: accessToken, timestamp: Date.now() });
+      
+      return true;
+    } catch (error) {
+      console.error('Error in storeAccessToken:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear cached token for a shop
+   */
+  public clearTokenCache(shop?: string): void {
+    if (shop) {
+      this.tokenCache.delete(shop);
+    } else {
+      this.tokenCache.clear();
+    }
+  }
+}
+
+// Export a singleton instance
+export const shopifyConnectionService = ShopifyConnectionService.getInstance();
