@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { LoaderCircle } from 'lucide-react';
@@ -10,7 +11,7 @@ import { useAuth } from '@/lib/auth';
 
 const SUPABASE_PROJECT_ID = 'nhqrngdzuatdnfkihtud';
 
-// Changed to named export to match import in ShopifyStores.tsx
+// Export as both named and default export to fix import issues
 export const ShopifyTokenUpdater = () => {
   const [accessToken, setAccessToken] = useState('');
   const [shop, setShop] = useState('');
@@ -124,5 +125,5 @@ export const ShopifyTokenUpdater = () => {
   );
 };
 
-// Also adding default export for backward compatibility
+// Also add default export for backward compatibility
 export default ShopifyTokenUpdater;
