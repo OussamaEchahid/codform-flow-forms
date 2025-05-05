@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -9,7 +10,8 @@ import {
   Gift,
   ImageIcon,
   Globe,
-  LogOut
+  LogOut,
+  RefreshCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -46,6 +48,7 @@ const AppSidebar = () => {
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
     { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
     { title: t('settings'), path: '/settings', icon: Settings },
+    { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
   ];
 
   return (

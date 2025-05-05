@@ -5,10 +5,10 @@ import Settings from '@/pages/Settings';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
 import ShopifyStores from '@/pages/ShopifyStores';
+import ShopifyTest from '@/pages/ShopifyTest';
 import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/api/shopify-callback';
 
-// إضافة مسار إدارة متاجر Shopify
 export const routes: RouteObject[] = [
   {
     index: true,
@@ -42,5 +42,9 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-callback',
     Component: ShopifyCallback,
+  },
+  {
+    path: '/shopify-test',
+    Component: ShopifyTest,
   }
 ];
