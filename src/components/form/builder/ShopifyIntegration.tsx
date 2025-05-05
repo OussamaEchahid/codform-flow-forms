@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,13 +27,26 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
 
+// Update the component props to match what's expected in FormBuilderEditor
+interface ShopifyIntegrationProps {
+  // Making this optional to prevent errors
+  formId?: string;
+  // These are also optional since they might not be provided
+  onSave?: (settings: any) => Promise<void>;
+  isSyncing?: boolean;
+}
+
 /**
  * A component for integrating a form with Shopify products
  */
-const ShopifyIntegration = () => {
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
+  formId,
+  onSave,
+  isSyncing: externalIsSyncing
+}) => {
   const { language, t } = useI18n();
   const { formState } = useFormStore();
-  const formId = formState.id || '';
+  const actualFormId = formId || formState.id || '';
   
   // Get Shopify integration state from hook
   const {
@@ -48,7 +60,12 @@ const ShopifyIntegration = () => {
     tokenError,
     tokenExpired,
     refreshConnection,
+    isSyncing: hookIsSyncing
   } = useShopify();
+  
+  // Combine external and internal syncing states
+  const isSyncing = externalIsSyncing || hookIsSyncing;
+
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
   const [existingSettings, setExistingSettings] = useState<any[]>([]);
@@ -56,10 +73,10 @@ const ShopifyIntegration = () => {
 
   // Load existing settings when component mounts
   useEffect(() => {
-    if (formId) {
-      loadExistingSettings(formId);
+    if (actualFormId) {
+      loadExistingSettings(actualFormId);
     }
-  }, [formId]);
+  }, [actualFormId]);
 
   // Load saved product settings from database
   const loadExistingSettings = async (formId: string) => {
@@ -112,7 +129,7 @@ const ShopifyIntegration = () => {
 
   // Handler for saving product settings
   const handleSaveSettings = async () => {
-    if (!formId) {
+    if (!actualFormId) {
       toast.error(language === 'ar' 
         ? 'يجب حفظ النموذج أولاً قبل إعداد تكامل Shopify' 
         : 'You must save the form first before setting up Shopify integration');
@@ -131,7 +148,7 @@ const ShopifyIntegration = () => {
       const { error: deleteError } = await supabase
         .from('shopify_product_settings')
         .delete()
-        .eq('form_id', formId);
+        .eq('form_id', actualFormId);
 
       if (deleteError) {
         console.error('Error deleting existing settings:', deleteError);
@@ -141,7 +158,7 @@ const ShopifyIntegration = () => {
       // Then insert new settings
       if (selectedProducts.length > 0) {
         const settings = selectedProducts.map(productId => ({
-          form_id: formId,
+          form_id: actualFormId,
           product_id: productId,
           shop_id: shop,
           block_id: blockId,
@@ -158,8 +175,14 @@ const ShopifyIntegration = () => {
         }
 
         // After saving settings, sync the form with Shopify
-        if (formId) {
-          await syncForm({ formId });
+        if (actualFormId) {
+          await syncForm({ formId: actualFormId });
+          
+          // Also call the external onSave if provided
+          if (onSave) {
+            await onSave({ formId: actualFormId });
+          }
+          
           toast.success(language === 'ar' 
             ? 'تم حفظ الإعدادات وتزامن النموذج بنجاح!'
             : 'Settings saved and form synced successfully!');
@@ -321,7 +344,7 @@ const ShopifyIntegration = () => {
 
         <Button
           onClick={handleSaveSettings}
-          disabled={!formId}
+          disabled={!actualFormId}
           className="w-full"
         >
           <Settings className="mr-2 h-4 w-4" />

@@ -438,7 +438,7 @@ export const useShopify = () => {
   }, [shop, testConnection]);
 
   // Sync form with Shopify with improved reliability
-  const syncFormWithShopify = useCallback(async (formData: any): Promise<boolean> => {
+  const syncForm = useCallback(async (formData: any): Promise<boolean> => {
     if (!shop) {
       toast.error('يجب تحديد متجر Shopify لمزامنة النموذج');
       return false;
@@ -608,6 +608,9 @@ export const useShopify = () => {
     }
   }, [fetchProducts]);
 
+  // Add the syncFormWithShopify alias for compatibility
+  const syncFormWithShopify = syncForm;
+
   return {
     isLoading,
     isSyncing,
@@ -622,7 +625,8 @@ export const useShopify = () => {
     shop,
     testConnection,
     resetShopify,
-    syncForm: syncFormWithShopify,
+    syncForm,
+    syncFormWithShopify, // Added this alias for compatibility
     changeShop,
     failSafeMode,
     toggleFailSafeMode,

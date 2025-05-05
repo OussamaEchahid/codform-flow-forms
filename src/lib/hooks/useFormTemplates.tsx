@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -37,7 +36,7 @@ export const useFormTemplates = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<FormData | null>(null);
   const { user, shop } = useAuth();
-  const { failSafeMode, syncFormWithShopify } = useShopify();
+  const { failSafeMode, syncForm } = useShopify();
   
   // Enable fallback to localStorage if shop is not available from context
   const actualShop = shop || localStorage.getItem('shopify_store');
@@ -292,9 +291,9 @@ export const useFormTemplates = () => {
       }
       
       // If save was successful, try to sync with Shopify
-      // This uses the improved syncFormWithShopify function from useShopify
+      // This uses the syncForm function from useShopify
       try {
-        await syncFormWithShopify(formId);
+        await syncForm({ formId });
       } catch (syncError) {
         console.error("Form saved but sync failed:", syncError);
         // We don't throw here because the main save succeeded
@@ -329,7 +328,7 @@ export const useFormTemplates = () => {
       // Try to sync with Shopify after publishing status change
       if (isPublished) {
         try {
-          await syncFormWithShopify(formId);
+          await syncForm({ formId });
         } catch (syncError) {
           console.error("Form published but sync failed:", syncError);
           // We don't throw here because the main publish succeeded

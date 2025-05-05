@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
@@ -209,7 +208,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handleShopifyIntegration = async (settings: any) => {
     try {
-      await shopifyIntegration.syncFormWithShopify(settings);
+      await shopifyIntegration.syncForm(settings);
       toast.success(
         language === 'ar' 
           ? 'تم حفظ إعدادات شوبيفاي بنجاح'
