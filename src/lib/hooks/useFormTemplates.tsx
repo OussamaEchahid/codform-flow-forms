@@ -15,7 +15,7 @@ interface FormField {
 }
 
 interface FormStep {
-  id: number; // Changed from 'step' to 'id' to match expected type
+  id: string; // Changed from number to string to match form-utils.ts
   title: string;
   fields: FormField[];
 }
@@ -42,7 +42,7 @@ export interface FormTemplate {
 
 export const useFormTemplates = () => {
   const { setFormState } = useFormStore();
-  const { user, session } = useAuth(); // Remove shopify reference, use available properties
+  const { user } = useAuth(); // Remove session reference
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
 
@@ -183,7 +183,7 @@ export const useFormTemplates = () => {
   };
 };
 
-// Update the template data to use id instead of step
+// Update the template data to use id as string instead of number
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,
@@ -192,7 +192,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#9b87f5',
     data: [
       {
-        id: 1, // Changed from step to id
+        id: '1', // Changed from number to string
         title: 'Customer Information',
         fields: [
           {
@@ -227,7 +227,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#6adbb8',
     data: [
       {
-        id: 1, // Changed from step to id
+        id: '1', // Changed from number to string
         title: 'Contact Details',
         fields: [
           {
@@ -262,7 +262,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#f0b34c',
     data: [
       {
-        id: 1, // Changed from step to id
+        id: '1', // Changed from number to string
         title: 'Personal Information',
         fields: [
           {
@@ -289,7 +289,7 @@ export const formTemplates: FormTemplate[] = [
         ]
       },
       {
-        id: 2, // Changed from step to id
+        id: '2', // Changed from number to string
         title: 'Event Details',
         fields: [
           {

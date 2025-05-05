@@ -122,7 +122,7 @@ export class ShopifyConnectionService {
       const { error: updateError } = await supabase
         .from('shopify_stores')
         .update({ is_active: false })
-        .neq('id', 0); // Update all records
+        .neq('id', '0'); // Changed from 0 to '0' to match string type
 
       if (updateError) {
         console.error('Error deactivating stores:', updateError);
