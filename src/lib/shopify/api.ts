@@ -1,4 +1,3 @@
-
 import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
@@ -61,11 +60,17 @@ class ShopifyAPI {
         cache: 'no-store',
       });
 
+      // Check for non-2xx status codes first
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error Response:', errorText, 'Status:', response.status);
+        console.error('API Error Response Status:', response.status, 'Response:', errorText.substring(0, 200));
         
-        // Try to parse the error as JSON first
+        // Check for HTML response which indicates auth issues
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+          throw new Error('Authentication error: Received HTML instead of JSON. Your access token is likely invalid or expired.');
+        }
+        
+        // Try to parse the error as JSON
         try {
           const errorJson = JSON.parse(errorText);
           
@@ -82,6 +87,14 @@ class ShopifyAPI {
           // If parsing fails, return the raw error text
           throw new Error(`Shopify API error (${response.status}): ${response.statusText}. Response: ${errorText.substring(0, 100)}...`);
         }
+      }
+
+      // Check content type to ensure we got JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response received:', responseText.substring(0, 200));
+        throw new Error('Invalid response format: Expected JSON but received HTML/text. This usually indicates an authentication issue.');
       }
 
       const json = await response.json();
@@ -116,7 +129,7 @@ class ShopifyAPI {
         }
       }
       
-      throw new Error(`Network error while contacting Shopify API: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error; // Rethrow the original error with better context
     }
   }
 
@@ -163,10 +176,13 @@ class ShopifyAPI {
     `;
 
     try {
-      // Verify connection first
-      await this.verifyConnection();
-      
       const data = await this.fetchAPI(query);
+      
+      if (!data || !data.products) {
+        console.error('Invalid product data returned:', data);
+        throw new Error('No products data returned from Shopify API');
+      }
+      
       console.log('Products fetched successfully, transforming data');
       return this.transformProducts(data.products);
     } catch (error) {
@@ -211,7 +227,7 @@ class ShopifyAPI {
       });
     } catch (error) {
       console.error('Error transforming products:', error);
-      throw error;
+      throw new Error(`Failed to transform product data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -279,8 +295,6 @@ class ShopifyAPI {
       : `${this.shopDomain}.myshopify.com`;
     
     console.log('Using normalized shop domain for verification:', normalizedShopDomain);
-    console.log('Access token length:', this.accessToken ? this.accessToken.length : 0);
-    console.log('Access token first 5 chars:', this.accessToken ? this.accessToken.substring(0, 5) + '...' : 'none');
     
     try {
       // Use the simplest possible query to test the connection
@@ -317,6 +331,14 @@ class ShopifyAPI {
         }),
         cache: 'no-store',
       });
+
+      // Check for HTML response which indicates auth issues
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('HTML Error Response:', responseText.substring(0, 200));
+        throw new Error('Authentication error: Received HTML instead of JSON. Your access token is likely invalid or expired.');
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

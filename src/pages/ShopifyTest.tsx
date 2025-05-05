@@ -9,6 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info, RefreshCw, ShieldAlert } from 'lucide-react';
+import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
 
 const ShopifyTest: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +23,7 @@ const ShopifyTest: React.FC = () => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [testStep, setTestStep] = useState<string | null>(null);
+  const [showTokenUpdater, setShowTokenUpdater] = useState<boolean>(false);
 
   // Load connection state on mount
   useEffect(() => {
@@ -59,6 +63,11 @@ const ShopifyTest: React.FC = () => {
     }
   };
 
+  // Toggle token updater visibility
+  const toggleTokenUpdater = () => {
+    setShowTokenUpdater(!showTokenUpdater);
+  };
+
   // Fetch access token from Supabase directly
   const fetchAccessToken = async (shopDomain: string) => {
     setTestStep('جاري جلب رمز الوصول...');
@@ -67,7 +76,7 @@ const ShopifyTest: React.FC = () => {
       // Use direct query to fetch token
       const { data, error } = await supabase
         .from('shopify_stores')
-        .select('access_token')
+        .select('access_token, token_type, updated_at')
         .eq('shop', shopDomain)
         .single();
         
@@ -82,6 +91,7 @@ const ShopifyTest: React.FC = () => {
         return null;
       }
       
+      console.log("Token retrieved successfully, type:", data.token_type, "updated:", data.updated_at);
       setAccessToken(data.access_token);
       return data.access_token;
     } catch (error) {
@@ -100,6 +110,7 @@ const ShopifyTest: React.FC = () => {
     try {
       if (!shop) {
         setErrorDetails('يرجى تحديد متجر Shopify للاختبار');
+        setIsLoading(false);
         return;
       }
       
@@ -108,6 +119,7 @@ const ShopifyTest: React.FC = () => {
       
       if (!token) {
         setErrorDetails('لم يتم العثور على رمز وصول صالح');
+        setIsLoading(false);
         return;
       }
       
@@ -118,21 +130,39 @@ const ShopifyTest: React.FC = () => {
       
       setTestStep('جاري اختبار الاتصال...');
       
-      // Test connection
-      const result = await api.verifyConnection();
-      setIsConnected(result);
-      
-      if (result) {
-        toast.success(`تم الاتصال بمتجر Shopify بنجاح: ${shop}`);
+      try {
+        // Test connection with better error handling
+        const result = await api.verifyConnection();
+        setIsConnected(result);
         
-        // Update localStorage for consistency
-        localStorage.setItem('shopify_store', shop);
-        localStorage.setItem('shopify_connected', 'true');
-        localStorage.setItem('last_successful_connection', Date.now().toString());
-        localStorage.setItem('last_connected_shop', shop);
-      } else {
-        toast.error('فشل الاتصال بمتجر Shopify');
-        setErrorDetails('فشل التحقق من الاتصال: رمز الوصول قد يكون منتهي الصلاحية');
+        if (result) {
+          toast.success(`تم الاتصال بمتجر Shopify بنجاح: ${shop}`);
+          
+          // Update localStorage for consistency
+          localStorage.setItem('shopify_store', shop);
+          localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('last_successful_connection', Date.now().toString());
+          localStorage.setItem('last_connected_shop', shop);
+        } else {
+          toast.error('فشل الاتصال بمتجر Shopify');
+          setErrorDetails('فشل التحقق من الاتصال: رمز الوصول قد يكون منتهي الصلاحية');
+        }
+      } catch (connectionError: any) {
+        console.error("Connection error details:", connectionError);
+        setIsConnected(false);
+        
+        // Display helpful error message
+        const errorMessage = connectionError instanceof Error 
+          ? connectionError.message 
+          : 'خطأ غير معروف في الاتصال';
+          
+        if (errorMessage.includes('HTML') || errorMessage.includes('Authentication')) {
+          setErrorDetails(`خطأ في المصادقة: تم استلام HTML بدلاً من JSON. هذا يعني عادةً أن رمز الوصول غير صالح أو منتهي الصلاحية.`);
+        } else {
+          setErrorDetails(errorMessage);
+        }
+        
+        toast.error('فشل اختبار الاتصال');
       }
     } catch (error) {
       console.error("Error testing connection:", error);
@@ -155,6 +185,7 @@ const ShopifyTest: React.FC = () => {
     try {
       if (!shop) {
         setErrorDetails('يرجى تحديد متجر Shopify للاختبار');
+        setIsLoading(false);
         return;
       }
       
@@ -163,6 +194,7 @@ const ShopifyTest: React.FC = () => {
       
       if (!token) {
         setErrorDetails('لم يتم العثور على رمز وصول صالح');
+        setIsLoading(false);
         return;
       }
       
@@ -171,19 +203,45 @@ const ShopifyTest: React.FC = () => {
       // Create API client directly
       const api = createShopifyAPI(token, shop);
       
+      // First verify connection
+      setTestStep('جاري التحقق من الاتصال...');
+      try {
+        await api.verifyConnection();
+      } catch (connectionError: any) {
+        console.error("Connection verification failed:", connectionError);
+        const errorMessage = connectionError instanceof Error 
+          ? connectionError.message 
+          : 'خطأ غير معروف في الاتصال';
+          
+        setErrorDetails(errorMessage);
+        toast.error('فشل التحقق من الاتصال قبل جلب المنتجات');
+        setIsLoading(false);
+        return;
+      }
+      
       setTestStep('جاري جلب المنتجات...');
       
-      // Fetch products
-      const fetchedProducts = await api.getProducts();
-      setProducts(fetchedProducts);
-      
-      if (fetchedProducts.length > 0) {
-        toast.success(`تم جلب ${fetchedProducts.length} منتج من متجر Shopify`);
-      } else {
-        toast.info('لم يتم العثور على منتجات في متجر Shopify');
+      try {
+        // Fetch products with better error handling
+        const fetchedProducts = await api.getProducts();
+        setProducts(fetchedProducts);
+        
+        if (fetchedProducts.length > 0) {
+          toast.success(`تم جلب ${fetchedProducts.length} منتج من متجر Shopify`);
+        } else {
+          toast.info('لم يتم العثور على منتجات في متجر Shopify');
+        }
+      } catch (productsError: any) {
+        console.error("Error fetching products:", productsError);
+        const errorMessage = productsError instanceof Error 
+          ? productsError.message 
+          : 'خطأ غير معروف في جلب المنتجات';
+          
+        setErrorDetails(errorMessage);
+        toast.error('فشل جلب المنتجات');
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error in fetchProducts:", error);
       setErrorDetails(`خطأ: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       toast.error('فشل جلب المنتجات');
     } finally {
@@ -237,10 +295,11 @@ const ShopifyTest: React.FC = () => {
                   <input
                     id="shop"
                     type="text"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-right"
                     value={shop || ''}
                     onChange={handleInputChange}
                     placeholder="متجر.myshopify.com"
+                    dir="rtl"
                   />
                 </div>
               </div>
@@ -264,6 +323,14 @@ const ShopifyTest: React.FC = () => {
                 </Button>
                 
                 <Button 
+                  onClick={toggleTokenUpdater}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  {showTokenUpdater ? 'إخفاء محدث رمز الوصول' : 'تحديث رمز الوصول يدويًا'}
+                </Button>
+                
+                <Button 
                   variant="destructive" 
                   className="w-full" 
                   onClick={handleResetConnectionState}
@@ -280,6 +347,7 @@ const ShopifyTest: React.FC = () => {
 
               {errorDetails && (
                 <Alert variant="destructive" className="mt-4">
+                  <ShieldAlert className="h-4 w-4" />
                   <AlertTitle>خطأ</AlertTitle>
                   <AlertDescription className="text-sm whitespace-pre-wrap">
                     {errorDetails}
@@ -327,7 +395,19 @@ const ShopifyTest: React.FC = () => {
               
               {accessToken && (
                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-sm text-yellow-800 font-medium">تم العثور على رمز وصول لمتجر {shop}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-yellow-800 font-medium">تم العثور على رمز وصول لمتجر {shop}</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-4 w-4 text-yellow-600" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">هذا هو الرمز المخزن في قاعدة البيانات. إذا كان منتهي الصلاحية، يجب إعادة الاتصال</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <p className="text-xs text-yellow-700 mt-1">
                     طول الرمز: {accessToken.length} حرف | 
                     البداية: {accessToken.substring(0, 7)}... | 
@@ -335,9 +415,32 @@ const ShopifyTest: React.FC = () => {
                   </p>
                 </div>
               )}
+              
+              {errorDetails && errorDetails.includes('منتهي الصلاحية') && (
+                <Alert className="mt-4 bg-amber-50 border-amber-200">
+                  <RefreshCw className="h-4 w-4" />
+                  <AlertTitle>رمز الوصول قد يحتاج للتحديث</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    يبدو أن رمز الوصول الحالي منتهي الصلاحية أو غير صالح. جرب استخدام وظيفة "تحديث رمز الوصول يدويًا" أعلاه.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </CardContent>
         </Card>
+        
+        {/* Token Updater */}
+        {showTokenUpdater && (
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>تحديث رمز الوصول</CardTitle>
+              <CardDescription>قم بتحديث رمز الوصول لمتجر Shopify مباشرة في قاعدة البيانات</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ShopifyTokenUpdater />
+            </CardContent>
+          </Card>
+        )}
         
         {/* Products display */}
         <Card className="md:col-span-3">
@@ -350,7 +453,7 @@ const ShopifyTest: React.FC = () => {
               <div className="flex justify-center items-center p-12">
                 <p className="text-gray-500">جاري تحميل المنتجات...</p>
               </div>
-            ) : products.length > 0 ? (
+            ) : products && products.length > 0 ? (
               <ShopifyProductsList products={products} />
             ) : (
               <div className="flex justify-center items-center p-12 border border-dashed rounded-md">
