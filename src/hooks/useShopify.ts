@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +44,7 @@ export const useShopify = () => {
       try {
         // Try to get token from db
         const { data, error } = await supabase
-          .from('shopify_tokens')
+          .from('shopify_stores')
           .select('*')
           .eq('shop', shop)
           .order('updated_at', { ascending: false })
@@ -85,7 +84,7 @@ export const useShopify = () => {
     try {
       // Get token
       const { data: tokenData, error: tokenError } = await supabase
-        .from('shopify_tokens')
+        .from('shopify_stores')
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })
@@ -128,7 +127,7 @@ export const useShopify = () => {
     try {
       // Get token
       const { data: tokenData, error: tokenError } = await supabase
-        .from('shopify_tokens')
+        .from('shopify_stores')
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })

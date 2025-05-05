@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,14 +10,14 @@ import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 const ShopifyRedirect = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("جاري التوجيه...");
-  const [error, setError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const [success, setSuccess] = useState(false);
-  const [fallbackMode, setFallbackMode] = useState(false);
-  const [connectionLoopDetected, setConnectionLoopDetected] = useState(false);
+  const [status, setStatus("جاري التوجيه...");
+  const [error, setError<string | null>(null);
+  const [debug, setDebug<any>({});
+  const [isLoading, setIsLoading(true);
+  const [retryCount, setRetryCount(0);
+  const [success, setSuccess(false);
+  const [fallbackMode, setFallbackMode(false);
+  const [connectionLoopDetected, setConnectionLoopDetected(false);
   
   // استرايجية الاتصال المتسلسلة مع إعادة المحاولات والتأخير التصاعدي
   const redirectToAuthEndpoint = async () => {

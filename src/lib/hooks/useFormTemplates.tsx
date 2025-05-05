@@ -1,8 +1,24 @@
+
 import { useState } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-import { FormStep, FormField } from '@/lib/form-utils';
+
+// Define FormStep interface here to match what's used in the templates
+interface FormField {
+  id: string;
+  type: string;
+  label: string;
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
+interface FormStep {
+  id: number; // Changed from 'step' to 'id' to match expected type
+  title: string;
+  fields: FormField[];
+}
 
 // Export FormData interface
 export interface FormData {
@@ -26,7 +42,7 @@ export interface FormTemplate {
 
 export const useFormTemplates = () => {
   const { setFormState } = useFormStore();
-  const { shopify } = useAuth();
+  const { user, session } = useAuth(); // Remove shopify reference, use available properties
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
 
@@ -62,27 +78,13 @@ export const useFormTemplates = () => {
         description: template.description,
         data: template.data,
         isPublished: false,
-        shop_id: shopify?.shop
+        // Remove direct shopify reference
       };
 
       setFormState(formData);
       toast.success(`Created form from template ${template.title}`);
       
-      // Mock sync with Shopify
-      if (shopify?.shop) {
-        try {
-          await shopify.syncForm({
-            formId: newFormId,
-            shopDomain: shopify.shop,
-            settings: {
-              position: 'product-page',
-              blockId: `form-${newFormId}`
-            }
-          });
-        } catch (error) {
-          console.error("Error syncing form with Shopify:", error);
-        }
-      }
+      // Remove shopify sync code since it's not available in the auth context
       
       setIsLoading(false);
       return formData;
@@ -107,7 +109,7 @@ export const useFormTemplates = () => {
         description: 'A new form',
         data: defaultTemplate.data,
         isPublished: false,
-        shop_id: shopify?.shop
+        // Remove direct shopify reference
       };
 
       setFormState(formData);
@@ -181,7 +183,7 @@ export const useFormTemplates = () => {
   };
 };
 
-// Use the same template data as before
+// Update the template data to use id instead of step
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,
@@ -190,7 +192,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#9b87f5',
     data: [
       {
-        step: 1,
+        id: 1, // Changed from step to id
         title: 'Customer Information',
         fields: [
           {
@@ -225,7 +227,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#6adbb8',
     data: [
       {
-        step: 1,
+        id: 1, // Changed from step to id
         title: 'Contact Details',
         fields: [
           {
@@ -260,7 +262,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#f0b34c',
     data: [
       {
-        step: 1,
+        id: 1, // Changed from step to id
         title: 'Personal Information',
         fields: [
           {
@@ -287,7 +289,7 @@ export const formTemplates: FormTemplate[] = [
         ]
       },
       {
-        step: 2,
+        id: 2, // Changed from step to id
         title: 'Event Details',
         fields: [
           {

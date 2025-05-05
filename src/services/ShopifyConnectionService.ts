@@ -30,7 +30,7 @@ export class ShopifyConnectionService {
     try {
       // Fetch from database
       const { data, error } = await supabase
-        .from('shopify_tokens')
+        .from('shopify_stores')
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })
@@ -46,7 +46,7 @@ export class ShopifyConnectionService {
       }
 
       // Get the token field (handle potential property name differences)
-      const token = data[0].access_token || data[0].token || '';
+      const token = data[0].access_token || '';
       
       if (!token) {
         throw new Error(`Invalid access token for ${shop}`);
@@ -93,7 +93,7 @@ export class ShopifyConnectionService {
   public async storeAccessToken(shop: string, accessToken: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('shopify_tokens')
+        .from('shopify_stores')
         .insert([
           { shop, access_token: accessToken }
         ]);
@@ -109,6 +109,67 @@ export class ShopifyConnectionService {
       return true;
     } catch (error) {
       console.error('Error in storeAccessToken:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Force activate a store (set it as the active store)
+   */
+  public async forceActivateStore(shop: string): Promise<boolean> {
+    try {
+      // First, set all stores to inactive
+      const { error: updateError } = await supabase
+        .from('shopify_stores')
+        .update({ is_active: false })
+        .neq('id', 0); // Update all records
+
+      if (updateError) {
+        console.error('Error deactivating stores:', updateError);
+        // Continue anyway, we'll try to activate the target store
+      }
+
+      // Then, set the target store to active
+      const { error } = await supabase
+        .from('shopify_stores')
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('shop', shop);
+
+      if (error) {
+        console.error('Error activating store:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in forceActivateStore:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Complete connection reset - clear all data and caches
+   */
+  public completeConnectionReset(): boolean {
+    try {
+      // Clear token cache
+      this.clearTokenCache();
+      
+      // Clear localStorage items related to Shopify
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_last_url_shop');
+      localStorage.removeItem('shopify_last_error');
+      localStorage.removeItem('shopify_recovery_attempt');
+      localStorage.removeItem('shopify_failsafe');
+      localStorage.removeItem('pending_form_syncs');
+      localStorage.removeItem('bypass_auth');
+      
+      console.log('Completed Shopify connection reset');
+      return true;
+    } catch (error) {
+      console.error('Error in completeConnectionReset:', error);
       return false;
     }
   }
