@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -15,7 +16,7 @@ export interface FormField {
   type: string;
   label: string;
   placeholder?: string;
-  required?: boolean;
+  required?: boolean; // Made this optional to match the other interface
   options?: string[];
   style?: FieldStyle;
   content?: string; // Add the content property to support text/html fields

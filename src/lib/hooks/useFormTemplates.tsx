@@ -1,24 +1,8 @@
-
 import { useState } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-
-// Define FormStep interface here to match what's used in the templates
-interface FormField {
-  id: string;
-  type: string;
-  label: string;
-  required: boolean;
-  placeholder?: string;
-  options?: string[];
-}
-
-interface FormStep {
-  id: string; // Changed from number to string to match form-utils.ts
-  title: string;
-  fields: FormField[];
-}
+import { FormField, FormStep } from '@/lib/form-utils';
 
 // Export FormData interface
 export interface FormData {
