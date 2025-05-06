@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// إعدادات Supabase - تحديث للاستخدام المتسق للمفاتيح
+// إعدادات Supabase
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
@@ -10,14 +10,16 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
 
-console.log("Initializing Shopify Callback Edge Function with Supabase:", SUPABASE_URL);
-console.log("Shopify API Key available:", !!SHOPIFY_API_KEY);
-console.log("Shopify API Secret available:", !!SHOPIFY_API_SECRET);
+console.log("Initializing Shopify Callback Edge Function with:", {
+  SUPABASE_URL,
+  SHOPIFY_API_KEY_EXISTS: !!SHOPIFY_API_KEY,
+  SHOPIFY_API_SECRET_EXISTS: !!SHOPIFY_API_SECRET
+});
 
 // عنوان URL للتطبيق المستضاف
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// إعداد عناوين CORS - تمت إضافة المزيد من الرؤوس للتوافق
+// إعداد عناوين CORS
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -54,10 +56,24 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
-// دالة الحصول على رمز الوصول من Shopify - تم تحسين معالجة الأخطاء
+// دالة الحصول على رمز الوصول من Shopify - تمت إعادة كتابتها بشكل كامل
 async function getAccessToken(shop: string, code: string): Promise<any> {
   try {
     console.log(`Getting access token for ${shop} with code ${code}`);
+    
+    // تأكد من أن المتجر والرمز موجودان
+    if (!shop || !code) {
+      throw new Error("Shop and code are required for token exchange");
+    }
+    
+    if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
+      throw new Error("Shopify API credentials missing");
+    }
+    
+    // بناء عنوان URL بشكل صحيح للمتجر المحدد
+    const tokenUrl = `https://${shop}/admin/oauth/access_token`;
+    
+    console.log(`Requesting token from: ${tokenUrl}`);
     
     const requestData = {
       client_id: SHOPIFY_API_KEY,
@@ -65,40 +81,37 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
       code
     };
     
-    // إضافة رؤوس لمنع التخزين المؤقت
-    const cacheHeaders = {
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
+    console.log("Request payload:", JSON.stringify(requestData));
     
-    const tokenUrl = `https://${shop}/admin/oauth/access_token`;
-    
-    console.log(`Requesting token from URL: ${tokenUrl}`);
-    console.log(`Request data: ${JSON.stringify(requestData)}`);
-    
+    // طلب الرمز مع رؤوس مناسبة لمنع التخزين المؤقت
     const response = await fetch(tokenUrl, {
       method: 'POST',
-      headers: cacheHeaders,
-      body: JSON.stringify(requestData),
-      cache: 'no-store'
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache'
+      },
+      body: JSON.stringify(requestData)
     });
     
+    // سجل حالة الاستجابة
+    console.log(`Token request response status: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Error getting access token: ${response.status} ${response.statusText}`);
-      console.error(`Error body: ${errorBody}`);
+      const errorText = await response.text();
+      console.error(`Error response from Shopify: ${errorText}`);
       throw new Error(`Failed to get access token: ${response.status} ${response.statusText}`);
     }
     
+    // تحليل الاستجابة
     const responseData = await response.json();
+    console.log("Token response received with keys:", Object.keys(responseData));
     
-    // التأكد من وجود رمز الوصول
+    // التحقق من وجود رمز الوصول
     if (!responseData.access_token) {
       console.error("No access token in response:", responseData);
-      throw new Error('No access token in response');
+      throw new Error("Access token missing in Shopify response");
     }
     
     // تحديد نوع الرمز (دائم أو مؤقت)
@@ -108,20 +121,22 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
       console.log(`Token will expire in ${responseData.expires_in} seconds`);
     }
     
-    console.log(`Token data received with type: ${tokenType}`);
+    console.log(`Token successfully obtained with type: ${tokenType}`);
     
+    // إعادة البيانات الضرورية فقط
     return {
       access_token: responseData.access_token,
-      scope: responseData.scope,
+      scope: responseData.scope || '',
       token_type: tokenType
     };
   } catch (error) {
     console.error(`Error in getAccessToken: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error(`Error stack: ${error instanceof Error ? error.stack : "No stack trace"}`);
     throw error;
   }
 }
 
-// دالة لتحديث بيانات المتجر في قاعدة البيانات
+// دالة لتحديث بيانات المتجر في قاعدة البيانات - تم تحسينها
 async function updateShopData(shop: string, tokenData: any): Promise<void> {
   if (!SUPABASE_KEY) {
     console.error("Cannot update shop data: SUPABASE_KEY is not available");
@@ -132,7 +147,17 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
     console.log(`Creating Supabase client for ${SUPABASE_URL}`);
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    // قبل التحديث، تأكد من تعطيل الحالات النشطة المتعددة
+    // التحقق من صحة بيانات الرمز قبل التخزين
+    if (!tokenData || !tokenData.access_token) {
+      throw new Error("Invalid token data: access_token is required");
+    }
+    
+    // تأكد من أنه ليس رمزًا مؤقتًا
+    if (tokenData.access_token === 'placeholder_token') {
+      throw new Error("Cannot store placeholder token");
+    }
+    
+    // جعل المتاجر الأخرى غير نشطة
     try {
       console.log(`Disabling other active store records before updating ${shop}`);
       
@@ -147,7 +172,6 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
         console.log(`Successfully disabled all other stores`);
       }
     } catch (disableError) {
-      // نسجل الخطأ ولكن نتابع العملية
       console.error(`Exception during disable operation: ${disableError instanceof Error ? disableError.message : JSON.stringify(disableError)}`);
     }
     
@@ -158,16 +182,18 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
       .eq('shop', shop)
       .maybeSingle();
     
+    const currentTimestamp = new Date().toISOString();
+    
     const storeData = {
       shop,
       access_token: tokenData.access_token,
-      scope: tokenData.scope,
-      token_type: tokenData.token_type,
+      scope: tokenData.scope || '',
+      token_type: tokenData.token_type || 'offline',
       is_active: true,
-      updated_at: new Date().toISOString()
+      updated_at: currentTimestamp
     };
     
-    console.log(`Store data prepared for ${shop}`);
+    console.log(`Store data prepared for ${shop} with real token (not placeholder)`);
     
     if (existingStore) {
       // تحديث السجل الموجود
@@ -186,9 +212,16 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
     } else {
       // إنشاء سجل جديد
       console.log(`Creating new store record for ${shop}`);
+      
+      // أضف حقل created_at للسجلات الجديدة
+      const newStoreData = {
+        ...storeData, 
+        created_at: currentTimestamp
+      };
+      
       const { error: insertError } = await supabase
         .from('shopify_stores')
-        .insert([storeData]);
+        .insert([newStoreData]);
       
       if (insertError) {
         console.error(`Error storing token: ${JSON.stringify(insertError)}`);
@@ -197,23 +230,68 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
       
       console.log(`Successfully created new store record for ${shop}`);
     }
+    
+    // اختبار الاتصال لتأكيد أن الرمز يعمل
+    try {
+      await testToken(shop, tokenData.access_token);
+      console.log(`Token validation successful for ${shop}`);
+    } catch (testError) {
+      console.warn(`Warning: Token validation failed: ${testError instanceof Error ? testError.message : "Unknown error"}`);
+      // لا نريد أن نفشل العملية بأكملها إذا فشل الاختبار
+    }
   } catch (error) {
     console.error(`Critical error in updateShopData: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
     throw new Error(`Failed to update shop data: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 
-// التحقق من صحة حالة المصادقة
+// دالة جديدة لاختبار صلاحية الرمز
+async function testToken(shop: string, accessToken: string): Promise<void> {
+  try {
+    if (!shop || !accessToken) {
+      throw new Error("Shop and access token required for testing");
+    }
+    
+    // طلب بسيط للتحقق من صلاحية الرمز - API متجر
+    const testUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    
+    const response = await fetch(testUrl, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Token validation failed with status: ${response.status}`);
+    }
+    
+    // تحليل الاستجابة للتأكد من صحة التنسيق
+    const data = await response.json();
+    
+    if (!data || !data.shop || !data.shop.id) {
+      throw new Error("Invalid response format from shop endpoint");
+    }
+    
+    // الرمز صالح
+    console.log(`Token validation successful for ${shop} (Shop ID: ${data.shop.id})`);
+  } catch (error) {
+    console.error(`Token validation error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw error;
+  }
+}
+
+// التحقق من صحة حالة المصادقة (لم يتغير)
 async function verifyState(state: string): Promise<boolean> {
   if (!SUPABASE_KEY) {
     console.warn("Cannot verify state: SUPABASE_KEY is not available");
-    return true; // السماح بالمتابعة في حالة عدم توفر مفتاح API
+    return true;
   }
   
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    // الحصول على سجل المصادقة المخزن مسبقًا
     const { data, error } = await supabase
       .from('shopify_auth')
       .select('*')
@@ -247,12 +325,16 @@ async function verifyState(state: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error(`Error verifying state: ${error instanceof Error ? error.message : "Unknown error"}`);
-    return false; // في حالة الخطأ، نعود بـ false للأمان
+    return false;
   }
 }
 
 // استجابة لطلبات معينة فقط للتوثيق
 serve(async (req) => {
+  // معرف فريد للطلب للتتبع
+  const requestId = crypto.randomUUID();
+  console.log(`[${requestId}] Callback request received: ${req.method} ${req.url}`);
+  
   // التعامل مع طلبات OPTIONS بشكل صحيح لـ CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { 
@@ -261,14 +343,12 @@ serve(async (req) => {
     });
   }
   
-  const requestId = crypto.randomUUID();
-  console.log(`[${requestId}] Callback received: ${req.method} ${req.url}`);
-  
   try {
     // استخراج المعلمات من URL أو body
     let shop = "";
     let code = "";
     let state = "";
+    let hmac = "";
     
     // معلمات الاستدعاء
     const url = new URL(req.url);
@@ -282,6 +362,7 @@ serve(async (req) => {
         shop = body.shop || "";
         code = body.code || "";
         state = body.state || "";
+        hmac = body.hmac || "";
       } catch (e) {
         console.error(`[${requestId}] Error parsing request body:`, e);
         throw new Error('Invalid request body');
@@ -291,18 +372,28 @@ serve(async (req) => {
       shop = url.searchParams.get("shop") || "";
       code = url.searchParams.get("code") || "";
       state = url.searchParams.get("state") || "";
+      hmac = url.searchParams.get("hmac") || "";
     }
     
     // تنظيف عنوان المتجر
     shop = cleanShopDomain(shop);
-    console.log(`[${requestId}] Processing callback for shop: ${shop}, code present: ${!!code}`);
+    console.log(`[${requestId}] Processing callback for shop: ${shop}, code present: ${!!code}, hmac present: ${!!hmac}`);
     
     // التحقق من وجود المعلمات المطلوبة
     if (!code || !shop) {
       throw new Error('المعلمات المطلوبة (code أو shop) غير موجودة في استدعاء المصادقة');
     }
     
-    // التحقق من صحة الحالة إذا كانت موجودة (لكن لا نرفض الطلب إذا كان غير صالح)
+    // سجل المعلومات المهمة للتشخيص
+    console.log(`[${requestId}] Shopify callback parameters:`, {
+      shop,
+      code: code ? "Present (hidden)" : "Missing",
+      hmac: hmac ? "Present (hidden)" : "Missing",
+      state,
+      timestamp: new Date().toISOString()
+    });
+    
+    // التحقق من صحة الحالة إذا كانت موجودة
     if (state) {
       const stateValid = await verifyState(state);
       if (!stateValid) {
@@ -313,6 +404,12 @@ serve(async (req) => {
     // الحصول على رمز الوصول من Shopify
     console.log(`[${requestId}] Requesting access token from Shopify...`);
     const tokenData = await getAccessToken(shop, code);
+    
+    // التحقق من صحة البيانات
+    if (!tokenData || !tokenData.access_token) {
+      throw new Error("Access token retrieval failed - invalid response from Shopify");
+    }
+    
     console.log(`[${requestId}] Access token received successfully for ${shop}`);
     
     // تحديث بيانات المتجر في قاعدة البيانات
@@ -328,6 +425,7 @@ serve(async (req) => {
         timestamp: Date.now(),
         request_id: requestId,
         token_type: tokenData.token_type,
+        has_valid_token: true,
         redirect_url: `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true&timestamp=${Date.now()}`
       }),
       { 
@@ -341,6 +439,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error(`[${requestId}] Error in Shopify OAuth flow: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    console.error(`[${requestId}] Stack trace: ${error instanceof Error ? error.stack : "No stack trace available"}`);
     
     // إنشاء استجابة الخطأ
     return new Response(

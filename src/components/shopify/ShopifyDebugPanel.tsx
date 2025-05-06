@@ -1,255 +1,205 @@
+
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { parseShopifyParams } from '@/utils/shopify-helpers';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { RefreshCcw } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/lib/auth';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 export const ShopifyDebugPanel = () => {
-  const { shopifyConnected, shop, shops, setShop } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [debugData, setDebugData] = useState<any>({});
-  const [isConsistent, setIsConsistent] = useState(true);
-
-  // وظيفة لتجميع وعرض معلومات التصحيح
-  const collectDebugInfo = async () => {
+  const [loading, setLoading] = useState(true);
+  const [tokenInfo, setTokenInfo] = useState<any>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'loading' | 'no-token'>('loading');
+  const { shop } = useAuth();
+  
+  const loadTokenInfo = async () => {
     setLoading(true);
     
     try {
-      // جمع معلومات من localStorage
-      const localStorageData = {
-        shopify_store: localStorage.getItem('shopify_store'),
-        shopify_connected: localStorage.getItem('shopify_connected'),
-        shopify_temp_store: localStorage.getItem('shopify_temp_store'),
-        shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode')
-      };
+      if (!shop) {
+        setConnectionStatus('no-token');
+        setTokenInfo({ error: "لا يوجد متجر متصل" });
+        return;
+      }
       
-      // جمع معلومات من مدير الاتصال
-      const allStores = shopifyConnectionManager.getAllStores();
-      const activeStore = shopifyConnectionManager.getActiveStore();
-      
-      // جمع معلومات من عنوان URL
-      const urlParams = parseShopifyParams();
-      
-      // جمع معلومات من قاعدة البيانات
-      let dbData: any = { error: 'لم يتم جلب البيانات بعد' };
-      if (shop) {
-        const { data, error } = await shopifyStores()
-          .select('*')
-          .eq('shop', shop)
-          .single();
+      // جلب معلومات المتجر من قاعدة البيانات
+      const { data, error } = await shopifyStores()
+        .select('*')
+        .eq('shop', shop)
+        .order('updated_at', { ascending: false })
+        .limit(1);
         
-        if (error) {
-          dbData = { error: error.message };
-        } else if (data) {
-          const { shop, access_token, token_type, is_active, updated_at } = data;
-          dbData = { 
-            shop, 
-            token_available: !!access_token,
-            token_length: access_token ? access_token.length : 0,
-            token_type,
-            is_active,
-            updated_at 
-          };
-        }
+      if (error) {
+        console.error("Error fetching store data:", error);
+        setConnectionStatus('error');
+        setTokenInfo({ error: "خطأ في جلب بيانات المتجر", details: error.message });
+        return;
       }
       
-      // جمع المعلومات للعرض
-      const debugInfo = {
-        currentURLParams: urlParams,
-        localStorage: localStorageData,
-        connectionManager: {
-          allStores,
-          activeStore,
-          storesCount: allStores.length
-        },
-        authContext: {
-          shopifyConnected,
-          shops
-        },
-        database: {
-          shopFromDB: dbData.shop,
-          found: !!dbData.shop,
-          storeDataError: dbData.error,
-          allStores: []
-        },
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        url: window.location.href
+      if (!data || data.length === 0) {
+        setConnectionStatus('no-token');
+        setTokenInfo({ error: "لم يتم العثور على بيانات المتجر في قاعدة البيانات" });
+        return;
+      }
+      
+      // استخراج بيانات المتجر
+      const storeData = data[0];
+      
+      // التحقق من الرمز المؤقت
+      const isPlaceholderToken = storeData.access_token === 'placeholder_token';
+      
+      // التحقق من صحة الرمز
+      let isValid = false;
+      if (!isPlaceholderToken && storeData.access_token) {
+        isValid = await shopifyConnectionService.testConnection(shop, storeData.access_token);
+      }
+      
+      // تحضير معلومات الرمز
+      const tokenInfoData = {
+        shop: storeData.shop,
+        isActive: storeData.is_active,
+        tokenCreatedAt: storeData.created_at,
+        tokenUpdatedAt: storeData.updated_at,
+        isPlaceholderToken,
+        tokenType: storeData.token_type || 'offline',
+        hasToken: !!storeData.access_token,
+        tokenValid: isValid,
+        tokenPartial: storeData.access_token ? `${storeData.access_token.substring(0, 6)}...` : null,
       };
       
-      // تحديث المعلومات المعروضة
-      setDebugData(debugInfo);
-      
-      // التحقق من اتساق البيانات بين المصادر المختلفة
-      const localStorageConnected = localStorageData.shopify_connected === 'true';
-      const activeStoreConsistent = 
-        (!!activeStore === !!shop) && // either both have shop or both don't
-        (!!activeStore === shopifyConnected) && // connection state matches
-        (localStorageConnected === shopifyConnected); // local storage and auth context agree
-      
-      setIsConsistent(activeStoreConsistent);
-      
-      if (!activeStoreConsistent) {
-        console.warn("Data inconsistency detected between connection sources:", debugInfo);
+      // تعيين حالة الاتصال بناءً على صحة الرمز
+      if (isPlaceholderToken) {
+        setConnectionStatus('error');
+      } else if (isValid) {
+        setConnectionStatus('connected');
+      } else {
+        setConnectionStatus('error');
       }
-    } catch (error) {
-      console.error("Error collecting debug info:", error);
-      toast.error("حدث خطأ أثناء جمع معلومات التصحيح");
+      
+      setTokenInfo(tokenInfoData);
+    } catch (err) {
+      console.error("Error in loadTokenInfo:", err);
+      setConnectionStatus('error');
+      setTokenInfo({ error: "خطأ غير متوقع", details: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
   };
   
-  // جمع معلومات التصحيح عند تحميل المكون
+  const handleRefresh = () => {
+    loadTokenInfo();
+  };
+  
+  const handleReconnect = () => {
+    window.location.href = `/shopify?shop=${shop}&force_update=true`;
+  };
+  
+  // جلب معلومات الرمز عند تحميل المكون
   useEffect(() => {
-    collectDebugInfo();
-  }, [shopifyConnected, shop, shops]);
+    loadTokenInfo();
+  }, [shop]);
   
-  // وظيفة لإصلاح اختلافات البيانات
-  const fixInconsistencies = () => {
-    try {
-      // إذا كان هناك متجر نشط في مدير الاتصال، استخدمه كمصدر للحقيقة
-      const activeStore = shopifyConnectionManager.getActiveStore();
-      
-      if (activeStore) {
-        localStorage.setItem('shopify_store', activeStore);
-        localStorage.setItem('shopify_connected', 'true');
-        
-        // Update auth context if setShop is available
-        if (setShop) {
-          setShop(activeStore);
-        }
-        
-        toast.success("تم إصلاح اختلافات البيانات المحلية");
-        
-        // إعادة تحميل الصفحة لتحديث حالة الاتصال في AuthProvider
-        window.location.reload();
-      } else if (debugData.database?.shopFromDB) {
-        // إذا لم يكن هناك متجر نشط ولكن هناك متجر في قاعدة البيانات
-        const dbShop = debugData.database.shopFromDB;
-        shopifyConnectionManager.addOrUpdateStore(dbShop, true);
-        localStorage.setItem('shopify_store', dbShop);
-        localStorage.setItem('shopify_connected', 'true');
-        
-        // Update auth context if setShop is available
-        if (setShop) {
-          setShop(dbShop);
-        }
-        
-        toast.success("تم استعادة بيانات الاتصال من قاعدة البيانات");
-        
-        // إعادة تحميل الصفحة
-        window.location.reload();
-      } else if (shop) {
-        // If we have a shop in auth context but it's not synced elsewhere
-        shopifyConnectionManager.addOrUpdateStore(shop, true);
-        localStorage.setItem('shopify_store', shop);
-        localStorage.setItem('shopify_connected', 'true');
-        
-        toast.success("تم استعادة بيانات الاتصال من auth context");
-        
-        // إعادة تحميل الصفحة
-        window.location.reload();
-      } else {
-        toast.error("لا توجد بيانات كافية لإصلاح الاختلافات");
-      }
-    } catch (error) {
-      console.error("Error fixing inconsistencies:", error);
-      toast.error("حدث خطأ أثناء محاولة إصلاح اختلافات البيانات");
-    }
-  };
+  // عرض حالة التحميل
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+        <span>جاري تحميل معلومات الاتصال...</span>
+      </div>
+    );
+  }
   
-  // وظيفة لمسح جميع بيانات المتاجر المحلية
-  const clearAllLocalData = () => {
-    try {
-      shopifyConnectionManager.clearAllStores();
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_emergency_mode');
-      
-      // Update auth context if setShop is available
-      if (setShop) {
-        setShop("");
-      }
-      
-      toast.success("تم مسح جميع بيانات المتاجر المحلية");
-      
-      // إعادة تحميل المعلومات
-      collectDebugInfo();
-      
-      // إعادة تحميل الصفحة للتأكد من تحديث الواجهة
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    } catch (error) {
-      console.error("Error clearing local data:", error);
-      toast.error("حدث خطأ أثناء محاولة مسح البيانات المحلية");
-    }
-  };
-
+  // عرض معلومات الخطأ
+  if (tokenInfo?.error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <AlertCircle className="h-5 w-5 text-yellow-500" />
+          <span className="font-medium">{tokenInfo.error}</span>
+        </div>
+        {tokenInfo.details && (
+          <p className="text-sm text-gray-500">{tokenInfo.details}</p>
+        )}
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          إعادة التحقق
+        </Button>
+      </div>
+    );
+  }
+  
+  // عرض معلومات الاتصال
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">لوحة تصحيح Shopify</h3>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={collectDebugInfo}
-          disabled={loading}
-        >
-          <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="mr-2">تحديث</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <span className="font-medium ml-2">حالة الاتصال:</span>
+          {connectionStatus === 'connected' ? (
+            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" /> متصل
+            </Badge>
+          ) : connectionStatus === 'error' ? (
+            <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" /> خطأ في الاتصال
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+              غير متصل
+            </Badge>
+          )}
+        </div>
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          تحديث
         </Button>
       </div>
       
-      {!isConsistent && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTitle>تم اكتشاف اختلافات في البيانات</AlertTitle>
-          <AlertDescription>
-            هناك اختلافات بين مصادر بيانات الاتصال المختلفة. قد يؤدي هذا إلى مشاكل في عمل التطبيق.
-            <div className="mt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fixInconsistencies}
-              >
-                إصلاح الاختلافات
-              </Button>
+      <Card className="p-4 bg-gray-50">
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <dt className="font-medium">المتجر:</dt>
+            <dd>{tokenInfo?.shop || '-'}</dd>
+          </div>
+          
+          <div className="flex justify-between">
+            <dt className="font-medium">حالة الرمز:</dt>
+            <dd className={tokenInfo?.tokenValid ? 'text-green-600' : 'text-red-600'}>
+              {tokenInfo?.isPlaceholderToken ? (
+                <span className="text-yellow-600">رمز مؤقت (غير صالح)</span>
+              ) : tokenInfo?.tokenValid ? (
+                'صالح'
+              ) : (
+                'غير صالح'
+              )}
+            </dd>
+          </div>
+          
+          {tokenInfo?.hasToken && !tokenInfo?.isPlaceholderToken && (
+            <div className="flex justify-between">
+              <dt className="font-medium">جزء من الرمز:</dt>
+              <dd className="font-mono">{tokenInfo?.tokenPartial || '-'}</dd>
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
+          )}
+          
+          <div className="flex justify-between">
+            <dt className="font-medium">نوع الرمز:</dt>
+            <dd>{tokenInfo?.tokenType || '-'}</dd>
+          </div>
+          
+          <div className="flex justify-between">
+            <dt className="font-medium">تاريخ التحديث:</dt>
+            <dd>{tokenInfo?.tokenUpdatedAt ? new Date(tokenInfo.tokenUpdatedAt).toLocaleString() : '-'}</dd>
+          </div>
+        </dl>
+      </Card>
       
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={clearAllLocalData}
-          >
-            مسح البيانات المؤقتة
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              navigator.clipboard.writeText(JSON.stringify(debugData, null, 2));
-              toast.success("تم نسخ بيانات التصحيح إلى الحافظة");
-            }}
-          >
-            نسخ بيانات التصحيح
+      {(connectionStatus === 'error' || connectionStatus === 'no-token') && (
+        <div className="pt-2">
+          <Button onClick={handleReconnect} variant="default" size="sm" className="w-full">
+            إعادة الاتصال بـ Shopify
           </Button>
         </div>
-        
-        <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-auto h-96 mt-2 text-left dir-ltr">
-          {JSON.stringify(debugData, null, 2)}
-        </pre>
-      </div>
+      )}
     </div>
   );
 };

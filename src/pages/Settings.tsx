@@ -9,13 +9,45 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ShopifyDebugPanel } from '@/components/shopify/ShopifyDebugPanel';
 import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { useState, useEffect } from 'react';
 
 const Settings = () => {
   const { shop, shopifyConnected } = useAuth();
+  const [hasPlaceholderToken, setHasPlaceholderToken] = useState(false);
+  
+  // التحقق من وجود رمز وصول مؤقت عند تحميل الصفحة
+  useEffect(() => {
+    const checkTokenStatus = async () => {
+      if (shop) {
+        try {
+          const token = await shopifyConnectionService.getAccessToken(shop);
+          setHasPlaceholderToken(token === 'placeholder_token');
+        } catch (error) {
+          console.error('Error checking token status:', error);
+        }
+      }
+    };
+    
+    checkTokenStatus();
+  }, [shop]);
   
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">الإعدادات</h1>
+      
+      {shopifyConnected && hasPlaceholderToken && (
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>تم اكتشاف مشكلة في اتصال Shopify</AlertTitle>
+          <AlertDescription>
+            يستخدم متجرك حاليًا رمز وصول مؤقت ("placeholder_token") وهذا يعني أنه لن يمكن الوصول إلى بيانات متجرك. 
+            يرجى استخدام قسم "تحديث رمز وصول Shopify" أدناه لإدخال رمز وصول حقيقي.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid gap-6">
         <Tabs defaultValue="general">
@@ -97,12 +129,24 @@ const Settings = () => {
               </CardContent>
             </Card>
             
-            {/* إضافة مكون تحديث رمز الوصول */}
-            <Card>
-              <CardHeader>
-                <CardTitle>تحديث رمز وصول Shopify</CardTitle>
-                <CardDescription>
-                  هام: إذا واجهتك أخطاء في الاتصال أو ظهرت رسالة "placeholder token"، استخدم هذا النموذج لتحديث رمز الوصول يدويًا
+            {/* مكون تحديث رمز الوصول مع تمييز واضح إذا كان هناك مشكلة */}
+            <Card className={hasPlaceholderToken ? "border-yellow-300 shadow-yellow-100" : ""}>
+              <CardHeader className={hasPlaceholderToken ? "bg-yellow-50" : ""}>
+                <CardTitle>
+                  {hasPlaceholderToken ? (
+                    <span className="flex items-center text-yellow-700">
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                      تحديث رمز وصول Shopify (مطلوب)
+                    </span>
+                  ) : (
+                    "تحديث رمز وصول Shopify"
+                  )}
+                </CardTitle>
+                <CardDescription className={hasPlaceholderToken ? "text-yellow-700" : ""}>
+                  {hasPlaceholderToken 
+                    ? "هام جداً: تم اكتشاف رمز مؤقت (placeholder_token). يجب عليك تحديث الرمز لاستخدام ميزات Shopify."
+                    : "هام: إذا واجهتك أخطاء في الاتصال أو ظهرت رسالة \"placeholder token\"، استخدم هذا النموذج لتحديث رمز الوصول يدويًا"
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>

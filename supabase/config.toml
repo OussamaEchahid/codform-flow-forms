@@ -45,4 +45,3 @@ verify_jwt = false
 
 [functions.update-shopify-token]
 verify_jwt = false
-

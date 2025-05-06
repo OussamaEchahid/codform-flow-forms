@@ -1,106 +1,209 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 
-export const ShopifyTokenUpdater: React.FC = () => {
-  const [shop, setShop] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-  const [makeActive, setMakeActive] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
+export const ShopifyTokenUpdater = () => {
+  const [shopDomain, setShopDomain] = useState<string>('');
+  const [accessToken, setAccessToken] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasPlaceholderToken, setHasPlaceholderToken] = useState<boolean>(false);
+  const { toast } = useToast();
+  const { shop } = useAuth();
+
+  // تحميل المتجر الحالي عند تحميل المكون
+  useEffect(() => {
+    const loadCurrentShop = async () => {
+      try {
+        // استخدام المتجر الحالي إذا كان موجودًا
+        if (shop) {
+          setShopDomain(shop);
+          
+          // التحقق مما إذا كان المتجر يستخدم رمزًا placeholder
+          const token = await shopifyConnectionService.getAccessToken(shop);
+          
+          // التحقق من الرمز المؤقت بالطريقة المباشرة
+          if (token === 'placeholder_token') {
+            setHasPlaceholderToken(true);
+            setError('هذا المتجر يستخدم حاليًا قيمة مؤقتة (placeholder). يرجى إدخال رمز وصول حقيقي.');
+          }
+        } else {
+          // محاولة الحصول على المتجر من التخزين المحلي
+          const storedShop = localStorage.getItem('shopify_store');
+          if (storedShop) {
+            setShopDomain(storedShop);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading current shop:', err);
+      }
+    };
+    
+    loadCurrentShop();
+  }, [shop]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!shop.trim() || !accessToken.trim()) {
-      toast.error('يرجى إدخال اسم المتجر ورمز الوصول');
+    if (!shopDomain || !accessToken) {
+      setError('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
     
-    // Clean shop domain to ensure it includes myshopify.com
-    let shopDomain = shop.trim().toLowerCase();
-    if (!shopDomain.includes('myshopify.com')) {
-      shopDomain = `${shopDomain}.myshopify.com`;
-    }
-    
-    setIsUpdating(true);
+    setError(null);
+    setIsSuccess(false);
+    setIsLoading(true);
     
     try {
-      // Call the update-shopify-token edge function to update the token
+      // التحقق من أن الرمز ليس رمزًا مؤقتًا
+      if (accessToken === 'placeholder_token') {
+        throw new Error('لا يمكن استخدام "placeholder_token" كرمز وصول حقيقي');
+      }
+      
+      // استدعاء دالة Edge Function لتحديث الرمز
       const { data, error } = await shopifySupabase.functions.invoke('update-shopify-token', {
         body: {
           shop: shopDomain,
-          accessToken: accessToken.trim(),
-          makeActive
+          token: accessToken
         }
       });
       
       if (error) {
-        throw error;
+        throw new Error(`خطأ في استدعاء الدالة: ${error.message || "خطأ غير معروف"}`);
       }
       
-      if (data?.success) {
-        toast.success('تم تحديث رمز الوصول بنجاح');
-        // Clear form
-        setAccessToken('');
-      } else {
-        throw new Error(data?.error || 'فشل تحديث رمز الوصول');
+      if (!data.success) {
+        throw new Error(data.error || 'فشل تحديث رمز الوصول');
       }
-    } catch (error) {
-      console.error('Error updating token:', error);
-      toast.error(`فشل تحديث رمز الوصول: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      
+      // تحديث حالة الاتصال
+      await shopifyConnectionService.syncStoreToDatabase(shopDomain, accessToken, true);
+      
+      // إعادة تأكيد صحة الرمز الجديد
+      const isValid = await shopifyConnectionService.testConnection(shopDomain, accessToken);
+      
+      if (!isValid) {
+        throw new Error('تم تحديث الرمز، لكن اختبار الاتصال فشل. يرجى التحقق من الرمز وإعادة المحاولة.');
+      }
+      
+      setIsSuccess(true);
+      setHasPlaceholderToken(false);
+      toast({
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث رمز وصول Shopify بنجاح.",
+        variant: "success",
+      });
+      
+      // مسح الحقول
+      setAccessToken('');
+    } catch (err) {
+      console.error('Error updating token:', err);
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
+      
+      toast({
+        title: "فشل التحديث",
+        description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
+        variant: "destructive",
+      });
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="shop-domain">متجر Shopify</Label>
-        <Input
-          id="shop-domain"
-          value={shop}
-          onChange={(e) => setShop(e.target.value)}
-          placeholder="your-store.myshopify.com"
-          className="text-left dir-ltr"
-        />
-        <p className="text-xs text-muted-foreground">
-          أدخل اسم متجرك في Shopify، على سبيل المثال: your-store.myshopify.com
+    <div className="space-y-4">
+      {hasPlaceholderToken && (
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>تم اكتشاف رمز مؤقت</AlertTitle>
+          <AlertDescription>
+            هذا المتجر يستخدم حاليًا رمزًا وهميًا ("placeholder_token"). يجب عليك إدخال رمز وصول حقيقي من Shopify لكي تعمل واجهة API بشكل صحيح.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>خطأ</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {isSuccess && (
+        <Alert variant="success">
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>تم التحديث بنجاح</AlertTitle>
+          <AlertDescription>
+            تم تحديث رمز وصول Shopify بنجاح. يجب أن تعمل واجهة API الآن بشكل صحيح.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="shop-domain">نطاق المتجر</Label>
+          <Input
+            id="shop-domain"
+            placeholder="متجرك.myshopify.com"
+            value={shopDomain}
+            onChange={(e) => setShopDomain(e.target.value)}
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="access-token">رمز الوصول</Label>
+          <Input
+            id="access-token"
+            placeholder="رمز وصول Shopify الخاص بك"
+            value={accessToken}
+            onChange={(e) => setAccessToken(e.target.value)}
+            required
+            type="password"
+          />
+          <p className="text-sm text-gray-500">
+            يمكنك الحصول على رمز الوصول من إعدادات تطبيق Shopify الخاص بك، في قسم "API credentials".
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button type="submit" disabled={isLoading || !shopDomain || !accessToken}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جاري التحديث...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                تحديث رمز الوصول
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      <div className="mt-4 text-sm text-gray-500">
+        <p>
+          <strong>أين أجد رمز الوصول؟</strong>
         </p>
+        <ul className="list-disc list-inside space-y-1 mt-2">
+          <li>انتقل إلى حساب شريك Shopify الخاص بك</li>
+          <li>اذهب إلى Apps &gt; اختر التطبيق المخصص الخاص بك</li>
+          <li>انتقل إلى علامة التبويب "API credentials"</li>
+          <li>استخدم Admin API access token الخاص بك</li>
+        </ul>
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="access-token">رمز الوصول</Label>
-        <Input
-          id="access-token"
-          value={accessToken}
-          onChange={(e) => setAccessToken(e.target.value)}
-          placeholder="shpat_..."
-          className="text-left font-mono dir-ltr"
-          type="password"
-        />
-        <p className="text-xs text-muted-foreground">
-          أدخل رمز الوصول الجديد من متجر Shopify الخاص بك
-        </p>
-      </div>
-      
-      <div className="flex items-center space-x-2 rtl:space-x-reverse">
-        <Switch
-          id="make-active"
-          checked={makeActive}
-          onCheckedChange={setMakeActive}
-        />
-        <Label htmlFor="make-active">تعيين كمتجر نشط</Label>
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isUpdating}>
-        {isUpdating ? 'جاري التحديث...' : 'تحديث رمز الوصول'}
-      </Button>
-    </form>
+    </div>
   );
 };
