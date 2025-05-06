@@ -24,6 +24,9 @@ const alertVariants = cva(
   }
 )
 
+// Here we need to export the type to include our new "success" variant
+export type AlertVariant = "default" | "destructive" | "warning" | "success"
+
 const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
