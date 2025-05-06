@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { toast } from 'sonner';
 
@@ -16,6 +16,8 @@ const ShopifyConnect = () => {
 
   // تحقق من المعلمات في عنوان URL والتخزين المحلي
   useEffect(() => {
+    console.log("ShopifyConnect component mounted");
+    
     const checkParams = async () => {
       try {
         setIsLoading(true);
@@ -24,18 +26,29 @@ const ShopifyConnect = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const shopParam = urlParams.get('shop');
         
+        console.log("URL params check:", { shopParam, fullUrl: window.location.href });
+        
         // حفظ معلمات المتجر في التخزين المحلي إذا كانت موجودة
         if (shopParam) {
           localStorage.setItem('shopify_last_url_shop', shopParam);
           console.log('Shop parameter detected in URL:', shopParam);
           
           // تحقق من صحة المتجر المخزن
-          await shopifyConnectionService.syncStoreToDatabase(shopParam, undefined, false);
+          try {
+            await shopifyConnectionService.syncStoreToDatabase(shopParam, undefined, false);
+            console.log("Store synced to database:", shopParam);
+          } catch (syncError) {
+            console.error("Error syncing store:", syncError);
+          }
         }
         
         // تنظيف رموز placeholder من قاعدة البيانات
-        await shopifyConnectionService.cleanupPlaceholderTokens();
-        console.log('Placeholder tokens cleaned on page load');
+        try {
+          await shopifyConnectionService.cleanupPlaceholderTokens();
+          console.log('Placeholder tokens cleaned on page load');
+        } catch (cleanupError) {
+          console.error("Error cleaning placeholder tokens:", cleanupError);
+        }
         
         setError(null);
       } catch (error) {
@@ -47,6 +60,10 @@ const ShopifyConnect = () => {
     };
 
     checkParams();
+    
+    // التأكد من أن الصفحة مرئية بالفعل - إصلاح محتمل للمشكلة
+    document.title = "الاتصال بمتجر Shopify";
+    
   }, [location.search]);
   
   // Reset connection state
@@ -63,6 +80,10 @@ const ShopifyConnect = () => {
       toast.error('فشل في إعادة تعيين حالة الاتصال');
       setIsResetting(false);
     }
+  };
+
+  const handleExternalOpen = () => {
+    window.open("https://codform-flow-forms.lovable.app/shopify-connect", "_blank");
   };
 
   // إذا كان التحميل جاريًا، عرض حالة التحميل
@@ -112,6 +133,27 @@ const ShopifyConnect = () => {
             </div>
           </div>
         )}
+        
+        <div className="mb-4 p-4 border border-blue-200 bg-blue-50 rounded-md">
+          <div className="flex items-center">
+            <Store className="h-5 w-5 text-blue-500 ml-2" />
+            <p className="text-blue-700 font-medium">صفحة الاتصال بمتجر Shopify</p>
+          </div>
+          <p className="mt-2 text-sm text-blue-600">
+            أنت الآن على صفحة الاتصال بمتجر Shopify. إذا كنت تواجه مشكلة في الاتصال، جرب إعادة تعيين حالة الاتصال أدناه.
+          </p>
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-300 hover:bg-blue-100"
+              onClick={handleExternalOpen}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              فتح في نافذة جديدة
+            </Button>
+          </div>
+        </div>
         
         <ShopifyConnection />
       </div>

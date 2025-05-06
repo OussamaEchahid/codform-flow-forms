@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -5,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/components/layout/AuthProvider";
 import { useAuth } from "@/lib/auth";
-import { routes } from "@/routes"; // Importing routes
 
 // Pages 
 import Dashboard from "@/pages/Dashboard";
@@ -26,7 +26,7 @@ import Settings from "@/pages/Settings";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
-import { toast } from "@/hooks/use-toast"; 
+import { toast } from "sonner"; 
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService"; 
 
@@ -79,16 +79,16 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   
   // Only redirect if we have absolutely no indication of access rights
   if (requireAuth && !hasAccess) {
-    console.log("No authentication or Shopify connection, redirecting to /shopify");
+    console.log("No authentication or Shopify connection, redirecting to /shopify-connect");
     
     // Save current path for redirection after authentication
     const currentPath = window.location.pathname;
-    if (currentPath !== '/shopify') {
+    if (currentPath !== '/shopify-connect') {
       localStorage.setItem('auth_redirect', currentPath);
     }
     
     toast.info("يجب الاتصال بمتجر Shopify أولاً");
-    return <Navigate to="/shopify" replace />;
+    return <Navigate to="/shopify-connect" replace />;
   }
   
   // وإلا، قم بعرض مسارات الطفل
@@ -149,6 +149,8 @@ function AppRoutes() {
 function App() {
   // Clean placeholder tokens and validate connection on startup
   React.useEffect(() => {
+    console.log("App mounted, cleaning tokens and validating connection");
+    
     // Attempt to validate the connection state with retry logic
     const validateConnection = async () => {
       try {

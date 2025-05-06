@@ -12,6 +12,11 @@ import ShopifyProductView from '@/pages/ShopifyProductView';
 import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/api/shopify-callback';
 import NotFound from '@/pages/NotFound'; 
+import Dashboard from '@/pages/Dashboard';
+import Forms from '@/pages/Forms';
+import Orders from '@/pages/Orders';
+import FormBuilderPage from '@/pages/FormBuilderPage';
+import Auth from '@/pages/Auth';
 
 export const routes: RouteObject[] = [
   {
@@ -21,11 +26,23 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/dashboard',
-    Component: FormBuilderDashboard,
+    Component: Dashboard,
+  },
+  {
+    path: '/forms',
+    Component: Forms,
   },
   {
     path: '/form-builder/:formId',
-    Component: FormBuilderDashboard,
+    Component: FormBuilderPage,
+  },
+  {
+    path: '/orders',
+    Component: Orders,
+  },
+  {
+    path: '/auth/*',
+    Component: Auth,
   },
   {
     path: '/settings',
