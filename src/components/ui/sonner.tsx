@@ -1,5 +1,6 @@
+
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -19,6 +20,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          success: 
+            "group-[.toast]:border-green-200 group-[.toast]:bg-green-50 group-[.toast]:text-green-800",
+          warning:
+            "group-[.toast]:border-amber-200 group-[.toast]:bg-amber-50 group-[.toast]:text-amber-800",
+          error:
+            "group-[.toast]:border-red-200 group-[.toast]:bg-red-50 group-[.toast]:text-red-800",
         },
       }}
       {...props}
@@ -26,4 +33,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster, toast }
+// Re-export toast from sonner without conflicts
+export { Toaster }
+export { toast } from "sonner"

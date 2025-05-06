@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,7 +23,8 @@ import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 
 // Components
-import { Toaster, toast } from "sonner";
+import { Toaster } from "@/components/ui/toaster"; // Use our custom Toaster
+import { toast } from "@/hooks/use-toast"; // Use our custom toast
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
@@ -169,7 +169,7 @@ function App() {
           <Router>
             <AuthProvider>
               <AppRoutes />
-              <Toaster position="top-center" richColors closeButton />
+              <Toaster />
             </AuthProvider>
           </Router>
         </TooltipProvider>
