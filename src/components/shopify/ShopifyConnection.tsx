@@ -12,14 +12,11 @@ import { useNavigate } from 'react-router-dom';
 
 const ShopifyConnection = () => {
   const [shopDomain, setShopDomain] = useState('');
-  const [accessToken, setAccessToken] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isUpdatingToken, setIsUpdatingToken] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [connectedShop, setConnectedShop] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [tokenStatus, setTokenStatus] = useState<'valid' | 'invalid' | 'placeholder' | 'unknown'>('unknown');
   const navigate = useNavigate();
 
   // Check existing connection on mount
@@ -59,21 +56,15 @@ const ShopifyConnection = () => {
       }
       
       if (data && data.length > 0) {
-        const token = data[0].access_token || '';
         setConnectedShop(storedShop);
         
-        // Check if token is valid
-        if (!token) {
-          setTokenStatus('invalid');
-          setIsConnected(storedConnected); // Still consider connected but with invalid token
-        } else if (token === 'placeholder_token') {
-          setTokenStatus('placeholder');
-          setIsConnected(storedConnected); // Still consider connected but with placeholder token
-        } else {
-          // Test token validity
-          const isValid = await testToken(storedShop, token);
-          setTokenStatus(isValid ? 'valid' : 'invalid');
-          setIsConnected(isValid);
+        // Test token validity
+        const isValid = await testToken(storedShop, data[0].access_token || '');
+        setIsConnected(isValid);
+        
+        if (!isValid) {
+          // If token is invalid, mark as disconnected and offer reconnection
+          localStorage.setItem('shopify_connected', 'false');
         }
       } else {
         // No store found in database
@@ -93,7 +84,7 @@ const ShopifyConnection = () => {
   // Test token validity
   const testToken = async (shop: string, token: string): Promise<boolean> => {
     try {
-      if (!shop || !token || token === 'placeholder_token') {
+      if (!shop || !token) {
         return false;
       }
       
@@ -113,7 +104,7 @@ const ShopifyConnection = () => {
     }
   };
 
-  // Connect to Shopify store
+  // Connect to Shopify store via OAuth
   const connectStore = async () => {
     if (!shopDomain.trim()) {
       toast.error('يرجى إدخال نطاق المتجر');
@@ -162,9 +153,7 @@ const ShopifyConnection = () => {
       localStorage.setItem('shopify_temp_store', normalizedShopDomain);
       
       // Redirect to Shopify OAuth
-      setTimeout(() => {
-        window.location.href = data.redirect;
-      }, 500);
+      window.location.href = data.redirect;
     } catch (error) {
       console.error('Error connecting store:', error);
       setConnectionError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
@@ -173,43 +162,15 @@ const ShopifyConnection = () => {
     }
   };
 
-  // Update token manually
-  const updateToken = async () => {
-    if (!connectedShop || !accessToken.trim()) {
-      toast.error('يرجى إدخال رمز الوصول');
+  // Reconnect store - reinitiate OAuth flow
+  const reconnectStore = async () => {
+    if (!connectedShop) {
+      toast.error('لا يوجد متجر متصل للإعادة الاتصال');
       return;
     }
     
-    setIsUpdatingToken(true);
-    
-    try {
-      // Update token in database
-      const { error } = await shopifyStores()
-        .update({ access_token: accessToken })
-        .eq('shop', connectedShop);
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Test token validity
-      const isValid = await testToken(connectedShop, accessToken);
-      
-      if (isValid) {
-        toast.success('تم تحديث رمز الوصول بنجاح');
-        setTokenStatus('valid');
-        setIsConnected(true);
-        localStorage.setItem('shopify_connected', 'true');
-      } else {
-        toast.error('رمز الوصول غير صالح');
-        setTokenStatus('invalid');
-      }
-    } catch (error) {
-      console.error('Error updating token:', error);
-      toast.error('فشل في تحديث رمز الوصول');
-    } finally {
-      setIsUpdatingToken(false);
-    }
+    setShopDomain(connectedShop);
+    await connectStore();
   };
 
   // Disconnect store
@@ -238,7 +199,6 @@ const ShopifyConnection = () => {
       
       setIsConnected(false);
       setConnectedShop(null);
-      setTokenStatus('unknown');
       
       toast.success('تم قطع الاتصال بنجاح');
     } catch (error) {
@@ -282,39 +242,6 @@ const ShopifyConnection = () => {
                 <p className="text-sm text-green-700">المتجر: {connectedShop}</p>
               </div>
             </div>
-          </div>
-          
-          {(tokenStatus === 'placeholder' || tokenStatus === 'invalid') && (
-            <Alert variant="warning" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {tokenStatus === 'placeholder' 
-                  ? 'تم استخدام رمز مؤقت. يرجى تحديث رمز الوصول أدناه.' 
-                  : 'رمز الوصول غير صالح. يرجى تحديثه أدناه.'}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Token update form */}
-          <div className="space-y-4 mb-4">
-            <Label htmlFor="accessToken">تحديث رمز الوصول</Label>
-            <Input
-              id="accessToken"
-              placeholder="أدخل رمز وصول API الإدارة..."
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              يمكنك الحصول على رمز API من لوحة تحكم متجرك: إعدادات {'>'} التطبيقات {'>'} تطوير التطبيقات {'>'} رمز وصول API.
-            </p>
-            <Button 
-              onClick={updateToken} 
-              disabled={isUpdatingToken || !accessToken}
-              className="w-full"
-            >
-              {isUpdatingToken ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              تحديث رمز الوصول
-            </Button>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">

@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
-import ShopifyConnection from '@/components/shopify/ShopifyConnection';
 
 const Forms = () => {
   const { user, shopifyConnected, shop } = useAuth();

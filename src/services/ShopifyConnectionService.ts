@@ -31,12 +31,6 @@ class ShopifyConnectionService {
       }
       
       if (data && data.length > 0 && data[0].access_token) {
-        // Check if the token is a placeholder
-        if (data[0].access_token === 'placeholder_token') {
-          console.error('Found placeholder token for shop:', shop);
-          return 'placeholder_token'; // إعادة الرمز المؤقت ليتم التعامل معه بشكل مخصص
-        }
-        
         return data[0].access_token;
       }
 
@@ -59,12 +53,6 @@ class ShopifyConnectionService {
       const token = await this.getAccessToken(shop);
       
       if (!token) {
-        return false;
-      }
-      
-      // Check if it's a placeholder token
-      if (token === 'placeholder_token') {
-        console.log('Placeholder token detected - considered invalid');
         return false;
       }
       
@@ -119,7 +107,7 @@ class ShopifyConnectionService {
   }
   
   /**
-   * Syncs a store to the database with enhanced token validation
+   * Syncs a store to the database
    * @param shop The shop domain
    * @param token Optional token to use
    * @param isActive Whether the store should be active
@@ -141,23 +129,13 @@ class ShopifyConnectionService {
         throw error;
       }
       
-      // نتحقق من الرمز لتجنب استبدال رمز حقيقي برمز مؤقت
-      const skipTokenUpdate = !token || token === 'placeholder_token';
-      
-      // تحقق ما إذا كان هناك رمز حقيقي موجود بالفعل وإذا كان الرمز الجديد هو مؤقت
-      let useExistingToken = false;
-      if (data && data.length > 0 && skipTokenUpdate && data[0].access_token !== 'placeholder_token') {
-        useExistingToken = true;
-        console.log('Keeping existing valid token instead of using placeholder or null');
-      }
-      
       const updateData: any = { 
         updated_at: new Date().toISOString(),
         is_active: isActive
       };
       
-      // تحديث الرمز فقط إذا تم توفيره وكان صالحًا (ليس مؤقتًا)
-      if (!skipTokenUpdate) {
+      // Update token only if provided
+      if (token) {
         updateData.access_token = token;
       }
       
@@ -167,10 +145,10 @@ class ShopifyConnectionService {
           .update(updateData)
           .eq('id', data[0].id);
           
-        console.log(`Updated store: ${shop}, updated token: ${!skipTokenUpdate}`);
+        console.log(`Updated store: ${shop}`);
       } else {
-        // إنشاء متجر جديد - فقط إذا كان لدينا رمز حقيقي أو نستخدم مؤقتًا بشكل متعمد
-        if (!skipTokenUpdate || token === 'placeholder_token') {
+        // Create new store only if token is provided
+        if (token) {
           await shopifyStores().insert({
             shop,
             access_token: token,
@@ -178,9 +156,9 @@ class ShopifyConnectionService {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
-          console.log(`Created new store: ${shop} with token: ${token === 'placeholder_token' ? 'placeholder' : 'valid'}`);
+          console.log(`Created new store: ${shop}`);
         } else {
-          console.warn(`Not creating store record with null token: ${shop}`);
+          console.warn(`Not creating store record without token: ${shop}`);
         }
       }
       
@@ -256,12 +234,6 @@ class ShopifyConnectionService {
         return false;
       }
       
-      // Check if it's a placeholder token
-      if (token === 'placeholder_token') {
-        console.log('Placeholder token detected during test - considered invalid');
-        return false;
-      }
-      
       const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: { shop, accessToken: token }
       });
@@ -274,34 +246,6 @@ class ShopifyConnectionService {
     } catch (error) {
       console.error('Error testing connection:', error);
       return false;
-    }
-  }
-
-  /**
-   * Manual token update with validation
-   * @param shop Shop domain
-   * @param token Access token
-   */
-  async updateToken(shop: string, token: string): Promise<boolean> {
-    try {
-      if (!shop || !token) {
-        throw new Error("Shop and token are required");
-      }
-      
-      // Check if token is valid
-      const isValid = await this.testConnection(shop, token);
-      
-      if (!isValid) {
-        throw new Error("Token validation failed. Please check your token and try again.");
-      }
-      
-      // Update the token
-      await this.syncStoreToDatabase(shop, token, true);
-      
-      return true;
-    } catch (error) {
-      console.error("Error updating token:", error);
-      throw error;
     }
   }
 }
