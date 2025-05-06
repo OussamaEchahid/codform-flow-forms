@@ -24,9 +24,12 @@ const alertVariants = cva(
   }
 )
 
-// استخراج نوع الـ variant من الـ cva مباشرة
-export type AlertProps = React.HTMLAttributes<HTMLDivElement> & 
-  VariantProps<typeof alertVariants>
+// Define the exported type explicitly including all variants
+export type AlertVariant = "default" | "destructive" | "warning" | "success" 
+
+export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: AlertVariant
+}
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant, ...props }, ref) => (
