@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -30,6 +31,7 @@ import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -84,6 +86,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
   ];
 
+  // Get active shop ID for database operations
+  const getActiveShopId = () => {
+    return shopifyIntegration.shop || localStorage.getItem('shopify_store');
+  };
+
   // Load form data when formId changes
   useEffect(() => {
     const currentFormId = formId || params.formId;
@@ -94,15 +101,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           setFormTitle(formData.title);
           setFormDescription(formData.description || '');
           setFormElements(
-            formData.data.flatMap(step => step.fields) || []
+            formData.data?.flatMap(step => step.fields) || []
           );
-          setIsPublished(!!formData.isPublished);
+          setIsPublished(!!formData.isPublished || !!formData.is_published);
           
           console.log("Loaded form data:", formData);
+        } else {
+          toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+          navigate('/form-builder');
         }
+      }).catch(error => {
+        console.error("Error loading form:", error);
+        toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
       });
     }
-  }, [formId, params.formId, loadForm]);
+  }, [formId, params.formId, loadForm, navigate, language]);
 
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
@@ -111,22 +124,38 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Create form step from elements
-    const formStep: FormStep = {
-      id: '1',
-      title: 'Main Step',
-      fields: formElements
-    };
-    
-    // Prepare data for saving
-    const currentFormId = formId || params.formId || formState.id;
-    const formData: Partial<FormData> = {
-      title: formTitle,
-      description: formDescription,
-      data: [formStep]
-    };
-    
-    if (currentFormId) {
+    try {
+      // Create form step from elements
+      const formStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: formElements
+      };
+      
+      // Prepare data for saving
+      const currentFormId = formId || params.formId || formState.id;
+      
+      if (!currentFormId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+        setIsSaving(false);
+        return;
+      }
+      
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.warn("No active shop ID found, saving without shop association");
+      }
+      
+      const formData: Partial<FormData> = {
+        title: formTitle,
+        description: formDescription,
+        data: [formStep],
+        shop_id: shopId
+      };
+      
+      console.log("Saving form with data:", formData);
+      
       // Update existing form
       const success = await saveForm(currentFormId, formData);
       
@@ -136,11 +165,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         // Update form state
         setFormState({
           ...formState,
-          ...formData
+          ...formData,
+          id: currentFormId
         });
+      } else {
+        toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
       }
-    } else {
-      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+    } catch (error) {
+      console.error("Error saving form:", error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
     }
     
     setIsSaving(false);
@@ -156,20 +189,27 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     setIsPublishing(true);
     
-    // Save form before publishing
-    await handleSave();
-    
-    // Toggle publish status
-    const newPublishState = !isPublished;
-    const success = await saveForm(currentFormId, { isPublished: newPublishState });
-    
-    if (success) {
-      setIsPublished(newPublishState);
-      toast.success(
-        newPublishState 
-          ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-          : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
-      );
+    try {
+      // Save form before publishing
+      await handleSave();
+      
+      // Toggle publish status
+      const newPublishState = !isPublished;
+      const success = await saveForm(currentFormId, { isPublished: newPublishState });
+      
+      if (success) {
+        setIsPublished(newPublishState);
+        toast.success(
+          newPublishState 
+            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+        );
+      } else {
+        toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+      }
+    } catch (error) {
+      console.error("Error publishing form:", error);
+      toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
     }
     
     setIsPublishing(false);
@@ -284,13 +324,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handleShopifyIntegration = async (settings: any) => {
     try {
-      await shopifyIntegration.syncForm(settings);
+      await shopifyIntegration.syncForm({ 
+        formId: formId || params.formId,
+        shopDomain: shopifyIntegration.shop,
+        settings
+      });
+      
       toast.success(
         language === 'ar' 
           ? 'تم حفظ إعدادات شوبيفاي بنجاح'
           : 'Shopify settings saved successfully'
       );
     } catch (error) {
+      console.error("Error saving Shopify settings:", error);
       toast.error(
         language === 'ar'
           ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
