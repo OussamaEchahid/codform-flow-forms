@@ -29,6 +29,7 @@ export default function FormAPI() {
           throw new Error('Form ID is required');
         }
 
+        // Use the main supabase client with forms table, not the shopify-specific one
         const { data, error } = await supabase
           .from('forms')
           .select('*')

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
@@ -95,7 +95,7 @@ export const useShopify = () => {
       const token = tokenData[0].access_token || '';
       
       // Fetch products using edge function
-      const { data, error } = await supabase.functions.invoke('shopify-products', {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
         body: { shop, accessToken: token }
       });
 
@@ -135,7 +135,7 @@ export const useShopify = () => {
       }
 
       // Test token with a simple API call
-      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: { shop, accessToken: tokenData[0].access_token || '' }
       });
 
@@ -204,7 +204,7 @@ export const useShopify = () => {
       }
 
       // Real sync with Shopify
-      const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: {
           shop: shopDomain,
           formId: formData.formId,

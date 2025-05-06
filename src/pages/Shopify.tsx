@@ -106,10 +106,10 @@ const Shopify = () => {
     
     try {
       // Call Supabase Edge Function to start OAuth flow
-      const { data, error } = await supabase.functions.invoke('shopify-auth', {
-        body: {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
+        body: { 
           shop: normalizedShopDomain,
-          forceUpdate: true
+          redirect_uri: 'https://your-redirect-uri.com'
         }
       });
       
