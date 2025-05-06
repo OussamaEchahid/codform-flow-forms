@@ -4,12 +4,11 @@ import * as React from "react"
 import type {
   ToastActionElement,
   ToastProps,
+  ToastVariant,
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
-
-type ToastVariant = "default" | "destructive" | "success" | "warning";
 
 type ToasterToast = ToastProps & {
   id: string
@@ -143,6 +142,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+// Base toast function
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -170,6 +170,43 @@ function toast({ ...props }: Toast) {
     dismiss,
     update,
   }
+}
+
+// Add common toast variant methods
+toast.info = (message: string, options?: Partial<Toast>) => {
+  return toast({
+    title: "معلومات",
+    description: message,
+    variant: "default",
+    ...options,
+  })
+}
+
+toast.success = (message: string, options?: Partial<Toast>) => {
+  return toast({
+    title: "نجاح",
+    description: message,
+    variant: "success",
+    ...options,
+  })
+}
+
+toast.warning = (message: string, options?: Partial<Toast>) => {
+  return toast({
+    title: "تحذير",
+    description: message,
+    variant: "warning",
+    ...options,
+  })
+}
+
+toast.error = (message: string, options?: Partial<Toast>) => {
+  return toast({
+    title: "خطأ",
+    description: message,
+    variant: "destructive",
+    ...options,
+  })
 }
 
 function useToast() {

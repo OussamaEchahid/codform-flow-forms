@@ -7,7 +7,7 @@ import { useShopify } from '@/hooks/useShopify';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 const Forms = () => {
