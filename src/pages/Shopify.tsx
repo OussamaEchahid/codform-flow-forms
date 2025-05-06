@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';

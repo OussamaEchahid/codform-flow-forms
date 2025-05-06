@@ -1,45 +1,63 @@
 
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useRouter } from 'next/router';
+import { toast } from 'sonner';
 
-export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+interface SubmissionsAPIProps {
+  formId?: string;
+}
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+export default function SubmissionsAPI({ formId }: SubmissionsAPIProps) {
+  const params = useParams();
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const id = formId || params.id;
+  
+  useEffect(() => {
+    async function fetchSubmissions() {
+      try {
+        if (!id) {
+          throw new Error('Form ID is required');
+        }
 
-  if (req.method === 'POST') {
-    try {
-      // We need to use the main supabase client, not the Shopify-specific one
-      const { data, error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_id: req.body.form_id,
-          data: req.body.data
-        });
+        // Use the main supabase client for form submissions
+        const { data, error } = await supabase
+          .from('form_submissions')
+          .insert({
+            form_id: id,
+            data: {}
+          })
+          .select();
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        setSubmissions(data || []);
+      } catch (error: any) {
+        setError(error.message || 'Error fetching submissions');
+        toast.error(`Failed to fetch submissions: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
-
-      res.status(200).json({ success: true, data });
-    } catch (error) {
-      console.error('Error saving form submission:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || 'Failed to save form submission' 
-      });
     }
-  } else {
-    res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
+
+    fetchSubmissions();
+  }, [id]);
+
+  // This component acts as an API endpoint, so it returns JSON
+  useEffect(() => {
+    if (!isLoading) {
+      if (error) {
+        document.body.innerHTML = JSON.stringify({ error }, null, 2);
+      } else {
+        document.body.innerHTML = JSON.stringify(submissions, null, 2);
+      }
+    }
+  }, [isLoading, error, submissions]);
+
+  return null;
 }
