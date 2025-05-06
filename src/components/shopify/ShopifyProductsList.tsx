@@ -18,6 +18,22 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
     );
   }
 
+  // Helper function to format price safely
+  const formatPrice = (price: string | number | undefined): string => {
+    if (price === undefined) return '$0.00';
+    
+    if (typeof price === 'string') {
+      const numPrice = parseFloat(price);
+      return isNaN(numPrice) ? '$0.00' : `$${numPrice.toFixed(2)}`;
+    }
+    
+    if (typeof price === 'number') {
+      return `$${price.toFixed(2)}`;
+    }
+    
+    return '$0.00';
+  };
+
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
@@ -57,9 +73,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
                     : product.id}
                 </TableCell>
                 <TableCell className="text-right">
-                  {typeof product.price === 'string' 
-                    ? `$${parseFloat(product.price).toFixed(2)}` 
-                    : `$${product.price.toFixed(2)}`}
+                  {formatPrice(product.price)}
                 </TableCell>
                 <TableCell className="text-right">
                   {product.variants && product.variants.length > 0 ? (
