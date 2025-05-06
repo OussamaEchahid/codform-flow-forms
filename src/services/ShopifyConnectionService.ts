@@ -29,27 +29,38 @@ class ShopifyConnectionService {
         return null;
       }
       
-      // Verify that the token isn't the placeholder
-      if (data && data.length > 0 && data[0].access_token && data[0].access_token !== 'placeholder_token') {
-        console.log(`Found valid token for shop: ${shop}`);
-        return data[0].access_token;
+      // تحقق من وجود مستند متجر
+      if (!data || data.length === 0) {
+        console.error('No store record found for shop:', shop);
+        return null;
       }
 
-      // إذا كان الرمز غير موجود أو هو placeholder_token، قم برفض الاتصال
-      if (data && data.length > 0 && data[0].access_token === 'placeholder_token') {
-        console.error('Found placeholder token for shop:', shop);
+      // تحقق بشكل صريح من الرمز المؤقت وتنظيفه
+      if (data[0].access_token === 'placeholder_token' || data[0].access_token === '') {
+        console.error('Found placeholder or empty token for shop:', shop);
         
-        // تنظيف الرمز placeholder
+        // تنظيف الرمز المؤقت
         try {
           await this.cleanupPlaceholderTokens();
+          await shopifyStores()
+            .update({ access_token: null })
+            .eq('shop', shop);
           console.log('Cleaned placeholder token for shop:', shop);
         } catch (cleanupError) {
           console.error('Error cleaning placeholder token:', cleanupError);
         }
+        
+        return null;
       }
-
-      console.error('No valid access token found for shop:', shop);
-      return null;
+      
+      // Verify that the token isn't empty
+      if (!data[0].access_token) {
+        console.error('Empty access token for shop:', shop);
+        return null;
+      }
+      
+      console.log(`Found valid token for shop: ${shop}`);
+      return data[0].access_token;
     } catch (error) {
       console.error('Error in getAccessToken:', error);
       return null;
@@ -67,6 +78,7 @@ class ShopifyConnectionService {
       const token = await this.getAccessToken(shop);
       
       if (!token) {
+        console.log("No token found for shop:", shop);
         return false;
       }
       
@@ -75,11 +87,17 @@ class ShopifyConnectionService {
         body: { shop, accessToken: token }
       });
       
-      if (error || !data?.success) {
-        console.log('Token validation failed:', error || data?.message);
+      if (error) {
+        console.error('Token validation failed with error:', error);
         return false;
       }
       
+      if (!data?.success) {
+        console.error('Token validation failed:', data?.message);
+        return false;
+      }
+      
+      console.log('Token validation successful for shop:', shop);
       return true;
     } catch (error) {
       console.error('Error validating token:', error);
@@ -255,13 +273,7 @@ class ShopifyConnectionService {
         return;
       }
 
-      if (data && data.length > 0) {
-        console.log(`Cleaned ${data.length} placeholder tokens from database`);
-      } else {
-        console.log('No placeholder tokens found to clean');
-      }
-      
-      // Also clean up any records with access_token = ''
+      // أيضًا قم بتنظيف أي سجلات بـ access_token فارغ
       const { data: emptyData, error: emptyError } = await shopifyStores()
         .update({ access_token: null })
         .eq('access_token', '')
@@ -269,8 +281,14 @@ class ShopifyConnectionService {
         
       if (emptyError) {
         console.error('Error cleaning empty tokens:', emptyError);
-      } else if (emptyData && emptyData.length > 0) {
-        console.log(`Cleaned ${emptyData.length} empty tokens from database`);
+      }
+
+      // سجل نتائج التنظيف
+      const tokensCleaned = (data?.length || 0) + (emptyData?.length || 0);
+      if (tokensCleaned > 0) {
+        console.log(`Cleaned ${tokensCleaned} invalid tokens from database`);
+      } else {
+        console.log('No placeholder tokens found to clean');
       }
     } catch (error) {
       console.error('Error in cleanupPlaceholderTokens:', error);
@@ -325,12 +343,24 @@ class ShopifyConnectionService {
    */
   async forceResetConnection(): Promise<boolean> {
     try {
+      console.log('Performing force reset of connection state');
+      
       // First clean database
       await this.cleanupPlaceholderTokens();
+      
+      // Remove all access tokens for inactive stores
+      const { error: inactiveError } = await shopifyStores()
+        .update({ access_token: null })
+        .eq('is_active', false);
+        
+      if (inactiveError) {
+        console.error('Error cleaning inactive store tokens:', inactiveError);
+      }
       
       // Reset local storage
       this.completeConnectionReset();
       
+      console.log('Connection state reset completed successfully');
       return true;
     } catch (error) {
       console.error('Error in forceResetConnection:', error);

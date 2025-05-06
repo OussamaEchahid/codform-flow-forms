@@ -11,6 +11,7 @@ import ShopifyProducts from '@/pages/ShopifyProducts';
 import ShopifyProductView from '@/pages/ShopifyProductView';
 import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/api/shopify-callback';
+import NotFound from '@/pages/NotFound'; 
 
 export const routes: RouteObject[] = [
   {
@@ -61,5 +62,9 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-view',
     Component: ShopifyProductView,
+  },
+  {
+    path: '*',
+    Component: NotFound
   }
 ];
