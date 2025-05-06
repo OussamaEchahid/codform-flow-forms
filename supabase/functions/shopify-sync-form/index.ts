@@ -46,18 +46,18 @@ serve(async (req: Request) => {
 
     console.log(`Syncing form ${formId} with shop ${shop}`);
 
-    // Get the shop ID from the database
-    const { data: storeData, error: storeError } = await supabase
-      .from('shopify_stores')
-      .select('id')
-      .eq('shop', shop)
+    // Get the form data first to verify it exists
+    const { data: formData, error: formError } = await supabase
+      .from('forms')
+      .select('*')
+      .eq('id', formId)
       .single();
-
-    if (storeError || !storeData) {
-      console.error("Error fetching shop data:", storeError);
+    
+    if (formError || !formData) {
+      console.error("Error fetching form data:", formError);
       return new Response(JSON.stringify({
         success: false,
-        message: 'Shop not found in database'
+        message: 'Form not found in database'
       }), { 
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -72,6 +72,13 @@ serve(async (req: Request) => {
     
     if (formUpdateError) {
       console.error("Error updating form with shop_id:", formUpdateError);
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Failed to update form with shop ID'
+      }), { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     } else {
       console.log(`Form ${formId} updated with shop_id ${shop}`);
     }
