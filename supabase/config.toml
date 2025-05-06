@@ -10,28 +10,24 @@ schemas = ["public", "storage", "graphql_public"]
 port = 54322
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
+enabled = true
 port = 54324
-smtp_port = 54325
-pop3_port = 54326
 
 [storage]
 enabled = true
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-
-[analytics]
-enabled = false
 
 [realtime]
-enabled = false
+enabled = true
 
-[functions]
-[functions.shopify-test-connection]
+[functions.shopify-products]
 verify_jwt = false
 
 [functions.shopify-auth]
@@ -40,8 +36,14 @@ verify_jwt = false
 [functions.shopify-callback]
 verify_jwt = false
 
-[functions.shopify-products]
+[functions.shopify-test-connection]
+verify_jwt = false
+
+[functions.update-schema]
 verify_jwt = false
 
 [functions.update-shopify-token]
+verify_jwt = false
+
+[functions.shopify-sync-form]
 verify_jwt = false
