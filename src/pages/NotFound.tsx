@@ -2,7 +2,9 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, Store } from "lucide-react";
+import { ArrowLeft, Home, Store, RefreshCcw } from "lucide-react";
+import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
+import { toast } from "sonner";
 
 const NotFound = () => {
   const location = useLocation();
@@ -13,6 +15,19 @@ const NotFound = () => {
       location.pathname
     );
   }, [location.pathname]);
+  
+  const handleResetConnection = async () => {
+    try {
+      await shopifyConnectionService.forceResetConnection();
+      toast.success("تم إعادة تعيين حالة الاتصال بنجاح");
+      
+      // توجيه إلى صفحة الاتصال بعد إعادة التعيين
+      window.location.href = '/shopify-connect';
+    } catch (error) {
+      console.error("Error resetting connection:", error);
+      toast.error("فشل في إعادة تعيين حالة الاتصال");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4" dir="rtl">
@@ -30,10 +45,14 @@ const NotFound = () => {
             </Link>
           </Button>
           
-          <Button asChild variant="outline" className="w-full">
-            <Link to="/shopify">
+          <Button asChild variant="default" className="w-full">
+            <Link to="/shopify-connect">
               <Store className="mr-2 h-4 w-4" /> اتصال Shopify
             </Link>
+          </Button>
+          
+          <Button variant="outline" className="w-full" onClick={handleResetConnection}>
+            <RefreshCcw className="mr-2 h-4 w-4" /> إعادة تعيين اتصال Shopify
           </Button>
           
           <Button asChild variant="ghost" className="w-full" onClick={() => window.history.back()}>

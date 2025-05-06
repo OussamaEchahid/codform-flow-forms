@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -96,7 +95,6 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   return <Outlet />;
 };
 
-// Modified routing to include a redirect handler
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
   

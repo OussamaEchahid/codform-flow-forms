@@ -36,7 +36,7 @@ class ShopifyConnectionService {
       }
 
       // تحقق بشكل صريح من الرمز المؤقت وتنظيفه
-      if (data[0].access_token === 'placeholder_token' || data[0].access_token === '') {
+      if (!data[0].access_token || data[0].access_token === 'placeholder_token' || data[0].access_token === '') {
         console.error('Found placeholder or empty token for shop:', shop);
         
         // تنظيف الرمز المؤقت
@@ -50,12 +50,6 @@ class ShopifyConnectionService {
           console.error('Error cleaning placeholder token:', cleanupError);
         }
         
-        return null;
-      }
-      
-      // Verify that the token isn't empty
-      if (!data[0].access_token) {
-        console.error('Empty access token for shop:', shop);
         return null;
       }
       
@@ -263,14 +257,15 @@ class ShopifyConnectionService {
       console.log('Cleaning up placeholder tokens from database...');
       
       // تحديث جميع المتاجر التي لديها placeholder_token
-      const { data, error } = await shopifyStores()
+      const { data: placeholderData, error: placeholderError } = await shopifyStores()
         .update({ access_token: null })
         .eq('access_token', 'placeholder_token')
         .select();
 
-      if (error) {
-        console.error('Error cleaning placeholder tokens:', error);
-        return;
+      if (placeholderError) {
+        console.error('Error cleaning placeholder tokens:', placeholderError);
+      } else {
+        console.log(`Cleaned ${placeholderData?.length || 0} placeholder tokens`);
       }
 
       // أيضًا قم بتنظيف أي سجلات بـ access_token فارغ
@@ -281,14 +276,28 @@ class ShopifyConnectionService {
         
       if (emptyError) {
         console.error('Error cleaning empty tokens:', emptyError);
+      } else {
+        console.log(`Cleaned ${emptyData?.length || 0} empty tokens`);
+      }
+      
+      // تنظيف المتاجر غير النشطة من أي رموز
+      const { data: inactiveData, error: inactiveError } = await shopifyStores()
+        .update({ access_token: null })
+        .eq('is_active', false)
+        .select();
+        
+      if (inactiveError) {
+        console.error('Error cleaning inactive store tokens:', inactiveError);
+      } else {
+        console.log(`Cleaned ${inactiveData?.length || 0} inactive store tokens`);
       }
 
-      // سجل نتائج التنظيف
-      const tokensCleaned = (data?.length || 0) + (emptyData?.length || 0);
+      // سجل نتائج التنظيف الإجمالية
+      const tokensCleaned = (placeholderData?.length || 0) + (emptyData?.length || 0) + (inactiveData?.length || 0);
       if (tokensCleaned > 0) {
         console.log(`Cleaned ${tokensCleaned} invalid tokens from database`);
       } else {
-        console.log('No placeholder tokens found to clean');
+        console.log('No invalid tokens found to clean');
       }
     } catch (error) {
       console.error('Error in cleanupPlaceholderTokens:', error);
@@ -345,19 +354,22 @@ class ShopifyConnectionService {
     try {
       console.log('Performing force reset of connection state');
       
-      // First clean database
+      // أولاً تنظيف قاعدة البيانات
       await this.cleanupPlaceholderTokens();
       
-      // Remove all access tokens for inactive stores
-      const { error: inactiveError } = await shopifyStores()
-        .update({ access_token: null })
-        .eq('is_active', false);
+      // تحديث جميع المتاجر لتكون غير نشطة
+      const { error: updateError } = await shopifyStores()
+        .update({ 
+          is_active: false,
+          access_token: null
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
         
-      if (inactiveError) {
-        console.error('Error cleaning inactive store tokens:', inactiveError);
+      if (updateError) {
+        console.error('Error updating stores:', updateError);
       }
       
-      // Reset local storage
+      // إعادة تعيين التخزين المحلي
       this.completeConnectionReset();
       
       console.log('Connection state reset completed successfully');
