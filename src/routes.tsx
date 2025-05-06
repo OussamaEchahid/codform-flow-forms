@@ -4,6 +4,7 @@ import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard
 import Settings from '@/pages/Settings';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
+import ShopifyConnect from '@/pages/ShopifyConnect';
 import ShopifyStores from '@/pages/ShopifyStores';
 import ShopifyTest from '@/pages/ShopifyTest';
 import ShopifyProducts from '@/pages/ShopifyProducts';
@@ -36,6 +37,10 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify',
     Component: Shopify,
+  },
+  {
+    path: '/shopify-connect',
+    Component: ShopifyConnect,
   },
   {
     path: '/shopify-stores',

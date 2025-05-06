@@ -1,4 +1,3 @@
-
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
@@ -30,11 +29,28 @@ class ShopifyConnectionService {
         return null;
       }
       
-      if (data && data.length > 0 && data[0].access_token) {
+      // Verify that the token isn't the placeholder
+      if (data && data.length > 0 && data[0].access_token && data[0].access_token !== 'placeholder_token') {
         return data[0].access_token;
       }
 
-      console.error('No access token found for shop:', shop);
+      // إذا كان الرمز غير موجود أو هو placeholder_token، قم برفض الاتصال
+      if (data && data.length > 0 && data[0].access_token === 'placeholder_token') {
+        console.error('Found placeholder token for shop:', shop);
+        
+        // تنظيف الرمز placeholder
+        try {
+          await shopifyStores()
+            .update({ access_token: null })
+            .eq('shop', shop)
+            .eq('access_token', 'placeholder_token');
+          console.log('Cleaned placeholder token for shop:', shop);
+        } catch (cleanupError) {
+          console.error('Error cleaning placeholder token:', cleanupError);
+        }
+      }
+
+      console.error('No valid access token found for shop:', shop);
       return null;
     } catch (error) {
       console.error('Error in getAccessToken:', error);
@@ -118,6 +134,12 @@ class ShopifyConnectionService {
         throw new Error('Shop domain is required');
       }
       
+      // تنظيف الرمز إذا كان placeholder_token
+      if (token === 'placeholder_token') {
+        console.warn('Attempted to sync with placeholder_token - ignoring token');
+        token = undefined;
+      }
+      
       // Check if store exists
       const { data, error } = await shopifyStores()
         .select('*')
@@ -134,12 +156,17 @@ class ShopifyConnectionService {
         is_active: isActive
       };
       
-      // Update token only if provided
+      // Update token only if provided and not placeholder
       if (token) {
         updateData.access_token = token;
       }
       
       if (data && data.length > 0) {
+        // تنظيف placeholder_token إذا وُجد في قاعدة البيانات
+        if (data[0].access_token === 'placeholder_token' && !token) {
+          updateData.access_token = null;
+        }
+        
         // Update existing store
         await shopifyStores()
           .update(updateData)
@@ -204,6 +231,32 @@ class ShopifyConnectionService {
     // Reset connection manager
     shopifyConnectionManager.clearAllStores();
     shopifyConnectionManager.resetLoopDetection();
+  }
+  
+  /**
+   * تنظيف رموز placeholder_token من قاعدة البيانات
+   */
+  async cleanupPlaceholderTokens(): Promise<void> {
+    try {
+      // تحديث جميع المتاجر التي لديها placeholder_token
+      const { data, error } = await shopifyStores()
+        .update({ access_token: null })
+        .eq('access_token', 'placeholder_token')
+        .select();
+
+      if (error) {
+        console.error('Error cleaning placeholder tokens:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`Cleaned ${data.length} placeholder tokens from database`);
+      } else {
+        console.log('No placeholder tokens found to clean');
+      }
+    } catch (error) {
+      console.error('Error in cleanupPlaceholderTokens:', error);
+    }
   }
   
   /**

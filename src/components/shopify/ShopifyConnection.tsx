@@ -9,6 +9,7 @@ import { Store, Loader2, CheckCircle, AlertTriangle, RefreshCcw } from 'lucide-r
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 
 const ShopifyConnection = () => {
   const [shopDomain, setShopDomain] = useState('');
@@ -58,12 +59,21 @@ const ShopifyConnection = () => {
       if (data && data.length > 0) {
         setConnectedShop(storedShop);
         
-        // Test token validity
-        const isValid = await testToken(storedShop, data[0].access_token || '');
-        setIsConnected(isValid);
-        
-        if (!isValid) {
-          // If token is invalid, mark as disconnected and offer reconnection
+        // Only test if there's a valid token and it's not the placeholder
+        if (data[0].access_token && data[0].access_token !== 'placeholder_token') {
+          // Test token validity
+          const isValid = await testToken(storedShop, data[0].access_token);
+          setIsConnected(isValid);
+          
+          if (!isValid) {
+            // If token is invalid, mark as disconnected and offer reconnection
+            localStorage.setItem('shopify_connected', 'false');
+            setConnectionError('رمز الوصول غير صالح - يرجى إعادة الاتصال');
+          }
+        } else {
+          // If token is placeholder or missing, set as disconnected
+          setIsConnected(false);
+          setConnectionError('رمز الوصول غير موجود - يرجى الاتصال');
           localStorage.setItem('shopify_connected', 'false');
         }
       } else {
@@ -84,7 +94,7 @@ const ShopifyConnection = () => {
   // Test token validity
   const testToken = async (shop: string, token: string): Promise<boolean> => {
     try {
-      if (!shop || !token) {
+      if (!shop || !token || token === 'placeholder_token') {
         return false;
       }
       
@@ -136,6 +146,18 @@ const ShopifyConnection = () => {
     setConnectionError(null);
     
     try {
+      // تحديث قاعدة البيانات مسبقاً لتنظيف أي رموز placeholder
+      try {
+        // تنظيف أي رموز placeholder قبل الاتصال
+        await shopifyStores()
+          .update({ access_token: null })
+          .eq('access_token', 'placeholder_token');
+          
+        console.log('Cleaned up placeholder tokens from database');
+      } catch (cleanupError) {
+        console.error('Error cleaning up placeholder tokens:', cleanupError);
+      }
+      
       // Initiate OAuth flow
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
         body: { shop: normalizedShopDomain }
@@ -169,6 +191,16 @@ const ShopifyConnection = () => {
       return;
     }
     
+    // تنظيف أي رموز placeholder قبل إعادة الاتصال
+    try {
+      await shopifyStores()
+        .update({ access_token: null })
+        .eq('shop', connectedShop)
+        .eq('access_token', 'placeholder_token');
+    } catch (cleanupError) {
+      console.error('Error cleaning up placeholder token before reconnecting:', cleanupError);
+    }
+    
     setShopDomain(connectedShop);
     await connectStore();
   };
@@ -183,7 +215,11 @@ const ShopifyConnection = () => {
       // Update database
       if (connectedShop) {
         await shopifyStores()
-          .update({ is_active: false })
+          .update({ 
+            is_active: false,
+            // Remove placeholder_token if exists
+            access_token: null
+          })
           .eq('shop', connectedShop);
       }
       
@@ -196,6 +232,8 @@ const ShopifyConnection = () => {
       localStorage.removeItem('shopify_connected_stores');
       localStorage.removeItem('shopify_failsafe');
       localStorage.removeItem('shopify_recovery_mode');
+      
+      shopifyConnectionService.completeConnectionReset();
       
       setIsConnected(false);
       setConnectedShop(null);
@@ -256,7 +294,7 @@ const ShopifyConnection = () => {
     );
   }
 
-  // Render connect state
+  // Render connect state with error if exists
   return (
     <Card>
       <CardHeader>
