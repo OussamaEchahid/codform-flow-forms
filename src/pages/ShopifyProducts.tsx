@@ -6,7 +6,8 @@ import {
   ShoppingBag, 
   RefreshCcw, 
   Loader2, 
-  ArrowLeft 
+  ArrowLeft,
+  AlertTriangle 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ShopifyProduct {
   id: string;
@@ -23,13 +25,40 @@ interface ShopifyProduct {
   images?: string[];
 }
 
+interface DebugInfo {
+  localStorage: {
+    storedShop: string | null;
+    isConnected: boolean | null;
+  };
+  timestamp: string;
+  databaseQuery?: {
+    success: boolean;
+    hasData: boolean;
+  };
+  dbSync?: {
+    attempted: boolean;
+    success: boolean;
+    error?: any;
+  };
+  storeData?: {
+    shop: string;
+    hasToken: boolean;
+    isActive: boolean;
+  };
+  dbError?: string;
+  tokenError?: string;
+  error?: string;
+}
+
 const ShopifyProducts = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [shop, setShop] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [tokenError, setTokenError] = useState(false); 
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const navigate = useNavigate();
   
   const checkConnection = useCallback(async () => {
@@ -42,7 +71,7 @@ const ShopifyProducts = () => {
       const isConnected = localStorage.getItem('shopify_connected') === 'true';
       
       // Collect debug info
-      const debugData = {
+      const debugData: DebugInfo = {
         localStorage: {
           storedShop,
           isConnected,
@@ -73,7 +102,8 @@ const ShopifyProducts = () => {
           console.error('Error retrieving store information:', error);
           setIsConnected(false);
           setError('Could not retrieve store information from database.');
-          setDebugInfo({...debugData, dbError: error.message});
+          debugData.dbError = error.message;
+          setDebugInfo(debugData);
           setIsLoading(false);
           return false;
         }
@@ -86,7 +116,11 @@ const ShopifyProducts = () => {
             await shopifyConnectionService.syncStoreToDatabase(storedShop);
             debugData.dbSync = { attempted: true, success: true };
           } catch (syncError) {
-            debugData.dbSync = { attempted: true, success: false, error: syncError };
+            debugData.dbSync = { 
+              attempted: true, 
+              success: false, 
+              error: syncError instanceof Error ? syncError.message : String(syncError) 
+            };
           }
           
           setIsConnected(true); // Still allow connection based on localStorage
@@ -103,6 +137,12 @@ const ShopifyProducts = () => {
           isActive: data[0].is_active
         };
         
+        // Check if the token looks valid
+        if (!data[0].access_token || data[0].access_token === 'placeholder_token') {
+          debugData.tokenError = 'Access token missing or invalid';
+          setTokenError(true);
+        }
+        
         setShop(storedShop);
         setIsConnected(true);
         setDebugInfo(debugData);
@@ -113,7 +153,8 @@ const ShopifyProducts = () => {
         // Even if there's a database error, we'll still allow the connection based on localStorage
         setShop(storedShop);
         setIsConnected(true);
-        setDebugInfo({...debugData, dbError: dbError instanceof Error ? dbError.message : String(dbError)});
+        debugData.dbError = dbError instanceof Error ? dbError.message : String(dbError);
+        setDebugInfo(debugData);
         setIsLoading(false);
         return true;
       }
@@ -123,7 +164,11 @@ const ShopifyProducts = () => {
       setError('Error checking Shopify connection status.');
       setDebugInfo({
         error: err instanceof Error ? err.message : String(err),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        localStorage: {
+          storedShop: localStorage.getItem('shopify_store'),
+          isConnected: localStorage.getItem('shopify_connected') === 'true'
+        }
       });
       setIsLoading(false);
       return false;
@@ -142,15 +187,19 @@ const ShopifyProducts = () => {
       setIsLoading(true);
       setError(null);
       
+      // First check if token exists and is valid
       let accessToken;
       try {
-        // Get access token
         accessToken = await shopifyConnectionService.getAccessToken(storedShop);
+        
+        if (!accessToken || accessToken === 'placeholder_token') {
+          setTokenError(true);
+          throw new Error('Invalid or missing access token. Please reconnect your store.');
+        }
       } catch (tokenError) {
         console.error('Error getting access token:', tokenError);
-        // If we can't get the token, try with a placeholder for testing
-        accessToken = 'placeholder_token';
-        toast.warning('Using temporary token for testing - products may not load');
+        setTokenError(true);
+        throw new Error('Failed to get a valid access token. Please reconnect your Shopify store.');
       }
       
       console.log(`Fetching products for shop: ${storedShop}`);
@@ -164,7 +213,15 @@ const ShopifyProducts = () => {
         throw error;
       }
       
-      if (!data || !data.products) {
+      if (!data || !data.success) {
+        if (data?.error && data.error.includes('Invalid API key or access token')) {
+          setTokenError(true);
+          throw new Error('Invalid Shopify API token. Please reconnect your store.');
+        }
+        throw new Error(data?.message || 'Failed to fetch products');
+      }
+      
+      if (!data.products) {
         throw new Error('Invalid response format from API');
       }
       
@@ -172,12 +229,36 @@ const ShopifyProducts = () => {
       toast.success(`Loaded ${data.products.length} products from Shopify`);
     } catch (err) {
       console.error('Error fetching products:', err);
-      setError('Error fetching products from Shopify: ' + (err instanceof Error ? err.message : String(err)));
+      setError(err instanceof Error ? err.message : String(err));
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
     }
   }, [shop]);
+  
+  const handleReconnect = () => {
+    setIsReconnecting(true);
+    
+    try {
+      // Get the shop domain
+      const shopDomain = shop || localStorage.getItem('shopify_store') || '';
+      if (!shopDomain) {
+        toast.error('No store to reconnect');
+        setIsReconnecting(false);
+        return;
+      }
+      
+      // Force-clean existing connection
+      shopifyConnectionService.completeConnectionReset();
+      
+      // Navigate to Shopify connection page with the shop parameter and force_update flag
+      navigate(`/shopify?shop=${encodeURIComponent(shopDomain)}&force_update=true`);
+    } catch (error) {
+      console.error('Error during reconnect:', error);
+      setIsReconnecting(false);
+      toast.error('Failed to start reconnection process');
+    }
+  };
   
   // Check connection on mount
   useEffect(() => {
@@ -225,6 +306,13 @@ const ShopifyProducts = () => {
                 Connected
               </Badge>
               <span className="ml-2 font-medium">{shop}</span>
+              
+              {tokenError && (
+                <Badge variant="outline" className="ml-3 bg-yellow-50 text-yellow-600 flex items-center">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  Invalid Token
+                </Badge>
+              )}
             </div>
           ) : (
             <div className="flex items-center text-red-600">
@@ -235,18 +323,46 @@ const ShopifyProducts = () => {
               {error && <span className="ml-2">{error}</span>}
             </div>
           )}
+          
+          {tokenError && (
+            <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription>
+                Your Shopify access token appears to be invalid or expired. 
+                Please reconnect your store to continue using this feature.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex flex-col sm:flex-row gap-3">
           <Button onClick={checkConnection} disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && !isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Test Connection
           </Button>
           
-          <Button onClick={fetchProducts} disabled={!isConnected || isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <ShoppingBag className="mr-2 h-4 w-4" />
-            Load Products
-          </Button>
+          {tokenError ? (
+            <Button 
+              variant="destructive" 
+              onClick={handleReconnect} 
+              disabled={isReconnecting}
+              className="w-full sm:w-auto"
+            >
+              {isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Reconnect Store
+            </Button>
+          ) : (
+            <Button 
+              onClick={fetchProducts} 
+              disabled={!isConnected || isLoading || tokenError}
+              variant="default"
+              className="w-full sm:w-auto"
+            >
+              {isLoading && !isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Load Products
+            </Button>
+          )}
         </CardFooter>
       </Card>
       
