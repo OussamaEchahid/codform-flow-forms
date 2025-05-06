@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { ShopifyStore } from '@/lib/shopify/database-types';
 
 export class ShopifyConnectionService {
@@ -29,9 +29,8 @@ export class ShopifyConnectionService {
     }
 
     try {
-      // Fetch from database
-      const { data, error } = await supabase
-        .from('shopify_stores')
+      // Fetch from database using shopifyStores helper
+      const { data, error } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })
@@ -73,7 +72,7 @@ export class ShopifyConnectionService {
       const accessToken = token || await this.getAccessToken(shop);
       
       // Call Shopify API to test token
-      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: { shop, accessToken }
       });
 
@@ -94,8 +93,7 @@ export class ShopifyConnectionService {
    */
   public async storeAccessToken(shop: string, accessToken: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('shopify_stores')
+      const { error } = await shopifyStores()
         .insert([
           { shop, access_token: accessToken }
         ]);
@@ -121,8 +119,7 @@ export class ShopifyConnectionService {
   public async forceActivateStore(shop: string): Promise<boolean> {
     try {
       // First, set all stores to inactive
-      const { error: updateError } = await supabase
-        .from('shopify_stores')
+      const { error: updateError } = await shopifyStores()
         .update({ is_active: false })
         .neq('id', '0'); // Changed from 0 to '0' to match string type
 
@@ -132,8 +129,7 @@ export class ShopifyConnectionService {
       }
 
       // Then, set the target store to active
-      const { error } = await supabase
-        .from('shopify_stores')
+      const { error } = await shopifyStores()
         .update({ is_active: true, updated_at: new Date().toISOString() })
         .eq('shop', shop);
 
