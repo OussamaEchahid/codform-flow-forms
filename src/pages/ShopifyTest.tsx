@@ -11,6 +11,7 @@ import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, RefreshCw, ShieldAlert } from 'lucide-react';
 import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
+import { ShopifyStore } from '@/lib/shopify/database-types';
 
 const ShopifyTest: React.FC = () => {
   const navigate = useNavigate();

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { ShopifyStore } from '@/lib/shopify/database-types';
 
 export class ShopifyConnectionService {
   private static instance: ShopifyConnectionService;
@@ -46,7 +47,8 @@ export class ShopifyConnectionService {
       }
 
       // Get the token field (handle potential property name differences)
-      const token = data[0].access_token || '';
+      const storeData = data[0] as ShopifyStore;
+      const token = storeData.access_token || '';
       
       if (!token) {
         throw new Error(`Invalid access token for ${shop}`);

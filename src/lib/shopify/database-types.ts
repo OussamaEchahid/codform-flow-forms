@@ -24,7 +24,7 @@ export interface ShopifyProductSettings {
 }
 
 // Custom Database type that includes our tables
-export interface CustomDatabase {
+export interface Database {
   public: {
     Tables: {
       shopify_stores: {
@@ -38,5 +38,9 @@ export interface CustomDatabase {
         Update: Partial<Omit<ShopifyProductSettings, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
+    Views: {};
+    Functions: {};
+    Enums: {};
+    CompositeTypes: {};
   };
 }
