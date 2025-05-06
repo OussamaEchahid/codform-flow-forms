@@ -1,8 +1,11 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { FormField, FormStep } from '@/lib/form-utils';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 // Export FormData interface
 export interface FormData {
@@ -26,20 +29,53 @@ export interface FormTemplate {
 
 export const useFormTemplates = () => {
   const { setFormState } = useFormStore();
-  const { user } = useAuth(); // Remove session reference
+  const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
+
+  // Get current active shop ID from localStorage if not available in context
+  const getActiveShopId = () => {
+    return shop || localStorage.getItem('shopify_store');
+  };
 
   // Fetch all forms
   const fetchForms = async () => {
     try {
       setIsLoading(true);
-      // Mock implementation - in a real app, fetch from backend
-      setForms([]); // Reset forms
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.error('No active shop ID found');
+        toast.error('لم يتم العثور على متجر نشط');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch forms from Supabase where shop_id matches
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching forms:', error);
+        toast.error('خطأ في جلب النماذج');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Transform data to match FormData interface
+      const formattedData = data.map(form => ({
+        ...form,
+        isPublished: form.is_published
+      }));
+      
+      setForms(formattedData);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching forms', error);
-      toast.error('Error fetching forms');
+      toast.error('خطأ في جلب النماذج');
       setIsLoading(false);
     }
   };
@@ -49,32 +85,63 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       const template = formTemplates.find(t => t.id === templateId);
+      const shopId = getActiveShopId();
+      
       if (!template) {
-        toast.error('Template not found');
+        toast.error('لم يتم العثور على القالب');
+        setIsLoading(false);
+        return null;
+      }
+      
+      if (!shopId) {
+        console.error('No active shop ID found');
+        toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
         return null;
       }
 
-      const newFormId = Math.random().toString(36).substring(2, 15);
+      // New form data
+      const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
         title: template.title,
         description: template.description,
         data: template.data,
         isPublished: false,
-        // Remove direct shopify reference
+        shop_id: shopId,
       };
 
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('forms')
+        .insert({
+          id: newFormId,
+          title: template.title,
+          description: template.description,
+          data: template.data,
+          is_published: false,
+          shop_id: shopId,
+          user_id: user?.id
+        });
+
+      if (error) {
+        console.error('Error saving form to database:', error);
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        setIsLoading(false);
+        return null;
+      }
+
       setFormState(formData);
-      toast.success(`Created form from template ${template.title}`);
+      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
-      // Remove shopify sync code since it's not available in the auth context
+      // Refresh forms list
+      fetchForms();
       
       setIsLoading(false);
       return formData;
     } catch (error) {
       console.error('Error creating form from template', error);
-      toast.error('Error creating form from template');
+      toast.error('خطأ في إنشاء نموذج من قالب');
       setIsLoading(false);
       return null;
     }
@@ -85,25 +152,56 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       const defaultTemplate = formTemplates[0]; // Use first template as default
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.error('No active shop ID found');
+        toast.error('لم يتم العثور على متجر نشط');
+        setIsLoading(false);
+        return null;
+      }
 
-      const newFormId = Math.random().toString(36).substring(2, 15);
+      const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
-        title: 'New Form',
-        description: 'A new form',
+        title: 'نموذج جديد',
+        description: 'نموذج جديد',
         data: defaultTemplate.data,
         isPublished: false,
-        // Remove direct shopify reference
+        shop_id: shopId,
       };
 
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('forms')
+        .insert({
+          id: newFormId,
+          title: 'نموذج جديد',
+          description: 'نموذج جديد',
+          data: defaultTemplate.data,
+          is_published: false,
+          shop_id: shopId,
+          user_id: user?.id
+        });
+        
+      if (error) {
+        console.error('Error saving form to database:', error);
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        setIsLoading(false);
+        return null;
+      }
+
       setFormState(formData);
-      toast.success('Created new form');
+      toast.success('تم إنشاء نموذج جديد');
+      
+      // Refresh forms list
+      fetchForms();
       
       setIsLoading(false);
       return formData;
     } catch (error) {
       console.error('Error creating default form', error);
-      toast.error('Error creating default form');
+      toast.error('خطأ في إنشاء نموذج جديد');
       setIsLoading(false);
       return null;
     }
@@ -113,12 +211,39 @@ export const useFormTemplates = () => {
   const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
-      // Mock implementation - in a real app, save to backend
+      
+      // Convert isPublished to is_published for database
+      const dbData: any = { ...formData };
+      if (dbData.isPublished !== undefined) {
+        dbData.is_published = dbData.isPublished;
+        delete dbData.isPublished;
+      }
+      
+      // Update form in Supabase
+      const { error } = await supabase
+        .from('forms')
+        .update(dbData)
+        .eq('id', formId);
+      
+      if (error) {
+        console.error('Error updating form:', error);
+        toast.error('خطأ في تحديث النموذج');
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Update local state if forms list is loaded
+      if (forms.length > 0) {
+        setForms(forms.map(form => 
+          form.id === formId ? { ...form, ...formData } : form
+        ));
+      }
+      
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error saving form', error);
-      toast.error('Error saving form');
+      toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
       return false;
     }
@@ -128,12 +253,31 @@ export const useFormTemplates = () => {
   const publishForm = async (formId: string, publish: boolean) => {
     try {
       setIsLoading(true);
-      // Mock implementation - in a real app, update in backend
+      
+      // Update form in Supabase
+      const { error } = await supabase
+        .from('forms')
+        .update({ is_published: publish })
+        .eq('id', formId);
+      
+      if (error) {
+        console.error('Error publishing form:', error);
+        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Update local state
+      setForms(forms.map(form => 
+        form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+      ));
+      
+      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error publishing form', error);
-      toast.error('Error publishing form');
+      toast.error('خطأ في تغيير حالة نشر النموذج');
       setIsLoading(false);
       return false;
     }
@@ -143,15 +287,75 @@ export const useFormTemplates = () => {
   const deleteForm = async (formId: string) => {
     try {
       setIsLoading(true);
-      // Mock implementation - in a real app, delete from backend
+      
+      // Delete form from Supabase
+      const { error } = await supabase
+        .from('forms')
+        .delete()
+        .eq('id', formId);
+      
+      if (error) {
+        console.error('Error deleting form:', error);
+        toast.error('خطأ في حذف النموذج');
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Update local state
       setForms(forms.filter(form => form.id !== formId));
+      
+      toast.success('تم حذف النموذج بنجاح');
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error deleting form', error);
-      toast.error('Error deleting form');
+      toast.error('خطأ في حذف النموذج');
       setIsLoading(false);
       return false;
+    }
+  };
+  
+  // Load a specific form by ID
+  const loadForm = async (formId: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch form from Supabase
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .single();
+      
+      if (error) {
+        console.error('Error loading form:', error);
+        toast.error('خطأ في تحميل النموذج');
+        setIsLoading(false);
+        return null;
+      }
+      
+      if (!data) {
+        toast.error('النموذج غير موجود');
+        setIsLoading(false);
+        return null;
+      }
+      
+      // Format data for form state
+      const formData: FormData = {
+        ...data,
+        isPublished: data.is_published
+      };
+      
+      // Update form state
+      setFormState(formData);
+      
+      setIsLoading(false);
+      return formData;
+    } catch (error) {
+      console.error('Error loading form', error);
+      toast.error('خطأ في تحميل النموذج');
+      setIsLoading(false);
+      return null;
     }
   };
   
@@ -163,7 +367,8 @@ export const useFormTemplates = () => {
     createDefaultForm,
     saveForm,
     publishForm,
-    deleteForm
+    deleteForm,
+    loadForm
   };
 };
 

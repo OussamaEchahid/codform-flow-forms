@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
+import { useFormStore } from '@/hooks/useFormStore';
 import {
   DndContext,
   closestCenter,
@@ -18,7 +19,7 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { FormField, FormStep, formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
@@ -36,13 +37,17 @@ interface FormBuilderEditorProps {
 
 const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const navigate = useNavigate();
+  const params = useParams();
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
-  const { createFormFromTemplate } = useFormTemplates();
+  const { createFormFromTemplate, saveForm, loadForm } = useFormTemplates();
+  const { formState, setFormState } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
@@ -55,15 +60,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   });
   
   const [refreshKey, setRefreshKey] = useState(0);
-  const [formElements, setFormElements] = useState<Array<FormField>>([
-    { type: 'title', id: 'title-1', label: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery' },
-    { type: 'text', id: 'name-1', label: language === 'ar' ? 'الاسم الكامل' : 'Full name', required: true, placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name' },
-    { type: 'phone', id: 'phone-1', label: language === 'ar' ? 'رقم الهاتف' : 'Phone number', required: true, placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number' },
-    { type: 'text', id: 'city-1', label: language === 'ar' ? 'المدينة' : 'City', required: true, placeholder: language === 'ar' ? 'المدينة' : 'City' },
-    { type: 'textarea', id: 'address-1', label: language === 'ar' ? 'العنوان' : 'Address', required: true, placeholder: language === 'ar' ? 'العنوان' : 'address' },
-    { type: 'cart-items', id: 'cart-1', label: language === 'ar' ? 'المنتج' : 'Product item' },
-    { type: 'submit', id: 'submit-1', label: language === 'ar' ? 'شراء بالدفع عند الاستلام' : 'Buy with Cash on Delivery' }
-  ]);
+  const [formElements, setFormElements] = useState<Array<FormField>>([]);
   
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
@@ -87,16 +84,95 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
   ];
 
+  // Load form data when formId changes
+  useEffect(() => {
+    const currentFormId = formId || params.formId;
+    
+    if (currentFormId) {
+      loadForm(currentFormId).then(formData => {
+        if (formData) {
+          setFormTitle(formData.title);
+          setFormDescription(formData.description || '');
+          setFormElements(
+            formData.data.flatMap(step => step.fields) || []
+          );
+          setIsPublished(!!formData.isPublished);
+          
+          console.log("Loaded form data:", formData);
+        }
+      });
+    }
+  }, [formId, params.formId, loadForm]);
+
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-    }, 1000);
+    
+    // Create form step from elements
+    const formStep: FormStep = {
+      id: '1',
+      title: 'Main Step',
+      fields: formElements
+    };
+    
+    // Prepare data for saving
+    const currentFormId = formId || params.formId || formState.id;
+    const formData: Partial<FormData> = {
+      title: formTitle,
+      description: formDescription,
+      data: [formStep]
+    };
+    
+    if (currentFormId) {
+      // Update existing form
+      const success = await saveForm(currentFormId, formData);
+      
+      if (success) {
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        
+        // Update form state
+        setFormState({
+          ...formState,
+          ...formData
+        });
+      }
+    } else {
+      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+    }
+    
+    setIsSaving(false);
+  };
+
+  const handlePublish = async () => {
+    const currentFormId = formId || params.formId || formState.id;
+    
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+      return;
+    }
+    
+    setIsPublishing(true);
+    
+    // Save form before publishing
+    await handleSave();
+    
+    // Toggle publish status
+    const newPublishState = !isPublished;
+    const success = await saveForm(currentFormId, { isPublished: newPublishState });
+    
+    if (success) {
+      setIsPublished(newPublishState);
+      toast.success(
+        newPublishState 
+          ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+          : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+      );
+    }
+    
+    setIsPublishing(false);
   };
 
   const addElement = (type: string) => {
@@ -258,12 +334,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     <main className="flex-1 overflow-auto">
       <FormHeader 
         onSave={handleSave}
-        onPublish={() => {}}
+        onPublish={handlePublish}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
         isSaving={isSaving}
-        isPublishing={false}
-        isPublished={false}
+        isPublishing={isPublishing}
+        isPublished={isPublished}
       />
       
       <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">

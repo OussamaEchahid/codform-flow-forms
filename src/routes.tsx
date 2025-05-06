@@ -33,6 +33,10 @@ export const routes: RouteObject[] = [
     Component: Forms,
   },
   {
+    path: '/form-builder',
+    Component: FormBuilderPage,
+  },
+  {
     path: '/form-builder/:formId',
     Component: FormBuilderPage,
   },
