@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
-import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { Loader2, RefreshCw, AlertTriangle, CheckCircle, Store } from 'lucide-react';
+import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { toast } from 'sonner';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 const Shopify = () => {
   const [shopDomain, setShopDomain] = useState('');
@@ -24,36 +24,85 @@ const Shopify = () => {
   useEffect(() => {
     const checkExistingConnection = async () => {
       setIsCheckingStatus(true);
+      
       try {
-        // Check if we have a connection in localStorage/connection manager
-        const activeShop = shopifyConnectionManager.getActiveStore();
+        console.log('Checking existing Shopify connection...');
         
-        if (activeShop) {
-          console.log('Found active shop in connection manager:', activeShop);
-          
-          // Verify the connection with Supabase
-          const { data, error } = await shopifyStores()
-            .select('*')
-            .eq('shop', activeShop)
-            .order('updated_at', { ascending: false })
-            .limit(1);
+        // Check if we have a connection in database
+        const { data, error } = await shopifyStores()
+          .select('*')
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false })
+          .limit(1);
             
-          if (error) {
-            console.error('Error fetching store data:', error);
-            setConnectionError('خطأ في التحقق من حالة الاتصال');
-            setIsConnected(false);
-          } else if (data && data.length > 0) {
-            console.log('Found store data in database');
-            setConnectedShop(activeShop);
+        if (error) {
+          console.error('Error fetching store data:', error);
+          setConnectionError('خطأ في التحقق من حالة الاتصال');
+          setIsConnected(false);
+        } else if (data && data.length > 0) {
+          console.log('Found active store in database:', data[0].shop);
+          
+          // Test token validity
+          const isValid = await shopifyConnectionService.isTokenValid(data[0].shop);
+          
+          if (isValid) {
+            setConnectedShop(data[0].shop);
             setIsConnected(true);
+            // Update localStorage for consistency
+            localStorage.setItem('shopify_store', data[0].shop);
+            localStorage.setItem('shopify_connected', 'true');
           } else {
-            console.log('Store not found in database, clearing local state');
-            shopifyConnectionManager.clearAllStores();
+            console.log('Token is not valid, clearing connection state');
             setIsConnected(false);
+            setConnectionError('رمز الوصول غير صالح، يرجى إعادة الاتصال');
+            // Clear localStorage
+            localStorage.removeItem('shopify_store');
+            localStorage.removeItem('shopify_connected');
           }
         } else {
-          console.log('No active shop found in connection manager');
-          setIsConnected(false);
+          console.log('No active shop found in database');
+          
+          // As a fallback, check localStorage
+          const storedShop = localStorage.getItem('shopify_store');
+          const storedConnected = localStorage.getItem('shopify_connected') === 'true';
+          
+          if (storedShop && storedConnected) {
+            console.log('Found store in localStorage:', storedShop);
+            
+            // Verify in database
+            const { data: shopData } = await shopifyStores()
+              .select('*')
+              .eq('shop', storedShop)
+              .limit(1);
+              
+            if (shopData && shopData.length > 0) {
+              console.log('Store found in database, testing token validity');
+              const isValid = await shopifyConnectionService.isTokenValid(storedShop);
+              
+              if (isValid) {
+                console.log('Token is valid, activating store');
+                setConnectedShop(storedShop);
+                setIsConnected(true);
+                // Ensure it's set as active in database
+                await shopifyConnectionService.forceActivateStore(storedShop);
+              } else {
+                console.log('Token is not valid, clearing connection state');
+                setIsConnected(false);
+                setConnectionError('رمز الوصول غير صالح، يرجى إعادة الاتصال');
+                // Clear localStorage
+                localStorage.removeItem('shopify_store');
+                localStorage.removeItem('shopify_connected');
+              }
+            } else {
+              console.log('Store not found in database, clearing local state');
+              setIsConnected(false);
+              // Clear localStorage
+              localStorage.removeItem('shopify_store');
+              localStorage.removeItem('shopify_connected');
+            }
+          } else {
+            setIsConnected(false);
+          }
         }
       } catch (error) {
         console.error('Error checking connection status:', error);
@@ -100,17 +149,18 @@ const Shopify = () => {
     }
     
     // Save last URL shop for potential recovery
-    shopifyConnectionManager.saveLastUrlShop(normalizedShopDomain);
+    localStorage.setItem('shopify_last_url_shop', normalizedShopDomain);
     
     setIsConnecting(true);
     setConnectionError(null);
     
     try {
+      console.log(`Initiating connection to shop: ${normalizedShopDomain}`);
+      
       // Call Supabase Edge Function to start OAuth flow
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
         body: { 
-          shop: normalizedShopDomain,
-          redirect_uri: 'https://your-redirect-uri.com'
+          shop: normalizedShopDomain
         }
       });
       
@@ -123,6 +173,8 @@ const Shopify = () => {
       }
       
       console.log('Redirect URL received:', data.redirect);
+      console.log('Auth state:', data.state);
+      console.log('DB state saved:', data.dbState);
       
       // Save the shop we're connecting to in localStorage for recovery if needed
       localStorage.setItem('shopify_temp_store', normalizedShopDomain);
@@ -143,10 +195,26 @@ const Shopify = () => {
   
   const handleDisconnect = async () => {
     try {
+      // Confirmation before disconnecting
+      if (!window.confirm('هل أنت متأكد من رغبتك في قطع الاتصال بهذا المتجر؟')) {
+        return;
+      }
+      
+      console.log('Disconnecting from shop:', connectedShop);
+      
       // Clear connection state
-      shopifyConnectionManager.clearAllStores();
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
+      shopifyConnectionService.completeConnectionReset();
+      
+      // Update database if needed
+      if (connectedShop) {
+        const { error } = await shopifyStores()
+          .update({ is_active: false })
+          .eq('shop', connectedShop);
+          
+        if (error) {
+          console.error('Error updating store status in database:', error);
+        }
+      }
       
       // Update state
       setIsConnected(false);
@@ -159,15 +227,18 @@ const Shopify = () => {
     }
   };
   
-  const handleViewProducts = () => {
-    navigate('/shopify-view');
+  const handleViewDashboard = () => {
+    navigate('/dashboard');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>الاتصال بمتجر Shopify</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Store className="h-6 w-6" />
+            الاتصال بمتجر Shopify
+          </CardTitle>
           <CardDescription>قم بربط متجرك لجلب المنتجات وإدارة النماذج</CardDescription>
         </CardHeader>
         
@@ -192,9 +263,9 @@ const Shopify = () => {
               <Button 
                 className="w-full" 
                 variant="default" 
-                onClick={handleViewProducts}
+                onClick={handleViewDashboard}
               >
-                عرض منتجات المتجر
+                الذهاب إلى لوحة التحكم
               </Button>
               
               <Button 

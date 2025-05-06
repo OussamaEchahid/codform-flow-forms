@@ -30,5 +30,12 @@ enabled = false
 [realtime]
 enabled = false
 
+[functions]
 [functions.shopify-test-connection]
+verify_jwt = false
+
+[functions.shopify-auth]
+verify_jwt = false
+
+[functions.shopify-callback]
 verify_jwt = false

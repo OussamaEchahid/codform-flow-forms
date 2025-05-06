@@ -89,6 +89,30 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_auth: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          shop: string
+          state: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          shop: string
+          state: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          shop?: string
+          state?: string
+        }
+        Relationships: []
+      }
       shopify_product_settings: {
         Row: {
           block_id: string | null
@@ -172,6 +196,10 @@ export type Database = {
       check_column_exists: {
         Args: { p_table: string; p_column: string }
         Returns: boolean
+      }
+      cleanup_expired_shopify_auth: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       create_form_with_shop: {
         Args: {

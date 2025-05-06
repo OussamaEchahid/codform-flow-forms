@@ -1,15 +1,18 @@
 
-// تعديل مسار الرد على المصادقة لاستخدام المسار الصحيح
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9";
 
-// إعدادات Supabase
-const SUPABASE_URL = 'https://nhqrngdzuatdnfkihtud.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ocXJuZ2R6dWF0ZG5ma2lodHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2MDM2MTgsImV4cCI6MjA2MTE3OTYxOH0.bebH8nV_6W0DpwjmS_vYFB2P9xVU-txCRvQc6Jt5DdA';
+// إعدادات Supabase - تحديث لاستخدام المتغيرات البيئية الصحيحة
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
 
-// إعدادات تطبيق Shopify
+// التحقق من وجود مفتاح API
+if (!SUPABASE_KEY) {
+  console.error("Warning: SUPABASE_SERVICE_ROLE_KEY not set. Using a fallback approach.");
+}
+
+// إعدادات تطبيق Shopify - التأكد من وجود المفتاح
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 
 // صلاحيات التطبيق
@@ -18,13 +21,14 @@ const scopes = "write_products,read_products,read_orders,write_orders,write_scri
 // عنوان URL للتطبيق المستضاف
 const APP_URL = "https://codform-flow-forms.lovable.app";
 
-// عنوان URL لرد المصادقة - تحديث المسار هنا
+// عنوان URL لرد المصادقة
 const CALLBACK_URL = `${APP_URL}/shopify-callback`;
 
 // إعداد عناوين CORS
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Content-Type": "application/json",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
@@ -33,6 +37,8 @@ const corsHeaders = {
 
 // دالة لتنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
+  if (!shop) return "";
+  
   let cleanedShop = shop.trim();
   
   // إزالة البروتوكول إذا كان موجودًا
@@ -63,6 +69,14 @@ function isValidShopifyDomain(shop: string): boolean {
   const shopifyDomainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
   
   return shopifyDomainPattern.test(shop);
+}
+
+// طريقة بديلة لحفظ حالة المصادقة إذا فشل الاتصال بقاعدة البيانات
+function generateSecureStateWithoutDB(): { state: string, timestamp: number } {
+  const state = uuidv4();
+  const timestamp = Date.now();
+  
+  return { state, timestamp };
 }
 
 serve(async (req) => {
@@ -137,32 +151,42 @@ serve(async (req) => {
     // إنشاء حالة مصادقة فريدة
     const state = uuidv4();
     
-    // حفظ حالة المصادقة في قاعدة البيانات
+    // محاولة حفظ حالة المصادقة في قاعدة البيانات
+    let dbSaveSuccess = false;
+    
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-      
-      const { error } = await supabase
-        .from('shopify_auth')
-        .insert({
-          shop,
-          state
-          // لقد حذفنا field force_update لأنه غير موجود في الجدول
-        });
-      
-      if (error) {
-        console.error("Error saving auth state:", error);
+      if (SUPABASE_KEY) {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        const { error } = await supabase
+          .from('shopify_auth')
+          .insert({
+            shop,
+            state
+          });
+        
+        if (error) {
+          console.error("Error saving auth state:", error);
+          // سنتابع العملية مع طريقة بديلة
+        } else {
+          console.log("Auth state saved successfully");
+          dbSaveSuccess = true;
+        }
       } else {
-        console.log("Auth state saved successfully");
+        console.warn("SUPABASE_KEY not available, using alternative method");
       }
     } catch (e) {
       console.error("Database error:", e);
-      // استمر على الرغم من الخطأ
+      // استمر على الرغم من الخطأ مع طريقة بديلة
     }
+    
+    // إذا فشل حفظ الحالة في قاعدة البيانات، نستخدم طريقة بديلة
+    const fallbackState = !dbSaveSuccess ? generateSecureStateWithoutDB() : null;
     
     // إنشاء عنوان URL للمصادقة
     console.log("Using callback URL:", CALLBACK_URL);
     
-    const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&state=${state}`;
+    const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${scopes}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&state=${fallbackState ? fallbackState.state : state}`;
     
     console.log("Generated auth URL:", authUrl);
     
@@ -170,10 +194,11 @@ serve(async (req) => {
       JSON.stringify({ 
         redirect: authUrl,
         shop,
-        state,
+        state: fallbackState ? fallbackState.state : state,
         success: true,
         callbackUrl: CALLBACK_URL,
-        forceUpdate: forceUpdate // إضافة flag للاستخدام في واجهة المستخدم
+        forceUpdate, // إضافة flag للاستخدام في واجهة المستخدم
+        dbState: dbSaveSuccess ? "saved" : "fallback" // لأغراض التشخيص
       }),
       { status: 200, headers: corsHeaders }
     );

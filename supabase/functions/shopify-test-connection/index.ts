@@ -4,7 +4,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
 
 serve(async (req) => {
   // تعامل مع طلبات CORS المسبقة
@@ -28,6 +30,8 @@ serve(async (req) => {
       )
     }
 
+    console.log(`Testing connection for shop: ${shop}`);
+
     // اختبار الاتصال من خلال استدعاء API لـ Shopify - استدعاء بسيط لجلب متجر
     const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-07/shop.json`, {
       headers: {
@@ -37,11 +41,15 @@ serve(async (req) => {
     })
 
     if (!shopifyResponse.ok) {
+      const errorText = await shopifyResponse.text();
+      console.error(`Invalid token or shop. Status: ${shopifyResponse.status}, Response: ${errorText}`);
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
           message: 'Invalid token or shop', 
-          status: shopifyResponse.status 
+          status: shopifyResponse.status,
+          error: errorText 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -51,6 +59,7 @@ serve(async (req) => {
     }
 
     const shopData = await shopifyResponse.json()
+    console.log(`Connection successful for shop: ${shop}`);
     
     return new Response(
       JSON.stringify({ 
@@ -64,10 +73,11 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Error testing connection:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'An error occurred' 
+        error: error instanceof Error ? error.message : 'An error occurred' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

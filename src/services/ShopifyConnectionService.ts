@@ -22,13 +22,20 @@ export class ShopifyConnectionService {
    * Get access token for a Shopify store
    */
   public async getAccessToken(shop: string): Promise<string> {
+    if (!shop) {
+      throw new Error('Shop parameter is required');
+    }
+    
     // Check cache first
     const cachedToken = this.tokenCache.get(shop);
     if (cachedToken && Date.now() - cachedToken.timestamp < this.cacheExpiration) {
+      console.log(`Using cached token for ${shop}`);
       return cachedToken.token;
     }
 
     try {
+      console.log(`Fetching access token for shop: ${shop}`);
+      
       // Fetch from database using shopifyStores helper
       const { data, error } = await shopifyStores()
         .select('*')
@@ -45,7 +52,7 @@ export class ShopifyConnectionService {
         throw new Error(`No access token found for ${shop}`);
       }
 
-      // Get the token field (handle potential property name differences)
+      // Get the token field
       const storeData = data[0] as ShopifyStore;
       const token = storeData.access_token || '';
       
@@ -55,6 +62,7 @@ export class ShopifyConnectionService {
 
       // Update cache
       this.tokenCache.set(shop, { token, timestamp: Date.now() });
+      console.log(`Token retrieved and cached for ${shop}`);
       
       return token;
     } catch (error) {
@@ -67,9 +75,16 @@ export class ShopifyConnectionService {
    * Test if a token is valid
    */
   public async isTokenValid(shop: string, token?: string): Promise<boolean> {
+    if (!shop) {
+      console.error('Shop parameter is required for token validation');
+      return false;
+    }
+    
     try {
       // Use token provided or get from service
       const accessToken = token || await this.getAccessToken(shop);
+      
+      console.log(`Testing token validity for shop: ${shop}`);
       
       // Call Shopify API to test token
       const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
@@ -81,7 +96,10 @@ export class ShopifyConnectionService {
         return false;
       }
 
-      return data?.success === true;
+      const isValid = data?.success === true;
+      console.log(`Token validity check result for ${shop}: ${isValid ? 'valid' : 'invalid'}`);
+      
+      return isValid;
     } catch (error) {
       console.error('Error testing token validity:', error);
       return false;
@@ -92,10 +110,22 @@ export class ShopifyConnectionService {
    * Store a new access token
    */
   public async storeAccessToken(shop: string, accessToken: string): Promise<boolean> {
+    if (!shop || !accessToken) {
+      console.error('Shop and accessToken are required');
+      return false;
+    }
+    
     try {
+      console.log(`Storing access token for shop: ${shop}`);
+      
       const { error } = await shopifyStores()
         .insert([
-          { shop, access_token: accessToken }
+          { 
+            shop, 
+            access_token: accessToken,
+            updated_at: new Date().toISOString(),
+            is_active: true 
+          }
         ]);
 
       if (error) {
@@ -105,6 +135,7 @@ export class ShopifyConnectionService {
 
       // Update cache
       this.tokenCache.set(shop, { token: accessToken, timestamp: Date.now() });
+      console.log(`Access token stored successfully for ${shop}`);
       
       return true;
     } catch (error) {
@@ -117,11 +148,18 @@ export class ShopifyConnectionService {
    * Force activate a store (set it as the active store)
    */
   public async forceActivateStore(shop: string): Promise<boolean> {
+    if (!shop) {
+      console.error('Shop parameter is required');
+      return false;
+    }
+    
     try {
+      console.log(`Activating store: ${shop}`);
+      
       // First, set all stores to inactive
       const { error: updateError } = await shopifyStores()
         .update({ is_active: false })
-        .neq('id', '0'); // Changed from 0 to '0' to match string type
+        .neq('id', '0'); // Using a non-existent ID to update all records
 
       if (updateError) {
         console.error('Error deactivating stores:', updateError);
@@ -138,6 +176,7 @@ export class ShopifyConnectionService {
         return false;
       }
 
+      console.log(`Store ${shop} activated successfully`);
       return true;
     } catch (error) {
       console.error('Error in forceActivateStore:', error);
@@ -150,6 +189,8 @@ export class ShopifyConnectionService {
    */
   public completeConnectionReset(): boolean {
     try {
+      console.log('Performing complete connection reset');
+      
       // Clear token cache
       this.clearTokenCache();
       
@@ -177,8 +218,10 @@ export class ShopifyConnectionService {
    */
   public clearTokenCache(shop?: string): void {
     if (shop) {
+      console.log(`Clearing token cache for shop: ${shop}`);
       this.tokenCache.delete(shop);
     } else {
+      console.log('Clearing entire token cache');
       this.tokenCache.clear();
     }
   }
