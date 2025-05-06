@@ -1,285 +1,273 @@
 
-import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
-import { ShopifyStore } from '@/lib/shopify/database-types';
+import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 
-export class ShopifyConnectionService {
-  private static instance: ShopifyConnectionService;
-  private tokenCache: Map<string, { token: string; timestamp: number }> = new Map();
-  private cacheExpiration = 15 * 60 * 1000; // 15 دقيقة بالميلي ثانية
-
-  private constructor() {
-    // منشئ خاص للنمط المفرد (singleton)
-  }
-
-  public static getInstance(): ShopifyConnectionService {
-    if (!ShopifyConnectionService.instance) {
-      ShopifyConnectionService.instance = new ShopifyConnectionService();
-    }
-    return ShopifyConnectionService.instance;
-  }
-
+/**
+ * Service for managing Shopify store connections
+ */
+class ShopifyConnectionService {
+  // Keys for localStorage
+  private CONNECTED_KEY = 'shopify_connected';
+  private STORE_KEY = 'shopify_store';
+  private TEMP_STORE_KEY = 'shopify_temp_store';
+  private LAST_URL_SHOP_KEY = 'shopify_last_url_shop';
+  private EMERGENCY_MODE_KEY = 'shopify_emergency_mode';
+  
   /**
-   * الحصول على رمز الوصول لمتجر Shopify
+   * Get the active store from localStorage
    */
-  public async getAccessToken(shop: string): Promise<string> {
-    if (!shop) {
-      throw new Error('معلمة المتجر مطلوبة');
+  getActiveStore(): string | null {
+    return localStorage.getItem(this.STORE_KEY);
+  }
+  
+  /**
+   * Check if connected to Shopify
+   */
+  isConnected(): boolean {
+    return localStorage.getItem(this.CONNECTED_KEY) === 'true';
+  }
+  
+  /**
+   * Get the last shop domain from URL
+   */
+  getLastUrlShop(): string | null {
+    return localStorage.getItem(this.LAST_URL_SHOP_KEY);
+  }
+  
+  /**
+   * Save the shop from URL for potential recovery
+   */
+  saveLastUrlShop(shop: string): void {
+    localStorage.setItem(this.LAST_URL_SHOP_KEY, shop);
+  }
+  
+  /**
+   * Add or update a store and optionally set it as active
+   */
+  addOrUpdateStore(shop: string, setActive: boolean = false): void {
+    console.log(`Adding/updating store in local storage: ${shop}, setting active: ${setActive}`);
+    
+    if (setActive) {
+      localStorage.setItem(this.STORE_KEY, shop);
+      localStorage.setItem(this.CONNECTED_KEY, 'true');
+      console.log(`Set ${shop} as active store in localStorage`);
     }
     
-    // التحقق من الذاكرة المؤقتة أولاً
-    const cachedToken = this.tokenCache.get(shop);
-    if (cachedToken && Date.now() - cachedToken.timestamp < this.cacheExpiration) {
-      console.log(`استخدام الرمز المخزن مؤقتًا لـ ${shop}`);
-      return cachedToken.token;
-    }
-
+    // Also sync with database
+    this.syncStoreToDatabase(shop)
+      .then(() => console.log(`Synced store ${shop} with database`))
+      .catch(err => console.error(`Error syncing store to database:`, err));
+  }
+  
+  /**
+   * Force activate a store in the database
+   */
+  async forceActivateStore(shop: string): Promise<boolean> {
     try {
-      console.log(`جلب رمز الوصول للمتجر: ${shop}`);
+      // First check if the store exists
+      const { data: existingStores, error: checkError } = await shopifyStores()
+        .select('*')
+        .eq('shop', shop)
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Error checking store existence:', checkError);
+        return false;
+      }
       
-      // الجلب من قاعدة البيانات باستخدام مساعد shopifyStores
+      if (!existingStores || existingStores.length === 0) {
+        console.error('Store not found in database:', shop);
+        return false;
+      }
+      
+      // Update the store to be active
+      const { error: updateError } = await shopifyStores()
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('shop', shop);
+        
+      if (updateError) {
+        console.error('Error updating store activity:', updateError);
+        return false;
+      }
+      
+      console.log(`Successfully activated store ${shop} in database`);
+      return true;
+    } catch (error) {
+      console.error('Error in forceActivateStore:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Sync store to database to ensure consistency
+   */
+  async syncStoreToDatabase(shop: string): Promise<void> {
+    try {
+      // Check if the store exists in the database
       const { data, error } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
-        .order('updated_at', { ascending: false })
         .limit(1);
-
+        
       if (error) {
-        console.error('خطأ في جلب الرمز:', error);
-        throw new Error(`فشل في الحصول على رمز الوصول لـ ${shop}: ${error.message}`);
+        throw error;
       }
-
+      
+      // If store doesn't exist or we have an issue, we'll try to insert it
+      // This is just a placeholder until we get the actual token during OAuth
       if (!data || data.length === 0) {
-        throw new Error(`لم يتم العثور على رمز وصول لـ ${shop}`);
+        await shopifyStores().insert({
+          shop: shop,
+          is_active: true,
+          token_type: 'placeholder',
+          scope: 'read_products,write_products',
+          access_token: 'placeholder_token', // Will be updated during OAuth process
+        });
+        
+        console.log(`Created placeholder record for ${shop} in database`);
+      } else {
+        // Update the store to be active
+        await shopifyStores()
+          .update({ is_active: true, updated_at: new Date().toISOString() })
+          .eq('shop', shop);
+          
+        console.log(`Updated ${shop} to active in database`);
       }
-
-      // الحصول على حقل الرمز
-      const storeData = data[0] as ShopifyStore;
-      const token = storeData.access_token || '';
-      
-      if (!token) {
-        throw new Error(`رمز وصول غير صالح لـ ${shop}`);
-      }
-
-      // تحديث الذاكرة المؤقتة
-      this.tokenCache.set(shop, { token, timestamp: Date.now() });
-      console.log(`تم استرداد الرمز وتخزينه مؤقتًا لـ ${shop}`);
-      
-      return token;
     } catch (error) {
-      console.error('خطأ في getAccessToken:', error);
+      console.error('Error syncing store to database:', error);
       throw error;
     }
   }
-
+  
   /**
-   * اختبار ما إذا كان الرمز صالحًا
+   * Get the access token for a shop
    */
-  public async isTokenValid(shop: string, token?: string): Promise<boolean> {
-    if (!shop) {
-      console.error('معلمة المتجر مطلوبة للتحقق من صحة الرمز');
-      return false;
-    }
-    
+  async getAccessToken(shop: string): Promise<string> {
     try {
-      // استخدام الرمز المقدم أو الحصول عليه من الخدمة
-      const accessToken = token || await this.getAccessToken(shop);
+      const { data, error } = await shopifyStores()
+        .select('access_token')
+        .eq('shop', shop)
+        .limit(1);
+        
+      if (error) {
+        throw error;
+      }
       
-      console.log(`اختبار صلاحية الرمز للمتجر: ${shop}`);
+      if (!data || data.length === 0 || !data[0].access_token) {
+        throw new Error('Access token not found');
+      }
       
-      // استدعاء API Shopify لاختبار الرمز
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+      return data[0].access_token;
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Validate if token is valid for a shop
+   */
+  async isTokenValid(shop: string): Promise<boolean> {
+    try {
+      // Get the access token from database
+      const { data, error } = await shopifyStores()
+        .select('access_token')
+        .eq('shop', shop)
+        .limit(1);
+        
+      if (error || !data || data.length === 0 || !data[0].access_token) {
+        return false;
+      }
+      
+      const accessToken = data[0].access_token;
+      
+      // Use the test connection function to check if token is valid
+      const response = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: { shop, accessToken }
       });
-
-      if (error) {
-        console.error('خطأ في التحقق من صحة الرمز:', error);
-        return false;
-      }
-
-      const isValid = data?.success === true;
-      console.log(`نتيجة التحقق من صحة الرمز لـ ${shop}: ${isValid ? 'صالح' : 'غير صالح'}`);
       
-      return isValid;
+      return response?.data?.success === true;
     } catch (error) {
-      console.error('خطأ في اختبار صلاحية الرمز:', error);
+      console.error('Error validating token:', error);
       return false;
     }
   }
-
+  
   /**
-   * تخزين رمز وصول جديد
+   * Force sync local store state with database
    */
-  public async storeAccessToken(shop: string, accessToken: string): Promise<boolean> {
-    if (!shop || !accessToken) {
-      console.error('المتجر ورمز الوصول مطلوبان');
+  async forceSyncWithDatabase(): Promise<boolean> {
+    try {
+      // Get active store from database
+      const { data, error } = await shopifyStores()
+        .select('*')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Error fetching active store:', error);
+        return false;
+      }
+      
+      if (data && data.length > 0) {
+        const activeStore = data[0];
+        
+        // Update localStorage
+        localStorage.setItem(this.STORE_KEY, activeStore.shop);
+        localStorage.setItem(this.CONNECTED_KEY, 'true');
+        
+        console.log(`Synced active store from database: ${activeStore.shop}`);
+        return true;
+      } else {
+        // No active store found, clear localStorage
+        this.clearStoreState();
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in forceSyncWithDatabase:', error);
       return false;
     }
+  }
+  
+  /**
+   * Complete reset of connection state
+   */
+  completeConnectionReset(): void {
+    // Clear all localStorage values
+    localStorage.removeItem(this.CONNECTED_KEY);
+    localStorage.removeItem(this.STORE_KEY);
+    localStorage.removeItem(this.TEMP_STORE_KEY);
+    console.log('Reset connection state in localStorage');
     
-    try {
-      console.log(`تخزين رمز الوصول للمتجر: ${shop}`);
-      
-      const { error } = await shopifyStores()
-        .insert([
-          { 
-            shop, 
-            access_token: accessToken,
-            updated_at: new Date().toISOString(),
-            is_active: true 
-          }
-        ]);
-
-      if (error) {
-        console.error('خطأ في تخزين الرمز:', error);
-        return false;
-      }
-
-      // تحديث الذاكرة المؤقتة
-      this.tokenCache.set(shop, { token: accessToken, timestamp: Date.now() });
-      console.log(`تم تخزين رمز الوصول بنجاح لـ ${shop}`);
-      
-      return true;
-    } catch (error) {
-      console.error('خطأ في storeAccessToken:', error);
-      return false;
-    }
+    // We don't reset database state here as that should be done separately
   }
-
+  
   /**
-   * تنشيط متجر بشكل إجباري (تعيينه كمتجر نشط)
+   * Clear store state from localStorage
    */
-  public async forceActivateStore(shop: string): Promise<boolean> {
-    if (!shop) {
-      console.error('معلمة المتجر مطلوبة');
-      return false;
-    }
-    
-    try {
-      console.log(`تنشيط المتجر: ${shop}`);
-      
-      // أولاً، قم بتعيين جميع المتاجر على غير نشطة
-      const { error: updateError } = await shopifyStores()
-        .update({ is_active: false })
-        .neq('id', '0'); // استخدام معرف غير موجود لتحديث جميع السجلات
-
-      if (updateError) {
-        console.error('خطأ في تعطيل المتاجر:', updateError);
-        // المتابعة على أي حال، سنحاول تنشيط المتجر المستهدف
-      }
-
-      // ثم، تعيين المتجر المستهدف كنشط
-      const { error } = await shopifyStores()
-        .update({ is_active: true, updated_at: new Date().toISOString() })
-        .eq('shop', shop);
-
-      if (error) {
-        console.error('خطأ في تنشيط المتجر:', error);
-        return false;
-      }
-
-      console.log(`تم تنشيط المتجر ${shop} بنجاح`);
-      return true;
-    } catch (error) {
-      console.error('خطأ في forceActivateStore:', error);
-      return false;
-    }
+  clearStoreState(): void {
+    localStorage.removeItem(this.CONNECTED_KEY);
+    localStorage.removeItem(this.STORE_KEY);
+    console.log('Cleared store state from localStorage');
   }
-
+  
   /**
-   * إعادة تعيين الاتصال بالكامل - مسح جميع البيانات والذاكرة المؤقتة
+   * Set emergency mode
    */
-  public completeConnectionReset(): boolean {
-    try {
-      console.log('إجراء إعادة تعيين كامل للاتصال');
-      
-      // مسح ذاكرة الرموز المؤقتة
-      this.clearTokenCache();
-      
-      // مسح عناصر localStorage المتعلقة بـ Shopify
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_url_shop');
-      localStorage.removeItem('shopify_last_error');
-      localStorage.removeItem('shopify_recovery_attempt');
-      localStorage.removeItem('shopify_failsafe');
-      localStorage.removeItem('pending_form_syncs');
-      localStorage.removeItem('bypass_auth');
-      
-      console.log('تم إكمال إعادة تعيين اتصال Shopify');
-      return true;
-    } catch (error) {
-      console.error('خطأ في completeConnectionReset:', error);
-      return false;
-    }
-  }
-
-  /**
-   * مسح الرمز المخزن مؤقتًا لمتجر
-   */
-  public clearTokenCache(shop?: string): void {
-    if (shop) {
-      console.log(`مسح ذاكرة الرموز المؤقتة للمتجر: ${shop}`);
-      this.tokenCache.delete(shop);
+  setEmergencyMode(enabled: boolean): void {
+    if (enabled) {
+      localStorage.setItem(this.EMERGENCY_MODE_KEY, 'true');
     } else {
-      console.log('مسح ذاكرة الرموز المؤقتة بالكامل');
-      this.tokenCache.clear();
+      localStorage.removeItem(this.EMERGENCY_MODE_KEY);
     }
   }
   
   /**
-   * حفظ آخر متجر من عنوان URL للاسترداد المحتمل
+   * Check if in emergency mode
    */
-  public saveLastUrlShop(shop: string): void {
-    if (shop) {
-      localStorage.setItem('shopify_last_url_shop', shop);
-    }
-  }
-  
-  /**
-   * الحصول على آخر متجر من عنوان URL
-   */
-  public getLastUrlShop(): string | null {
-    return localStorage.getItem('shopify_last_url_shop');
-  }
-  
-  /**
-   * إضافة أو تحديث متجر محليًا ووضعه كمتجر نشط
-   */
-  public addOrUpdateStore(shop: string, setAsActive = false): void {
-    if (!shop) return;
-    
-    // تحديث localStorage
-    if (setAsActive) {
-      localStorage.setItem('shopify_store', shop);
-      localStorage.setItem('shopify_connected', 'true');
-      
-      console.log(`تم تعيين ${shop} كمتجر نشط في localStorage`);
-    }
-  }
-  
-  /**
-   * الحصول على المتجر النشط من التخزين المحلي
-   */
-  public getActiveStore(): string | null {
-    return localStorage.getItem('shopify_store');
-  }
-  
-  /**
-   * جلب جميع المتاجر المخزنة محليًا
-   */
-  public getAllStores(): string[] {
-    const activeStore = this.getActiveStore();
-    return activeStore ? [activeStore] : [];
-  }
-  
-  /**
-   * مسح جميع المتاجر من التخزين المحلي
-   */
-  public clearAllStores(): void {
-    localStorage.removeItem('shopify_store');
-    localStorage.removeItem('shopify_connected');
+  isEmergencyMode(): boolean {
+    return localStorage.getItem(this.EMERGENCY_MODE_KEY) === 'true';
   }
 }
 
-// تصدير نسخة مفردة
-export const shopifyConnectionService = ShopifyConnectionService.getInstance();
+export const shopifyConnectionService = new ShopifyConnectionService();

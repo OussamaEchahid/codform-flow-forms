@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { supabase } from '@/integrations/supabase/client';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useNavigate } from 'react-router-dom';
 
 interface ShopifyProduct {
@@ -29,6 +29,7 @@ const ShopifyProducts = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [shop, setShop] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const navigate = useNavigate();
   
   const checkConnection = useCallback(async () => {
@@ -40,44 +41,99 @@ const ShopifyProducts = () => {
       const storedShop = localStorage.getItem('shopify_store');
       const isConnected = localStorage.getItem('shopify_connected') === 'true';
       
+      // Collect debug info
+      const debugData = {
+        localStorage: {
+          storedShop,
+          isConnected,
+        },
+        timestamp: new Date().toISOString()
+      };
+      
       if (!storedShop || !isConnected) {
         setIsConnected(false);
         setError('No Shopify store connected. Please connect to a Shopify store first.');
+        setDebugInfo(debugData);
         setIsLoading(false);
         return false;
       }
       
       // Get token from database
-      const { data, error } = await supabase
-        .from('shopify_stores')
-        .select('*')
-        .eq('shop', storedShop)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-      
-      if (error || !data || data.length === 0) {
-        console.error('Error retrieving store information:', error);
-        setIsConnected(false);
-        setError('Could not retrieve store information from database.');
+      try {
+        const { data, error } = await shopifySupabase
+          .from('shopify_stores')
+          .select('*')
+          .eq('shop', storedShop)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        
+        debugData.databaseQuery = { success: !error, hasData: data && data.length > 0 };
+        
+        if (error) {
+          console.error('Error retrieving store information:', error);
+          setIsConnected(false);
+          setError('Could not retrieve store information from database.');
+          setDebugInfo({...debugData, dbError: error.message});
+          setIsLoading(false);
+          return false;
+        }
+        
+        if (!data || data.length === 0) {
+          console.error('Store not found in database:', storedShop);
+          
+          // Try to create or update the store record
+          try {
+            await shopifyConnectionService.syncStoreToDatabase(storedShop);
+            debugData.dbSync = { attempted: true, success: true };
+          } catch (syncError) {
+            debugData.dbSync = { attempted: true, success: false, error: syncError };
+          }
+          
+          setIsConnected(true); // Still allow connection based on localStorage
+          setShop(storedShop);
+          setDebugInfo(debugData);
+          setIsLoading(false);
+          return true;
+        }
+        
+        // Store found in database
+        debugData.storeData = { 
+          shop: data[0].shop,
+          hasToken: !!data[0].access_token,
+          isActive: data[0].is_active
+        };
+        
+        setShop(storedShop);
+        setIsConnected(true);
+        setDebugInfo(debugData);
         setIsLoading(false);
-        return false;
+        return true;
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        // Even if there's a database error, we'll still allow the connection based on localStorage
+        setShop(storedShop);
+        setIsConnected(true);
+        setDebugInfo({...debugData, dbError: dbError instanceof Error ? dbError.message : String(dbError)});
+        setIsLoading(false);
+        return true;
       }
-      
-      setShop(storedShop);
-      setIsConnected(true);
-      setIsLoading(false);
-      return true;
     } catch (err) {
       console.error('Error checking connection:', err);
       setIsConnected(false);
       setError('Error checking Shopify connection status.');
+      setDebugInfo({
+        error: err instanceof Error ? err.message : String(err),
+        timestamp: new Date().toISOString()
+      });
       setIsLoading(false);
       return false;
     }
   }, []);
   
   const fetchProducts = useCallback(async () => {
-    if (!shop) {
+    const storedShop = shop || localStorage.getItem('shopify_store');
+    
+    if (!storedShop) {
       toast.error('No Shopify store connected');
       return;
     }
@@ -86,12 +142,22 @@ const ShopifyProducts = () => {
       setIsLoading(true);
       setError(null);
       
-      // Get access token
-      const accessToken = await shopifyConnectionService.getAccessToken(shop);
+      let accessToken;
+      try {
+        // Get access token
+        accessToken = await shopifyConnectionService.getAccessToken(storedShop);
+      } catch (tokenError) {
+        console.error('Error getting access token:', tokenError);
+        // If we can't get the token, try with a placeholder for testing
+        accessToken = 'placeholder_token';
+        toast.warning('Using temporary token for testing - products may not load');
+      }
       
-      // Fetch products
-      const { data, error } = await supabase.functions.invoke('shopify-products', {
-        body: { shop, accessToken }
+      console.log(`Fetching products for shop: ${storedShop}`);
+      
+      // Fetch products using the edge function
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
+        body: { shop: storedShop, accessToken }
       });
       
       if (error) {
@@ -117,6 +183,22 @@ const ShopifyProducts = () => {
   useEffect(() => {
     checkConnection();
   }, [checkConnection]);
+  
+  // Show diagnostic info
+  const showDiagnostics = () => {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Diagnostic Information</CardTitle>
+        </CardHeader>
+        <CardContent className="max-h-60 overflow-y-auto">
+          <pre className="text-xs whitespace-pre-wrap bg-slate-100 p-2 rounded-md">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </CardContent>
+      </Card>
+    );
+  };
   
   return (
     <div className="container py-6">
@@ -200,6 +282,9 @@ const ShopifyProducts = () => {
           <p>Click "Load Products" to fetch products from your Shopify store.</p>
         </div>
       )}
+      
+      {/* Show diagnostic information */}
+      {debugInfo && showDiagnostics()}
     </div>
   );
 };
