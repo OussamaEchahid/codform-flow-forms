@@ -18,11 +18,18 @@ const ShopifyConnection = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectedShop, setConnectedShop] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
 
   // Check existing connection on mount
   useEffect(() => {
-    checkConnectionStatus();
+    // Clean placeholder tokens on component mount
+    shopifyConnectionService.cleanupPlaceholderTokens()
+      .then(() => checkConnectionStatus())
+      .catch(error => {
+        console.error("Error cleaning placeholder tokens:", error);
+        checkConnectionStatus();
+      });
   }, []);
 
   // Check connection status - single source of truth
@@ -75,6 +82,11 @@ const ShopifyConnection = () => {
           setIsConnected(false);
           setConnectionError('رمز الوصول غير موجود - يرجى الاتصال');
           localStorage.setItem('shopify_connected', 'false');
+          
+          // Clean up placeholder tokens
+          if (data[0].access_token === 'placeholder_token') {
+            await shopifyConnectionService.cleanupPlaceholderTokens();
+          }
         }
       } else {
         // No store found in database
@@ -146,21 +158,13 @@ const ShopifyConnection = () => {
     setConnectionError(null);
     
     try {
-      // تحديث قاعدة البيانات مسبقاً لتنظيف أي رموز placeholder
-      try {
-        // تنظيف أي رموز placeholder قبل الاتصال
-        await shopifyStores()
-          .update({ access_token: null })
-          .eq('access_token', 'placeholder_token');
-          
-        console.log('Cleaned up placeholder tokens from database');
-      } catch (cleanupError) {
-        console.error('Error cleaning up placeholder tokens:', cleanupError);
-      }
+      // Force cleanup of any existing placeholder tokens
+      await shopifyConnectionService.cleanupPlaceholderTokens();
+      console.log('Placeholder tokens cleaned before connection');
       
       // Initiate OAuth flow
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
-        body: { shop: normalizedShopDomain }
+        body: { shop: normalizedShopDomain, clean: true }
       });
       
       if (error) {
@@ -191,15 +195,8 @@ const ShopifyConnection = () => {
       return;
     }
     
-    // تنظيف أي رموز placeholder قبل إعادة الاتصال
-    try {
-      await shopifyStores()
-        .update({ access_token: null })
-        .eq('shop', connectedShop)
-        .eq('access_token', 'placeholder_token');
-    } catch (cleanupError) {
-      console.error('Error cleaning up placeholder token before reconnecting:', cleanupError);
-    }
+    // Clean placeholder tokens before reconnection
+    await shopifyConnectionService.cleanupPlaceholderTokens();
     
     setShopDomain(connectedShop);
     await connectStore();
@@ -217,22 +214,12 @@ const ShopifyConnection = () => {
         await shopifyStores()
           .update({ 
             is_active: false,
-            // Remove placeholder_token if exists
             access_token: null
           })
           .eq('shop', connectedShop);
       }
       
-      // Clear local storage
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_url_shop');
-      localStorage.removeItem('shopify_active_store');
-      localStorage.removeItem('shopify_connected_stores');
-      localStorage.removeItem('shopify_failsafe');
-      localStorage.removeItem('shopify_recovery_mode');
-      
+      // Complete reset
       shopifyConnectionService.completeConnectionReset();
       
       setIsConnected(false);
@@ -242,6 +229,23 @@ const ShopifyConnection = () => {
     } catch (error) {
       console.error('Error disconnecting store:', error);
       toast.error('فشل في قطع الاتصال');
+    }
+  };
+
+  // Force reset connection state
+  const forceReset = async () => {
+    try {
+      setIsResetting(true);
+      await shopifyConnectionService.forceResetConnection();
+      toast.success('تم إعادة تعيين الاتصال بنجاح');
+      
+      // Force browser reload to clear any cached state
+      window.location.reload();
+    } catch (error) {
+      console.error('Error during force reset:', error);
+      toast.error('فشل في إعادة تعيين الاتصال');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -286,7 +290,10 @@ const ShopifyConnection = () => {
           <Button onClick={goToDashboard} className="w-full">
             الذهاب إلى لوحة التحكم
           </Button>
-          <Button variant="outline" onClick={disconnectStore} className="w-full">
+          <Button variant="outline" onClick={reconnectStore} className="w-full">
+            إعادة الاتصال
+          </Button>
+          <Button variant="destructive" onClick={disconnectStore} className="w-full">
             قطع الاتصال
           </Button>
         </CardFooter>
@@ -323,6 +330,32 @@ const ShopifyConnection = () => {
           <p className="text-xs text-muted-foreground">
             أدخل نطاق متجرك مثل: your-store.myshopify.com
           </p>
+        </div>
+        
+        {/* Emergency reset button */}
+        <div className="mt-6 border-t pt-4">
+          <p className="text-xs text-muted-foreground mb-2">
+            إذا كنت تواجه مشاكل مستمرة في الاتصال، يمكنك إعادة تعيين حالة الاتصال بالكامل:
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full border-amber-300 bg-amber-50 hover:bg-amber-100"
+            onClick={forceReset}
+            disabled={isResetting}
+          >
+            {isResetting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جاري إعادة التعيين...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                إعادة تعيين اتصال Shopify
+              </>
+            )}
+          </Button>
         </div>
       </CardContent>
       <CardFooter>

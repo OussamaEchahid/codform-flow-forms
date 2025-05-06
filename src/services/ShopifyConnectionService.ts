@@ -31,6 +31,7 @@ class ShopifyConnectionService {
       
       // Verify that the token isn't the placeholder
       if (data && data.length > 0 && data[0].access_token && data[0].access_token !== 'placeholder_token') {
+        console.log(`Found valid token for shop: ${shop}`);
         return data[0].access_token;
       }
 
@@ -40,10 +41,7 @@ class ShopifyConnectionService {
         
         // تنظيف الرمز placeholder
         try {
-          await shopifyStores()
-            .update({ access_token: null })
-            .eq('shop', shop)
-            .eq('access_token', 'placeholder_token');
+          await this.cleanupPlaceholderTokens();
           console.log('Cleaned placeholder token for shop:', shop);
         } catch (cleanupError) {
           console.error('Error cleaning placeholder token:', cleanupError);
@@ -157,7 +155,7 @@ class ShopifyConnectionService {
       };
       
       // Update token only if provided and not placeholder
-      if (token) {
+      if (token && token !== 'placeholder_token') {
         updateData.access_token = token;
       }
       
@@ -174,8 +172,8 @@ class ShopifyConnectionService {
           
         console.log(`Updated store: ${shop}`);
       } else {
-        // Create new store only if token is provided
-        if (token) {
+        // Create new store only if token is provided and not placeholder
+        if (token && token !== 'placeholder_token') {
           await shopifyStores().insert({
             shop,
             access_token: token,
@@ -227,10 +225,16 @@ class ShopifyConnectionService {
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
     localStorage.removeItem('shopify_last_url_shop');
+    localStorage.removeItem('bypass_auth');
     
     // Reset connection manager
     shopifyConnectionManager.clearAllStores();
     shopifyConnectionManager.resetLoopDetection();
+    
+    // Clean database placeholder tokens
+    this.cleanupPlaceholderTokens()
+      .then(() => console.log('Placeholder tokens cleaned up during reset'))
+      .catch(error => console.error('Error cleaning placeholder tokens during reset:', error));
   }
   
   /**
@@ -238,6 +242,8 @@ class ShopifyConnectionService {
    */
   async cleanupPlaceholderTokens(): Promise<void> {
     try {
+      console.log('Cleaning up placeholder tokens from database...');
+      
       // تحديث جميع المتاجر التي لديها placeholder_token
       const { data, error } = await shopifyStores()
         .update({ access_token: null })
@@ -253,6 +259,18 @@ class ShopifyConnectionService {
         console.log(`Cleaned ${data.length} placeholder tokens from database`);
       } else {
         console.log('No placeholder tokens found to clean');
+      }
+      
+      // Also clean up any records with access_token = ''
+      const { data: emptyData, error: emptyError } = await shopifyStores()
+        .update({ access_token: null })
+        .eq('access_token', '')
+        .select();
+        
+      if (emptyError) {
+        console.error('Error cleaning empty tokens:', emptyError);
+      } else if (emptyData && emptyData.length > 0) {
+        console.log(`Cleaned ${emptyData.length} empty tokens from database`);
       }
     } catch (error) {
       console.error('Error in cleanupPlaceholderTokens:', error);
@@ -298,6 +316,24 @@ class ShopifyConnectionService {
       return data?.success || false;
     } catch (error) {
       console.error('Error testing connection:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Forces cleanup of invalid tokens and resets connection state
+   */
+  async forceResetConnection(): Promise<boolean> {
+    try {
+      // First clean database
+      await this.cleanupPlaceholderTokens();
+      
+      // Reset local storage
+      this.completeConnectionReset();
+      
+      return true;
+    } catch (error) {
+      console.error('Error in forceResetConnection:', error);
       return false;
     }
   }

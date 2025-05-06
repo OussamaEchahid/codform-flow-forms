@@ -6,8 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/components/layout/AuthProvider";
 import { useAuth } from "@/lib/auth";
+import { routes } from "@/routes"; // Importing routes
 
-// Pages
+// Pages 
 import Dashboard from "@/pages/Dashboard";
 import Index from "@/pages/Index";
 import FormBuilderPage from "@/pages/FormBuilderPage";
@@ -25,9 +26,10 @@ import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 
 // Components
-import { Toaster } from "@/components/ui/toaster"; // Use our custom Toaster
-import { toast } from "@/hooks/use-toast"; // Use our custom toast
+import { Toaster } from "@/components/ui/toaster"; 
+import { toast } from "@/hooks/use-toast"; 
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
+import { shopifyConnectionService } from "@/services/ShopifyConnectionService"; 
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -98,6 +100,13 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
   
+  // Clean placeholder tokens on app start
+  useEffect(() => {
+    shopifyConnectionService.cleanupPlaceholderTokens()
+      .then(() => console.log("Cleaned placeholder tokens on app start"))
+      .catch(err => console.error("Error cleaning placeholder tokens:", err));
+  }, []);
+  
   // Check for saved redirects
   React.useEffect(() => {
     // Give time for auth provider to initialize
@@ -140,11 +149,16 @@ function AppRoutes() {
 }
 
 function App() {
-  // التحقق من حالة الاتصال بـ Shopify عند بدء التشغيل وإعادة المصادقة
+  // Clean placeholder tokens and validate connection on startup
   React.useEffect(() => {
     // Attempt to validate the connection state with retry logic
     const validateConnection = async () => {
       try {
+        // First clean any placeholder tokens
+        await shopifyConnectionService.cleanupPlaceholderTokens();
+        console.log("Placeholder tokens cleaned up on startup");
+        
+        // Then validate connection
         shopifyConnectionManager.validateConnectionState();
         console.log("Connection validated successfully");
       } catch (error) {
