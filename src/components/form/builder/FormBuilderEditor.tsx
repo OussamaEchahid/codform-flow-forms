@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
+import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore } from '@/hooks/useFormStore';
