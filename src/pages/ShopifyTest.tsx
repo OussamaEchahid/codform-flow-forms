@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,61 +112,61 @@ const ShopifyTest: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      
-      // First get access token
-      const token = await fetchAccessToken(shop);
-      
-      if (!token) {
-        setErrorDetails('لم يتم العثور على رمز وصول صالح');
+
+      // نقوم أولاً بالتحقق من وجود المتجر في قاعدة البيانات
+      const { data: shopData, error: shopError } = await supabase
+        .from('shopify_stores')
+        .select('*')
+        .eq('shop', shop)
+        .maybeSingle();
+
+      if (shopError) {
+        console.error('Error fetching shop data:', shopError);
+        setErrorDetails(`خطأ في جلب بيانات المتجر: ${shopError.message}`);
         setIsLoading(false);
         return;
       }
-      
+
+      if (!shopData) {
+        setErrorDetails('لم يتم العثور على معلومات المتجر في قاعدة البيانات. يرجى إعادة الاتصال بالمتجر.');
+        setIsConnected(false);
+        setIsLoading(false);
+        return;
+      }
+
       setTestStep('جاري إنشاء عميل API...');
       
-      // Create API client directly
-      const api = createShopifyAPI(token, shop);
-      
-      setTestStep('جاري اختبار الاتصال...');
-      
       try {
-        // Test connection with better error handling
-        const result = await api.verifyConnection();
-        setIsConnected(result);
-        
-        if (result) {
-          toast.success(`تم الاتصال بمتجر Shopify بنجاح: ${shop}`);
-          
-          // Update localStorage for consistency
-          localStorage.setItem('shopify_store', shop);
-          localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('last_successful_connection', Date.now().toString());
-          localStorage.setItem('last_connected_shop', shop);
-        } else {
-          toast.error('فشل الاتصال بمتجر Shopify');
-          setErrorDetails('فشل التحقق من الاتصال: رمز الوصول قد يكون منتهي الصلاحية');
+        // تحقق من صحة الاتصال باستخدام Edge Function
+        const { data: verificationData, error: verificationError } = await supabase.functions.invoke('shopify-test-connection', {
+          body: { 
+            shop: shopData.shop,
+            accessToken: shopData.access_token
+          }
+        });
+
+        if (verificationError || !verificationData?.success) {
+          throw new Error(verificationError?.message || 'فشل التحقق من الاتصال');
         }
+
+        setIsConnected(true);
+        toast.success(`تم الاتصال بمتجر Shopify بنجاح: ${shop}`);
+        
+        // تحديث localStorage
+        localStorage.setItem('shopify_store', shop);
+        localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('last_successful_connection', Date.now().toString());
+        localStorage.setItem('last_connected_shop', shop);
       } catch (connectionError: any) {
-        console.error("Connection error details:", connectionError);
+        console.error('Connection verification error:', connectionError);
         setIsConnected(false);
-        
-        // Display helpful error message
-        const errorMessage = connectionError instanceof Error 
-          ? connectionError.message 
-          : 'خطأ غير معروف في الاتصال';
-          
-        if (errorMessage.includes('HTML') || errorMessage.includes('Authentication')) {
-          setErrorDetails(`خطأ في المصادقة: تم استلام HTML بدلاً من JSON. هذا يعني عادةً أن رمز الوصول غير صالح أو منتهي الصلاحية.`);
-        } else {
-          setErrorDetails(errorMessage);
-        }
-        
+        setErrorDetails(`فشل التحقق من الاتصال: ${connectionError.message}`);
         toast.error('فشل اختبار الاتصال');
       }
-    } catch (error) {
-      console.error("Error testing connection:", error);
+    } catch (error: any) {
+      console.error('Test connection error:', error);
       setIsConnected(false);
-      setErrorDetails(`خطأ: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      setErrorDetails(`خطأ: ${error.message}`);
       toast.error('فشل اختبار الاتصال');
     } finally {
       setIsLoading(false);
