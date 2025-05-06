@@ -24,24 +24,18 @@ const alertVariants = cva(
   }
 )
 
-// Define our custom variant type based on the actual variants in alertVariants
-export type AlertVariant = "default" | "destructive" | "warning" | "success"
-
-// Create a properly typed interface for the Alert component
-interface AlertProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
-  variant?: AlertVariant
-}
-
-const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
-  ({ className, variant, ...props }, ref) => (
-    <div
-      ref={ref}
-      role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    />
-  )
-)
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & 
+  VariantProps<typeof alertVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    role="alert"
+    className={cn(alertVariants({ variant }), className)}
+    {...props}
+  />
+))
 Alert.displayName = "Alert"
 
 const AlertTitle = React.forwardRef<
