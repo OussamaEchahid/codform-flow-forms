@@ -9,7 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      shopify_product_settings: {
+        Row: {
+          block_id: string | null
+          created_at: string | null
+          enabled: boolean | null
+          form_id: string
+          id: string
+          product_id: string
+          shop_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          form_id: string
+          id?: string
+          product_id: string
+          shop_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          form_id?: string
+          id?: string
+          product_id?: string
+          shop_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      shopify_stores: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          scope: string | null
+          shop: string
+          token_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string | null
+          shop: string
+          token_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string | null
+          shop?: string
+          token_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

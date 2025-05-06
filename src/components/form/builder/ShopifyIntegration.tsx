@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useFormStore } from '@/hooks/useFormStore';
 import {
   AlertCircle,
@@ -26,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
+import { shopifyProductSettings } from '@/lib/shopify/supabase-client';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -81,8 +81,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Load saved product settings from database
   const loadExistingSettings = async (formId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('shopify_product_settings')
+      const { data, error } = await shopifyProductSettings()
         .select('*')
         .eq('form_id', formId);
 
@@ -145,8 +144,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
     try {
       // First delete any existing settings
-      const { error: deleteError } = await supabase
-        .from('shopify_product_settings')
+      const { error: deleteError } = await shopifyProductSettings()
         .delete()
         .eq('form_id', actualFormId);
 
@@ -165,8 +163,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           enabled: true
         }));
 
-        const { error: insertError } = await supabase
-          .from('shopify_product_settings')
+        const { error: insertError } = await shopifyProductSettings()
           .insert(settings);
 
         if (insertError) {

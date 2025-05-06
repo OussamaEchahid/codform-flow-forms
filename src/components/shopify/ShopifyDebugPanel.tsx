@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { parseShopifyParams } from '@/utils/shopify-helpers';
 import { Button } from '@/components/ui/button';
@@ -36,33 +35,26 @@ export const ShopifyDebugPanel = () => {
       const urlParams = parseShopifyParams();
       
       // جمع معلومات من قاعدة البيانات
-      let shopFromDB = null;
-      let storeDataError = null;
-      let allStoresFromDb = [];
-      
-      try {
-        // محاولة الحصول على معلومات المتجر من قاعدة البيانات
-        const { data, error } = await supabase
-          .from('shopify_stores')
-          .select('shop, access_token, updated_at')
-          .order('is_active', { ascending: false })
-          .order('updated_at', { ascending: false });
+      let dbData: any = { error: 'لم يتم جلب البيانات بعد' };
+      if (shop) {
+        const { data, error } = await shopifyStores()
+          .select('*')
+          .eq('shop', shop)
+          .single();
         
         if (error) {
-          storeDataError = error.message;
-        } else if (data && data.length > 0) {
-          shopFromDB = data[0].shop;
-          
-          // تحويل البيانات إلى صيغة آمنة بدون عرض التوكن كاملاً
-          allStoresFromDb = data.map(store => ({
-            shop: store.shop,
-            hasToken: !!store.access_token,
-            tokenLength: store.access_token?.length || 0,
-            updatedAt: store.updated_at
-          }));
+          dbData = { error: error.message };
+        } else if (data) {
+          const { shop, access_token, token_type, is_active, updated_at } = data;
+          dbData = { 
+            shop, 
+            token_available: !!access_token,
+            token_length: access_token ? access_token.length : 0,
+            token_type,
+            is_active,
+            updated_at 
+          };
         }
-      } catch (dbError) {
-        storeDataError = dbError instanceof Error ? dbError.message : "Unknown error retrieving store data";
       }
       
       // جمع المعلومات للعرض
@@ -79,10 +71,10 @@ export const ShopifyDebugPanel = () => {
           shops
         },
         database: {
-          shopFromDB,
-          found: !!shopFromDB,
-          storeDataError,
-          allStores: allStoresFromDb
+          shopFromDB: dbData.shop,
+          found: !!dbData.shop,
+          storeDataError: dbData.error,
+          allStores: []
         },
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,

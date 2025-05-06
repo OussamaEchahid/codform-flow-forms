@@ -1,226 +1,123 @@
 
-// `update-shopify-token` Edge Function
-// This function updates the Shopify access token for a specific store
+// This edge function allows updating Shopify access tokens
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { corsHeaders } from '../_shared/cors.ts'
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+interface ShopifyUpdateRequest {
+  shop: string;
+  accessToken: string;
+  makeActive?: boolean;
+}
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Content-Type": "application/json", // Always set JSON content type
-  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-  "Pragma": "no-cache",
-  "Expires": "0",
-};
-
-// Helper function to ensure we always return a proper JSON response
-const jsonResponse = (data: any, status: number = 200) => {
-  return new Response(
-    JSON.stringify(data),
-    { 
-      headers: corsHeaders,
-      status: status
-    }
-  );
-};
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
-  try {
-    console.log("Request received to update Shopify token");
-    
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // Better validation for environment variables
-    if (!supabaseUrl || supabaseUrl.length < 10) {
-      console.error("Invalid or missing SUPABASE_URL:", supabaseUrl);
-      return jsonResponse({ 
-        success: false, 
-        error: "Missing or invalid Supabase URL environment variable",
-        env_status: {
-          has_url: !!supabaseUrl,
-          url_length: supabaseUrl?.length || 0
-        }
-      }, 500);
-    }
-    
-    if (!supabaseKey || supabaseKey.length < 10) {
-      console.error("Invalid or missing SUPABASE_SERVICE_ROLE_KEY");
-      return jsonResponse({ 
-        success: false, 
-        error: "Missing or invalid Supabase service role key environment variable",
-        env_status: {
-          has_key: !!supabaseKey,
-          key_length: supabaseKey?.length || 0
-        }
-      }, 500);
-    }
-    
-    console.log("Supabase environment variables validated");
+  try {
+    // Create a Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse request body
-    let data;
-    try {
-      data = await req.json();
-    } catch (parseError) {
-      console.error("Error parsing request JSON:", parseError);
-      return jsonResponse({ 
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get request body
+    const body: ShopifyUpdateRequest = await req.json();
+    
+    // Validate request
+    if (!body.shop || !body.accessToken) {
+      return new Response(JSON.stringify({ 
         success: false, 
-        error: "Invalid JSON in request body",
-        details: parseError instanceof Error ? parseError.message : String(parseError)
-      }, 400);
+        error: 'Missing required fields: shop and accessToken' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
-    
-    const { shopDomain, accessToken, forceActivate = true, tokenType: requestedTokenType } = data;
-    
-    if (!shopDomain || !accessToken) {
-      console.error("Missing required parameters:", { hasShop: !!shopDomain, hasToken: !!accessToken });
-      return jsonResponse({ 
-        success: false, 
-        error: "Shop domain and access token are required" 
-      }, 400);
+
+    // Clean up shop domain
+    let shopDomain = body.shop.trim().toLowerCase();
+    if (!shopDomain.includes('myshopify.com')) {
+      shopDomain = `${shopDomain}.myshopify.com`;
     }
-    
-    console.log(`Updating access token for shop: ${shopDomain}, forceActivate: ${forceActivate}`);
-    
-    // Determine token type - Admin API tokens start with 'shpat_'
-    const detectedTokenType = accessToken.startsWith('shpat_') ? 'admin' : 'offline';
-    // Use requested type or fall back to detected type
-    const tokenType = requestedTokenType || detectedTokenType;
-    
-    console.log(`Token type: ${tokenType} (detected: ${detectedTokenType})`);
-    
-    // If forceActivate is true (default), first deactivate all stores
-    // This should happen BEFORE updating the current store
-    if (forceActivate) {
-      console.log("Force activate is true, deactivating all other stores first");
-      const { error: deactivateError } = await supabase
-        .from('shopify_stores')
-        .update({ is_active: false })
-        .not('shop', 'eq', shopDomain);
-      
-      if (deactivateError) {
-        console.error("Error deactivating other stores:", deactivateError);
-        // Continue anyway, this is not a critical error
-      }
-    }
-    
-    // First check if the store exists
-    const { data: existingStore, error: queryError } = await supabase
+
+    // First, check if the store exists
+    const { data: existingStores, error: queryError } = await supabase
       .from('shopify_stores')
-      .select('id')
-      .eq('shop', shopDomain)
-      .maybeSingle();
-    
+      .select('*')
+      .eq('shop', shopDomain);
+
     if (queryError) {
-      console.error("Error querying store:", queryError);
-      return jsonResponse({ 
-        success: false, 
-        error: "Failed to query store", 
-        details: queryError.message 
-      }, 500);
+      throw queryError;
     }
-    
+
     let result;
     
-    if (existingStore) {
-      // Update existing store - ALWAYS set is_active to true here
-      const { data, error } = await supabase
+    if (existingStores && existingStores.length > 0) {
+      // If makeActive is true, set all other stores to inactive
+      if (body.makeActive) {
+        // First, set all stores to inactive
+        await supabase
+          .from('shopify_stores')
+          .update({ is_active: false })
+          .neq('shop', shopDomain);
+      }
+      
+      // Update existing store
+      result = await supabase
         .from('shopify_stores')
         .update({ 
-          access_token: accessToken,
-          token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: true,  // Always set to true regardless of forceActivate
+          access_token: body.accessToken,
+          is_active: body.makeActive ?? existingStores[0].is_active,
           updated_at: new Date().toISOString()
         })
-        .eq('shop', shopDomain)
-        .select();
-      
-      if (error) {
-        console.error("Error updating store:", error);
-        return jsonResponse({ 
-          success: false, 
-          error: "Failed to update store", 
-          details: error.message 
-        }, 500);
-      }
-      
-      result = { data, updated: true };
-    } else {
-      // Insert new store - ALWAYS set is_active to true here
-      const { data, error } = await supabase
-        .from('shopify_stores')
-        .insert([{ 
-          shop: shopDomain, 
-          access_token: accessToken,
-          token_type: tokenType,  // Explicitly set the token type based on detection
-          is_active: true,  // Always set to true regardless of forceActivate
-          updated_at: new Date().toISOString()
-        }])
-        .select();
-      
-      if (error) {
-        console.error("Error inserting store:", error);
-        return jsonResponse({ 
-          success: false, 
-          error: "Failed to insert store", 
-          details: error.message 
-        }, 500);
-      }
-      
-      result = { data, inserted: true };
-    }
-    
-    // Also run the ensure_single_active_store function as a fallback
-    await supabase.rpc('ensure_single_active_store');
-    
-    // Double-check the store was set to active
-    const { data: verifyActive, error: verifyError } = await supabase
-      .from('shopify_stores')
-      .select('is_active')
-      .eq('shop', shopDomain)
-      .single();
-      
-    if (verifyError || !verifyActive || !verifyActive.is_active) {
-      console.log("Store not set to active as expected, forcing update", { verifyError, verifyActive });
-      
-      // Force update the store to be active
-      const { error: forceError } = await supabase
-        .from('shopify_stores')
-        .update({ is_active: true })
         .eq('shop', shopDomain);
         
-      if (forceError) {
-        console.error("Error forcing store active:", forceError);
+      if (result.error) {
+        throw result.error;
       }
     } else {
-      console.log("Verified store is active:", verifyActive);
+      // Insert new store
+      result = await supabase
+        .from('shopify_stores')
+        .insert({ 
+          shop: shopDomain,
+          access_token: body.accessToken,
+          is_active: body.makeActive ?? true,
+          token_type: 'offline'
+        });
+        
+      if (result.error) {
+        throw result.error;
+      }
     }
-    
-    // Return success response
-    return jsonResponse({ 
+
+    return new Response(JSON.stringify({ 
       success: true, 
-      message: "Access token updated successfully",
+      message: 'Shopify token updated successfully',
       shop: shopDomain,
-      tokenType: tokenType,
-      result: result
-    }, 200);
-    
+      isActive: body.makeActive ?? true
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    console.error("Unexpected error:", error);
-    return jsonResponse({ 
+    console.error('Error updating Shopify token:', error);
+    
+    return new Response(JSON.stringify({ 
       success: false, 
-      error: "Unexpected error occurred", 
-      details: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString()
-    }, 500);
+      error: error.message || 'Failed to update Shopify token' 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

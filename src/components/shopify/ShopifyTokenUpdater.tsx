@@ -1,129 +1,123 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { LoaderCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { useAuth } from '@/lib/auth';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 
-const SUPABASE_PROJECT_ID = 'nhqrngdzuatdnfkihtud';
+export const ShopifyTokenUpdater: React.FC = () => {
+  const [shop, setShop] = useState<string>('');
+  const [accessToken, setAccessToken] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-// Export as both named and default export to fix import issues
-export const ShopifyTokenUpdater = () => {
-  const [accessToken, setAccessToken] = useState('');
-  const [shop, setShop] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateResult, setUpdateResult] = useState<any>(null);
-  const { setShop: setAuthShop } = useAuth();
-
-  const handleUpdateToken = useCallback(async () => {
-    if (!accessToken || !shop) {
-      toast.error('توكن الوصول واسم المتجر مطلوبان');
+  const handleUpdateToken = async () => {
+    if (!shop.trim() || !accessToken.trim()) {
+      toast.error('يرجى إدخال اسم المتجر ورمز الوصول');
       return;
     }
 
+    setIsSubmitting(true);
+    
     try {
-      setIsUpdating(true);
-      setUpdateResult(null);
+      let normalizedShop = shop.trim().toLowerCase();
+      if (!normalizedShop.includes('.myshopify.com')) {
+        normalizedShop = `${normalizedShop}.myshopify.com`;
+      }
 
-      // Construct the Edge Function URL manually to avoid type issues
-      const edgeFunctionUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/update-shopify-token`;
-      
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accessToken,
-          shopDomain: shop,
-          forceActivate: true, // Always force activate to ensure is_active=true
-          tokenType: accessToken.startsWith('shpat_') ? 'admin' : 'offline',
-        }),
-      });
+      // First, check if the store exists
+      const { data: existingStores, error: queryError } = await shopifyStores()
+        .select('*')
+        .eq('shop', normalizedShop);
 
-      const result = await response.json();
-      setUpdateResult(result);
+      if (queryError) {
+        throw queryError;
+      }
 
-      console.log('Token update result:', result);
-      
-      if (result.success) {
-        // Update local connection state
-        shopifyConnectionManager.addOrUpdateStore(shop, true, true);
-        localStorage.setItem('shopify_store', shop);
-        localStorage.setItem('shopify_connected', 'true');
-        
-        // Also update auth context if available
-        if (setAuthShop) {
-          setAuthShop(shop);
+      if (existingStores && existingStores.length > 0) {
+        // Update existing store
+        const { error: updateError } = await shopifyStores()
+          .update({ 
+            access_token: accessToken,
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop', normalizedShop);
+
+        if (updateError) {
+          throw updateError;
         }
-        
-        // Clear any recovery/failsafe states
-        localStorage.removeItem('shopify_recovery_mode');
-        localStorage.removeItem('shopify_failsafe');
-        
+
         toast.success('تم تحديث رمز الوصول بنجاح');
       } else {
-        toast.error(`فشل في تحديث رمز الوصول: ${result.error}`);
+        // Insert new store
+        const { error: insertError } = await shopifyStores()
+          .insert({ 
+            shop: normalizedShop,
+            access_token: accessToken,
+            is_active: true,
+            token_type: 'offline'
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        toast.success('تم إضافة المتجر ورمز الوصول بنجاح');
       }
+
+      // Clear form after successful update
+      setAccessToken('');
     } catch (error) {
       console.error('Error updating token:', error);
-      toast.error('حدث خطأ أثناء تحديث رمز الوصول');
+      toast.error('فشل تحديث رمز الوصول');
     } finally {
-      setIsUpdating(false);
+      setIsSubmitting(false);
     }
-  }, [accessToken, shop, setAuthShop]);
+  };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4 text-right">تحديث رمز الوصول</h2>
-      
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="shop">متجر Shopify</Label>
-          <Input 
-            id="shop" 
-            value={shop} 
-            onChange={e => setShop(e.target.value)} 
-            placeholder="your-store.myshopify.com"
-            className="mt-1 text-right dir-rtl"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="accessToken">رمز الوصول (Access Token)</Label>
-          <Input 
-            id="accessToken" 
-            value={accessToken} 
-            onChange={e => setAccessToken(e.target.value)} 
-            placeholder="shpat_..."
-            className="mt-1 text-right dir-rtl"
-          />
-        </div>
-        
-        <Button 
-          onClick={handleUpdateToken} 
-          disabled={isUpdating || !accessToken || !shop}
-          className="w-full"
-        >
-          {isUpdating && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-          تحديث رمز الوصول
-        </Button>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="shopDomain">نطاق المتجر</Label>
+        <Input
+          id="shopDomain"
+          placeholder="your-store.myshopify.com"
+          value={shop}
+          onChange={(e) => setShop(e.target.value)}
+          disabled={isSubmitting}
+          dir="ltr"
+        />
       </div>
-      
-      {updateResult && (
-        <div className="mt-6 p-4 border rounded bg-gray-50 overflow-auto max-h-96">
-          <pre className="text-xs whitespace-pre-wrap text-right dir-rtl">
-            {JSON.stringify(updateResult, null, 2)}
-          </pre>
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="accessToken">رمز الوصول (Access Token)</Label>
+        <Input
+          id="accessToken"
+          placeholder="shpat_..."
+          value={accessToken}
+          onChange={(e) => setAccessToken(e.target.value)}
+          disabled={isSubmitting}
+          dir="ltr"
+        />
+        <p className="text-xs text-gray-500">
+          أدخل رمز وصول المتجر الذي تريد إضافته أو تحديثه
+        </p>
+      </div>
+      <Button 
+        onClick={handleUpdateToken} 
+        disabled={isSubmitting || !shop.trim() || !accessToken.trim()}
+        className="w-full"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            جاري التحديث...
+          </>
+        ) : (
+          'تحديث رمز الوصول'
+        )}
+      </Button>
     </div>
   );
 };
-
-// Also add default export for backward compatibility
-export default ShopifyTokenUpdater;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
-import { supabase } from '@/integrations/supabase/client';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
@@ -43,8 +43,7 @@ export const useShopify = () => {
 
       try {
         // Try to get token from db
-        const { data, error } = await supabase
-          .from('shopify_stores')
+        const { data, error } = await shopifyStores()
           .select('*')
           .eq('shop', shop)
           .order('updated_at', { ascending: false })
@@ -83,8 +82,7 @@ export const useShopify = () => {
     setIsLoading(true);
     try {
       // Get token
-      const { data: tokenData, error: tokenError } = await supabase
-        .from('shopify_stores')
+      const { data: tokenData, error: tokenError } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })
@@ -126,8 +124,7 @@ export const useShopify = () => {
     
     try {
       // Get token
-      const { data: tokenData, error: tokenError } = await supabase
-        .from('shopify_stores')
+      const { data: tokenData, error: tokenError } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })

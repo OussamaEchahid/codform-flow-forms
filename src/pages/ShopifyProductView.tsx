@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { supabase } from '@/integrations/supabase/client';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -33,8 +32,7 @@ const ShopifyProductView = () => {
         }
         
         // Fetch the access token for the active shop
-        const { data, error } = await supabase
-          .from('shopify_stores')
+        const { data, error } = await shopifyStores()
           .select('*')
           .eq('shop', activeShop)
           .order('updated_at', { ascending: false })
