@@ -28,7 +28,7 @@ const alertVariants = cva(
 export type AlertVariant = "default" | "destructive" | "warning" | "success"
 
 // Create a properly typed interface for the Alert component
-interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AlertProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
   variant?: AlertVariant
 }
 
