@@ -15,9 +15,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Test connection request received:", req.url);
     const { shop, accessToken } = await req.json()
+    
+    console.log(`Testing connection for shop: ${shop}`);
 
     if (!shop || !accessToken) {
+      console.error("Missing required parameters: shop or accessToken");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -29,8 +33,6 @@ serve(async (req) => {
         }
       )
     }
-
-    console.log(`Testing connection for shop: ${shop}`);
 
     // اختبار الاتصال من خلال استدعاء API لـ Shopify - استدعاء بسيط لجلب متجر
     const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-07/shop.json`, {

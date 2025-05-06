@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 const ShopifyRedirect = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -20,7 +22,7 @@ const ShopifyRedirect = () => {
       try {
         setIsProcessing(true);
         
-        // Parse query parameters
+        // تحليل معلمات الاستعلام
         const params = new URLSearchParams(location.search);
         const shopParam = params.get('shop');
         const code = params.get('code');
@@ -28,37 +30,69 @@ const ShopifyRedirect = () => {
         const timestamp = params.get('timestamp');
         const state = params.get('state');
         
-        console.log('Redirect parameters:', { shop: shopParam, code, hmac, timestamp, state });
+        console.log('معلمات إعادة التوجيه:', { shop: shopParam, code, hmac, timestamp, state });
         
         if (!shopParam) {
           throw new Error('معلمة المتجر غير موجودة في URL');
         }
         
-        // Save shop parameter for recovery if needed
-        shopifyConnectionManager.saveLastUrlShop(shopParam);
+        // حفظ معلمة المتجر للاسترداد إذا لزم الأمر
+        shopifyConnectionService.saveLastUrlShop(shopParam);
         setShop(shopParam);
         
-        // If we have a code, we're in an OAuth callback
+        // إذا كان لدينا رمز، فنحن في استدعاء OAuth
         if (code && hmac) {
-          console.log('Processing OAuth callback');
+          console.log('معالجة استدعاء OAuth');
           
-          // We need to call our backend to exchange the code for an access token
-          const callbackUrl = `/api/shopify-callback?shop=${encodeURIComponent(shopParam)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&timestamp=${encodeURIComponent(timestamp || '')}&state=${encodeURIComponent(state || '')}`;
+          try {
+            // استدعاء دالة shopify-callback في Supabase Edge Functions
+            const { data, error } = await shopifySupabase.functions.invoke('shopify-callback', {
+              body: { 
+                shop: shopParam, 
+                code, 
+                hmac, 
+                timestamp: timestamp || '', 
+                state: state || ''
+              }
+            });
+            
+            if (error) {
+              console.error('خطأ في استدعاء دالة callback:', error);
+              throw new Error(`فشل في معالجة الاستدعاء: ${error.message}`);
+            }
+            
+            if (!data || !data.success) {
+              throw new Error(data?.error || 'فشل في الحصول على رمز الوصول');
+            }
+            
+            console.log('تم الحصول على رمز الوصول بنجاح:', { shop: data.shop });
+            
+            // تعيين المتجر كنشط محليًا
+            shopifyConnectionService.addOrUpdateStore(shopParam, true);
+            
+            // تحديث الحالة
+            setSuccess(true);
+            
+            // توجيه المستخدم إلى لوحة التحكم بعد نجاح الاتصال
+            setTimeout(() => {
+              navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam));
+            }, 1500);
+            
+          } catch (callbackError) {
+            console.error('خطأ في معالجة الاستدعاء:', callbackError);
+            setError(callbackError instanceof Error ? callbackError.message : 'حدث خطأ غير متوقع في الاستدعاء');
+            setSuccess(false);
+            toast.error('فشل في إكمال اتصال Shopify');
+          }
+        } else {
+          // إذا لم يكن لدينا رمز، يجب أن نعيد التوجيه إلى صفحة Shopify لبدء التدفق
+          console.log('لا يوجد رمز OAuth، إعادة التوجيه إلى صفحة الاتصال');
           
-          console.log('Redirecting to callback handler:', callbackUrl);
-          
-          // Redirect to our callback handler
-          navigate('/shopify-callback' + location.search, { replace: true });
-          return;
+          // إعادة التوجيه إلى صفحة اتصال Shopify مع معلمة المتجر
+          navigate(`/shopify?shop=${encodeURIComponent(shopParam)}`, { replace: true });
         }
-        
-        // If we don't have a code, we should redirect to the Shopify page to start the flow
-        console.log('No OAuth code present, redirecting to connection page');
-        
-        // Redirect to the Shopify connect page with the shop parameter
-        navigate(`/shopify?shop=${encodeURIComponent(shopParam)}`, { replace: true });
       } catch (error) {
-        console.error('Error in redirect handler:', error);
+        console.error('خطأ في معالج إعادة التوجيه:', error);
         setError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
         setSuccess(false);
         toast.error('فشل في معالجة إعادة التوجيه');
@@ -71,11 +105,11 @@ const ShopifyRedirect = () => {
   }, [location, navigate]);
 
   const handleRetry = () => {
-    // Get the shop from the URL or from localStorage
+    // الحصول على المتجر من URL أو من localStorage
     const params = new URLSearchParams(location.search);
-    const shopParam = params.get('shop') || shopifyConnectionManager.getLastUrlShop() || '';
+    const shopParam = params.get('shop') || shopifyConnectionService.getLastUrlShop() || '';
     
-    // Redirect to Shopify connection page
+    // إعادة التوجيه إلى صفحة اتصال Shopify
     navigate(`/shopify?shop=${encodeURIComponent(shopParam)}`, { replace: true });
   };
 

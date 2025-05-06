@@ -3,14 +3,11 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9";
 
-// إعدادات Supabase - تحديث لاستخدام المتغيرات البيئية الصحيحة
+// إعدادات Supabase - تحديث لاستخدام المفاتيح الصحيحة
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
-// التحقق من وجود مفتاح API
-if (!SUPABASE_KEY) {
-  console.error("Warning: SUPABASE_SERVICE_ROLE_KEY not set. Using a fallback approach.");
-}
+console.log("Initializing Shopify Auth Edge Function with Supabase:", SUPABASE_URL);
 
 // إعدادات تطبيق Shopify - التأكد من وجود المفتاح
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
@@ -81,7 +78,7 @@ function generateSecureStateWithoutDB(): { state: string, timestamp: number } {
 
 serve(async (req) => {
   // سجل الطلب كاملاً للتصحيح
-  console.log("Request received:", {
+  console.log("Auth Request received:", {
     url: req.url,
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
@@ -155,6 +152,7 @@ serve(async (req) => {
     let dbSaveSuccess = false;
     
     try {
+      console.log(`Attempting to save auth state for shop: ${shop} with Supabase key available: ${!!SUPABASE_KEY}`);
       if (SUPABASE_KEY) {
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         

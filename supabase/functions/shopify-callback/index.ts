@@ -4,11 +4,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // إعدادات Supabase - تحديث للاستخدام المتسق للمفاتيح
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
 // إعدادات تطبيق Shopify
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET") || "18221d830a86da52082e0d06c0d32ba3";
+
+console.log("Initializing Shopify Callback Edge Function with Supabase:", SUPABASE_URL);
+console.log("Shopify API Key available:", !!SHOPIFY_API_KEY);
+console.log("Shopify API Secret available:", !!SHOPIFY_API_SECRET);
 
 // عنوان URL للتطبيق المستضاف
 const APP_URL = "https://codform-flow-forms.lovable.app";
@@ -73,6 +77,7 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
     const tokenUrl = `https://${shop}/admin/oauth/access_token`;
     
     console.log(`Requesting token from URL: ${tokenUrl}`);
+    console.log(`Request data: ${JSON.stringify(requestData)}`);
     
     const response = await fetch(tokenUrl, {
       method: 'POST',
@@ -124,6 +129,7 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
   }
   
   try {
+    console.log(`Creating Supabase client for ${SUPABASE_URL}`);
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // قبل التحديث، تأكد من تعطيل الحالات النشطة المتعددة
@@ -289,7 +295,7 @@ serve(async (req) => {
     
     // تنظيف عنوان المتجر
     shop = cleanShopDomain(shop);
-    console.log(`[${requestId}] Processing callback for shop: ${shop}`);
+    console.log(`[${requestId}] Processing callback for shop: ${shop}, code present: ${!!code}`);
     
     // التحقق من وجود المعلمات المطلوبة
     if (!code || !shop) {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, RefreshCw, AlertTriangle, CheckCircle, Store } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, Store } from 'lucide-react';
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { toast } from 'sonner';
@@ -20,7 +20,7 @@ const Shopify = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check existing connection on page load
+  // فحص الاتصال الحالي عند تحميل الصفحة
   useEffect(() => {
     const checkExistingConnection = async () => {
       setIsCheckingStatus(true);
@@ -28,7 +28,7 @@ const Shopify = () => {
       try {
         console.log('Checking existing Shopify connection...');
         
-        // Check if we have a connection in database
+        // فحص ما إذا كان لدينا اتصال في قاعدة البيانات
         const { data, error } = await shopifyStores()
           .select('*')
           .eq('is_active', true)
@@ -42,34 +42,34 @@ const Shopify = () => {
         } else if (data && data.length > 0) {
           console.log('Found active store in database:', data[0].shop);
           
-          // Test token validity
+          // اختبار صلاحية الرمز
           const isValid = await shopifyConnectionService.isTokenValid(data[0].shop);
           
           if (isValid) {
             setConnectedShop(data[0].shop);
             setIsConnected(true);
-            // Update localStorage for consistency
+            // تحديث localStorage للتناسق
             localStorage.setItem('shopify_store', data[0].shop);
             localStorage.setItem('shopify_connected', 'true');
           } else {
             console.log('Token is not valid, clearing connection state');
             setIsConnected(false);
             setConnectionError('رمز الوصول غير صالح، يرجى إعادة الاتصال');
-            // Clear localStorage
+            // مسح localStorage
             localStorage.removeItem('shopify_store');
             localStorage.removeItem('shopify_connected');
           }
         } else {
           console.log('No active shop found in database');
           
-          // As a fallback, check localStorage
+          // كخيار احتياطي، تحقق من localStorage
           const storedShop = localStorage.getItem('shopify_store');
           const storedConnected = localStorage.getItem('shopify_connected') === 'true';
           
           if (storedShop && storedConnected) {
             console.log('Found store in localStorage:', storedShop);
             
-            // Verify in database
+            // التحقق في قاعدة البيانات
             const { data: shopData } = await shopifyStores()
               .select('*')
               .eq('shop', storedShop)
@@ -83,20 +83,20 @@ const Shopify = () => {
                 console.log('Token is valid, activating store');
                 setConnectedShop(storedShop);
                 setIsConnected(true);
-                // Ensure it's set as active in database
+                // التأكد من أنه تم تعيينه كنشط في قاعدة البيانات
                 await shopifyConnectionService.forceActivateStore(storedShop);
               } else {
                 console.log('Token is not valid, clearing connection state');
                 setIsConnected(false);
                 setConnectionError('رمز الوصول غير صالح، يرجى إعادة الاتصال');
-                // Clear localStorage
+                // مسح localStorage
                 localStorage.removeItem('shopify_store');
                 localStorage.removeItem('shopify_connected');
               }
             } else {
               console.log('Store not found in database, clearing local state');
               setIsConnected(false);
-              // Clear localStorage
+              // مسح localStorage
               localStorage.removeItem('shopify_store');
               localStorage.removeItem('shopify_connected');
             }
@@ -113,7 +113,7 @@ const Shopify = () => {
       }
     };
     
-    // Extract shop parameter from URL if present
+    // استخراج معلمة المتجر من URL إذا كانت موجودة
     const urlParams = new URLSearchParams(location.search);
     const shopParam = urlParams.get('shop');
     
@@ -130,10 +130,10 @@ const Shopify = () => {
       return;
     }
     
-    // Clean up shop domain input
+    // تنظيف إدخال نطاق المتجر
     let normalizedShopDomain = shopDomain.trim().toLowerCase();
     
-    // Remove protocol if present
+    // إزالة البروتوكول إذا كان موجودًا
     if (normalizedShopDomain.startsWith('http://') || normalizedShopDomain.startsWith('https://')) {
       try {
         const url = new URL(normalizedShopDomain);
@@ -143,12 +143,12 @@ const Shopify = () => {
       }
     }
     
-    // Add myshopify.com domain if not present
+    // إضافة نطاق myshopify.com إذا لم يكن موجودًا
     if (!normalizedShopDomain.includes('.myshopify.com')) {
       normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
     }
     
-    // Save last URL shop for potential recovery
+    // حفظ آخر متجر URL للاسترداد المحتمل
     localStorage.setItem('shopify_last_url_shop', normalizedShopDomain);
     
     setIsConnecting(true);
@@ -157,7 +157,7 @@ const Shopify = () => {
     try {
       console.log(`Initiating connection to shop: ${normalizedShopDomain}`);
       
-      // Call Supabase Edge Function to start OAuth flow
+      // استدعاء Edge Function في Supabase لبدء تدفق OAuth
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
         body: { 
           shop: normalizedShopDomain
@@ -176,12 +176,12 @@ const Shopify = () => {
       console.log('Auth state:', data.state);
       console.log('DB state saved:', data.dbState);
       
-      // Save the shop we're connecting to in localStorage for recovery if needed
+      // حفظ المتجر الذي نتصل به في localStorage للاسترداد إذا لزم الأمر
       localStorage.setItem('shopify_temp_store', normalizedShopDomain);
       
-      // Set up a small delay before redirect to ensure localStorage is updated
+      // إعداد تأخير قصير قبل إعادة التوجيه للتأكد من تحديث localStorage
       setTimeout(() => {
-        // Redirect to Shopify OAuth flow
+        // إعادة التوجيه إلى تدفق OAuth لـ Shopify
         window.location.href = data.redirect;
       }, 500);
       
@@ -195,17 +195,17 @@ const Shopify = () => {
   
   const handleDisconnect = async () => {
     try {
-      // Confirmation before disconnecting
+      // التأكيد قبل قطع الاتصال
       if (!window.confirm('هل أنت متأكد من رغبتك في قطع الاتصال بهذا المتجر؟')) {
         return;
       }
       
       console.log('Disconnecting from shop:', connectedShop);
       
-      // Clear connection state
+      // مسح حالة الاتصال
       shopifyConnectionService.completeConnectionReset();
       
-      // Update database if needed
+      // تحديث قاعدة البيانات إذا لزم الأمر
       if (connectedShop) {
         const { error } = await shopifyStores()
           .update({ is_active: false })
@@ -216,7 +216,7 @@ const Shopify = () => {
         }
       }
       
-      // Update state
+      // تحديث الحالة
       setIsConnected(false);
       setConnectedShop(null);
       
