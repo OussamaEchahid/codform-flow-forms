@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ShopifyDebugPanel } from '@/components/shopify/ShopifyDebugPanel';
+import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
 
 const Settings = () => {
   const { shop, shopifyConnected } = useAuth();
@@ -93,6 +94,19 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+            
+            {/* إضافة مكون تحديث رمز الوصول */}
+            <Card>
+              <CardHeader>
+                <CardTitle>تحديث رمز وصول Shopify</CardTitle>
+                <CardDescription>
+                  هام: إذا واجهتك أخطاء في الاتصال أو ظهرت رسالة "placeholder token"، استخدم هذا النموذج لتحديث رمز الوصول يدويًا
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShopifyTokenUpdater />
               </CardContent>
             </Card>
             

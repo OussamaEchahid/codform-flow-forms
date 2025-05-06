@@ -7,7 +7,8 @@ import {
   RefreshCcw, 
   Loader2, 
   ArrowLeft,
-  AlertTriangle 
+  AlertTriangle,
+  Settings 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useNavigate } from 'react-router-dom';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ShopifyProduct {
   id: string;
@@ -44,6 +45,7 @@ interface DebugInfo {
     shop: string;
     hasToken: boolean;
     isActive: boolean;
+    isPlaceholderToken?: boolean;
   };
   dbError?: string;
   tokenError?: string;
@@ -57,7 +59,8 @@ const ShopifyProducts = () => {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [shop, setShop] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tokenError, setTokenError] = useState(false); 
+  const [tokenError, setTokenError] = useState(false);
+  const [isPlaceholderToken, setIsPlaceholderToken] = useState(false);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const navigate = useNavigate();
   
@@ -65,6 +68,7 @@ const ShopifyProducts = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setIsPlaceholderToken(false);
       
       // Get active store from local storage
       const storedShop = localStorage.getItem('shopify_store');
@@ -131,16 +135,23 @@ const ShopifyProducts = () => {
         }
         
         // Store found in database
+        const isPlaceholderToken = data[0].access_token === 'placeholder_token';
+        
         debugData.storeData = { 
           shop: data[0].shop,
           hasToken: !!data[0].access_token,
-          isActive: data[0].is_active
+          isActive: data[0].is_active,
+          isPlaceholderToken
         };
         
         // Check if the token looks valid
-        if (!data[0].access_token || data[0].access_token === 'placeholder_token') {
-          debugData.tokenError = 'Access token missing or invalid';
+        if (!data[0].access_token) {
+          debugData.tokenError = 'Access token missing';
           setTokenError(true);
+        } else if (isPlaceholderToken) {
+          debugData.tokenError = 'Using placeholder token';
+          setTokenError(true);
+          setIsPlaceholderToken(true);
         }
         
         setShop(storedShop);
@@ -192,14 +203,26 @@ const ShopifyProducts = () => {
       try {
         accessToken = await shopifyConnectionService.getAccessToken(storedShop);
         
-        if (!accessToken || accessToken === 'placeholder_token') {
-          setTokenError(true);
-          throw new Error('Invalid or missing access token. Please reconnect your store.');
+        if (!accessToken) {
+          // Check specifically if it's a placeholder token by querying the DB directly
+          const { data } = await shopifySupabase
+            .from('shopify_stores')
+            .select('access_token')
+            .eq('shop', storedShop)
+            .limit(1);
+          
+          if (data && data.length > 0 && data[0].access_token === 'placeholder_token') {
+            setIsPlaceholderToken(true);
+            throw new Error('رمز الوصول المخزن هو قيمة مؤقتة (placeholder_token). يرجى تحديث الرمز من صفحة الإعدادات.');
+          } else {
+            setTokenError(true);
+            throw new Error('رمز وصول غير صالح أو مفقود. يرجى إعادة الاتصال بالمتجر.');
+          }
         }
       } catch (tokenError) {
         console.error('Error getting access token:', tokenError);
         setTokenError(true);
-        throw new Error('Failed to get a valid access token. Please reconnect your Shopify store.');
+        throw new Error(tokenError instanceof Error ? tokenError.message : 'فشل الحصول على رمز وصول صالح');
       }
       
       console.log(`Fetching products for shop: ${storedShop}`);
@@ -216,21 +239,21 @@ const ShopifyProducts = () => {
       if (!data || !data.success) {
         if (data?.error && data.error.includes('Invalid API key or access token')) {
           setTokenError(true);
-          throw new Error('Invalid Shopify API token. Please reconnect your store.');
+          throw new Error('رمز وصول Shopify غير صالح. يرجى إعادة الاتصال بمتجرك.');
         }
-        throw new Error(data?.message || 'Failed to fetch products');
+        throw new Error(data?.message || 'فشل جلب المنتجات');
       }
       
       if (!data.products) {
-        throw new Error('Invalid response format from API');
+        throw new Error('تنسيق استجابة غير صالح من API');
       }
       
       setProducts(data.products);
-      toast.success(`Loaded ${data.products.length} products from Shopify`);
+      toast.success(`تم تحميل ${data.products.length} منتج من Shopify`);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError(err instanceof Error ? err.message : String(err));
-      toast.error('Failed to load products');
+      toast.error('فشل تحميل المنتجات: ' + (err instanceof Error ? err.message : ''));
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +266,7 @@ const ShopifyProducts = () => {
       // Get the shop domain
       const shopDomain = shop || localStorage.getItem('shopify_store') || '';
       if (!shopDomain) {
-        toast.error('No store to reconnect');
+        toast.error('لا يوجد متجر لإعادة الاتصال');
         setIsReconnecting(false);
         return;
       }
@@ -256,8 +279,12 @@ const ShopifyProducts = () => {
     } catch (error) {
       console.error('Error during reconnect:', error);
       setIsReconnecting(false);
-      toast.error('Failed to start reconnection process');
+      toast.error('فشل بدء عملية إعادة الاتصال');
     }
+  };
+  
+  const handleGoToSettings = () => {
+    navigate('/settings');
   };
   
   // Check connection on mount
@@ -270,7 +297,7 @@ const ShopifyProducts = () => {
     return (
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Diagnostic Information</CardTitle>
+          <CardTitle>معلومات التشخيص</CardTitle>
         </CardHeader>
         <CardContent className="max-h-60 overflow-y-auto">
           <pre className="text-xs whitespace-pre-wrap bg-slate-100 p-2 rounded-md">
@@ -284,18 +311,18 @@ const ShopifyProducts = () => {
   return (
     <div className="container py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Shopify Products</h1>
+        <h1 className="text-3xl font-bold">منتجات Shopify</h1>
         <Button variant="outline" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          رجوع
         </Button>
       </div>
       
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Connection Status</CardTitle>
+          <CardTitle>حالة الاتصال</CardTitle>
           <CardDescription>
-            Check your Shopify store connection
+            التحقق من اتصال متجر Shopify
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -303,14 +330,14 @@ const ShopifyProducts = () => {
             <div className="flex items-center text-green-600">
               <Badge variant="outline" className="bg-green-50 text-green-600 flex items-center">
                 <ShoppingBag className="mr-1 h-3 w-3" />
-                Connected
+                متصل
               </Badge>
-              <span className="ml-2 font-medium">{shop}</span>
+              <span className="mr-2 font-medium">{shop}</span>
               
               {tokenError && (
-                <Badge variant="outline" className="ml-3 bg-yellow-50 text-yellow-600 flex items-center">
+                <Badge variant="outline" className="mr-3 bg-yellow-50 text-yellow-600 flex items-center">
                   <AlertTriangle className="mr-1 h-3 w-3" />
-                  Invalid Token
+                  رمز غير صالح
                 </Badge>
               )}
             </div>
@@ -318,18 +345,53 @@ const ShopifyProducts = () => {
             <div className="flex items-center text-red-600">
               <Badge variant="outline" className="bg-red-50 text-red-600 flex items-center">
                 <AlertCircle className="mr-1 h-3 w-3" />
-                Not Connected
+                غير متصل
               </Badge>
-              {error && <span className="ml-2">{error}</span>}
+              {error && <span className="mr-2">{error}</span>}
             </div>
           )}
           
-          {tokenError && (
+          {isPlaceholderToken && (
+            <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <div>
+                <AlertTitle>تم الكشف عن رمز وصول مؤقت (placeholder)</AlertTitle>
+                <AlertDescription className="mt-2">
+                  <p>المتجر متصل، ولكن يستخدم رمز وصول مؤقت (placeholder_token) وليس رمزًا حقيقيًا من Shopify. لتصحيح هذه المشكلة، يمكنك:</p>
+                  <ol className="list-decimal list-inside mt-2">
+                    <li className="mb-1">الانتقال إلى صفحة الإعدادات وتحديث رمز الوصول يدويًا</li>
+                    <li className="mb-1">أو إعادة الاتصال بمتجر Shopify باستخدام زر "إعادة الاتصال"</li>
+                  </ol>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                    <Button 
+                      onClick={handleGoToSettings}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      الانتقال للإعدادات
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleReconnect} 
+                      variant="secondary"
+                      className="flex-1"
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      إعادة الاتصال
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </div>
+            </Alert>
+          )}
+          
+          {tokenError && !isPlaceholderToken && (
             <Alert className="mt-4 border-yellow-200 bg-yellow-50">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription>
-                Your Shopify access token appears to be invalid or expired. 
-                Please reconnect your store to continue using this feature.
+                يبدو أن رمز وصول Shopify الخاص بك غير صالح أو منتهي الصلاحية.
+                يرجى إعادة الاتصال بمتجرك أو تحديث الرمز يدويًا من صفحة الإعدادات.
               </AlertDescription>
             </Alert>
           )}
@@ -337,20 +399,31 @@ const ShopifyProducts = () => {
         <CardFooter className="flex flex-col sm:flex-row gap-3">
           <Button onClick={checkConnection} disabled={isLoading}>
             {isLoading && !isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Test Connection
+            اختبار الاتصال
           </Button>
           
           {tokenError ? (
-            <Button 
-              variant="destructive" 
-              onClick={handleReconnect} 
-              disabled={isReconnecting}
-              className="w-full sm:w-auto"
-            >
-              {isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Reconnect Store
-            </Button>
+            <>
+              <Button 
+                variant="destructive" 
+                onClick={handleReconnect} 
+                disabled={isReconnecting}
+                className="w-full sm:w-auto"
+              >
+                {isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                إعادة الاتصال بالمتجر
+              </Button>
+              
+              <Button
+                onClick={handleGoToSettings}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                تحديث الرمز يدويًا
+              </Button>
+            </>
           ) : (
             <Button 
               onClick={fetchProducts} 
@@ -360,7 +433,7 @@ const ShopifyProducts = () => {
             >
               {isLoading && !isReconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <ShoppingBag className="mr-2 h-4 w-4" />
-              Load Products
+              تحميل المنتجات
             </Button>
           )}
         </CardFooter>
@@ -394,8 +467,8 @@ const ShopifyProducts = () => {
       {products.length === 0 && !isLoading && isConnected && (
         <div className="text-center py-12 text-gray-500">
           <ShoppingBag className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-          <h3 className="text-lg font-medium mb-2">No products found</h3>
-          <p>Click "Load Products" to fetch products from your Shopify store.</p>
+          <h3 className="text-lg font-medium mb-2">لم يتم العثور على منتجات</h3>
+          <p>انقر على "تحميل المنتجات" لجلب المنتجات من متجر Shopify الخاص بك.</p>
         </div>
       )}
       

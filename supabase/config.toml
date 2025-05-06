@@ -43,3 +43,6 @@ verify_jwt = false
 [functions.shopify-products]
 verify_jwt = false
 
+[functions.update-shopify-token]
+verify_jwt = false
+

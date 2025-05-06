@@ -23,6 +23,12 @@ class ShopifyConnectionService {
       }
       
       if (data && data.length > 0 && data[0].access_token) {
+        // Check if the token is a placeholder
+        if (data[0].access_token === 'placeholder_token') {
+          console.error('Found placeholder token for shop:', shop);
+          return null;
+        }
+        
         return data[0].access_token;
       }
 
@@ -45,6 +51,12 @@ class ShopifyConnectionService {
       const token = await this.getAccessToken(shop);
       
       if (!token) {
+        return false;
+      }
+      
+      // Check if it's a placeholder token
+      if (token === 'placeholder_token') {
+        console.log('Placeholder token detected - considered invalid');
         return false;
       }
       
@@ -117,7 +129,9 @@ class ShopifyConnectionService {
         throw error;
       }
       
-      const accessToken = token || 'placeholder_token';
+      // Don't use placeholder token if no token is provided
+      // This is a fix to prevent saving placeholder tokens
+      const accessToken = token || null;
       
       if (data && data.length > 0) {
         // Update existing store
@@ -126,8 +140,8 @@ class ShopifyConnectionService {
           is_active: isActive
         };
         
-        // Only update token if provided
-        if (token) {
+        // Only update token if provided and not placeholder
+        if (token && token !== 'placeholder_token') {
           updateData.access_token = token;
         }
         
@@ -135,14 +149,18 @@ class ShopifyConnectionService {
           .update(updateData)
           .eq('id', data[0].id);
       } else {
-        // Create new store
-        await shopifyStores().insert({
-          shop,
-          access_token: accessToken,
-          is_active: isActive,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        // Only create new store if we have a real token
+        if (accessToken && accessToken !== 'placeholder_token') {
+          await shopifyStores().insert({
+            shop,
+            access_token: accessToken,
+            is_active: isActive,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        } else {
+          console.warn('Not creating store record with null or placeholder token:', shop);
+        }
       }
       
       // Update connection manager
@@ -214,6 +232,12 @@ class ShopifyConnectionService {
       const token = accessToken || await this.getAccessToken(shop);
       
       if (!token) {
+        return false;
+      }
+      
+      // Check if it's a placeholder token
+      if (token === 'placeholder_token') {
+        console.log('Placeholder token detected during test - considered invalid');
         return false;
       }
       
