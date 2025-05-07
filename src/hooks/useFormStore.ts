@@ -129,9 +129,9 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const state = get();
     const currentLang = language || state.formState.formLanguage || 'ar';
     const translations = state.formState.translations || {};
-    const langTranslations = translations[currentLang]?.fields || {};
+    const langTranslations = translations[currentLang]?.fields;
     
-    return langTranslations[fieldId]?.[propertyName];
+    return langTranslations?.[fieldId]?.[propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
     const currentLang = language || state.formState.formLanguage || 'ar';
