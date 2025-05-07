@@ -17,6 +17,7 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
+  submitButtonText?: string; // Added this field
 }
 
 export interface FormTemplate {
