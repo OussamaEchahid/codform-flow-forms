@@ -290,3 +290,45 @@
   border-color: #ef4444 !important;
   background-color: rgba(254, 226, 226, 0.3);
 }
+
+/* Field specific styles */
+.codform-field h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.25rem;
+}
+
+/* Step title styling */
+.codform-step-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #374151;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Improve spacing and layout for better readability */
+.codform-step {
+  padding: 10px 0;
+}
+
+/* Focus styles for better accessibility */
+.codform-field input:focus,
+.codform-field select:focus,
+.codform-field textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+/* Make sure radio and checkbox options are properly spaced */
+.codform-radio-container,
+.codform-checkbox-container {
+  margin-bottom: 5px;
+}
+
+.codform-radio-container:last-child,
+.codform-checkbox-container:last-child {
+  margin-bottom: 0;
+}

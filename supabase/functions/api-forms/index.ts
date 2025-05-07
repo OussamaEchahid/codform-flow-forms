@@ -63,7 +63,7 @@ serve(async (req) => {
     console.log(`Successfully fetched form: ${data.title}, ID: ${data.id}`);
     
     // Log the raw form data for debugging
-    console.log('Raw form data structure:', JSON.stringify(data.data).substring(0, 200) + '...');
+    console.log('Raw form data structure:', JSON.stringify(data.data).substring(0, 500) + '...');
 
     // Convert form data for the front-end
     const formFields = transformFormData(data.data);
@@ -117,67 +117,75 @@ function transformFormData(formData: any) {
     
     let allFields: any[] = [];
     
-    // Extract fields based on form structure
     if (hasSteps) {
-      // Process multi-step form structure
+      // Process multi-step form
       formData.forEach((step, stepIndex) => {
         console.log(`Processing step ${stepIndex + 1}: ${step.title || step.id}`);
         
-        // Extract fields from the step
+        // Add step information at the beginning of the fields array
+        allFields.push({
+          id: step.id,
+          type: 'step',
+          label: step.title || `Step ${stepIndex + 1}`,
+          stepIndex: stepIndex,
+          isStep: true
+        });
+        
+        // Extract and process fields from the step
         if (step.fields && Array.isArray(step.fields)) {
-          // Process each field in the step
           step.fields.forEach((field: any) => {
-            // Preserve all original field properties in the response
-            const transformedField = {
-              id: field.id,
-              type: field.type,
-              label: field.label || field.title || '',
-              required: field.required || false,
-              placeholder: field.placeholder || '',
-              helpText: field.helpText || field.description || '',
-              options: field.options || [],
-              checkboxLabel: field.checkboxLabel || '',
-              style: field.style || {},  // Preserve styling information
-              content: field.content || '',  // For HTML/text content fields
-              stepId: step.id, // Keep track of which step this field belongs to
+            // Add all original field properties plus step information
+            allFields.push({
+              ...field,
+              stepId: step.id,
               stepTitle: step.title || `Step ${stepIndex + 1}`,
-              stepIndex: stepIndex,
-              // Preserve any other custom properties
-              ...field
-            };
-            
-            // Remove any properties that are already copied to avoid duplication
-            delete transformedField.fields;
-            
-            allFields.push(transformedField);
+              stepIndex: stepIndex
+            });
           });
         } else {
           console.warn(`Step ${stepIndex + 1} has no fields or fields is not an array`);
         }
       });
     } else {
-      // Process single-step form (direct array of fields)
-      allFields = formData.map((field: any) => ({
-        id: field.id,
-        type: field.type,
-        label: field.label || field.title || '',
-        required: field.required || false,
-        placeholder: field.placeholder || '',
-        helpText: field.helpText || field.description || '',
-        options: field.options || [],
-        checkboxLabel: field.checkboxLabel || '',
-        style: field.style || {},  // Preserve styling information
-        content: field.content || '',  // For HTML/text content fields
-        // Preserve any other custom properties
-        ...field
-      }));
+      // Handle case where formData might be a single step structure
+      if (formData.length === 1 && formData[0].fields && Array.isArray(formData[0].fields)) {
+        console.log('Processing as single-step form with nested fields structure');
+        const step = formData[0];
+        
+        // Add step information
+        allFields.push({
+          id: step.id,
+          type: 'step',
+          label: step.title || 'Main Step',
+          stepIndex: 0,
+          isStep: true
+        });
+        
+        // Add all fields from the step
+        step.fields.forEach((field: any) => {
+          allFields.push({
+            ...field,
+            stepId: step.id,
+            stepTitle: step.title || 'Main Step',
+            stepIndex: 0
+          });
+        });
+      } else {
+        // Process flat array of fields (no steps)
+        allFields = formData.map((field: any) => ({
+          ...field
+        }));
+      }
     }
     
     console.log(`Transformed ${allFields.length} total fields`);
     
-    // Log a sample of the transformed fields for debugging
+    // Log sample fields for debugging
     if (allFields.length > 0) {
-      console.log('Sample transformed field:', JSON.stringify(allFields[0]));
+      console.log('First field:', JSON.stringify(allFields[0]));
+      if (allFields.length > 1) {
+        console.log('Second field:', JSON.stringify(allFields[1]));
+      }
     }
     
     return allFields;

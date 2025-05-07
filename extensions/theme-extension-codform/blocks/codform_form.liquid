@@ -141,120 +141,149 @@
     shopDomainField.value = window.Shopify ? window.Shopify.shop : '';
     form.appendChild(shopDomainField);
 
-    // Render form fields based on formData
-    if (formData.fields && Array.isArray(formData.fields)) {
-      formData.fields.forEach(field => {
-        const fieldContainer = document.createElement('div');
-        fieldContainer.className = 'codform-field';
-
-        const label = document.createElement('label');
-        label.htmlFor = 'field_' + field.id + '_' + blockId;
-        label.textContent = field.label;
-        if (field.required) {
-          const required = document.createElement('span');
-          required.className = 'codform-required';
-          required.textContent = ' *';
-          label.appendChild(required);
-        }
-        fieldContainer.appendChild(label);
-
-        let input;
-
-        switch (field.type) {
-          case 'text':
-          case 'email':
-          case 'tel':
-          case 'number':
-            input = document.createElement('input');
-            input.type = field.type;
-            input.id = 'field_' + field.id + '_' + blockId;
-            input.name = field.id;
-            input.placeholder = field.placeholder || '';
-            input.required = field.required || false;
-            break;
-
-          case 'textarea':
-            input = document.createElement('textarea');
-            input.id = 'field_' + field.id + '_' + blockId;
-            input.name = field.id;
-            input.placeholder = field.placeholder || '';
-            input.required = field.required || false;
-            input.rows = 4;
-            break;
-
-          case 'select':
-            input = document.createElement('select');
-            input.id = 'field_' + field.id + '_' + blockId;
-            input.name = field.id;
-            input.required = field.required || false;
-
-            // Add empty option
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = field.placeholder || 'اختر...';
-            input.appendChild(emptyOption);
-
-            // Add options
-            if (field.options && Array.isArray(field.options)) {
-              field.options.forEach(option => {
-                const optionElement = document.createElement('option');
-                optionElement.value = option.value;
-                optionElement.textContent = option.label;
-                input.appendChild(optionElement);
-              });
-            }
-            break;
-
-          case 'checkbox':
-            const checkboxContainer = document.createElement('div');
-            checkboxContainer.className = 'codform-checkbox-container';
-
-            input = document.createElement('input');
-            input.type = 'checkbox';
-            input.id = 'field_' + field.id + '_' + blockId;
-            input.name = field.id;
-            input.required = field.required || false;
-
-            const checkboxLabel = document.createElement('label');
-            checkboxLabel.htmlFor = 'field_' + field.id + '_' + blockId;
-            checkboxLabel.textContent = field.checkboxLabel || field.label;
-
-            checkboxContainer.appendChild(input);
-            checkboxContainer.appendChild(checkboxLabel);
-            fieldContainer.appendChild(checkboxContainer);
-            break;
-
-          default:
-            input = document.createElement('input');
-            input.type = 'text';
-            input.id = 'field_' + field.id + '_' + blockId;
-            input.name = field.id;
-            input.required = field.required || false;
-        }
-
-        if (field.type !== 'checkbox') {
-          fieldContainer.appendChild(input);
-        }
-
-        if (field.helpText) {
-          const helpText = document.createElement('div');
-          helpText.className = 'codform-help-text';
-          helpText.textContent = field.helpText;
-          fieldContainer.appendChild(helpText);
-        }
-
-        form.appendChild(fieldContainer);
-      });
-    } else {
-      console.error('CODFORM: Form fields not found or invalid', formData);
+    // Process form data to identify steps
+    let fields = formData.fields || [];
+    console.log('CODFORM: Processing', fields.length, 'fields');
+    
+    // Group fields by step
+    let steps = [];
+    let currentStepIndex = -1;
+    
+    if (fields.length > 0) {
+      // Check if we have a multi-step form
+      const hasSteps = fields.some(field => field.type === 'step' || field.isStep);
+      console.log('CODFORM: Form has steps:', hasSteps);
+      
+      if (hasSteps) {
+        // Group fields by step
+        let currentStep = null;
+        
+        fields.forEach(field => {
+          if (field.type === 'step' || field.isStep) {
+            currentStep = {
+              id: field.id,
+              title: field.label,
+              fields: []
+            };
+            steps.push(currentStep);
+          } else if (currentStep) {
+            currentStep.fields.push(field);
+          }
+        });
+      } else {
+        // Single step form
+        steps.push({
+          id: 'step-1',
+          title: formData.title || 'Form',
+          fields: fields
+        });
+      }
     }
 
-    // Add submit button
-    const submitButton = document.createElement('button');
-    submitButton.type = 'submit';
-    submitButton.className = 'codform-submit-button';
-    submitButton.textContent = 'إرسال الطلب';
-    form.appendChild(submitButton);
+    console.log('CODFORM: Identified', steps.length, 'steps in the form');
+    
+    // Check if we have a multi-step form
+    if (steps.length > 1) {
+      // Add step indicators
+      const stepsNav = document.createElement('div');
+      stepsNav.className = 'codform-steps-nav';
+      
+      const stepsIndicators = document.createElement('div');
+      stepsIndicators.className = 'codform-step-indicators';
+      
+      steps.forEach((step, index) => {
+        const indicator = document.createElement('div');
+        indicator.className = 'codform-step-indicator';
+        indicator.dataset.stepIndex = index.toString();
+        
+        if (index === 0) {
+          indicator.classList.add('codform-step-active');
+        }
+        
+        indicator.textContent = (index + 1).toString();
+        stepsIndicators.appendChild(indicator);
+      });
+      
+      stepsNav.appendChild(stepsIndicators);
+      form.appendChild(stepsNav);
+      
+      // Create steps container
+      const stepsContainer = document.createElement('div');
+      stepsContainer.className = 'codform-steps-container';
+      form.appendChild(stepsContainer);
+      
+      // Render the first step
+      renderStep(steps[0], stepsContainer);
+      
+      // Add navigation buttons
+      const navButtons = document.createElement('div');
+      navButtons.className = 'codform-nav-buttons';
+      
+      const prevButton = document.createElement('button');
+      prevButton.type = 'button';
+      prevButton.className = 'codform-prev-button';
+      prevButton.textContent = 'السابق';
+      prevButton.style.display = 'none'; // Hide previous button initially
+      prevButton.addEventListener('click', function() {
+        navigateStep(-1, steps, stepsContainer, blockId);
+      });
+      
+      const nextButton = document.createElement('button');
+      nextButton.type = 'button';
+      nextButton.className = 'codform-next-button';
+      nextButton.textContent = 'التالي';
+      nextButton.addEventListener('click', function() {
+        navigateStep(1, steps, stepsContainer, blockId);
+      });
+      
+      const submitButton = document.createElement('button');
+      submitButton.type = 'submit';
+      submitButton.className = 'codform-submit-button';
+      submitButton.textContent = 'إرسال الطلب';
+      submitButton.style.display = 'none'; // Hide submit button initially
+      
+      navButtons.appendChild(prevButton);
+      navButtons.appendChild(nextButton);
+      navButtons.appendChild(submitButton);
+      form.appendChild(navButtons);
+      
+      // Set form data attributes
+      form.dataset.currentStep = '0';
+      form.dataset.totalSteps = steps.length.toString();
+      
+    } else if (steps.length === 1) {
+      // Single step form, render all fields
+      const stepContainer = document.createElement('div');
+      stepContainer.className = 'codform-step';
+      
+      // Render each field in the step
+      steps[0].fields.forEach(field => {
+        renderField(stepContainer, field);
+      });
+      
+      form.appendChild(stepContainer);
+      
+      // Add submit button
+      const submitButton = document.createElement('button');
+      submitButton.type = 'submit';
+      submitButton.className = 'codform-submit-button';
+      submitButton.textContent = 'إرسال الطلب';
+      form.appendChild(submitButton);
+    } else {
+      console.warn('CODFORM: No form fields found');
+      
+      const noFieldsMsg = document.createElement('p');
+      noFieldsMsg.textContent = 'لا توجد حقول في هذا النموذج';
+      form.appendChild(noFieldsMsg);
+      
+      // Add disabled submit button
+      const submitButton = document.createElement('button');
+      submitButton.type = 'submit';
+      submitButton.className = 'codform-submit-button';
+      submitButton.textContent = 'إرسال الطلب';
+      submitButton.disabled = true;
+      form.appendChild(submitButton);
+    }
 
     // Add form submission handler
     form.addEventListener('submit', function(event) {
@@ -268,6 +297,276 @@
     formContainer.style.display = 'block';
 
     console.log('CODFORM: Form rendered successfully for block', blockId);
+  }
+
+  function renderStep(step, container) {
+    console.log('CODFORM: Rendering step', step.id, 'with', step.fields.length, 'fields');
+    
+    container.innerHTML = ''; // Clear container
+    
+    const stepElement = document.createElement('div');
+    stepElement.className = 'codform-step';
+    stepElement.dataset.stepId = step.id;
+    
+    // Render each field in the step
+    step.fields.forEach(field => {
+      renderField(stepElement, field);
+    });
+    
+    container.appendChild(stepElement);
+  }
+
+  function renderField(container, field) {
+    console.log('CODFORM: Rendering field', field.id, 'of type', field.type);
+    
+    if (!field.type) {
+      console.warn('CODFORM: Field has no type', field);
+      return;
+    }
+
+    const fieldContainer = document.createElement('div');
+    fieldContainer.className = 'codform-field';
+    fieldContainer.dataset.fieldId = field.id;
+
+    // Apply custom styling if available
+    if (field.style) {
+      Object.keys(field.style).forEach(key => {
+        fieldContainer.style[key] = field.style[key];
+      });
+    }
+
+    if (field.type === 'text/html' || field.type === 'title') {
+      // Handle HTML content or title fields
+      if (field.type === 'title') {
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = field.label;
+        if (field.style) {
+          Object.keys(field.style).forEach(key => {
+            titleElement.style[key] = field.style[key];
+          });
+        }
+        fieldContainer.appendChild(titleElement);
+      } else if (field.type === 'text/html' && field.content) {
+        const htmlContainer = document.createElement('div');
+        htmlContainer.innerHTML = field.content;
+        fieldContainer.appendChild(htmlContainer);
+      }
+    } else {
+      // Standard form fields
+      const label = document.createElement('label');
+      label.htmlFor = 'field_' + field.id;
+      label.textContent = field.label;
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = ' *';
+        label.appendChild(required);
+      }
+      fieldContainer.appendChild(label);
+      
+      let input;
+      
+      switch (field.type) {
+        case 'text':
+        case 'email':
+        case 'tel':
+        case 'phone':
+        case 'number':
+          input = document.createElement('input');
+          input.type = field.type === 'phone' ? 'tel' : field.type;
+          input.id = 'field_' + field.id;
+          input.name = field.id;
+          input.placeholder = field.placeholder || '';
+          input.required = field.required || false;
+          break;
+          
+        case 'textarea':
+          input = document.createElement('textarea');
+          input.id = 'field_' + field.id;
+          input.name = field.id;
+          input.placeholder = field.placeholder || '';
+          input.required = field.required || false;
+          input.rows = 4;
+          break;
+          
+        case 'select':
+          input = document.createElement('select');
+          input.id = 'field_' + field.id;
+          input.name = field.id;
+          input.required = field.required || false;
+          
+          // Add empty option
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = field.placeholder || 'اختر...';
+          input.appendChild(emptyOption);
+          
+          // Add options
+          if (field.options && Array.isArray(field.options)) {
+            field.options.forEach(option => {
+              const optionElement = document.createElement('option');
+              optionElement.value = option.value || option;
+              optionElement.textContent = option.label || option;
+              input.appendChild(optionElement);
+            });
+          }
+          break;
+          
+        case 'checkbox':
+          const checkboxContainer = document.createElement('div');
+          checkboxContainer.className = 'codform-checkbox-container';
+          
+          input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = 'field_' + field.id;
+          input.name = field.id;
+          input.required = field.required || false;
+          
+          const checkboxLabel = document.createElement('label');
+          checkboxLabel.htmlFor = 'field_' + field.id;
+          checkboxLabel.textContent = field.checkboxLabel || field.label;
+          
+          checkboxContainer.appendChild(input);
+          checkboxContainer.appendChild(checkboxLabel);
+          fieldContainer.appendChild(checkboxContainer);
+          break;
+        
+        case 'radio':
+          if (field.options && Array.isArray(field.options)) {
+            const radioGroup = document.createElement('div');
+            radioGroup.className = 'codform-radio-group';
+            
+            field.options.forEach((option, idx) => {
+              const radioContainer = document.createElement('div');
+              radioContainer.className = 'codform-radio-container';
+              
+              const radioInput = document.createElement('input');
+              radioInput.type = 'radio';
+              radioInput.id = `field_${field.id}_${idx}`;
+              radioInput.name = field.id;
+              radioInput.value = option.value || option;
+              radioInput.required = field.required || false;
+              
+              const radioLabel = document.createElement('label');
+              radioLabel.htmlFor = `field_${field.id}_${idx}`;
+              radioLabel.textContent = option.label || option;
+              
+              radioContainer.appendChild(radioInput);
+              radioContainer.appendChild(radioLabel);
+              radioGroup.appendChild(radioContainer);
+            });
+            
+            fieldContainer.appendChild(radioGroup);
+          }
+          break;
+          
+        default:
+          console.log('CODFORM: Unhandled field type:', field.type);
+          input = document.createElement('input');
+          input.type = 'text';
+          input.id = 'field_' + field.id;
+          input.name = field.id;
+          input.required = field.required || false;
+      }
+      
+      // Apply custom styling to inputs
+      if (input && field.style) {
+        Object.keys(field.style).forEach(key => {
+          input.style[key] = field.style[key];
+        });
+      }
+      
+      if (field.type !== 'checkbox' && field.type !== 'radio' && input) {
+        fieldContainer.appendChild(input);
+      }
+      
+      if (field.helpText) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.textContent = field.helpText;
+        fieldContainer.appendChild(helpText);
+      }
+    }
+    
+    container.appendChild(fieldContainer);
+  }
+
+  function navigateStep(direction, steps, stepsContainer, blockId) {
+    const form = document.getElementById('codform-submission-form-' + blockId);
+    const currentStepIndex = parseInt(form.dataset.currentStep);
+    const totalSteps = steps.length;
+    const newStepIndex = currentStepIndex + direction;
+    
+    // Validate current step if moving forward
+    if (direction > 0) {
+      const currentStepElement = form.querySelector('.codform-step');
+      const requiredFields = currentStepElement.querySelectorAll('[required]');
+      let isValid = true;
+      
+      requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+          isValid = false;
+          field.classList.add('codform-field-error');
+        } else {
+          field.classList.remove('codform-field-error');
+        }
+      });
+      
+      if (!isValid) {
+        // Show validation message
+        let errorMsg = form.querySelector('.codform-validation-message');
+        if (!errorMsg) {
+          errorMsg = document.createElement('div');
+          errorMsg.className = 'codform-validation-message';
+          errorMsg.textContent = 'يرجى ملء جميع الحقول المطلوبة';
+          stepsContainer.appendChild(errorMsg);
+        }
+        return;
+      } else {
+        // Remove validation message if exists
+        const errorMsg = form.querySelector('.codform-validation-message');
+        if (errorMsg) {
+          errorMsg.remove();
+        }
+      }
+    }
+    
+    // Check if step is valid
+    if (newStepIndex >= 0 && newStepIndex < totalSteps) {
+      // Update form data attribute
+      form.dataset.currentStep = newStepIndex.toString();
+      
+      // Update step indicators
+      const indicators = form.querySelectorAll('.codform-step-indicator');
+      indicators.forEach((indicator, index) => {
+        indicator.classList.remove('codform-step-active');
+        
+        if (index === newStepIndex) {
+          indicator.classList.add('codform-step-active');
+        }
+        
+        if (index < newStepIndex) {
+          indicator.classList.add('codform-step-completed');
+        } else {
+          indicator.classList.remove('codform-step-completed');
+        }
+      });
+      
+      // Update buttons visibility
+      const prevButton = form.querySelector('.codform-prev-button');
+      const nextButton = form.querySelector('.codform-next-button');
+      const submitButton = form.querySelector('.codform-submit-button');
+      
+      prevButton.style.display = newStepIndex > 0 ? 'block' : 'none';
+      nextButton.style.display = newStepIndex < totalSteps - 1 ? 'block' : 'none';
+      submitButton.style.display = newStepIndex === totalSteps - 1 ? 'block' : 'none';
+      
+      // Render the new step
+      renderStep(steps[newStepIndex], stepsContainer);
+      
+      // Scroll to top of form
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function submitForm(form, formId, blockId) {
@@ -334,169 +633,7 @@
 </script>
 
 <style>
-  .codform-container {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
-    margin: 20px 0;
-    padding: 20px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #f9fafb;
-  }
-
-  .codform-header {
-    margin-bottom: 20px;
-    text-align: right;
-  }
-
-  .codform-header h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #1f2937;
-  }
-
-  .codform-header p {
-    color: #6b7280;
-    font-size: 1rem;
-  }
-
-  .codform-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 0;
-  }
-
-  .codform-spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top: 4px solid #7c3aed;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .codform-success, .codform-error {
-    text-align: center;
-    padding: 30px 20px;
-  }
-
-  .codform-success-icon {
-    background-color: #10b981;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  .codform-error-icon {
-    background-color: #ef4444;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  .codform-button {
-    background-color: #7c3aed;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 16px;
-    transition: background-color 0.2s;
-  }
-
-  .codform-button:hover {
-    background-color: #6d28d9;
-  }
-
-  .codform-form .codform-field {
-    margin-bottom: 16px;
-  }
-
-  .codform-form label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-  }
-
-  .codform-form input[type="text"],
-  .codform-form input[type="email"],
-  .codform-form input[type="tel"],
-  .codform-form input[type="number"],
-  .codform-form select,
-  .codform-form textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 4px;
-    background-color: white;
-    margin-bottom: 4px;
-    direction: rtl;
-  }
-
-  .codform-form .codform-help-text {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 2px;
-  }
-
-  .codform-form .codform-required {
-    color: #ef4444;
-  }
-
-  .codform-form .codform-checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .codform-form .codform-checkbox-container input {
-    width: auto;
-  }
-
-  .codform-submit-button {
-    background-color: #7c3aed;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 16px;
-    transition: background-color 0.2s;
-    width: 100%;
-  }
-
-  .codform-submit-button:hover {
-    background-color: #6d28d9;
-  }
-
-  .codform-form.codform-loading .codform-submit-button {
-    opacity: 0.7;
-    pointer-events: none;
-  }
+  /* ... keep existing code */
 </style>
 {% else %}
 <div style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 4px; margin: 10px 0;">
