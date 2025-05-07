@@ -5,7 +5,7 @@
   // مباشرة إلى Edge Function Supabase URL - أكثر موثوقية
   const API_BASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
   
-  // وحدات لتقديم الحقول وعناصر النماذج
+  // ================ وحدة عرض الحقول ==================
   function CODFORMFieldRenderer() {
     function renderField(form, field, primaryColor) {
       // تنفيذ عرض الحقل حسب النوع
@@ -741,7 +741,7 @@
     };
   }
 
-  // وحدة التنقل بين خطوات النموذج
+  // =================== وحدة التنقل بين خطوات النموذج =================
   function CODFORMStepNavigator() {
     function navigateStep(form, direction) {
       // Get current step
@@ -825,7 +825,77 @@
     return { navigateStep };
   }
 
-  // وحدة عرض النموذج
+  // ================== وحدة إرسال النموذج =====================
+  function CODFORMFormSubmitter(API_BASE_URL) {
+    function submitForm(container, form, formId) {
+      console.log('CODFORM: Submitting form', formId);
+      
+      // Show loading state
+      const submitButton = form.querySelector('.codform-submit-button');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="codform-button-spinner"></span> جار الإرسال...';
+      }
+      
+      // Collect form data
+      const formData = new FormData(form);
+      const submissionData = {};
+      
+      for (const [key, value] of formData.entries()) {
+        submissionData[key] = value;
+      }
+      
+      // Add form ID
+      submissionData.formId = formId;
+      
+      // Submit to API endpoint
+      fetch(`${API_BASE_URL}/api-submissions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(submissionData)
+      })
+      .then(response => {
+        console.log('CODFORM: Submission response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Server returned ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('CODFORM: Submission successful', data);
+        
+        // Hide form and show success message
+        const formContainer = container.querySelector('.codform-form');
+        const successContainer = container.querySelector('.codform-success');
+        
+        if (formContainer) formContainer.style.display = 'none';
+        if (successContainer) successContainer.style.display = 'block';
+      })
+      .catch(error => {
+        console.error('CODFORM: Submission error', error);
+        
+        // Reset button state
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'إرسال الطلب';
+        }
+        
+        // Show error message
+        const formContainer = container.querySelector('.codform-form');
+        const errorContainer = container.querySelector('.codform-error');
+        
+        if (formContainer) formContainer.style.display = 'none';
+        if (errorContainer) errorContainer.style.display = 'block';
+      });
+    }
+    
+    return { submitForm };
+  }
+
+  // ================== وحدة عرض النموذج ====================
   function CODFORMFormRenderer() {
     const { 
       renderField, 
@@ -1033,77 +1103,7 @@
     return { renderForm };
   }
 
-  // وحدة إرسال النموذج
-  function CODFORMFormSubmitter(API_BASE_URL) {
-    function submitForm(container, form, formId) {
-      console.log('CODFORM: Submitting form', formId);
-      
-      // Show loading state
-      const submitButton = form.querySelector('.codform-submit-button');
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<span class="codform-button-spinner"></span> جار الإرسال...';
-      }
-      
-      // Collect form data
-      const formData = new FormData(form);
-      const submissionData = {};
-      
-      for (const [key, value] of formData.entries()) {
-        submissionData[key] = value;
-      }
-      
-      // Add form ID
-      submissionData.formId = formId;
-      
-      // Submit to API endpoint
-      fetch(`${API_BASE_URL}/api-submissions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(submissionData)
-      })
-      .then(response => {
-        console.log('CODFORM: Submission response status:', response.status);
-        if (!response.ok) {
-          throw new Error('Server returned ' + response.status);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('CODFORM: Submission successful', data);
-        
-        // Hide form and show success message
-        const formContainer = container.querySelector('.codform-form');
-        const successContainer = container.querySelector('.codform-success');
-        
-        if (formContainer) formContainer.style.display = 'none';
-        if (successContainer) successContainer.style.display = 'block';
-      })
-      .catch(error => {
-        console.error('CODFORM: Submission error', error);
-        
-        // Reset button state
-        if (submitButton) {
-          submitButton.disabled = false;
-          submitButton.textContent = 'إرسال الطلب';
-        }
-        
-        // Show error message
-        const formContainer = container.querySelector('.codform-form');
-        const errorContainer = container.querySelector('.codform-error');
-        
-        if (formContainer) formContainer.style.display = 'none';
-        if (errorContainer) errorContainer.style.display = 'block';
-      });
-    }
-    
-    return { submitForm };
-  }
-
-  // وحدة تحميل النموذج
+  // ================== وحدة تحميل النموذج ===================
   function CODFORMFormLoader(API_BASE_URL) {
     const { renderForm } = CODFORMFormRenderer();
     const { submitForm } = CODFORMFormSubmitter(API_BASE_URL);
@@ -1122,23 +1122,23 @@
         },
         mode: 'cors'
       })
-        .then(response => {
-          console.log('CODFORM: API Response status:', response.status);
-          if (!response.ok) {
-            throw new Error('Failed to load form: ' + response.status);
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log('CODFORM: Form data received:', data);
-          hideLoader(container);
-          showForm(container);
-          renderForm(container, data, productId, submitForm);
-        })
-        .catch(error => {
-          console.error('CODFORM: Error loading form', error);
-          showError(container);
-        });
+      .then(response => {
+        console.log('CODFORM: API Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Failed to load form: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('CODFORM: Form data received:', data);
+        hideLoader(container);
+        showForm(container);
+        renderForm(container, data, productId, submitForm);
+      })
+      .catch(error => {
+        console.error('CODFORM: Error loading form', error);
+        showError(container);
+      });
     }
     
     // Helper functions for showing/hiding elements
@@ -1196,7 +1196,7 @@
     };
   }
 
-  // وحدة التهيئة وبدء عمل النموذج
+  // ================== وحدة التهيئة وبدء عمل النموذج ====================
   function CODFORMInitializer(API_BASE_URL) {
     const { 
       loadForm, 
@@ -1211,6 +1211,7 @@
     } = CODFORMFormLoader(API_BASE_URL);
 
     function initCODFORM() {
+      console.log('CODFORM: Initializing CODFORM');
       const codformContainers = document.querySelectorAll('.codform-container');
       console.log('CODFORM: Found containers:', codformContainers.length);
       
@@ -1235,7 +1236,7 @@
         loadForm(container, formId, productId);
         
         // Set up retry button
-        const retryButton = container.querySelector('#codform-retry-' + container.id.split('-').pop());
+        const retryButton = container.querySelector(`#codform-retry-${container.id.split('-').pop()}`);
         if (retryButton) {
           retryButton.addEventListener('click', function() {
             hideError(container);
@@ -1249,11 +1250,19 @@
     return { initCODFORM };
   }
   
-  // Initialize CODFORM when the DOM is loaded
+  // تهيئة CODFORM عند تحميل الصفحة
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('CODFORM: Script loaded');
+    console.log('CODFORM: Script loaded, DOM ready');
     
+    // قد تكون الصفحة قد تم تحميلها مسبقًا، لذا نتحقق ما إذا كان يجب تنفيذ الكود مباشرة
     const { initCODFORM } = CODFORMInitializer(API_BASE_URL);
     initCODFORM();
   });
+  
+  // تهيئة CODFORM أيضًا في حالة تحميل النموذج ديناميكيًا بعد تحميل الصفحة
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('CODFORM: Page already loaded, initializing now');
+    const { initCODFORM } = CODFORMInitializer(API_BASE_URL);
+    initCODFORM();
+  }
 })();
