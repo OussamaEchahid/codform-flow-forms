@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { FormTemplatesDialog } from '@/components/form/FormTemplatesDialog';
+import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { toast } from 'sonner';
 
