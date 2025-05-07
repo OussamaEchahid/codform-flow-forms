@@ -7,8 +7,14 @@ export interface FormState {
   description?: string;
   data: any[];
   isPublished: boolean;
+  is_published?: boolean; // Added for consistency with database field
   shop_id?: string;
-  submitButtonText?: string; // Added this field
+  submitButtonText?: string;
+  // Add style properties
+  primaryColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  buttonStyle?: string;
 }
 
 interface FormStore {
@@ -24,7 +30,11 @@ const defaultFormState: FormState = {
   data: [],
   isPublished: false,
   shop_id: undefined,
-  submitButtonText: 'إرسال الطلب' // Added default value
+  submitButtonText: 'إرسال الطلب',
+  primaryColor: '#9b87f5',
+  borderRadius: '0.5rem',
+  fontSize: '1rem',
+  buttonStyle: 'rounded'
 };
 
 export const useFormStore = create<FormStore>((set) => ({

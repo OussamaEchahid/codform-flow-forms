@@ -327,8 +327,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         // تحديث حالة النموذج في الذاكرة
         setFormState({
           ...formState,
-          isPublished: newPublishState,
-          is_published: newPublishState
+          isPublished: newPublishState
         });
       }
     } catch (error) {
