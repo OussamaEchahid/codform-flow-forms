@@ -8,9 +8,9 @@
 {% if product %}
 <div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}">
   <div class="codform-header">
-    <h3>{{ block.settings.title }}</h3>
+    <h3 class="codform-title">{{ block.settings.title }}</h3>
     {% if block.settings.description != blank %}
-      <p>{{ block.settings.description }}</p>
+      <p class="codform-description">{{ block.settings.description }}</p>
     {% endif %}
   </div>
 
@@ -44,9 +44,9 @@
 {
   "name": "نموذج الدفع عند الاستلام",
   "target": "section",
+  "templates": ["product"],
   "stylesheet": "codform.css",
   "javascript": "codform.js",
-  "templates": ["product"],
   "settings": [
     {
       "type": "text",

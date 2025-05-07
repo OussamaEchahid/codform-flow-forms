@@ -20,10 +20,25 @@ function CODFORMFormRenderer() {
     console.log('CODFORM: Rendering form with', formData.fields ? formData.fields.length : 0, 'fields');
     formContainer.innerHTML = ''; // Clear any existing content
     
-    // Set header background color based on form's primary color
+    // Apply form title and description from formData if available
     const formHeader = container.querySelector('.codform-header');
-    if (formHeader && formData.primaryColor) {
-      formHeader.style.backgroundColor = formData.primaryColor;
+    if (formHeader) {
+      // Update the header background color based on form's primary color
+      if (formData.primaryColor) {
+        formHeader.style.backgroundColor = formData.primaryColor;
+      }
+      
+      // Update the form title if available in formData
+      const titleElement = formHeader.querySelector('.codform-title');
+      if (titleElement && formData.title) {
+        titleElement.textContent = formData.title;
+      }
+      
+      // Update the form description if available in formData
+      const descElement = formHeader.querySelector('.codform-description');
+      if (descElement && formData.description) {
+        descElement.textContent = formData.description;
+      }
     }
     
     // Create form element
@@ -117,7 +132,7 @@ function CODFORMFormRenderer() {
         const prevButton = document.createElement('button');
         prevButton.type = 'button';
         prevButton.className = 'codform-prev-button';
-        prevButton.textContent = 'السابق';
+        prevButton.textContent = formData.prevButtonText || 'السابق';
         prevButton.style.display = 'none'; // Hide initially
         prevButton.addEventListener('click', function() {
           navigateStep(form, -1);
@@ -126,7 +141,7 @@ function CODFORMFormRenderer() {
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'codform-next-button';
-        nextButton.textContent = 'التالي';
+        nextButton.textContent = formData.nextButtonText || 'التالي';
         // Apply primary color
         if (formData.primaryColor) {
           nextButton.style.backgroundColor = formData.primaryColor;
@@ -138,7 +153,7 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = 'إرسال الطلب';
+        submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -154,7 +169,7 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = 'إرسال الطلب';
+        submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -177,7 +192,7 @@ function CODFORMFormRenderer() {
       const submitButton = document.createElement('button');
       submitButton.type = 'submit';
       submitButton.className = 'codform-submit-button';
-      submitButton.textContent = 'إرسال الطلب';
+      submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
       // Apply primary color
       if (formData.primaryColor) {
         submitButton.style.backgroundColor = formData.primaryColor;
