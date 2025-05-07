@@ -8,8 +8,10 @@ function ActionExtension({ shop, productId }) {
   
   // Handle button click to configure the form for this product
   const handleButtonClick = () => {
-    // Open the configuration page in a new tab
-    window.open(`${adminAppUrl}?shop=${shop}&productId=${productId}`, '_blank');
+    // Open the configuration page in a new tab with clean params
+    const cleanShop = shop ? encodeURIComponent(shop) : '';
+    const cleanProductId = productId ? encodeURIComponent(productId) : '';
+    window.open(`${adminAppUrl}?shop=${cleanShop}&productId=${cleanProductId}`, '_blank');
   };
   
   return (
@@ -44,6 +46,8 @@ export default reactExtension(
   (root) => {
     const shop = root.shopify.shop.domain;
     const productId = root.shopify.product?.id;
+    
+    console.log('CODFORM Admin Extension loaded:', { shop, productId });
     
     return <ActionExtension shop={shop} productId={productId} />;
   },

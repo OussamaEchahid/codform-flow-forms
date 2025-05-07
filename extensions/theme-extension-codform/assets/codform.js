@@ -2,7 +2,8 @@
 // CODFORM - نماذج الدفع عند الاستلام
 
 (function() {
-  const API_URL = 'https://codform-flow-forms.lovable.app/api';
+  // مباشرة إلى Edge Function Supabase URL - أكثر موثوقية
+  const API_BASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
   
   // Initialize CODFORM when the DOM is loaded
   document.addEventListener('DOMContentLoaded', function() {
@@ -48,7 +49,9 @@
   
   function loadForm(container, formId, productId) {
     console.log('CODFORM: Loading form', formId);
-    const apiUrl = API_URL + '/forms/' + formId;
+    const apiUrl = API_BASE_URL + '/api-forms/' + formId;
+    
+    console.log('CODFORM: Fetching form from:', apiUrl);
     
     fetch(apiUrl, {
       method: 'GET',
@@ -254,7 +257,9 @@
     submitButton.disabled = true;
     submitButton.textContent = 'جاري الإرسال...';
     
-    const apiUrl = API_URL + '/submissions';
+    const apiUrl = API_BASE_URL + '/api-submissions';
+    
+    console.log('CODFORM: Submitting form to:', apiUrl);
     
     fetch(apiUrl, {
       method: 'POST',
