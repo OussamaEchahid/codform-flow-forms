@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,10 +23,20 @@ import {
   CheckCircle,
   XCircle,
   Settings,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyProductSettings } from '@/lib/shopify/supabase-client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -70,6 +81,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [blockId, setBlockId] = useState<string>('');
   const [existingSettings, setExistingSettings] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Load existing settings when component mounts
   useEffect(() => {
@@ -126,6 +138,22 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
+  // Copy form ID to clipboard
+  const copyFormIdToClipboard = () => {
+    if (actualFormId) {
+      navigator.clipboard.writeText(actualFormId).then(() => {
+        setCopySuccess(true);
+        toast.success(language === 'ar' 
+          ? 'تم نسخ معرف النموذج إلى الحافظة' 
+          : 'Form ID copied to clipboard');
+        
+        setTimeout(() => {
+          setCopySuccess(false);
+        }, 2000);
+      });
+    }
+  };
+
   // Handler for saving product settings
   const handleSaveSettings = async () => {
     if (!actualFormId) {
@@ -173,11 +201,22 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
         // After saving settings, sync the form with Shopify
         if (actualFormId) {
-          await syncForm({ formId: actualFormId });
+          await syncForm({ 
+            formId: actualFormId,
+            shopDomain: shopifyIntegration.shop,
+            settings: {
+              products: selectedProducts,
+              blockId: blockId
+            }
+          });
           
           // Also call the external onSave if provided
           if (onSave) {
-            await onSave({ formId: actualFormId });
+            await onSave({ 
+              formId: actualFormId,
+              products: selectedProducts,
+              blockId: blockId 
+            });
           }
           
           toast.success(language === 'ar' 
@@ -219,6 +258,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         ? 'فشل إعادة الاتصال. يرجى تحديث رمز الوصول'
         : 'Failed to reconnect. Please update access token');
       setConnectionStatus('error');
+    }
+  };
+
+  // Open Shopify theme editor for product
+  const openShopifyThemeEditor = (productId: string) => {
+    if (shop) {
+      const productHandle = products.find(p => p.id === productId)?.handle;
+      if (productHandle) {
+        const shopifyUrl = `https://${shop}/admin/themes/current/editor?previewPath=%2Fproducts%2F${productHandle}`;
+        window.open(shopifyUrl, '_blank');
+      }
     }
   };
 
@@ -275,6 +325,43 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
     return (
       <>
+        {/* Form ID section */}
+        <div className="mb-6 border rounded-lg p-4 bg-slate-50">
+          <h3 className="font-medium mb-2">
+            {language === 'ar' ? 'معرف النموذج:' : 'Form ID:'}
+          </h3>
+          
+          <div className="flex items-center gap-2">
+            <div className="bg-white border rounded px-3 py-2 flex-1 font-mono text-sm break-all">
+              {actualFormId || (language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'No form ID found')}
+            </div>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={copyFormIdToClipboard}
+                    className={copySuccess ? "bg-green-100" : ""}
+                  >
+                    {copySuccess ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {language === 'ar' ? 'نسخ معرف النموذج' : 'Copy form ID'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <p className="text-sm text-muted-foreground mt-2">
+            {language === 'ar' 
+              ? 'يمكنك استخدام هذا المعرف لإضافة النموذج يدويًا إلى متجرك'
+              : 'You can use this ID to manually add the form to your store'}
+          </p>
+        </div>
+        
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <ShoppingBag className="h-5 w-5 mr-2 text-green-600" />
@@ -297,7 +384,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </div>
 
         <div className="mb-4">
-          <Label htmlFor="blockId">
+          <Label htmlFor="blockId" className="block mb-1">
             {language === 'ar' ? 'معرف كتلة النموذج (اختياري)' : 'Form Block ID (optional)'}
           </Label>
           <Input
@@ -305,46 +392,94 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             value={blockId}
             onChange={(e) => setBlockId(e.target.value)}
             placeholder={language === 'ar' ? 'أدخل معرف HTML لكتلة النموذج...' : 'Enter HTML ID for form block...'}
-            className="mt-1"
+            className="mb-1"
           />
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {language === 'ar'
               ? 'يستخدم لتحديد مكان إدراج النموذج في صفحة المنتج (سيتم إنشاؤه تلقائيًا إذا تُرك فارغًا)'
               : 'Used to identify where to insert the form in the product page (will be auto-generated if left empty)'}
           </p>
         </div>
 
-        <div className="border rounded-lg p-2 overflow-y-auto max-h-64 mb-4">
-          <p className="font-medium mb-2">
+        <div className="border rounded-lg p-4 mb-6">
+          <h3 className="font-medium mb-2">
             {language === 'ar' ? 'حدد المنتجات:' : 'Select Products:'}
-          </p>
+          </h3>
           
-          {products.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
-            </p>
-          ) : (
-            products.map((product: ShopifyProduct) => (
-              <div key={product.id} className="flex items-center space-x-2 mb-2">
-                <Checkbox
-                  id={`product-${product.id}`}
-                  checked={selectedProducts.includes(product.id)}
-                  onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
-                />
-                <Label htmlFor={`product-${product.id}`} className="flex-grow cursor-pointer">
-                  {product.title}
-                </Label>
-              </div>
-            ))
-          )}
+          <div className="max-h-64 overflow-y-auto">
+            {products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
+              </p>
+            ) : (
+              products.map((product: ShopifyProduct) => (
+                <div key={product.id} className="flex items-center justify-between mb-3 p-2 border border-transparent hover:bg-slate-50 hover:border-slate-200 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`product-${product.id}`}
+                      checked={selectedProducts.includes(product.id)}
+                      onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
+                    />
+                    <Label htmlFor={`product-${product.id}`} className="flex-grow cursor-pointer ml-2">
+                      {product.title}
+                      {selectedProducts.includes(product.id) && (
+                        <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 border-green-200">
+                          {language === 'ar' ? 'تم الاختيار' : 'Selected'}
+                        </Badge>
+                      )}
+                    </Label>
+                  </div>
+                  
+                  {selectedProducts.includes(product.id) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openShopifyThemeEditor(product.id)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {language === 'ar' ? 'فتح في محرر القوالب' : 'Open in theme editor'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
+        {/* Step by step instructions */}
+        <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
+          <AlertDescription>
+            <h4 className="font-semibold mb-2">
+              {language === 'ar' ? 'خطوات إضافة النموذج إلى متجرك:' : 'Steps to add the form to your store:'}
+            </h4>
+            <ol className="list-decimal ml-5 space-y-1">
+              <li>{language === 'ar' ? 'حدد المنتجات التي ترغب في إضافة النموذج إليها' : 'Select the products you want to add the form to'}</li>
+              <li>{language === 'ar' ? 'انقر على "حفظ إعدادات المنتج" أدناه' : 'Click "Save Product Settings" below'}</li>
+              <li>{language === 'ar' ? 'انتقل إلى متجرك واضغط على "تخصيص القالب"' : 'Go to your store and click "Customize Theme"'}</li>
+              <li>{language === 'ar' ? 'ابحث عن "نموذج الدفع عند الاستلام" في الأدوات المساعدة' : 'Look for "COD Form" in the Apps section'}</li>
+              <li>{language === 'ar' ? 'أضف الكتلة وحدد معرف النموذج المعروض أعلاه' : 'Add the block and select the form ID shown above'}</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
 
         <Button
           onClick={handleSaveSettings}
-          disabled={!actualFormId}
+          disabled={!actualFormId || isSyncing}
           className="w-full"
         >
-          <Settings className="mr-2 h-4 w-4" />
+          {isSyncing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Settings className="mr-2 h-4 w-4" />
+          )}
           {language === 'ar' ? 'حفظ إعدادات المنتج' : 'Save Product Settings'}
         </Button>
       </>
@@ -366,7 +501,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       <CardContent>
         {renderContent()}
       </CardContent>
-      <CardFooter className="flex justify-end border-t pt-4">
+      <CardFooter className="flex justify-between border-t pt-4">
         <div className="text-sm text-muted-foreground">
           {isConnected ? (
             <div className="flex items-center">
@@ -380,6 +515,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             </div>
           )}
         </div>
+        
+        {shop && (
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => window.open(`https://${shop}/admin/themes/current/editor`, '_blank')}
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            {language === 'ar' ? 'فتح محرر القوالب' : 'Open Theme Editor'}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
