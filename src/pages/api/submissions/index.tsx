@@ -2,62 +2,89 @@
 import { useEffect, useState } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
-export default function SubmissionsAPI() {
-  const [response, setResponse] = useState<any>(null);
+interface SubmissionResponse {
+  success: boolean;
+  message: string;
+  submissionId?: string;
+  error?: string;
+}
+
+export default function SubmissionAPI() {
+  const [response, setResponse] = useState<SubmissionResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function handleRequest() {
+    async function handleSubmission() {
       try {
-        // Get request method and body if POST
-        const method = window.location.search.includes('method=POST') ? 'POST' : 'GET';
+        // Get request body from URL parameters or request body
+        const urlParams = new URLSearchParams(window.location.search);
+        let formId = urlParams.get('formId');
+        let data = {};
         
-        if (method === 'POST') {
-          // Try to parse body from URL search params (for testing only)
-          const searchParams = new URLSearchParams(window.location.search);
-          const bodyParam = searchParams.get('body');
-          
-          let body: any = {};
-          
-          if (bodyParam) {
-            try {
-              body = JSON.parse(bodyParam);
-            } catch (e) {
-              console.error('Failed to parse body param:', e);
-            }
+        // Try to parse body as JSON if this is a POST request
+        try {
+          const bodyText = document.body.textContent || '';
+          if (bodyText) {
+            const bodyData = JSON.parse(bodyText);
+            formId = bodyData.formId || formId;
+            data = bodyData.data || {};
           }
-          
-          // Forward to Supabase Edge Function
-          const { data, error } = await shopifySupabase.functions.invoke('api-submissions', {
-            body
-          });
-          
-          if (error) {
-            throw new Error(error.message || 'Error submitting form');
-          }
-          
-          setResponse(data);
-        } else {
-          // GET method not supported
-          setResponse({ error: 'Method not allowed', message: 'Only POST requests are supported' });
+        } catch (e) {
+          console.error('Failed to parse body as JSON:', e);
         }
+        
+        if (!formId) {
+          throw new Error('Form ID is required');
+        }
+
+        console.log('Processing submission for form:', formId, 'with data:', data);
+        
+        // Call the Supabase Edge Function
+        const { data: result, error } = await shopifySupabase.functions.invoke('api-submissions', {
+          body: { formId, data }
+        });
+
+        if (error) {
+          console.error('Error calling api-submissions function:', error);
+          throw new Error(error.message || 'Error processing submission');
+        }
+
+        // Return success response
+        setResponse({
+          success: true,
+          message: 'Form submitted successfully',
+          submissionId: result.submissionId
+        });
       } catch (error: any) {
-        console.error('API Error:', error);
-        setError(error.message || 'Unexpected error');
+        console.error('Error in handleSubmission:', error);
+        setError(error.message || 'Error processing submission');
+        setResponse({
+          success: false,
+          message: 'Error submitting form',
+          error: error.message || 'Unknown error'
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
 
-    handleRequest();
+    handleSubmission();
   }, []);
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {
-    if (error) {
-      document.body.innerHTML = JSON.stringify({ error }, null, 2);
-    } else if (response) {
-      document.body.innerHTML = JSON.stringify(response, null, 2);
+    if (!isLoading) {
+      if (error) {
+        document.body.innerHTML = JSON.stringify({ 
+          success: false, 
+          error: error 
+        }, null, 2);
+      } else if (response) {
+        document.body.innerHTML = JSON.stringify(response, null, 2);
+      }
     }
-  }, [response, error]);
+  }, [isLoading, error, response]);
 
   return null;
 }
