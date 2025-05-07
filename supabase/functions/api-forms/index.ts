@@ -61,13 +61,19 @@ serve(async (req) => {
     }
 
     console.log(`Successfully fetched form: ${data.title}, ID: ${data.id}`);
+    
+    // Log the raw form data for debugging
+    console.log('Raw form data structure:', JSON.stringify(data.data).substring(0, 200) + '...');
 
     // Convert form data for the front-end
+    const formFields = transformFormData(data.data);
+    console.log(`Transformed ${formFields.length} fields for the form`);
+
     const formResponse = {
       id: data.id,
       title: data.title,
       description: data.description,
-      fields: transformFormData(data.data),
+      fields: formFields,
       is_published: data.is_published,
       created_at: data.created_at,
       updated_at: data.updated_at
@@ -90,41 +96,91 @@ serve(async (req) => {
 // Transform complex form data into a simplified format for the Shopify extension
 function transformFormData(formData: any) {
   try {
-    // If data is not an array (could be steps or direct fields), handle accordingly
-    if (!formData || !Array.isArray(formData)) {
-      console.error('Form data is not in expected format');
+    // Log incoming data structure for debugging
+    console.log('Transform function received data type:', typeof formData);
+    
+    if (!formData) {
+      console.error('Form data is null or undefined');
       return [];
     }
     
-    // Extract fields from steps or use direct fields
-    let fields = [];
+    if (!Array.isArray(formData)) {
+      console.error('Form data is not an array:', formData);
+      return [];
+    }
     
-    // Check if this is a multi-step form
+    console.log('Form data array length:', formData.length);
+    
+    // Determine if this is a multi-step form
     const hasSteps = formData.some(item => item.type === 'step' || item.isStep);
+    console.log('Form has steps:', hasSteps);
     
+    let allFields: any[] = [];
+    
+    // Extract fields based on form structure
     if (hasSteps) {
-      // For multi-step forms, extract fields from all steps
-      formData.forEach(step => {
+      // Process multi-step form structure
+      formData.forEach((step, stepIndex) => {
+        console.log(`Processing step ${stepIndex + 1}: ${step.title || step.id}`);
+        
+        // Extract fields from the step
         if (step.fields && Array.isArray(step.fields)) {
-          fields = fields.concat(step.fields);
+          // Process each field in the step
+          step.fields.forEach((field: any) => {
+            // Preserve all original field properties in the response
+            const transformedField = {
+              id: field.id,
+              type: field.type,
+              label: field.label || field.title || '',
+              required: field.required || false,
+              placeholder: field.placeholder || '',
+              helpText: field.helpText || field.description || '',
+              options: field.options || [],
+              checkboxLabel: field.checkboxLabel || '',
+              style: field.style || {},  // Preserve styling information
+              content: field.content || '',  // For HTML/text content fields
+              stepId: step.id, // Keep track of which step this field belongs to
+              stepTitle: step.title || `Step ${stepIndex + 1}`,
+              stepIndex: stepIndex,
+              // Preserve any other custom properties
+              ...field
+            };
+            
+            // Remove any properties that are already copied to avoid duplication
+            delete transformedField.fields;
+            
+            allFields.push(transformedField);
+          });
+        } else {
+          console.warn(`Step ${stepIndex + 1} has no fields or fields is not an array`);
         }
       });
     } else {
-      // For single-step forms, use the array directly
-      fields = formData;
+      // Process single-step form (direct array of fields)
+      allFields = formData.map((field: any) => ({
+        id: field.id,
+        type: field.type,
+        label: field.label || field.title || '',
+        required: field.required || false,
+        placeholder: field.placeholder || '',
+        helpText: field.helpText || field.description || '',
+        options: field.options || [],
+        checkboxLabel: field.checkboxLabel || '',
+        style: field.style || {},  // Preserve styling information
+        content: field.content || '',  // For HTML/text content fields
+        // Preserve any other custom properties
+        ...field
+      }));
     }
     
-    // Transform fields to a simplified format
-    return fields.map(field => ({
-      id: field.id,
-      type: field.type,
-      label: field.label || field.title || '',
-      required: field.required || false,
-      placeholder: field.placeholder || '',
-      helpText: field.helpText || field.description || '',
-      options: field.options || [],
-      checkboxLabel: field.checkboxLabel || ''
-    }));
+    console.log(`Transformed ${allFields.length} total fields`);
+    
+    // Log a sample of the transformed fields for debugging
+    if (allFields.length > 0) {
+      console.log('Sample transformed field:', JSON.stringify(allFields[0]));
+    }
+    
+    return allFields;
   } catch (error) {
     console.error('Error transforming form data:', error);
     return [];
