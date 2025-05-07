@@ -203,7 +203,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (actualFormId) {
           await syncForm({ 
             formId: actualFormId,
-            shopDomain: shopifyIntegration.shop,
+            shopDomain: shop, // Changed from shopifyIntegration.shop to shop
             settings: {
               products: selectedProducts,
               blockId: blockId
