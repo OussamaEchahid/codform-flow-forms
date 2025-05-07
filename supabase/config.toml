@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.shopify-sync-form]
 verify_jwt = false
+
+[functions.api-forms]
+verify_jwt = false
+
+[functions.api-submissions]
+verify_jwt = false

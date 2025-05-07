@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
 
@@ -29,16 +29,16 @@ export default function FormAPI() {
           throw new Error('Form ID is required');
         }
 
-        // Use the main supabase client with forms table, not the shopify-specific one
-        const { data, error } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('id', id)
-          .eq('is_published', true)
-          .single();
+        console.log('Fetching form data for ID:', id);
+        
+        // Call the Supabase Edge Function directly
+        const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
+          body: { id }
+        });
 
         if (error) {
-          throw error;
+          console.error('Error calling api-forms function:', error);
+          throw new Error(error.message || 'Error fetching form');
         }
 
         if (!data) {
@@ -54,6 +54,7 @@ export default function FormAPI() {
         // Return the form data as JSON
         setForm(formData);
       } catch (error: any) {
+        console.error('Error in fetchForm:', error);
         setError(error.message || 'Error fetching form');
       } finally {
         setIsLoading(false);

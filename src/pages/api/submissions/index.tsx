@@ -1,63 +1,63 @@
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
-interface SubmissionsAPIProps {
-  formId?: string;
-}
-
-export default function SubmissionsAPI({ formId }: SubmissionsAPIProps) {
-  const params = useParams();
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function SubmissionsAPI() {
+  const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  const id = formId || params.id;
-  
+
   useEffect(() => {
-    async function fetchSubmissions() {
+    async function handleRequest() {
       try {
-        if (!id) {
-          throw new Error('Form ID is required');
+        // Get request method and body if POST
+        const method = window.location.search.includes('method=POST') ? 'POST' : 'GET';
+        
+        if (method === 'POST') {
+          // Try to parse body from URL search params (for testing only)
+          const searchParams = new URLSearchParams(window.location.search);
+          const bodyParam = searchParams.get('body');
+          
+          let body: any = {};
+          
+          if (bodyParam) {
+            try {
+              body = JSON.parse(bodyParam);
+            } catch (e) {
+              console.error('Failed to parse body param:', e);
+            }
+          }
+          
+          // Forward to Supabase Edge Function
+          const { data, error } = await shopifySupabase.functions.invoke('api-submissions', {
+            body
+          });
+          
+          if (error) {
+            throw new Error(error.message || 'Error submitting form');
+          }
+          
+          setResponse(data);
+        } else {
+          // GET method not supported
+          setResponse({ error: 'Method not allowed', message: 'Only POST requests are supported' });
         }
-
-        // Use the main supabase client for form submissions
-        const { data, error } = await supabase
-          .from('form_submissions')
-          .insert({
-            form_id: id,
-            data: {}
-          })
-          .select();
-
-        if (error) {
-          throw error;
-        }
-
-        setSubmissions(data || []);
       } catch (error: any) {
-        setError(error.message || 'Error fetching submissions');
-        toast.error(`Failed to fetch submissions: ${error.message}`);
-      } finally {
-        setIsLoading(false);
+        console.error('API Error:', error);
+        setError(error.message || 'Unexpected error');
       }
     }
 
-    fetchSubmissions();
-  }, [id]);
+    handleRequest();
+  }, []);
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {
-    if (!isLoading) {
-      if (error) {
-        document.body.innerHTML = JSON.stringify({ error }, null, 2);
-      } else {
-        document.body.innerHTML = JSON.stringify(submissions, null, 2);
-      }
+    if (error) {
+      document.body.innerHTML = JSON.stringify({ error }, null, 2);
+    } else if (response) {
+      document.body.innerHTML = JSON.stringify(response, null, 2);
     }
-  }, [isLoading, error, submissions]);
+  }, [response, error]);
 
   return null;
 }
