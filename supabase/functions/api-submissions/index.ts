@@ -1,14 +1,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-// CORS headers for cross-origin requests (needed for Shopify)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -26,8 +19,18 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { formId, data } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
+    const { formId, data } = requestData;
+    
     console.log('Processing submission for form:', formId);
     
     if (!formId || !data) {

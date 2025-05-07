@@ -1,14 +1,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-// CORS headers for cross-origin requests (needed for Shopify)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -20,16 +13,23 @@ serve(async (req) => {
     // Get form ID from URL path
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
-    const formId = pathParts[pathParts.length - 1];
-
-    console.log('Fetching form with ID:', formId);
+    let formId = pathParts[pathParts.length - 1];
     
-    if (!formId || formId === 'api-forms') {
-      return new Response(
-        JSON.stringify({ error: 'Form ID is required' }),
-        { status: 400, headers: corsHeaders }
-      );
+    // Handle direct requests to the edge function or different path formats
+    if (formId === 'api-forms' || formId === '') {
+      // Check if there's an ID query parameter
+      const idParam = url.searchParams.get('id');
+      if (idParam) {
+        formId = idParam;
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'Form ID is required' }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
     }
+    
+    console.log('Fetching form with ID:', formId);
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
@@ -53,18 +53,29 @@ serve(async (req) => {
     }
 
     if (!data) {
-      console.error('Form not found');
+      console.error(`Form not found with ID: ${formId}`);
       return new Response(
         JSON.stringify({ error: 'Form not found' }),
         { status: 404, headers: corsHeaders }
       );
     }
 
-    console.log('Successfully fetched form:', data.title);
+    console.log(`Successfully fetched form: ${data.title}, ID: ${data.id}`);
+
+    // Convert form data for the front-end
+    const formResponse = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      fields: transformFormData(data.data),
+      is_published: data.is_published,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
 
     // Return the form data with CORS headers
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(formResponse),
       { headers: corsHeaders }
     );
   } catch (error) {
@@ -75,3 +86,47 @@ serve(async (req) => {
     );
   }
 });
+
+// Transform complex form data into a simplified format for the Shopify extension
+function transformFormData(formData: any) {
+  try {
+    // If data is not an array (could be steps or direct fields), handle accordingly
+    if (!formData || !Array.isArray(formData)) {
+      console.error('Form data is not in expected format');
+      return [];
+    }
+    
+    // Extract fields from steps or use direct fields
+    let fields = [];
+    
+    // Check if this is a multi-step form
+    const hasSteps = formData.some(item => item.type === 'step' || item.isStep);
+    
+    if (hasSteps) {
+      // For multi-step forms, extract fields from all steps
+      formData.forEach(step => {
+        if (step.fields && Array.isArray(step.fields)) {
+          fields = fields.concat(step.fields);
+        }
+      });
+    } else {
+      // For single-step forms, use the array directly
+      fields = formData;
+    }
+    
+    // Transform fields to a simplified format
+    return fields.map(field => ({
+      id: field.id,
+      type: field.type,
+      label: field.label || field.title || '',
+      required: field.required || false,
+      placeholder: field.placeholder || '',
+      helpText: field.helpText || field.description || '',
+      options: field.options || [],
+      checkboxLabel: field.checkboxLabel || ''
+    }));
+  } catch (error) {
+    console.error('Error transforming form data:', error);
+    return [];
+  }
+}

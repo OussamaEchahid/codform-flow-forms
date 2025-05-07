@@ -50,6 +50,10 @@ verify_jwt = false
 
 [functions.api-forms]
 verify_jwt = false
+port = 54340
+paths = ["/api/forms/*"]
 
 [functions.api-submissions]
 verify_jwt = false
+port = 54341
+paths = ["/api/submissions"]
