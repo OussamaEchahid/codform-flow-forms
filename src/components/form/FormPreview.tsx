@@ -48,6 +48,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
     >
       <div 
@@ -105,10 +106,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="p-4" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
+          direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
         {fields && fields.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {fields.map(field => (
               <FormFieldComponent 
                 key={field.id} 

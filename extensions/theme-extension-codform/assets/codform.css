@@ -1,6 +1,8 @@
 
 /* CODFORM - نماذج الدفع عند الاستلام */
 
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
 .codform-container {
   font-family: 'Cairo', sans-serif;
   direction: rtl;
@@ -9,22 +11,29 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background-color: #f9fafb;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .codform-header {
   margin-bottom: 20px;
   text-align: right;
+  background-color: #9b87f5;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
 }
 
 .codform-header h3 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #1f2937;
+  color: #ffffff;
 }
 
 .codform-header p {
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1rem;
 }
 
@@ -33,14 +42,15 @@
 }
 
 .codform-field {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .codform-field label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-weight: 600;
   color: #374151;
+  font-size: 1rem;
 }
 
 .codform-field input[type="text"],
@@ -50,43 +60,52 @@
 .codform-field textarea,
 .codform-field select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 15px;
   border: 1px solid #d1d5db;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease-in-out;
+  font-family: 'Cairo', sans-serif;
 }
 
 .codform-field input:focus,
 .codform-field textarea:focus,
 .codform-field select:focus {
   outline: none;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  border-color: #9b87f5;
+  box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
 }
 
 .codform-checkbox-container {
   display: flex;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 .codform-checkbox-container input[type="checkbox"] {
   margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  accent-color: #9b87f5;
 }
 
 .codform-radio-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .codform-radio-container {
   display: flex;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 .codform-radio-container input[type="radio"] {
   margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  accent-color: #9b87f5;
 }
 
 .codform-help-text {
@@ -97,22 +116,24 @@
 
 .codform-required {
   color: #ef4444;
+  margin-right: 3px;
 }
 
 .codform-submit-button,
 .codform-next-button,
 .codform-prev-button {
-  background-color: #7c3aed;
+  background-color: #9b87f5;
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease-in-out;
   width: 100%;
-  margin-top: 16px;
+  margin-top: 20px;
+  font-family: 'Cairo', sans-serif;
 }
 
 .codform-prev-button {
@@ -121,11 +142,11 @@
 
 .codform-submit-button:hover,
 .codform-next-button:hover {
-  background-color: #6d28d9;
+  background-color: #8a76e5;
 }
 
 .codform-prev-button:hover {
-  background-color: #6b7280;
+  background-color: #8b8f96;
 }
 
 .codform-submit-button:disabled,
@@ -133,6 +154,7 @@
 .codform-prev-button:disabled {
   background-color: #9ca3af;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .codform-loading {
@@ -182,7 +204,7 @@
 .codform-spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #7c3aed;
+  border-top: 4px solid #9b87f5;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
@@ -195,36 +217,37 @@
 }
 
 .codform-button {
-  background-color: #7c3aed;
+  background-color: #9b87f5;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
+  padding: 12px 24px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 16px;
   transition: background-color 0.2s;
+  font-family: 'Cairo', sans-serif;
 }
 
 .codform-button:hover {
-  background-color: #6d28d9;
+  background-color: #8a76e5;
 }
 
 /* Multi-step form styles */
 .codform-steps-nav {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .codform-step-indicators {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
 
 .codform-step-indicator {
-  width: 30px;
-  height: 30px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   background-color: #e5e7eb;
   display: flex;
@@ -233,6 +256,7 @@
   font-weight: bold;
   color: #6b7280;
   position: relative;
+  transition: all 0.3s ease;
 }
 
 .codform-step-indicator::after {
@@ -240,10 +264,11 @@
   position: absolute;
   top: 50%;
   right: 100%;
-  height: 2px;
+  height: 3px;
   width: 100%;
   background-color: #e5e7eb;
   transform: translateY(-50%);
+  transition: background-color 0.3s ease;
 }
 
 .codform-step-indicator:first-child::after {
@@ -251,8 +276,9 @@
 }
 
 .codform-step-active {
-  background-color: #7c3aed;
+  background-color: #9b87f5;
   color: white;
+  transform: scale(1.1);
 }
 
 .codform-step-completed {
@@ -271,7 +297,8 @@
 
 .codform-nav-buttons {
   display: flex;
-  gap: 10px;
+  gap: 15px;
+  margin-top: 25px;
 }
 
 .codform-prev-button,
@@ -296,21 +323,22 @@
   margin-top: 0;
   margin-bottom: 10px;
   font-size: 1.25rem;
+  color: #374151;
 }
 
 /* Step title styling */
 .codform-step-title {
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: #374151;
-  margin-bottom: 15px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 /* Improve spacing and layout for better readability */
 .codform-step {
-  padding: 10px 0;
+  padding: 15px 0;
 }
 
 /* Focus styles for better accessibility */
@@ -318,17 +346,242 @@
 .codform-field select:focus,
 .codform-field textarea:focus {
   outline: none;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  border-color: #9b87f5;
+  box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
 }
 
 /* Make sure radio and checkbox options are properly spaced */
 .codform-radio-container,
 .codform-checkbox-container {
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 .codform-radio-container:last-child,
 .codform-checkbox-container:last-child {
   margin-bottom: 0;
+}
+
+/* Image field styles */
+.codform-image-field {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.codform-image-container {
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.codform-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.codform-image-placeholder {
+  min-height: 150px;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.codform-image-placeholder:hover {
+  background-color: #e5e7eb;
+  border-color: #9b87f5;
+}
+
+.codform-image-upload-input {
+  display: none;
+}
+
+.codform-image-upload-label {
+  display: inline-block;
+  background-color: #9b87f5;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.codform-image-upload-label:hover {
+  background-color: #8a76e5;
+}
+
+/* WhatsApp button styles */
+.codform-whatsapp-button {
+  background-color: #25D366;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.codform-whatsapp-button:hover {
+  background-color: #20bd5a;
+}
+
+.codform-whatsapp-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* HTML content styles */
+.codform-html-content {
+  margin-bottom: 20px;
+}
+
+/* Cart items styles */
+.codform-cart-items {
+  margin-bottom: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.codform-cart-item {
+  display: flex;
+  padding: 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.codform-cart-item:last-child {
+  border-bottom: none;
+}
+
+.codform-cart-item-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-left: 15px;
+}
+
+.codform-cart-item-details {
+  flex: 1;
+}
+
+.codform-cart-item-title {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #1f2937;
+}
+
+.codform-cart-item-variant {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 5px;
+}
+
+.codform-cart-item-price {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.codform-cart-item-quantity {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.codform-cart-item-quantity-label {
+  margin-left: 5px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Cart summary styles */
+.codform-cart-summary {
+  margin-bottom: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9fafb;
+}
+
+.codform-cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.codform-cart-summary-row:last-child {
+  margin-bottom: 0;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  font-weight: 700;
+}
+
+.codform-cart-summary-label {
+  color: #6b7280;
+}
+
+.codform-cart-summary-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .codform-container {
+    padding: 15px;
+  }
+
+  .codform-header {
+    padding: 12px;
+  }
+
+  .codform-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .codform-field label {
+    font-size: 0.95rem;
+  }
+
+  .codform-step-indicators {
+    gap: 5px;
+  }
+
+  .codform-step-indicator {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+
+  .codform-nav-buttons {
+    flex-direction: column;
+  }
+
+  .codform-cart-item {
+    flex-direction: column;
+  }
+
+  .codform-cart-item-image {
+    width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+    margin-left: 0;
+  }
 }

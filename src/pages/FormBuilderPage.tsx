@@ -127,11 +127,13 @@ const FormBuilderPage = () => {
         </div>
       )}
       
-      {activeTab === 'dashboard' ? (
-        <FormBuilderDashboard />
-      ) : (
-        <FormBuilderEditor formId={formId} />
-      )}
+      <div className="flex-1 overflow-x-hidden">
+        {activeTab === 'dashboard' ? (
+          <FormBuilderDashboard />
+        ) : (
+          <FormBuilderEditor formId={formId} />
+        )}
+      </div>
       
       {/* Debug info */}
       {process.env.NODE_ENV !== 'production' && !formId && (

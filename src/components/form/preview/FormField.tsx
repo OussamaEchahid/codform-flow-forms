@@ -21,6 +21,7 @@ interface FormFieldProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    buttonStyle?: string;
   };
 }
 
@@ -30,10 +31,16 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
+  // Handle field type mapping
+  let fieldType = field.type;
+  
+  // Map email and phone to text inputs
+  if (fieldType === 'email' || fieldType === 'phone') {
+    fieldType = 'text';
+  }
+
   const components: { [key: string]: React.FC<FormFieldProps> } = {
     'text': TextInput,
-    'email': TextInput,
-    'phone': TextInput,
     'textarea': TextArea,
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
@@ -48,9 +55,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'image': ImageField,
   };
 
-  const Component = components[field.type];
+  const Component = components[fieldType];
   if (!Component) {
-    console.warn(`Unknown field type: ${field.type}`);
+    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;
   }
 

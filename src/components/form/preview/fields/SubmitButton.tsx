@@ -30,14 +30,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   return (
     <div className="mb-4 mt-8">
       <button
-        className="w-full py-3 px-4 font-medium"
+        className="w-full py-3 px-4 font-medium transition-all duration-200 hover:opacity-90"
         style={{
           backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           color: fieldStyle.color || 'white',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize,
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
           borderRadius: buttonRadius,
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
         }}
-        disabled
+        disabled={field.disabled}
       >
         {field.label || (language === 'ar' ? 'إرسال' : 'Submit')}
       </button>

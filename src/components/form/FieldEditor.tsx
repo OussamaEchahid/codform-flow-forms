@@ -1,291 +1,247 @@
-
 import React, { useState } from 'react';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { FormField } from '@/lib/form-utils';
+import { useI18n } from '@/lib/i18n';
+import { Form, FormField as UIFormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Palette, ArrowRight, FileText, LayoutGrid } from 'lucide-react';
-import { FormField as FormFieldType } from '@/lib/form-utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form';
+import WhatsAppFieldEditor from './editor/WhatsAppFieldEditor';
 
 interface FieldEditorProps {
-  field: FormFieldType;
-  onSave: (field: FormFieldType) => void;
+  field: FormField;
+  onSave: (field: FormField) => void;
   onClose: () => void;
 }
 
-const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => {
-  const [editedField, setEditedField] = useState<FormFieldType>({ ...field });
-  const [optionInput, setOptionInput] = useState('');
-  
-  // Initialize the form
-  const form = useForm({
+interface FieldFormValues {
+  label: string;
+  required: boolean;
+  placeholder: string;
+  helpText: string;
+}
+
+const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
+  const { language } = useI18n();
+  const [currentField, setCurrentField] = useState<FormField>(field);
+
+  const form = useForm<FieldFormValues>({
     defaultValues: {
-      label: field.label,
-      placeholder: field.placeholder || '',
+      label: field.label || '',
       required: field.required || false,
-      backgroundColor: field.style?.backgroundColor || '#ffffff',
-      color: field.style?.color || '#333333',
-      fontSize: field.style?.fontSize || '1rem',
-      borderRadius: field.style?.borderRadius || '0.5rem',
-      borderWidth: field.style?.borderWidth || '1px',
-      borderColor: field.style?.borderColor || '#e2e8f0'
-    }
+      placeholder: field.placeholder || '',
+      helpText: field.helpText || '',
+    },
   });
 
-  const handleInputChange = (key: string, value: any) => {
-    setEditedField(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleSaveField = (updatedField: FormField) => {
+    setCurrentField(updatedField);
+    onSave(updatedField);
   };
 
-  const handleStyleChange = (key: string, value: any) => {
-    setEditedField(prev => ({
-      ...prev,
-      style: {
-        ...(prev.style || {}),
-        [key]: value
-      }
-    }));
+  const handleSubmit = (values: FieldFormValues) => {
+    const updatedField: FormField = {
+      ...currentField,
+      label: values.label,
+      required: values.required,
+      placeholder: values.placeholder,
+      helpText: values.helpText,
+    };
+    handleSaveField(updatedField);
   };
 
-  const addOption = () => {
-    if (optionInput.trim() && editedField.options) {
-      setEditedField(prev => ({
-        ...prev,
-        options: [...(prev.options || []), optionInput.trim()]
-      }));
-      setOptionInput('');
+  const renderEditorByType = () => {
+    switch (currentField.type) {
+      case 'text':
+      case 'email':
+      case 'phone':
+      case 'textarea':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل الحقل' : 'Edit Field'}
+            </h3>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <UIFormField
+                  control={form.control}
+                  name="label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="placeholder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'النص البديل' : 'Placeholder'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'مثال' : 'Example'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="required"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="helpText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </Button>
+                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        );
+      
+      case 'whatsapp':
+        return (
+          <WhatsAppFieldEditor
+            field={currentField}
+            onSave={handleSaveField}
+            onCancel={onClose}
+          />
+        );
+        
+      case 'image':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل حقل الصورة' : 'Edit Image Field'}
+            </h3>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <UIFormField
+                  control={form.control}
+                  name="label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="required"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="helpText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </Button>
+                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        );
+        
+      default:
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل الحقل' : 'Edit Field'}
+            </h3>
+            <p>{language === 'ar' ? 'لا يوجد محرر لهذا النوع من الحقول' : 'No editor available for this field type'}</p>
+          </div>
+        );
     }
-  };
-
-  const removeOption = (option: string) => {
-    if (editedField.options) {
-      setEditedField(prev => ({
-        ...prev,
-        options: prev.options?.filter(o => o !== option)
-      }));
-    }
-  };
-  
-  // Use a simple div structure instead of FormField when not wrapped in a Form
-  const renderFormItem = (label: string, children: React.ReactNode) => {
-    return (
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-right block">{label}</label>
-        {children}
-      </div>
-    );
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader className="text-right">
-          <DialogTitle>تحرير الحقل: {field.label}</DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="general">إعدادات عامة</TabsTrigger>
-              <TabsTrigger value="style">التنسيق</TabsTrigger>
-              <TabsTrigger value="options" disabled={!['select', 'checkbox', 'radio'].includes(editedField.type)}>
-                الخيارات
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="general" className="space-y-4 py-4 text-right">
-              <div className="grid gap-4">
-                {renderFormItem("عنوان الحقل", 
-                  <Input
-                    value={editedField.label}
-                    onChange={(e) => handleInputChange('label', e.target.value)}
-                  />
-                )}
-                
-                {renderFormItem("نص المساعدة",
-                  <Input
-                    value={editedField.placeholder || ''}
-                    onChange={(e) => handleInputChange('placeholder', e.target.value)}
-                    placeholder="أدخل نصًا مساعدًا..."
-                  />
-                )}
-                
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="required"
-                    checked={editedField.required || false}
-                    onChange={(e) => handleInputChange('required', e.target.checked)}
-                  />
-                  <label htmlFor="required">حقل مطلوب</label>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="style" className="space-y-4 py-4 text-right">
-              <div className="grid gap-4">
-                {renderFormItem("لون الخلفية",
-                  <div className="flex gap-2">
-                    <input 
-                      type="color" 
-                      value={editedField.style?.backgroundColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      className="h-10 w-10"
-                    />
-                    <Input
-                      value={editedField.style?.backgroundColor || '#ffffff'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                )}
-                
-                {renderFormItem("لون النص",
-                  <div className="flex gap-2">
-                    <input 
-                      type="color" 
-                      value={editedField.style?.color || '#333333'}
-                      onChange={(e) => handleStyleChange('color', e.target.value)}
-                      className="h-10 w-10"
-                    />
-                    <Input
-                      value={editedField.style?.color || '#333333'}
-                      onChange={(e) => handleStyleChange('color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                )}
-                
-                {renderFormItem("حجم الخط",
-                  <select 
-                    value={editedField.style?.fontSize || '1rem'} 
-                    onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="0.75rem">صغير جداً</option>
-                    <option value="0.875rem">صغير</option>
-                    <option value="1rem">متوسط</option>
-                    <option value="1.125rem">كبير</option>
-                    <option value="1.25rem">كبير جداً</option>
-                  </select>
-                )}
-                
-                {renderFormItem("استدارة الحواف",
-                  <select 
-                    value={editedField.style?.borderRadius || '0.5rem'} 
-                    onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="0">بدون استدارة</option>
-                    <option value="0.25rem">استدارة خفيفة</option>
-                    <option value="0.5rem">استدارة متوسطة</option>
-                    <option value="1rem">استدارة كبيرة</option>
-                    <option value="9999px">دائري</option>
-                  </select>
-                )}
-                
-                {renderFormItem("سمك الحدود",
-                  <select 
-                    value={editedField.style?.borderWidth || '1px'} 
-                    onChange={(e) => handleStyleChange('borderWidth', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="0">بدون حدود</option>
-                    <option value="1px">رفيعة</option>
-                    <option value="2px">متوسطة</option>
-                    <option value="3px">سميكة</option>
-                  </select>
-                )}
-                
-                {renderFormItem("لون الحدود",
-                  <div className="flex gap-2">
-                    <input 
-                      type="color" 
-                      value={editedField.style?.borderColor || '#e2e8f0'}
-                      onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                      className="h-10 w-10"
-                    />
-                    <Input
-                      value={editedField.style?.borderColor || '#e2e8f0'}
-                      onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="options" className="space-y-4 py-4 text-right">
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={addOption}
-                  >
-                    إضافة
-                  </Button>
-                  <Input
-                    value={optionInput}
-                    onChange={(e) => setOptionInput(e.target.value)}
-                    placeholder="أضف خيارًا جديدًا"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addOption();
-                      }
-                    }}
-                  />
-                </div>
-                
-                <div className="border rounded-md p-3">
-                  <h4 className="font-medium mb-2">الخيارات الحالية:</h4>
-                  {editedField.options && editedField.options.length > 0 ? (
-                    <ul className="space-y-2">
-                      {editedField.options.map((option, index) => (
-                        <li key={index} className="flex justify-between items-center">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => removeOption(option)}
-                          >
-                            حذف
-                          </Button>
-                          <span>{option}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500 text-center">لا توجد خيارات بعد</p>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </Form>
-        
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={onClose}>إلغاء</Button>
-          <Button onClick={() => onSave(editedField)}>حفظ التغييرات</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div className="fixed inset-0 z-50 overflow-auto bg-black/50 flex items-center justify-center">
+      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+          onClick={onClose}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+        {renderEditorByType()}
+      </div>
+    </div>
   );
 };
 
