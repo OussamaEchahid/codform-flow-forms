@@ -22,6 +22,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
+        textAlign: language === 'ar' ? 'right' : 'left',
       }}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >

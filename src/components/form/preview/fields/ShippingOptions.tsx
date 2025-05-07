@@ -35,7 +35,13 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) =
   
   return (
     <div className="form-control mb-6">
-      <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+      <label 
+        className="form-label mb-2 block" 
+        style={{ 
+          color: fieldStyle.color,
+          textAlign: language === 'ar' ? 'right' : 'left'
+        }}
+      >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
       </label>
@@ -46,10 +52,10 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) =
         disabled
       >
         {shippingOptions.map((option) => (
-          <div key={option.id} className="flex items-center space-x-2 rtl:space-x-reverse">
+          <div key={option.id} className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
             <RadioGroupItem value={option.id} id={`shipping-${option.id}`} />
-            <div className="flex flex-1 justify-between items-center">
-              <div>
+            <div className={`flex flex-1 justify-between items-center ${language === 'ar' ? 'mr-2' : 'ml-2'}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
                 <Label htmlFor={`shipping-${option.id}`} className="font-medium">{option.name}</Label>
                 <div className="text-sm text-gray-500">{option.time}</div>
               </div>

@@ -20,6 +20,7 @@ function CODFORMFormRenderer() {
     }
     
     console.log('CODFORM: Rendering form with', formData.fields ? formData.fields.length : 0, 'fields');
+    console.log('CODFORM: Form style settings:', formData.primaryColor, formData.borderRadius, formData.fontSize);
     formContainer.innerHTML = ''; // Clear any existing content
     
     // Apply form title and description from formData if available
@@ -42,6 +43,32 @@ function CODFORMFormRenderer() {
         descElement.textContent = formData.description;
       }
     }
+    
+    // Set CSS variables for form styling
+    const formStyles = document.createElement('style');
+    formStyles.textContent = `
+      #${container.id} {
+        --form-primary-color: ${formData.primaryColor || '#9b87f5'};
+        --form-border-radius: ${formData.borderRadius || '0.5rem'};
+        --form-font-size: ${formData.fontSize || '1rem'};
+      }
+      #${container.id} .codform-submit-button,
+      #${container.id} .codform-next-button,
+      #${container.id} .codform-whatsapp-button,
+      #${container.id} .codform-button {
+        background-color: ${formData.primaryColor || '#9b87f5'};
+      }
+      #${container.id} .codform-step-active {
+        background-color: ${formData.primaryColor || '#9b87f5'};
+      }
+      #${container.id} input:focus,
+      #${container.id} textarea:focus,
+      #${container.id} select:focus {
+        border-color: ${formData.primaryColor || '#9b87f5'};
+        box-shadow: 0 0 0 3px ${formData.primaryColor || '#9b87f5'}22;
+      }
+    `;
+    container.appendChild(formStyles);
     
     // Create form element
     const form = document.createElement('form');

@@ -21,6 +21,7 @@
   text-align: right;
   padding: 15px;
   border-radius: 8px;
+  background-color: var(--form-primary-color, #9b87f5);
 }
 
 .codform-header h3 {
@@ -48,7 +49,7 @@
   margin-bottom: 8px;
   font-weight: 600;
   color: #374151;
-  font-size: 1rem;
+  font-size: var(--form-font-size, 1rem);
 }
 
 .codform-field input[type="text"],
@@ -60,8 +61,8 @@
   width: 100%;
   padding: 12px 15px;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--form-border-radius, 8px);
+  font-size: var(--form-font-size, 1rem);
   transition: all 0.2s ease-in-out;
   font-family: 'Cairo', sans-serif;
 }
@@ -70,7 +71,7 @@
 .codform-field textarea:focus,
 .codform-field select:focus {
   outline: none;
-  border-color: #9b87f5;
+  border-color: var(--form-primary-color, #9b87f5);
   box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
 }
 
@@ -80,11 +81,19 @@
   margin-bottom: 5px;
 }
 
+/* Fix for RTL checkbox alignment */
 .codform-checkbox-container input[type="checkbox"] {
   margin-left: 8px;
+  margin-right: 0;
   width: 18px;
   height: 18px;
-  accent-color: #9b87f5;
+  accent-color: var(--form-primary-color, #9b87f5);
+}
+
+/* LTR support */
+[dir="ltr"] .codform-checkbox-container input[type="checkbox"] {
+  margin-right: 8px;
+  margin-left: 0;
 }
 
 .codform-radio-group {
@@ -99,11 +108,19 @@
   margin-bottom: 5px;
 }
 
+/* Fix for RTL radio alignment */
 .codform-radio-container input[type="radio"] {
   margin-left: 8px;
+  margin-right: 0;
   width: 18px;
   height: 18px;
-  accent-color: #9b87f5;
+  accent-color: var(--form-primary-color, #9b87f5);
+}
+
+/* LTR support */
+[dir="ltr"] .codform-radio-container input[type="radio"] {
+  margin-right: 8px;
+  margin-left: 0;
 }
 
 .codform-help-text {
@@ -120,13 +137,13 @@
 .codform-submit-button,
 .codform-next-button,
 .codform-prev-button {
-  background-color: #9b87f5;
+  background-color: var(--form-primary-color, #9b87f5);
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--form-border-radius, 8px);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--form-font-size, 1rem);
   cursor: pointer;
   transition: background-color 0.2s ease-in-out;
   width: 100%;
@@ -140,7 +157,7 @@
 
 .codform-submit-button:hover,
 .codform-next-button:hover {
-  background-color: #8a76e5;
+  opacity: 0.9;
 }
 
 .codform-prev-button:hover {
@@ -202,7 +219,7 @@
 .codform-spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #9b87f5;
+  border-top: 4px solid var(--form-primary-color, #9b87f5);
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
@@ -215,11 +232,11 @@
 }
 
 .codform-button {
-  background-color: #9b87f5;
+  background-color: var(--form-primary-color, #9b87f5);
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--form-border-radius, 8px);
   font-weight: 600;
   cursor: pointer;
   margin-top: 16px;
@@ -228,7 +245,7 @@
 }
 
 .codform-button:hover {
-  background-color: #8a76e5;
+  opacity: 0.9;
 }
 
 /* Multi-step form styles */
@@ -274,7 +291,7 @@
 }
 
 .codform-step-active {
-  background-color: #9b87f5;
+  background-color: var(--form-primary-color, #9b87f5);
   color: white;
   transform: scale(1.1);
 }
@@ -344,7 +361,7 @@
 .codform-field select:focus,
 .codform-field textarea:focus {
   outline: none;
-  border-color: #9b87f5;
+  border-color: var(--form-primary-color, #9b87f5);
   box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
 }
 
@@ -385,7 +402,7 @@
   align-items: center;
   justify-content: center;
   border: 2px dashed #d1d5db;
-  border-radius: 8px;
+  border-radius: var(--form-border-radius, 8px);
   color: #6b7280;
   padding: 20px;
   transition: all 0.2s ease;
@@ -393,7 +410,7 @@
 
 .codform-image-placeholder:hover {
   background-color: #e5e7eb;
-  border-color: #9b87f5;
+  border-color: var(--form-primary-color, #9b87f5);
 }
 
 .codform-image-upload-input {
@@ -402,7 +419,7 @@
 
 .codform-image-upload-label {
   display: inline-block;
-  background-color: #9b87f5;
+  background-color: var(--form-primary-color, #9b87f5);
   color: white;
   padding: 10px 20px;
   border-radius: 6px;
@@ -413,7 +430,7 @@
 }
 
 .codform-image-upload-label:hover {
-  background-color: #8a76e5;
+  opacity: 0.9;
 }
 
 /* WhatsApp button styles */
@@ -425,9 +442,9 @@
   justify-content: center;
   gap: 10px;
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: var(--form-border-radius, 8px);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--form-font-size, 1rem);
   text-decoration: none;
   width: 100%;
   border: none;
@@ -454,7 +471,7 @@
 .codform-cart-items {
   margin-bottom: 20px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: var(--form-border-radius, 8px);
   overflow: hidden;
 }
 
@@ -468,12 +485,20 @@
   border-bottom: none;
 }
 
+/* Fix for RTL layout */
 .codform-cart-item-image {
   width: 80px;
   height: 80px;
   object-fit: cover;
   border-radius: 6px;
   margin-left: 15px;
+  margin-right: 0;
+}
+
+/* LTR support */
+[dir="ltr"] .codform-cart-item-image {
+  margin-right: 15px;
+  margin-left: 0;
 }
 
 .codform-cart-item-details {
@@ -503,41 +528,32 @@
   margin-top: 10px;
 }
 
+/* Fix for RTL layout */
 .codform-cart-item-quantity-label {
   margin-left: 5px;
+  margin-right: 0;
   font-size: 0.875rem;
   color: #6b7280;
 }
 
-/* Cart summary styles */
-.codform-cart-summary {
-  margin-bottom: 20px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #f9fafb;
+/* LTR support */
+[dir="ltr"] .codform-cart-item-quantity-label {
+  margin-right: 5px;
+  margin-left: 0;
 }
 
-.codform-cart-summary-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+/* LTR language support */
+[dir="ltr"] .codform-container {
+  direction: ltr;
+  text-align: left;
 }
 
-.codform-cart-summary-row:last-child {
-  margin-bottom: 0;
-  padding-top: 10px;
-  border-top: 1px solid #e5e7eb;
-  font-weight: 700;
+[dir="ltr"] .codform-header {
+  text-align: left;
 }
 
-.codform-cart-summary-label {
-  color: #6b7280;
-}
-
-.codform-cart-summary-value {
-  font-weight: 600;
-  color: #1f2937;
+[dir="ltr"] .codform-field label {
+  text-align: left;
 }
 
 /* Responsive adjustments */
@@ -581,5 +597,9 @@
     height: auto;
     margin-bottom: 10px;
     margin-left: 0;
+  }
+
+  [dir="ltr"] .codform-cart-item-image {
+    margin-right: 0;
   }
 }

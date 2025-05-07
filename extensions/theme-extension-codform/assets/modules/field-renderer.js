@@ -1,582 +1,840 @@
+
 // CODFORM Field Renderer Module
 function CODFORMFieldRenderer() {
-  function renderField(container, field, primaryColor) {
-    console.log('CODFORM: Rendering field', field.type, field.id, field.label);
+  // Render a single form field based on its type
+  function renderField(form, field, primaryColor) {
+    if (!field || !field.type) {
+      console.error('CODFORM: Invalid field:', field);
+      return;
+    }
+
+    console.log('CODFORM: Rendering field type:', field.type, field);
     
+    // Create field container
     const fieldContainer = document.createElement('div');
     fieldContainer.className = 'codform-field';
+    fieldContainer.dataset.fieldType = field.type;
+    fieldContainer.dataset.fieldId = field.id;
     
-    // Apply custom styling if available
+    // Apply field's custom styles if available
     if (field.style) {
-      Object.keys(field.style).forEach(key => {
-        const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase(); // Convert camelCase to dash-case
-        fieldContainer.style[key] = field.style[key];
-      });
+      if (field.style.marginTop) fieldContainer.style.marginTop = field.style.marginTop;
+      if (field.style.marginBottom) fieldContainer.style.marginBottom = field.style.marginBottom;
+      if (field.style.textAlign) fieldContainer.style.textAlign = field.style.textAlign;
     }
     
-    if (field.type === 'text/html' || field.type === 'title') {
-      // Handle HTML content or title fields
-      if (field.type === 'title') {
-        const titleElement = document.createElement('h3');
-        titleElement.textContent = field.label;
-        if (field.style) {
-          Object.keys(field.style).forEach(key => {
-            titleElement.style[key] = field.style[key];
-          });
-        }
-        fieldContainer.appendChild(titleElement);
-      } else if (field.type === 'text/html' && field.content) {
-        const htmlContainer = document.createElement('div');
-        htmlContainer.className = 'codform-html-content';
-        htmlContainer.innerHTML = field.content;
-        fieldContainer.appendChild(htmlContainer);
-      }
-    } else if (field.type === 'whatsapp') {
-      renderWhatsAppButton(fieldContainer, field);
-    } else if (field.type === 'image') {
-      renderImageField(fieldContainer, field, primaryColor);
-    } else if (field.type === 'countdown') {
-      renderCountdownTimer(fieldContainer, field, primaryColor);
-    } else if (field.type === 'shipping') {
-      renderShippingOptions(fieldContainer, field, primaryColor);
-    } else {
-      // Standard form fields
+    // Handle different field types
+    switch(field.type) {
+      case 'text':
+      case 'email':
+      case 'phone':
+        renderTextInput(fieldContainer, field);
+        break;
+      case 'textarea':
+        renderTextarea(fieldContainer, field);
+        break;
+      case 'select':
+        renderSelect(fieldContainer, field);
+        break;
+      case 'checkbox':
+        renderCheckboxGroup(fieldContainer, field);
+        break;
+      case 'radio':
+        renderRadioGroup(fieldContainer, field, primaryColor);
+        break;
+      case 'title':
+        renderTitle(fieldContainer, field);
+        break;
+      case 'text/html':
+        renderHtmlContent(fieldContainer, field);
+        break;
+      case 'whatsapp':
+        renderWhatsAppButton(fieldContainer, field, primaryColor);
+        break;
+      case 'image':
+        renderImageField(fieldContainer, field);
+        break;
+      case 'cart-items':
+        renderCartItems(fieldContainer, field);
+        break;
+      case 'cart-summary':
+        renderCartSummary(fieldContainer, field);
+        break;
+      case 'shipping':
+        renderShippingOptions(fieldContainer, field, primaryColor);
+        break;
+      case 'countdown':
+        renderCountdownTimer(fieldContainer, field);
+        break;
+      default:
+        console.warn('CODFORM: Unknown field type:', field.type);
+        fieldContainer.textContent = `Unsupported field type: ${field.type}`;
+    }
+    
+    // Add validation error message container
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'codform-error-message';
+    errorContainer.style.display = 'none';
+    fieldContainer.appendChild(errorContainer);
+    
+    form.appendChild(fieldContainer);
+  }
+
+  // Render a text input field (text, email, phone)
+  function renderTextInput(container, field) {
+    if (field.label) {
       const label = document.createElement('label');
-      label.htmlFor = 'field_' + field.id;
+      label.setAttribute('for', `field-${field.id}`);
       label.textContent = field.label;
+      
       if (field.required) {
         const required = document.createElement('span');
         required.className = 'codform-required';
-        required.textContent = ' *';
+        required.textContent = '*';
         label.appendChild(required);
       }
-      fieldContainer.appendChild(label);
       
-      let input;
-      
-      switch (field.type) {
-        case 'text':
-        case 'email':
-        case 'tel':
-        case 'phone':
-        case 'number':
-          input = document.createElement('input');
-          input.type = field.type === 'phone' ? 'tel' : field.type;
-          input.id = 'field_' + field.id;
-          input.name = field.id;
-          input.placeholder = field.placeholder || '';
-          input.required = field.required || false;
-          if (field.disabled) {
-            input.disabled = true;
-          }
-          break;
-          
-        case 'textarea':
-          input = document.createElement('textarea');
-          input.id = 'field_' + field.id;
-          input.name = field.id;
-          input.placeholder = field.placeholder || '';
-          input.required = field.required || false;
-          input.rows = 4;
-          if (field.disabled) {
-            input.disabled = true;
-          }
-          break;
-          
-        case 'select':
-          input = document.createElement('select');
-          input.id = 'field_' + field.id;
-          input.name = field.id;
-          input.required = field.required || false;
-          if (field.disabled) {
-            input.disabled = true;
-          }
-          
-          // Add empty option
-          const emptyOption = document.createElement('option');
-          emptyOption.value = '';
-          emptyOption.textContent = field.placeholder || 'اختر...';
-          input.appendChild(emptyOption);
-          
-          // Add options
-          if (field.options && Array.isArray(field.options)) {
-            field.options.forEach(option => {
-              const optionElement = document.createElement('option');
-              optionElement.value = typeof option === 'object' ? option.value : option;
-              optionElement.textContent = typeof option === 'object' ? option.label : option;
-              input.appendChild(optionElement);
-            });
-          }
-          break;
-          
-        case 'checkbox':
-          const checkboxContainer = document.createElement('div');
-          checkboxContainer.className = 'codform-checkbox-container';
-          
-          input = document.createElement('input');
-          input.type = 'checkbox';
-          input.id = 'field_' + field.id;
-          input.name = field.id;
-          input.required = field.required || false;
-          if (field.disabled) {
-            input.disabled = true;
-          }
-          
-          const checkboxLabel = document.createElement('label');
-          checkboxLabel.htmlFor = 'field_' + field.id;
-          checkboxLabel.textContent = field.checkboxLabel || field.label;
-          
-          checkboxContainer.appendChild(input);
-          checkboxContainer.appendChild(checkboxLabel);
-          fieldContainer.appendChild(checkboxContainer);
-          break;
-        
-        case 'radio':
-          if (field.options && Array.isArray(field.options)) {
-            const radioGroup = document.createElement('div');
-            radioGroup.className = 'codform-radio-group';
-            
-            field.options.forEach((option, idx) => {
-              const radioContainer = document.createElement('div');
-              radioContainer.className = 'codform-radio-container';
-              
-              const radioInput = document.createElement('input');
-              radioInput.type = 'radio';
-              radioInput.id = `field_${field.id}_${idx}`;
-              radioInput.name = field.id;
-              radioInput.value = typeof option === 'object' ? option.value : option;
-              radioInput.required = field.required || false;
-              if (field.disabled) {
-                radioInput.disabled = true;
-              }
-              
-              const radioLabel = document.createElement('label');
-              radioLabel.htmlFor = `field_${field.id}_${idx}`;
-              radioLabel.textContent = typeof option === 'object' ? option.label : option;
-              
-              radioContainer.appendChild(radioInput);
-              radioContainer.appendChild(radioLabel);
-              radioGroup.appendChild(radioContainer);
-            });
-            
-            fieldContainer.appendChild(radioGroup);
-          }
-          break;
-          
-        case 'shipping':
-          renderShippingOptions(fieldContainer, field, primaryColor);
-          break;
-          
-        default:
-          input = document.createElement('input');
-          input.type = 'text';
-          input.id = 'field_' + field.id;
-          input.name = field.id;
-          input.required = field.required || false;
-          if (field.disabled) {
-            input.disabled = true;
-          }
-      }
-      
-      // Apply custom styling to inputs
-      if (input && field.style) {
-        Object.keys(field.style).forEach(key => {
-          input.style[key] = field.style[key];
-        });
-      }
-      
-      if (field.type !== 'checkbox' && field.type !== 'radio' && field.type !== 'shipping' && input) {
-        fieldContainer.appendChild(input);
-      }
-      
-      if (field.helpText) {
-        const helpText = document.createElement('div');
-        helpText.className = 'codform-help-text';
-        helpText.textContent = field.helpText;
-        fieldContainer.appendChild(helpText);
-      }
+      container.appendChild(label);
     }
     
-    container.appendChild(fieldContainer);
-  }
-  
-  function renderStepFields(fields, primaryColor) {
-    const stepElement = document.createElement('div');
-    stepElement.className = 'codform-step';
+    const input = document.createElement('input');
+    input.type = field.type === 'email' ? 'email' : 
+                 field.type === 'phone' ? 'tel' : 'text';
+    input.id = `field-${field.id}`;
+    input.name = field.name || field.id;
+    input.placeholder = field.placeholder || '';
+    input.className = 'codform-input';
+    input.required = field.required || false;
     
-    fields.forEach(field => {
-      renderField(stepElement, field, primaryColor);
-    });
-    
-    return stepElement;
-  }
-  
-  function renderWhatsAppButton(container, field) {
-    // Create WhatsApp button container
-    const whatsappContainer = document.createElement('div');
-    whatsappContainer.className = 'codform-field';
-    
-    // Create a link element for the WhatsApp button
-    const whatsappLink = document.createElement('a');
-    whatsappLink.className = 'codform-whatsapp-button';
-    
-    // Set the background color and text color from field.style
-    if (field.style) {
-      if (field.style.backgroundColor) {
-        whatsappLink.style.backgroundColor = field.style.backgroundColor;
-      }
-      if (field.style.color) {
-        whatsappLink.style.color = field.style.color;
-      }
+    // Apply pattern for phone validation
+    if (field.type === 'phone') {
+      // Simple pattern that accepts various phone formats
+      input.pattern = field.pattern || '[0-9+\-\s()]{7,15}';
     }
     
-    // Set the WhatsApp URL with the number and message
-    const whatsappNumber = field.whatsappNumber || '';
-    const message = field.message || '';
-    const encodedMessage = encodeURIComponent(message);
-    whatsappLink.href = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    whatsappLink.target = '_blank';
-    whatsappLink.rel = 'noopener noreferrer';
+    container.appendChild(input);
     
-    // Create the WhatsApp icon
-    const whatsappIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    whatsappIcon.setAttribute('viewBox', '0 0 24 24');
-    whatsappIcon.setAttribute('width', '24');
-    whatsappIcon.setAttribute('height', '24');
-    whatsappIcon.setAttribute('fill', 'currentColor');
-    whatsappIcon.classList.add('codform-whatsapp-icon');
-    
-    // Add the WhatsApp logo path
-    const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    iconPath.setAttribute('d', 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z');
-    
-    whatsappIcon.appendChild(iconPath);
-    
-    // Add the icon and text to the link
-    whatsappLink.appendChild(whatsappIcon);
-    whatsappLink.appendChild(document.createTextNode(field.label || 'تواصل عبر واتساب'));
-    
-    // Add the link to the container
-    whatsappContainer.appendChild(whatsappLink);
-    
-    // Add the container to the parent container
-    container.appendChild(whatsappContainer);
-  }
-  
-  function renderImageField(container, field, primaryColor) {
-    const imageFieldContainer = document.createElement('div');
-    imageFieldContainer.className = 'codform-image-field';
-    
-    // Create label
-    const label = document.createElement('label');
-    label.textContent = field.label || 'إضافة صورة';
-    if (field.required) {
-      const required = document.createElement('span');
-      required.className = 'codform-required';
-      required.textContent = ' *';
-      label.appendChild(required);
-    }
-    imageFieldContainer.appendChild(label);
-    
-    // Create image placeholder/preview
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'codform-image-placeholder';
-    imageContainer.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-        <polyline points="21 15 16 10 5 21"></polyline>
-      </svg>
-      <p style="margin-top: 10px;">انقر لتحميل صورة أو اسحب وأفلت الملف هنا</p>
-    `;
-    
-    // Create hidden file input
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.id = `field_${field.id}`;
-    fileInput.name = field.id;
-    fileInput.accept = 'image/*';
-    fileInput.className = 'codform-image-upload-input';
-    fileInput.required = field.required || false;
-    if (field.disabled) {
-      fileInput.disabled = true;
-    }
-    
-    // Create upload button
-    const uploadButton = document.createElement('button');
-    uploadButton.type = 'button';
-    uploadButton.className = 'codform-image-upload-label';
-    uploadButton.textContent = 'اختيار صورة';
-    uploadButton.style.backgroundColor = field.style?.backgroundColor || primaryColor || '#9b87f5';
-    uploadButton.onclick = () => fileInput.click();
-    
-    // Handle file selection
-    fileInput.onchange = function() {
-      if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          // Replace placeholder with actual image
-          imageContainer.innerHTML = '';
-          imageContainer.className = 'codform-image-container';
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.className = 'codform-image';
-          img.alt = field.label || '';
-          imageContainer.appendChild(img);
-          
-          // Add remove button
-          const removeBtn = document.createElement('button');
-          removeBtn.type = 'button';
-          removeBtn.className = 'codform-button';
-          removeBtn.textContent = 'حذف الصورة';
-          removeBtn.style.backgroundColor = '#ef4444';
-          removeBtn.style.marginTop = '10px';
-          removeBtn.onclick = function() {
-            fileInput.value = '';
-            // Reset to placeholder
-            imageContainer.className = 'codform-image-placeholder';
-            imageContainer.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
-              <p style="margin-top: 10px;">انقر لتحميل صورة أو اسحب وأفلت الملف هنا</p>
-            `;
-            imageFieldContainer.appendChild(uploadButton);
-          };
-          imageContainer.appendChild(removeBtn);
-          uploadButton.remove();
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    };
-    
-    // Add drag and drop support
-    imageContainer.ondragover = function(e) {
-      e.preventDefault();
-      this.style.borderColor = primaryColor || '#9b87f5';
-      this.style.backgroundColor = '#f0f0f0';
-    };
-    
-    imageContainer.ondragleave = function(e) {
-      e.preventDefault();
-      this.style.borderColor = '#d1d5db';
-      this.style.backgroundColor = '#f3f4f6';
-    };
-    
-    imageContainer.ondrop = function(e) {
-      e.preventDefault();
-      this.style.borderColor = '#d1d5db';
-      this.style.backgroundColor = '#f3f4f6';
-      
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        fileInput.files = e.dataTransfer.files;
-        const event = new Event('change');
-        fileInput.dispatchEvent(event);
-      }
-    };
-    
-    // Add elements to container
-    imageFieldContainer.appendChild(fileInput);
-    imageFieldContainer.appendChild(imageContainer);
-    imageFieldContainer.appendChild(uploadButton);
-    
-    // Add help text if provided
     if (field.helpText) {
       const helpText = document.createElement('div');
       helpText.className = 'codform-help-text';
       helpText.textContent = field.helpText;
-      imageFieldContainer.appendChild(helpText);
+      container.appendChild(helpText);
+    }
+  }
+
+  // Render a textarea field
+  function renderTextarea(container, field) {
+    if (field.label) {
+      const label = document.createElement('label');
+      label.setAttribute('for', `field-${field.id}`);
+      label.textContent = field.label;
+      
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = '*';
+        label.appendChild(required);
+      }
+      
+      container.appendChild(label);
     }
     
-    container.appendChild(imageFieldContainer);
-  }
-  
-  function renderCountdownTimer(container, field, primaryColor) {
-    // Create countdown container
-    const countdownContainer = document.createElement('div');
-    countdownContainer.className = 'codform-countdown-container';
-    countdownContainer.style.marginBottom = '1.5rem';
-    countdownContainer.style.padding = '1rem';
-    countdownContainer.style.borderRadius = '0.375rem';
-    countdownContainer.style.textAlign = 'center';
-    countdownContainer.style.border = '1px solid';
+    const textarea = document.createElement('textarea');
+    textarea.id = `field-${field.id}`;
+    textarea.name = field.name || field.id;
+    textarea.placeholder = field.placeholder || '';
+    textarea.className = 'codform-textarea';
+    textarea.required = field.required || false;
+    textarea.rows = field.rows || 4;
     
-    // Apply styling
+    container.appendChild(textarea);
+    
+    if (field.helpText) {
+      const helpText = document.createElement('div');
+      helpText.className = 'codform-help-text';
+      helpText.textContent = field.helpText;
+      container.appendChild(helpText);
+    }
+  }
+
+  // Render a select dropdown field
+  function renderSelect(container, field) {
+    if (field.label) {
+      const label = document.createElement('label');
+      label.setAttribute('for', `field-${field.id}`);
+      label.textContent = field.label;
+      
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = '*';
+        label.appendChild(required);
+      }
+      
+      container.appendChild(label);
+    }
+    
+    const select = document.createElement('select');
+    select.id = `field-${field.id}`;
+    select.name = field.name || field.id;
+    select.className = 'codform-select';
+    select.required = field.required || false;
+    
+    // Add placeholder option if available
+    if (field.placeholder) {
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = field.placeholder;
+      placeholderOption.disabled = true;
+      placeholderOption.selected = true;
+      select.appendChild(placeholderOption);
+    }
+    
+    // Add options
+    if (field.options && Array.isArray(field.options)) {
+      field.options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value || option;
+        optionElement.textContent = option.label || option;
+        select.appendChild(optionElement);
+      });
+    }
+    
+    container.appendChild(select);
+    
+    if (field.helpText) {
+      const helpText = document.createElement('div');
+      helpText.className = 'codform-help-text';
+      helpText.textContent = field.helpText;
+      container.appendChild(helpText);
+    }
+  }
+
+  // Render a checkbox group
+  function renderCheckboxGroup(container, field) {
+    if (field.label) {
+      const label = document.createElement('label');
+      label.textContent = field.label;
+      
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = '*';
+        label.appendChild(required);
+      }
+      
+      container.appendChild(label);
+    }
+    
+    const checkboxGroup = document.createElement('div');
+    checkboxGroup.className = 'codform-checkbox-group';
+    
+    // Add checkbox options
+    if (field.options && Array.isArray(field.options)) {
+      field.options.forEach((option, index) => {
+        const checkboxWrapper = document.createElement('div');
+        checkboxWrapper.className = 'codform-checkbox-container';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `field-${field.id}-${index}`;
+        checkbox.name = `${field.name || field.id}[]`;
+        checkbox.value = option.value || option;
+        
+        const label = document.createElement('label');
+        label.setAttribute('for', `field-${field.id}-${index}`);
+        label.textContent = option.label || option;
+        
+        // Adjust ordering for RTL/LTR
+        const isRtl = document.dir === 'rtl' || document.documentElement.dir === 'rtl';
+        if (isRtl) {
+          checkboxWrapper.appendChild(label);
+          checkboxWrapper.appendChild(checkbox);
+        } else {
+          checkboxWrapper.appendChild(checkbox);
+          checkboxWrapper.appendChild(label);
+        }
+        
+        checkboxGroup.appendChild(checkboxWrapper);
+      });
+    }
+    
+    container.appendChild(checkboxGroup);
+    
+    if (field.helpText) {
+      const helpText = document.createElement('div');
+      helpText.className = 'codform-help-text';
+      helpText.textContent = field.helpText;
+      container.appendChild(helpText);
+    }
+  }
+
+  // Render a radio button group
+  function renderRadioGroup(container, field, primaryColor) {
+    if (field.label) {
+      const label = document.createElement('label');
+      label.textContent = field.label;
+      
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = '*';
+        label.appendChild(required);
+      }
+      
+      container.appendChild(label);
+    }
+    
+    const radioGroup = document.createElement('div');
+    radioGroup.className = 'codform-radio-group';
+    
+    // Add radio options
+    if (field.options && Array.isArray(field.options)) {
+      field.options.forEach((option, index) => {
+        const radioWrapper = document.createElement('div');
+        radioWrapper.className = 'codform-radio-container';
+        
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.id = `field-${field.id}-${index}`;
+        radio.name = field.name || field.id;
+        radio.value = option.value || option;
+        if (index === 0) radio.checked = true;
+        
+        // Apply primary color to radio button
+        if (primaryColor) {
+          radio.style.accentColor = primaryColor;
+        }
+        
+        const label = document.createElement('label');
+        label.setAttribute('for', `field-${field.id}-${index}`);
+        label.textContent = option.label || option;
+        
+        // Adjust ordering for RTL/LTR
+        const isRtl = document.dir === 'rtl' || document.documentElement.dir === 'rtl';
+        if (isRtl) {
+          radioWrapper.appendChild(label);
+          radioWrapper.appendChild(radio);
+        } else {
+          radioWrapper.appendChild(radio);
+          radioWrapper.appendChild(label);
+        }
+        
+        radioGroup.appendChild(radioWrapper);
+      });
+    }
+    
+    container.appendChild(radioGroup);
+    
+    if (field.helpText) {
+      const helpText = document.createElement('div');
+      helpText.className = 'codform-help-text';
+      helpText.textContent = field.helpText;
+      container.appendChild(helpText);
+    }
+  }
+
+  // Render a title field
+  function renderTitle(container, field) {
+    const titleElem = document.createElement(field.titleLevel || 'h3');
+    titleElem.textContent = field.label || field.content || 'Section Title';
+    
+    if (field.style) {
+      if (field.style.color) titleElem.style.color = field.style.color;
+      if (field.style.fontSize) titleElem.style.fontSize = field.style.fontSize;
+      if (field.style.textAlign) titleElem.style.textAlign = field.style.textAlign;
+      if (field.style.fontWeight) titleElem.style.fontWeight = field.style.fontWeight;
+    }
+    
+    container.appendChild(titleElem);
+  }
+
+  // Render HTML content field
+  function renderHtmlContent(container, field) {
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'codform-html-content';
+    
+    if (field.content) {
+      contentDiv.innerHTML = field.content;
+    } else {
+      contentDiv.textContent = 'HTML Content goes here';
+    }
+    
+    // Apply custom styles if available
+    if (field.style) {
+      if (field.style.color) contentDiv.style.color = field.style.color;
+      if (field.style.fontSize) contentDiv.style.fontSize = field.style.fontSize;
+      if (field.style.textAlign) contentDiv.style.textAlign = field.style.textAlign;
+    }
+    
+    container.appendChild(contentDiv);
+  }
+
+  // Render WhatsApp button
+  function renderWhatsAppButton(container, field, primaryColor) {
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'codform-whatsapp-button-container';
+    
+    let phoneNumber = field.phoneNumber || '';
+    // Remove any non-digit characters except for the plus sign
+    phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+    
+    const buttonMessage = encodeURIComponent(field.message || 'Hello!');
+    const whatsAppLink = `https://wa.me/${phoneNumber}?text=${buttonMessage}`;
+    
+    const button = document.createElement('a');
+    button.href = whatsAppLink;
+    button.target = '_blank';
+    button.rel = 'noopener noreferrer';
+    button.className = 'codform-whatsapp-button';
+    
+    // Apply custom background color if specified
     if (field.style && field.style.backgroundColor) {
-      countdownContainer.style.backgroundColor = field.style.backgroundColor;
-    } else {
-      countdownContainer.style.backgroundColor = 'rgba(155, 135, 245, 0.1)';
+      button.style.backgroundColor = field.style.backgroundColor;
     }
     
-    if (field.style && field.style.borderColor) {
-      countdownContainer.style.borderColor = field.style.borderColor;
-    } else {
-      countdownContainer.style.borderColor = primaryColor || '#9b87f5';
-    }
+    // Add WhatsApp icon
+    const icon = document.createElement('span');
+    icon.className = 'codform-whatsapp-icon';
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.297-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"></path></svg>`;
     
-    // Add title
-    const title = document.createElement('h3');
-    title.className = 'codform-countdown-title';
-    title.textContent = field.label || 'الوقت المتبقي للعرض';
-    title.style.fontSize = '1.125rem';
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '0.5rem';
+    button.appendChild(icon);
+    button.appendChild(document.createTextNode(field.label || 'WhatsApp'));
     
-    if (field.style && field.style.color) {
-      title.style.color = field.style.color;
-    }
-    
-    countdownContainer.appendChild(title);
-    
-    // Create timer blocks container
-    const timerContainer = document.createElement('div');
-    timerContainer.className = 'codform-countdown-timer';
-    timerContainer.style.display = 'flex';
-    timerContainer.style.justifyContent = 'center';
-    timerContainer.style.gap = '1rem';
-    timerContainer.style.marginTop = '0.75rem';
-    
-    // Create timer blocks
-    const units = [
-      { value: '24', label: 'ساعة' },
-      { value: '00', label: 'دقيقة' },
-      { value: '00', label: 'ثانية' }
-    ];
-    
-    units.forEach(unit => {
-      const unitBlock = document.createElement('div');
-      unitBlock.className = 'codform-countdown-unit';
-      unitBlock.style.backgroundColor = '#ffffff';
-      unitBlock.style.padding = '0.5rem';
-      unitBlock.style.borderRadius = '0.25rem';
-      unitBlock.minWidth = '60px';
-      unitBlock.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
-      
-      const value = document.createElement('div');
-      value.className = 'codform-countdown-value';
-      value.textContent = unit.value;
-      value.style.fontSize = '1.5rem';
-      value.style.fontWeight = 'bold';
-      value.style.color = primaryColor || '#9b87f5';
-      
-      const label = document.createElement('div');
-      label.className = 'codform-countdown-label';
-      label.textContent = unit.label;
-      label.style.fontSize = '0.75rem';
-      label.style.color = '#6b7280';
-      
-      unitBlock.appendChild(value);
-      unitBlock.appendChild(label);
-      timerContainer.appendChild(unitBlock);
-    });
-    
-    countdownContainer.appendChild(timerContainer);
-    container.appendChild(countdownContainer);
+    buttonContainer.appendChild(button);
+    container.appendChild(buttonContainer);
   }
   
-  function renderShippingOptions(container, field, primaryColor) {
-    // Create shipping options container
-    const shippingContainer = document.createElement('div');
-    shippingContainer.className = 'codform-shipping-container';
-    shippingContainer.style.marginBottom = '1.5rem';
+  // Render image field
+  function renderImageField(container, field) {
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'codform-image-field';
     
-    // Add label
-    const label = document.createElement('label');
-    label.textContent = field.label || 'خيارات التوصيل';
-    label.style.display = 'block';
-    label.style.marginBottom = '0.5rem';
-    
-    if (field.required) {
-      const required = document.createElement('span');
-      required.className = 'codform-required';
-      required.textContent = ' *';
-      required.style.color = '#ef4444';
-      label.appendChild(required);
+    if (field.imageUrl) {
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'codform-image-container';
+      
+      const img = document.createElement('img');
+      img.src = field.imageUrl;
+      img.alt = field.label || 'Form image';
+      img.className = 'codform-image';
+      
+      // Apply custom styles if available
+      if (field.style) {
+        if (field.style.borderRadius) img.style.borderRadius = field.style.borderRadius;
+        if (field.style.maxHeight) img.style.maxHeight = field.style.maxHeight;
+      }
+      
+      imgWrapper.appendChild(img);
+      imageContainer.appendChild(imgWrapper);
+      
+      if (field.caption) {
+        const caption = document.createElement('p');
+        caption.className = 'codform-image-caption';
+        caption.textContent = field.caption;
+        imageContainer.appendChild(caption);
+      }
+    } else {
+      // Placeholder for images that haven't been uploaded
+      const placeholder = document.createElement('div');
+      placeholder.className = 'codform-image-placeholder';
+      placeholder.textContent = 'No image uploaded';
+      imageContainer.appendChild(placeholder);
     }
     
-    shippingContainer.appendChild(label);
+    container.appendChild(imageContainer);
+  }
+  
+  // Render cart items
+  function renderCartItems(container, field) {
+    const cartItems = document.createElement('div');
+    cartItems.className = 'codform-cart-items';
     
-    // Create shipping options
-    const options = [
+    // In a real implementation, we would fetch cart data from Shopify
+    // For now, we'll use placeholder data
+    const demoItems = [
       {
-        id: 'standard',
-        name: 'توصيل قياسي',
-        price: '$5.00',
-        time: '3-5 أيام'
-      },
-      {
-        id: 'express',
-        name: 'توصيل سريع',
-        price: '$15.00',
-        time: '1-2 أيام'
+        title: 'Sample Product',
+        price: '$99.99',
+        image: 'https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png?format=webp&v=1530129081',
+        quantity: 1,
+        variant: 'Default'
       }
     ];
     
-    const optionsContainer = document.createElement('div');
-    optionsContainer.className = 'codform-shipping-options';
-    optionsContainer.style.display = 'flex';
-    optionsContainer.style.flexDirection = 'column';
-    optionsContainer.style.gap = '0.75rem';
+    demoItems.forEach(item => {
+      const cartItem = document.createElement('div');
+      cartItem.className = 'codform-cart-item';
+      
+      const img = document.createElement('img');
+      img.src = item.image;
+      img.className = 'codform-cart-item-image';
+      img.alt = item.title;
+      
+      const details = document.createElement('div');
+      details.className = 'codform-cart-item-details';
+      
+      const title = document.createElement('div');
+      title.className = 'codform-cart-item-title';
+      title.textContent = item.title;
+      
+      const variant = document.createElement('div');
+      variant.className = 'codform-cart-item-variant';
+      variant.textContent = item.variant;
+      
+      const price = document.createElement('div');
+      price.className = 'codform-cart-item-price';
+      price.textContent = item.price;
+      
+      const quantity = document.createElement('div');
+      quantity.className = 'codform-cart-item-quantity';
+      
+      const quantityLabel = document.createElement('span');
+      quantityLabel.className = 'codform-cart-item-quantity-label';
+      quantityLabel.textContent = 'Quantity:';
+      
+      const quantityValue = document.createElement('span');
+      quantityValue.textContent = item.quantity;
+      
+      quantity.appendChild(quantityLabel);
+      quantity.appendChild(quantityValue);
+      
+      details.appendChild(title);
+      details.appendChild(variant);
+      details.appendChild(price);
+      details.appendChild(quantity);
+      
+      cartItem.appendChild(img);
+      cartItem.appendChild(details);
+      
+      cartItems.appendChild(cartItem);
+    });
     
-    options.forEach(option => {
-      const optionItem = document.createElement('div');
-      optionItem.className = 'codform-shipping-option';
-      optionItem.style.display = 'flex';
-      optionItem.style.alignItems = 'center';
+    container.appendChild(cartItems);
+  }
+  
+  // Render cart summary
+  function renderCartSummary(container, field) {
+    const summaryContainer = document.createElement('div');
+    summaryContainer.className = 'codform-cart-summary';
+    
+    // In a real implementation, we would calculate these totals from cart data
+    // For now, we'll use placeholder data
+    const demoSummary = {
+      subtotal: '$99.99',
+      shipping: '$5.00',
+      tax: '$10.50',
+      total: '$115.49'
+    };
+    
+    // Subtotal row
+    const subtotalRow = document.createElement('div');
+    subtotalRow.className = 'codform-cart-summary-row';
+    
+    const subtotalLabel = document.createElement('div');
+    subtotalLabel.className = 'codform-cart-summary-label';
+    subtotalLabel.textContent = 'Subtotal:';
+    
+    const subtotalValue = document.createElement('div');
+    subtotalValue.className = 'codform-cart-summary-value';
+    subtotalValue.textContent = demoSummary.subtotal;
+    
+    subtotalRow.appendChild(subtotalLabel);
+    subtotalRow.appendChild(subtotalValue);
+    
+    // Shipping row
+    const shippingRow = document.createElement('div');
+    shippingRow.className = 'codform-cart-summary-row';
+    
+    const shippingLabel = document.createElement('div');
+    shippingLabel.className = 'codform-cart-summary-label';
+    shippingLabel.textContent = 'Shipping:';
+    
+    const shippingValue = document.createElement('div');
+    shippingValue.className = 'codform-cart-summary-value';
+    shippingValue.textContent = demoSummary.shipping;
+    
+    shippingRow.appendChild(shippingLabel);
+    shippingRow.appendChild(shippingValue);
+    
+    // Tax row
+    const taxRow = document.createElement('div');
+    taxRow.className = 'codform-cart-summary-row';
+    
+    const taxLabel = document.createElement('div');
+    taxLabel.className = 'codform-cart-summary-label';
+    taxLabel.textContent = 'Tax:';
+    
+    const taxValue = document.createElement('div');
+    taxValue.className = 'codform-cart-summary-value';
+    taxValue.textContent = demoSummary.tax;
+    
+    taxRow.appendChild(taxLabel);
+    taxRow.appendChild(taxValue);
+    
+    // Total row
+    const totalRow = document.createElement('div');
+    totalRow.className = 'codform-cart-summary-row';
+    
+    const totalLabel = document.createElement('div');
+    totalLabel.className = 'codform-cart-summary-label';
+    totalLabel.textContent = 'Total:';
+    
+    const totalValue = document.createElement('div');
+    totalValue.className = 'codform-cart-summary-value';
+    totalValue.textContent = demoSummary.total;
+    
+    totalRow.appendChild(totalLabel);
+    totalRow.appendChild(totalValue);
+    
+    // Add all rows to the summary container
+    summaryContainer.appendChild(subtotalRow);
+    summaryContainer.appendChild(shippingRow);
+    summaryContainer.appendChild(taxRow);
+    summaryContainer.appendChild(totalRow);
+    
+    container.appendChild(summaryContainer);
+  }
+  
+  // Render shipping options
+  function renderShippingOptions(container, field, primaryColor) {
+    const shippingOptions = document.createElement('div');
+    shippingOptions.className = 'codform-shipping-options';
+    
+    // Add a title if provided
+    if (field.label) {
+      const title = document.createElement('label');
+      title.className = 'codform-shipping-title';
+      title.textContent = field.label;
+      
+      if (field.required) {
+        const required = document.createElement('span');
+        required.className = 'codform-required';
+        required.textContent = '*';
+        title.appendChild(required);
+      }
+      
+      shippingOptions.appendChild(title);
+    }
+    
+    // Default shipping options if none provided
+    const options = field.options || [
+      {
+        id: 'standard',
+        name: 'Standard Delivery',
+        price: '$5.00',
+        time: '3-5 business days'
+      },
+      {
+        id: 'express',
+        name: 'Express Delivery',
+        price: '$15.00',
+        time: '1-2 business days'
+      }
+    ];
+    
+    const radioGroup = document.createElement('div');
+    radioGroup.className = 'codform-radio-group codform-shipping-radio-group';
+    
+    options.forEach((option, index) => {
+      const optionContainer = document.createElement('div');
+      optionContainer.className = 'codform-shipping-option';
+      
+      const radioContainer = document.createElement('div');
+      radioContainer.className = 'codform-radio-container';
       
       const radio = document.createElement('input');
       radio.type = 'radio';
-      radio.name = 'shipping';
-      radio.id = `shipping-${option.id}`;
+      radio.id = `shipping-${field.id}-${index}`;
+      radio.name = `shipping-${field.id}`;
       radio.value = option.id;
-      radio.style.marginLeft = '0.5rem';
-      radio.checked = option.id === 'standard';
-      radio.disabled = true;
+      if (index === 0) radio.checked = true;
       
-      const optionContent = document.createElement('div');
-      optionContent.style.display = 'flex';
-      optionContent.style.flex = '1';
-      optionContent.style.justifyContent = 'space-between';
-      optionContent.style.alignItems = 'center';
+      // Apply primary color
+      if (primaryColor) {
+        radio.style.accentColor = primaryColor;
+      }
       
-      const optionInfo = document.createElement('div');
+      const label = document.createElement('div');
+      label.className = 'codform-shipping-option-label';
       
-      const optionName = document.createElement('div');
-      optionName.textContent = option.name;
-      optionName.style.fontWeight = '500';
+      const nameElem = document.createElement('span');
+      nameElem.className = 'codform-shipping-name';
+      nameElem.textContent = option.name;
       
-      const optionTime = document.createElement('div');
-      optionTime.textContent = option.time;
-      optionTime.style.fontSize = '0.875rem';
-      optionTime.style.color = '#6b7280';
+      const timeElem = document.createElement('span');
+      timeElem.className = 'codform-shipping-time';
+      timeElem.textContent = option.time;
       
-      optionInfo.appendChild(optionName);
-      optionInfo.appendChild(optionTime);
+      label.appendChild(nameElem);
+      label.appendChild(document.createElement('br'));
+      label.appendChild(timeElem);
       
-      const optionPrice = document.createElement('div');
-      optionPrice.textContent = option.price;
-      optionPrice.style.fontWeight = '500';
+      const priceElem = document.createElement('span');
+      priceElem.className = 'codform-shipping-price';
+      priceElem.textContent = option.price;
       
-      optionContent.appendChild(optionInfo);
-      optionContent.appendChild(optionPrice);
+      // Check if RTL
+      const isRtl = document.dir === 'rtl' || document.documentElement.dir === 'rtl';
       
-      optionItem.appendChild(radio);
-      optionItem.appendChild(optionContent);
-      optionsContainer.appendChild(optionItem);
+      if (isRtl) {
+        radioContainer.appendChild(label);
+        radioContainer.appendChild(radio);
+      } else {
+        radioContainer.appendChild(radio);
+        radioContainer.appendChild(label);
+      }
+      
+      optionContainer.appendChild(radioContainer);
+      optionContainer.appendChild(priceElem);
+      radioGroup.appendChild(optionContainer);
     });
     
-    shippingContainer.appendChild(optionsContainer);
-    container.appendChild(shippingContainer);
+    shippingOptions.appendChild(radioGroup);
+    container.appendChild(shippingOptions);
+  }
+  
+  // Render countdown timer
+  function renderCountdownTimer(container, field) {
+    const countdownContainer = document.createElement('div');
+    countdownContainer.className = 'codform-countdown-container';
+    countdownContainer.style.textAlign = 'center';
+    countdownContainer.style.padding = '15px';
+    countdownContainer.style.margin = '15px 0';
+    countdownContainer.style.border = '1px solid #e5e7eb';
+    countdownContainer.style.borderRadius = '8px';
+    countdownContainer.style.backgroundColor = '#f9fafb';
+    
+    // Add title if provided
+    if (field.label) {
+      const title = document.createElement('div');
+      title.className = 'codform-countdown-title';
+      title.textContent = field.label;
+      title.style.fontSize = '1.1rem';
+      title.style.fontWeight = '600';
+      title.style.marginBottom = '10px';
+      countdownContainer.appendChild(title);
+    }
+    
+    // Create timer display
+    const timerDisplay = document.createElement('div');
+    timerDisplay.className = 'codform-countdown-timer';
+    timerDisplay.style.fontSize = '1.5rem';
+    timerDisplay.style.fontWeight = '700';
+    timerDisplay.style.fontFamily = 'monospace, sans-serif';
+    
+    // Default expiration time: 24 hours from now
+    const hoursLeft = field.hours || 24;
+    const minutesLeft = field.minutes || 0;
+    const secondsLeft = field.seconds || 0;
+    
+    timerDisplay.textContent = `${padZero(hoursLeft)}:${padZero(minutesLeft)}:${padZero(secondsLeft)}`;
+    
+    // Add countdown styles
+    if (field.style) {
+      if (field.style.color) timerDisplay.style.color = field.style.color;
+      if (field.style.backgroundColor) countdownContainer.style.backgroundColor = field.style.backgroundColor;
+    }
+    
+    countdownContainer.appendChild(timerDisplay);
+    
+    // Add message if provided
+    if (field.message) {
+      const message = document.createElement('div');
+      message.className = 'codform-countdown-message';
+      message.textContent = field.message;
+      message.style.marginTop = '10px';
+      message.style.fontSize = '0.9rem';
+      countdownContainer.appendChild(message);
+    }
+    
+    container.appendChild(countdownContainer);
+  }
+  
+  // Helper function for countdown timer
+  function padZero(num) {
+    return num.toString().padStart(2, '0');
+  }
+  
+  // Render fields for a specific step
+  function renderStepFields(fields, primaryColor) {
+    const stepContainer = document.createElement('div');
+    stepContainer.className = 'codform-step';
+    
+    if (fields && Array.isArray(fields)) {
+      fields.forEach(field => {
+        const fieldContainer = document.createElement('div');
+        fieldContainer.className = 'codform-field';
+        fieldContainer.dataset.fieldType = field.type;
+        fieldContainer.dataset.fieldId = field.id;
+        
+        // Apply custom styles if available
+        if (field.style) {
+          if (field.style.marginTop) fieldContainer.style.marginTop = field.style.marginTop;
+          if (field.style.marginBottom) fieldContainer.style.marginBottom = field.style.marginBottom;
+          if (field.style.textAlign) fieldContainer.style.textAlign = field.style.textAlign;
+        }
+        
+        switch(field.type) {
+          case 'text':
+          case 'email':
+          case 'phone':
+            renderTextInput(fieldContainer, field);
+            break;
+          case 'textarea':
+            renderTextarea(fieldContainer, field);
+            break;
+          case 'select':
+            renderSelect(fieldContainer, field);
+            break;
+          case 'checkbox':
+            renderCheckboxGroup(fieldContainer, field);
+            break;
+          case 'radio':
+            renderRadioGroup(fieldContainer, field, primaryColor);
+            break;
+          case 'title':
+            renderTitle(fieldContainer, field);
+            break;
+          case 'text/html':
+            renderHtmlContent(fieldContainer, field);
+            break;
+          case 'whatsapp':
+            renderWhatsAppButton(fieldContainer, field, primaryColor);
+            break;
+          case 'image':
+            renderImageField(fieldContainer, field);
+            break;
+          case 'cart-items':
+            renderCartItems(fieldContainer, field);
+            break;
+          case 'cart-summary':
+            renderCartSummary(fieldContainer, field);
+            break;
+          case 'shipping':
+            renderShippingOptions(fieldContainer, field, primaryColor);
+            break;
+          case 'countdown':
+            renderCountdownTimer(fieldContainer, field);
+            break;
+          default:
+            console.warn('CODFORM: Unknown field type:', field.type);
+            fieldContainer.textContent = `Unsupported field type: ${field.type}`;
+        }
+        
+        stepContainer.appendChild(fieldContainer);
+      });
+    }
+    
+    return stepContainer;
   }
   
   return {
     renderField,
-    renderStepFields,
     renderWhatsAppButton,
     renderImageField,
     renderCountdownTimer,
-    renderShippingOptions
+    renderShippingOptions,
+    renderStepFields
   };
 }
