@@ -23,6 +23,7 @@ serve(async (req) => {
     try {
       requestData = await req.json();
     } catch (e) {
+      console.error('Error parsing JSON:', e);
       return new Response(
         JSON.stringify({ error: 'Invalid JSON in request body' }),
         { status: 400, headers: corsHeaders }
@@ -32,8 +33,10 @@ serve(async (req) => {
     const { formId, data } = requestData;
     
     console.log('Processing submission for form:', formId);
+    console.log('Submission data:', JSON.stringify(data));
     
     if (!formId || !data) {
+      console.error('Missing required fields:', { formId, hasData: !!data });
       return new Response(
         JSON.stringify({ error: 'Form ID and data are required' }),
         { status: 400, headers: corsHeaders }
@@ -48,6 +51,8 @@ serve(async (req) => {
     // Extract Shopify-related information from submission data
     const shopDomain = data.shopDomain || null;
     const productId = data.productId || null;
+    
+    console.log('Shopify info:', { shopDomain, productId });
     
     // Save submission to the database
     const { data: submissionData, error } = await supabase
@@ -64,7 +69,7 @@ serve(async (req) => {
     if (error) {
       console.error('Error saving submission:', error);
       return new Response(
-        JSON.stringify({ error: 'Error saving submission' }),
+        JSON.stringify({ error: 'Error saving submission', details: error.message }),
         { status: 500, headers: corsHeaders }
       );
     }

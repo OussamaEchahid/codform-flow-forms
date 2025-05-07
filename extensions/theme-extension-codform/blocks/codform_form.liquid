@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -59,6 +60,9 @@
       return;
     }
 
+    // استخدام عنوان API موحد مباشرة لوظيفة Supabase Edge Function
+    const API_BASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
+    
     // Load the form from CODFORM API
     loadForm(formId, productId, '{{ block.id }}');
 
@@ -75,7 +79,7 @@
 
   function loadForm(formId, productId, blockId) {
     console.log('CODFORM: Loading form', formId, 'for block', blockId);
-    // API URL - مسار API المُحدث
+    // استخدام عنوان API موحد مباشرة لوظيفة Supabase Edge Function
     const apiUrl = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms/' + formId;
     
     console.log('CODFORM: Fetching from', apiUrl);
@@ -285,7 +289,10 @@
     submitButton.disabled = true;
     submitButton.textContent = 'جاري الإرسال...';
 
+    // استخدام عنوان API موحد مباشرة لوظيفة Supabase Edge Function
     const apiUrl = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-submissions';
+
+    console.log('CODFORM: Sending submission to:', apiUrl);
 
     fetch(apiUrl, {
       method: 'POST',
