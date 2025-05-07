@@ -40,6 +40,20 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   const [key, setKey] = useState(0);
+  
+  // Get default submit button text based on form language
+  const getDefaultSubmitButtonText = (lang: 'ar' | 'en' | 'fr') => {
+    switch (lang) {
+      case 'ar':
+        return 'إرسال الطلب';
+      case 'en':
+        return 'Submit';
+      case 'fr':
+        return 'Soumettre';
+      default:
+        return 'إرسال الطلب';
+    }
+  };
 
   // تحديد اتجاه النص بناءً على اللغة المحددة
   const isRTL = formLanguage === 'ar';
@@ -53,17 +67,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // ترجمات زر الإرسال حسب اللغة
   const getSubmitButtonText = () => {
     if (submitButtonText) return submitButtonText;
-    
-    switch (formLanguage) {
-      case 'ar':
-        return 'إرسال الطلب';
-      case 'en':
-        return 'Submit';
-      case 'fr':
-        return 'Soumettre';
-      default:
-        return 'إرسال الطلب';
-    }
+    return getDefaultSubmitButtonText(formLanguage);
   };
   
   return (

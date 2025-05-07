@@ -44,7 +44,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
           <span>{currentLanguage?.label || 'Language'}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="bg-white">
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}

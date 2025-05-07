@@ -4,7 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import LanguageSelector from '@/components/form/LanguageSelector';
 import { useFormStore } from '@/hooks/useFormStore';
 

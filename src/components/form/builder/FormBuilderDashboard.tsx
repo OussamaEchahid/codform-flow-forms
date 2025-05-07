@@ -58,13 +58,19 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleCreateForm = async () => {
     try {
+      toast.loading(language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 'Creating new form...');
       const newForm = await createDefaultForm();
-      if (newForm) {
+      toast.dismiss();
+      
+      if (newForm && newForm.id) {
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
+      } else {
+        toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
       }
     } catch (error) {
       console.error("Error creating form:", error);
+      toast.dismiss();
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
     }
   };
@@ -76,14 +82,23 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleSelectTemplate = async (templateId: number) => {
     try {
       setIsTemplateDialogOpen(false);
+      toast.loading(language === 'ar' ? 'جاري إنشاء نموذج من القالب...' : 'Creating form from template...');
       const newForm = await createFormFromTemplate(templateId);
+      toast.dismiss();
       
-      if (newForm) {
+      if (newForm && newForm.id) {
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
+      } else {
+        toast.error(
+          language === 'ar'
+            ? 'خطأ في إنشاء نموذج من القالب'
+            : 'Error creating form from template'
+        );
       }
     } catch (error) {
       console.error("Error creating form from template:", error);
+      toast.dismiss();
       toast.error(
         language === 'ar'
           ? 'خطأ في إنشاء نموذج من القالب'
@@ -104,7 +119,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           </p>
         </div>
         
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 rtl:space-x-reverse">
           <Button 
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}
@@ -112,8 +127,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
             {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
           </Button>
           
-          <Button onClick={handleCreateForm}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={handleCreateForm} disabled={isLoading}>
+            <Plus className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
             {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </Button>
         </div>

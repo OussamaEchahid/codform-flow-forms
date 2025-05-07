@@ -29,7 +29,6 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
-import LanguageSelector from '@/components/form/LanguageSelector';
 import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -239,7 +238,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
       
       // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText وإعدادات اللغة
-      const formData: Partial<FormData> = {
+      const formData: FormData = {
+        id: currentFormId,
         title: formTitle,
         description: formDescription,
         data: [formStep],
@@ -489,13 +489,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     handleSave();
   };
 
-  const handleLanguageChange = (lang: 'ar' | 'en' | 'fr') => {
-    setFormLanguage(lang);
-    setRefreshKey(prev => prev + 1);
-    // Save after language change
-    setTimeout(() => handleSave(), 300);
-  };
-
   const handleShopifyIntegration = async (settings: any) => {
     if (!currentFormId) {
       toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
@@ -591,10 +584,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             <h2 className={`text-xl font-semibold ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
             </h2>
-            
-            <div>
-              <LanguageSelector onChange={handleLanguageChange} />
-            </div>
           </div>
           
           {/* Form Basic Information Section */}
