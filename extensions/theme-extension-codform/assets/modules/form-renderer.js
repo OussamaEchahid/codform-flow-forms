@@ -4,7 +4,9 @@ function CODFORMFormRenderer() {
   const { 
     renderField, 
     renderWhatsAppButton, 
-    renderImageField, 
+    renderImageField,
+    renderCountdownTimer,
+    renderShippingOptions,
     renderStepFields 
   } = CODFORMFieldRenderer();
 

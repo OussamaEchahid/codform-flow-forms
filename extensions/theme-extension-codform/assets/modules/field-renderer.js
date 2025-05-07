@@ -1,4 +1,3 @@
-
 // CODFORM Field Renderer Module
 function CODFORMFieldRenderer() {
   function renderField(container, field, primaryColor) {
@@ -28,6 +27,7 @@ function CODFORMFieldRenderer() {
         fieldContainer.appendChild(titleElement);
       } else if (field.type === 'text/html' && field.content) {
         const htmlContainer = document.createElement('div');
+        htmlContainer.className = 'codform-html-content';
         htmlContainer.innerHTML = field.content;
         fieldContainer.appendChild(htmlContainer);
       }
@@ -35,6 +35,10 @@ function CODFORMFieldRenderer() {
       renderWhatsAppButton(fieldContainer, field);
     } else if (field.type === 'image') {
       renderImageField(fieldContainer, field, primaryColor);
+    } else if (field.type === 'countdown') {
+      renderCountdownTimer(fieldContainer, field, primaryColor);
+    } else if (field.type === 'shipping') {
+      renderShippingOptions(fieldContainer, field, primaryColor);
     } else {
       // Standard form fields
       const label = document.createElement('label');
@@ -159,6 +163,10 @@ function CODFORMFieldRenderer() {
           }
           break;
           
+        case 'shipping':
+          renderShippingOptions(fieldContainer, field, primaryColor);
+          break;
+          
         default:
           input = document.createElement('input');
           input.type = 'text';
@@ -177,7 +185,7 @@ function CODFORMFieldRenderer() {
         });
       }
       
-      if (field.type !== 'checkbox' && field.type !== 'radio' && input) {
+      if (field.type !== 'checkbox' && field.type !== 'radio' && field.type !== 'shipping' && input) {
         fieldContainer.appendChild(input);
       }
       
@@ -385,10 +393,190 @@ function CODFORMFieldRenderer() {
     container.appendChild(imageFieldContainer);
   }
   
+  function renderCountdownTimer(container, field, primaryColor) {
+    // Create countdown container
+    const countdownContainer = document.createElement('div');
+    countdownContainer.className = 'codform-countdown-container';
+    countdownContainer.style.marginBottom = '1.5rem';
+    countdownContainer.style.padding = '1rem';
+    countdownContainer.style.borderRadius = '0.375rem';
+    countdownContainer.style.textAlign = 'center';
+    countdownContainer.style.border = '1px solid';
+    
+    // Apply styling
+    if (field.style && field.style.backgroundColor) {
+      countdownContainer.style.backgroundColor = field.style.backgroundColor;
+    } else {
+      countdownContainer.style.backgroundColor = 'rgba(155, 135, 245, 0.1)';
+    }
+    
+    if (field.style && field.style.borderColor) {
+      countdownContainer.style.borderColor = field.style.borderColor;
+    } else {
+      countdownContainer.style.borderColor = primaryColor || '#9b87f5';
+    }
+    
+    // Add title
+    const title = document.createElement('h3');
+    title.className = 'codform-countdown-title';
+    title.textContent = field.label || 'الوقت المتبقي للعرض';
+    title.style.fontSize = '1.125rem';
+    title.style.fontWeight = '500';
+    title.style.marginBottom = '0.5rem';
+    
+    if (field.style && field.style.color) {
+      title.style.color = field.style.color;
+    }
+    
+    countdownContainer.appendChild(title);
+    
+    // Create timer blocks container
+    const timerContainer = document.createElement('div');
+    timerContainer.className = 'codform-countdown-timer';
+    timerContainer.style.display = 'flex';
+    timerContainer.style.justifyContent = 'center';
+    timerContainer.style.gap = '1rem';
+    timerContainer.style.marginTop = '0.75rem';
+    
+    // Create timer blocks
+    const units = [
+      { value: '24', label: 'ساعة' },
+      { value: '00', label: 'دقيقة' },
+      { value: '00', label: 'ثانية' }
+    ];
+    
+    units.forEach(unit => {
+      const unitBlock = document.createElement('div');
+      unitBlock.className = 'codform-countdown-unit';
+      unitBlock.style.backgroundColor = '#ffffff';
+      unitBlock.style.padding = '0.5rem';
+      unitBlock.style.borderRadius = '0.25rem';
+      unitBlock.minWidth = '60px';
+      unitBlock.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+      
+      const value = document.createElement('div');
+      value.className = 'codform-countdown-value';
+      value.textContent = unit.value;
+      value.style.fontSize = '1.5rem';
+      value.style.fontWeight = 'bold';
+      value.style.color = primaryColor || '#9b87f5';
+      
+      const label = document.createElement('div');
+      label.className = 'codform-countdown-label';
+      label.textContent = unit.label;
+      label.style.fontSize = '0.75rem';
+      label.style.color = '#6b7280';
+      
+      unitBlock.appendChild(value);
+      unitBlock.appendChild(label);
+      timerContainer.appendChild(unitBlock);
+    });
+    
+    countdownContainer.appendChild(timerContainer);
+    container.appendChild(countdownContainer);
+  }
+  
+  function renderShippingOptions(container, field, primaryColor) {
+    // Create shipping options container
+    const shippingContainer = document.createElement('div');
+    shippingContainer.className = 'codform-shipping-container';
+    shippingContainer.style.marginBottom = '1.5rem';
+    
+    // Add label
+    const label = document.createElement('label');
+    label.textContent = field.label || 'خيارات التوصيل';
+    label.style.display = 'block';
+    label.style.marginBottom = '0.5rem';
+    
+    if (field.required) {
+      const required = document.createElement('span');
+      required.className = 'codform-required';
+      required.textContent = ' *';
+      required.style.color = '#ef4444';
+      label.appendChild(required);
+    }
+    
+    shippingContainer.appendChild(label);
+    
+    // Create shipping options
+    const options = [
+      {
+        id: 'standard',
+        name: 'توصيل قياسي',
+        price: '$5.00',
+        time: '3-5 أيام'
+      },
+      {
+        id: 'express',
+        name: 'توصيل سريع',
+        price: '$15.00',
+        time: '1-2 أيام'
+      }
+    ];
+    
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'codform-shipping-options';
+    optionsContainer.style.display = 'flex';
+    optionsContainer.style.flexDirection = 'column';
+    optionsContainer.style.gap = '0.75rem';
+    
+    options.forEach(option => {
+      const optionItem = document.createElement('div');
+      optionItem.className = 'codform-shipping-option';
+      optionItem.style.display = 'flex';
+      optionItem.style.alignItems = 'center';
+      
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'shipping';
+      radio.id = `shipping-${option.id}`;
+      radio.value = option.id;
+      radio.style.marginLeft = '0.5rem';
+      radio.checked = option.id === 'standard';
+      radio.disabled = true;
+      
+      const optionContent = document.createElement('div');
+      optionContent.style.display = 'flex';
+      optionContent.style.flex = '1';
+      optionContent.style.justifyContent = 'space-between';
+      optionContent.style.alignItems = 'center';
+      
+      const optionInfo = document.createElement('div');
+      
+      const optionName = document.createElement('div');
+      optionName.textContent = option.name;
+      optionName.style.fontWeight = '500';
+      
+      const optionTime = document.createElement('div');
+      optionTime.textContent = option.time;
+      optionTime.style.fontSize = '0.875rem';
+      optionTime.style.color = '#6b7280';
+      
+      optionInfo.appendChild(optionName);
+      optionInfo.appendChild(optionTime);
+      
+      const optionPrice = document.createElement('div');
+      optionPrice.textContent = option.price;
+      optionPrice.style.fontWeight = '500';
+      
+      optionContent.appendChild(optionInfo);
+      optionContent.appendChild(optionPrice);
+      
+      optionItem.appendChild(radio);
+      optionItem.appendChild(optionContent);
+      optionsContainer.appendChild(optionItem);
+    });
+    
+    shippingContainer.appendChild(optionsContainer);
+    container.appendChild(shippingContainer);
+  }
+  
   return {
     renderField,
     renderStepFields,
     renderWhatsAppButton,
-    renderImageField
+    renderImageField,
+    renderCountdownTimer,
+    renderShippingOptions
   };
 }

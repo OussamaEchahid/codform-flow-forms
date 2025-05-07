@@ -122,10 +122,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
             ))}
             
             <button
-              className="w-full py-2 px-4 rounded-md text-white font-medium"
+              className="w-full py-2 px-4 text-white font-medium"
               style={{
                 backgroundColor: formStyle.primaryColor || '#9b87f5',
-                borderRadius: formStyle.buttonStyle === 'rounded' ? '9999px' : '0.375rem',
+                borderRadius: formStyle.buttonStyle === 'rounded' ? '9999px' : 
+                              formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
               }}
             >
               {submitButtonText}

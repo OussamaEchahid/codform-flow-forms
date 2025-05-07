@@ -26,7 +26,10 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {field.content ? (
-        <div dangerouslySetInnerHTML={{ __html: field.content }} />
+        <div 
+          className="prose max-w-none" 
+          dangerouslySetInnerHTML={{ __html: field.content }}
+        />
       ) : (
         <p>
           {language === 'ar' 
