@@ -17,14 +17,15 @@ interface RadioGroupProps {
 const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  const isRtl = language === 'ar';
   
   return (
-    <div className="form-control mb-4">
+    <div className="form-control mb-4" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       <label 
         className="form-label mb-2 block" 
         style={{ 
           color: fieldStyle.color,
-          textAlign: language === 'ar' ? 'right' : 'left',
+          textAlign: isRtl ? 'right' : 'left',
         }}
       >
         {field.label}
@@ -33,15 +34,23 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
       <UIRadioGroup 
         defaultValue={field.options?.[0] || ""}
         className="space-y-2"
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
         disabled
       >
         {field.options?.map((option, index) => (
-          <div key={index} className={`flex items-center ${language === 'ar' ? 'flex-row-reverse justify-end' : 'space-x-2'}`}>
-            <RadioGroupItem value={option} id={`radio-${field.id}-${index}`} />
+          <div 
+            key={index} 
+            className={`flex items-center ${isRtl ? 'flex-row-reverse justify-end' : 'space-x-2'}`}
+          >
+            <RadioGroupItem 
+              value={option} 
+              id={`radio-${field.id}-${index}`} 
+              style={{ 
+                borderColor: field.required ? formStyle.primaryColor : undefined,
+              }}
+            />
             <Label 
               htmlFor={`radio-${field.id}-${index}`} 
-              className={`text-sm ${language === 'ar' ? 'mr-2' : 'ml-2'}`}
+              className={`text-sm ${isRtl ? 'mr-2' : 'ml-2'}`}
             >
               {option}
             </Label>

@@ -49,6 +49,7 @@
       const rtlMode = {{ shop.locale.rtl | json }};
       if (rtlMode) {
         container.style.direction = 'rtl';
+        container.classList.add('codform-rtl');
       }
     }
   });

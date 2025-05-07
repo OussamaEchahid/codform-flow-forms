@@ -15,6 +15,7 @@ interface HtmlContentProps {
 const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  const isRtl = language === 'ar';
   
   return (
     <div 
@@ -22,18 +23,19 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: isRtl ? 'right' : 'left',
+        direction: isRtl ? 'rtl' : 'ltr',
       }}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {field.content ? (
         <div 
           className="prose max-w-none" 
+          style={{ direction: isRtl ? 'rtl' : 'ltr' }}
           dangerouslySetInnerHTML={{ __html: field.content }}
         />
       ) : (
         <p>
-          {language === 'ar' 
+          {isRtl 
             ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
             : 'Add HTML content here. You can add paragraphs, images, links and more.'}
         </p>

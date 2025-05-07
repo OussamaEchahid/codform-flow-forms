@@ -16,6 +16,7 @@ interface SubmitButtonProps {
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  const isRtl = language === 'ar';
   
   // Determine button radius based on style
   let buttonRadius = '0.5rem'; // default
@@ -28,7 +29,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   }
   
   return (
-    <div className="mb-4 mt-8">
+    <div className="mb-4 mt-8" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       <button
         className="w-full py-3 px-4 font-medium transition-all duration-200 hover:opacity-90"
         style={{
@@ -39,10 +40,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           border: 'none',
           cursor: 'pointer',
           fontFamily: 'inherit',
+          direction: isRtl ? 'rtl' : 'ltr',
         }}
         disabled={field.disabled}
+        type="submit"
       >
-        {field.label || (language === 'ar' ? 'إرسال' : 'Submit')}
+        {field.label || (isRtl ? 'إرسال' : 'Submit')}
       </button>
     </div>
   );

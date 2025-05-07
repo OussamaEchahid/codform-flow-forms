@@ -23,6 +23,15 @@ function CODFORMFormRenderer() {
     console.log('CODFORM: Form style settings:', formData.primaryColor, formData.borderRadius, formData.fontSize);
     formContainer.innerHTML = ''; // Clear any existing content
     
+    // Check if RTL is needed
+    const isRtl = document.dir === 'rtl' || document.documentElement.lang === 'ar' || 
+                 container.closest('.codform-rtl') !== null;
+    
+    if (isRtl) {
+      formContainer.style.direction = 'rtl';
+      formContainer.classList.add('codform-rtl');
+    }
+    
     // Apply form title and description from formData if available
     const formHeader = container.querySelector('.codform-header');
     if (formHeader) {
@@ -56,16 +65,25 @@ function CODFORMFormRenderer() {
       #${container.id} .codform-next-button,
       #${container.id} .codform-whatsapp-button,
       #${container.id} .codform-button {
-        background-color: ${formData.primaryColor || '#9b87f5'};
+        background-color: ${formData.primaryColor || '#9b87f5'} !important;
+        color: white !important;
       }
       #${container.id} .codform-step-active {
-        background-color: ${formData.primaryColor || '#9b87f5'};
+        background-color: ${formData.primaryColor || '#9b87f5'} !important;
       }
       #${container.id} input:focus,
       #${container.id} textarea:focus,
       #${container.id} select:focus {
-        border-color: ${formData.primaryColor || '#9b87f5'};
-        box-shadow: 0 0 0 3px ${formData.primaryColor || '#9b87f5'}22;
+        border-color: ${formData.primaryColor || '#9b87f5'} !important;
+        box-shadow: 0 0 0 3px ${formData.primaryColor || '#9b87f5'}22 !important;
+      }
+      #${container.id} input[type="radio"]:checked,
+      #${container.id} input[type="checkbox"]:checked {
+        background-color: ${formData.primaryColor || '#9b87f5'} !important;
+        border-color: ${formData.primaryColor || '#9b87f5'} !important;
+      }
+      #${container.id} .codform-header {
+        background-color: ${formData.primaryColor || '#9b87f5'} !important;
       }
     `;
     container.appendChild(formStyles);
@@ -74,6 +92,10 @@ function CODFORMFormRenderer() {
     const form = document.createElement('form');
     form.id = 'codform-submission-form-' + formData.id;
     form.className = 'codform-submission-form';
+    if (isRtl) {
+      form.dir = 'rtl';
+      form.classList.add('codform-rtl');
+    }
     
     // Add hidden fields for product info
     if (productId) {
@@ -161,7 +183,7 @@ function CODFORMFormRenderer() {
         const prevButton = document.createElement('button');
         prevButton.type = 'button';
         prevButton.className = 'codform-prev-button';
-        prevButton.textContent = formData.prevButtonText || 'السابق';
+        prevButton.textContent = formData.prevButtonText || (isRtl ? 'السابق' : 'Previous');
         prevButton.style.display = 'none'; // Hide initially
         prevButton.addEventListener('click', function() {
           navigateStep(form, -1);
@@ -170,7 +192,7 @@ function CODFORMFormRenderer() {
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'codform-next-button';
-        nextButton.textContent = formData.nextButtonText || 'التالي';
+        nextButton.textContent = formData.nextButtonText || (isRtl ? 'التالي' : 'Next');
         // Apply primary color
         if (formData.primaryColor) {
           nextButton.style.backgroundColor = formData.primaryColor;
@@ -182,7 +204,7 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
+        submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -198,7 +220,7 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
+        submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -221,7 +243,7 @@ function CODFORMFormRenderer() {
       const submitButton = document.createElement('button');
       submitButton.type = 'submit';
       submitButton.className = 'codform-submit-button';
-      submitButton.textContent = formData.submitButtonText || 'إرسال الطلب';
+      submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
       // Apply primary color
       if (formData.primaryColor) {
         submitButton.style.backgroundColor = formData.primaryColor;
