@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
+import { useFormStore } from '@/hooks/useFormStore';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -35,14 +36,22 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
-  submitButtonText = 'إرسال الطلب',
+  submitButtonText,
   formLanguage = 'ar',
 }) => {
   const { language } = useI18n();
   const [key, setKey] = useState(0);
+  const { formState } = useFormStore();
   
   // Get default submit button text based on form language
   const getDefaultSubmitButtonText = (lang: 'ar' | 'en' | 'fr') => {
+    // First check translations if available
+    const translations = formState.translations?.[lang];
+    if (translations?.submitButtonText) {
+      return translations.submitButtonText;
+    }
+    
+    // Default fallback values per language
     switch (lang) {
       case 'ar':
         return 'إرسال الطلب';
@@ -70,6 +79,42 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return getDefaultSubmitButtonText(formLanguage);
   };
   
+  // استخدام العنوان الافتراضي بناءً على اللغة إذا لم يتم توفير عنوان
+  const getFormTitle = () => {
+    if (formTitle) return formTitle;
+    
+    // Get title from translations if available
+    const translations = formState.translations?.[formLanguage];
+    if (translations?.title) {
+      return translations.title;
+    }
+    
+    // Default fallback titles
+    switch (formLanguage) {
+      case 'ar':
+        return 'نموذج جديد';
+      case 'en':
+        return 'New Form';
+      case 'fr':
+        return 'Nouveau Formulaire';
+      default:
+        return formTitle || 'نموذج جديد';
+    }
+  };
+  
+  // استخدام الوصف الافتراضي بناءً على اللغة إذا لم يتم توفير وصف
+  const getFormDescription = () => {
+    if (formDescription) return formDescription;
+    
+    // Get description from translations if available
+    const translations = formState.translations?.[formLanguage];
+    if (translations?.description) {
+      return translations.description;
+    }
+    
+    return '';
+  };
+  
   return (
     <div 
       key={key}
@@ -88,8 +133,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
         }}
       >
-        <h2 className={cn("text-xl font-medium", isRTL ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", isRTL ? "text-right" : "text-left")}>{formDescription}</p>}
+        <h2 className={cn("text-xl font-medium", isRTL ? "text-right" : "text-left")}>{getFormTitle()}</h2>
+        {getFormDescription() && <p className={cn("text-sm opacity-90", isRTL ? "text-right" : "text-left")}>{getFormDescription()}</p>}
       </div>
       
       {totalSteps > 1 && (

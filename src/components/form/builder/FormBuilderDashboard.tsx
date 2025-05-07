@@ -25,6 +25,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
 
   // Fetch forms on component mount
   useEffect(() => {
@@ -58,20 +59,28 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleCreateForm = async () => {
     try {
+      // Prevent multiple clicks
+      if (isCreatingForm) return;
+      
+      setIsCreatingForm(true);
       toast.loading(language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 'Creating new form...');
+      
       const newForm = await createDefaultForm();
       toast.dismiss();
       
       if (newForm && newForm.id) {
+        console.log("Form created successfully, navigating to:", newForm.id);
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
       } else {
         toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
+        setIsCreatingForm(false);
       }
     } catch (error) {
       console.error("Error creating form:", error);
       toast.dismiss();
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
+      setIsCreatingForm(false);
     }
   };
 
@@ -127,7 +136,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
             {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
           </Button>
           
-          <Button onClick={handleCreateForm} disabled={isLoading}>
+          <Button 
+            onClick={handleCreateForm} 
+            disabled={isLoading || isCreatingForm}
+          >
             <Plus className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
             {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </Button>

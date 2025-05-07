@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
@@ -20,6 +20,13 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
     formState.formLanguage || 'ar'
   );
 
+  // Update selected language when form state changes
+  useEffect(() => {
+    if (formState.formLanguage && formState.formLanguage !== selectedLanguage) {
+      setSelectedLanguage(formState.formLanguage);
+    }
+  }, [formState.formLanguage]);
+
   const languages = [
     { code: 'ar', label: 'العربية', dir: 'rtl' },
     { code: 'en', label: 'English', dir: 'ltr' },
@@ -27,6 +34,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
   ];
 
   const handleLanguageChange = (lang: 'ar' | 'en' | 'fr') => {
+    console.log("Changing language to:", lang);
     setSelectedLanguage(lang);
     setFormLanguage(lang);
     if (onChange) {

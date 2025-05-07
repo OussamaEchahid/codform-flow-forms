@@ -36,11 +36,16 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 
   }
 
   // Get translated field properties based on the selected language
+  const translatedLabel = getFieldTranslation(field.id, 'label', formLanguage);
+  const translatedPlaceholder = getFieldTranslation(field.id, 'placeholder', formLanguage);
+  const translatedOptions = getFieldTranslation(field.id, 'options', formLanguage);
+
+  // Create translated field object
   const translatedField = {
     ...field,
-    label: getFieldTranslation(field.id, 'label', formLanguage) || field.label,
-    placeholder: getFieldTranslation(field.id, 'placeholder', formLanguage) || field.placeholder,
-    options: getFieldTranslation(field.id, 'options', formLanguage) || field.options
+    label: translatedLabel !== undefined ? translatedLabel : field.label,
+    placeholder: translatedPlaceholder !== undefined ? translatedPlaceholder : field.placeholder,
+    options: translatedOptions !== undefined ? translatedOptions : field.options
   };
 
   // Handle field type mapping

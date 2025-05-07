@@ -117,10 +117,11 @@ export const useFormStore = create<FormStore>((set, get) => ({
         ...state.formState,
         formLanguage: language,
         rtl: language === 'ar',
-        // Update form title, description and submit button if translations exist
-        ...(currentLangTranslations.title && { title: currentLangTranslations.title }),
-        ...(currentLangTranslations.description && { description: currentLangTranslations.description }),
-        ...(currentLangTranslations.submitButtonText && { submitButtonText: currentLangTranslations.submitButtonText })
+        // Update form title, description and submit button from translations
+        title: currentLangTranslations.title || state.formState.title,
+        description: currentLangTranslations.description || state.formState.description,
+        submitButtonText: currentLangTranslations.submitButtonText || 
+          (language === 'ar' ? 'إرسال الطلب' : language === 'en' ? 'Submit' : 'Soumettre')
       }
     };
   }),
@@ -130,7 +131,6 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const translations = state.formState.translations || {};
     const langTranslations = translations[currentLang]?.fields || {};
     
-    // Access the property directly without additional truthiness check
     return langTranslations[fieldId]?.[propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
