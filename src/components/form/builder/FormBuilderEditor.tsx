@@ -212,48 +212,61 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
+      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
         shop_id: shopId,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       };
       
       console.log("Saving form with data:", formData);
       
-      // Update existing form
-      const success = await saveForm(currentFormId, formData);
+      // محاولة التحديث المباشر في قاعدة البيانات
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          title: formTitle,
+          description: formDescription,
+          data: [formStep],
+          shop_id: shopId,
+          updated_at: new Date().toISOString(),
+          submitButtonText: submitButtonText,
+          primaryColor: formStyle.primaryColor,
+          borderRadius: formStyle.borderRadius,
+          fontSize: formStyle.fontSize,
+          buttonStyle: formStyle.buttonStyle
+        })
+        .eq('id', currentFormId);
       
-      if (success) {
-        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+      if (error) {
+        console.error("Database update failed:", error);
         
-        // Update form state
+        // إذا فشل التحديث المباشر، نحاول استخدام وظيفة saveForm
+        const success = await saveForm(currentFormId, formData);
+        
+        if (success) {
+          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        } else {
+          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
+        }
+      } else {
+        // تحديث حالة النموذج في الذاكرة
         setFormState({
           ...formState,
           ...formData,
           id: currentFormId
         });
-      } else {
-        // Try direct database update if the saveForm method fails
-        const { error } = await supabase
-          .from('forms')
-          .update({
-            title: formTitle,
-            description: formDescription,
-            data: [formStep],
-            shop_id: shopId,
-            updated_at: new Date().toISOString(),
-            submitButtonText: submitButtonText
-          })
-          .eq('id', currentFormId);
         
-        if (error) {
-          console.error("Direct database update failed:", error);
-          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
-        } else {
-          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        }
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        
+        // تحديث حالة الحفظ
+        setRefreshKey(prev => prev + 1);
       }
     } catch (error) {
       console.error("Error saving form:", error);
@@ -278,37 +291,45 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Toggle publish status
       const newPublishState = !isPublished;
       
-      // Try using the publishForm method from useFormTemplates
-      const success = await publishForm(currentFormId, newPublishState);
+      // Try direct database update for publishing
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          is_published: newPublishState,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentFormId);
       
-      if (success) {
-        setIsPublished(newPublishState);
-        toast.success(
-          newPublishState 
-            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
-        );
-      } else {
-        // Try direct database update if the publishForm method fails
-        const { error } = await supabase
-          .from('forms')
-          .update({
-            is_published: newPublishState,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', currentFormId);
+      if (error) {
+        console.error("Direct database update for publishing failed:", error);
         
-        if (error) {
-          console.error("Direct database update for publishing failed:", error);
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
-        } else {
+        // If direct update fails, try using the publishForm method
+        const success = await publishForm(currentFormId, newPublishState);
+        
+        if (success) {
           setIsPublished(newPublishState);
           toast.success(
             newPublishState 
               ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
               : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
           );
+        } else {
+          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
         }
+      } else {
+        setIsPublished(newPublishState);
+        toast.success(
+          newPublishState 
+            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+        );
+        
+        // تحديث حالة النموذج في الذاكرة
+        setFormState({
+          ...formState,
+          isPublished: newPublishState,
+          is_published: newPublishState
+        });
       }
     } catch (error) {
       console.error("Error publishing form:", error);
@@ -347,6 +368,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setFormElements(updatedElements);
     setSelectedElementIndex(null);
     setRefreshKey(prev => prev + 1);
+    
+    // Save after deleting element
+    setTimeout(() => handleSave(), 300);
   };
 
   const duplicateElement = (index: number) => {
@@ -360,7 +384,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     updatedElements.splice(index + 1, 0, newElement);
     setFormElements(updatedElements);
     
-    setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      handleSave();
+    }, 100);
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
   };
 
@@ -369,17 +396,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     if (template) {
       toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
       
-      const storedStyle = localStorage.getItem('selectedTemplateStyle');
-      const templateStyle = storedStyle ? JSON.parse(storedStyle) : null;
-      
-      if (templateStyle) {
-        setFormStyle({
-          primaryColor: template.primaryColor || templateStyle.primaryColor,
-          borderRadius: templateStyle.borderRadius,
-          fontSize: templateStyle.fontSize,
-          buttonStyle: templateStyle.buttonStyle
-        });
-      }
+      setFormStyle({
+        primaryColor: template.primaryColor || formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
+      });
       
       const newElements = template.data.flatMap(step => 
         step.fields.map(field => ({
@@ -412,6 +434,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setTimeout(() => {
       setSelectedElementIndex(null);
       setRefreshKey(prev => prev + 1);
+      handleSave();
     }, 100);
   };
 
@@ -421,11 +444,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       [key]: value
     });
     setRefreshKey(prev => prev + 1);
+    
+    // Save style immediately when it changes
+    setTimeout(() => handleSave(), 300);
   };
 
   const handleSaveStyle = () => {
     setIsStyleDialogOpen(false);
     localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+    
+    // Save form with updated style
+    handleSave();
   };
 
   const handleShopifyIntegration = async (settings: any) => {
@@ -487,12 +516,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setTimeout(() => {
       setSelectedElementIndex(null);
       setRefreshKey(prev => prev + 1);
-    }, 100);
+      handleSave();
+    }, 300);
   };
 
-  // Add a handler for submit button text change
+  // Handle submit button text change with auto-save
   const handleSubmitButtonTextChange = (text: string) => {
     setSubmitButtonText(text);
+    // Save after changing submit button text
+    setTimeout(() => handleSave(), 300);
   };
 
   return (
@@ -534,7 +566,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 <input
                   type="text"
                   value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
+                  onChange={(e) => {
+                    setFormTitle(e.target.value);
+                    // Autosave with debounce
+                    setTimeout(() => handleSave(), 500);
+                  }}
                   className="w-full p-2 border rounded-md"
                   placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
                 />
@@ -546,7 +582,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 </label>
                 <textarea
                   value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
+                  onChange={(e) => {
+                    setFormDescription(e.target.value);
+                    // Autosave with debounce
+                    setTimeout(() => handleSave(), 500);
+                  }}
                   className="w-full p-2 border rounded-md"
                   placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
                   rows={3}

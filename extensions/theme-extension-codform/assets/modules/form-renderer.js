@@ -85,6 +85,48 @@ function CODFORMFormRenderer() {
       #${container.id} .codform-header {
         background-color: ${formData.primaryColor || '#9b87f5'} !important;
       }
+      #${container.id} .codform-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+      #${container.id} .codform-form input,
+      #${container.id} .codform-form textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: ${formData.borderRadius || '0.5rem'};
+        font-size: ${formData.fontSize || '1rem'};
+      }
+      #${container.id} .codform-form-field {
+        margin-bottom: 20px;
+      }
+      #${container.id} .codform-radio-group,
+      #${container.id} .codform-checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #${container.id} .codform-radio-option,
+      #${container.id} .codform-checkbox-option {
+        display: flex;
+        align-items: center;
+      }
+      #${container.id}.codform-rtl .codform-radio-option,
+      #${container.id}.codform-rtl .codform-checkbox-option {
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+      }
+      #${container.id} .codform-radio-option input,
+      #${container.id} .codform-checkbox-option input {
+        width: auto;
+        margin-right: 8px;
+      }
+      #${container.id}.codform-rtl .codform-radio-option input,
+      #${container.id}.codform-rtl .codform-checkbox-option input {
+        margin-right: 0;
+        margin-left: 8px;
+      }
     `;
     container.appendChild(formStyles);
     
