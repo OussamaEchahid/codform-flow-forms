@@ -15,12 +15,16 @@ export interface FormState {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
+  // Add language support
+  formLanguage?: 'ar' | 'en' | 'fr';
+  rtl?: boolean;
 }
 
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
+  setFormLanguage: (language: 'ar' | 'en' | 'fr') => void;
 }
 
 const defaultFormState: FormState = {
@@ -34,7 +38,9 @@ const defaultFormState: FormState = {
   primaryColor: '#9b87f5',
   borderRadius: '0.5rem',
   fontSize: '1rem',
-  buttonStyle: 'rounded'
+  buttonStyle: 'rounded',
+  formLanguage: 'ar',
+  rtl: true
 };
 
 export const useFormStore = create<FormStore>((set) => ({
@@ -45,5 +51,12 @@ export const useFormStore = create<FormStore>((set) => ({
       ...form 
     } 
   })),
-  resetFormState: () => set({ formState: {...defaultFormState} })
+  resetFormState: () => set({ formState: {...defaultFormState} }),
+  setFormLanguage: (language) => set((state) => ({
+    formState: {
+      ...state.formState,
+      formLanguage: language,
+      rtl: language === 'ar' // إذا كانت اللغة العربية، يتم تعيين الاتجاه من اليمين إلى اليسار
+    }
+  }))
 }));

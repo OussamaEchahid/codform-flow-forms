@@ -22,6 +22,9 @@ export interface FormData {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
+  // Add language support
+  formLanguage?: 'ar' | 'en' | 'fr';
+  rtl?: boolean;
 }
 
 export interface FormTemplate {
@@ -76,7 +79,12 @@ export const useFormTemplates = () => {
         isPublished: form.is_published
       }));
       
-      setForms(formattedData);
+      // Remove duplicates based on form ID (keep the latest version)
+      const uniqueForms = Array.from(
+        new Map(formattedData.map(item => [item.id, item])).values()
+      );
+      
+      setForms(uniqueForms);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching forms', error);
@@ -114,6 +122,9 @@ export const useFormTemplates = () => {
         data: template.data,
         isPublished: false,
         shop_id: shopId,
+        primaryColor: template.primaryColor,
+        formLanguage: 'ar',
+        rtl: true
       };
 
       // Insert into Supabase
@@ -126,7 +137,10 @@ export const useFormTemplates = () => {
           data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          primaryColor: template.primaryColor,
+          formLanguage: 'ar',
+          rtl: true
         });
 
       if (error) {
@@ -174,6 +188,8 @@ export const useFormTemplates = () => {
         data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
+        formLanguage: 'ar',
+        rtl: true
       };
 
       // Insert into Supabase
@@ -186,7 +202,9 @@ export const useFormTemplates = () => {
           data: defaultTemplate.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          formLanguage: 'ar',
+          rtl: true
         });
         
       if (error) {

@@ -19,6 +19,7 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   submitButtonText?: string;
+  formLanguage?: 'ar' | 'en' | 'fr';
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -35,13 +36,35 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   submitButtonText = 'إرسال الطلب',
+  formLanguage = 'ar',
 }) => {
   const { language } = useI18n();
   const [key, setKey] = useState(0);
+
+  // تحديد اتجاه النص بناءً على اللغة المحددة
+  const isRTL = formLanguage === 'ar';
+  const textDirection = isRTL ? 'rtl' : 'ltr';
   
+  // تحديث المفتاح عند تغيير أي من الخصائص
   useEffect(() => {
     setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
+  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText, formLanguage]);
+  
+  // ترجمات زر الإرسال حسب اللغة
+  const getSubmitButtonText = () => {
+    if (submitButtonText) return submitButtonText;
+    
+    switch (formLanguage) {
+      case 'ar':
+        return 'إرسال الطلب';
+      case 'en':
+        return 'Submit';
+      case 'fr':
+        return 'Soumettre';
+      default:
+        return 'إرسال الطلب';
+    }
+  };
   
   return (
     <div 
@@ -61,8 +84,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
         }}
       >
-        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
+        <h2 className={cn("text-xl font-medium", isRTL ? "text-right" : "text-left")}>{formTitle}</h2>
+        {formDescription && <p className={cn("text-sm opacity-90", isRTL ? "text-right" : "text-left")}>{formDescription}</p>}
       </div>
       
       {totalSteps > 1 && (
@@ -108,7 +131,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="p-4" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: textDirection,
         }}
       >
         {fields && fields.length > 0 ? (
@@ -118,6 +141,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 key={field.id} 
                 field={field} 
                 formStyle={formStyle}
+                formLanguage={formLanguage}
               />
             ))}
             
@@ -129,11 +153,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                               formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
               }}
             >
-              {submitButtonText}
+              {getSubmitButtonText()}
             </button>
           </div>
         ) : (
-          children
+          <div dir={textDirection}>
+            {children}
+          </div>
         )}
       </div>
     </div>

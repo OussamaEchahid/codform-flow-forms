@@ -23,9 +23,10 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formLanguage?: 'ar' | 'en' | 'fr';
 }
 
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
+const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 'ar' }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
@@ -61,7 +62,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  return <Component field={field} formStyle={formStyle} />;
+  return <Component field={field} formStyle={formStyle} formLanguage={formLanguage} />;
 };
 
 export default FormField;

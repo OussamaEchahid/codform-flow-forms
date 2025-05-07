@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -28,6 +29,7 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import LanguageSelector from '@/components/form/LanguageSelector';
 import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +53,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
+  const [formLanguage, setFormLanguage] = useState<'ar' | 'en' | 'fr'>('ar');
   
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
@@ -121,7 +124,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle,
+        formLanguage: formLanguage,
+        rtl: formLanguage === 'ar'
       }).select();
 
       if (error) {
@@ -138,7 +147,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         isPublished: false,
         shop_id: shopId,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle,
+        formLanguage: formLanguage,
+        rtl: formLanguage === 'ar'
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -166,6 +181,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
+            setFormLanguage(formData.formLanguage || 'ar');
+            
+            // Update form style if available
+            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
+              setFormStyle({
+                primaryColor: formData.primaryColor || '#9b87f5',
+                borderRadius: formData.borderRadius || '0.5rem',
+                fontSize: formData.fontSize || '1rem',
+                buttonStyle: formData.buttonStyle || 'rounded'
+              });
+            }
             
             console.log("Loaded form data:", formData);
           } else {
@@ -187,7 +213,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
-  }, [formElements]);
+  }, [formElements, formLanguage]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -212,7 +238,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
+      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText وإعدادات اللغة
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
@@ -222,7 +248,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle
+        buttonStyle: formStyle.buttonStyle,
+        formLanguage: formLanguage,
+        rtl: formLanguage === 'ar'
       };
       
       console.log("Saving form with data:", formData);
@@ -240,7 +268,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           primaryColor: formStyle.primaryColor,
           borderRadius: formStyle.borderRadius,
           fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
+          buttonStyle: formStyle.buttonStyle,
+          formLanguage: formLanguage,
+          rtl: formLanguage === 'ar'
         })
         .eq('id', currentFormId);
       
@@ -327,7 +357,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         // تحديث حالة النموذج في الذاكرة
         setFormState({
           ...formState,
-          isPublished: newPublishState
+          isPublished: newPublishState,
+          is_published: newPublishState
         });
       }
     } catch (error) {
@@ -352,6 +383,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
+      // Auto save after adding element
+      handleSave();
     }, 100);
   };
 
@@ -456,6 +489,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     handleSave();
   };
 
+  const handleLanguageChange = (lang: 'ar' | 'en' | 'fr') => {
+    setFormLanguage(lang);
+    setRefreshKey(prev => prev + 1);
+    // Save after language change
+    setTimeout(() => handleSave(), 300);
+  };
+
   const handleShopifyIntegration = async (settings: any) => {
     if (!currentFormId) {
       toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
@@ -547,9 +587,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         </div>
         
         <div className="col-span-6 bg-gray-50 p-6">
-          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
-          </h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className={`text-xl font-semibold ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+            </h2>
+            
+            <div>
+              <LanguageSelector onChange={handleLanguageChange} />
+            </div>
+          </div>
           
           {/* Form Basic Information Section */}
           <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
