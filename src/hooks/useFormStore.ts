@@ -130,7 +130,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const translations = state.formState.translations || {};
     const langTranslations = translations[currentLang]?.fields || {};
     
-    // Fix: Remove unnecessary truthiness check that was causing the TypeScript error
+    // Access the property directly without additional truthiness check
     return langTranslations[fieldId]?.[propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
