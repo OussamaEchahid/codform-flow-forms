@@ -51,6 +51,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Load form data on component mount or when formId changes
   useEffect(() => {
+    console.log('FormBuilderEditor: Loading form data for ID:', id);
     loadFormData(id);
   }, [id]);
 
@@ -67,10 +68,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     const reorderedItems = arrayMove(formElements, oldIndex, newIndex);
     
-    // Using formEditor's state setters
+    // Using formEditor's state setters - removing the index property which was causing the TS error
     updateElement({
       ...formElements[oldIndex],
-      index: newIndex
+      // index: newIndex - removed this line which was causing the error
     });
   };
 

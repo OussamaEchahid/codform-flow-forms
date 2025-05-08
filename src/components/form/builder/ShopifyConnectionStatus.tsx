@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

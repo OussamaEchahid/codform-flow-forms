@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, Loader2 } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import FormDesigner from '@/components/form/designer/FormDesigner';
@@ -13,6 +13,8 @@ import { FormDesignData } from '@/components/form/designer/FormDesigner';
 import { v4 as uuidv4 } from 'uuid';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
+import ConnectionSynchronizer from '@/components/form/builder/ConnectionSynchronizer';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 const FormsPage = () => {
   const navigate = useNavigate();
@@ -24,14 +26,34 @@ const FormsPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formsCount, setFormsCount] = useState<number>(0);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [connectionState, setConnectionState] = useState({
+    isConnected: !!shop && shopifyConnected,
+    shopId: shop || localStorage.getItem('shopify_store') || shopifyConnectionManager.getActiveStore()
+  });
   
-  const shopId = shop || localStorage.getItem('shopify_store');
+  // Handle connection status changes from the synchronizer
+  const handleConnectionChange = useCallback((isConnected: boolean, shopId: string | null) => {
+    console.log("FormsPage: Connection change detected:", { isConnected, shopId });
+    setConnectionState({ isConnected, shopId: shopId || null });
+  }, []);
+  
+  // Get the most reliable shop ID - prioritizing from our synchronized state
+  const getShopId = useCallback(() => {
+    return connectionState.shopId || 
+           shop || 
+           localStorage.getItem('shopify_store') || 
+           shopifyConnectionManager.getActiveStore();
+  }, [connectionState.shopId, shop]);
   
   useEffect(() => {
     const loadForms = async () => {
       setIsLoading(true);
       try {
+        const shopId = getShopId();
+        console.log("FormsPage: Loading forms for shop ID:", shopId);
+        
         if (!shopId) {
+          console.error('No active shop ID found');
           toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
           setIsLoading(false);
           return;
@@ -47,6 +69,7 @@ const FormsPage = () => {
           console.error('Error counting forms:', countError);
           toast.error(language === 'ar' ? 'خطأ في عد النماذج' : 'Error counting forms');
         } else {
+          console.log(`Found ${count || 0} forms for shop ${shopId}`);
           setFormsCount(count || 0);
           
           // If there are forms, load the first one
@@ -97,14 +120,17 @@ const FormsPage = () => {
       fetchForms();
     }
     
-    if (shopId) {
+    if (connectionState.isConnected && connectionState.shopId) {
       loadForms();
     } else {
       setIsLoading(false);
     }
-  }, [shopId, language]);
+  }, [connectionState, language, isLoadingTemplates, fetchForms, getShopId]);
   
   const createNewForm = async () => {
+    const shopId = getShopId();
+    console.log("Creating new form for shop:", shopId);
+    
     if (!shopId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
       return;
@@ -143,7 +169,7 @@ const FormsPage = () => {
       });
       
       // Save to database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
@@ -158,7 +184,8 @@ const FormsPage = () => {
           is_published: defaultFormData.isPublished,
           shop_id: shopId,
           user_id: user?.id
-        });
+        })
+        .select();
       
       if (error) {
         console.error('Error creating form:', error);
@@ -167,6 +194,7 @@ const FormsPage = () => {
         return;
       }
       
+      console.log("New form created successfully:", data);
       setFormData(defaultFormData);
       setFormsCount(prev => prev + 1);
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد' : 'New form created');
@@ -179,6 +207,10 @@ const FormsPage = () => {
   };
   
   const handleSaveForm = async (data: FormDesignData): Promise<boolean> => {
+    const shopId = getShopId();
+    console.log("Saving form for shop:", shopId);
+    console.log("Form data to save:", data);
+    
     if (!shopId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
       return false;
@@ -186,22 +218,39 @@ const FormsPage = () => {
     
     try {
       setIsSaving(true);
-      console.log("Saving form with data:", data);
+      
+      // Validate the data before saving
+      if (!data.id) {
+        console.error("Form ID is missing");
+        toast.error(language === 'ar' ? 'معرف النموذج مفقود' : 'Form ID is missing');
+        return false;
+      }
+      
+      if (!data.steps || !Array.isArray(data.steps)) {
+        console.error("Form steps are missing or invalid");
+        toast.error(language === 'ar' ? 'خطوات النموذج مفقودة أو غير صالحة' : 'Form steps are missing or invalid');
+        return false;
+      }
+      
+      // Prepare the data for the database
+      const formUpdateData = {
+        title: data.title,
+        description: data.description,
+        data: data.steps,
+        primaryColor: data.style.primaryColor,
+        borderRadius: data.style.borderRadius,
+        fontSize: data.style.fontSize,
+        buttonStyle: data.style.buttonStyle,
+        submitButtonText: data.submitButtonText,
+        updated_at: new Date().toISOString() // Force update timestamp
+      };
+      
+      console.log("Updating form with data:", formUpdateData);
       
       // Update the form in the database
       const { error } = await supabase
         .from('forms')
-        .update({
-          title: data.title,
-          description: data.description,
-          data: data.steps,
-          primaryColor: data.style.primaryColor,
-          borderRadius: data.style.borderRadius,
-          fontSize: data.style.fontSize,
-          buttonStyle: data.style.buttonStyle,
-          submitButtonText: data.submitButtonText,
-          updated_at: new Date().toISOString() // Force update timestamp
-        })
+        .update(formUpdateData)
         .eq('id', data.id);
       
       if (error) {
@@ -209,6 +258,9 @@ const FormsPage = () => {
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
         return false;
       }
+      
+      console.log("Form saved successfully");
+      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
       
       // Update local state
       setFormData(data);
@@ -224,6 +276,8 @@ const FormsPage = () => {
   
   const handlePublishForm = async (id: string, publish: boolean): Promise<boolean> => {
     try {
+      console.log("Publishing form:", id, publish);
+      
       // Update the publish status in the database
       const { error } = await supabase
         .from('forms')
@@ -241,10 +295,16 @@ const FormsPage = () => {
         return false;
       }
       
+      console.log("Form publish status updated successfully");
+      
       // Update local state if the form data exists
       if (formData && formData.id === id) {
         setFormData(prev => prev ? { ...prev, isPublished: publish } : null);
       }
+      
+      toast.success(publish
+        ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+        : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished'));
       
       return true;
     } catch (error) {
@@ -254,9 +314,11 @@ const FormsPage = () => {
     }
   };
   
-  if (!shopId) {
+  if (!connectionState.isConnected || !connectionState.shopId) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
+        <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
+        
         <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
           <div className="text-center py-4">
             <h2 className="text-xl font-bold mb-4">
@@ -284,6 +346,7 @@ const FormsPage = () => {
   
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
+      <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
       <AppSidebar />
       
       <div className="flex-1 p-6">
