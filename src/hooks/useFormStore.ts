@@ -156,12 +156,10 @@ export const useFormStore = create<FormStore>((set, get) => ({
       return undefined;
     }
     
-    const fields = langTranslations.fields;
-    if (!fields) {
-      console.log(`No fields found in ${currentLang} translations`);
-      return undefined;
-    }
+    // Ensure fields object exists before trying to access it
+    const fields = langTranslations.fields || {};
     
+    // Access the field translation if it exists
     const fieldTranslations = fields[fieldId];
     if (!fieldTranslations) {
       console.log(`No translations found for field: ${fieldId}`);
@@ -176,25 +174,18 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const currentLang = language || state.formState.formLanguage || 'ar';
     
     // Create a deep copy of existing translations or initialize new structure
-    let newTranslations = { ar: {}, en: {}, fr: {} };
+    const newTranslations = { 
+      ar: { fields: {}, ...state.formState.translations?.ar }, 
+      en: { fields: {}, ...state.formState.translations?.en },
+      fr: { fields: {}, ...state.formState.translations?.fr }
+    };
     
-    // Copy existing translations if they exist
-    if (state.formState.translations) {
-      // Deep copy to avoid mutation
-      newTranslations = JSON.parse(JSON.stringify(state.formState.translations));
-    }
+    // Ensure fields object exists for each language
+    if (!newTranslations.ar.fields) newTranslations.ar.fields = {};
+    if (!newTranslations.en.fields) newTranslations.en.fields = {};
+    if (!newTranslations.fr.fields) newTranslations.fr.fields = {};
     
-    // Ensure language object exists
-    if (!newTranslations[currentLang]) {
-      newTranslations[currentLang] = {};
-    }
-    
-    // Ensure fields object exists
-    if (!newTranslations[currentLang].fields) {
-      newTranslations[currentLang].fields = {};
-    }
-    
-    // Ensure field object exists
+    // Ensure field object exists for the current language
     if (!newTranslations[currentLang].fields[fieldId]) {
       newTranslations[currentLang].fields[fieldId] = {};
     }
