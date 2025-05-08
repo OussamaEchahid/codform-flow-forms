@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -18,7 +18,6 @@ interface FormPreviewPanelProps {
   onNextStep: () => void;
   refreshKey?: number;
   submitButtonText?: string;
-  // Remove buttonText from props since we use submitButtonText instead
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -34,9 +33,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { t, language } = useI18n();
-  
-  // Removed useEffect that was logging on every render
-  // This was likely causing re-renders due to prop changes from logging
   
   return (
     <div className="h-full flex flex-col">
@@ -97,4 +93,4 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   );
 };
 
-export default FormPreviewPanel;
+export default React.memo(FormPreviewPanel); // Added memo to prevent unnecessary re-renders

@@ -84,7 +84,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
         </Button>
         
         {lastSaved && (
-          <span className="text-xs text-gray-500 mx-2">
+          <span className="text-sm text-gray-500 mx-2">
             {language === 'ar' ? `آخر حفظ: ${formattedLastSaved}` : `Last saved: ${formattedLastSaved}`}
           </span>
         )}
@@ -113,4 +113,4 @@ const FormHeader: React.FC<FormHeaderProps> = ({
   );
 };
 
-export default FormHeader;
+export default React.memo(FormHeader); // Added memo to prevent unnecessary re-renders

@@ -361,30 +361,60 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   }, [formState.data]);
   
   // Prepare FormStyle object from formState - memoized to prevent recalculations
-  const formStyleData = React.useMemo(() => {
-    const style: FormStyle = {
+  const formStyleData = React.useMemo((): FormStyle => {
+    return {
       primaryColor: formState.formStyle?.primaryColor || formState.primaryColor || '#9b87f5',
       borderRadius: formState.formStyle?.borderRadius || formState.borderRadius || '0.5rem',
       fontSize: formState.formStyle?.fontSize || formState.fontSize || '1rem',
       buttonStyle: formState.formStyle?.buttonStyle || formState.buttonStyle || 'rounded'
     };
-    return style;
   }, [formState.formStyle, formState.primaryColor, formState.borderRadius, formState.fontSize, formState.buttonStyle]);
+
+  // Handle style changes
+  const handleStyleChange = useCallback((style: Partial<FormStyle>) => {
+    updateFormStyle(style);
+    markAsDirty();
+    
+    // Auto-save style changes
+    if (currentFormId) {
+      saveForm(currentFormId, { 
+        formStyle: style
+      }).catch(console.error);
+    }
+  }, [currentFormId, updateFormStyle, markAsDirty, saveForm]);
+
+  // Memoize the form element list props to prevent unnecessary renders
+  const formElementListProps = React.useMemo(() => ({
+    availableElements: [
+      { type: 'text', label: 'حقل نص', icon: 'T' },
+      { type: 'email', label: 'بريد إلكتروني', icon: '@' },
+      { type: 'phone', label: 'رقم هاتف', icon: '📱' },
+      { type: 'textarea', label: 'نص متعدد الأسطر', icon: '¶' },
+      { type: 'select', label: 'قائمة منسدلة', icon: '▼' },
+      { type: 'checkbox', label: 'خانة اختيار', icon: '☑' },
+      { type: 'radio', label: 'زر راديو', icon: '○' },
+      { type: 'text/html', label: 'نص/HTML', icon: '</>' }
+    ],
+    onAddElement: addElement
+  }), [addElement]);
+
+  // Memoize form header props
+  const formHeaderProps = React.useMemo(() => ({
+    formTitle: formState.title,
+    isPublished: formState.isPublished || false,
+    onTitleChange: (title: string) => setFormState({ ...formState, title, isDirty: true }),
+    onSave: handleSaveForm,
+    onStyleOpen: () => setIsStyleDialogOpen(true),
+    onTemplateOpen: () => setIsTemplateDialogOpen(true),
+    onPublish: handlePublishForm,
+    isSaving,
+    isPublishing,
+    lastSaved: formState.lastSaved
+  }), [formState, handleSaveForm, handlePublishForm, isSaving, isPublishing, setFormState]);
 
   return (
     <div className="container mx-auto py-6">
-      <FormHeader 
-        formTitle={formState.title}
-        isPublished={formState.isPublished || false}
-        onTitleChange={(title) => setFormState({ ...formState, title, isDirty: true })}
-        onSave={handleSaveForm}
-        onStyleOpen={() => setIsStyleDialogOpen(true)}
-        onTemplateOpen={() => setIsTemplateDialogOpen(true)}
-        onPublish={handlePublishForm}
-        isSaving={isSaving}
-        isPublishing={isPublishing}
-        lastSaved={formState.lastSaved}
-      />
+      <FormHeader {...formHeaderProps} />
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
         <div className="lg:col-span-8 space-y-6">
@@ -409,12 +439,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                           setActiveTabIndex(index);
                           setSelectedElementIndex(null);
                         }}
+                        type="button"
                       >
                         {step.title || `خطوة ${index + 1}`}
                       </button>
                     ))}
                     
                     <button
+                      type="button"
                       className="px-4 py-2 rounded-md bg-gray-100 text-gray-600"
                       onClick={addStep}
                     >
@@ -425,9 +457,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <h3 className="font-medium mb-3">إضافة عناصر</h3>
-                      <FormElementList 
-                        onAddElement={addElement} 
-                      />
+                      <FormElementList {...formElementListProps} />
                     </div>
                     
                     <div className="md:col-span-2">
@@ -466,17 +496,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 <TabsContent value="style" className="py-4">
                   <FormStyleEditor 
                     formStyle={formStyleData}
-                    onStyleChange={(style) => {
-                      updateFormStyle(style);
-                      markAsDirty();
-                      
-                      // Auto-save style changes
-                      if (currentFormId) {
-                        saveForm(currentFormId, { 
-                          formStyle: style
-                        }).catch(console.error);
-                      }
-                    }}
+                    onStyleChange={handleStyleChange}
                   />
                 </TabsContent>
                 
@@ -548,9 +568,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         isOpen={isStyleDialogOpen}
         onOpenChange={setIsStyleDialogOpen}
         formStyle={formStyleData}
-        onStyleChange={(style) => {
-          updateFormStyle(style);
-        }}
+        onStyleChange={handleStyleChange}
         onSave={() => {
           setIsStyleDialogOpen(false);
           if (currentFormId) {
@@ -564,4 +582,4 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   );
 };
 
-export default FormBuilderEditor;
+export default React.memo(FormBuilderEditor); // Added memo to prevent unnecessary re-renders

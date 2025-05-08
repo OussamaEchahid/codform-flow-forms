@@ -46,6 +46,7 @@ const FormElementList: React.FC<FormElementListProps> = ({
             size="sm"
             className="p-1" 
             onClick={() => onAddElement(element.type)}
+            type="button"
           >
             <Plus size={16} />
           </Button>
@@ -62,4 +63,4 @@ const FormElementList: React.FC<FormElementListProps> = ({
   );
 };
 
-export default FormElementList;
+export default React.memo(FormElementList); // Added memo to prevent unnecessary re-renders
