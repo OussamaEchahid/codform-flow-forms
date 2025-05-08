@@ -120,18 +120,26 @@ const SubmitButton = React.memo(({
 
 SubmitButton.displayName = 'SubmitButton';
 
+// تم تعديل نوع البيانات هنا لجعله متوافقا
+interface FormContentProps {
+  fields?: FormField[];
+  children: React.ReactNode;
+  formStyle: {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
+  };
+  submitButtonText: string;
+}
+
 // مكون محتوى النموذج
 const FormContent = React.memo(({ 
   fields, 
   children, 
   formStyle,
   submitButtonText
-}: { 
-  fields?: FormField[];
-  children: React.ReactNode;
-  formStyle: typeof defaultFormStyle;
-  submitButtonText: string;
-}) => {
+}: FormContentProps) => {
   if (!fields || fields.length === 0) {
     return <>{children}</>;
   }
@@ -167,12 +175,23 @@ const FormPreview = (props: FormPreviewProps) => {
     currentStep,
     totalSteps,
     children,
-    formStyle = defaultFormStyle,
+    formStyle: propFormStyle,
     fields = [],
     submitButtonText = 'إرسال الطلب',
   } = props;
   
   const { language } = useI18n();
+  
+  // ضمان أن formStyle يحتوي على جميع الخصائص المطلوبة
+  // هذا سيحل مشكلة التوافق بين الأنواع
+  const formStyle = React.useMemo(() => {
+    return {
+      primaryColor: propFormStyle?.primaryColor || defaultFormStyle.primaryColor,
+      borderRadius: propFormStyle?.borderRadius || defaultFormStyle.borderRadius,
+      fontSize: propFormStyle?.fontSize || defaultFormStyle.fontSize,
+      buttonStyle: propFormStyle?.buttonStyle || defaultFormStyle.buttonStyle,
+    };
+  }, [propFormStyle]);
   
   // متغيرات CSS - ثابتة فقط عند تغيير القيم ذات الصلة
   const cssVars = React.useMemo(() => {
@@ -192,7 +211,7 @@ const FormPreview = (props: FormPreviewProps) => {
       <div 
         className="p-4 border-b" 
         style={{ 
-          backgroundColor: formStyle.primaryColor || defaultFormStyle.primaryColor,
+          backgroundColor: formStyle.primaryColor,
           color: 'white',
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
         }}
@@ -210,7 +229,7 @@ const FormPreview = (props: FormPreviewProps) => {
       <StepIndicators 
         currentStep={currentStep}
         totalSteps={totalSteps}
-        primaryColor={formStyle.primaryColor || defaultFormStyle.primaryColor}
+        primaryColor={formStyle.primaryColor}
       />
       
       <div 
