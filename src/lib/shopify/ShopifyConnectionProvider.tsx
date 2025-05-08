@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from 'sonner';
@@ -44,14 +44,20 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [lastValidated, setLastValidated] = useState<number>(0);
-
-  // Validate connection on mount and whenever shop changes
-  useEffect(() => {
-    validateConnection();
-  }, []);
+  
+  // Add a validation counter to prevent infinite validation loops
+  const validationAttempts = useRef<number>(0);
+  const maxValidationAttempts = 3; // Maximum number of validation attempts
+  
+  // Cache validated connection to prevent redundant validations
+  const cachedValidation = useRef<{
+    shop: string | null;
+    isValid: boolean;
+    timestamp: number;
+  }>({ shop: null, isValid: false, timestamp: 0 });
 
   // Get shop domain from all possible sources
-  const getShopDomain = (): string | null => {
+  const getShopDomain = useCallback((): string | null => {
     // Check multiple sources
     const fromStorage = localStorage.getItem('shopify_store');
     const fromManager = shopifyConnectionManager.getActiveStore();
@@ -64,11 +70,22 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
     
     // Return the first available source
     return fromStorage || fromManager;
-  };
+  }, []);
   
   // Test connection with Shopify
-  const testConnection = async (shop: string): Promise<boolean> => {
+  const testConnection = useCallback(async (shop: string): Promise<boolean> => {
     try {
+      // Check cache first to avoid unnecessary API calls
+      const now = Date.now();
+      if (
+        cachedValidation.current.shop === shop && 
+        cachedValidation.current.timestamp > now - 60000 && // Cache valid for 1 minute
+        cachedValidation.current.isValid
+      ) {
+        connectionLogger.info(`Using cached validation result for shop: ${shop}`);
+        return cachedValidation.current.isValid;
+      }
+      
       connectionLogger.info(`Testing connection for shop: ${shop}`);
       
       // Get token from database
@@ -86,7 +103,10 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       // Test token with edge function
       const token = data[0].access_token;
       const response = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { shop, accessToken: token }
+        body: { shop, accessToken: token },
+        // Add a timeout to avoid hanging requests
+        responseType: 'json',
+        headers: { 'Cache-Control': 'no-cache' }
       });
       
       if (response.error) {
@@ -94,16 +114,36 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
         return false;
       }
       
+      // Update cache with successful validation
+      cachedValidation.current = {
+        shop,
+        isValid: response.data?.success || false,
+        timestamp: now
+      };
+      
       connectionLogger.info('Token test successful:', { shop, success: response.data?.success });
       return response.data?.success || false;
     } catch (error) {
       connectionLogger.error('Error testing connection:', error);
       return false;
     }
-  };
+  }, []);
 
   // Validate Shopify connection state
-  const validateConnection = async () => {
+  const validateConnection = useCallback(async (force = false) => {
+    // Skip validation if we've tried too many times already,
+    // unless force=true which resets the counter
+    if (force) {
+      validationAttempts.current = 0;
+    } else if (validationAttempts.current >= maxValidationAttempts) {
+      connectionLogger.warn(`Skipping validation after ${validationAttempts.current} attempts`);
+      // Use whatever state we have and stop trying
+      setIsLoading(false);
+      setIsValidating(false);
+      return;
+    }
+    
+    validationAttempts.current++;
     setIsValidating(true);
     setError(null);
     
@@ -155,15 +195,20 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       setIsLoading(false);
       setIsValidating(false);
     }
-  };
+  }, [getShopDomain, testConnection]);
+
+  // Initialize connection on mount
+  useEffect(() => {
+    validateConnection();
+  }, [validateConnection]);
 
   // Reload connection state
-  const reload = async () => {
-    await validateConnection();
-  };
+  const reload = useCallback(async () => {
+    await validateConnection(true); // Force validation
+  }, [validateConnection]);
   
   // Disconnect shop
-  const disconnect = async () => {
+  const disconnect = useCallback(async () => {
     try {
       connectionLogger.info('Disconnecting Shopify store');
       
@@ -185,15 +230,21 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
           .eq('shop', shopDomain);
       }
       
+      // Reset validation attempts
+      validationAttempts.current = 0;
+      
+      // Clear the cached validation
+      cachedValidation.current = { shop: null, isValid: false, timestamp: 0 };
+      
       toast.success('Disconnected from Shopify store');
     } catch (error) {
       connectionLogger.error('Error disconnecting:', error);
       toast.error('Error disconnecting from Shopify store');
     }
-  };
+  }, [shopDomain]);
   
   // Force sync all state sources
-  const syncState = async () => {
+  const syncState = useCallback(async () => {
     try {
       connectionLogger.info('Syncing connection state');
       
@@ -214,34 +265,38 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       // Update connection manager
       shopifyConnectionManager.setActiveStore(shop);
       
-      // Update database
-      await shopifyStores()
+      // Update database - don't await this to prevent hanging
+      shopifyStores()
         .update({ is_active: true })
-        .eq('shop', shop);
-        
-      // Validate connection
-      await validateConnection();
+        .eq('shop', shop)
+        .then(() => {
+          connectionLogger.info('Updated database with active store:', shop);
+        })
+        .catch(err => {
+          connectionLogger.error('Error updating database:', err);
+        });
       
       return true;
     } catch (error) {
       connectionLogger.error('Error syncing state:', error);
       return false;
     }
+  }, [getShopDomain]);
+
+  // Context value
+  const value = {
+    isConnected,
+    shopDomain,
+    isLoading,
+    error,
+    isValidating,
+    reload,
+    disconnect,
+    syncState
   };
 
   return (
-    <ShopifyConnectionContext.Provider
-      value={{
-        isConnected,
-        shopDomain,
-        isLoading,
-        error,
-        isValidating,
-        reload,
-        disconnect,
-        syncState
-      }}
-    >
+    <ShopifyConnectionContext.Provider value={value}>
       {children}
     </ShopifyConnectionContext.Provider>
   );

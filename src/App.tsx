@@ -187,7 +187,7 @@ function App() {
           <Router>
             <AuthProvider>
               <ShopifyConnectionProvider>
-                <SonnerToaster />
+                <SonnerToaster position="top-right" />
                 <AppRoutes />
               </ShopifyConnectionProvider>
             </AuthProvider>
