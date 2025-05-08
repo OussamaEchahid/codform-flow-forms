@@ -1,5 +1,5 @@
-
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface FormState {
   id: string;
@@ -15,6 +15,10 @@ export interface FormState {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
+  // Track whether the form has unsaved changes
+  isDirty?: boolean;
+  // Track last save timestamp
+  lastSaved?: number;
 }
 
 interface FormStore {
@@ -22,6 +26,8 @@ interface FormStore {
   setFormState: (form: Partial<FormState>) => void;
   updateFormData: (data: any[]) => void;
   resetFormState: () => void;
+  markAsSaved: () => void;
+  markAsDirty: () => void;
 }
 
 const defaultFormState: FormState = {
@@ -35,22 +41,48 @@ const defaultFormState: FormState = {
   primaryColor: '#9b87f5',
   borderRadius: '0.5rem',
   fontSize: '1rem',
-  buttonStyle: 'rounded'
+  buttonStyle: 'rounded',
+  isDirty: false,
+  lastSaved: Date.now()
 };
 
-export const useFormStore = create<FormStore>((set) => ({
-  formState: {...defaultFormState},
-  setFormState: (form) => set((state) => ({
-    formState: {
-      ...state.formState,
-      ...form
+// Using persist middleware to keep form state in localStorage as a backup
+export const useFormStore = create<FormStore>()(
+  persist(
+    (set) => ({
+      formState: {...defaultFormState},
+      setFormState: (form) => set((state) => ({
+        formState: {
+          ...state.formState,
+          ...form,
+          isDirty: true
+        }
+      })),
+      updateFormData: (data) => set((state) => ({
+        formState: {
+          ...state.formState,
+          data: data,
+          isDirty: true
+        }
+      })),
+      resetFormState: () => set({ formState: {...defaultFormState} }),
+      markAsSaved: () => set((state) => ({
+        formState: {
+          ...state.formState,
+          isDirty: false,
+          lastSaved: Date.now()
+        }
+      })),
+      markAsDirty: () => set((state) => ({
+        formState: {
+          ...state.formState,
+          isDirty: true
+        }
+      }))
+    }),
+    {
+      name: 'form-store', // name for localStorage
+      partialize: (state) => ({ formState: state.formState }), // Only store formState in localStorage
     }
-  })),
-  updateFormData: (data) => set((state) => ({
-    formState: {
-      ...state.formState,
-      data: data
-    }
-  })),
-  resetFormState: () => set({ formState: {...defaultFormState} })
-}));
+  )
+);

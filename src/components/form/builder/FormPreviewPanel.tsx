@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -37,6 +37,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { t, language } = useI18n();
+  
+  useEffect(() => {
+    console.log("FormPreviewPanel updated with fields:", fields);
+    console.log("Current form style:", formStyle);
+  }, [fields, formStyle]);
 
   return (
     <div className="h-full flex flex-col">
@@ -71,7 +76,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         )}
       </div>
 
-      <div className="form-preview-container flex-1 overflow-auto">
+      <div className="form-preview-container flex-1 overflow-auto border rounded-md">
         <FormPreview
           key={`preview-${refreshKey}`}
           formTitle={formTitle}
@@ -82,7 +87,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fields={fields}
           submitButtonText={submitButtonText}
         >
-          {fields.length === 0 && (
+          {(!fields || fields.length === 0) && (
             <div className="text-center p-6">
               <p className="text-gray-500 mb-4">
                 {language === 'ar' 

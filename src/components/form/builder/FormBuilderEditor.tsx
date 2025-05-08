@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -32,6 +32,7 @@ import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { debounce } from 'lodash';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -43,7 +44,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  const { formState, setFormState, resetFormState, updateFormData } = useFormStore();
+  const { formState, setFormState, resetFormState, updateFormData, markAsSaved, markAsDirty } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -53,12 +54,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
   
   const [formStyle, setFormStyle] = useState(() => {
-    const storedStyle = localStorage.getItem('selectedTemplateStyle');
-    return storedStyle ? JSON.parse(storedStyle) : {
-      primaryColor: '#9b87f5',
-      borderRadius: '0.5rem',
-      fontSize: '1rem',
-      buttonStyle: 'rounded',
+    return {
+      primaryColor: formState.primaryColor || '#9b87f5',
+      borderRadius: formState.borderRadius || '0.5rem',
+      fontSize: formState.fontSize || '1rem',
+      buttonStyle: formState.buttonStyle || 'rounded',
     };
   });
   
@@ -68,10 +68,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  const [formTitle, setFormTitle] = useState('نموذج جديد');
-  const [formDescription, setFormDescription] = useState('');
+  const [formTitle, setFormTitle] = useState(formState.title || 'نموذج جديد');
+  const [formDescription, setFormDescription] = useState(formState.description || '');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
+  const [hasLoadedForm, setHasLoadedForm] = useState(false);
+  const [lastSaveTimestamp, setLastSaveTimestamp] = useState<number | null>(null);
 
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
@@ -137,6 +139,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         return;
       }
 
+      console.log("New form created successfully:", data);
+
       // Update form state
       resetFormState(); // Clear any previous form state
       setFormState({
@@ -149,6 +153,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         submitButtonText: submitButtonText
       });
 
+      setHasLoadedForm(true);
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
     } catch (error) {
       console.error("Error initializing new form:", error);
@@ -164,6 +169,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       if (id) {
         setCurrentFormId(id);
         try {
+          console.log("Attempting to load form with ID:", id);
           // Reset form state before loading new form
           resetFormState();
           
@@ -174,11 +180,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             
             setFormTitle(formData.title || 'نموذج جديد');
             setFormDescription(formData.description || '');
+            setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
             
             // Ensure we have form data to work with
             if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
               // Extract fields from all steps
               const allFields = formData.data.flatMap(step => step.fields || []);
+              console.log("Extracted form fields:", allFields);
               setFormElements(allFields);
             } else {
               console.warn("Form data is empty or invalid, initializing with empty array");
@@ -186,7 +194,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             }
             
             setIsPublished(!!formData.isPublished || !!formData.is_published);
-            setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
             
             // Update form style if available
             if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
@@ -198,9 +205,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               });
             }
             
-            console.log("Form elements after loading:", formElements);
+            setHasLoadedForm(true);
             setRefreshKey(prev => prev + 1);
           } else {
+            console.error("Form not found or failed to load");
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
             navigate('/form-builder');
           }
@@ -217,9 +225,66 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     loadFormData();
   }, [formId, params.formId]);
 
+  // Keep formElements in sync with formState.data
+  useEffect(() => {
+    if (hasLoadedForm && formState && formState.data && Array.isArray(formState.data) && formState.data.length > 0) {
+      const allFields = formState.data.flatMap(step => step.fields || []);
+      if (JSON.stringify(allFields) !== JSON.stringify(formElements)) {
+        console.log("Updating form elements from form state:", allFields);
+        setFormElements(allFields);
+      }
+    }
+  }, [formState, hasLoadedForm]);
+
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
+
+  // Create a debounced save function
+  const debouncedSave = useCallback(
+    debounce(async (formId, formData) => {
+      try {
+        console.log("Running debounced save...");
+        const success = await saveForm(formId, formData);
+        if (success) {
+          console.log("Autosave successful");
+          setLastSaveTimestamp(Date.now());
+          // Don't show toast for autosaves to avoid too many notifications
+        }
+      } catch (error) {
+        console.error("Error during autosave:", error);
+      }
+    }, 2000),
+    []
+  );
+
+  // Add effect for auto-saving when form elements change
+  useEffect(() => {
+    if (hasLoadedForm && currentFormId && formElements.length > 0 && formState.isDirty) {
+      console.log("Form is dirty, triggering autosave...");
+      
+      // Create form step from elements
+      const formStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: formElements
+      };
+      
+      // Prepare form data with all necessary fields
+      const formData: Partial<FormData> = {
+        title: formTitle,
+        description: formDescription,
+        data: [formStep],
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
+      };
+      
+      debouncedSave(currentFormId, formData);
+    }
+  }, [formElements, formTitle, formDescription, submitButtonText, formStyle, hasLoadedForm, formState.isDirty]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -257,7 +322,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         buttonStyle: formStyle.buttonStyle
       };
       
-      console.log("Saving form with data:", formData);
+      console.log("Manually saving form with data:", formData);
       
       // Use the saveForm function from the hook
       const success = await saveForm(currentFormId, formData);
@@ -274,6 +339,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         
         // Also update the form data specifically
         updateFormData([formStep]);
+        
+        setLastSaveTimestamp(Date.now());
         
         // Update refresh key to trigger UI updates
         setRefreshKey(prev => prev + 1);
@@ -333,20 +400,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const addElement = (type: string) => {
     const newElement = {
       type,
-      id: `${type}-${Date.now()}`,
+      id: `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       label: language === 'ar' ? `${type} جديد` : `New ${type}`,
       placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
       content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
     };
     
+    console.log("Adding new element:", newElement);
     const updatedElements = [...formElements, newElement];
     setFormElements(updatedElements);
+    markAsDirty();
     
-    // Auto-save after adding an element
+    // Update selected element
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
-      handleSave();
     }, 100);
   };
 
@@ -357,30 +425,30 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const deleteElement = (index: number) => {
+    console.log("Deleting element at index:", index);
     const updatedElements = [...formElements];
     updatedElements.splice(index, 1);
     setFormElements(updatedElements);
     setSelectedElementIndex(null);
     setRefreshKey(prev => prev + 1);
-    
-    // Save after deleting element
-    setTimeout(() => handleSave(), 300);
+    markAsDirty();
   };
 
   const duplicateElement = (index: number) => {
     const element = formElements[index];
     const newElement = {
       ...element,
-      id: `${element.id}-copy-${Date.now()}`
+      id: `${element.id}-copy-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     };
     
+    console.log("Duplicating element:", newElement);
     const updatedElements = [...formElements];
     updatedElements.splice(index + 1, 0, newElement);
     setFormElements(updatedElements);
+    markAsDirty();
     
     setTimeout(() => {
       setRefreshKey(prev => prev + 1);
-      handleSave();
     }, 100);
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
   };
@@ -416,38 +484,38 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const saveField = (updatedField: FormField) => {
+    console.log("Saving field update:", updatedField);
     const newElements = [...formElements];
     const index = newElements.findIndex(el => el.id === updatedField.id);
     if (index !== -1) {
       newElements[index] = updatedField;
       setFormElements(newElements);
+    } else {
+      console.warn("Could not find field to update with ID:", updatedField.id);
     }
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
+    markAsDirty();
     
     setTimeout(() => {
       setSelectedElementIndex(null);
       setRefreshKey(prev => prev + 1);
-      handleSave();
     }, 100);
   };
 
   const handleStyleChange = (key: string, value: string) => {
+    console.log("Updating style:", key, value);
     setFormStyle({
       ...formStyle,
       [key]: value
     });
     setRefreshKey(prev => prev + 1);
-    
-    // Save style immediately when it changes
-    setTimeout(() => handleSave(), 300);
+    markAsDirty();
   };
 
   const handleSaveStyle = () => {
     setIsStyleDialogOpen(false);
     localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
-    
-    // Save form with updated style
     handleSave();
   };
 
@@ -500,6 +568,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return;
     }
     
+    console.log("Drag ended. Moving element from", active.id, "to", over.id);
+    
     setFormElements((items) => {
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
@@ -507,30 +577,31 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return arrayMove(items, oldIndex, newIndex);
     });
 
+    markAsDirty();
+    
     setTimeout(() => {
       setSelectedElementIndex(null);
       setRefreshKey(prev => prev + 1);
-      handleSave();
     }, 300);
   };
 
-  // Auto-save when form title, description, or submit button text changes
+  // Auto-mark as dirty when form title, description, or submit button text changes
   const handleFormTitleChange = (value: string) => {
+    console.log("Form title changed:", value);
     setFormTitle(value);
-    // Autosave with debounce
-    setTimeout(() => handleSave(), 500);
+    markAsDirty();
   };
   
   const handleFormDescriptionChange = (value: string) => {
+    console.log("Form description changed:", value);
     setFormDescription(value);
-    // Autosave with debounce
-    setTimeout(() => handleSave(), 500);
+    markAsDirty();
   };
   
   const handleSubmitButtonTextChange = (text: string) => {
+    console.log("Submit button text changed:", text);
     setSubmitButtonText(text);
-    // Autosave with debounce
-    setTimeout(() => handleSave(), 500);
+    markAsDirty();
   };
 
   return (
@@ -543,6 +614,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
+        lastSaved={lastSaveTimestamp}
       />
       
       <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">

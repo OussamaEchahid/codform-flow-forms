@@ -34,10 +34,11 @@ export interface FormTemplate {
 }
 
 export const useFormTemplates = () => {
-  const { setFormState, resetFormState } = useFormStore();
+  const { formState, setFormState, resetFormState, markAsSaved } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
@@ -70,6 +71,8 @@ export const useFormTemplates = () => {
         setIsLoading(false);
         return;
       }
+      
+      console.log('Forms fetched successfully:', data);
       
       // Transform data to match FormData interface
       const formattedData = data.map(form => ({
@@ -232,6 +235,8 @@ export const useFormTemplates = () => {
   const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
+      console.log('Starting to save form:', formId);
+      console.log('Form data to save:', formData);
       
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
@@ -240,7 +245,21 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
-      console.log("Saving form with ID:", formId, "and data:", dbData);
+      // Ensure data is properly formatted as JSON
+      if (dbData.data && Array.isArray(dbData.data)) {
+        // Make sure all fields have proper IDs 
+        dbData.data = dbData.data.map((step: any) => {
+          if (step.fields && Array.isArray(step.fields)) {
+            step.fields = step.fields.map((field: any) => {
+              if (!field.id) {
+                field.id = `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+              }
+              return field;
+            });
+          }
+          return step;
+        });
+      }
       
       // Update form in Supabase with updated_at field
       dbData.updated_at = new Date().toISOString();
@@ -258,7 +277,8 @@ export const useFormTemplates = () => {
         return false;
       }
       
-      console.log("Form saved successfully:", data);
+      console.log("Form saved successfully to database:", data);
+      setLastSavedId(formId);
       
       // Update local state if forms list is loaded
       if (forms.length > 0) {
@@ -266,6 +286,9 @@ export const useFormTemplates = () => {
           form.id === formId ? { ...form, ...formData } : form
         ));
       }
+      
+      // Mark as saved in the form store
+      markAsSaved();
       
       setIsLoading(false);
       return true;
@@ -349,6 +372,7 @@ export const useFormTemplates = () => {
   // Load a specific form by ID
   const loadForm = async (formId: string) => {
     try {
+      console.log('Loading form:', formId);
       setIsLoading(true);
       resetFormState(); // Clear previous form state
       
@@ -372,6 +396,8 @@ export const useFormTemplates = () => {
         return null;
       }
       
+      console.log('Form loaded from database:', data);
+      
       // Format data for form state
       const formData: FormData = {
         ...data,
@@ -379,7 +405,10 @@ export const useFormTemplates = () => {
       };
       
       // Update form state
-      setFormState(formData);
+      setFormState({
+        ...formData,
+        isDirty: false
+      });
       
       setIsLoading(false);
       return formData;
@@ -400,11 +429,12 @@ export const useFormTemplates = () => {
     saveForm,
     publishForm,
     deleteForm,
-    loadForm
+    loadForm,
+    lastSavedId
   };
 };
 
-// Update the template data to use id as string instead of number
+// Template data definitions
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,

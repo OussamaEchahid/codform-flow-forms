@@ -28,15 +28,17 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
 
-  // Reset form state when component mounts
+  // Reset form state when component mounts to ensure clean state
   useEffect(() => {
+    console.log("Dashboard mounted, resetting form state");
     resetFormState();
-  }, []);
+  }, [resetFormState]);
 
   // Fetch forms on component mount
   useEffect(() => {
     const loadForms = async () => {
       try {
+        console.log("Fetching forms from database...");
         await fetchForms();
         setHasLoadedForms(true);
       } catch (error) {
@@ -46,11 +48,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     };
 
     loadForms();
-  }, [forceRefresh]);
+  }, [forceRefresh, fetchForms]);
 
   // Update local forms when the forms from hook change, ensuring uniqueness by ID
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
+      console.log("Forms loaded from database, updating local state", forms);
       // Remove duplicates by ID
       const uniqueForms = Array.from(
         new Map(forms.map(form => [form.id, form])).values()
@@ -62,11 +65,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleCreateForm = async () => {
     try {
+      console.log("Creating new default form...");
       // Reset form state before creating a new one
       resetFormState();
       
       const newForm = await createDefaultForm();
       if (newForm) {
+        console.log("Created new form, navigating to editor", newForm);
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
       }
@@ -78,6 +83,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleSelectForm = (formId: string) => {
     // Reset form state before navigating
+    console.log("Selecting form, resetting state and navigating to", formId);
     resetFormState();
     navigate(`/form-builder/${formId}`);
   };
@@ -86,12 +92,14 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     try {
       setIsTemplateDialogOpen(false);
       
+      console.log("Creating form from template", templateId);
       // Reset form state before creating from template
       resetFormState();
       
       const newForm = await createFormFromTemplate(templateId);
       
       if (newForm) {
+        console.log("Created form from template, navigating to editor", newForm);
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
       }
