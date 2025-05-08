@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
@@ -45,13 +44,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
       // Remove duplicates by ID
-      const uniqueForms = forms.reduce((acc: any[], current) => {
-        const existingForm = acc.find(form => form.id === current.id);
-        if (!existingForm) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
+      const uniqueForms = Array.from(
+        new Map(forms.map(form => [form.id, form])).values()
+      );
       
       setLocalForms(uniqueForms);
     }

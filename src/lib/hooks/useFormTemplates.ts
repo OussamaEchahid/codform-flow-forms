@@ -239,11 +239,14 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
+      console.log("Saving form with ID:", formId, "and data:", dbData);
+      
       // Update form in Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('forms')
         .update(dbData)
-        .eq('id', formId);
+        .eq('id', formId)
+        .select();
       
       if (error) {
         console.error('Error updating form:', error);
@@ -252,12 +255,20 @@ export const useFormTemplates = () => {
         return false;
       }
       
+      console.log("Form saved successfully:", data);
+      
       // Update local state if forms list is loaded
       if (forms.length > 0) {
         setForms(forms.map(form => 
           form.id === formId ? { ...form, ...formData } : form
         ));
       }
+      
+      // Update form state
+      setFormState({
+        ...formData,
+        id: formId
+      });
       
       setIsLoading(false);
       return true;

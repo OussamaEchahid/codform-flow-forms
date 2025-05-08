@@ -233,7 +233,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
+      // Prepare form data with all necessary fields
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
@@ -248,46 +248,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       console.log("Saving form with data:", formData);
       
-      // محاولة التحديث المباشر في قاعدة البيانات
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          title: formTitle,
-          description: formDescription,
-          data: [formStep],
-          shop_id: shopId,
-          updated_at: new Date().toISOString(),
-          submitButtonText: submitButtonText,
-          primaryColor: formStyle.primaryColor,
-          borderRadius: formStyle.borderRadius,
-          fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
-        })
-        .eq('id', currentFormId);
+      // Use the saveForm function from the hook
+      const success = await saveForm(currentFormId, formData);
       
-      if (error) {
-        console.error("Database update failed:", error);
-        
-        // إذا فشل التحديث المباشر، نحاول استخدام وظيفة saveForm
-        const success = await saveForm(currentFormId, formData);
-        
-        if (success) {
-          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        } else {
-          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
-        }
-      } else {
-        // تحديث حالة النموذج في الذاكرة
+      if (success) {
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        // Update form state
         setFormState({
           ...formState,
           ...formData,
           id: currentFormId
         });
-        
-        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        
-        // تحديث حالة الحفظ
+        // Update refresh key to trigger UI updates
         setRefreshKey(prev => prev + 1);
+      } else {
+        toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
       }
     } catch (error) {
       console.error("Error saving form:", error);
@@ -299,7 +274,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handlePublish = async () => {
     if (!currentFormId) {
-      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+      toast.error(language === 'ar' ? 'لم يتم ��لعثور على معرف النموذج' : 'Form ID not found');
       return;
     }
     
@@ -345,7 +320,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
         );
         
-        // تحديث حالة النموذج في الذاكرة
+        // Update form state in the memory
         setFormState({
           ...formState,
           isPublished: newPublishState

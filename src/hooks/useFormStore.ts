@@ -39,11 +39,11 @@ const defaultFormState: FormState = {
 
 export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
-  setFormState: (form) => set((state) => ({ 
-    formState: { 
-      ...state.formState, 
-      ...form 
-    } 
+  setFormState: (form) => set((state) => ({
+    formState: {
+      ...state.formState,
+      ...form
+    }
   })),
   resetFormState: () => set({ formState: {...defaultFormState} })
 }));
