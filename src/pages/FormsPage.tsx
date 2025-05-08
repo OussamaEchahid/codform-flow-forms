@@ -26,7 +26,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabase } from '@/lib/supabase-provider';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -48,8 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { ConnectionSynchronizer } from '@/components/form/builder/ConnectionSynchronizer';
-import { ShopifyConnectionStatus } from '@/components/form/builder/ShopifyConnectionStatus';
+import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -59,7 +57,6 @@ interface FormsPageProps {
 
 const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const { language } = useI18n();
-  const { supabaseClient } = useSupabase();
   const [forms, setForms] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -74,7 +71,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Simplified sync states
+  // Simplified sync states with the centralized connection
   const [syncState, setSyncState] = useState({
     isSyncing: false,
     syncStatus: null as string | null,
@@ -126,7 +123,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         is_published: false
       };
 
-      const { data, error: saveError } = await supabaseClient
+      const { data, error: saveError } = await supabase
         .from('forms')
         .insert(formData)
         .select()
@@ -147,7 +144,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [newFormName, language, supabaseClient, shopDomain]);
+  }, [newFormName, language, shopDomain]);
 
   const loadForms = useCallback(async () => {
     setIsLoading(true);
@@ -162,7 +159,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
       }
       
       // Load forms for the current shop
-      const { data, error: loadError } = await supabaseClient
+      const { data, error: loadError } = await supabase
         .from('forms')
         .select('*')
         .eq('shop_id', currentShopId)
@@ -182,7 +179,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, language, shopDomain]);
+  }, [supabase, language, shopDomain]);
 
   React.useEffect(() => {
     if (isConnected && shopDomain) {
@@ -207,7 +204,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     setSelectedForm(form);
 
     try {
-      const { error: deleteError } = await supabaseClient
+      const { error: deleteError } = await supabase
         .from('forms')
         .delete()
         .eq('id', form.id);

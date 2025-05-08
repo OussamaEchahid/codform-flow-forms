@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,7 +27,7 @@ import Settings from "@/pages/Settings";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
-import { toast } from "sonner"; 
+import { toast, Toaster as SonnerToaster } from "sonner"; 
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService"; 
 
@@ -186,7 +187,7 @@ function App() {
           <Router>
             <AuthProvider>
               <ShopifyConnectionProvider>
-                <Toaster position="top-right" />
+                <SonnerToaster />
                 <AppRoutes />
               </ShopifyConnectionProvider>
             </AuthProvider>

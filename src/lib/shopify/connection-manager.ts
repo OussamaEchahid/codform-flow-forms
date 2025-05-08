@@ -1,10 +1,12 @@
-
 import { cleanShopifyDomain, ShopifyStoreConnection } from './types';
 
 class ShopifyConnectionManager {
   private readonly ACTIVE_STORE_KEY = 'shopify_active_store';
   private readonly STORES_KEY = 'shopify_connected_stores';
   private readonly URL_SHOP_KEY = 'shopify_last_url_shop';
+  private readonly LOOP_DETECTION_KEY = 'shopify_loop_detection';
+  private readonly LOOP_THRESHOLD = 5; // Number of attempts within timeframe to detect a loop
+  private readonly LOOP_TIMEFRAME = 10000; // 10 seconds
   
   /**
    * Adds or updates a store in the connection manager
@@ -297,11 +299,42 @@ class ShopifyConnectionManager {
   }
   
   /**
+   * Detects if we're in a connection loop
+   * @returns True if a loop is detected
+   */
+  public isInConnectionLoop(): boolean {
+    try {
+      const now = Date.now();
+      let loopData = localStorage.getItem(this.LOOP_DETECTION_KEY);
+      let attempts: number[] = [];
+      
+      if (loopData) {
+        attempts = JSON.parse(loopData);
+      }
+      
+      // Add the current timestamp
+      attempts.push(now);
+      
+      // Keep only attempts within the timeframe
+      attempts = attempts.filter(timestamp => (now - timestamp) < this.LOOP_TIMEFRAME);
+      
+      // Save updated attempts
+      localStorage.setItem(this.LOOP_DETECTION_KEY, JSON.stringify(attempts));
+      
+      // Check if we've exceeded the threshold
+      return attempts.length >= this.LOOP_THRESHOLD;
+    } catch (error) {
+      console.error('Error in isInConnectionLoop:', error);
+      return false;
+    }
+  }
+  
+  /**
    * Resets loop detection
    */
   public resetLoopDetection(): void {
     try {
-      // No-op in simplified version
+      localStorage.removeItem(this.LOOP_DETECTION_KEY);
     } catch (error) {
       console.error('Error in resetLoopDetection:', error);
     }
