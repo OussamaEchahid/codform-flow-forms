@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -20,7 +20,7 @@ interface FormPreviewPanelProps {
   submitButtonText?: string;
 }
 
-const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
+const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
   formTitle,
   formDescription,
   fields,
@@ -34,6 +34,31 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { t, language } = useI18n();
   
+  // Memoize buttons to prevent unnecessary re-renders
+  const previousButton = useCallback(() => (
+    <Button 
+      size="sm" 
+      variant="outline"
+      onClick={onPreviousStep}
+      disabled={currentStep <= 1}
+      type="button"
+    >
+      {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+    </Button>
+  ), [currentStep, language, onPreviousStep]);
+
+  const nextButton = useCallback(() => (
+    <Button 
+      size="sm" 
+      variant="outline"
+      onClick={onNextStep}
+      disabled={currentStep >= totalSteps}
+      type="button"
+    >
+      {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+    </Button>
+  ), [currentStep, language, onNextStep, totalSteps]);
+  
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -44,27 +69,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         {/* Controls for multi-step form */}
         {totalSteps > 1 && (
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={onPreviousStep}
-              disabled={currentStep <= 1}
-              type="button"
-            >
-              {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </Button>
+            {previousButton()}
             <span className="text-sm font-medium">
               {currentStep} / {totalSteps}
             </span>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={onNextStep}
-              disabled={currentStep >= totalSteps}
-              type="button"
-            >
-              {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
+            {nextButton()}
           </div>
         )}
       </div>
@@ -93,6 +102,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       </div>
     </div>
   );
-};
+});
 
-export default React.memo(FormPreviewPanel);
+FormPreviewPanel.displayName = 'FormPreviewPanel';
+
+export default FormPreviewPanel;

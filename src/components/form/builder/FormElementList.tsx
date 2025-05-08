@@ -24,14 +24,15 @@ const defaultElements = [
   { type: 'text/html', label: 'نص/HTML', icon: '</>' }
 ];
 
-const FormElementList: React.FC<FormElementListProps> = ({ 
+const FormElementList: React.FC<FormElementListProps> = React.memo(({ 
   availableElements = defaultElements, 
   onAddElement 
 }) => {
   const { language } = useI18n();
 
-  const handleAddElement = useCallback((type: string) => {
-    onAddElement(type);
+  // Create a memoized callback for each element type
+  const createAddElementHandler = useCallback((type: string) => {
+    return () => onAddElement(type);
   }, [onAddElement]);
 
   return (
@@ -40,31 +41,38 @@ const FormElementList: React.FC<FormElementListProps> = ({
         {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
       </h3>
       
-      {availableElements.map((element) => (
-        <div 
-          key={element.type}
-          className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
-        >
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="p-1" 
-            onClick={() => handleAddElement(element.type)}
-            type="button"
+      {availableElements.map((element) => {
+        // Creating a stable callback for each element
+        const handleAddThisElement = createAddElementHandler(element.type);
+        
+        return (
+          <div 
+            key={element.type}
+            className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
           >
-            <Plus size={16} />
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <span>{element.label}</span>
-            <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
-              {element.icon}
-            </span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="p-1" 
+              onClick={handleAddThisElement}
+              type="button"
+            >
+              <Plus size={16} />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <span>{element.label}</span>
+              <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
+                {element.icon}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
-};
+});
 
-export default React.memo(FormElementList);
+FormElementList.displayName = 'FormElementList';
+
+export default FormElementList;

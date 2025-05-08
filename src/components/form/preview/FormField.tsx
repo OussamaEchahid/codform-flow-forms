@@ -25,8 +25,8 @@ interface FormFieldProps {
   };
 }
 
-// Define a mapping of field types to components
-const fieldComponentMap: Record<string, React.FC<FormFieldProps>> = {
+// Define a mapping of field types to components - moved outside component to prevent recreation
+const fieldComponentMap: Record<string, React.ComponentType<FormFieldProps>> = {
   'text': TextInput,
   'textarea': TextArea,
   'radio': RadioGroup,

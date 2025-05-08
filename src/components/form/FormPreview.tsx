@@ -39,9 +39,42 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key, setKey] = useState(0);
   
+  // Use a ref to track prop changes to avoid infinite loops
+  const lastProps = React.useRef({
+    formStyle,
+    formTitle,
+    formDescription,
+    currentStep,
+    totalSteps,
+    submitButtonText,
+    fieldsLength: fields?.length || 0
+  });
+  
   useEffect(() => {
-    // Use a function to update state to ensure we're not causing any unintended loop
-    setKey(prevKey => prevKey + 1);
+    // Only update key if important props have changed
+    const currentProps = {
+      formStyle,
+      formTitle,
+      formDescription,
+      currentStep,
+      totalSteps,
+      submitButtonText,
+      fieldsLength: fields?.length || 0
+    };
+    
+    const hasChanged = Object.keys(currentProps).some(key => {
+      // Special case for formStyle since it's an object
+      if (key === 'formStyle') {
+        return JSON.stringify(currentProps.formStyle) !== JSON.stringify(lastProps.current.formStyle);
+      }
+      // @ts-ignore
+      return currentProps[key] !== lastProps.current[key];
+    });
+    
+    if (hasChanged) {
+      setKey(prevKey => prevKey + 1);
+      lastProps.current = currentProps;
+    }
   }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
 
   // Memoize the CSS variables to prevent re-calculation on each render

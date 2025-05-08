@@ -17,7 +17,7 @@ interface FormHeaderProps {
   lastSaved?: number | null;
 }
 
-const FormHeader: React.FC<FormHeaderProps> = ({
+const FormHeader: React.FC<FormHeaderProps> = React.memo(({
   formTitle,
   onTitleChange,
   onSave,
@@ -115,6 +115,8 @@ const FormHeader: React.FC<FormHeaderProps> = ({
       </div>
     </div>
   );
-};
+});
 
-export default React.memo(FormHeader);
+FormHeader.displayName = 'FormHeader';
+
+export default FormHeader;
