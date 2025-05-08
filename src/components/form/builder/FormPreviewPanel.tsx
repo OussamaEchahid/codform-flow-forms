@@ -39,7 +39,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { t, language } = useI18n();
 
-  // Ensure formStyle has all required properties
+  // Ensure formStyle has all required properties with default values
   const completeFormStyle: FormStyleProps = {
     primaryColor: formStyle?.primaryColor || '#9b87f5',
     borderRadius: formStyle?.borderRadius || '0.5rem',

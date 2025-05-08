@@ -15,7 +15,7 @@ import WhatsAppButton from './fields/WhatsAppButton';
 import ImageField from './fields/ImageField';
 import HtmlContent from './fields/HtmlContent';
 
-// Update the interface to make all properties required
+// Define a consistent FormStyleProps interface that all components will use
 export interface FormStyleProps {
   primaryColor: string;
   borderRadius: string;
@@ -50,20 +50,20 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     buttonStyle: formStyle.buttonStyle || 'rounded'
   };
 
-  const components: { [key: string]: React.FC<any> } = {
-    'text': TextInput,
-    'textarea': TextArea,
-    'radio': RadioGroup,
-    'checkbox': CheckboxGroup,
-    'title': TitleField,
-    'text/html': HtmlContent,
-    'cart-items': CartItems,
-    'cart-summary': CartSummary,
-    'submit': SubmitButton,
-    'shipping': ShippingOptions,
-    'countdown': CountdownTimer,
-    'whatsapp': WhatsAppButton,
-    'image': ImageField,
+  const components: { [key: string]: React.FC<FormFieldProps> } = {
+    'text': TextInput as React.FC<FormFieldProps>,
+    'textarea': TextArea as React.FC<FormFieldProps>,
+    'radio': RadioGroup as React.FC<FormFieldProps>,
+    'checkbox': CheckboxGroup as React.FC<FormFieldProps>,
+    'title': TitleField as React.FC<FormFieldProps>,
+    'text/html': HtmlContent as React.FC<FormFieldProps>,
+    'cart-items': CartItems as React.FC<FormFieldProps>,
+    'cart-summary': CartSummary as React.FC<FormFieldProps>,
+    'submit': SubmitButton as React.FC<FormFieldProps>,
+    'shipping': ShippingOptions as React.FC<FormFieldProps>,
+    'countdown': CountdownTimer as React.FC<FormFieldProps>,
+    'whatsapp': WhatsAppButton as React.FC<FormFieldProps>,
+    'image': ImageField as React.FC<FormFieldProps>,
   };
 
   const Component = components[fieldType];
