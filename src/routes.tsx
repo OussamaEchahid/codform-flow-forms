@@ -18,6 +18,9 @@ import Forms from '@/pages/Forms';
 import Orders from '@/pages/Orders';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
+import LandingPages from '@/pages/LandingPages';
+import LandingPageEditor from '@/pages/LandingPageEditor';
+import LandingPageView from '@/pages/LandingPageView';
 
 export const routes: RouteObject[] = [
   {
@@ -88,6 +91,23 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-sync',
     Component: ShopifySync,
+  },
+  // Add landing pages routes
+  {
+    path: '/landing-pages',
+    Component: LandingPages,
+  },
+  {
+    path: '/landing-pages/editor',
+    Component: LandingPageEditor,
+  },
+  {
+    path: '/landing-pages/editor/:id',
+    Component: LandingPageEditor,
+  },
+  {
+    path: '/landing/:slug',
+    Component: LandingPageView,
   },
   {
     path: '*',

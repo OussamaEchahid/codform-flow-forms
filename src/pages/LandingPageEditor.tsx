@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Desktop, Smartphone, Tablet, Save, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Save, ExternalLink, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -327,7 +326,7 @@ const LandingPageEditor = () => {
                     onClick={() => setPreviewMode('desktop')}
                     className="rounded-r-none border-r"
                   >
-                    <Desktop className="h-4 w-4" />
+                    <Monitor className="h-4 w-4" /> {/* Changed from Desktop to Monitor */}
                   </Button>
                   <Button
                     variant={previewMode === 'tablet' ? 'default' : 'ghost'}
