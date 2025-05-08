@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/components/layout/AuthProvider";
 import { useAuth } from "@/lib/auth";
+import { ShopifyConnectionProvider } from '@/lib/shopify/ShopifyConnectionProvider';
 
 // Pages 
 import Dashboard from "@/pages/Dashboard";
@@ -185,8 +185,10 @@ function App() {
         <TooltipProvider>
           <Router>
             <AuthProvider>
-              <AppRoutes />
-              <Toaster />
+              <ShopifyConnectionProvider>
+                <Toaster position="top-right" />
+                <AppRoutes />
+              </ShopifyConnectionProvider>
             </AuthProvider>
           </Router>
         </TooltipProvider>

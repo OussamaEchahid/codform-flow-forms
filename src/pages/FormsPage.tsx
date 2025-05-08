@@ -1,483 +1,251 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AppSidebar from '@/components/layout/AppSidebar';
-import { useAuth } from '@/lib/auth';
-import { useI18n } from '@/lib/i18n';
+import React, { useState, useCallback } from 'react';
+import { Plus, Copy, Edit, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import FormDesigner from '@/components/form/designer/FormDesigner';
-import { FormDesignData } from '@/components/form/designer/FormDesigner';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useI18n } from '@/lib/i18n';
+import { useToast } from '@/hooks/use-toast';
+import { useSupabase } from '@/lib/supabase-provider';
 import { v4 as uuidv4 } from 'uuid';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
-import ConnectionSynchronizer from '@/components/form/builder/ConnectionSynchronizer';
+import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
+import { useShopify } from '@/hooks/useShopify';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreVertical } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { ConnectionSynchronizer } from '@/components/form/builder/ConnectionSynchronizer';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { connectionLogger } from '@/lib/shopify/debug-logger';
+import { supabase } from '@/integrations/supabase/client';
+import { ShopifyConnectionStatus } from '@/components/form/builder/ShopifyConnectionStatus';
 
 interface FormsPageProps {
-  refreshKey?: number;
+  shopId?: string | null;
 }
 
-const FormsPage: React.FC<FormsPageProps> = ({ refreshKey = 0 }) => {
-  const navigate = useNavigate();
-  const { user, shopifyConnected, shop } = useAuth();
+const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const { language } = useI18n();
-  const { forms, isLoading: isLoadingTemplates, fetchForms } = useFormTemplates();
-  
-  const [formData, setFormData] = useState<FormDesignData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [formsCount, setFormsCount] = useState<number>(0);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [connectionState, setConnectionState] = useState({
-    isConnected: !!shop && shopifyConnected,
-    shopId: shop || localStorage.getItem('shopify_store') || shopifyConnectionManager.getActiveStore()
-  });
-  
-  // Handle connection status changes from the synchronizer
-  const handleConnectionChange = useCallback((isConnected: boolean, shopId: string | null) => {
-    connectionLogger.info("FormsPage: Connection change detected:", { isConnected, shopId });
-    setConnectionState({ isConnected, shopId: shopId || null });
-  }, []);
-  
-  // Get the most reliable shop ID - prioritizing from our synchronized state
-  const getShopId = useCallback(() => {
-    const shopId = connectionState.shopId || 
-           shop || 
-           localStorage.getItem('shopify_store') || 
-           shopifyConnectionManager.getActiveStore();
-           
-    connectionLogger.debug("getShopId returning:", shopId);
-    return shopId;
-  }, [connectionState.shopId, shop]);
-  
-  useEffect(() => {
-    connectionLogger.info("FormsPage: Loading with refresh key:", refreshKey);
-    
-    const loadForms = async () => {
-      setIsLoading(true);
-      try {
-        const shopId = getShopId();
-        connectionLogger.info("FormsPage: Loading forms for shop ID:", shopId);
-        
-        if (!shopId) {
-          connectionLogger.error('No active shop ID found');
-          toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
-          setIsLoading(false);
-          return;
-        }
-        
-        // Force shop connection status to true to ensure consistency
-        localStorage.setItem('shopify_connected', 'true');
-        localStorage.setItem('shopify_store', shopId);
-        shopifyConnectionManager.setActiveStore(shopId);
-        
-        // Get count of forms for this shop
-        const { count, error: countError } = await supabase
-          .from('forms')
-          .select('*', { count: 'exact', head: true })
-          .eq('shop_id', shopId);
-        
-        if (countError) {
-          connectionLogger.error('Error counting forms:', countError);
-          toast.error(language === 'ar' ? 'خطأ في عد النماذج' : 'Error counting forms');
-        } else {
-          connectionLogger.info(`Found ${count || 0} forms for shop ${shopId}`);
-          setFormsCount(count || 0);
-          
-          // If there are forms, load the first one
-          if (count && count > 0) {
-            const { data, error } = await supabase
-              .from('forms')
-              .select('*')
-              .eq('shop_id', shopId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (error) {
-              connectionLogger.error('Error loading form:', error);
-              toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-            } else if (data) {
-              connectionLogger.info("Loaded form data:", data);
-              // Transform database data to FormDesignData format
-              const formDesignData: FormDesignData = {
-                id: data.id,
-                title: data.title,
-                description: data.description || '',
-                steps: data.data || [{ id: 'step-1', title: 'الخطوة الأولى', fields: [] }],
-                style: {
-                  primaryColor: data.primaryColor || '#9b87f5',
-                  borderRadius: data.borderRadius || '0.5rem',
-                  fontSize: data.fontSize || '1rem',
-                  buttonStyle: data.buttonStyle || 'rounded'
-                },
-                submitButtonText: data.submitButtonText || 'إرسال الطلب',
-                isPublished: data.is_published || false
-              };
-              
-              setFormData(formDesignData);
-            }
-          }
-        }
-      } catch (error) {
-        connectionLogger.error('Error loading forms:', error);
-        toast.error(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    // Load templates too for reference
-    if (!isLoadingTemplates) {
-      fetchForms();
-    }
-    
-    // Check for an active shop connection before loading forms
-    const shopId = getShopId();
-    const isConnected = shopId && (localStorage.getItem('shopify_connected') === 'true' || shopifyConnected);
-    
-    if (isConnected && shopId) {
-      setConnectionState({ isConnected: true, shopId });
-      loadForms();
-    } else {
-      setIsLoading(false);
-    }
-  }, [connectionState.isConnected, language, isLoadingTemplates, fetchForms, getShopId, refreshKey, shopifyConnected]);
-  
-  const createNewForm = async () => {
-    const shopId = getShopId();
-    connectionLogger.info("Creating new form for shop:", shopId);
-    
-    if (!shopId) {
-      toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      
-      // Create a new form with default data
-      const newFormId = uuidv4();
-      const defaultFormData: FormDesignData = {
-        id: newFormId,
-        title: language === 'ar' ? 'نموذج جديد' : 'New Form',
-        description: '',
-        steps: [
-          {
-            id: 'step-1',
-            title: language === 'ar' ? 'الخطوة الأولى' : 'Step 1',
-            fields: []
-          }
-        ],
-        style: {
-          primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
-          fontSize: '1rem',
-          buttonStyle: 'rounded'
-        },
-        submitButtonText: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        isPublished: false
-      };
-      
-      connectionLogger.info("Creating new form with data:", {
-        id: newFormId,
-        shop_id: shopId,
-        user_id: user?.id
-      });
-      
-      // Save to database
-      const { data, error } = await supabase
-        .from('forms')
-        .insert({
-          id: newFormId,
-          title: defaultFormData.title,
-          description: defaultFormData.description,
-          data: defaultFormData.steps,
-          primaryColor: defaultFormData.style.primaryColor,
-          borderRadius: defaultFormData.style.borderRadius,
-          fontSize: defaultFormData.style.fontSize,
-          buttonStyle: defaultFormData.style.buttonStyle,
-          submitButtonText: defaultFormData.submitButtonText,
-          is_published: defaultFormData.isPublished,
-          shop_id: shopId,
-          user_id: user?.id
-        })
-        .select();
-      
-      if (error) {
-        connectionLogger.error('Error creating form:', error);
-        toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
-        setIsLoading(false);
-        return;
-      }
-      
-      connectionLogger.info("New form created successfully:", data);
-      setFormData(defaultFormData);
-      setFormsCount(prev => prev + 1);
-      toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد' : 'New form created');
-    } catch (error) {
-      connectionLogger.error('Error creating form:', error);
-      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSaveForm = async (data: FormDesignData): Promise<boolean> => {
-    const shopId = getShopId();
-    connectionLogger.info("Saving form for shop:", shopId);
-    connectionLogger.debug("Form data to save:", data);
-    
-    if (!shopId) {
-      toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
-      return false;
-    }
-    
-    try {
-      setIsSaving(true);
-      
-      // Validate the data before saving
-      if (!data.id) {
-        connectionLogger.error("Form ID is missing");
-        toast.error(language === 'ar' ? 'معرف النموذج مفقود' : 'Form ID is missing');
-        return false;
-      }
-      
-      if (!data.steps || !Array.isArray(data.steps)) {
-        connectionLogger.error("Form steps are missing or invalid");
-        toast.error(language === 'ar' ? 'خطوات النموذج مفقودة أو غير صالحة' : 'Form steps are missing or invalid');
-        return false;
-      }
-      
-      // Prepare the data for the database
-      const formUpdateData = {
-        title: data.title,
-        description: data.description,
-        data: data.steps,
-        primaryColor: data.style.primaryColor,
-        borderRadius: data.style.borderRadius,
-        fontSize: data.style.fontSize,
-        buttonStyle: data.style.buttonStyle,
-        submitButtonText: data.submitButtonText,
-        shop_id: shopId, // Explicitly set shop_id to ensure it's saved correctly
-        updated_at: new Date().toISOString() // Force update timestamp
-      };
-      
-      connectionLogger.info(`Updating form ${data.id} with shopId: ${shopId}`);
-      
-      // Update the form in the database
-      const { error } = await supabase
-        .from('forms')
-        .update(formUpdateData)
-        .eq('id', data.id);
-      
-      if (error) {
-        connectionLogger.error('Error saving form:', error);
-        
-        // Try to get more diagnostic information about why the save failed
-        const { data: checkData, error: checkError } = await supabase
-          .from('forms')
-          .select('id, shop_id')
-          .eq('id', data.id)
-          .single();
-          
-        if (checkError) {
-          connectionLogger.error('Form does not exist, trying to create it instead');
-          
-          // If the form doesn't exist, try to create it
-          const createData = {
-            ...formUpdateData,
-            id: data.id,
-            user_id: user?.id,
-            created_at: new Date().toISOString(),
-            is_published: data.isPublished || false
-          };
-          
-          const { error: createError } = await supabase
-            .from('forms')
-            .insert(createData);
-            
-          if (createError) {
-            connectionLogger.error('Error creating form as fallback:', createError);
-            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-            return false;
-          } else {
-            connectionLogger.info('Successfully created form as fallback');
-            toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-            return true;
-          }
-        } else if (checkData && checkData.shop_id !== shopId) {
-          connectionLogger.error(`Form belongs to a different shop. Current: ${shopId}, Form's shop: ${checkData.shop_id}`);
-          toast.error(language === 'ar' ? 'لا يمكن تعديل نماذج متاجر أخرى' : 'Cannot edit forms from other stores');
-          return false;
-        } else {
-          toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-          return false;
-        }
-      }
-      
-      connectionLogger.info("Form saved successfully");
-      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-      
-      // Update local state
-      setFormData(data);
-      return true;
-    } catch (error) {
-      connectionLogger.error('Error saving form:', error);
-      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  const handlePublishForm = async (id: string, publish: boolean): Promise<boolean> => {
-    try {
-      const shopId = getShopId();
-      connectionLogger.info(`Publishing form ${id} (publish=${publish}) for shop ${shopId}`);
-      
-      // Update the publish status in the database
-      const { error } = await supabase
-        .from('forms')
-        .update({ 
-          is_published: publish,
-          shop_id: shopId, // Ensure the shop_id is set correctly
-          updated_at: new Date().toISOString() // Force update timestamp
-        })
-        .eq('id', id);
-      
-      if (error) {
-        connectionLogger.error('Error publishing form:', error);
-        toast.error(publish 
-          ? (language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form')
-          : (language === 'ar' ? 'خطأ في إلغاء نشر النموذج' : 'Error unpublishing form'));
-        return false;
-      }
-      
-      connectionLogger.info("Form publish status updated successfully");
-      
-      // Update local state if the form data exists
-      if (formData && formData.id === id) {
-        setFormData(prev => prev ? { ...prev, isPublished: publish } : null);
-      }
-      
-      toast.success(publish
-        ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-        : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished'));
-      
-      return true;
-    } catch (error) {
-      connectionLogger.error('Error publishing form:', error);
-      toast.error(language === 'ar' ? 'خطأ في تغيير حالة النشر' : 'Error changing publish status');
-      return false;
-    }
-  };
-  
-  const renderContent = () => {
-    if (!connectionState.isConnected || !connectionState.shopId) {
-      return (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
-          
-          <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
-            <div className="text-center py-4">
-              <h2 className="text-xl font-bold mb-4">
-                {language === 'ar' 
-                  ? 'الوصول مقيد' 
-                  : 'Access Restricted'}
-              </h2>
-              <p className="mb-6">
-                {language === 'ar' 
-                  ? 'يرجى الاتصال بمتجر Shopify للوصول إلى النماذج' 
-                  : 'Please connect to a Shopify store to access forms'}
-              </p>
-              
-              <Button 
-                onClick={() => navigate('/shopify')}
-                className="w-full"
-              >
-                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-    }
-    
-    if (formData) {
-      return (
-        <FormDesigner
-          formData={formData}
-          onSave={handleSaveForm}
-          onPublish={handlePublishForm}
-        />
-      );
-    }
-    
-    return (
-      <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-white">
-        <p className="mb-4 text-gray-500">
-          {language === 'ar' 
-            ? 'لا يوجد نماذج بعد' 
-            : 'No forms yet'}
-        </p>
-        <Button onClick={createNewForm}>
-          <Plus className="h-4 w-4 mr-2" />
-          {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-        </Button>
-      </div>
-    );
-  };
-  
-  return (
-    <div className="flex min-h-screen bg-[#F8F9FB]">
-      <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
-      <AppSidebar />
-      
-      <div className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {language === 'ar' ? 'نماذج الدفع عند الاستلام' : 'Cash On Delivery Forms'}
-            </h1>
-            <p className="text-gray-500">
-              {language === 'ar' 
-                ? 'إنشاء وإدارة نماذج دفع مخصصة لمتجرك' 
-                : 'Create and manage custom payment forms for your store'}
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            {formsCount === 0 && connectionState.isConnected && (
-              <Button onClick={createNewForm} disabled={isLoading}>
-                <Plus className="h-4 w-4 mr-2" />
-                {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div className="lg:col-span-4">
-            <ShopifyConnectionStatus />
-          </div>
-        </div>
-        
-        {renderContent()}
-      </div>
-    </div>
-  );
-};
-
-export default FormsPage;
+  const { supabaseClient } = useSupabase();
+  const [forms, setForms] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<any>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newFormName, setNewFormName] = useState('');
+  const [editFormName, setEditFormName] = useState('');
+  const [importData, setImportData] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [isResyncing, setIsResyncing] = useState(false);
+  const [resyncProgress, setResyncProgress] = useState(0);
+  const [resyncError, setResyncError] = useState<string | null>(null);
+  const [isShopifyConnected, setIsShopifyConnected] = useState(false);
+  const [shopifyStoreId, setShopifyStoreId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isVerifyingConnection, setIsVerifyingConnection] = useState(false);
+  const [isConnectionForced, setIsConnectionForced] = useState(false);
+  const [isConnectionValidating, setIsConnectionValidating] = useState(false);
+  const [isConnectionSyncing, setIsConnectionSyncing] = useState(false);
+  const [isConnectionResetting, setIsConnectionResetting] = useState(false);
+  const [isConnectionTesting, setIsConnectionTesting] = useState(false);
+  const [isConnectionCleaning, setIsConnectionCleaning] = useState(false);
+  const [isConnectionActivating, setIsConnectionActivating] = useState(false);
+  const [isConnectionDeactivating, setIsConnectionDeactivating] = useState(false);
+  const [isConnectionSyncingDatabase, setIsConnectionSyncingDatabase] = useState(false);
+  const [isConnectionSyncingLocalStorage, setIsConnectionSyncingLocalStorage] = useState(false);
+  const [isConnectionSyncingConnectionManager, setIsConnectionSyncingConnectionManager] = useState(false);
+  const [isConnectionSyncingAll, setIsConnectionSyncingAll] = useState(false);
+  const [isConnectionSyncingAllDatabase, setIsConnectionSyncingAllDatabase] = useState(false);
+  const [isConnectionSyncingAllLocalStorage, setIsConnectionSyncingAllLocalStorage] = useState(false);
+  const [isConnectionSyncingAllConnectionManager, setIsConnectionSyncingAllConnectionManager] = useState(false);
+  const [isConnectionSyncingAllComplete, setIsConnectionSyncingAllComplete] = useState(false);
+  const [isConnectionSyncingAllError, setIsConnectionSyncingAllError] = useState<string | null>(null);
+  const [isConnectionSyncingAllProgress, setIsConnectionSyncingAllProgress] = useState(0);
+  const [isConnectionSyncingAllTotal, setIsConnectionSyncingAllTotal] = useState(0);
+  const [isConnectionSyncingAllCurrent, setIsConnectionSyncingAllCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentProgress, setIsConnectionSyncingAllCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentTotal, setIsConnectionSyncingAllCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentError, setIsConnectionSyncingAllCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentComplete, setIsConnectionSyncingAllCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelled, setIsConnectionSyncingAllCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelled, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelled] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledError] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledComplete, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledComplete] = useState(false);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledCurrent, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledCurrent] = useState<string | null>(null);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledProgress, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledProgress] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledTotal, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledTotal] = useState(0);
+  const [isConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledError, setIsConnectionSyncingAllCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCancelledCurrentCurrentCancelledCurrentCancelledCancelledCancelledError] = useState<string | null>(null

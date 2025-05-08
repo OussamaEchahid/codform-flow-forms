@@ -1,16 +1,10 @@
 
-// Enhanced implementation of the ShopifyConnectionManager class
-// We're adding more robust error handling and cleaning up session state
-
 import { cleanShopifyDomain, ShopifyStoreConnection } from './types';
 
 class ShopifyConnectionManager {
   private readonly ACTIVE_STORE_KEY = 'shopify_active_store';
   private readonly STORES_KEY = 'shopify_connected_stores';
   private readonly URL_SHOP_KEY = 'shopify_last_url_shop';
-  private readonly LAST_ERROR_KEY = 'shopify_last_error';
-  private readonly RECOVERY_ATTEMPT_KEY = 'shopify_recovery_attempt';
-  private readonly CONNECTION_TIMESTAMP_KEY = 'shopify_connection_timestamp';
   
   /**
    * Adds or updates a store in the connection manager
@@ -30,13 +24,6 @@ class ShopifyConnectionManager {
       
       console.log(`Adding/updating store: ${cleanedDomain}, isActive: ${isActive}, forceUpdate: ${forceUpdate}`);
       
-      // Record connection timestamp
-      localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
-      
-      // Clear any error state
-      localStorage.removeItem(this.LAST_ERROR_KEY);
-      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
-      
       // If we're clearing others, just set this as the only store
       if (forceUpdate) {
         this.clearAllStores();
@@ -54,7 +41,7 @@ class ShopifyConnectionManager {
         localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
         localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
         localStorage.setItem('shopify_store', cleanedDomain);
-        localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('shopify_connected', isActive ? 'true' : 'false');
         
         return;
       }
@@ -98,7 +85,6 @@ class ShopifyConnectionManager {
       localStorage.setItem(this.STORES_KEY, JSON.stringify(existingStores));
     } catch (error) {
       console.error('Error in addOrUpdateStore:', error);
-      this.recordError('addOrUpdateStore', error);
     }
   }
   
@@ -141,7 +127,6 @@ class ShopifyConnectionManager {
       return null;
     } catch (error) {
       console.error('Error in getActiveStore:', error);
-      this.recordError('getActiveStore', error);
       return null;
     }
   }
@@ -158,7 +143,6 @@ class ShopifyConnectionManager {
       this.addOrUpdateStore(cleanedDomain, true);
     } catch (error) {
       console.error('Error in setActiveStore:', error);
-      this.recordError('setActiveStore', error);
     }
   }
   
@@ -190,7 +174,6 @@ class ShopifyConnectionManager {
       return [];
     } catch (error) {
       console.error('Error in getAllStores:', error);
-      this.recordError('getAllStores', error);
       return [];
     }
   }
@@ -226,7 +209,6 @@ class ShopifyConnectionManager {
       localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
     } catch (error) {
       console.error('Error in removeStore:', error);
-      this.recordError('removeStore', error);
     }
   }
   
@@ -243,48 +225,8 @@ class ShopifyConnectionManager {
       localStorage.removeItem('shopify_store');
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_temp_store');
-      
-      // Clear any error state
-      localStorage.removeItem(this.LAST_ERROR_KEY);
-      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
     } catch (error) {
       console.error('Error in clearAllStores:', error);
-      this.recordError('clearAllStores', error);
-    }
-  }
-  
-  /**
-   * Clears all stores except the specified one
-   * @param shopDomain The shop domain to keep
-   */
-  public clearAllStoresExcept(shopDomain: string): void {
-    try {
-      const cleanedDomain = cleanShopifyDomain(shopDomain);
-      if (!cleanedDomain) return;
-      
-      const allStores = this.getAllStores();
-      const storeToKeep = allStores.find(s => s.domain === cleanedDomain);
-      
-      if (storeToKeep) {
-        // Keep only this store and make it active
-        const currentTimestamp = new Date().toISOString();
-        const stores: ShopifyStoreConnection[] = [{ 
-          ...storeToKeep, 
-          isActive: true,
-          lastConnected: currentTimestamp
-        }];
-        
-        localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
-        localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
-        localStorage.setItem('shopify_store', cleanedDomain);
-        localStorage.setItem('shopify_connected', 'true');
-      } else {
-        // If the store doesn't exist in our list, clear everything
-        this.clearAllStores();
-      }
-    } catch (error) {
-      console.error('Error in clearAllStoresExcept:', error);
-      this.recordError('clearAllStoresExcept', error);
     }
   }
   
@@ -303,7 +245,6 @@ class ShopifyConnectionManager {
       }
     } catch (error) {
       console.error('Error in saveLastUrlShop:', error);
-      this.recordError('saveLastUrlShop', error);
     }
   }
   
@@ -316,64 +257,7 @@ class ShopifyConnectionManager {
       return localStorage.getItem(this.URL_SHOP_KEY);
     } catch (error) {
       console.error('Error in getLastUrlShop:', error);
-      this.recordError('getLastUrlShop', error);
       return null;
-    }
-  }
-  
-  /**
-   * Records connection errors for debugging
-   * @param source Source of error
-   * @param error Error object
-   */
-  private recordError(source: string, error: any): void {
-    try {
-      const errorData = {
-        source,
-        message: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
-        recoveryAttempts: parseInt(localStorage.getItem(this.RECOVERY_ATTEMPT_KEY) || '0') + 1
-      };
-      
-      localStorage.setItem(this.LAST_ERROR_KEY, JSON.stringify(errorData));
-      localStorage.setItem(this.RECOVERY_ATTEMPT_KEY, errorData.recoveryAttempts.toString());
-    } catch (e) {
-      console.error('Error recording error state:', e);
-    }
-  }
-  
-  /**
-   * Detects if we're stuck in a connection loop
-   * @returns Boolean indicating if we're in a connection loop
-   */
-  public isInConnectionLoop(): boolean {
-    try {
-      const attempts = parseInt(localStorage.getItem(this.RECOVERY_ATTEMPT_KEY) || '0');
-      const lastConnectionTimestamp = parseInt(localStorage.getItem(this.CONNECTION_TIMESTAMP_KEY) || '0');
-      const now = Date.now();
-      
-      // If we've had too many attempts in a short time, we're in a loop
-      if (attempts > 2 && (now - lastConnectionTimestamp < 120000)) {
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error in isInConnectionLoop:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Resets connection loop detection
-   */
-  public resetLoopDetection(): void {
-    try {
-      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
-      localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
-      localStorage.removeItem(this.LAST_ERROR_KEY);
-    } catch (error) {
-      console.error('Error in resetLoopDetection:', error);
     }
   }
   
@@ -387,24 +271,41 @@ class ShopifyConnectionManager {
       const legacyStore = localStorage.getItem('shopify_store');
       const isConnected = localStorage.getItem('shopify_connected') === 'true';
       
-      if (activeStore && (!legacyStore || activeStore !== legacyStore)) {
+      // No store means nothing to validate
+      if (!activeStore && !legacyStore) {
+        return false;
+      }
+      
+      // Ensure localStorage is in sync
+      if (activeStore) {
         localStorage.setItem('shopify_store', activeStore);
         localStorage.setItem('shopify_connected', 'true');
         return true;
       }
       
+      // If there's a legacy store but no active store
       if (legacyStore && !activeStore) {
-        this.addOrUpdateStore(legacyStore, isConnected);
-        return true;
+        this.setActiveStore(legacyStore);
+        return isConnected;
       }
       
-      return !!(activeStore && legacyStore && isConnected);
+      return isConnected && !!activeStore;
     } catch (error) {
       console.error('Error in validateConnectionState:', error);
       return false;
     }
   }
+  
+  /**
+   * Resets loop detection
+   */
+  public resetLoopDetection(): void {
+    try {
+      // No-op in simplified version
+    } catch (error) {
+      console.error('Error in resetLoopDetection:', error);
+    }
+  }
 }
 
-// Singleton instance
 export const shopifyConnectionManager = new ShopifyConnectionManager();
