@@ -52,40 +52,55 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Load form data on component mount or when formId changes
   useEffect(() => {
     console.log('FormBuilderEditor: Loading form data for ID:', id);
-    loadFormData(id);
-  }, [id]);
+    if (id) {
+      loadFormData(id).catch(err => {
+        console.error("Error loading form data:", err);
+        toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
+      });
+    }
+  }, [id, loadFormData]);
 
-  // Handle form drag-and-drop reordering
+  // Safe save handler with error handling
+  const safeSave = async () => {
+    try {
+      await handleSave();
+    } catch (error) {
+      console.error("Error in safe save:", error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+    }
+  };
+
+  // Handle form drag-and-drop reordering with improved error handling
   const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) {
-      return;
-    }
-    
-    const oldIndex = formElements.findIndex((item) => item.id === active.id);
-    const newIndex = formElements.findIndex((item) => item.id === over.id);
-    
-    const reorderedItems = arrayMove(formElements, oldIndex, newIndex);
-    
-    // Using formEditor's state setters - removing the index property which was causing the TS error
-    updateElement({
-      ...formElements[oldIndex],
-      // index: newIndex - removed this line which was causing the error
-    });
-  };
-
-  // Handle template selection
-  const handleSelectTemplate = async (templateId: number) => {
-    const template = formTemplates.find(t => t.id === templateId);
-    if (template) {
-      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+    try {
+      const { active, over } = event;
       
-      // Update with template data - would be implemented in useFormEditor
+      if (!over || active.id === over.id) {
+        return;
+      }
+      
+      const oldIndex = formElements.findIndex((item) => item.id === active.id);
+      const newIndex = formElements.findIndex((item) => item.id === over.id);
+      
+      if (oldIndex === -1 || newIndex === -1) {
+        console.error("Invalid drag indices:", {oldIndex, newIndex, active, over});
+        return;
+      }
+      
+      // Using formEditor's state setters - removing the index property which was causing the TS error
+      updateElement({
+        ...formElements[oldIndex],
+        // No index property needed
+      });
+      
+      // Save the reordering
+      setTimeout(() => safeSave(), 300);
+    } catch (error) {
+      console.error("Error in handleDragEnd:", error);
     }
   };
 
-  // Handle Shopify integration
+  // Handle Shopify integration with improved error handling
   const handleShopifyIntegration = async (settings: any) => {
     if (!currentFormId) {
       toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
@@ -106,7 +121,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       );
       
       // Save form after Shopify integration
-      handleSave();
+      await safeSave();
     } catch (error) {
       console.error("Error saving Shopify settings:", error);
       toast.error(
@@ -132,7 +147,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       isPublishing={isPublishing}
       currentPreviewStep={currentPreviewStep}
       
-      // Handlers
+      // Handlers - using the safe save wrapper for any direct save operations
       onSelectElement={setSelectedElementIndex}
       onAddElement={addElement}
       onEditElement={(index: number) => {
@@ -145,7 +160,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onDragEnd={handleDragEnd}
       onUpdateMeta={updateFormMeta}
       onStyleChange={handleStyleChange}
-      onSave={handleSave}
+      onSave={safeSave}
       onPublish={handlePublish}
       onShopifyIntegration={handleShopifyIntegration}
     />

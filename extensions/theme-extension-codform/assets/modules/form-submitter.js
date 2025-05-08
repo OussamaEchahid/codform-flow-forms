@@ -35,8 +35,8 @@ function CODFORMFormSubmitter(API_BASE_URL) {
       submitButton.textContent = 'جاري الإرسال...';
     }
     
-    // Make sure we have a valid API URL
-    const apiUrl = API_BASE_URL ? (API_BASE_URL + '/api-submissions') : '/api/submissions';
+    // Make sure we have a valid API URL with fallbacks
+    const apiUrl = getAPIUrl(API_BASE_URL, formId);
     
     console.log('CODFORM: Submitting form to:', apiUrl);
     
@@ -46,36 +46,80 @@ function CODFORMFormSubmitter(API_BASE_URL) {
       handleSubmissionError('Network timeout');
     }, 30000); // 30 second timeout
     
-    fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      mode: 'cors',
-      body: JSON.stringify({
-        formId: formId,
-        data: data
-      }),
-    })
-      .then(response => {
-        clearTimeout(timeoutId);
-        console.log('CODFORM: Submit response status:', response.status);
-        if (!response.ok) {
-          throw new Error('Failed to submit form: ' + response.status);
-        }
-        return response.json();
+    // Try submission with retry logic
+    attemptSubmission(apiUrl, data, formId, 0, 3);
+    
+    function getAPIUrl(baseUrl, formId) {
+      // Priority order: provided API_BASE_URL, current domain, fallback domain
+      if (baseUrl && baseUrl.trim() !== '') {
+        return `${baseUrl.replace(/\/+$/, '')}/api-submissions`;
+      }
+      
+      // Try to construct URL from current domain
+      try {
+        const currentDomain = window.location.origin;
+        return `${currentDomain}/api/submissions`;
+      } catch (e) {
+        // Fallback to a relative path
+        return '/api/submissions';
+      }
+    }
+    
+    function attemptSubmission(url, formData, formId, currentAttempt, maxAttempts) {
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        mode: 'cors',
+        body: JSON.stringify({
+          formId: formId,
+          data: formData
+        }),
       })
-      .then(data => {
-        console.log('CODFORM: Form submitted successfully:', data);
-        // Show success message
-        hideForm(container);
-        showSuccess(container);
-      })
-      .catch(error => {
-        clearTimeout(timeoutId);
-        handleSubmissionError(error);
-      });
+        .then(response => {
+          clearTimeout(timeoutId);
+          console.log('CODFORM: Submit response status:', response.status);
+          
+          if (!response.ok) {
+            if (currentAttempt < maxAttempts) {
+              console.log(`CODFORM: Retrying submission (${currentAttempt + 1}/${maxAttempts})`);
+              // Exponential backoff
+              setTimeout(() => {
+                attemptSubmission(url, formData, formId, currentAttempt + 1, maxAttempts);
+              }, Math.pow(2, currentAttempt) * 1000);
+              return null;
+            }
+            throw new Error('Failed to submit form: ' + response.status);
+          }
+          
+          return response.json();
+        })
+        .then(data => {
+          if (!data) return; // Skip if retry is in progress
+          
+          console.log('CODFORM: Form submitted successfully:', data);
+          // Show success message
+          hideForm(container);
+          showSuccess(container);
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          
+          if (currentAttempt < maxAttempts) {
+            console.log(`CODFORM: Retrying after error (${currentAttempt + 1}/${maxAttempts})`, error);
+            // Exponential backoff
+            setTimeout(() => {
+              attemptSubmission(url, formData, formId, currentAttempt + 1, maxAttempts);
+            }, Math.pow(2, currentAttempt) * 1000);
+          } else {
+            handleSubmissionError(error);
+          }
+        });
+    }
       
     function handleSubmissionError(error) {
       console.error('CODFORM: Error submitting form', error);
@@ -88,7 +132,13 @@ function CODFORMFormSubmitter(API_BASE_URL) {
       }
       
       // Show error message
-      alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
+      const errorContainer = container.querySelector('.codform-error');
+      if (errorContainer) {
+        errorContainer.style.display = 'block';
+        errorContainer.textContent = 'حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.';
+      } else {
+        alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
+      }
     }
   }
   
