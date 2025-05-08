@@ -514,7 +514,12 @@ export const formTemplates: FormTemplate[] = [
             type: 'checkbox',
             label: 'Areas of Interest',
             required: false,
-            options: ['Technology', 'Marketing', 'Design', 'Business']
+            options: [
+              { value: 'technology', label: 'Technology' },
+              { value: 'marketing', label: 'Marketing' },
+              { value: 'design', label: 'Design' },
+              { value: 'business', label: 'Business' }
+            ]
           }
         ]
       }

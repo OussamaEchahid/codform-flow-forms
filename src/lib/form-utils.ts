@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -296,7 +297,10 @@ export const formTemplates: FormTemplate[] = [
             id: 'delivery',
             type: 'radio',
             label: 'نوع التوصيل',
-            options: ['توصيل مجاني', 'توصيل سريع'],
+            options: [
+              { value: 'free', label: 'توصيل مجاني' }, 
+              { value: 'express', label: 'توصيل سريع' }
+            ],
             required: true,
             style: {
               backgroundColor: '#ffffff',
