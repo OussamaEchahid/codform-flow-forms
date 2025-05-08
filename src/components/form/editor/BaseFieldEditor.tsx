@@ -30,13 +30,13 @@ interface BaseFieldEditorProps {
 const BaseFieldEditor = ({ field, onSave, onClose, children }: BaseFieldEditorProps) => {
   const { language } = useI18n();
   
-  // Convert string values to numbers with safe defaults
+  // Ensure numeric values are properly converted
   const minLengthValue = typeof field.minLength === 'string' 
-    ? Number(field.minLength) || 0 
+    ? parseInt(field.minLength, 10) || 0 
     : (field.minLength || 0);
 
   const maxLengthValue = typeof field.maxLength === 'string'
-    ? Number(field.maxLength) || 0
+    ? parseInt(field.maxLength, 10) || 0
     : (field.maxLength || 0);
   
   const form = useForm<FieldFormValues>({
@@ -59,9 +59,13 @@ const BaseFieldEditor = ({ field, onSave, onClose, children }: BaseFieldEditorPr
       placeholder: values.placeholder,
       helpText: values.helpText,
       defaultValue: values.defaultValue,
-      // Ensure values are numbers
-      minLength: typeof values.minLength === 'string' ? Number(values.minLength) || 0 : (values.minLength || 0),
-      maxLength: typeof values.maxLength === 'string' ? Number(values.maxLength) || 0 : (values.maxLength || 0),
+      // Ensure values are proper numbers
+      minLength: typeof values.minLength === 'string' 
+        ? parseInt(values.minLength, 10) || 0 
+        : (values.minLength || 0),
+      maxLength: typeof values.maxLength === 'string' 
+        ? parseInt(values.maxLength, 10) || 0 
+        : (values.maxLength || 0),
     };
     
     onSave(updatedField);

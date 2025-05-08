@@ -41,6 +41,15 @@ const OptionFieldEditor = ({ field, onSave, onClose }: OptionFieldEditorProps) =
   };
 
   const handleSaveField = (updatedField: FormField) => {
+    // Ensure numeric fields are properly typed
+    if (typeof updatedField.minLength === 'string') {
+      updatedField.minLength = Number(updatedField.minLength) || 0;
+    }
+    
+    if (typeof updatedField.maxLength === 'string') {
+      updatedField.maxLength = Number(updatedField.maxLength) || 0;
+    }
+    
     updatedField.options = options;
     onSave(updatedField);
   };

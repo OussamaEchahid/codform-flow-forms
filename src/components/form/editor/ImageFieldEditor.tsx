@@ -17,6 +17,15 @@ const ImageFieldEditor = ({ field, onSave, onClose }: ImageFieldEditorProps) => 
   const [imagePosition, setImagePosition] = useState(field.imagePosition || 'top');
 
   const handleSaveField = (updatedField: FormField) => {
+    // Ensure numeric fields are properly typed
+    if (typeof updatedField.minLength === 'string') {
+      updatedField.minLength = parseInt(updatedField.minLength, 10) || 0;
+    }
+    
+    if (typeof updatedField.maxLength === 'string') {
+      updatedField.maxLength = parseInt(updatedField.maxLength, 10) || 0;
+    }
+    
     updatedField.imagePosition = imagePosition;
     onSave(updatedField);
   };

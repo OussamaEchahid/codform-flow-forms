@@ -4,7 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField as UIFormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import BaseFieldEditor, { FieldFormValues } from './BaseFieldEditor';
+import BaseFieldEditor from './BaseFieldEditor';
 
 interface TextFieldEditorProps {
   field: FormField;
@@ -50,8 +50,11 @@ const TextFieldEditor = ({ field, onSave, onClose }: TextFieldEditorProps) => {
               <FormControl>
                 <Input 
                   type="number" 
-                  onChange={(e) => formField.onChange(Number(e.target.value) || 0)}
-                  value={Number(formField.value) || 0}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                    formField.onChange(isNaN(value) ? 0 : value);
+                  }}
+                  value={formField.value || 0}
                 />
               </FormControl>
             </FormItem>
@@ -66,8 +69,11 @@ const TextFieldEditor = ({ field, onSave, onClose }: TextFieldEditorProps) => {
               <FormControl>
                 <Input 
                   type="number"
-                  onChange={(e) => formField.onChange(Number(e.target.value) || 0)}
-                  value={Number(formField.value) || 0}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                    formField.onChange(isNaN(value) ? 0 : value);
+                  }}
+                  value={formField.value || 0}
                 />
               </FormControl>
             </FormItem>

@@ -14,6 +14,20 @@ interface GenericFieldEditorProps {
 const GenericFieldEditor = ({ field, onSave, onClose }: GenericFieldEditorProps) => {
   const { language } = useI18n();
 
+  // Create a wrapper function to ensure proper type handling before saving
+  const handleSave = (updatedField: FormField) => {
+    // Ensure minLength and maxLength are numbers
+    if (typeof updatedField.minLength === 'string') {
+      updatedField.minLength = parseInt(updatedField.minLength, 10) || 0;
+    }
+    
+    if (typeof updatedField.maxLength === 'string') {
+      updatedField.maxLength = parseInt(updatedField.maxLength, 10) || 0;
+    }
+    
+    onSave(updatedField);
+  };
+
   return (
     <div>
       <div className="flex items-center gap-2 p-4 bg-amber-50 text-amber-800 rounded-md">
@@ -24,7 +38,7 @@ const GenericFieldEditor = ({ field, onSave, onClose }: GenericFieldEditorProps)
             : 'No specialized editor available for this field type'}
         </p>
       </div>
-      <TextFieldEditor field={field} onSave={onSave} onClose={onClose} />
+      <TextFieldEditor field={field} onSave={handleSave} onClose={onClose} />
     </div>
   );
 };
