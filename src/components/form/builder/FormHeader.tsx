@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { FileCheck, Palette, Save, TemplateIcon } from 'lucide-react';
+import { FileCheck, Palette, Save, BookTemplateIcon } from 'lucide-react';
 
 interface FormHeaderProps {
   onSave: () => void;
@@ -101,9 +100,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           onClick={onTemplateOpen}
           className="flex items-center gap-2"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-          </svg>
+          <BookTemplateIcon size={16} />
           <span>{language === 'ar' ? 'استخدام قالب' : 'Use Template'}</span>
         </Button>
       </div>
