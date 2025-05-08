@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -74,6 +75,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
   const [hasLoadedForm, setHasLoadedForm] = useState(false);
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const availableElements = [
     { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
@@ -130,12 +132,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       }).select();
 
       if (error) {
         console.error("Error creating new form:", error);
         toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
+        setErrorMessage(error.message);
         return;
       }
 
@@ -150,14 +157,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         isPublished: false,
         shop_id: shopId,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle,
+        formStyle: { ...formStyle }
       });
 
       setHasLoadedForm(true);
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
+      setErrorMessage(error.message || 'Unknown error');
     }
   };
 
@@ -196,13 +209,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             
             // Update form style if available
-            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
-              setFormStyle({
-                primaryColor: formData.primaryColor || formStyle.primaryColor,
-                borderRadius: formData.borderRadius || formStyle.borderRadius,
-                fontSize: formData.fontSize || formStyle.fontSize,
-                buttonStyle: formData.buttonStyle || formStyle.buttonStyle
-              });
+            if (formData.formStyle || formData.primaryColor) {
+              const newFormStyle = {
+                primaryColor: formData.primaryColor || formData.formStyle?.primaryColor || '#9b87f5',
+                borderRadius: formData.borderRadius || formData.formStyle?.borderRadius || '0.5rem',
+                fontSize: formData.fontSize || formData.formStyle?.fontSize || '1rem',
+                buttonStyle: formData.buttonStyle || formData.formStyle?.buttonStyle || 'rounded',
+              };
+              
+              setFormStyle(newFormStyle);
             }
             
             setHasLoadedForm(true);
@@ -212,9 +227,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
             navigate('/form-builder');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error loading form:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+          setErrorMessage(error.message || 'Unknown error');
         }
       } else {
         // If no form ID, initialize a new form
@@ -260,7 +276,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Add effect for auto-saving when form elements change
   useEffect(() => {
-    if (hasLoadedForm && currentFormId && formElements.length > 0 && formState.isDirty) {
+    if (hasLoadedForm && currentFormId && formState.isDirty) {
       console.log("Form is dirty, triggering autosave...");
       
       // Create form step from elements
@@ -276,6 +292,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         description: formDescription,
         data: [formStep],
         submitButtonText: submitButtonText,
+        formStyle: { ...formStyle },
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
@@ -288,6 +305,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setErrorMessage(null);
     
     try {
       if (!currentFormId) {
@@ -316,6 +334,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [formStep],
         shop_id: shopId,
         submitButtonText: submitButtonText,
+        formStyle: { ...formStyle },
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
@@ -347,9 +366,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       } else {
         toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving form:", error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      setErrorMessage(error.message || 'Unknown error');
     }
     
     setIsSaving(false);
@@ -362,6 +382,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
     
     setIsPublishing(true);
+    setErrorMessage(null);
     
     try {
       // Save form before publishing
@@ -389,128 +410,184 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       } else {
         toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error publishing form:", error);
       toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
+      setErrorMessage(error.message || 'Unknown error');
     }
     
     setIsPublishing(false);
   };
 
   const addElement = (type: string) => {
-    const newElement = {
-      type,
-      id: `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
-      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
-      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
-    };
-    
-    console.log("Adding new element:", newElement);
-    const updatedElements = [...formElements, newElement];
-    setFormElements(updatedElements);
-    markAsDirty();
-    
-    // Update selected element
-    setTimeout(() => {
-      setSelectedElementIndex(updatedElements.length - 1);
-      setRefreshKey(prev => prev + 1);
-    }, 100);
+    try {
+      console.log("Adding new element of type:", type);
+      
+      const newElement = {
+        type,
+        id: `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+        placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+        content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+      };
+      
+      console.log("Created new element:", newElement);
+      const updatedElements = [...formElements, newElement];
+      setFormElements(updatedElements);
+      markAsDirty();
+      
+      // Update selected element
+      setTimeout(() => {
+        setSelectedElementIndex(updatedElements.length - 1);
+        setRefreshKey(prev => prev + 1);
+        toast.success(language === 'ar' ? 'تم إضافة عنصر جديد' : 'New element added');
+      }, 100);
+    } catch (error: any) {
+      console.error("Error adding element:", error);
+      toast.error(language === 'ar' ? 'خطأ في إضافة عنصر جديد' : 'Error adding new element');
+      setErrorMessage(error.message || 'Unknown error');
+    }
   };
 
   const editElement = (index: number) => {
-    const element = formElements[index];
-    setCurrentEditingField(element);
-    setIsFieldEditorOpen(true);
+    try {
+      const element = formElements[index];
+      if (!element) {
+        console.error("Element not found at index:", index);
+        return;
+      }
+      
+      setCurrentEditingField(element);
+      setIsFieldEditorOpen(true);
+    } catch (error: any) {
+      console.error("Error editing element:", error);
+      setErrorMessage(error.message || 'Unknown error');
+    }
   };
 
   const deleteElement = (index: number) => {
-    console.log("Deleting element at index:", index);
-    const updatedElements = [...formElements];
-    updatedElements.splice(index, 1);
-    setFormElements(updatedElements);
-    setSelectedElementIndex(null);
-    setRefreshKey(prev => prev + 1);
-    markAsDirty();
+    try {
+      console.log("Deleting element at index:", index);
+      const updatedElements = [...formElements];
+      updatedElements.splice(index, 1);
+      setFormElements(updatedElements);
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+      markAsDirty();
+      toast.success(language === 'ar' ? 'تم حذف العنصر بنجاح' : 'Element deleted successfully');
+    } catch (error: any) {
+      console.error("Error deleting element:", error);
+      toast.error(language === 'ar' ? 'خطأ في حذف العنصر' : 'Error deleting element');
+      setErrorMessage(error.message || 'Unknown error');
+    }
   };
 
   const duplicateElement = (index: number) => {
-    const element = formElements[index];
-    const newElement = {
-      ...element,
-      id: `${element.id}-copy-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    };
-    
-    console.log("Duplicating element:", newElement);
-    const updatedElements = [...formElements];
-    updatedElements.splice(index + 1, 0, newElement);
-    setFormElements(updatedElements);
-    markAsDirty();
-    
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 100);
-    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+    try {
+      const element = formElements[index];
+      if (!element) {
+        console.error("Element not found at index:", index);
+        return;
+      }
+      
+      const newElement = {
+        ...element,
+        id: `${element.id}-copy-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      };
+      
+      console.log("Duplicating element:", newElement);
+      const updatedElements = [...formElements];
+      updatedElements.splice(index + 1, 0, newElement);
+      setFormElements(updatedElements);
+      markAsDirty();
+      
+      setTimeout(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 100);
+      toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+    } catch (error: any) {
+      console.error("Error duplicating element:", error);
+      toast.error(language === 'ar' ? 'خطأ في نسخ العنصر' : 'Error duplicating element');
+      setErrorMessage(error.message || 'Unknown error');
+    }
   };
 
   const handleSelectTemplate = async (templateId: number) => {
-    const template = formTemplates.find(t => t.id === templateId);
-    if (template) {
-      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
-      
-      setFormStyle({
-        primaryColor: template.primaryColor || formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle
-      });
-      
-      const newElements = template.data.flatMap(step => 
-        step.fields.map(field => ({
-          ...field,
-          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        }))
-      );
-      
-      setFormTitle(template.title);
-      setFormDescription(template.description);
-      setFormElements(newElements);
-      setRefreshKey(prev => prev + 1);
-      setIsTemplateDialogOpen(false);
-      
-      // Save the form immediately after applying template
-      setTimeout(() => handleSave(), 500);
+    try {
+      const template = formTemplates.find(t => t.id === templateId);
+      if (template) {
+        toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+        
+        setFormStyle({
+          primaryColor: template.primaryColor || formStyle.primaryColor,
+          borderRadius: formStyle.borderRadius,
+          fontSize: formStyle.fontSize,
+          buttonStyle: formStyle.buttonStyle
+        });
+        
+        const newElements = template.data.flatMap(step => 
+          step.fields.map(field => ({
+            ...field,
+            id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          }))
+        );
+        
+        setFormTitle(template.title);
+        setFormDescription(template.description);
+        setFormElements(newElements);
+        setRefreshKey(prev => prev + 1);
+        setIsTemplateDialogOpen(false);
+        markAsDirty();
+        
+        // Save the form immediately after applying template
+        setTimeout(() => handleSave(), 500);
+      }
+    } catch (error: any) {
+      console.error("Error applying template:", error);
+      toast.error(language === 'ar' ? 'خطأ في تطبيق القالب' : 'Error applying template');
+      setErrorMessage(error.message || 'Unknown error');
     }
   };
 
   const saveField = (updatedField: FormField) => {
-    console.log("Saving field update:", updatedField);
-    const newElements = [...formElements];
-    const index = newElements.findIndex(el => el.id === updatedField.id);
-    if (index !== -1) {
-      newElements[index] = updatedField;
-      setFormElements(newElements);
-    } else {
-      console.warn("Could not find field to update with ID:", updatedField.id);
+    try {
+      console.log("Saving field update:", updatedField);
+      const newElements = [...formElements];
+      const index = newElements.findIndex(el => el.id === updatedField.id);
+      if (index !== -1) {
+        newElements[index] = updatedField;
+        setFormElements(newElements);
+      } else {
+        console.warn("Could not find field to update with ID:", updatedField.id);
+      }
+      setIsFieldEditorOpen(false);
+      setCurrentEditingField(null);
+      markAsDirty();
+      
+      setTimeout(() => {
+        setSelectedElementIndex(null);
+        setRefreshKey(prev => prev + 1);
+      }, 100);
+    } catch (error: any) {
+      console.error("Error saving field:", error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ العنصر' : 'Error saving field');
+      setErrorMessage(error.message || 'Unknown error');
     }
-    setIsFieldEditorOpen(false);
-    setCurrentEditingField(null);
-    markAsDirty();
-    
-    setTimeout(() => {
-      setSelectedElementIndex(null);
-      setRefreshKey(prev => prev + 1);
-    }, 100);
   };
 
   const handleStyleChange = (key: string, value: string) => {
-    console.log("Updating style:", key, value);
-    setFormStyle({
-      ...formStyle,
-      [key]: value
-    });
-    setRefreshKey(prev => prev + 1);
-    markAsDirty();
+    try {
+      console.log("Updating style:", key, value);
+      setFormStyle({
+        ...formStyle,
+        [key]: value
+      });
+      setRefreshKey(prev => prev + 1);
+      markAsDirty();
+    } catch (error: any) {
+      console.error("Error updating style:", error);
+      setErrorMessage(error.message || 'Unknown error');
+    }
   };
 
   const handleSaveStyle = () => {
@@ -540,13 +617,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       // Save form after Shopify integration
       handleSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving Shopify settings:", error);
       toast.error(
         language === 'ar'
           ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
           : 'Error saving Shopify settings'
       );
+      setErrorMessage(error.message || 'Unknown error');
     }
   };
 
@@ -603,6 +681,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setSubmitButtonText(text);
     markAsDirty();
   };
+
+  // Display any errors that occur
+  if (errorMessage) {
+    console.error("Form builder error:", errorMessage);
+    // We'll still allow the component to render, but log the error
+  }
 
   return (
     <main className="flex-1 overflow-auto">
