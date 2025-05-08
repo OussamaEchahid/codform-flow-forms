@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface FormState {
@@ -129,12 +130,22 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const currentLang = language || state.formState.formLanguage || 'ar';
     const translations = state.formState.translations || {};
     
-    if (!translations[currentLang] || !translations[currentLang]?.fields) {
+    // Check if translations for the current language and its fields exist
+    if (!translations[currentLang] || !translations[currentLang].fields) {
       return undefined;
     }
     
+    // Since we've already checked that translations[currentLang].fields exists,
+    // we can access it directly without optional chaining
     const langTranslations = translations[currentLang].fields;
-    return langTranslations[fieldId]?.[propertyName];
+    
+    // We still need optional chaining here since a specific field ID might not exist
+    if (!langTranslations[fieldId]) {
+      return undefined;
+    }
+    
+    // Return the property value (can be undefined if property doesn't exist)
+    return langTranslations[fieldId][propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
     const currentLang = language || state.formState.formLanguage || 'ar';
