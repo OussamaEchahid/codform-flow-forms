@@ -102,14 +102,14 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       connectionLogger.info(`Testing connection for shop: ${shop}`);
       
       // Get token from database
-      const { data, error } = await shopifyStores()
+      const { data, error: loadError } = await shopifyStores()
         .select('access_token')
         .eq('shop', shop)
         .eq('is_active', true)
         .limit(1);
       
-      if (error || !data || data.length === 0 || !data[0].access_token) {
-        connectionLogger.error('No active token found for shop:', { shop, error });
+      if (loadError || !data || data.length === 0 || !data[0].access_token) {
+        connectionLogger.error('No active token found for shop:', { shop, error: loadError });
         return false;
       }
       
@@ -342,12 +342,12 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
           .eq('shop', shop);
         
         connectionLogger.info('Updated database with active store:', shop);
+        return true;
       } catch (dbError) {
         connectionLogger.error('Error updating database:', dbError);
         // Continue execution - don't let DB errors stop the sync
+        return true;
       }
-      
-      return true;
     } catch (error) {
       connectionLogger.error('Error syncing state:', error);
       return false;
@@ -380,15 +380,19 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       
       // Update database async but don't wait
-      shopifyStores()
-        .update({ is_active: true })
-        .eq('shop', shop)
-        .then(() => {
+      const updateDb = async () => {
+        try {
+          await shopifyStores()
+            .update({ is_active: true })
+            .eq('shop', shop);
           connectionLogger.info('Force updated database with active store:', shop);
-        })
-        .catch(error => {
+        } catch (error) {
           connectionLogger.error('Error force updating database:', error);
-        });
+        }
+      };
+      
+      // Execute the database update
+      updateDb();
     } catch (e) {
       connectionLogger.error('Error in forceSetConnected:', e);
     }
