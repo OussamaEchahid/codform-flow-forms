@@ -104,8 +104,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       const token = data[0].access_token;
       const response = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: { shop, accessToken: token },
-        // Add a timeout to avoid hanging requests
-        responseType: 'json',
+        // Remove responseType as it's not in the type definition
         headers: { 'Cache-Control': 'no-cache' }
       });
       
@@ -266,15 +265,23 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       shopifyConnectionManager.setActiveStore(shop);
       
       // Update database - don't await this to prevent hanging
-      shopifyStores()
-        .update({ is_active: true })
-        .eq('shop', shop)
-        .then(() => {
-          connectionLogger.info('Updated database with active store:', shop);
-        })
-        .catch(err => {
-          connectionLogger.error('Error updating database:', err);
-        });
+      // Fix the catch - convert to Promise<void>
+      const updatePromise: Promise<void> = new Promise((resolve) => {
+        shopifyStores()
+          .update({ is_active: true })
+          .eq('shop', shop)
+          .then(() => {
+            connectionLogger.info('Updated database with active store:', shop);
+            resolve();
+          })
+          .catch(err => {
+            connectionLogger.error('Error updating database:', err);
+            resolve(); // Still resolve to avoid hanging
+          });
+      });
+      
+      // We're not awaiting this promise, just initiating it
+      updatePromise;
       
       return true;
     } catch (error) {
