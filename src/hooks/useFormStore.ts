@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface FormState {
@@ -129,7 +128,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
   setFormLanguage: (language) => set((state) => {
-    console.log(`Setting language to: ${language}`);
+    console.log(`Setting form language to: ${language}`);
     
     // Ensure translations object exists with proper structure
     const translations = state.formState.translations || {
@@ -148,19 +147,24 @@ export const useFormStore = create<FormStore>((set, get) => ({
     
     console.log(`Switching to language: ${language}, translations:`, currentLangTranslations);
     
+    // Create updated form state with new language settings
+    const updatedFormState = {
+      ...state.formState,
+      formLanguage: language,
+      rtl: language === 'ar',
+      // Update form title, description and submit button from translations
+      title: currentLangTranslations.title || state.formState.title,
+      description: currentLangTranslations.description || state.formState.description,
+      submitButtonText: currentLangTranslations.submitButtonText || 
+        (language === 'ar' ? 'إرسال الطلب' : language === 'en' ? 'Submit' : 'Soumettre'),
+      // Ensure translations object is preserved with proper structure
+      translations: translations
+    };
+    
+    console.log("Updated form state with new language:", updatedFormState);
+    
     return {
-      formState: {
-        ...state.formState,
-        formLanguage: language,
-        rtl: language === 'ar',
-        // Update form title, description and submit button from translations
-        title: currentLangTranslations.title || state.formState.title,
-        description: currentLangTranslations.description || state.formState.description,
-        submitButtonText: currentLangTranslations.submitButtonText || 
-          (language === 'ar' ? 'إرسال الطلب' : language === 'en' ? 'Submit' : 'Soumettre'),
-        // Ensure translations object is preserved with proper structure
-        translations: translations
-      }
+      formState: updatedFormState
     };
   }),
   

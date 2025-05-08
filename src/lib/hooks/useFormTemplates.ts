@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -244,10 +245,11 @@ export const useFormTemplates = () => {
       }
       
       console.log("Form created successfully:", newFormId);
-      setFormState(formData);
-      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
-      // Refresh forms list
+      // First update the form state
+      setFormState(formData);
+      
+      // Then refresh the forms list
       await fetchForms();
       
       setIsLoading(false);
@@ -376,12 +378,10 @@ export const useFormTemplates = () => {
 
       console.log("Form created successfully:", newFormId);
       
-      // Set the form state with the new form data
+      // First update the form state
       setFormState(formData);
       
-      toast.success('تم إنشاء نموذج جديد');
-      
-      // Refresh forms list
+      // Then refresh the forms list
       await fetchForms();
       
       setIsLoading(false);

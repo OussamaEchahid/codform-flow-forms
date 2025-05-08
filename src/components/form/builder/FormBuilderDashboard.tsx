@@ -76,24 +76,32 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       console.log("Starting form creation process...");
       setIsCreatingForm(true);
-      toast.loading(
+      
+      const loadingToast = toast.loading(
         language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 
         language === 'fr' ? 'Création d\'un nouveau formulaire...' : 
         'Creating new form...'
       );
       
       const newForm = await createDefaultForm();
-      console.log("Form creation result:", newForm);
-      toast.dismiss();
+      toast.dismiss(loadingToast);
       
       if (newForm && newForm.id) {
         console.log("Form created successfully, navigating to:", newForm.id);
         
-        // Add a small delay to ensure the store is updated before navigating
+        // Show success toast
+        toast.success(
+          language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 
+          language === 'fr' ? 'Formulaire créé avec succès' : 
+          'Form created successfully'
+        );
+        
+        // Add a sufficient delay to ensure form state is properly initialized
         setTimeout(() => {
-          // Make sure we navigate to the form builder URL correctly
           navigate(`/form-builder/${newForm.id}`);
-        }, 300);
+          // Reset creation state after navigation
+          setIsCreatingForm(false);
+        }, 500);
       } else {
         console.error("Form creation failed, no ID returned");
         toast.error(
@@ -105,7 +113,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
     } catch (error) {
       console.error("Error creating form:", error);
-      toast.dismiss();
       toast.error(
         language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 
         language === 'fr' ? 'Erreur lors de la création du formulaire' : 
@@ -117,32 +124,53 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleSelectForm = (formId: string) => {
     console.log("Selecting form:", formId);
-    navigate(`/form-builder/${formId}`);
+    if (formId) {
+      navigate(`/form-builder/${formId}`);
+    } else {
+      console.error("Cannot select form: Invalid form ID");
+      toast.error(
+        language === 'ar' ? 'معرف النموذج غير صالح' : 
+        language === 'fr' ? 'ID du formulaire invalide' : 
+        'Invalid form ID'
+      );
+    }
   };
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
+      if (isCreatingForm) {
+        console.log("Form creation already in progress, ignoring template selection");
+        return;
+      }
+      
       setIsTemplateDialogOpen(false);
-      toast.loading(
+      setIsCreatingForm(true);
+      
+      const loadingToast = toast.loading(
         language === 'ar' ? 'جاري إنشاء نموذج من القالب...' : 
         language === 'fr' ? 'Création d\'un formulaire à partir d\'un modèle...' : 
         'Creating form from template...'
       );
       
-      setIsCreatingForm(true);
       console.log("Creating form from template:", templateId);
       const newForm = await createFormFromTemplate(templateId);
-      console.log("Template form creation result:", newForm);
-      
-      toast.dismiss();
+      toast.dismiss(loadingToast);
       
       if (newForm && newForm.id) {
         console.log("Template form created successfully, navigating to:", newForm.id);
         
-        // Add a small delay to ensure the store is updated before navigating
+        toast.success(
+          language === 'ar' ? 'تم إنشاء النموذج من القالب بنجاح' : 
+          language === 'fr' ? 'Formulaire créé à partir du modèle avec succès' : 
+          'Form created from template successfully'
+        );
+        
+        // Add a sufficient delay to ensure form state is properly initialized
         setTimeout(() => {
           navigate(`/form-builder/${newForm.id}`);
-        }, 300);
+          // Reset creation state after navigation
+          setIsCreatingForm(false);
+        }, 500);
       } else {
         console.error("Template form creation failed, no ID returned");
         toast.error(
@@ -154,7 +182,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
     } catch (error) {
       console.error("Error creating form from template:", error);
-      toast.dismiss();
       toast.error(
         language === 'ar' ? 'خطأ في إنشاء نموذج من القالب' : 
         language === 'fr' ? 'Erreur lors de la création du formulaire à partir du modèle' : 
@@ -183,6 +210,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           <Button 
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}
+            disabled={isCreatingForm}
           >
             {language === 'ar' ? 'استخدام قالب' : 
              language === 'fr' ? 'Utiliser un modèle' : 
