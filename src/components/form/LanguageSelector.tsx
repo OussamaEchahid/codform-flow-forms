@@ -36,7 +36,11 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
   const handleLanguageChange = (lang: 'ar' | 'en' | 'fr') => {
     console.log("Changing language to:", lang);
     setSelectedLanguage(lang);
+    
+    // Apply language change to form state
     setFormLanguage(lang);
+    
+    // Call external onChange if provided
     if (onChange) {
       onChange(lang);
     }

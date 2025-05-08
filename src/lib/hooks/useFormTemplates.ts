@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -25,6 +26,38 @@ export interface FormData {
   // Add language support
   formLanguage?: 'ar' | 'en' | 'fr';
   rtl?: boolean;
+  translations?: {
+    ar?: {
+      title?: string;
+      description?: string;
+      submitButtonText?: string;
+      fields?: Record<string, {
+        label?: string;
+        placeholder?: string;
+        options?: string[];
+      }>;
+    };
+    en?: {
+      title?: string;
+      description?: string;
+      submitButtonText?: string;
+      fields?: Record<string, {
+        label?: string;
+        placeholder?: string;
+        options?: string[];
+      }>;
+    };
+    fr?: {
+      title?: string;
+      description?: string;
+      submitButtonText?: string;
+      fields?: Record<string, {
+        label?: string;
+        placeholder?: string;
+        options?: string[];
+      }>;
+    };
+  };
 }
 
 export interface FormTemplate {
@@ -113,7 +146,27 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // New form data
+      // Generate field translations for each field in the template
+      const initialFieldTranslations: Record<string, Record<string, any>> = {};
+      
+      template.data.forEach(step => {
+        step.fields.forEach(field => {
+          initialFieldTranslations[field.id] = {
+            label: {
+              ar: field.label || '',
+              en: field.label || '',
+              fr: field.label || '',
+            },
+            placeholder: {
+              ar: field.placeholder || '',
+              en: field.placeholder || '',
+              fr: field.placeholder || '',
+            }
+          };
+        });
+      });
+
+      // New form data with proper translations
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -124,8 +177,57 @@ export const useFormTemplates = () => {
         shop_id: shopId,
         primaryColor: template.primaryColor,
         formLanguage: 'ar',
-        rtl: true
+        rtl: true,
+        translations: {
+          ar: {
+            title: 'نموذج جديد',
+            description: template.description,
+            submitButtonText: 'إرسال الطلب',
+            fields: {}
+          },
+          en: {
+            title: 'New Form',
+            description: template.description,
+            submitButtonText: 'Submit',
+            fields: {}
+          },
+          fr: {
+            title: 'Nouveau Formulaire',
+            description: template.description,
+            submitButtonText: 'Soumettre',
+            fields: {}
+          }
+        }
       };
+
+      // Add initial field translations to each language
+      template.data.forEach(step => {
+        step.fields.forEach(field => {
+          if (!formData.translations) formData.translations = { ar: {}, en: {}, fr: {} };
+          if (!formData.translations.ar!.fields) formData.translations.ar!.fields = {};
+          if (!formData.translations.en!.fields) formData.translations.en!.fields = {};
+          if (!formData.translations.fr!.fields) formData.translations.fr!.fields = {};
+          
+          // Add translations for this field
+          formData.translations.ar!.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+          
+          formData.translations.en!.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+          
+          formData.translations.fr!.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+        });
+      });
 
       // Insert into Supabase
       const { error } = await supabase
@@ -140,7 +242,8 @@ export const useFormTemplates = () => {
           user_id: user?.id,
           primaryColor: template.primaryColor,
           formLanguage: 'ar',
-          rtl: true
+          rtl: true,
+          translations: formData.translations
         });
 
       if (error) {
@@ -180,6 +283,51 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Prepare translations structure for the new form
+      const defaultTranslations = {
+        ar: {
+          title: 'نموذج جديد',
+          description: 'نموذج جديد',
+          submitButtonText: 'إرسال الطلب',
+          fields: {}
+        },
+        en: {
+          title: 'New Form',
+          description: 'New Form',
+          submitButtonText: 'Submit',
+          fields: {}
+        },
+        fr: {
+          title: 'Nouveau Formulaire',
+          description: 'Nouveau Formulaire',
+          submitButtonText: 'Soumettre',
+          fields: {}
+        }
+      };
+
+      // Add field translations
+      defaultTemplate.data.forEach(step => {
+        step.fields.forEach(field => {
+          defaultTranslations.ar.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+          
+          defaultTranslations.en.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+          
+          defaultTranslations.fr.fields![field.id] = {
+            label: field.label,
+            placeholder: field.placeholder,
+            options: Array.isArray(field.options) ? [...field.options] : undefined
+          };
+        });
+      });
+
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -188,12 +336,17 @@ export const useFormTemplates = () => {
         data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded',
         formLanguage: 'ar',
-        rtl: true
+        rtl: true,
+        translations: defaultTranslations
       };
 
       // Insert into Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
@@ -203,9 +356,15 @@ export const useFormTemplates = () => {
           is_published: false,
           shop_id: shopId,
           user_id: user?.id,
+          primaryColor: '#9b87f5',
+          borderRadius: '0.5rem',
+          fontSize: '1rem',
+          buttonStyle: 'rounded',
           formLanguage: 'ar',
-          rtl: true
-        });
+          rtl: true,
+          translations: defaultTranslations
+        })
+        .select();
         
       if (error) {
         console.error('Error saving form to database:', error);
@@ -215,6 +374,7 @@ export const useFormTemplates = () => {
       }
 
       setFormState(formData);
+      
       toast.success('تم إنشاء نموذج جديد');
       
       // Refresh forms list
@@ -241,6 +401,8 @@ export const useFormTemplates = () => {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
       }
+      
+      console.log('Saving form data:', dbData);
       
       // Update form in Supabase
       const { error } = await supabase
@@ -366,8 +528,16 @@ export const useFormTemplates = () => {
       // Format data for form state
       const formData: FormData = {
         ...data,
-        isPublished: data.is_published
+        isPublished: data.is_published,
+        // Ensure translations object exists
+        translations: data.translations || {
+          ar: { title: data.title, description: data.description, submitButtonText: data.submitButtonText || 'إرسال الطلب', fields: {} },
+          en: { title: data.title, description: data.description, submitButtonText: 'Submit', fields: {} },
+          fr: { title: data.title, description: data.description, submitButtonText: 'Soumettre', fields: {} }
+        }
       };
+      
+      console.log('Loaded form with translations:', formData.translations);
       
       // Update form state
       setFormState(formData);

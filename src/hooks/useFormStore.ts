@@ -129,52 +129,59 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const state = get();
     const currentLang = language || state.formState.formLanguage || 'ar';
     
-    // Safely access translations with null checks at each step
-    const translations = state.formState.translations;
-    if (!translations) return undefined;
+    // Check if translations exist
+    if (!state.formState.translations) {
+      return undefined;
+    }
     
-    const langTranslations = translations[currentLang];
-    if (!langTranslations) return undefined;
+    // Check if language translations exist
+    if (!state.formState.translations[currentLang]) {
+      return undefined;
+    }
     
-    const fields = langTranslations.fields;
-    if (!fields) return undefined;
+    // Check if fields exist for this language
+    if (!state.formState.translations[currentLang]?.fields) {
+      return undefined;
+    }
     
-    const field = fields[fieldId];
-    if (!field) return undefined;
+    // Check if field exists
+    if (!state.formState.translations[currentLang]?.fields?.[fieldId]) {
+      return undefined;
+    }
     
-    // Return the property value
-    return field[propertyName];
+    // Return the property value - fixed to eliminate "always truthy" error
+    const fieldTranslations = state.formState.translations[currentLang]?.fields?.[fieldId];
+    return fieldTranslations ? fieldTranslations[propertyName] : undefined;
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
     const currentLang = language || state.formState.formLanguage || 'ar';
     
-    // Handle case when translations is undefined
-    const baseTranslations = state.formState.translations || {};
-    // Create a deep copy of translations
-    const translations = JSON.parse(JSON.stringify(baseTranslations));
+    // Create a new translations object by deep-copying the existing one or creating a new one
+    const existingTranslations = state.formState.translations || {};
+    const newTranslations = JSON.parse(JSON.stringify(existingTranslations));
     
     // Ensure language object exists
-    if (!translations[currentLang]) {
-      translations[currentLang] = {};
+    if (!newTranslations[currentLang]) {
+      newTranslations[currentLang] = {};
     }
     
     // Ensure fields object exists
-    if (!translations[currentLang].fields) {
-      translations[currentLang].fields = {};
+    if (!newTranslations[currentLang].fields) {
+      newTranslations[currentLang].fields = {};
     }
     
-    // Ensure field entry exists
-    if (!translations[currentLang].fields[fieldId]) {
-      translations[currentLang].fields[fieldId] = {};
+    // Ensure field object exists
+    if (!newTranslations[currentLang].fields[fieldId]) {
+      newTranslations[currentLang].fields[fieldId] = {};
     }
     
     // Set the property
-    translations[currentLang].fields[fieldId][propertyName] = value;
+    newTranslations[currentLang].fields[fieldId][propertyName] = value;
     
     return {
       formState: {
         ...state.formState,
-        translations
+        translations: newTranslations
       }
     };
   })
