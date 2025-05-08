@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -56,11 +57,14 @@ serve(async (req) => {
     // Transform form data to the expected format
     const transformedData = transformFormData(formData)
     
-    // Return the form data
+    // Return the form data with proper CORS headers
     return new Response(JSON.stringify(transformedData), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
       status: 200,
     })
@@ -74,6 +78,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
       status: 400,
     })
@@ -101,12 +106,13 @@ function transformFormData(formData) {
   // Initialize result with default values
   const result = {
     id: formData.id,
-    title: formData.title,
-    description: formData.description,
-    primaryColor: formData.primary_color || '#9b87f5',
+    title: formData.title || 'Form',
+    description: formData.description || '',
+    primaryColor: formData.primary_color || formData.primaryColor || '#9b87f5',
     // Include both versions of submit button text for compatibility
     submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
     submitButtonText: formData.submitbuttontext || 'إرسال الطلب',
+    is_published: formData.is_published || false,
     fields: []
   }
   
@@ -129,6 +135,11 @@ function transformFormData(formData) {
     console.log('Processing as multi-step form with', dataField.length, 'steps')
     
     dataField.forEach((step, stepIndex) => {
+      if (!step) {
+        console.warn(`Step ${stepIndex} is undefined or null`);
+        return;
+      }
+      
       // Add a step marker field
       transformedFields.push({
         id: step.id || `step-${stepIndex}`,
@@ -142,12 +153,14 @@ function transformFormData(formData) {
       if (step.fields && Array.isArray(step.fields)) {
         console.log(`Processing ${step.fields.length} fields in step ${stepIndex}`)
         step.fields.forEach(field => {
-          transformedFields.push({
-            ...field,
-            stepId: step.id,
-            stepTitle: step.title,
-            stepIndex: stepIndex
-          })
+          if (field) {
+            transformedFields.push({
+              ...field,
+              stepId: step.id,
+              stepTitle: step.title,
+              stepIndex: stepIndex
+            })
+          }
         })
       } else {
         console.log(`No fields array found in step ${stepIndex}`)
@@ -157,6 +170,11 @@ function transformFormData(formData) {
     // Handle nested steps format
     console.log('Processing nested steps format with', dataField.steps.length, 'steps')
     dataField.steps.forEach((step, stepIndex) => {
+      if (!step) {
+        console.warn(`Step ${stepIndex} is undefined or null`);
+        return;
+      }
+      
       transformedFields.push({
         id: step.id || `step-${stepIndex}`,
         type: 'step',
@@ -167,12 +185,14 @@ function transformFormData(formData) {
       
       if (step.fields && Array.isArray(step.fields)) {
         step.fields.forEach(field => {
-          transformedFields.push({
-            ...field,
-            stepId: step.id,
-            stepTitle: step.title,
-            stepIndex: stepIndex
-          })
+          if (field) {
+            transformedFields.push({
+              ...field,
+              stepId: step.id,
+              stepTitle: step.title,
+              stepIndex: stepIndex
+            })
+          }
         })
       }
     })
@@ -184,11 +204,15 @@ function transformFormData(formData) {
     const fieldsArray = dataField.fields || dataField.elements || [];
     
     if (Array.isArray(fieldsArray) && fieldsArray.length > 0) {
-      transformedFields = fieldsArray.map(field => ({
-        ...field,
-        stepIndex: 0,
-        stepTitle: 'Default Step'
-      }))
+      transformedFields = fieldsArray.map(field => {
+        if (!field) return null;
+        
+        return {
+          ...field,
+          stepIndex: 0,
+          stepTitle: 'Default Step'
+        };
+      }).filter(field => field !== null);
     } else {
       console.error('Could not find fields array in form data structure')
     }

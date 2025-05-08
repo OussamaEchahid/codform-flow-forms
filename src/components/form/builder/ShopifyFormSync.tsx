@@ -20,8 +20,32 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [syncsCount, setSyncsCount] = useState<number>(0);
+  const [isFormPublished, setIsFormPublished] = useState<boolean>(false);
 
   useEffect(() => {
+    // Check form publication status
+    const checkFormStatus = async () => {
+      if (!formId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('forms')
+          .select('is_published')
+          .eq('id', formId)
+          .single();
+          
+        if (error) {
+          console.error('Error checking form publication status:', error);
+          return;
+        }
+        
+        setIsFormPublished(data?.is_published || false);
+        console.log('Form publication status:', data?.is_published);
+      } catch (e) {
+        console.error('Error checking form status:', e);
+      }
+    };
+
     // Check for last sync information in localStorage
     const storedSyncInfo = localStorage.getItem(`form_sync_${formId}`);
     if (storedSyncInfo) {
@@ -36,6 +60,8 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         console.error('Error parsing sync info:', e);
       }
     }
+    
+    checkFormStatus();
   }, [formId]);
 
   const handleSync = async () => {
@@ -48,6 +74,19 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
+      // First ensure the form is published
+      const { error: publishError } = await supabase
+        .from('forms')
+        .update({ is_published: true })
+        .eq('id', formId);
+        
+      if (publishError) {
+        console.error('Error publishing form:', publishError);
+        toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing the form');
+        setIsSyncing(false);
+        return;
+      }
+
       // Call the Supabase edge function to sync the form with Shopify
       const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
         body: JSON.stringify({
@@ -61,12 +100,22 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         toast.error(language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form');
         setSyncStatus('error');
         setIsSyncing(false);
+        
+        // Save error status
+        localStorage.setItem(`form_sync_${formId}`, JSON.stringify({
+          lastSynced: lastSynced,
+          count: syncsCount,
+          status: 'error'
+        }));
         return;
       }
 
       if (data.success) {
         const newSyncsCount = syncsCount + 1;
         const currentTime = new Date().toLocaleString();
+        
+        // Check returned publication status
+        setIsFormPublished(data.published_status || true);
         
         // Save sync info to localStorage
         const syncInfo = {
@@ -80,6 +129,17 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         setLastSynced(currentTime);
         setSyncsCount(newSyncsCount);
         toast.success(language === 'ar' ? 'تم مزامنة النموذج بنجاح' : 'Form synced successfully');
+        
+        // Force refresh form status
+        const { data: formData } = await supabase
+          .from('forms')
+          .select('is_published')
+          .eq('id', formId)
+          .single();
+          
+        if (formData) {
+          setIsFormPublished(formData.is_published);
+        }
       } else {
         toast.error(data.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync'));
         setSyncStatus('error');
@@ -151,6 +211,14 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
                   </p>
                 )}
                 
+                <p className="text-sm mt-1">
+                  <span className={isFormPublished ? "text-green-600" : "text-amber-600"}>
+                    {isFormPublished 
+                      ? (language === 'ar' ? '✓ النموذج منشور' : '✓ Form is published') 
+                      : (language === 'ar' ? '⚠️ النموذج غير منشور' : '⚠️ Form not published')}
+                  </span>
+                </p>
+                
                 {lastSynced && (
                   <p className="text-sm text-gray-500 mt-1">
                     {language === 'ar'
@@ -212,8 +280,28 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
                   </p>
                   <p className="text-xs text-green-600 mt-1">
                     {language === 'ar'
-                      ? 'سيظهر النموذج الآن في صفحة الدفع في متجرك'
-                      : 'Your form will now appear on your store checkout page'}
+                      ? 'سيظهر النموذج الآن في صفحة المنتج في متجرك'
+                      : 'Your form will now appear on your store product page'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {syncStatus === 'error' && (
+            <div className="bg-red-50 p-3 rounded-lg border border-red-100 mt-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">
+                    {language === 'ar'
+                      ? 'حدث خطأ أثناء مزامنة النموذج'
+                      : 'Error syncing form with your store'}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    {language === 'ar'
+                      ? 'يرجى التأكد من أنك متصل بمتجر Shopify الخاص بك والمحاولة مرة أخرى'
+                      : 'Please ensure you are connected to your Shopify store and try again'}
                   </p>
                 </div>
               </div>

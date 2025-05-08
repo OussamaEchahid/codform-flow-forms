@@ -68,6 +68,21 @@ function CODFORMFormRenderer() {
       #${container.id} .codform-button {
         background-color: ${formData.primaryColor || '#9b87f5'} !important;
         color: white !important;
+        border-radius: ${formData.borderRadius || '0.5rem'} !important;
+        font-size: ${formData.fontSize || '1rem'} !important;
+        padding: 10px 15px !important;
+        margin: 10px 0 !important;
+        cursor: pointer !important;
+        border: none !important;
+        width: 100% !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+      }
+      #${container.id} .codform-submit-button:hover,
+      #${container.id} .codform-next-button:hover,
+      #${container.id} .codform-whatsapp-button:hover,
+      #${container.id} .codform-button:hover {
+        opacity: 0.9 !important;
       }
       #${container.id} .codform-step-active {
         background-color: ${formData.primaryColor || '#9b87f5'} !important;
@@ -77,6 +92,7 @@ function CODFORMFormRenderer() {
       #${container.id} select:focus {
         border-color: ${formData.primaryColor || '#9b87f5'} !important;
         box-shadow: 0 0 0 3px ${formData.primaryColor || '#9b87f5'}22 !important;
+        outline: none !important;
       }
       #${container.id} input[type="radio"]:checked,
       #${container.id} input[type="checkbox"]:checked {
@@ -85,48 +101,110 @@ function CODFORMFormRenderer() {
       }
       #${container.id} .codform-header {
         background-color: ${formData.primaryColor || '#9b87f5'} !important;
+        border-top-left-radius: ${formData.borderRadius || '0.5rem'} !important;
+        border-top-right-radius: ${formData.borderRadius || '0.5rem'} !important;
+        padding: 12px 15px !important;
+      }
+      #${container.id} .codform-form {
+        border-radius: ${formData.borderRadius || '0.5rem'} !important;
+        overflow: hidden !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
       }
       #${container.id} .codform-form label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
+        display: block !important;
+        margin-bottom: 8px !important;
+        font-weight: 500 !important;
+        color: #333 !important;
       }
       #${container.id} .codform-form input,
-      #${container.id} .codform-form textarea {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: ${formData.borderRadius || '0.5rem'};
-        font-size: ${formData.fontSize || '1rem'};
+      #${container.id} .codform-form textarea,
+      #${container.id} .codform-form select {
+        width: 100% !important;
+        padding: 10px 12px !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: ${formData.borderRadius || '0.5rem'} !important;
+        font-size: ${formData.fontSize || '1rem'} !important;
+        margin-bottom: 8px !important;
       }
       #${container.id} .codform-form-field {
-        margin-bottom: 20px;
+        margin-bottom: 20px !important;
       }
       #${container.id} .codform-radio-group,
       #${container.id} .codform-checkbox-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
       }
       #${container.id} .codform-radio-option,
       #${container.id} .codform-checkbox-option {
-        display: flex;
-        align-items: center;
+        display: flex !important;
+        align-items: center !important;
       }
       #${container.id}.codform-rtl .codform-radio-option,
       #${container.id}.codform-rtl .codform-checkbox-option {
-        flex-direction: row-reverse;
-        justify-content: flex-start;
+        flex-direction: row-reverse !important;
+        justify-content: flex-start !important;
       }
       #${container.id} .codform-radio-option input,
       #${container.id} .codform-checkbox-option input {
-        width: auto;
-        margin-right: 8px;
+        width: auto !important;
+        margin-right: 8px !important;
       }
       #${container.id}.codform-rtl .codform-radio-option input,
       #${container.id}.codform-rtl .codform-checkbox-option input {
-        margin-right: 0;
-        margin-left: 8px;
+        margin-right: 0 !important;
+        margin-left: 8px !important;
+      }
+      #${container.id} .codform-error {
+        background-color: #fee2e2 !important;
+        border: 1px solid #fecaca !important;
+        color: #b91c1c !important;
+        padding: 12px !important;
+        border-radius: ${formData.borderRadius || '0.5rem'} !important;
+        margin-bottom: 15px !important;
+      }
+      #${container.id} .codform-retry-button {
+        background-color: #b91c1c !important;
+        color: white !important;
+        border: none !important;
+        padding: 8px 12px !important;
+        border-radius: ${formData.borderRadius || '0.3rem'} !important;
+        cursor: pointer !important;
+        margin-top: 8px !important;
+        font-size: 14px !important;
+      }
+      #${container.id} .codform-steps-container {
+        padding: 20px !important;
+        background-color: white !important;
+      }
+      #${container.id} .codform-steps-nav {
+        display: flex !important;
+        justify-content: center !important;
+        margin-bottom: 20px !important;
+        padding-top: 15px !important;
+        background-color: white !important;
+      }
+      #${container.id} .codform-step-indicators {
+        display: flex !important;
+        gap: 10px !important;
+      }
+      #${container.id} .codform-step-indicator {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 50% !important;
+        background-color: #e2e8f0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: bold !important;
+        color: white !important;
+      }
+      #${container.id} .codform-nav-buttons {
+        display: flex !important;
+        gap: 10px !important;
+        margin-top: 20px !important;
+        padding: 0 20px 20px 20px !important;
+        background-color: white !important;
       }
     `;
     container.appendChild(formStyles);
