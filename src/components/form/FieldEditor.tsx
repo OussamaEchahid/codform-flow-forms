@@ -68,8 +68,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       placeholder: values.placeholder,
       helpText: values.helpText,
       defaultValue: values.defaultValue,
-      minLength: values.minLength,
-      maxLength: values.maxLength,
+      minLength: typeof values.minLength === 'string' ? Number(values.minLength) || 0 : values.minLength,
+      maxLength: typeof values.maxLength === 'string' ? Number(values.maxLength) || 0 : values.maxLength,
     };
     
     // Add options for select, radio, checkbox types
@@ -153,7 +153,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number" 
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value}
+                          value={field.value !== undefined ? field.value : 0}
                         />
                       </FormControl>
                     </FormItem>
@@ -170,7 +170,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number"
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value}
+                          value={field.value !== undefined ? field.value : 0}
                         />
                       </FormControl>
                     </FormItem>
