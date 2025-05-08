@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -294,15 +293,12 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
         
         <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-2">
               <TabsTrigger value="editor">
                 {language === 'ar' ? 'محرر الحقول' : 'Field Editor'}
               </TabsTrigger>
               <TabsTrigger value="shopify">
                 {language === 'ar' ? 'تكامل Shopify' : 'Shopify Integration'}
-              </TabsTrigger>
-              <TabsTrigger value="connection">
-                {language === 'ar' ? 'حالة الاتصال' : 'Connection Status'}
               </TabsTrigger>
             </TabsList>
             
@@ -411,15 +407,21 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
             </TabsContent>
             
             <TabsContent value="shopify">
-              <div className="space-y-4 p-4">
-                <ShopifyIntegration formId={localFormData.id} />
-                <ShopifyFormSync formId={localFormData.id} />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="connection">
-              <div className="space-y-4 p-4">
-                <ShopifyConnectionStatus />
+              <div className="p-4">
+                <div className="mb-4">
+                  <div className="bg-gray-50 p-3 rounded-md mb-4">
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full ${shopifyIntegration?.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="ml-2 text-sm text-gray-600">
+                        {shopifyIntegration?.connected ? 
+                          (language === 'ar' ? 'متصل' : 'Connected') : 
+                          (language === 'ar' ? 'غير متصل' : 'Not Connected')}
+                      </span>
+                    </div>
+                  </div>
+                  <ShopifyIntegration formId={localFormData.id} />
+                  <ShopifyFormSync formId={localFormData.id} />
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -428,7 +430,11 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
       
       <div className="lg:col-span-4">
         <div className="sticky top-4">
-          <div className="space-y-4">
+          <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm mb-4">
+            <h3 className="text-lg font-medium">
+              {language === 'ar' ? 'إعدادات النموذج' : 'Form Settings'}
+            </h3>
+            
             <div>
               <label className="block text-sm font-medium mb-1">
                 {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
@@ -467,20 +473,20 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
                 placeholder={language === 'ar' ? 'إرسال الطلب' : 'Submit Order'}
               />
             </div>
-            
-            <FormPreviewPanel
-              formTitle={localFormData.title}
-              formDescription={localFormData.description}
-              fields={localFormData.steps[previewStep - 1]?.fields || []}
-              formStyle={localFormData.style}
-              currentStep={previewStep}
-              totalSteps={localFormData.steps.length}
-              onPreviousStep={() => setPreviewStep(prev => Math.max(1, prev - 1))}
-              onNextStep={() => setPreviewStep(prev => Math.min(localFormData.steps.length, prev + 1))}
-              refreshKey={previewRefreshKey}
-              submitButtonText={localFormData.submitButtonText}
-            />
           </div>
+          
+          <FormPreviewPanel
+            formTitle={localFormData.title}
+            formDescription={localFormData.description}
+            currentStep={previewStep}
+            totalSteps={localFormData.steps.length}
+            formStyle={localFormData.style}
+            fields={localFormData.steps[previewStep - 1]?.fields || []}
+            onPreviousStep={() => setPreviewStep(prev => Math.max(1, prev - 1))}
+            onNextStep={() => setPreviewStep(prev => Math.min(localFormData.steps.length, prev + 1))}
+            refreshKey={previewRefreshKey}
+            submitButtonText={localFormData.submitButtonText}
+          />
         </div>
       </div>
       

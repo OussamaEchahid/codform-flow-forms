@@ -1,123 +1,137 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import BaseFieldEditor from './BaseFieldEditor';
+import { Trash } from 'lucide-react';
 
 interface OptionFieldEditorProps {
   field: FormField;
-  onSave: (field: FormField) => void;
-  onClose: () => void;
+  onChange: (field: FormField) => void;
 }
 
-const OptionFieldEditor = ({ field, onSave, onClose }: OptionFieldEditorProps) => {
+const OptionFieldEditor: React.FC<OptionFieldEditorProps> = ({ field, onChange }) => {
   const { language } = useI18n();
-  const [options, setOptions] = useState<{ value: string; label: string }[]>(
-    field.options?.map(option => {
-      // Handle both string and object options for backward compatibility
-      if (typeof option === 'string') {
-        return { value: option, label: option };
+  const [options, setOptions] = useState<Array<{ value: string; label: string }>>([]);
+
+  useEffect(() => {
+    if (field.options && Array.isArray(field.options)) {
+      // Check if options are strings or objects
+      if (typeof field.options[0] === 'string') {
+        // Convert string options to object options
+        setOptions(field.options.map((option: string) => ({ value: option, label: option })));
+      } else {
+        // Use existing object options
+        setOptions(field.options as Array<{ value: string; label: string }>);
       }
-      return option as { value: string; label: string };
-    }) || []
-  );
-  const [newOption, setNewOption] = useState({ value: '', label: '' });
-  
-  const addOption = () => {
-    if (newOption.value.trim() && newOption.label.trim()) {
-      setOptions([...options, { ...newOption }]);
-      setNewOption({ value: '', label: '' });
+    } else {
+      setOptions([{ value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' }]);
     }
+  }, [field.options]);
+
+  const updateOptions = (newOptions: Array<{ value: string; label: string }>) => {
+    setOptions(newOptions);
+    onChange({
+      ...field,
+      options: newOptions
+    });
   };
 
-  const removeOption = (index: number) => {
+  const addOption = () => {
+    const newOption = { value: `option${options.length + 1}`, label: `Option ${options.length + 1}` };
+    updateOptions([...options, newOption]);
+  };
+
+  const updateOption = (index: number, key: 'value' | 'label', value: string) => {
+    const newOptions = [...options];
+    newOptions[index][key] = value;
+    updateOptions(newOptions);
+  };
+
+  const deleteOption = (index: number) => {
     const newOptions = [...options];
     newOptions.splice(index, 1);
-    setOptions(newOptions);
+    updateOptions(newOptions);
   };
 
-  const handleSaveField = (updatedField: FormField) => {
-    // Ensure numeric fields are properly typed
-    if (typeof updatedField.minLength === 'string') {
-      updatedField.minLength = parseInt(updatedField.minLength, 10) || 0;
-    }
-    
-    if (typeof updatedField.maxLength === 'string') {
-      updatedField.maxLength = parseInt(updatedField.maxLength, 10) || 0;
-    }
-    
-    updatedField.options = options;
-    onSave(updatedField);
+  // Handle min length change - convert string to number
+  const handleMinLengthChange = (value: string) => {
+    const newMinLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...field,
+      minLength: newMinLength
+    });
+  };
+
+  // Handle max length change - convert string to number
+  const handleMaxLengthChange = (value: string) => {
+    const newMaxLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...field,
+      maxLength: newMaxLength
+    });
   };
 
   return (
-    <BaseFieldEditor field={field} onSave={handleSaveField} onClose={onClose}>
-      {/* Options Section */}
-      <div className="space-y-2">
-        <FormLabel>{language === 'ar' ? 'الخيارات' : 'Options'}</FormLabel>
-        
-        {options.length === 0 && (
-          <div className="p-4 text-center text-gray-500 border rounded-md border-dashed">
-            {language === 'ar' ? 'لا توجد خيارات. أضف خيارات أدناه.' : 'No options. Add options below.'}
+    <div className="space-y-4">
+      {options.map((option, index) => (
+        <div key={index} className="flex items-center space-x-2">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1 text-right">
+              {language === 'ar' ? 'القيمة' : 'Value'}
+            </label>
+            <Input
+              type="text"
+              className="w-full p-2 border rounded-md"
+              value={option.value}
+              onChange={(e) => updateOption(index, 'value', e.target.value)}
+            />
           </div>
-        )}
-        
-        {options.map((option, index) => (
-          <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-            <div className="flex-1">
-              <div className="text-sm font-medium">{option.label}</div>
-              <div className="text-xs text-gray-500">{option.value}</div>
-            </div>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => removeOption(index)}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1 text-right">
+              {language === 'ar' ? 'التسمية' : 'Label'}
+            </label>
+            <Input
+              type="text"
+              className="w-full p-2 border rounded-md"
+              value={option.label}
+              onChange={(e) => updateOption(index, 'label', e.target.value)}
+            />
           </div>
-        ))}
-        
-        <div className="p-4 border rounded-md mt-2">
-          <h4 className="text-sm font-medium mb-2">{language === 'ar' ? 'إضافة خيار جديد' : 'Add New Option'}</h4>
-          <div className="space-y-2">
-            <div>
-              <label className="text-xs">{language === 'ar' ? 'النص' : 'Label'}</label>
-              <Input 
-                value={newOption.label}
-                onChange={(e) => setNewOption({...newOption, label: e.target.value})}
-                placeholder={language === 'ar' ? 'نص الخيار' : 'Option label'}
-                size="sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs">{language === 'ar' ? 'القيمة' : 'Value'}</label>
-              <Input 
-                value={newOption.value}
-                onChange={(e) => setNewOption({...newOption, value: e.target.value})}
-                placeholder={language === 'ar' ? 'قيمة الخيار' : 'Option value'}
-                size="sm"
-              />
-            </div>
-            <Button 
-              type="button"
-              onClick={addOption}
-              disabled={!newOption.label.trim() || !newOption.value.trim()}
-              className="w-full mt-2"
-              size="sm"
-            >
-              {language === 'ar' ? 'إضافة خيار' : 'Add Option'}
-            </Button>
-          </div>
+          <Button variant="outline" size="icon" onClick={() => deleteOption(index)}>
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      <Button variant="outline" onClick={addOption} className="w-full">
+        {language === 'ar' ? 'إضافة خيار' : 'Add Option'}
+      </Button>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1 text-right">
+            {language === 'ar' ? 'الحد الأدنى للاختيارات' : 'Min Choices'}
+          </label>
+          <input
+            type="number"
+            className="w-full p-2 border rounded-md"
+            value={field.minLength !== undefined ? field.minLength : ''}
+            onChange={(e) => handleMinLengthChange(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1 text-right">
+            {language === 'ar' ? 'الحد الأقصى للاختيارات' : 'Max Choices'}
+          </label>
+          <input
+            type="number"
+            className="w-full p-2 border rounded-md"
+            value={field.maxLength !== undefined ? field.maxLength : ''}
+            onChange={(e) => handleMaxLengthChange(e.target.value)}
+          />
         </div>
       </div>
-    </BaseFieldEditor>
+    </div>
   );
 };
 
