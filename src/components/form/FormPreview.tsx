@@ -32,6 +32,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { language } = useI18n();
+  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const textAlign = language === 'ar' ? 'right' : 'left';
   
   return (
     <div 
@@ -48,10 +50,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: 'white',
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
+          direction: direction,
+          textAlign: textAlign as any,
         }}
       >
-        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
+        <h2 className="text-xl font-medium">{formTitle}</h2>
+        {formDescription && <p className="text-sm opacity-90 mt-1">{formDescription}</p>}
       </div>
       
       {totalSteps > 1 && (
@@ -97,7 +101,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="p-4" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: direction,
         }}
       >
         {fields && fields.length > 0 ? (
