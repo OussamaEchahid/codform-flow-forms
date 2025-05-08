@@ -295,14 +295,14 @@ export const useFormEditor = (formId?: string) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // Prepare all form data for saving - fix case sensitivity issue with submitButtonText/submitbuttontext
+      // Prepare all form data for saving - use submitButtonText to match the interface property
       const dbData = {
         title: formTitle,
         description: formDescription,
         data: formSteps,
         shop_id: shopId,
         updated_at: new Date().toISOString(),
-        submitbuttontext: submitButtonText // Using lowercase to match database column name
+        submitButtonText: submitButtonText // Use the camelCase version to match our interface
       };
       
       console.log("Saving form with data:", dbData);
@@ -441,7 +441,7 @@ export const useFormEditor = (formId?: string) => {
           toast.success(
             newPublishState 
               ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-              : (language === 'ar' ? 'تم إلغاء ن��ر النموذج' : 'Form unpublished')
+              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
           );
         } else {
           toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');

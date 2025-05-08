@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -18,6 +17,7 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   submitButtonText?: string;
+  submitbuttontext?: string; // Added lowercase version to match DB column
   // Add style properties
   primaryColor?: string;
   borderRadius?: string;
@@ -314,6 +314,12 @@ export const useFormTemplates = () => {
       if (dbData.isPublished !== undefined) {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
+      }
+      
+      // Make sure submitButtonText is saved as submitbuttontext
+      if (dbData.submitButtonText !== undefined) {
+        dbData.submitbuttontext = dbData.submitButtonText;
+        delete dbData.submitButtonText;
       }
       
       // Update form in Supabase
