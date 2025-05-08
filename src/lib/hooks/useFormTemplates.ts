@@ -33,7 +33,7 @@ export interface FormTemplate {
 }
 
 export const useFormTemplates = () => {
-  const { setFormState } = useFormStore();
+  const { setFormState, resetFormState } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
@@ -76,7 +76,16 @@ export const useFormTemplates = () => {
         isPublished: form.is_published
       }));
       
-      setForms(formattedData);
+      // Remove any duplicates by ID
+      const uniqueForms = formattedData.reduce((acc: FormData[], current) => {
+        const exists = acc.find(form => form.id === current.id);
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+      
+      setForms(uniqueForms);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching forms', error);
@@ -89,6 +98,8 @@ export const useFormTemplates = () => {
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
+      resetFormState(); // Clear any previous form state
+      
       const template = formTemplates.find(t => t.id === templateId);
       const shopId = getActiveShopId();
       
@@ -114,6 +125,7 @@ export const useFormTemplates = () => {
         data: template.data,
         isPublished: false,
         shop_id: shopId,
+        primaryColor: template.primaryColor,
       };
 
       // Insert into Supabase
@@ -126,7 +138,8 @@ export const useFormTemplates = () => {
           data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          primaryColor: template.primaryColor
         });
 
       if (error) {
@@ -156,6 +169,8 @@ export const useFormTemplates = () => {
   const createDefaultForm = async () => {
     try {
       setIsLoading(true);
+      resetFormState(); // Clear any previous form state
+      
       const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
@@ -324,6 +339,7 @@ export const useFormTemplates = () => {
   const loadForm = async (formId: string) => {
     try {
       setIsLoading(true);
+      resetFormState(); // Clear previous form state
       
       // Fetch form from Supabase
       const { data, error } = await supabase

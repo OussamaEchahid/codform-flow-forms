@@ -4,7 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface FormPreviewPanelProps {
   formTitle: string;
@@ -82,13 +82,15 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fields={fields}
           submitButtonText={submitButtonText}
         >
-          <div className="text-center p-6">
-            <p className="text-gray-500 mb-4">
-              {language === 'ar' 
-                ? 'أضف عناصر إلى النموذج لمعاينتها هنا'
-                : 'Add form elements to preview them here'}
-            </p>
-          </div>
+          {fields.length === 0 && (
+            <div className="text-center p-6">
+              <p className="text-gray-500 mb-4">
+                {language === 'ar' 
+                  ? 'أضف عناصر إلى النموذج لمعاينتها هنا'
+                  : 'Add form elements to preview them here'}
+              </p>
+            </div>
+          )}
         </FormPreview>
       </div>
     </div>

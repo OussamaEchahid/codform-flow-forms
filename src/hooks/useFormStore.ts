@@ -10,7 +10,7 @@ export interface FormState {
   is_published?: boolean; // Added for consistency with database field
   shop_id?: string;
   submitButtonText?: string;
-  // Add style properties
+  // Style properties
   primaryColor?: string;
   borderRadius?: string;
   fontSize?: string;
@@ -25,7 +25,7 @@ interface FormStore {
 
 const defaultFormState: FormState = {
   id: '',
-  title: 'New Form',
+  title: 'نموذج جديد',
   description: '',
   data: [],
   isPublished: false,

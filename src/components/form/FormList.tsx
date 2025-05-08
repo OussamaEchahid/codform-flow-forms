@@ -40,6 +40,15 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
+  
+  // Remove duplicate forms by ID
+  const uniqueForms = forms.reduce((acc: FormData[], current) => {
+    const existingForm = acc.find(form => form.id === current.id);
+    if (!existingForm) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -60,7 +69,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
-  if (forms.length === 0) {
+  if (uniqueForms.length === 0) {
     return (
       <Card className="bg-gray-50 border-dashed">
         <CardContent className="pt-6 text-center">
@@ -73,7 +82,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {forms.map((form) => (
+      {uniqueForms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">

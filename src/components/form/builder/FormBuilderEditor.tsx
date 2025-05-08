@@ -43,7 +43,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  const { formState, setFormState } = useFormStore();
+  const { formState, setFormState, resetFormState } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -68,7 +68,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formTitle, setFormTitle] = useState('نموذج جديد');
   const [formDescription, setFormDescription] = useState('');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
@@ -92,6 +92,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const getActiveShopId = () => {
     return shopifyIntegration.shop || localStorage.getItem('shopify_store');
   };
+
+  // Clear form state when navigating away or when component unmounts
+  useEffect(() => {
+    return () => {
+      resetFormState();
+    };
+  }, []);
 
   // Initialize a new form if no form ID is provided
   const initializeNewForm = async () => {
@@ -131,6 +138,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
 
       // Update form state
+      resetFormState(); // Clear any previous form state
       setFormState({
         id: newId,
         title: formTitle,
@@ -156,16 +164,29 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       if (id) {
         setCurrentFormId(id);
         try {
+          // Reset form state before loading new form
+          resetFormState();
+          
           const formData = await loadForm(id);
           
           if (formData) {
-            setFormTitle(formData.title || (language === 'ar' ? 'نموذج جديد' : 'New Form'));
+            setFormTitle(formData.title || 'نموذج جديد');
             setFormDescription(formData.description || '');
             setFormElements(
               formData.data?.flatMap(step => step.fields) || []
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
+            
+            // Update form style if available
+            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
+              setFormStyle({
+                primaryColor: formData.primaryColor || formStyle.primaryColor,
+                borderRadius: formData.borderRadius || formStyle.borderRadius,
+                fontSize: formData.fontSize || formStyle.fontSize,
+                buttonStyle: formData.buttonStyle || formStyle.buttonStyle
+              });
+            }
             
             console.log("Loaded form data:", formData);
           } else {

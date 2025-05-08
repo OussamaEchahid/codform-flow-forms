@@ -38,21 +38,22 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
     };
 
-    // If we have initial forms, use those first, then fetch
-    if (initialForms && initialForms.length > 0) {
-      setLocalForms(initialForms);
-      if (forceRefresh) {
-        loadForms();
-      }
-    } else {
-      loadForms();
-    }
+    loadForms();
   }, [forceRefresh]);
 
-  // Update local forms when the forms from hook change
+  // Update local forms when the forms from hook change, ensuring uniqueness by ID
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
-      setLocalForms(forms);
+      // Remove duplicates by ID
+      const uniqueForms = forms.reduce((acc: any[], current) => {
+        const existingForm = acc.find(form => form.id === current.id);
+        if (!existingForm) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+      
+      setLocalForms(uniqueForms);
     }
   }, [forms, hasLoadedForms]);
 
@@ -104,7 +105,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           </p>
         </div>
         
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 rtl:space-x-reverse">
           <Button 
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}
@@ -113,7 +114,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           </Button>
           
           <Button onClick={handleCreateForm}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
             {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </Button>
         </div>
