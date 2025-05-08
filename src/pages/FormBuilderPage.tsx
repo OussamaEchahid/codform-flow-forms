@@ -11,6 +11,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -29,6 +30,27 @@ const FormBuilderPage = () => {
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected || bypassEnabled;
+
+  // Initialize database trigger for automatic timestamp updates
+  useEffect(() => {
+    const initDbTrigger = async () => {
+      try {
+        // Call edge function to initialize database trigger
+        const { data, error } = await supabase.functions.invoke('create-db-trigger', {});
+        
+        if (error) {
+          console.error('Error initializing database trigger:', error);
+        } else {
+          console.log('Database trigger initialization result:', data);
+        }
+      } catch (err) {
+        console.error('Failed to initialize database trigger:', err);
+      }
+    };
+
+    // Only run on initial page load
+    initDbTrigger();
+  }, []); // Empty dependency array ensures it runs once
   
   // Handle connection issues automatically
   useEffect(() => {

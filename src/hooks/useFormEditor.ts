@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { v4 as uuidv4 } from 'uuid';
+import { standardizeFormData, withRetry } from '@/lib/form-utils/standardizeFormData';
 
 export interface FormStyle {
   primaryColor: string;
@@ -40,6 +41,7 @@ export const useFormEditor = (formId?: string) => {
   const [currentPreviewStep, setCurrentPreviewStep] = useState<number>(1);
   const [saveRetries, setSaveRetries] = useState<number>(0);
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
+  const [currentSaveRequestId, setCurrentSaveRequestId] = useState<string | null>(null);
   const maxSaveRetries = 3;
 
   // Get active shop ID for database operations - memoized to prevent rerenders
@@ -60,12 +62,8 @@ export const useFormEditor = (formId?: string) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Prepare initial form data
-      const initialFormStep: FormStep = {
-        id: '1',
-        title: 'Main Step',
-        fields: []
-      };
+      // Prepare initial standardized form data
+      const initialFormSteps = standardizeFormData([], formStyle, submitButtonText);
 
       // Create new form in database with retry logic
       let retryCount = 0;
@@ -78,7 +76,7 @@ export const useFormEditor = (formId?: string) => {
             id: newId,
             title: formTitle,
             description: formDescription,
-            data: [initialFormStep],
+            data: initialFormSteps,
             shop_id: shopId,
             is_published: false,
             submitButtonText: submitButtonText
@@ -119,7 +117,7 @@ export const useFormEditor = (formId?: string) => {
         id: newId,
         title: formTitle,
         description: formDescription,
-        data: [initialFormStep],
+        data: initialFormSteps,
         isPublished: false,
         shop_id: shopId,
         submitButtonText: submitButtonText
@@ -130,7 +128,7 @@ export const useFormEditor = (formId?: string) => {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
     }
-  }, [formTitle, formDescription, submitButtonText, getActiveShopId, language, resetFormState, setFormState]);
+  }, [formTitle, formDescription, submitButtonText, formStyle, getActiveShopId, language, resetFormState, setFormState]);
 
   // Load form data - memoized with useCallback to prevent it from changing on each render
   const loadFormData = useCallback(async (id?: string) => {
@@ -214,7 +212,7 @@ export const useFormEditor = (formId?: string) => {
         let formMetadata = undefined;
         if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
           // Check if metadata exists, if not create it
-          if (formData.data[0] && formData.data[0].metadata) {
+          if (formData.data[0] && formData.data[0].metadata && formData.data[0].metadata.formStyle) {
             formMetadata = formData.data[0].metadata.formStyle;
           }
         }
@@ -277,6 +275,9 @@ export const useFormEditor = (formId?: string) => {
       return;
     }
     
+    // Generate a unique ID for this save request
+    const requestId = uuidv4();
+    setCurrentSaveRequestId(requestId);
     setIsSaving(true);
     
     try {
@@ -286,12 +287,8 @@ export const useFormEditor = (formId?: string) => {
         return;
       }
       
-      // Create form step from elements
-      const formStep: FormStep = {
-        id: '1',
-        title: 'Main Step',
-        fields: formElements
-      };
+      // Create standardized form steps from elements
+      const formSteps = standardizeFormData(formElements, formStyle, submitButtonText);
       
       const shopId = getActiveShopId();
       
@@ -299,50 +296,68 @@ export const useFormEditor = (formId?: string) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // Prepare all form data including style properties for saving
+      // Prepare all form data for saving
       const dbData = {
         title: formTitle,
         description: formDescription,
-        data: [formStep],
+        data: formSteps,
         shop_id: shopId,
         updated_at: new Date().toISOString(),
         submitButtonText: submitButtonText
       };
       
-      // Include style properties in the first step's metadata
-      if (!dbData.data[0].metadata) {
-        dbData.data[0].metadata = {};
-      }
+      console.log("Saving form with data:", dbData);
+      console.log("RequestID:", requestId);
       
-      // Store style properties in the metadata
-      dbData.data[0].metadata.formStyle = {
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        submitButtonText: submitButtonText
+      // Try direct update using withRetry utility
+      const updateOperation = async () => {
+        const { error } = await supabase
+          .from('forms')
+          .update(dbData)
+          .eq('id', currentFormId);
+          
+        if (error) throw error;
+        return true;
       };
       
-      console.log("Saving form with data:", dbData);
-      
-      // Try direct update
-      const { error } = await supabase
-        .from('forms')
-        .update(dbData)
-        .eq('id', currentFormId);
-      
-      if (error) {
+      try {
+        // Use withRetry for better error handling
+        await withRetry(updateOperation, maxSaveRetries);
+        
+        // Only process if this is still the current save request
+        if (requestId === currentSaveRequestId) {
+          // Reset save retries on successful save
+          setSaveRetries(0);
+          
+          // Update form state in memory
+          setFormState({
+            id: currentFormId,
+            title: formTitle,
+            description: formDescription,
+            data: formSteps,
+            shop_id: shopId,
+            submitButtonText: submitButtonText,
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle
+          });
+          
+          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+          setRefreshKey(prev => prev + 1);
+        } else {
+          console.log("Save request superseded by a newer request");
+        }
+      } catch (error) {
+        // If direct update fails, try alternate saving method
         console.error("Direct database update failed:", error);
         
-        // If direct update fails and we haven't exceeded retries, try alternate saving method
-        if (saveRetries < maxSaveRetries) {
-          setSaveRetries(prev => prev + 1);
-          
-          // Try using the saveForm method from useFormTemplates
+        if (requestId === currentSaveRequestId) {
+          // Try using the saveForm method from useFormTemplates as fallback
           const alternateSuccess = await saveForm(currentFormId, {
             title: formTitle,
             description: formDescription,
-            data: [formStep],
+            data: formSteps,
             submitButtonText: submitButtonText,
             // Include other necessary fields
             primaryColor: formStyle.primaryColor,
@@ -355,41 +370,23 @@ export const useFormEditor = (formId?: string) => {
             toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
             setRefreshKey(prev => prev + 1);
             setSaveRetries(0);
-            setIsSaving(false);
-            return;
           } else {
             throw new Error('Both save methods failed');
           }
         } else {
-          throw error;
+          console.log("Failed save request superseded");
         }
       }
-      
-      // Reset save retries on successful save
-      setSaveRetries(0);
-      
-      // Update form state in memory
-      setFormState({
-        id: currentFormId,
-        title: formTitle,
-        description: formDescription,
-        data: [formStep],
-        shop_id: shopId,
-        submitButtonText: submitButtonText,
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle
-      });
-      
-      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-      setRefreshKey(prev => prev + 1);
     } catch (error) {
-      console.error("Error saving form:", error);
-      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      if (requestId === currentSaveRequestId) {
+        console.error("Error saving form:", error);
+        toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      }
+    } finally {
+      if (requestId === currentSaveRequestId) {
+        setIsSaving(false);
+      }
     }
-    
-    setIsSaving(false);
   }, [
     currentFormId,
     formDescription,
@@ -401,9 +398,9 @@ export const useFormEditor = (formId?: string) => {
     language,
     maxSaveRetries,
     saveForm,
-    saveRetries,
     setFormState,
-    submitButtonText
+    submitButtonText,
+    currentSaveRequestId
   ]);
 
   // Handle publishing form
@@ -416,7 +413,7 @@ export const useFormEditor = (formId?: string) => {
     setIsPublishing(true);
     
     try {
-      // Save form before publishing
+      // Save form before publishing to ensure latest changes are included
       await handleSave();
       
       // Toggle publish status
@@ -464,9 +461,9 @@ export const useFormEditor = (formId?: string) => {
     } catch (error) {
       console.error("Error publishing form:", error);
       toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
+    } finally {
+      setIsPublishing(false);
     }
-    
-    setIsPublishing(false);
   }, [currentFormId, formState, handleSave, isPublished, language, publishForm, setFormState]);
 
   // Update form field operations with useCallback

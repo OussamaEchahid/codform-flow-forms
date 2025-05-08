@@ -48,7 +48,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     deleteElement,
     duplicateElement,
     updateElement,
-    updateFormMeta
+    updateFormMeta,
+    setFormElements
   } = useFormEditor(id);
 
   // Debounced save function to prevent multiple rapid saves
@@ -112,7 +113,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
   }, [id, loadFormData, language]); 
 
-  // Safe save handler with debounce - FIXED: Now returns a Promise<void> to match expected type
+  // Safe save handler with debounce - returns a Promise<void> to match expected type
   const safeSave = useCallback(async (): Promise<void> => {
     return new Promise((resolve) => {
       debouncedSave();
@@ -138,17 +139,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         return;
       }
       
-      // Using formEditor's state setters
-      updateElement({
-        ...formElements[oldIndex],
-      });
+      // Properly reorder the array using arrayMove
+      const newElements = arrayMove([...formElements], oldIndex, newIndex);
       
-      // Trigger debounced save
-      safeSave();
+      // Update the entire elements array instead of just one element
+      setFormElements(newElements);
+      
+      // Trigger debounced save after reordering
+      debouncedSave();
     } catch (error) {
       console.error("Error in handleDragEnd:", error);
     }
-  }, [formElements, updateElement, safeSave]);
+  }, [formElements, setFormElements, debouncedSave]);
 
   // Handle Shopify integration with improved error handling
   const handleShopifyIntegration = useCallback(async (settings: any) => {
