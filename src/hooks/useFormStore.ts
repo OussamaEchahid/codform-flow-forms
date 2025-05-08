@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface FormState {
@@ -129,9 +128,13 @@ export const useFormStore = create<FormStore>((set, get) => ({
     const state = get();
     const currentLang = language || state.formState.formLanguage || 'ar';
     const translations = state.formState.translations || {};
-    const langTranslations = translations[currentLang]?.fields;
     
-    return langTranslations?.[fieldId]?.[propertyName];
+    if (!translations[currentLang] || !translations[currentLang]?.fields) {
+      return undefined;
+    }
+    
+    const langTranslations = translations[currentLang].fields;
+    return langTranslations[fieldId]?.[propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
     const currentLang = language || state.formState.formLanguage || 'ar';
