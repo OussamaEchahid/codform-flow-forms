@@ -62,7 +62,7 @@ serve(async (req: Request) => {
 
     console.log(`Form found: "${formData.title}", current published status: ${formData.is_published}`);
 
-    // Update form with shop_id and is_published=true to ensure it's visible
+    // Always ensure form is published when synced with Shopify
     const { error: formUpdateError } = await supabase
       .from('forms')
       .update({ 

@@ -7,14 +7,18 @@ function CODFORMFormLoader(API_BASE_URL) {
   function loadForm(container, formId, productId) {
     console.log('CODFORM: Loading form', formId);
     
-    // Ensure we have a valid API base URL
-    if (!API_BASE_URL) {
-      console.error('CODFORM: API_BASE_URL is not defined');
-      showError(container, 'Configuration error: API URL not defined');
+    // Double check API base URL is properly set
+    if (!API_BASE_URL || API_BASE_URL === 'undefined') {
+      console.error('CODFORM: API_BASE_URL is invalid:', API_BASE_URL);
+      showError(container, 'Configuration error: API URL not defined or invalid');
       return;
     }
     
-    const apiUrl = `${API_BASE_URL}/api-forms/${formId}`;
+    // Ensure the API URL is correct and includes the /api-forms/ endpoint
+    let apiUrl = API_BASE_URL;
+    if (!apiUrl.endsWith('/')) apiUrl += '/';
+    apiUrl += 'api-forms/' + formId;
+    
     console.log('CODFORM: Fetching form from:', apiUrl);
     
     // Show loader while fetching
@@ -42,6 +46,8 @@ function CODFORMFormLoader(API_BASE_URL) {
         
         // Check if we got HTML instead of JSON (common with CORS issues)
         const contentType = response.headers.get('Content-Type');
+        console.log('CODFORM: Content-Type:', contentType);
+        
         if (contentType && contentType.includes('text/html')) {
           throw new Error(`Received HTML instead of JSON (status ${response.status}). This usually indicates a CORS issue or incorrect API URL.`);
         }
@@ -69,12 +75,21 @@ function CODFORMFormLoader(API_BASE_URL) {
           throw new Error('This form is not published. Please publish the form before embedding it.');
         }
         
-        // Check form fields
-        if (!(data.fields && Array.isArray(data.fields) && data.fields.length > 0) && 
-            !(data.data && (Array.isArray(data.data) || typeof data.data === 'object'))) {
-          
-          console.error('CODFORM: Form has no fields or data:', data);
-          throw new Error('Invalid form data: No fields found. This form may be empty or misconfigured.');
+        // More flexible data structure validation
+        let hasValidContent = false;
+        
+        // Check different possible data structures
+        if (data.fields && Array.isArray(data.fields) && data.fields.length > 0) {
+          hasValidContent = true;
+        } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          hasValidContent = true;
+        } else if (data.data && typeof data.data === 'object' && data.data.steps) {
+          hasValidContent = true;
+        }
+        
+        if (!hasValidContent) {
+          console.error('CODFORM: Form has no valid content:', data);
+          throw new Error('Invalid form data: No valid content found. The form may be empty or misconfigured.');
         }
         
         hideLoader(container);

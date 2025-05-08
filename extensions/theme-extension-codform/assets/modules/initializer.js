@@ -1,8 +1,7 @@
 
 // CODFORM Initializer Module
 function CODFORMInitializer() {
-  // Explicitly set the API base URL to the Supabase Edge Function URL
-  // Make sure this URL is constant and correct
+  // Using hard-coded API base URL to ensure consistent behavior
   const API_BASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
   
   console.log('CODFORM: Initializing with API base URL:', API_BASE_URL);

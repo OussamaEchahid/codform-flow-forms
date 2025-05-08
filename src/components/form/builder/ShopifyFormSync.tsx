@@ -41,6 +41,12 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         
         setIsFormPublished(data?.is_published || false);
         console.log('Form publication status:', data?.is_published);
+        
+        // If form is not published, auto-publish it
+        if (data && !data.is_published && shop) {
+          console.log('Auto-publishing form for Shopify compatibility');
+          handleSync();
+        }
       } catch (e) {
         console.error('Error checking form status:', e);
       }
@@ -62,7 +68,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     }
     
     checkFormStatus();
-  }, [formId]);
+  }, [formId, shop]);
 
   const handleSync = async () => {
     if (!formId || !shop) {
@@ -77,7 +83,10 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
       // First ensure the form is published
       const { error: publishError } = await supabase
         .from('forms')
-        .update({ is_published: true })
+        .update({ 
+          is_published: true,
+          shop_id: shop  // Make sure shop_id is also updated
+        })
         .eq('id', formId);
         
       if (publishError) {
