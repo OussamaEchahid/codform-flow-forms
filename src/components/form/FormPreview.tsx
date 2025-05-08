@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -40,18 +40,24 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const [key, setKey] = useState(0);
   
   useEffect(() => {
+    // Use a function to update state to ensure we're not causing any unintended loop
     setKey(prevKey => prevKey + 1);
   }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
+
+  // Memoize the CSS variables to prevent re-calculation on each render
+  const cssVars = useMemo(() => {
+    return {
+      fontSize: formStyle.fontSize,
+      '--form-primary-color': formStyle.primaryColor,
+      borderRadius: formStyle.borderRadius,
+    } as React.CSSProperties;
+  }, [formStyle.fontSize, formStyle.primaryColor, formStyle.borderRadius]);
   
   return (
     <div 
       key={key}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
-      style={{
-        fontSize: formStyle.fontSize,
-        '--form-primary-color': formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-      } as React.CSSProperties}
+      style={cssVars}
     >
       <div 
         className="p-4 border-b" 
@@ -128,6 +134,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 borderRadius: formStyle.buttonStyle === 'rounded' ? '9999px' : 
                               formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
               }}
+              type="button"
             >
               {submitButtonText}
             </button>
@@ -140,4 +147,4 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   );
 };
 
-export default FormPreview;
+export default React.memo(FormPreview);

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -30,7 +30,7 @@ const FormElementList: React.FC<FormElementListProps> = ({
 }) => {
   const { language } = useI18n();
 
-  const handleAddElement = React.useCallback((type: string) => {
+  const handleAddElement = useCallback((type: string) => {
     onAddElement(type);
   }, [onAddElement]);
 

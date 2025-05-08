@@ -25,6 +25,23 @@ interface FormFieldProps {
   };
 }
 
+// Define a mapping of field types to components
+const fieldComponentMap: Record<string, React.FC<FormFieldProps>> = {
+  'text': TextInput,
+  'textarea': TextArea,
+  'radio': RadioGroup,
+  'checkbox': CheckboxGroup,
+  'title': TitleField,
+  'text/html': HtmlContent,
+  'cart-items': CartItems,
+  'cart-summary': CartSummary,
+  'submit': SubmitButton,
+  'shipping': ShippingOptions,
+  'countdown': CountdownTimer,
+  'whatsapp': WhatsAppButton,
+  'image': ImageField,
+};
+
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
@@ -39,29 +56,14 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     fieldType = 'text';
   }
 
-  const components: { [key: string]: React.FC<FormFieldProps> } = {
-    'text': TextInput,
-    'textarea': TextArea,
-    'radio': RadioGroup,
-    'checkbox': CheckboxGroup,
-    'title': TitleField,
-    'text/html': HtmlContent,
-    'cart-items': CartItems,
-    'cart-summary': CartSummary,
-    'submit': SubmitButton,
-    'shipping': ShippingOptions,
-    'countdown': CountdownTimer,
-    'whatsapp': WhatsAppButton,
-    'image': ImageField,
-  };
-
-  const Component = components[fieldType];
+  const Component = fieldComponentMap[fieldType];
+  
   if (!Component) {
-    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
+    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(fieldComponentMap));
     return null;
   }
 
   return <Component field={field} formStyle={formStyle} />;
 };
 
-export default FormField;
+export default React.memo(FormField);
