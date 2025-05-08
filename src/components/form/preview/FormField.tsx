@@ -18,10 +18,10 @@ import HtmlContent from './fields/HtmlContent';
 interface FormFieldProps {
   field: FormFieldType;
   formStyle: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
   };
 }
 

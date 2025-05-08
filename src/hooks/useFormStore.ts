@@ -9,12 +9,12 @@ export interface FormState {
   isPublished: boolean;
   is_published?: boolean; // Added for consistency with database field
   shop_id?: string;
-  submitButtonText?: string;
+  submitButtonText: string;
   // Style properties
-  primaryColor?: string;
-  borderRadius?: string;
-  fontSize?: string;
-  buttonStyle?: string;
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
 }
 
 interface FormStore {

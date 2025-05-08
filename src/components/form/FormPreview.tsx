@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -11,14 +11,14 @@ interface FormPreviewProps {
   currentStep: number;
   totalSteps: number;
   children: React.ReactNode;
-  formStyle?: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
+  formStyle: {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
   };
   fields?: FormField[];
-  submitButtonText?: string;
+  submitButtonText: string;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -27,25 +27,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   currentStep,
   totalSteps,
   children,
-  formStyle = {
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  },
+  formStyle,
   fields = [],
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { language } = useI18n();
-  const [key, setKey] = useState(0);
-  
-  useEffect(() => {
-    setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
   
   return (
     <div 
-      key={key}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={{
         fontSize: formStyle.fontSize,

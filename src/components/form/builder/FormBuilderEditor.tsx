@@ -167,32 +167,71 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           // Reset form state before loading new form
           resetFormState();
           
-          const formData = await loadForm(id);
+          // Fetch form from database
+          const { data, error } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('id', id)
+            .single();
           
-          if (formData) {
-            setFormTitle(formData.title || 'نموذج جديد');
-            setFormDescription(formData.description || '');
-            setFormElements(
-              formData.data?.flatMap(step => step.fields) || []
-            );
-            setIsPublished(!!formData.isPublished || !!formData.is_published);
-            setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
-            
-            // Update form style if available
-            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
-              setFormStyle({
-                primaryColor: formData.primaryColor || formStyle.primaryColor,
-                borderRadius: formData.borderRadius || formStyle.borderRadius,
-                fontSize: formData.fontSize || formStyle.fontSize,
-                buttonStyle: formData.buttonStyle || formStyle.buttonStyle
-              });
-            }
-            
-            console.log("Loaded form data:", formData);
-          } else {
+          if (error) {
+            console.error('Error loading form:', error);
+            toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+            setIsLoading(false);
+            return;
+          }
+          
+          if (!data) {
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
             navigate('/form-builder');
+            return;
           }
+          
+          // Extract form data
+          setFormTitle(data.title || 'نموذج جديد');
+          setFormDescription(data.description || '');
+          
+          // Extract fields from steps
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            const formFields = data.data.flatMap(step => step.fields || []);
+            setFormElements(formFields);
+            
+            // Extract style properties from metadata if available
+            const formMetadata = data.data[0]?.metadata?.formStyle;
+            if (formMetadata) {
+              setFormStyle({
+                primaryColor: formMetadata.primaryColor || '#9b87f5',
+                borderRadius: formMetadata.borderRadius || '0.5rem',
+                fontSize: formMetadata.fontSize || '1rem',
+                buttonStyle: formMetadata.buttonStyle || 'rounded'
+              });
+              
+              if (formMetadata.submitButtonText) {
+                setSubmitButtonText(formMetadata.submitButtonText);
+              }
+            }
+            
+            // Check for submit button text in main data
+            if (data.submitButtonText) {
+              setSubmitButtonText(data.submitButtonText);
+            }
+          }
+          
+          setIsPublished(!!data.isPublished || !!data.is_published);
+          
+          // Update form state in store
+          setFormState({
+            ...data,
+            isPublished: data.is_published,
+            // Ensure style properties are set
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle,
+            submitButtonText: submitButtonText
+          });
+          
+          console.log("Loaded form data:", data);
         } catch (error) {
           console.error("Error loading form:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
@@ -233,8 +272,49 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
-      const formData: Partial<FormData> = {
+      // Prepare all form data including style properties for saving
+      const dbData = {
+        title: formTitle,
+        description: formDescription,
+        data: [formStep],
+        shop_id: shopId,
+        updated_at: new Date().toISOString(),
+        // Store style properties inside the first step's metadata
+        submitButtonText: submitButtonText
+      };
+      
+      // Include style properties in the first step's metadata
+      if (!dbData.data[0].metadata) {
+        dbData.data[0].metadata = {};
+      }
+      
+      // Store style properties in the metadata
+      dbData.data[0].metadata.formStyle = {
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle,
+        submitButtonText: submitButtonText
+      };
+      
+      console.log("Saving form with data:", dbData);
+      
+      // Update database directly
+      const { error } = await supabase
+        .from('forms')
+        .update(dbData)
+        .eq('id', currentFormId);
+      
+      if (error) {
+        console.error("Database update failed:", error);
+        toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
+        setIsSaving(false);
+        return;
+      }
+      
+      // Update form state in memory
+      setFormState({
+        id: currentFormId,
         title: formTitle,
         description: formDescription,
         data: [formStep],
@@ -244,51 +324,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle
-      };
+      });
       
-      console.log("Saving form with data:", formData);
-      
-      // محاولة التحديث المباشر في قاعدة البيانات
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          title: formTitle,
-          description: formDescription,
-          data: [formStep],
-          shop_id: shopId,
-          updated_at: new Date().toISOString(),
-          submitButtonText: submitButtonText,
-          primaryColor: formStyle.primaryColor,
-          borderRadius: formStyle.borderRadius,
-          fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
-        })
-        .eq('id', currentFormId);
-      
-      if (error) {
-        console.error("Database update failed:", error);
-        
-        // إذا فشل التحديث المباشر، نحاول استخدام وظيفة saveForm
-        const success = await saveForm(currentFormId, formData);
-        
-        if (success) {
-          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        } else {
-          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
-        }
-      } else {
-        // تحديث حالة النموذج في الذاكرة
-        setFormState({
-          ...formState,
-          ...formData,
-          id: currentFormId
-        });
-        
-        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        
-        // تحديث حالة الحفظ
-        setRefreshKey(prev => prev + 1);
-      }
+      toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Error saving form:", error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
@@ -345,7 +384,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
         );
         
-        // تحديث حالة النموذج في الذاكرة
+        // Update form state in memory
         setFormState({
           ...formState,
           isPublished: newPublishState
@@ -463,10 +502,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       ...formStyle,
       [key]: value
     });
-    setRefreshKey(prev => prev + 1);
     
-    // Save style immediately when it changes
-    setTimeout(() => handleSave(), 300);
+    // Don't use setTimeout for saving, handle it immediately
+    handleSave();
   };
 
   const handleSaveStyle = () => {
@@ -543,8 +581,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Handle submit button text change with auto-save
   const handleSubmitButtonTextChange = (text: string) => {
     setSubmitButtonText(text);
-    // Save after changing submit button text
-    setTimeout(() => handleSave(), 300);
+    
+    // Don't use setTimeout for saving, handle it immediately
+    handleSave();
   };
 
   return (
