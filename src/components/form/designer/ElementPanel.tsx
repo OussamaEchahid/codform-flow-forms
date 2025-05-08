@@ -31,7 +31,7 @@ const ElementPanel: React.FC<ElementPanelProps> = ({ onAddElement }) => {
     { type: 'checkbox', label: language === 'ar' ? 'خانة اختيار' : 'Checkbox', icon: <Check size={16} /> },
     { type: 'radio', label: language === 'ar' ? 'خيارات' : 'Radio', icon: <CircleDot size={16} /> },
     { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: <Image size={16} /> },
-    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: <FileText size={16} weight="bold" /> },
+    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: <FileText size={16} /> },
     { type: 'text/html', label: language === 'ar' ? 'HTML' : 'HTML', icon: <FileText size={16} /> },
     { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart Items', icon: <ShoppingCart size={16} /> },
     { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: <ShoppingCart size={16} /> },

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { Card } from '@/components/ui/card';
