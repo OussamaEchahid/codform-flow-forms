@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface FieldStyle {
@@ -19,7 +18,7 @@ export interface FormField {
   placeholder?: string;
   helpText?: string;
   required?: boolean;
-  options?: { value: string; label: string }[]; // Change from string[] to object array
+  options?: Array<{ value: string; label: string; } | string>; // Support both formats
   defaultValue?: string;
   minLength?: number;
   maxLength?: number;

@@ -22,8 +22,12 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   // Get the first option value for default
   const getDefaultValue = () => {
     if (!field.options || field.options.length === 0) return "";
+    
     const firstOption = field.options[0];
-    return typeof firstOption === 'string' ? firstOption : firstOption.value;
+    if (typeof firstOption === 'string') {
+      return firstOption;
+    }
+    return firstOption.value;
   };
   
   return (
