@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
 import { useFormStore } from '@/hooks/useFormStore';
+import { toast } from 'sonner';
 
 interface LanguageSelectorProps {
   onChange?: (language: 'ar' | 'en' | 'fr') => void;
@@ -37,12 +38,19 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
     console.log("Changing language to:", lang);
     setSelectedLanguage(lang);
     
-    // Apply language change to form state
-    setFormLanguage(lang);
-    
-    // Call external onChange if provided
-    if (onChange) {
-      onChange(lang);
+    try {
+      // Apply language change to form state
+      setFormLanguage(lang);
+      
+      // Call external onChange if provided
+      if (onChange) {
+        onChange(lang);
+      }
+
+      toast.success(`تم تغيير اللغة إلى ${languages.find(l => l.code === lang)?.label}`);
+    } catch (error) {
+      console.error("Error changing language:", error);
+      toast.error("حدث خطأ أثناء تغيير اللغة");
     }
   };
 
