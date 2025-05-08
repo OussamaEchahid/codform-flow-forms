@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog } from '@/components/ui/dialog';
 import { PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { FormStyle } from '@/hooks/useFormEditor';
 
 // Import our component parts
@@ -55,7 +55,8 @@ interface FormEditorLayoutProps {
   onShopifyIntegration: (settings: any) => Promise<void>;
 }
 
-const FormEditorLayout: React.FC<FormEditorLayoutProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
   formId,
   formTitle,
   formDescription,
@@ -118,34 +119,43 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = ({
     { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
   ];
 
-  // Field editor handlers
-  const handleEditField = (index: number) => {
+  // Field editor handlers - wrapped in useCallback to prevent re-renders
+  const handleEditField = useCallback((index: number) => {
     const field = formElements[index];
     setCurrentEditingField(field);
     setIsFieldEditorOpen(true);
-  };
+  }, [formElements]);
 
-  const handleSaveField = (updatedField: FormField) => {
+  const handleSaveField = useCallback((updatedField: FormField) => {
     onUpdateElement(updatedField);
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
-  };
+  }, [onUpdateElement]);
 
   // Template handling
-  const handleSelectTemplate = (templateId: number) => {
+  const handleSelectTemplate = useCallback((templateId: number) => {
     // Template selection logic would go here
     setIsTemplateDialogOpen(false);
-  };
+  }, []);
 
   // Style handling
-  const handleSaveStyle = () => {
+  const handleSaveStyle = useCallback(() => {
     setIsStyleDialogOpen(false);
-  };
+  }, []);
+
+  // Save handler wrapped in try/catch
+  const safeSave = useCallback(async () => {
+    try {
+      await onSave();
+    } catch (error) {
+      console.error("Error during save:", error);
+    }
+  }, [onSave]);
 
   return (
     <main className="flex-1 overflow-auto">
       <FormHeader 
-        onSave={onSave}
+        onSave={safeSave}
         onPublish={onPublish}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
@@ -248,6 +258,8 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = ({
       )}
     </main>
   );
-};
+});
+
+FormEditorLayout.displayName = 'FormEditorLayout';
 
 export default FormEditorLayout;

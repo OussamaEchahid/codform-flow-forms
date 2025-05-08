@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useI18n } from '@/lib/i18n';
@@ -29,7 +29,10 @@ const FormEditorCanvas: React.FC<FormEditorCanvasProps> = memo(({
   const { language } = useI18n();
 
   // Memoize the items array to prevent unnecessary re-renders
-  const itemIds = React.useMemo(() => elements.map(el => el.id), [elements]);
+  const itemIds = useMemo(() => 
+    elements.map(el => el.id), 
+    [elements]
+  );
 
   return (
     <div className="space-y-4">
