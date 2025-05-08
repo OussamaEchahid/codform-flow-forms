@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
@@ -265,8 +264,8 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       shopifyConnectionManager.setActiveStore(shop);
       
       // Update database - don't await this to prevent hanging
-      // Fix the catch - convert to Promise<void>
-      const updatePromise: Promise<void> = new Promise((resolve) => {
+      // Fix: Create a proper Promise implementation that doesn't need .catch
+      const updatePromise = new Promise<void>((resolve) => {
         shopifyStores()
           .update({ is_active: true })
           .eq('shop', shop)
@@ -281,7 +280,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       });
       
       // We're not awaiting this promise, just initiating it
-      updatePromise;
+      void updatePromise;
       
       return true;
     } catch (error) {
