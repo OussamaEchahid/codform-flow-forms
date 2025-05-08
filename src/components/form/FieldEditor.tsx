@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -152,9 +151,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <FormLabel>{language === 'ar' ? 'الحد الأدنى للطول' : 'Min Length'}</FormLabel>
                       <FormControl>
                         <Input 
-                          {...field} 
                           type="number" 
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                           value={field.value || 0}
                         />
                       </FormControl>
@@ -170,9 +168,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <FormLabel>{language === 'ar' ? 'الحد الأقصى للطول' : 'Max Length'}</FormLabel>
                       <FormControl>
                         <Input 
-                          {...field} 
                           type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                           value={field.value || 0}
                         />
                       </FormControl>
