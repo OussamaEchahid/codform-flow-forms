@@ -329,27 +329,10 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
-        console.error(`Error updating form (attempt ${retryCount + 1}):`, error);
-        
-        if (retryCount < maxRetries) {
-          // Exponential backoff for retry
-          const retryDelay = Math.pow(2, retryCount) * 1000;
-          console.log(`Retrying save in ${retryDelay}ms...`);
-          
-          setIsLoading(false);
-          
-          // Retry after delay
-          return new Promise(resolve => {
-            setTimeout(async () => {
-              const result = await saveForm(formId, formData, retryCount + 1, maxRetries);
-              resolve(result);
-            }, retryDelay);
-          });
-        } else {
-          toast.error('خطأ في تحديث النموذج');
-          setIsLoading(false);
-          return false;
-        }
+        console.error('Error updating form:', error);
+        toast.error('خطأ في تحديث النموذج');
+        setIsLoading(false);
+        return false;
       }
       
       // Update local state if forms list is loaded
@@ -359,28 +342,10 @@ export const useFormTemplates = () => {
         ));
       }
       
-      console.log(`Form saved successfully (attempt ${retryCount + 1})`, formId);
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error(`Error saving form (attempt ${retryCount + 1}):`, error);
-      
-      if (retryCount < maxRetries) {
-        // Exponential backoff for retry
-        const retryDelay = Math.pow(2, retryCount) * 1000;
-        console.log(`Retrying save in ${retryDelay}ms...`);
-        
-        setIsLoading(false);
-        
-        // Retry after delay
-        return new Promise(resolve => {
-          setTimeout(async () => {
-            const result = await saveForm(formId, formData, retryCount + 1, maxRetries);
-            resolve(result);
-          }, retryDelay);
-        });
-      }
-      
+      console.error('Error saving form', error);
       toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
       return false;
