@@ -22,22 +22,6 @@ export interface FormData {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
-  // Add language support - but now fixed to Arabic
-  formLanguage: 'ar';
-  rtl?: boolean;
-  // Simplified translations structure
-  translations?: {
-    ar?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-  };
 }
 
 export interface FormTemplate {
@@ -49,7 +33,7 @@ export interface FormTemplate {
 }
 
 export const useFormTemplates = () => {
-  const { setFormState, resetFormState } = useFormStore();
+  const { setFormState } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
@@ -72,8 +56,6 @@ export const useFormTemplates = () => {
         return;
       }
       
-      console.log("Fetching forms for shop ID:", shopId);
-      
       // Fetch forms from Supabase where shop_id matches
       const { data, error } = await supabase
         .from('forms')
@@ -94,13 +76,7 @@ export const useFormTemplates = () => {
         isPublished: form.is_published
       }));
       
-      // Remove duplicates based on form ID (keep the latest version)
-      const uniqueForms = Array.from(
-        new Map(formattedData.map(item => [item.id, item])).values()
-      );
-      
-      console.log(`Fetched ${uniqueForms.length} unique forms`);
-      setForms(uniqueForms);
+      setForms(formattedData);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching forms', error);
@@ -109,12 +85,10 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Create a form from template - fix formLanguage type
+  // Create a form from template
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
-      resetFormState(); // Reset form state before creating a new one
-      
       const template = formTemplates.find(t => t.id === templateId);
       const shopId = getActiveShopId();
       
@@ -131,33 +105,7 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      console.log("Creating form from template:", template.title);
-      
-      // Initialize translations with proper structure - Arabic only
-      const defaultTranslations = {
-        ar: {
-          title: 'نموذج جديد',
-          description: template.description,
-          submitButtonText: 'إرسال الطلب',
-          fields: {}
-        }
-      };
-
-      // Add field translations for all fields in template
-      template.data.forEach(step => {
-        step.fields.forEach(field => {
-          // Init fields object if it doesn't exist
-          defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
-          
-          defaultTranslations.ar.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-        });
-      });
-
-      // New form data with translations - Arabic only
+      // New form data
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -166,14 +114,8 @@ export const useFormTemplates = () => {
         data: template.data,
         isPublished: false,
         shop_id: shopId,
-        primaryColor: template.primaryColor,
-        formLanguage: 'ar',
-        rtl: true,
-        translations: defaultTranslations
       };
 
-      console.log("Creating form with data:", formData);
-      
       // Insert into Supabase
       const { error } = await supabase
         .from('forms')
@@ -184,11 +126,7 @@ export const useFormTemplates = () => {
           data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: template.primaryColor,
-          formLanguage: 'ar',
-          rtl: true,
-          translations: defaultTranslations
+          user_id: user?.id
         });
 
       if (error) {
@@ -197,14 +135,12 @@ export const useFormTemplates = () => {
         setIsLoading(false);
         return null;
       }
+
+      setFormState(formData);
+      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
-      console.log("Form created successfully:", newFormId);
-      
-      // First update the form state
-      setFormState(formData as any);
-      
-      // Then refresh the forms list
-      await fetchForms();
+      // Refresh forms list
+      fetchForms();
       
       setIsLoading(false);
       return formData;
@@ -220,8 +156,6 @@ export const useFormTemplates = () => {
   const createDefaultForm = async () => {
     try {
       setIsLoading(true);
-      resetFormState(); // Reset form state before creating a new one
-      
       const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
@@ -232,32 +166,6 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      console.log("Creating default form for shop:", shopId);
-      
-      // Initialize translations with proper structure - Arabic only
-      const defaultTranslations = {
-        ar: {
-          title: 'نموذج جديد',
-          description: 'نموذج جديد',
-          submitButtonText: 'إرسال الطلب',
-          fields: {}
-        }
-      };
-
-      // Add translations for each field in the default template
-      defaultTemplate.data.forEach(step => {
-        step.fields.forEach(field => {
-          // Init fields object if it doesn't exist
-          defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
-          
-          defaultTranslations.ar.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-        });
-      });
-
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -266,17 +174,8 @@ export const useFormTemplates = () => {
         data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
-        primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-        formLanguage: 'ar',
-        rtl: true,
-        translations: defaultTranslations
       };
 
-      console.log("Creating form with data:", formData);
-      
       // Insert into Supabase
       const { error } = await supabase
         .from('forms')
@@ -287,14 +186,7 @@ export const useFormTemplates = () => {
           data: defaultTemplate.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
-          fontSize: '1rem',
-          buttonStyle: 'rounded',
-          formLanguage: 'ar',
-          rtl: true,
-          translations: defaultTranslations
+          user_id: user?.id
         });
         
       if (error) {
@@ -304,13 +196,11 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      console.log("Form created successfully:", newFormId);
+      setFormState(formData);
+      toast.success('تم إنشاء نموذج جديد');
       
-      // First update the form state
-      setFormState(formData as any);
-      
-      // Then refresh the forms list
-      await fetchForms();
+      // Refresh forms list
+      fetchForms();
       
       setIsLoading(false);
       return formData;
@@ -334,8 +224,6 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
-      console.log('Saving form data for ID:', formId);
-      
       // Update form in Supabase
       const { error } = await supabase
         .from('forms')
@@ -351,10 +239,9 @@ export const useFormTemplates = () => {
       
       // Update local state if forms list is loaded
       if (forms.length > 0) {
-        const updatedForms = forms.map(form => 
+        setForms(forms.map(form => 
           form.id === formId ? { ...form, ...formData } : form
-        );
-        setForms(updatedForms);
+        ));
       }
       
       setIsLoading(false);
@@ -438,8 +325,6 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      console.log("Loading form with ID:", formId);
-      
       // Fetch form from Supabase
       const { data, error } = await supabase
         .from('forms')
@@ -460,31 +345,14 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Ensure translations object exists with proper structure - Arabic only
-      const ensuredTranslations = data.translations || {
-        ar: { 
-          title: data.title, 
-          description: data.description || '', 
-          submitButtonText: data.submitButtonText || 'إرسال الطلب', 
-          fields: {} 
-        }
-      };
-      
-      // Ensure fields exists
-      if (!ensuredTranslations.ar.fields) ensuredTranslations.ar.fields = {};
-      
       // Format data for form state
       const formData: FormData = {
         ...data,
-        isPublished: data.is_published,
-        formLanguage: 'ar',
-        translations: ensuredTranslations
+        isPublished: data.is_published
       };
       
-      console.log('Loaded form with translations:', formData);
-      
       // Update form state
-      setFormState(formData as any);
+      setFormState(formData);
       
       setIsLoading(false);
       return formData;

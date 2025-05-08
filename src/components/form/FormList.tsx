@@ -7,12 +7,6 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -36,8 +30,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import FormPreview from '@/components/form/FormPreview';
-import { useI18n } from '@/lib/i18n';
 
 interface FormListProps {
   forms: FormData[];
@@ -46,22 +38,8 @@ interface FormListProps {
 }
 
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
-  const { language } = useI18n();
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
-  const [previewForm, setPreviewForm] = useState<FormData | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [uniqueForms, setUniqueForms] = useState<FormData[]>([]);
-
-  // Remove duplicates based on form ID
-  useState(() => {
-    const uniqueFormsMap = new Map();
-    forms.forEach(form => {
-      if (!uniqueFormsMap.has(form.id)) {
-        uniqueFormsMap.set(form.id, form);
-      }
-    });
-    setUniqueForms(Array.from(uniqueFormsMap.values()));
-  });
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -72,10 +50,6 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       await deleteForm(formToDelete);
       setFormToDelete(null);
     }
-  };
-
-  const openPreview = (form: FormData) => {
-    setPreviewForm(form);
   };
 
   if (isLoading) {
@@ -97,14 +71,9 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
-  // Deduplicate forms based on ID
-  const deduplicatedForms = Array.from(
-    new Map(forms.map(form => [form.id, form])).values()
-  );
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {deduplicatedForms.map((form) => (
+      {forms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
@@ -117,10 +86,6 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openPreview(form)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    <span>معاينة</span>
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>تعديل</span>
@@ -159,85 +124,18 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
               </span>
             </div>
             <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
-            
-            {/* Form preview thumbnail */}
-            <div className="mt-4 border rounded-md overflow-hidden h-32">
-              <div className="h-full w-full overflow-hidden bg-gray-50 flex items-center justify-center">
-                {form.data && form.data.length > 0 ? (
-                  <div className="w-full h-full p-2 transform scale-[0.6] origin-top">
-                    <div className="bg-white rounded shadow p-2 w-full h-full">
-                      <div className="rounded p-1" 
-                        style={{ backgroundColor: form.primaryColor || '#9b87f5' }}>
-                        <div className="text-xs text-white">{form.title}</div>
-                      </div>
-                      <div className="text-[10px] mt-2">
-                        {form.data[0]?.fields?.length} حقول
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-gray-400 text-xs">معاينة غير متاحة</span>
-                )}
-              </div>
-            </div>
           </CardContent>
           <CardFooter className="border-t pt-4">
-            <div className="w-full grid grid-cols-2 gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => openPreview(form)}
-                className="w-full"
-              >
-                معاينة
-              </Button>
-              <Button 
-                variant="default" 
-                onClick={() => onSelectForm(form.id)}
-                className="w-full"
-              >
-                تعديل
-              </Button>
-            </div>
+            <Button 
+              variant="default" 
+              onClick={() => onSelectForm(form.id)}
+              className="w-full"
+            >
+              عرض وتعديل
+            </Button>
           </CardFooter>
         </Card>
       ))}
-
-      {/* Form Preview Dialog */}
-      <Dialog open={!!previewForm} onOpenChange={(open) => !open && setPreviewForm(null)}>
-        <DialogContent className="max-w-3xl h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="text-right">معاينة النموذج: {previewForm?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {previewForm && (
-              <FormPreview
-                formTitle={previewForm.title}
-                formDescription={previewForm.description}
-                currentStep={1}
-                totalSteps={previewForm.data?.length || 1}
-                formStyle={{
-                  primaryColor: previewForm.primaryColor,
-                  borderRadius: previewForm.borderRadius,
-                  fontSize: previewForm.fontSize,
-                  buttonStyle: previewForm.buttonStyle
-                }}
-                fields={previewForm.data?.[0]?.fields || []}
-                submitButtonText={previewForm.submitButtonText}
-                formLanguage={previewForm.formLanguage || 'ar'}
-              >
-                <div className="text-center p-6">
-                  <p className="text-gray-500 mb-4">لا توجد حقول في هذا النموذج</p>
-                </div>
-              </FormPreview>
-            )}
-          </div>
-          <div className="flex justify-end mt-4">
-            <Button variant="default" onClick={() => onSelectForm(previewForm?.id || '')}>
-              تعديل النموذج
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
         <AlertDialogContent>

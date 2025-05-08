@@ -1,8 +1,8 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
-// Define language types - but we'll only use Arabic
-type Language = 'ar' | 'en' | 'fr';
+// Define language types
+type Language = 'en' | 'ar';
 
 // Create context
 interface I18nContextType {
@@ -12,7 +12,7 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  language: 'ar', // Default to Arabic
+  language: 'en',
   setLanguage: () => {},
   t: () => '',
 });
@@ -80,37 +80,6 @@ const translations = {
     phoneNumber: 'رقم الهاتف',
     city: 'المدينة',
     address: 'العنوان',
-  },
-  fr: {
-    dashboard: 'Tableau de bord',
-    forms: 'Formulaires',
-    orders: 'Commandes',
-    landingPages: 'Pages d\'atterrissage',
-    quickOffers: 'Offres rapides',
-    quantityOffers: 'Offres de quantité',
-    settings: 'Paramètres',
-    ordersTitle: 'Commandes',
-    formBuilder: 'Créateur de formulaires',
-    save: 'Enregistrer',
-    publish: 'Publier',
-    cancel: 'Annuler',
-    delete: 'Supprimer',
-    edit: 'Modifier',
-    preview: 'Aperçu',
-    newForm: 'Nouveau Formulaire',
-    formTemplates: 'Modèles de formulaires',
-    elements: 'Éléments',
-    addElement: 'Ajouter un élément',
-    formSettings: 'Paramètres du formulaire',
-    formDesign: 'Conception du formulaire',
-    elementSettings: 'Paramètres de l\'élément',
-    next: 'Suivant',
-    previous: 'Précédent',
-    submitOrder: 'Soumettre la commande',
-    fullName: 'Nom complet',
-    phoneNumber: 'Numéro de téléphone',
-    city: 'Ville',
-    address: 'Adresse',
   }
 };
 
@@ -120,17 +89,13 @@ interface I18nProviderProps {
 }
 
 export const I18nProvider = ({ children }: I18nProviderProps) => {
-  const [language, setLanguage] = useState<Language>('ar'); // Default to Arabic
+  const [language, setLanguage] = useState<Language>('en');
 
   // Load language from localStorage on component mount
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar' || savedLanguage === 'fr')) {
+    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar')) {
       setLanguage(savedLanguage);
-    } else {
-      // Default to Arabic if no language is saved
-      setLanguage('ar');
-      localStorage.setItem('language', 'ar');
     }
   }, []);
 

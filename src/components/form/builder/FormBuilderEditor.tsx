@@ -51,7 +51,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
-  const [formLanguage] = useState<'ar'>('ar');
   
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
@@ -79,7 +78,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
     { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
     { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
-    { type: 'cart-items', label: language === 'ar' ? 'عنا��ر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
     { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
     { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
     { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
@@ -122,13 +121,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-        submitButtonText: submitButtonText,
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        formLanguage: 'ar',
-        rtl: true
+        submitButtonText: submitButtonText
       }).select();
 
       if (error) {
@@ -145,13 +138,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         isPublished: false,
         shop_id: shopId,
-        submitButtonText: submitButtonText,
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        formLanguage: 'ar',
-        rtl: true
+        submitButtonText: submitButtonText
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -179,17 +166,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
-            setFormLanguage(formData.formLanguage || 'ar');
-            
-            // Update form style if available
-            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
-              setFormStyle({
-                primaryColor: formData.primaryColor || '#9b87f5',
-                borderRadius: formData.borderRadius || '0.5rem',
-                fontSize: formData.fontSize || '1rem',
-                buttonStyle: formData.buttonStyle || 'rounded'
-              });
-            }
             
             console.log("Loaded form data:", formData);
           } else {
@@ -211,7 +187,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
-  }, [formElements, formLanguage]);
+  }, [formElements]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -236,9 +212,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText وإعدادات اللغة
-      const formData = {
-        id: currentFormId,
+      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
+      const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
@@ -247,9 +222,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        formLanguage: 'ar' as const,
-        rtl: true
+        buttonStyle: formStyle.buttonStyle
       };
       
       console.log("Saving form with data:", formData);
@@ -267,9 +240,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           primaryColor: formStyle.primaryColor,
           borderRadius: formStyle.borderRadius,
           fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle,
-          formLanguage: 'ar',
-          rtl: true
+          buttonStyle: formStyle.buttonStyle
         })
         .eq('id', currentFormId);
       
@@ -292,7 +263,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           id: currentFormId
         });
         
-        toast.success(language === 'ar' ? 'تم حف�� النموذج بنجاح' : 'Form saved successfully');
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
         
         // تحديث حالة الحفظ
         setRefreshKey(prev => prev + 1);
@@ -356,8 +327,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         // تحديث حالة النموذج في الذاكرة
         setFormState({
           ...formState,
-          isPublished: newPublishState,
-          is_published: newPublishState
+          isPublished: newPublishState
         });
       }
     } catch (error) {
@@ -382,8 +352,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
-      // Auto save after adding element
-      handleSave();
     }, 100);
   };
 
@@ -579,11 +547,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         </div>
         
         <div className="col-span-6 bg-gray-50 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className={`text-xl font-semibold ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
-            </h2>
-          </div>
+          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+          </h2>
           
           {/* Form Basic Information Section */}
           <div className="bg-white p-4 rounded-lg shadow-sm mb-6">

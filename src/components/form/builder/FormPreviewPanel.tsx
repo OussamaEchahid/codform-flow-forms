@@ -4,9 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import LanguageSelector from '@/components/form/LanguageSelector';
-import { useFormStore } from '@/hooks/useFormStore';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 interface FormPreviewPanelProps {
   formTitle: string;
@@ -39,8 +37,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { t, language } = useI18n();
-  const { formState } = useFormStore();
-  const formLanguage = 'ar'; // Fixed to Arabic
 
   return (
     <div className="h-full flex flex-col">
@@ -49,40 +45,35 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
         </h2>
 
-        <div className="flex items-center gap-2">
-          {/* إضافة محدد اللغة */}
-          <LanguageSelector />
-
-          {/* Controls for multi-step form */}
-          {totalSteps > 1 && (
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={onPreviousStep}
-                disabled={currentStep <= 1}
-              >
-                {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-              </Button>
-              <span className="text-sm font-medium">
-                {currentStep} / {totalSteps}
-              </span>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={onNextStep}
-                disabled={currentStep >= totalSteps}
-              >
-                {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
-            </div>
-          )}
-        </div>
+        {/* Controls for multi-step form */}
+        {totalSteps > 1 && (
+          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onPreviousStep}
+              disabled={currentStep <= 1}
+            >
+              {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+            <span className="text-sm font-medium">
+              {currentStep} / {totalSteps}
+            </span>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onNextStep}
+              disabled={currentStep >= totalSteps}
+            >
+              {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="form-preview-container flex-1 overflow-auto">
         <FormPreview
-          key={`preview-${refreshKey}-${formLanguage}`}
+          key={`preview-${refreshKey}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}
@@ -90,7 +81,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formStyle={formStyle}
           fields={fields}
           submitButtonText={submitButtonText}
-          formLanguage="ar"
         >
           <div className="text-center p-6">
             <p className="text-gray-500 mb-4">

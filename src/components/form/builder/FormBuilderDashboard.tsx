@@ -19,12 +19,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   forceRefresh = false
 }) => {
   const navigate = useNavigate();
+  const { language } = useI18n();
   const { forms, isLoading, fetchForms, createFormFromTemplate, createDefaultForm } = useFormTemplates();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
-  const [isCreatingForm, setIsCreatingForm] = useState(false);
 
   // Fetch forms on component mount
   useEffect(() => {
@@ -34,7 +34,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         setHasLoadedForms(true);
       } catch (error) {
         console.error("Error loading forms:", error);
-        toast.error('خطأ في تحميل النماذج');
+        toast.error(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
       }
     };
 
@@ -47,106 +47,48 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     } else {
       loadForms();
     }
-  }, [forceRefresh, fetchForms, initialForms]);
+  }, [forceRefresh]);
 
   // Update local forms when the forms from hook change
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
-      // Remove duplicates based on form ID
-      const uniqueForms = Array.from(
-        new Map(forms.map(form => [form.id, form])).values()
-      );
-      setLocalForms(uniqueForms);
-      console.log("Updated local forms with deduplicated data:", uniqueForms.length);
+      setLocalForms(forms);
     }
   }, [forms, hasLoadedForms]);
 
   const handleCreateForm = async () => {
     try {
-      // Prevent multiple clicks
-      if (isCreatingForm) {
-        console.log("Form creation already in progress, ignoring click");
-        return;
-      }
-      
-      console.log("Starting form creation process...");
-      setIsCreatingForm(true);
-      
-      const loadingToast = toast.loading('جاري إنشاء نموذج جديد...');
-      
       const newForm = await createDefaultForm();
-      toast.dismiss(loadingToast);
-      
-      if (newForm && newForm.id) {
-        console.log("Form created successfully, navigating to:", newForm.id);
-        
-        // Show success toast
-        toast.success('تم إنشاء النموذج بنجاح');
-        
-        // Add a sufficient delay to ensure form state is properly initialized
-        setTimeout(() => {
-          navigate(`/form-builder/${newForm.id}`);
-          // Reset creation state after navigation
-          setIsCreatingForm(false);
-        }, 1000); // Increased delay to ensure form state is initialized
-      } else {
-        console.error("Form creation failed, no ID returned");
-        toast.error('خطأ في إنشاء نموذج جديد');
-        setIsCreatingForm(false);
+      if (newForm) {
+        // Navigate to form builder with the new form ID
+        navigate(`/form-builder/${newForm.id}`);
       }
     } catch (error) {
       console.error("Error creating form:", error);
-      toast.error('خطأ في إنشاء نموذج جديد');
-      setIsCreatingForm(false);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
     }
   };
 
   const handleSelectForm = (formId: string) => {
-    console.log("Selecting form:", formId);
-    if (formId) {
-      navigate(`/form-builder/${formId}`);
-    } else {
-      console.error("Cannot select form: Invalid form ID");
-      toast.error('معرف النموذج غير صالح');
-    }
+    navigate(`/form-builder/${formId}`);
   };
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
-      if (isCreatingForm) {
-        console.log("Form creation already in progress, ignoring template selection");
-        return;
-      }
-      
       setIsTemplateDialogOpen(false);
-      setIsCreatingForm(true);
-      
-      const loadingToast = toast.loading('جاري إنشاء نموذج من القالب...');
-      
-      console.log("Creating form from template:", templateId);
       const newForm = await createFormFromTemplate(templateId);
-      toast.dismiss(loadingToast);
       
-      if (newForm && newForm.id) {
-        console.log("Template form created successfully, navigating to:", newForm.id);
-        
-        toast.success('تم إنشاء النموذج من القالب بنجاح');
-        
-        // Add a sufficient delay to ensure form state is properly initialized
-        setTimeout(() => {
-          navigate(`/form-builder/${newForm.id}`);
-          // Reset creation state after navigation
-          setIsCreatingForm(false);
-        }, 1000); // Increased delay to ensure form state is initialized
-      } else {
-        console.error("Template form creation failed, no ID returned");
-        toast.error('خطأ في إنشاء نموذج من القالب');
-        setIsCreatingForm(false);
+      if (newForm) {
+        // Navigate to form builder with the new form ID
+        navigate(`/form-builder/${newForm.id}`);
       }
     } catch (error) {
       console.error("Error creating form from template:", error);
-      toast.error('خطأ في إنشاء نموذج من القالب');
-      setIsCreatingForm(false);
+      toast.error(
+        language === 'ar'
+          ? 'خطأ في إنشاء نموذج من القالب'
+          : 'Error creating form from template'
+      );
     }
   };
 
@@ -154,25 +96,25 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">النماذج</h1>
-          <p className="text-gray-500">إدارة نماذج الدفع عند الاستلام</p>
+          <h1 className="text-2xl font-bold">
+            {language === 'ar' ? 'النماذج' : 'Forms'}
+          </h1>
+          <p className="text-gray-500">
+            {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
+          </p>
         </div>
         
-        <div className="flex space-x-3 rtl:space-x-reverse">
+        <div className="flex space-x-3">
           <Button 
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}
-            disabled={isCreatingForm}
           >
-            استخدام قالب
+            {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
           </Button>
           
-          <Button 
-            onClick={handleCreateForm} 
-            disabled={isLoading || isCreatingForm}
-          >
-            <Plus className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-            إنشاء نموذج جديد
+          <Button onClick={handleCreateForm}>
+            <Plus className="h-4 w-4 mr-2" />
+            {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </Button>
         </div>
       </div>

@@ -17,47 +17,7 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
-  submitButtonText?: string;
-  // Add style properties
-  primaryColor?: string;
-  borderRadius?: string;
-  fontSize?: string;
-  buttonStyle?: string;
-  // Add language support
-  formLanguage?: 'ar' | 'en' | 'fr';
-  rtl?: boolean;
-  translations?: {
-    ar?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    en?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    fr?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-  };
+  submitButtonText?: string; // Added this field
 }
 
 export interface FormTemplate {
@@ -150,26 +110,6 @@ export const useFormTemplates = () => {
         data: template.data,
         isPublished: false,
         shop_id: shopId,
-        primaryColor: template.primaryColor,
-        formLanguage: 'ar',
-        rtl: true,
-        translations: {
-          ar: {
-            title: 'نموذج جديد',
-            description: template.description,
-            submitButtonText: 'إرسال الطلب'
-          },
-          en: {
-            title: 'New Form',
-            description: template.description,
-            submitButtonText: 'Submit'
-          },
-          fr: {
-            title: 'Nouveau Formulaire',
-            description: template.description,
-            submitButtonText: 'Soumettre'
-          }
-        }
       };
 
       // Insert into Supabase
@@ -182,11 +122,7 @@ export const useFormTemplates = () => {
           data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: template.primaryColor,
-          formLanguage: 'ar',
-          rtl: true,
-          translations: formData.translations
+          user_id: user?.id
         });
 
       if (error) {
@@ -196,11 +132,7 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      setFormState({
-        ...formData,
-        id: newFormId
-      });
-      
+      setFormState(formData);
       toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
       // Refresh forms list
@@ -238,33 +170,10 @@ export const useFormTemplates = () => {
         data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
-        primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-        formLanguage: 'ar',
-        rtl: true,
-        translations: {
-          ar: {
-            title: 'نموذج جديد',
-            description: 'نموذج جديد',
-            submitButtonText: 'إرسال الطلب'
-          },
-          en: {
-            title: 'New Form',
-            description: 'New Form',
-            submitButtonText: 'Submit'
-          },
-          fr: {
-            title: 'Nouveau Formulaire',
-            description: 'Nouveau Formulaire',
-            submitButtonText: 'Soumettre'
-          }
-        }
       };
 
       // Insert into Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
@@ -273,16 +182,8 @@ export const useFormTemplates = () => {
           data: defaultTemplate.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
-          fontSize: '1rem',
-          buttonStyle: 'rounded',
-          formLanguage: 'ar',
-          rtl: true,
-          translations: formData.translations
-        })
-        .select();
+          user_id: user?.id
+        });
         
       if (error) {
         console.error('Error saving form to database:', error);
@@ -291,10 +192,7 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      setFormState({
-        ...formData
-      });
-      
+      setFormState(formData);
       toast.success('تم إنشاء نموذج جديد');
       
       // Refresh forms list
@@ -311,7 +209,7 @@ export const useFormTemplates = () => {
   };
 
   // Save form changes
-  const saveForm = async (formId: string, formData: FormData) => {
+  const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
       

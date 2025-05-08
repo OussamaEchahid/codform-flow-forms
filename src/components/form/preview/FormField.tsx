@@ -14,7 +14,6 @@ import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
 import ImageField from './fields/ImageField';
 import HtmlContent from './fields/HtmlContent';
-import { useFormStore } from '@/hooks/useFormStore';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -24,29 +23,13 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
-  formLanguage?: 'ar' | 'en' | 'fr';
 }
 
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 'ar' }) => {
-  const { getFieldTranslation } = useFormStore();
-  
+const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
   }
-
-  // Get translated field properties - but since we're Arabic only, the language parameter doesn't matter
-  const translatedLabel = getFieldTranslation(field.id, 'label', 'ar');
-  const translatedPlaceholder = getFieldTranslation(field.id, 'placeholder', 'ar');
-  const translatedOptions = getFieldTranslation(field.id, 'options', 'ar');
-
-  // Create translated field object
-  const translatedField = {
-    ...field,
-    label: translatedLabel !== undefined ? translatedLabel : field.label,
-    placeholder: translatedPlaceholder !== undefined ? translatedPlaceholder : field.placeholder,
-    options: translatedOptions !== undefined ? translatedOptions : field.options
-  };
 
   // Handle field type mapping
   let fieldType = field.type;
@@ -78,7 +61,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 
     return null;
   }
 
-  return <Component field={translatedField} formStyle={formStyle} formLanguage="ar" />;
+  return <Component field={field} formStyle={formStyle} />;
 };
 
 export default FormField;

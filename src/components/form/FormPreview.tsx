@@ -1,9 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
-import { useFormStore } from '@/hooks/useFormStore';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -19,7 +19,6 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   submitButtonText?: string;
-  formLanguage?: 'ar' | 'en' | 'fr';
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -35,61 +34,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
-  submitButtonText,
-  formLanguage = 'ar',
+  submitButtonText = 'إرسال الطلب',
 }) => {
   const { language } = useI18n();
   const [key, setKey] = useState(0);
-  const { formState } = useFormStore();
   
-  // Get default submit button text (Arabic only)
-  const getDefaultSubmitButtonText = () => {
-    // For Arabic-only form
-    if (formState.translations?.ar?.submitButtonText) {
-      return formState.translations.ar.submitButtonText;
-    }
-    return 'إرسال الطلب';
-  };
-
-  // تحديد اتجاه النص بناءً على اللغة المحددة - always RTL for Arabic
-  const isRTL = true;
-  const textDirection = 'rtl';
-  
-  // تحديث المفتاح عند تغيير أي من الخصائص
   useEffect(() => {
     setKey(prevKey => prevKey + 1);
   }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
-  
-  // ترجمات زر الإرسال حسب اللغة
-  const getSubmitButtonText = () => {
-    if (submitButtonText) return submitButtonText;
-    return getDefaultSubmitButtonText();
-  };
-  
-  // استخدام العنوان الافتراضي بناءً على اللغة إذا لم يتم توفير عنوان
-  const getFormTitle = () => {
-    if (formTitle) return formTitle;
-    
-    // Get title from translations if available
-    if (formState.translations?.ar?.title) {
-      return formState.translations.ar.title;
-    }
-    
-    // Default fallback title for Arabic
-    return 'نموذج جديد';
-  };
-  
-  // استخدام الوصف الافتراضي بناءً على اللغة إذا لم يتم توفير وصف
-  const getFormDescription = () => {
-    if (formDescription) return formDescription;
-    
-    // Get description from translations if available
-    if (formState.translations?.ar?.description) {
-      return formState.translations.ar.description;
-    }
-    
-    return '';
-  };
   
   return (
     <div 
@@ -109,8 +61,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
         }}
       >
-        <h2 className={cn("text-xl font-medium", isRTL ? "text-right" : "text-left")}>{getFormTitle()}</h2>
-        {getFormDescription() && <p className={cn("text-sm opacity-90", isRTL ? "text-right" : "text-left")}>{getFormDescription()}</p>}
+        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
+        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
       </div>
       
       {totalSteps > 1 && (
@@ -156,7 +108,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="p-4" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: textDirection,
+          direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
         {fields && fields.length > 0 ? (
@@ -166,7 +118,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 key={field.id} 
                 field={field} 
                 formStyle={formStyle}
-                formLanguage={formLanguage}
               />
             ))}
             
@@ -178,13 +129,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                               formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
               }}
             >
-              {getSubmitButtonText()}
+              {submitButtonText}
             </button>
           </div>
         ) : (
-          <div dir={textDirection}>
-            {children}
-          </div>
+          children
         )}
       </div>
     </div>
