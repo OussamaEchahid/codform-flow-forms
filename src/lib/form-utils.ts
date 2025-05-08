@@ -13,13 +13,18 @@ export interface FieldStyle {
 export interface FormField {
   id: string;
   type: string;
-  label: string;
+  name?: string;
+  label?: string;
   placeholder?: string;
-  required?: boolean; // Made this optional to match the other interface
-  options?: string[];
+  helpText?: string;
+  required?: boolean;
+  options?: { value: string; label: string }[]; // Change from string[] to object array
+  defaultValue?: string;
+  minLength?: number;
+  maxLength?: number;
+  imagePosition?: string;
   style?: FieldStyle;
   content?: string; // Add the content property to support text/html fields
-  helpText?: string;
   disabled?: boolean;
   whatsappNumber?: string;
   message?: string;
