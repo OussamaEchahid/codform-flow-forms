@@ -61,6 +61,7 @@ export type Database = {
           id: string
           is_published: boolean
           shop_id: string | null
+          submitbuttontext: string | null
           title: string
           updated_at: string
           user_id: string | null
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           shop_id?: string | null
+          submitbuttontext?: string | null
           title: string
           updated_at?: string
           user_id?: string | null
@@ -83,6 +85,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           shop_id?: string | null
+          submitbuttontext?: string | null
           title?: string
           updated_at?: string
           user_id?: string | null
@@ -197,6 +200,10 @@ export type Database = {
         Args: { p_table: string; p_column: string }
         Returns: boolean
       }
+      check_trigger_exists: {
+        Args: { trigger_name: string }
+        Returns: boolean
+      }
       cleanup_expired_shopify_auth: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -210,6 +217,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      create_timestamp_trigger: {
+        Args: { table_name: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -23,6 +24,7 @@ const FormBuilderPage = () => {
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [dbTriggerInitialized, setDbTriggerInitialized] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -34,14 +36,22 @@ const FormBuilderPage = () => {
   // Initialize database trigger for automatic timestamp updates
   useEffect(() => {
     const initDbTrigger = async () => {
+      if (dbTriggerInitialized) {
+        console.log('Database trigger already initialized, skipping');
+        return;
+      }
+      
       try {
+        console.log('Initializing database trigger...');
         // Call edge function to initialize database trigger
         const { data, error } = await supabase.functions.invoke('create-db-trigger', {});
         
         if (error) {
           console.error('Error initializing database trigger:', error);
+          toast.error('خطأ في تهيئة قاعدة البيانات');
         } else {
           console.log('Database trigger initialization result:', data);
+          setDbTriggerInitialized(true);
         }
       } catch (err) {
         console.error('Failed to initialize database trigger:', err);
@@ -157,6 +167,7 @@ const FormBuilderPage = () => {
       {process.env.NODE_ENV !== 'production' && !formId && (
         <div className="fixed bottom-2 right-2 p-2 bg-gray-100 text-xs rounded opacity-70 hover:opacity-100">
           <div>Debug: {shopifyConnected ? 'Connected' : 'Not connected'}</div>
+          <div>DB Trigger: {dbTriggerInitialized ? 'Initialized' : 'Not initialized'}</div>
         </div>
       )}
     </div>

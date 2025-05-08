@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
@@ -296,7 +295,7 @@ export const useFormEditor = (formId?: string) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // Prepare all form data for saving
+      // Prepare all form data for saving - explicitly include submitButtonText
       const dbData = {
         title: formTitle,
         description: formDescription,
@@ -316,7 +315,10 @@ export const useFormEditor = (formId?: string) => {
           .update(dbData)
           .eq('id', currentFormId);
           
-        if (error) throw error;
+        if (error) {
+          console.error("Update error:", error);
+          throw error;
+        }
         return true;
       };
       
@@ -439,7 +441,7 @@ export const useFormEditor = (formId?: string) => {
           toast.success(
             newPublishState 
               ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+              : (language === 'ar' ? 'تم إلغاء ن��ر النموذج' : 'Form unpublished')
           );
         } else {
           toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
