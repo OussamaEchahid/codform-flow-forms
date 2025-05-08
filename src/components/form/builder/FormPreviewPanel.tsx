@@ -20,7 +20,7 @@ interface FormPreviewPanelProps {
   submitButtonText?: string;
 }
 
-// استخدام مكون خارجي للأزرار لمنع إعادة الرسم غير الضروري
+// Memoized step navigation buttons to prevent unnecessary re-renders
 const StepButtons = React.memo(({ 
   currentStep,
   totalSteps,
@@ -65,7 +65,21 @@ const StepButtons = React.memo(({
 
 StepButtons.displayName = 'StepButtons';
 
-// استخدام ref بدلاً من state لمنع التحديثات غير الضرورية
+// Custom comparison function to prevent unnecessary re-renders
+const arePreviewPanelPropsEqual = (prev: FormPreviewPanelProps, next: FormPreviewPanelProps) => {
+  return (
+    prev.formTitle === next.formTitle &&
+    prev.formDescription === next.formDescription &&
+    prev.currentStep === next.currentStep &&
+    prev.totalSteps === next.totalSteps &&
+    prev.refreshKey === next.refreshKey &&
+    prev.submitButtonText === next.submitButtonText &&
+    JSON.stringify(prev.fields) === JSON.stringify(next.fields) &&
+    JSON.stringify(prev.formStyle) === JSON.stringify(next.formStyle)
+  );
+};
+
+// Optimized FormPreviewPanel with stabilized key generation
 const FormPreviewPanel = (props: FormPreviewPanelProps) => {
   const {
     formTitle,
@@ -80,12 +94,15 @@ const FormPreviewPanel = (props: FormPreviewPanelProps) => {
     submitButtonText = 'إرسال الطلب',
   } = props;
   
-  const { t, language } = useI18n();
+  const { language } = useI18n();
   
-  // استخدام useMemo بدلاً من useRef وuseEffect
-  const previewKey = React.useMemo(() => `preview-${refreshKey}-${currentStep}`, [refreshKey, currentStep]);
+  // Generate a stable key using useMemo to control when preview needs to refresh
+  const previewKey = React.useMemo(() => 
+    `preview-${refreshKey}-${currentStep}`, 
+    [refreshKey, currentStep]
+  );
   
-  // رسالة في حالة عدم وجود حقول - مذكرة لمنع إعادة الإنشاء
+  // Empty fields message - memoized to prevent recreation
   const emptyFieldsMessage = React.useMemo(() => {
     if (!fields || fields.length === 0) {
       return (
@@ -108,7 +125,7 @@ const FormPreviewPanel = (props: FormPreviewPanelProps) => {
           {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
         </h2>
 
-        {/* التحكم في النموذج متعدد الخطوات */}
+        {/* Multi-step form navigation */}
         {totalSteps > 1 && (
           <StepButtons 
             currentStep={currentStep}
@@ -138,4 +155,4 @@ const FormPreviewPanel = (props: FormPreviewPanelProps) => {
   );
 };
 
-export default React.memo(FormPreviewPanel);
+export default React.memo(FormPreviewPanel, arePreviewPanelPropsEqual);

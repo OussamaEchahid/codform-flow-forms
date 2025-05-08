@@ -25,7 +25,7 @@ interface FormFieldProps {
   };
 }
 
-// نقل خريطة المكونات خارج المكون لمنع إعادة إنشائها في كل رسم
+// Move component mapping outside to prevent recreation on each render
 const FIELD_COMPONENTS = {
   'text': TextInput,
   'textarea': TextArea,
@@ -40,11 +40,11 @@ const FIELD_COMPONENTS = {
   'countdown': CountdownTimer,
   'whatsapp': WhatsAppButton,
   'image': ImageField,
-  'email': TextInput, // البريد الإلكتروني يستخدم مكون النص
-  'phone': TextInput, // الهاتف يستخدم مكون النص
+  'email': TextInput, // Email uses text input component
+  'phone': TextInput, // Phone uses text input component
 };
 
-// دالة المقارنة المخصصة للتحقق من تغييرات الخصائص
+// Custom comparison function to avoid unnecessary re-renders
 const arePropsEqual = (prevProps: FormFieldProps, nextProps: FormFieldProps) => {
   return (
     prevProps.field.id === nextProps.field.id &&
@@ -55,19 +55,19 @@ const arePropsEqual = (prevProps: FormFieldProps, nextProps: FormFieldProps) => 
   );
 };
 
-// مكون وظيفي بسيط يتجنب التحديثات غير الضرورية
+// Simple functional component that avoids unnecessary updates
 const FormField = (props: FormFieldProps) => {
   const { field, formStyle } = props;
   
-  // التحقق من صحة البيانات
+  // Data validation
   if (!field || !field.type) {
     return null;
   }
 
-  // تحديد نوع المكون المناسب
+  // Determine component type
   let fieldType = field.type;
   
-  // تعامل مع أنماط الإدخال الخاصة
+  // Handle special input types
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
@@ -78,9 +78,9 @@ const FormField = (props: FormFieldProps) => {
     return null;
   }
 
-  // عرض المكون المناسب مع البيانات المطلوبة
+  // Render the appropriate component with the needed data
   return <Component field={field} formStyle={formStyle} />;
 };
 
-// استخدام memo مع دالة المقارنة المخصصة للحد من عمليات إعادة التصيير غير الضرورية
+// Use memo with custom comparison function to limit unnecessary re-renders
 export default React.memo(FormField, arePropsEqual);

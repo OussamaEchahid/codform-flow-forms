@@ -21,7 +21,7 @@ interface FormPreviewProps {
   submitButtonText?: string;
 }
 
-// ثابت من الخارج لضمان عدم إعادة التصيير
+// Static constant to prevent recreation
 const defaultFormStyle = {
   primaryColor: '#9b87f5',
   borderRadius: '0.5rem',
@@ -29,21 +29,26 @@ const defaultFormStyle = {
   buttonStyle: 'rounded',
 };
 
-// دالة مقارنة مخصصة للتحقق من تغيير الخصائص
+// Custom comparison function to prevent unnecessary re-renders
 const arePropsEqual = (prevProps: FormPreviewProps, nextProps: FormPreviewProps) => {
-  // فحص فقط الخصائص التي يمكن أن تتغير بشكل متكرر
+  // Only check properties that might change frequently
   return (
     prevProps.formTitle === nextProps.formTitle &&
     prevProps.formDescription === nextProps.formDescription &&
     prevProps.currentStep === nextProps.currentStep &&
-    prevProps.fields === nextProps.fields &&
+    prevProps.totalSteps === nextProps.totalSteps &&
+    JSON.stringify(prevProps.fields) === JSON.stringify(nextProps.fields) &&
     prevProps.submitButtonText === nextProps.submitButtonText &&
     JSON.stringify(prevProps.formStyle) === JSON.stringify(nextProps.formStyle)
   );
 };
 
-// تقسيم المكونات إلى مكونات فرعية لتحسين الأداء
-const StepIndicators = React.memo(({ currentStep, totalSteps, primaryColor }: { 
+// Step indicators - memoized to prevent unnecessary re-renders
+const StepIndicators = React.memo(({ 
+  currentStep, 
+  totalSteps, 
+  primaryColor 
+}: { 
   currentStep: number;
   totalSteps: number;
   primaryColor: string;
@@ -92,7 +97,7 @@ const StepIndicators = React.memo(({ currentStep, totalSteps, primaryColor }: {
 
 StepIndicators.displayName = 'StepIndicators';
 
-// مكون زر الإرسال منفصل
+// Separate submit button component
 const SubmitButton = React.memo(({ 
   text, 
   style 
@@ -120,7 +125,7 @@ const SubmitButton = React.memo(({
 
 SubmitButton.displayName = 'SubmitButton';
 
-// تم تعديل نوع البيانات هنا لجعله متوافقا
+// Form content interface with required properties
 interface FormContentProps {
   fields?: FormField[];
   children: React.ReactNode;
@@ -133,7 +138,7 @@ interface FormContentProps {
   submitButtonText: string;
 }
 
-// مكون محتوى النموذج
+// Form content component - memoized to prevent unnecessary re-renders
 const FormContent = React.memo(({ 
   fields, 
   children, 
@@ -167,7 +172,7 @@ const FormContent = React.memo(({
 
 FormContent.displayName = 'FormContent';
 
-// المكون الرئيسي
+// Main FormPreview component with optimizations
 const FormPreview = (props: FormPreviewProps) => {
   const {
     formTitle,
@@ -182,8 +187,7 @@ const FormPreview = (props: FormPreviewProps) => {
   
   const { language } = useI18n();
   
-  // ضمان أن formStyle يحتوي على جميع الخصائص المطلوبة
-  // هذا سيحل مشكلة التوافق بين الأنواع
+  // Ensure formStyle always has all required properties by providing defaults
   const formStyle = React.useMemo(() => {
     return {
       primaryColor: propFormStyle?.primaryColor || defaultFormStyle.primaryColor,
@@ -193,7 +197,7 @@ const FormPreview = (props: FormPreviewProps) => {
     };
   }, [propFormStyle]);
   
-  // متغيرات CSS - ثابتة فقط عند تغيير القيم ذات الصلة
+  // CSS variables - only recompute when relevant values change
   const cssVars = React.useMemo(() => {
     return {
       fontSize: formStyle.fontSize,
@@ -202,7 +206,7 @@ const FormPreview = (props: FormPreviewProps) => {
     } as React.CSSProperties;
   }, [formStyle.fontSize, formStyle.primaryColor, formStyle.borderRadius]);
   
-  // استخدام المكونات الفرعية المنفصلة لتحسين الأداء
+  // Using separate memoized components for performance
   return (
     <div 
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
@@ -251,5 +255,5 @@ const FormPreview = (props: FormPreviewProps) => {
   );
 };
 
-// استخدام memo للمكون الرئيسي مع دالة مقارنة مخصصة
+// Use memo for main component with custom comparison
 export default React.memo(FormPreview, arePropsEqual);
