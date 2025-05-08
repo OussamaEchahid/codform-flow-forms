@@ -15,8 +15,13 @@ import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import ConnectionSynchronizer from '@/components/form/builder/ConnectionSynchronizer';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { connectionLogger } from '@/lib/shopify/debug-logger';
 
-const FormsPage = () => {
+interface FormsPageProps {
+  refreshKey?: number;
+}
+
+const FormsPage: React.FC<FormsPageProps> = ({ refreshKey = 0 }) => {
   const navigate = useNavigate();
   const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
@@ -33,31 +38,41 @@ const FormsPage = () => {
   
   // Handle connection status changes from the synchronizer
   const handleConnectionChange = useCallback((isConnected: boolean, shopId: string | null) => {
-    console.log("FormsPage: Connection change detected:", { isConnected, shopId });
+    connectionLogger.info("FormsPage: Connection change detected:", { isConnected, shopId });
     setConnectionState({ isConnected, shopId: shopId || null });
   }, []);
   
   // Get the most reliable shop ID - prioritizing from our synchronized state
   const getShopId = useCallback(() => {
-    return connectionState.shopId || 
+    const shopId = connectionState.shopId || 
            shop || 
            localStorage.getItem('shopify_store') || 
            shopifyConnectionManager.getActiveStore();
+           
+    connectionLogger.debug("getShopId returning:", shopId);
+    return shopId;
   }, [connectionState.shopId, shop]);
   
   useEffect(() => {
+    connectionLogger.info("FormsPage: Loading with refresh key:", refreshKey);
+    
     const loadForms = async () => {
       setIsLoading(true);
       try {
         const shopId = getShopId();
-        console.log("FormsPage: Loading forms for shop ID:", shopId);
+        connectionLogger.info("FormsPage: Loading forms for shop ID:", shopId);
         
         if (!shopId) {
-          console.error('No active shop ID found');
+          connectionLogger.error('No active shop ID found');
           toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
           setIsLoading(false);
           return;
         }
+        
+        // Force shop connection status to true to ensure consistency
+        localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('shopify_store', shopId);
+        shopifyConnectionManager.setActiveStore(shopId);
         
         // Get count of forms for this shop
         const { count, error: countError } = await supabase
@@ -66,10 +81,10 @@ const FormsPage = () => {
           .eq('shop_id', shopId);
         
         if (countError) {
-          console.error('Error counting forms:', countError);
+          connectionLogger.error('Error counting forms:', countError);
           toast.error(language === 'ar' ? 'خطأ في عد النماذج' : 'Error counting forms');
         } else {
-          console.log(`Found ${count || 0} forms for shop ${shopId}`);
+          connectionLogger.info(`Found ${count || 0} forms for shop ${shopId}`);
           setFormsCount(count || 0);
           
           // If there are forms, load the first one
@@ -83,10 +98,10 @@ const FormsPage = () => {
               .single();
             
             if (error) {
-              console.error('Error loading form:', error);
+              connectionLogger.error('Error loading form:', error);
               toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
             } else if (data) {
-              console.log("Loaded form data:", data);
+              connectionLogger.info("Loaded form data:", data);
               // Transform database data to FormDesignData format
               const formDesignData: FormDesignData = {
                 id: data.id,
@@ -108,7 +123,7 @@ const FormsPage = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading forms:', error);
+        connectionLogger.error('Error loading forms:', error);
         toast.error(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
       } finally {
         setIsLoading(false);
@@ -120,16 +135,21 @@ const FormsPage = () => {
       fetchForms();
     }
     
-    if (connectionState.isConnected && connectionState.shopId) {
+    // Check for an active shop connection before loading forms
+    const shopId = getShopId();
+    const isConnected = shopId && (localStorage.getItem('shopify_connected') === 'true' || shopifyConnected);
+    
+    if (isConnected && shopId) {
+      setConnectionState({ isConnected: true, shopId });
       loadForms();
     } else {
       setIsLoading(false);
     }
-  }, [connectionState, language, isLoadingTemplates, fetchForms, getShopId]);
+  }, [connectionState.isConnected, language, isLoadingTemplates, fetchForms, getShopId, refreshKey, shopifyConnected]);
   
   const createNewForm = async () => {
     const shopId = getShopId();
-    console.log("Creating new form for shop:", shopId);
+    connectionLogger.info("Creating new form for shop:", shopId);
     
     if (!shopId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
@@ -162,7 +182,7 @@ const FormsPage = () => {
         isPublished: false
       };
       
-      console.log("Creating new form with data:", {
+      connectionLogger.info("Creating new form with data:", {
         id: newFormId,
         shop_id: shopId,
         user_id: user?.id
@@ -188,18 +208,18 @@ const FormsPage = () => {
         .select();
       
       if (error) {
-        console.error('Error creating form:', error);
+        connectionLogger.error('Error creating form:', error);
         toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
         setIsLoading(false);
         return;
       }
       
-      console.log("New form created successfully:", data);
+      connectionLogger.info("New form created successfully:", data);
       setFormData(defaultFormData);
       setFormsCount(prev => prev + 1);
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد' : 'New form created');
     } catch (error) {
-      console.error('Error creating form:', error);
+      connectionLogger.error('Error creating form:', error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
     } finally {
       setIsLoading(false);
@@ -208,8 +228,8 @@ const FormsPage = () => {
   
   const handleSaveForm = async (data: FormDesignData): Promise<boolean> => {
     const shopId = getShopId();
-    console.log("Saving form for shop:", shopId);
-    console.log("Form data to save:", data);
+    connectionLogger.info("Saving form for shop:", shopId);
+    connectionLogger.debug("Form data to save:", data);
     
     if (!shopId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
@@ -221,13 +241,13 @@ const FormsPage = () => {
       
       // Validate the data before saving
       if (!data.id) {
-        console.error("Form ID is missing");
+        connectionLogger.error("Form ID is missing");
         toast.error(language === 'ar' ? 'معرف النموذج مفقود' : 'Form ID is missing');
         return false;
       }
       
       if (!data.steps || !Array.isArray(data.steps)) {
-        console.error("Form steps are missing or invalid");
+        connectionLogger.error("Form steps are missing or invalid");
         toast.error(language === 'ar' ? 'خطوات النموذج مفقودة أو غير صالحة' : 'Form steps are missing or invalid');
         return false;
       }
@@ -242,10 +262,11 @@ const FormsPage = () => {
         fontSize: data.style.fontSize,
         buttonStyle: data.style.buttonStyle,
         submitButtonText: data.submitButtonText,
+        shop_id: shopId, // Explicitly set shop_id to ensure it's saved correctly
         updated_at: new Date().toISOString() // Force update timestamp
       };
       
-      console.log("Updating form with data:", formUpdateData);
+      connectionLogger.info(`Updating form ${data.id} with shopId: ${shopId}`);
       
       // Update the form in the database
       const { error } = await supabase
@@ -254,19 +275,58 @@ const FormsPage = () => {
         .eq('id', data.id);
       
       if (error) {
-        console.error('Error saving form:', error);
-        toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-        return false;
+        connectionLogger.error('Error saving form:', error);
+        
+        // Try to get more diagnostic information about why the save failed
+        const { data: checkData, error: checkError } = await supabase
+          .from('forms')
+          .select('id, shop_id')
+          .eq('id', data.id)
+          .single();
+          
+        if (checkError) {
+          connectionLogger.error('Form does not exist, trying to create it instead');
+          
+          // If the form doesn't exist, try to create it
+          const createData = {
+            ...formUpdateData,
+            id: data.id,
+            user_id: user?.id,
+            created_at: new Date().toISOString(),
+            is_published: data.isPublished || false
+          };
+          
+          const { error: createError } = await supabase
+            .from('forms')
+            .insert(createData);
+            
+          if (createError) {
+            connectionLogger.error('Error creating form as fallback:', createError);
+            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+            return false;
+          } else {
+            connectionLogger.info('Successfully created form as fallback');
+            toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+            return true;
+          }
+        } else if (checkData && checkData.shop_id !== shopId) {
+          connectionLogger.error(`Form belongs to a different shop. Current: ${shopId}, Form's shop: ${checkData.shop_id}`);
+          toast.error(language === 'ar' ? 'لا يمكن تعديل نماذج متاجر أخرى' : 'Cannot edit forms from other stores');
+          return false;
+        } else {
+          toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+          return false;
+        }
       }
       
-      console.log("Form saved successfully");
+      connectionLogger.info("Form saved successfully");
       toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
       
       // Update local state
       setFormData(data);
       return true;
     } catch (error) {
-      console.error('Error saving form:', error);
+      connectionLogger.error('Error saving form:', error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       return false;
     } finally {
@@ -276,26 +336,28 @@ const FormsPage = () => {
   
   const handlePublishForm = async (id: string, publish: boolean): Promise<boolean> => {
     try {
-      console.log("Publishing form:", id, publish);
+      const shopId = getShopId();
+      connectionLogger.info(`Publishing form ${id} (publish=${publish}) for shop ${shopId}`);
       
       // Update the publish status in the database
       const { error } = await supabase
         .from('forms')
         .update({ 
           is_published: publish,
+          shop_id: shopId, // Ensure the shop_id is set correctly
           updated_at: new Date().toISOString() // Force update timestamp
         })
         .eq('id', id);
       
       if (error) {
-        console.error('Error publishing form:', error);
+        connectionLogger.error('Error publishing form:', error);
         toast.error(publish 
           ? (language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form')
           : (language === 'ar' ? 'خطأ في إلغاء نشر النموذج' : 'Error unpublishing form'));
         return false;
       }
       
-      console.log("Form publish status updated successfully");
+      connectionLogger.info("Form publish status updated successfully");
       
       // Update local state if the form data exists
       if (formData && formData.id === id) {
@@ -308,41 +370,75 @@ const FormsPage = () => {
       
       return true;
     } catch (error) {
-      console.error('Error publishing form:', error);
+      connectionLogger.error('Error publishing form:', error);
       toast.error(language === 'ar' ? 'خطأ في تغيير حالة النشر' : 'Error changing publish status');
       return false;
     }
   };
   
-  if (!connectionState.isConnected || !connectionState.shopId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
-        
-        <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
-          <div className="text-center py-4">
-            <h2 className="text-xl font-bold mb-4">
-              {language === 'ar' 
-                ? 'الوصول مقيد' 
-                : 'Access Restricted'}
-            </h2>
-            <p className="mb-6">
-              {language === 'ar' 
-                ? 'يرجى الاتصال بمتجر Shopify للوصول إلى النماذج' 
-                : 'Please connect to a Shopify store to access forms'}
-            </p>
-            
-            <Button 
-              onClick={() => navigate('/shopify')}
-              className="w-full"
-            >
-              {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
-            </Button>
+  const renderContent = () => {
+    if (!connectionState.isConnected || !connectionState.shopId) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen">
+          <ConnectionSynchronizer onConnectionChange={handleConnectionChange} />
+          
+          <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
+            <div className="text-center py-4">
+              <h2 className="text-xl font-bold mb-4">
+                {language === 'ar' 
+                  ? 'الوصول مقيد' 
+                  : 'Access Restricted'}
+              </h2>
+              <p className="mb-6">
+                {language === 'ar' 
+                  ? 'يرجى الاتصال بمتجر Shopify للوصول إلى النماذج' 
+                  : 'Please connect to a Shopify store to access forms'}
+              </p>
+              
+              <Button 
+                onClick={() => navigate('/shopify')}
+                className="w-full"
+              >
+                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
+              </Button>
+            </div>
           </div>
         </div>
+      );
+    }
+    
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+    
+    if (formData) {
+      return (
+        <FormDesigner
+          formData={formData}
+          onSave={handleSaveForm}
+          onPublish={handlePublishForm}
+        />
+      );
+    }
+    
+    return (
+      <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-white">
+        <p className="mb-4 text-gray-500">
+          {language === 'ar' 
+            ? 'لا يوجد نماذج بعد' 
+            : 'No forms yet'}
+        </p>
+        <Button onClick={createNewForm}>
+          <Plus className="h-4 w-4 mr-2" />
+          {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+        </Button>
       </div>
     );
-  }
+  };
   
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -363,7 +459,7 @@ const FormsPage = () => {
           </div>
           
           <div className="flex gap-2">
-            {formsCount === 0 && (
+            {formsCount === 0 && connectionState.isConnected && (
               <Button onClick={createNewForm} disabled={isLoading}>
                 <Plus className="h-4 w-4 mr-2" />
                 {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
@@ -378,29 +474,7 @@ const FormsPage = () => {
           </div>
         </div>
         
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : formData ? (
-          <FormDesigner
-            formData={formData}
-            onSave={handleSaveForm}
-            onPublish={handlePublishForm}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-white">
-            <p className="mb-4 text-gray-500">
-              {language === 'ar' 
-                ? 'لا يوجد نماذج بعد' 
-                : 'No forms yet'}
-            </p>
-            <Button onClick={createNewForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-            </Button>
-          </div>
-        )}
+        {renderContent()}
       </div>
     </div>
   );

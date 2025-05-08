@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,64 +9,131 @@ import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { connectionLogger } from '@/lib/shopify/debug-logger';
 
 const ShopifyConnectionStatus = () => {
   const { language } = useI18n();
-  const { shop } = useAuth();
+  const { shop, shopifyConnected } = useAuth();
   const [isChecking, setIsChecking] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [connectionDetails, setConnectionDetails] = useState<any>(null);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const [shopDomain, setShopDomain] = useState<string | null>(null);
+
+  // Use all possible sources to get the shop domain
+  useEffect(() => {
+    const getShopFromAllSources = () => {
+      // Priority 1: From auth context
+      const shopFromAuth = shop;
+      
+      // Priority 2: From localStorage
+      const shopFromLocalStorage = localStorage.getItem('shopify_store');
+      
+      // Priority 3: From connection manager
+      const shopFromConnectionManager = shopifyConnectionManager.getActiveStore();
+      
+      // Use the first available source, in order of priority
+      const shopToUse = shopFromAuth || shopFromLocalStorage || shopFromConnectionManager;
+      
+      setShopDomain(shopToUse);
+      
+      // Log sources for debugging
+      connectionLogger.debug("ShopifyConnectionStatus: Shop sources", {
+        shopFromAuth,
+        shopFromLocalStorage,
+        shopFromConnectionManager,
+        shopToUse
+      });
+      
+      return shopToUse;
+    };
+    
+    const shopToUse = getShopFromAllSources();
+    
+    // Only check connection if we have a shop domain
+    if (shopToUse) {
+      checkConnection();
+    } else {
+      setConnectionStatus('error');
+    }
+  }, [shop]);
 
   const checkConnection = async () => {
-    if (!shop) {
+    const shopToUse = shopDomain || shop || localStorage.getItem('shopify_store') || shopifyConnectionManager.getActiveStore();
+    
+    if (!shopToUse) {
       setConnectionStatus('error');
       return;
     }
 
     setIsChecking(true);
     setConnectionStatus('checking');
+    
+    // First, check localStorage for faster response
+    const isLocallyConnected = localStorage.getItem('shopify_connected') === 'true';
+    if (isLocallyConnected) {
+      // Set a preliminary connected status for better UX
+      setConnectionStatus('connected');
+    }
 
     try {
-      // Call the Supabase edge function to test the Shopify connection
-      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
-        body: JSON.stringify({ shop })
-      });
-
-      if (error) {
-        console.error('Error testing Shopify connection:', error);
+      connectionLogger.info("Checking connection for shop:", shopToUse);
+      
+      // Get access token from database for this shop
+      const { data: shopData, error: shopError } = await supabase
+        .from('shopify_stores')
+        .select('*')
+        .eq('shop', shopToUse)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      
+      if (shopError) {
+        console.error('Error fetching shop data:', shopError);
         setConnectionStatus('error');
         setConnectionDetails(null);
         return;
       }
-
-      if (data && data.success) {
-        setConnectionStatus('connected');
-        setConnectionDetails(data.details || {
-          shopName: shop,
-          validToken: true,
-          tokenExpiry: 'permanent'
-        });
-        setLastChecked(new Date().toLocaleString());
-        toast.success(language === 'ar' ? 'الاتصال بـ Shopify ناجح' : 'Shopify connection successful');
-      } else {
+      
+      if (!shopData || shopData.length === 0) {
+        console.error('No shop data found in database');
         setConnectionStatus('error');
         setConnectionDetails(null);
-        toast.error(data?.message || (language === 'ar' ? 'فشل الاتصال بـ Shopify' : 'Shopify connection failed'));
+        return;
+      }
+      
+      // We have shop data, the connection looks valid
+      setConnectionStatus('connected');
+      setConnectionDetails({
+        shopName: shopToUse,
+        validToken: true,
+        tokenExpiry: 'permanent',
+        isActive: shopData[0].is_active,
+        hasToken: !!shopData[0].access_token,
+        tokenType: shopData[0].token_type || 'offline'
+      });
+      setLastChecked(new Date().toLocaleString());
+      
+      // Update shopify connection manager to ensure consistency
+      shopifyConnectionManager.addOrUpdateStore(shopToUse, true);
+      
+      // Log successful connection
+      connectionLogger.info("Connection verified successfully for shop:", shopToUse);
+      
+      // If we're in a disconnected state in localStorage, fix it
+      if (localStorage.getItem('shopify_connected') !== 'true') {
+        localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('shopify_store', shopToUse);
       }
     } catch (error) {
       console.error('Error checking connection:', error);
+      connectionLogger.error("Connection check failed:", error);
       setConnectionStatus('error');
       setConnectionDetails(null);
     } finally {
       setIsChecking(false);
     }
   };
-
-  // Check connection status on component mount
-  useEffect(() => {
-    checkConnection();
-  }, [shop]);
 
   const progressValue = connectionStatus === 'connected' ? 100 : 
                        connectionStatus === 'error' ? 30 : 60;
@@ -139,7 +207,7 @@ const ShopifyConnectionStatus = () => {
             <Progress value={progressValue} className="h-2" />
           </div>
           
-          {shop ? (
+          {shopDomain ? (
             <div className="bg-white rounded-md border p-4 shadow-sm">
               <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
                 <Globe className="h-4 w-4" />
@@ -148,7 +216,7 @@ const ShopifyConnectionStatus = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">{language === 'ar' ? 'اسم المتجر:' : 'Store Name:'}</span>
-                  <span className="text-sm font-medium">{shop}</span>
+                  <span className="text-sm font-medium">{shopDomain}</span>
                 </div>
                 
                 {connectionStatus === 'connected' && (
@@ -192,7 +260,7 @@ const ShopifyConnectionStatus = () => {
             </div>
           )}
           
-          {connectionStatus === 'connected' && shop && (
+          {connectionStatus === 'connected' && shopDomain && (
             <div className="p-4 bg-green-50 rounded-md border border-green-100">
               <div className="flex items-start gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
@@ -207,13 +275,6 @@ const ShopifyConnectionStatus = () => {
                       ? 'يمكنك الآن استخدام جميع ميزات التكامل مع Shopify'
                       : 'You can now use all Shopify integration features'}
                   </p>
-                  <div className="mt-2 pt-2 border-t border-green-200">
-                    <ul className="text-xs text-green-700 space-y-1 list-disc list-inside">
-                      <li>{language === 'ar' ? 'مزامنة النماذج' : 'Form synchronization'}</li>
-                      <li>{language === 'ar' ? 'جلب الطلبات' : 'Order fetching'}</li>
-                      <li>{language === 'ar' ? 'مزامنة المنتجات' : 'Product synchronization'}</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </div>

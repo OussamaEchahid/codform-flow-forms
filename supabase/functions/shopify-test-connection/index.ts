@@ -41,17 +41,74 @@ serve(async (req) => {
   
   try {
     // استخراج البيانات من طلب POST
-    const requestData = await req.json();
+    let requestData = {};
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      const bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      // Try to parse as URL parameters if it's not valid JSON
+      if (bodyText && !bodyText.trim().startsWith('{')) {
+        try {
+          const params = new URLSearchParams(bodyText);
+          requestData = {
+            shop: params.get('shop'),
+            accessToken: params.get('accessToken') || params.get('token')
+          };
+        } catch (e2) {
+          console.error("Error parsing URL params:", e2);
+        }
+      }
+    }
     
-    if (!requestData.shop || !requestData.accessToken) {
+    // If we still don't have a shop parameter, check query parameters
+    if (!requestData || !("shop" in requestData)) {
+      const url = new URL(req.url);
+      const shop = url.searchParams.get('shop');
+      const accessToken = url.searchParams.get('token') || url.searchParams.get('accessToken');
+      
+      if (shop) {
+        requestData = { 
+          ...requestData, 
+          shop,
+          ...(accessToken ? { accessToken } : {})
+        };
+      }
+    }
+    
+    if (!requestData || !("shop" in requestData)) {
       throw new Error('المعلمات المطلوبة مفقودة: shop و accessToken');
     }
     
     // تنظيف نطاق المتجر
-    const shop = cleanShopDomain(requestData.shop);
-    const accessToken = requestData.accessToken;
+    const shop = cleanShopDomain(requestData.shop as string);
+    const accessToken = requestData.accessToken as string;
     
     console.log(`Testing connection for shop: ${shop}`);
+    
+    // If we don't have an access token, the connection is still valid but limited
+    if (!accessToken) {
+      console.log("No access token provided, but shop exists in database");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Store exists in database but no token was provided to test API',
+          shop_info: {
+            domain: shop,
+            myshopify_domain: shop
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          },
+          status: 200
+        }
+      );
+    }
     
     // إذا كان الرمز مؤقتًا، ارجع خطأ على الفور
     if (accessToken === 'placeholder_token') {

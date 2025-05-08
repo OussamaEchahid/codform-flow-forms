@@ -5,15 +5,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { Loader2 } from 'lucide-react';
+import { connectionLogger } from '@/lib/shopify/debug-logger';
+import { toast } from 'sonner';
 
 const Forms = () => {
   const navigate = useNavigate();
   const { user, shop } = useAuth();
   const [isValidating, setIsValidating] = useState(true);
+  const [isConnectionFixed, setIsConnectionFixed] = useState(false);
   
   useEffect(() => {
     const validateConnection = async () => {
-      console.log("Forms: Validating connection");
+      connectionLogger.info("Forms: Validating connection");
       
       // Check connection from multiple sources
       const shopFromAuth = shop;
@@ -22,7 +25,7 @@ const Forms = () => {
       
       const hasShopId = shopFromAuth || shopFromLocalStorage || shopFromConnectionManager;
       
-      console.log("Connection validation results:", {
+      connectionLogger.info("Connection validation results:", {
         shopFromAuth,
         shopFromLocalStorage,
         shopFromConnectionManager,
@@ -31,20 +34,47 @@ const Forms = () => {
       
       // If we don't have a shop ID from any source, redirect to Shopify connect page
       if (!hasShopId) {
-        console.log("No shop ID found, redirecting to Shopify connect page");
+        connectionLogger.warn("No shop ID found, redirecting to Shopify connect page");
+        toast.error('No Shopify store connection found. Please connect your store.');
         navigate('/shopify');
         return;
       }
       
+      // Use the most reliable source as the primary shop ID
+      const shopToUse = shopFromAuth || shopFromLocalStorage || shopFromConnectionManager;
+      
       // If we have inconsistent shop IDs, fix by using the most reliable source
-      if (shopFromAuth && shopFromLocalStorage && shopFromAuth !== shopFromLocalStorage) {
-        console.log("Inconsistent shop IDs found, fixing");
-        localStorage.setItem('shopify_store', shopFromAuth);
+      if ((shopFromAuth && shopFromLocalStorage && shopFromAuth !== shopFromLocalStorage) || 
+          (shopFromLocalStorage && shopFromConnectionManager && shopFromLocalStorage !== shopFromConnectionManager) ||
+          (shopFromAuth && shopFromConnectionManager && shopFromAuth !== shopFromConnectionManager)) {
+        
+        connectionLogger.warn("Inconsistent shop IDs found, fixing");
+        
+        // Update localStorage
+        localStorage.setItem('shopify_store', shopToUse);
+        localStorage.setItem('shopify_connected', 'true');
+        
+        // Update connection manager
+        shopifyConnectionManager.setActiveStore(shopToUse);
+        
+        setIsConnectionFixed(true);
+        toast.success('Shopify connection state synchronized');
       }
       
       // Make sure connection manager is in sync
       const isValid = shopifyConnectionManager.validateConnectionState();
-      console.log("Connection manager validation result:", isValid);
+      connectionLogger.info("Connection manager validation result:", isValid);
+      
+      // Only proceed if connection is valid
+      if (!isValid) {
+        connectionLogger.error("Connection validation failed");
+        toast.error('Connection validation failed. Trying to reestablish connection...');
+        
+        // Try to fix by setting active store
+        shopifyConnectionManager.setActiveStore(shopToUse);
+        localStorage.setItem('shopify_store', shopToUse);
+        localStorage.setItem('shopify_connected', 'true');
+      }
       
       setIsValidating(false);
     };
@@ -54,13 +84,14 @@ const Forms = () => {
   
   if (isValidating) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-gray-500">Validating Shopify connection...</p>
       </div>
     );
   }
 
-  return <FormsPage />;
+  return <FormsPage refreshKey={isConnectionFixed ? 1 : 0} />;
 };
 
 export default Forms;
