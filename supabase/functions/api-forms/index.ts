@@ -5,7 +5,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
 serve(async (req) => {
   // Handle CORS
@@ -84,6 +85,7 @@ function transformFormData(formData) {
       title: formData.title,
       description: formData.description,
       primaryColor: formData.primary_color || '#9b87f5',
+      submitbuttontext: formData.submitbuttontext || 'إرسال الطلب', // Add lowercase submitbuttontext
       fields: []
     }
   }
@@ -147,8 +149,8 @@ function transformFormData(formData) {
           step.fields.forEach(field => {
             transformedFields.push({
               ...field,
-              stepId: step.id || `${stepIndex + 1}`,
-              stepTitle: step.title || `Step ${stepIndex + 1}`,
+              stepId: step.id,
+              stepTitle: step.title,
               stepIndex: stepIndex
             })
             totalFields++
@@ -157,27 +159,20 @@ function transformFormData(formData) {
       })
     }
     
-    console.log('Transformed', totalFields, 'total fields')
-    
-    // Log the first and second fields for debugging
-    if (transformedFields.length > 0) {
-      console.log('First field:', JSON.stringify(transformedFields[0]))
-    }
-    if (transformedFields.length > 1) {
-      console.log('Second field:', JSON.stringify(transformedFields[1]))
-    }
+    console.log('Total fields processed:', totalFields)
   }
   
-  console.log('Transformed', transformedFields.length, 'fields for the form')
-  
+  // Construct the final transformed data object with both camelCase and lowercase variants
+  // to ensure compatibility with all components 
   return {
     id: formData.id,
     title: formData.title,
     description: formData.description,
     primaryColor: formData.primary_color || '#9b87f5',
-    borderRadius: formData.border_radius || '0.5rem',
-    fontSize: formData.font_size || '1rem',
-    buttonStyle: formData.button_style || 'rounded',
-    fields: transformedFields
+    submitbuttontext: formData.submitbuttontext || 'إرسال الطلب', // Add lowercase from database
+    submitButtonText: formData.submitbuttontext || 'إرسال الطلب', // Add camelCase for component compatibility
+    fields: transformedFields,
+    // Add any form-wide settings
+    data: data // Keep the original data structure for advanced processing
   }
 }

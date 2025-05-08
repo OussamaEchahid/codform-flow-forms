@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
@@ -78,7 +79,7 @@ export const useFormEditor = (formId?: string) => {
             data: initialFormSteps,
             shop_id: shopId,
             is_published: false,
-            submitButtonText: submitButtonText
+            submitbuttontext: submitButtonText
           }).select();
 
           if (error) {
@@ -229,7 +230,7 @@ export const useFormEditor = (formId?: string) => {
           }
         }
         
-        // Check for submit button text in main data - fix case sensitivity
+        // Check for submit button text in main data - handle both cases
         if (formData.submitbuttontext) {
           setSubmitButtonText(formData.submitbuttontext);
         }
@@ -308,8 +309,8 @@ export const useFormEditor = (formId?: string) => {
       console.log("Saving form with data:", dbData);
       console.log("RequestID:", requestId);
       
-      // Try direct update using withRetry utility
-      const updateOperation = async () => {
+      // Try direct update
+      try {
         const { error } = await supabase
           .from('forms')
           .update(dbData)
@@ -319,12 +320,6 @@ export const useFormEditor = (formId?: string) => {
           console.error("Update error:", error);
           throw error;
         }
-        return true;
-      };
-      
-      try {
-        // Use withRetry for better error handling
-        await withRetry(updateOperation, maxSaveRetries);
         
         // Only process if this is still the current save request
         if (requestId === currentSaveRequestId) {
@@ -347,46 +342,57 @@ export const useFormEditor = (formId?: string) => {
           
           toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
           setRefreshKey(prev => prev + 1);
+          setIsSaving(false); // Make sure to set saving to false on success
         } else {
           console.log("Save request superseded by a newer request");
+          setIsSaving(false); // Also set saving to false if request was superseded
         }
       } catch (error) {
         // If direct update fails, try alternate saving method
         console.error("Direct database update failed:", error);
         
         if (requestId === currentSaveRequestId) {
-          // Try using the saveForm method from useFormTemplates as fallback
-          const alternateSuccess = await saveForm(currentFormId, {
-            title: formTitle,
-            description: formDescription,
-            data: formSteps,
-            submitbuttontext: submitButtonText, // Using lowercase to match database column name
-            // Include other necessary fields
-            primaryColor: formStyle.primaryColor,
-            borderRadius: formStyle.borderRadius,
-            fontSize: formStyle.fontSize,
-            buttonStyle: formStyle.buttonStyle
-          });
-          
-          if (alternateSuccess) {
-            toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
-            setRefreshKey(prev => prev + 1);
-            setSaveRetries(0);
-          } else {
-            throw new Error('Both save methods failed');
+          try {
+            // Try using the saveForm method from useFormTemplates as fallback
+            const alternateSuccess = await saveForm(currentFormId, {
+              title: formTitle,
+              description: formDescription,
+              data: formSteps,
+              submitbuttontext: submitButtonText, // Using lowercase to match database column name
+              // Include other necessary fields
+              primaryColor: formStyle.primaryColor,
+              borderRadius: formStyle.borderRadius,
+              fontSize: formStyle.fontSize,
+              buttonStyle: formStyle.buttonStyle
+            });
+            
+            if (alternateSuccess) {
+              toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
+              setRefreshKey(prev => prev + 1);
+              setSaveRetries(0);
+            } else {
+              throw new Error('Both save methods failed');
+            }
+          } catch (innerError) {
+            console.error("Error in alternate save method:", innerError);
+            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+          } finally {
+            setIsSaving(false); // Important: Always set isSaving to false in finally block
           }
         } else {
           console.log("Failed save request superseded");
+          setIsSaving(false);
         }
       }
     } catch (error) {
       if (requestId === currentSaveRequestId) {
         console.error("Error saving form:", error);
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+        setIsSaving(false); // Important: Set isSaving to false on error
       }
     } finally {
       if (requestId === currentSaveRequestId) {
-        setIsSaving(false);
+        setIsSaving(false); // Ensure isSaving is always set to false
       }
     }
   }, [

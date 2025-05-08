@@ -20,6 +20,7 @@ function CODFORMFormRenderer() {
     }
     
     console.log('CODFORM: Rendering form with', formData.fields ? formData.fields.length : 0, 'fields');
+    console.log('CODFORM: Form data:', formData);
     console.log('CODFORM: Form style settings:', formData.primaryColor, formData.borderRadius, formData.fontSize);
     formContainer.innerHTML = ''; // Clear any existing content
     
@@ -132,7 +133,7 @@ function CODFORMFormRenderer() {
     
     // Create form element
     const form = document.createElement('form');
-    form.id = 'codform-submission-form-' + formData.id;
+    form.id = 'codform-submission-form-' + (formData.id || 'form');
     form.className = 'codform-submission-form';
     if (isRtl) {
       form.dir = 'rtl';
@@ -157,17 +158,35 @@ function CODFORMFormRenderer() {
       form.appendChild(shopDomainField);
     }
     
+    // Extract fields from data structure
+    let fields = [];
+    
+    // Check if the form has step structure or flat structure
+    if (formData.data && Array.isArray(formData.data) && formData.data.length > 0 && formData.data[0].fields) {
+      // Multi-step structure (new format)
+      fields = formData.data.flatMap(step => step.fields || []);
+      console.log('CODFORM: Using multi-step format, found', fields.length, 'fields');
+    } else if (formData.fields && Array.isArray(formData.fields)) {
+      // Direct fields array (old format)
+      fields = formData.fields;
+      console.log('CODFORM: Using flat format, found', fields.length, 'fields');
+    } else if (formData.data && Array.isArray(formData.data.steps)) {
+      // Newer structure with steps property
+      fields = formData.data.steps.flatMap(step => step.fields || []);
+      console.log('CODFORM: Using nested steps format, found', fields.length, 'fields');
+    }
+    
     // Group fields by steps if steps are present
     let steps = [];
     let currentStep = 0;
     
     // Check if fields have step information
-    const hasSteps = formData.fields && formData.fields.some(field => field.stepId || field.stepIndex !== undefined);
+    const hasSteps = fields.some(field => field.stepId || field.stepIndex !== undefined);
     
     if (hasSteps) {
       // Group fields by step
       const fieldsByStep = {};
-      formData.fields.forEach(field => {
+      fields.forEach(field => {
         const stepIndex = field.stepIndex || 0;
         if (!fieldsByStep[stepIndex]) {
           fieldsByStep[stepIndex] = {
@@ -246,7 +265,15 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
+        // Get submit button text with fallbacks:
+        // 1. formData.submitbuttontext (from database)
+        // 2. formData.submitButtonText (camelCase variant)
+        // 3. Default value based on language
+        submitButton.textContent = 
+          formData.submitbuttontext || 
+          formData.submitButtonText || 
+          (isRtl ? 'إرسال الطلب' : 'Submit');
+          
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -262,7 +289,12 @@ function CODFORMFormRenderer() {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'codform-submit-button';
-        submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
+        // Get submit button text with fallbacks
+        submitButton.textContent = 
+          formData.submitbuttontext || 
+          formData.submitButtonText || 
+          (isRtl ? 'إرسال الطلب' : 'Submit');
+          
         // Apply primary color
         if (formData.primaryColor) {
           submitButton.style.backgroundColor = formData.primaryColor;
@@ -275,17 +307,24 @@ function CODFORMFormRenderer() {
       form.dataset.totalSteps = steps.length;
     } else {
       // Render form fields based on formData (single step)
-      if (formData.fields && Array.isArray(formData.fields)) {
-        formData.fields.forEach(field => {
+      if (fields && Array.isArray(fields) && fields.length > 0) {
+        fields.forEach(field => {
           renderField(form, field, formData.primaryColor);
         });
+      } else {
+        console.warn('CODFORM: No fields found in form data');
       }
       
       // Add submit button for single-step form
       const submitButton = document.createElement('button');
       submitButton.type = 'submit';
       submitButton.className = 'codform-submit-button';
-      submitButton.textContent = formData.submitButtonText || (isRtl ? 'إرسال الطلب' : 'Submit');
+      // Get submit button text with fallbacks
+      submitButton.textContent = 
+        formData.submitbuttontext || 
+        formData.submitButtonText || 
+        (isRtl ? 'إرسال الطلب' : 'Submit');
+        
       // Apply primary color
       if (formData.primaryColor) {
         submitButton.style.backgroundColor = formData.primaryColor;
