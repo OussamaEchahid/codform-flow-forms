@@ -557,7 +557,7 @@ export const useFormTemplates = () => {
       // Ensure fields exists for each language
       if (!ensuredTranslations.ar.fields) ensuredTranslations.ar.fields = {};
       if (!ensuredTranslations.en.fields) ensuredTranslations.en.fields = {};
-      if (!ensuredTranslations.fr.fields) ensureduredTranslations.fr.fields = {};
+      if (!ensuredTranslations.fr.fields) ensuredTranslations.fr.fields = {};
       
       // Format data for form state
       const formData: FormData = {
