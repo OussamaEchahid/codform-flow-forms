@@ -68,7 +68,7 @@ export interface FormTemplate {
 }
 
 export const useFormTemplates = () => {
-  const { setFormState } = useFormStore();
+  const { setFormState, resetFormState } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
@@ -90,6 +90,8 @@ export const useFormTemplates = () => {
         setIsLoading(false);
         return;
       }
+      
+      console.log("Fetching forms for shop ID:", shopId);
       
       // Fetch forms from Supabase where shop_id matches
       const { data, error } = await supabase
@@ -130,6 +132,8 @@ export const useFormTemplates = () => {
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
+      resetFormState(); // Reset form state before creating a new one
+      
       const template = formTemplates.find(t => t.id === templateId);
       const shopId = getActiveShopId();
       
@@ -146,6 +150,8 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      console.log("Creating form from template:", template.title);
+      
       // Initialize field translations for each language
       const defaultTranslations = {
         ar: {
@@ -171,9 +177,10 @@ export const useFormTemplates = () => {
       // Add field translations for all fields in template
       template.data.forEach(step => {
         step.fields.forEach(field => {
-          if (!defaultTranslations.ar.fields) defaultTranslations.ar.fields = {};
-          if (!defaultTranslations.en.fields) defaultTranslations.en.fields = {};
-          if (!defaultTranslations.fr.fields) defaultTranslations.fr.fields = {};
+          // Init fields objects if they don't exist
+          defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
+          defaultTranslations.en.fields = defaultTranslations.en.fields || {};
+          defaultTranslations.fr.fields = defaultTranslations.fr.fields || {};
           
           defaultTranslations.ar.fields[field.id] = {
             label: field.label,
@@ -210,6 +217,8 @@ export const useFormTemplates = () => {
         translations: defaultTranslations
       };
 
+      console.log("Creating form with data:", formData);
+      
       // Insert into Supabase
       const { error } = await supabase
         .from('forms')
@@ -233,7 +242,8 @@ export const useFormTemplates = () => {
         setIsLoading(false);
         return null;
       }
-
+      
+      console.log("Form created successfully:", newFormId);
       setFormState(formData);
       toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
@@ -254,6 +264,8 @@ export const useFormTemplates = () => {
   const createDefaultForm = async () => {
     try {
       setIsLoading(true);
+      resetFormState(); // Reset form state before creating a new one
+      
       const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
@@ -264,6 +276,8 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      console.log("Creating default form using template:", defaultTemplate.title);
+      
       // Initialize translations for the new form
       const defaultTranslations = {
         ar: {
@@ -289,9 +303,10 @@ export const useFormTemplates = () => {
       // Add translations for each field in the default template
       defaultTemplate.data.forEach(step => {
         step.fields.forEach(field => {
-          if (!defaultTranslations.ar.fields) defaultTranslations.ar.fields = {};
-          if (!defaultTranslations.en.fields) defaultTranslations.en.fields = {};
-          if (!defaultTranslations.fr.fields) defaultTranslations.fr.fields = {};
+          // Init fields objects if they don't exist
+          defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
+          defaultTranslations.en.fields = defaultTranslations.en.fields || {};
+          defaultTranslations.fr.fields = defaultTranslations.fr.fields || {};
           
           defaultTranslations.ar.fields[field.id] = {
             label: field.label,
@@ -330,6 +345,8 @@ export const useFormTemplates = () => {
         translations: defaultTranslations
       };
 
+      console.log("Creating form with data:", formData);
+      
       // Insert into Supabase
       const { data, error } = await supabase
         .from('forms')
@@ -353,11 +370,12 @@ export const useFormTemplates = () => {
         
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        toast.error('خطأ في حفظ ال��موذج في قاعدة البيانات');
         setIsLoading(false);
         return null;
       }
 
+      console.log("Form created successfully:", newFormId);
       setFormState(formData);
       
       toast.success('تم إنشاء نموذج جديد');
@@ -491,6 +509,8 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
+      console.log("Loading form with ID:", formId);
+      
       // Fetch form from Supabase
       const { data, error } = await supabase
         .from('forms')
@@ -511,7 +531,7 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Ensure translations object exists
+      // Ensure translations object exists with proper structure
       const ensuredTranslations = data.translations || {
         ar: { 
           title: data.title, 
@@ -532,6 +552,11 @@ export const useFormTemplates = () => {
           fields: {} 
         }
       };
+      
+      // Ensure fields exists for each language
+      if (!ensuredTranslations.ar.fields) ensuredTranslations.ar.fields = {};
+      if (!ensuredTranslations.en.fields) ensuredTranslations.en.fields = {};
+      if (!ensuredTranslations.fr.fields) ensuredTranslations.fr.fields = {};
       
       // Format data for form state
       const formData: FormData = {

@@ -60,19 +60,27 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleCreateForm = async () => {
     try {
       // Prevent multiple clicks
-      if (isCreatingForm) return;
+      if (isCreatingForm) {
+        console.log("Form creation already in progress, ignoring click");
+        return;
+      }
       
+      console.log("Starting form creation process...");
       setIsCreatingForm(true);
       toast.loading(language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 'Creating new form...');
       
       const newForm = await createDefaultForm();
+      console.log("Form creation result:", newForm);
       toast.dismiss();
       
       if (newForm && newForm.id) {
         console.log("Form created successfully, navigating to:", newForm.id);
-        // Navigate to form builder with the new form ID
-        navigate(`/form-builder/${newForm.id}`);
+        // Add a small delay to ensure the store is updated before navigating
+        setTimeout(() => {
+          navigate(`/form-builder/${newForm.id}`);
+        }, 100);
       } else {
+        console.error("Form creation failed, no ID returned");
         toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
         setIsCreatingForm(false);
       }
@@ -85,6 +93,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   };
 
   const handleSelectForm = (formId: string) => {
+    console.log("Selecting form:", formId);
     navigate(`/form-builder/${formId}`);
   };
 
@@ -92,13 +101,21 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     try {
       setIsTemplateDialogOpen(false);
       toast.loading(language === 'ar' ? 'جاري إنشاء نموذج من القالب...' : 'Creating form from template...');
+      
+      console.log("Creating form from template:", templateId);
       const newForm = await createFormFromTemplate(templateId);
+      console.log("Template form creation result:", newForm);
+      
       toast.dismiss();
       
       if (newForm && newForm.id) {
-        // Navigate to form builder with the new form ID
-        navigate(`/form-builder/${newForm.id}`);
+        console.log("Template form created successfully, navigating to:", newForm.id);
+        // Add a small delay to ensure the store is updated before navigating
+        setTimeout(() => {
+          navigate(`/form-builder/${newForm.id}`);
+        }, 100);
       } else {
+        console.error("Template form creation failed, no ID returned");
         toast.error(
           language === 'ar'
             ? 'خطأ في إنشاء نموذج من القالب'
