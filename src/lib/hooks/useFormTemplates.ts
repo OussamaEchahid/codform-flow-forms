@@ -22,31 +22,12 @@ export interface FormData {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
-  // Add language support
-  formLanguage?: 'ar' | 'en' | 'fr';
+  // Add language support - but now fixed to Arabic
+  formLanguage: 'ar';
   rtl?: boolean;
+  // Simplified translations structure
   translations?: {
     ar?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    en?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    fr?: {
       title?: string;
       description?: string;
       submitButtonText?: string;
@@ -128,7 +109,7 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Create a form from template
+  // Create a form from template - fix formLanguage type
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
@@ -152,24 +133,12 @@ export const useFormTemplates = () => {
 
       console.log("Creating form from template:", template.title);
       
-      // Initialize translations with proper structure
+      // Initialize translations with proper structure - Arabic only
       const defaultTranslations = {
         ar: {
           title: 'نموذج جديد',
           description: template.description,
           submitButtonText: 'إرسال الطلب',
-          fields: {}
-        },
-        en: {
-          title: 'New Form',
-          description: template.description,
-          submitButtonText: 'Submit',
-          fields: {}
-        },
-        fr: {
-          title: 'Nouveau Formulaire',
-          description: template.description,
-          submitButtonText: 'Soumettre',
           fields: {}
         }
       };
@@ -177,24 +146,10 @@ export const useFormTemplates = () => {
       // Add field translations for all fields in template
       template.data.forEach(step => {
         step.fields.forEach(field => {
-          // Init fields objects if they don't exist
+          // Init fields object if it doesn't exist
           defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
-          defaultTranslations.en.fields = defaultTranslations.en.fields || {};
-          defaultTranslations.fr.fields = defaultTranslations.fr.fields || {};
           
           defaultTranslations.ar.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-          
-          defaultTranslations.en.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-          
-          defaultTranslations.fr.fields[field.id] = {
             label: field.label,
             placeholder: field.placeholder,
             options: Array.isArray(field.options) ? [...field.options] : undefined
@@ -202,7 +157,7 @@ export const useFormTemplates = () => {
         });
       });
 
-      // New form data with translations
+      // New form data with translations - Arabic only
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -246,7 +201,7 @@ export const useFormTemplates = () => {
       console.log("Form created successfully:", newFormId);
       
       // First update the form state
-      setFormState(formData);
+      setFormState(formData as any);
       
       // Then refresh the forms list
       await fetchForms();
@@ -279,24 +234,12 @@ export const useFormTemplates = () => {
 
       console.log("Creating default form for shop:", shopId);
       
-      // Initialize translations with proper structure
+      // Initialize translations with proper structure - Arabic only
       const defaultTranslations = {
         ar: {
           title: 'نموذج جديد',
           description: 'نموذج جديد',
           submitButtonText: 'إرسال الطلب',
-          fields: {}
-        },
-        en: {
-          title: 'New Form',
-          description: 'New Form',
-          submitButtonText: 'Submit',
-          fields: {}
-        },
-        fr: {
-          title: 'Nouveau Formulaire',
-          description: 'Nouveau Formulaire',
-          submitButtonText: 'Soumettre',
           fields: {}
         }
       };
@@ -304,24 +247,10 @@ export const useFormTemplates = () => {
       // Add translations for each field in the default template
       defaultTemplate.data.forEach(step => {
         step.fields.forEach(field => {
-          // Init fields objects if they don't exist
+          // Init fields object if it doesn't exist
           defaultTranslations.ar.fields = defaultTranslations.ar.fields || {};
-          defaultTranslations.en.fields = defaultTranslations.en.fields || {};
-          defaultTranslations.fr.fields = defaultTranslations.fr.fields || {};
           
           defaultTranslations.ar.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-          
-          defaultTranslations.en.fields[field.id] = {
-            label: field.label,
-            placeholder: field.placeholder,
-            options: Array.isArray(field.options) ? [...field.options] : undefined
-          };
-          
-          defaultTranslations.fr.fields[field.id] = {
             label: field.label,
             placeholder: field.placeholder,
             options: Array.isArray(field.options) ? [...field.options] : undefined
@@ -378,7 +307,7 @@ export const useFormTemplates = () => {
       console.log("Form created successfully:", newFormId);
       
       // First update the form state
-      setFormState(formData);
+      setFormState(formData as any);
       
       // Then refresh the forms list
       await fetchForms();
@@ -531,44 +460,31 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Ensure translations object exists with proper structure
+      // Ensure translations object exists with proper structure - Arabic only
       const ensuredTranslations = data.translations || {
         ar: { 
           title: data.title, 
           description: data.description || '', 
           submitButtonText: data.submitButtonText || 'إرسال الطلب', 
           fields: {} 
-        },
-        en: { 
-          title: data.title, 
-          description: data.description || '', 
-          submitButtonText: 'Submit', 
-          fields: {} 
-        },
-        fr: { 
-          title: data.title, 
-          description: data.description || '', 
-          submitButtonText: 'Soumettre', 
-          fields: {} 
         }
       };
       
-      // Ensure fields exists for each language
+      // Ensure fields exists
       if (!ensuredTranslations.ar.fields) ensuredTranslations.ar.fields = {};
-      if (!ensuredTranslations.en.fields) ensuredTranslations.en.fields = {};
-      if (!ensuredTranslations.fr.fields) ensuredTranslations.fr.fields = {};
       
       // Format data for form state
       const formData: FormData = {
         ...data,
         isPublished: data.is_published,
+        formLanguage: 'ar',
         translations: ensuredTranslations
       };
       
       console.log('Loaded form with translations:', formData);
       
       // Update form state
-      setFormState(formData);
+      setFormState(formData as any);
       
       setIsLoading(false);
       return formData;

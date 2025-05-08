@@ -1,7 +1,7 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
-// Define language types
+// Define language types - but we'll only use Arabic
 type Language = 'ar' | 'en' | 'fr';
 
 // Create context

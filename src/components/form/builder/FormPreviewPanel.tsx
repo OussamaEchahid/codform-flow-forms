@@ -39,12 +39,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { t, language } = useI18n();
-  const { formState, setFormLanguage } = useFormStore();
-  const formLanguage = formState.formLanguage || 'ar';
-
-  const handleLanguageChange = (lang: 'ar' | 'en' | 'fr') => {
-    setFormLanguage(lang);
-  };
+  const { formState } = useFormStore();
+  const formLanguage = 'ar'; // Fixed to Arabic
 
   return (
     <div className="h-full flex flex-col">
@@ -55,7 +51,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 
         <div className="flex items-center gap-2">
           {/* إضافة محدد اللغة */}
-          <LanguageSelector onChange={handleLanguageChange} />
+          <LanguageSelector />
 
           {/* Controls for multi-step form */}
           {totalSteps > 1 && (
@@ -94,7 +90,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formStyle={formStyle}
           fields={fields}
           submitButtonText={submitButtonText}
-          formLanguage={formLanguage}
+          formLanguage="ar"
         >
           <div className="text-center p-6">
             <p className="text-gray-500 mb-4">

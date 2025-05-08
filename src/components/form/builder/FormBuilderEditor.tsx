@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -52,7 +51,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
-  const [formLanguage, setFormLanguage] = useState<'ar' | 'en' | 'fr'>('ar');
+  const [formLanguage] = useState<'ar'>('ar');
   
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
@@ -80,7 +79,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
     { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
     { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
-    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-items', label: language === 'ar' ? 'عنا��ر السلة' : 'Cart items', icon: '🛒' },
     { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
     { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
     { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
@@ -128,8 +127,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
-        formLanguage: formLanguage,
-        rtl: formLanguage === 'ar'
+        formLanguage: 'ar',
+        rtl: true
       }).select();
 
       if (error) {
@@ -151,8 +150,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
-        formLanguage: formLanguage,
-        rtl: formLanguage === 'ar'
+        formLanguage: 'ar',
+        rtl: true
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -238,7 +237,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
       
       // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText وإعدادات اللغة
-      const formData: FormData = {
+      const formData = {
         id: currentFormId,
         title: formTitle,
         description: formDescription,
@@ -249,8 +248,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
-        formLanguage: formLanguage,
-        rtl: formLanguage === 'ar'
+        formLanguage: 'ar' as const,
+        rtl: true
       };
       
       console.log("Saving form with data:", formData);
@@ -269,8 +268,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           borderRadius: formStyle.borderRadius,
           fontSize: formStyle.fontSize,
           buttonStyle: formStyle.buttonStyle,
-          formLanguage: formLanguage,
-          rtl: formLanguage === 'ar'
+          formLanguage: 'ar',
+          rtl: true
         })
         .eq('id', currentFormId);
       
@@ -293,7 +292,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           id: currentFormId
         });
         
-        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        toast.success(language === 'ar' ? 'تم حف�� النموذج بنجاح' : 'Form saved successfully');
         
         // تحديث حالة الحفظ
         setRefreshKey(prev => prev + 1);

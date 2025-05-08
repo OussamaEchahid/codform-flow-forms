@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface FormState {
@@ -18,12 +17,26 @@ export interface FormState {
   // Fixed to Arabic with RTL only
   formLanguage: 'ar';
   rtl: boolean;
+  // Add translations to the interface but keep it simple for Arabic only
+  translations?: {
+    ar?: {
+      title?: string;
+      description?: string;
+      submitButtonText?: string;
+      fields?: Record<string, {
+        label?: string;
+        placeholder?: string;
+        options?: string[];
+      }>;
+    };
+  };
 }
 
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
+  getFieldTranslation: (fieldId: string, property: string, language: string) => any;
 }
 
 const defaultFormState: FormState = {
@@ -40,9 +53,17 @@ const defaultFormState: FormState = {
   buttonStyle: 'rounded',
   formLanguage: 'ar',
   rtl: true,
+  translations: {
+    ar: {
+      title: 'نموذج جديد',
+      description: '',
+      submitButtonText: 'إرسال الطلب',
+      fields: {}
+    }
+  }
 };
 
-export const useFormStore = create<FormStore>((set) => ({
+export const useFormStore = create<FormStore>((set, get) => ({
   formState: {...defaultFormState},
   
   setFormState: (form) => {
@@ -56,5 +77,17 @@ export const useFormStore = create<FormStore>((set) => ({
     }));
   },
   
-  resetFormState: () => set({ formState: {...defaultFormState} })
+  resetFormState: () => set({ formState: {...defaultFormState} }),
+
+  getFieldTranslation: (fieldId, property, language) => {
+    // Since we're only supporting Arabic, just return field data directly
+    const state = get().formState;
+    
+    // Check if translations and fields exist
+    if (state.translations?.ar?.fields && state.translations.ar.fields[fieldId]) {
+      return state.translations.ar.fields[fieldId][property];
+    }
+    
+    return undefined;
+  }
 }));

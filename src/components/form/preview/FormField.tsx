@@ -35,10 +35,10 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 
     return null;
   }
 
-  // Get translated field properties based on the selected language
-  const translatedLabel = getFieldTranslation(field.id, 'label', formLanguage);
-  const translatedPlaceholder = getFieldTranslation(field.id, 'placeholder', formLanguage);
-  const translatedOptions = getFieldTranslation(field.id, 'options', formLanguage);
+  // Get translated field properties - but since we're Arabic only, the language parameter doesn't matter
+  const translatedLabel = getFieldTranslation(field.id, 'label', 'ar');
+  const translatedPlaceholder = getFieldTranslation(field.id, 'placeholder', 'ar');
+  const translatedOptions = getFieldTranslation(field.id, 'options', 'ar');
 
   // Create translated field object
   const translatedField = {
@@ -78,7 +78,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle, formLanguage = 
     return null;
   }
 
-  return <Component field={translatedField} formStyle={formStyle} formLanguage={formLanguage} />;
+  return <Component field={translatedField} formStyle={formStyle} formLanguage="ar" />;
 };
 
 export default FormField;

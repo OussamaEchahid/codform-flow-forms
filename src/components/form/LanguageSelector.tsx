@@ -1,16 +1,10 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Simplified version that only displays a fixed language (Arabic)
+// Simplified version that only displays Arabic (fixed language)
 const LanguageSelector: React.FC = () => {
   const [selectedLanguage] = useState<'ar'>('ar');
 

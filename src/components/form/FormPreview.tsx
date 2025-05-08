@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -43,40 +42,28 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const [key, setKey] = useState(0);
   const { formState } = useFormStore();
   
-  // Get default submit button text based on form language
-  const getDefaultSubmitButtonText = (lang: 'ar' | 'en' | 'fr') => {
-    // First check translations if available
-    const translations = formState.translations?.[lang];
-    if (translations?.submitButtonText) {
-      return translations.submitButtonText;
+  // Get default submit button text (Arabic only)
+  const getDefaultSubmitButtonText = () => {
+    // For Arabic-only form
+    if (formState.translations?.ar?.submitButtonText) {
+      return formState.translations.ar.submitButtonText;
     }
-    
-    // Default fallback values per language
-    switch (lang) {
-      case 'ar':
-        return 'إرسال الطلب';
-      case 'en':
-        return 'Submit';
-      case 'fr':
-        return 'Soumettre';
-      default:
-        return 'إرسال الطلب';
-    }
+    return 'إرسال الطلب';
   };
 
-  // تحديد اتجاه النص بناءً على اللغة المحددة
-  const isRTL = formLanguage === 'ar';
-  const textDirection = isRTL ? 'rtl' : 'ltr';
+  // تحديد اتجاه النص بناءً على اللغة المحددة - always RTL for Arabic
+  const isRTL = true;
+  const textDirection = 'rtl';
   
   // تحديث المفتاح عند تغيير أي من الخصائص
   useEffect(() => {
     setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText, formLanguage]);
+  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, submitButtonText]);
   
   // ترجمات زر الإرسال حسب اللغة
   const getSubmitButtonText = () => {
     if (submitButtonText) return submitButtonText;
-    return getDefaultSubmitButtonText(formLanguage);
+    return getDefaultSubmitButtonText();
   };
   
   // استخدام العنوان الافتراضي بناءً على اللغة إذا لم يتم توفير عنوان
@@ -84,22 +71,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     if (formTitle) return formTitle;
     
     // Get title from translations if available
-    const translations = formState.translations?.[formLanguage];
-    if (translations?.title) {
-      return translations.title;
+    if (formState.translations?.ar?.title) {
+      return formState.translations.ar.title;
     }
     
-    // Default fallback titles
-    switch (formLanguage) {
-      case 'ar':
-        return 'نموذج جديد';
-      case 'en':
-        return 'New Form';
-      case 'fr':
-        return 'Nouveau Formulaire';
-      default:
-        return formTitle || 'نموذج جديد';
-    }
+    // Default fallback title for Arabic
+    return 'نموذج جديد';
   };
   
   // استخدام الوصف الافتراضي بناءً على اللغة إذا لم يتم توفير وصف
@@ -107,9 +84,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     if (formDescription) return formDescription;
     
     // Get description from translations if available
-    const translations = formState.translations?.[formLanguage];
-    if (translations?.description) {
-      return translations.description;
+    if (formState.translations?.ar?.description) {
+      return formState.translations.ar.description;
     }
     
     return '';
