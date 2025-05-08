@@ -5,21 +5,25 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import FormDesigner from '@/components/form/designer/FormDesigner';
 import { FormDesignData } from '@/components/form/designer/FormDesigner';
 import { v4 as uuidv4 } from 'uuid';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 
 const FormsPage = () => {
   const navigate = useNavigate();
   const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
+  const { forms, isLoading: isLoadingTemplates, fetchForms } = useFormTemplates();
   
   const [formData, setFormData] = useState<FormDesignData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formsCount, setFormsCount] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   
   const shopId = shop || localStorage.getItem('shopify_store');
   
@@ -59,6 +63,7 @@ const FormsPage = () => {
               console.error('Error loading form:', error);
               toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
             } else if (data) {
+              console.log("Loaded form data:", data);
               // Transform database data to FormDesignData format
               const formDesignData: FormDesignData = {
                 id: data.id,
@@ -86,6 +91,11 @@ const FormsPage = () => {
         setIsLoading(false);
       }
     };
+    
+    // Load templates too for reference
+    if (!isLoadingTemplates) {
+      fetchForms();
+    }
     
     if (shopId) {
       loadForms();
@@ -125,6 +135,12 @@ const FormsPage = () => {
         submitButtonText: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
         isPublished: false
       };
+      
+      console.log("Creating new form with data:", {
+        id: newFormId,
+        shop_id: shopId,
+        user_id: user?.id
+      });
       
       // Save to database
       const { error } = await supabase
@@ -169,6 +185,9 @@ const FormsPage = () => {
     }
     
     try {
+      setIsSaving(true);
+      console.log("Saving form with data:", data);
+      
       // Update the form in the database
       const { error } = await supabase
         .from('forms')
@@ -180,7 +199,8 @@ const FormsPage = () => {
           borderRadius: data.style.borderRadius,
           fontSize: data.style.fontSize,
           buttonStyle: data.style.buttonStyle,
-          submitButtonText: data.submitButtonText
+          submitButtonText: data.submitButtonText,
+          updated_at: new Date().toISOString() // Force update timestamp
         })
         .eq('id', data.id);
       
@@ -197,6 +217,8 @@ const FormsPage = () => {
       console.error('Error saving form:', error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       return false;
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -205,7 +227,10 @@ const FormsPage = () => {
       // Update the publish status in the database
       const { error } = await supabase
         .from('forms')
-        .update({ is_published: publish })
+        .update({ 
+          is_published: publish,
+          updated_at: new Date().toISOString() // Force update timestamp
+        })
         .eq('id', id);
       
       if (error) {
@@ -274,17 +299,25 @@ const FormsPage = () => {
             </p>
           </div>
           
-          {formsCount === 0 && (
-            <Button onClick={createNewForm} disabled={isLoading}>
-              <Plus className="h-4 w-4 mr-2" />
-              {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {formsCount === 0 && (
+              <Button onClick={createNewForm} disabled={isLoading}>
+                <Plus className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+          <div className="lg:col-span-4">
+            <ShopifyConnectionStatus />
+          </div>
         </div>
         
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : formData ? (
           <FormDesigner
