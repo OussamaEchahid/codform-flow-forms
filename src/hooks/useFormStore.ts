@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface FormState {
@@ -6,7 +7,7 @@ export interface FormState {
   description?: string;
   data: any[];
   isPublished: boolean;
-  is_published?: boolean; // Added for consistency with database field
+  is_published?: boolean;
   shop_id?: string;
   submitButtonText?: string;
   // Add style properties
@@ -14,56 +15,20 @@ export interface FormState {
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
-  // Add language support
-  formLanguage?: 'ar' | 'en' | 'fr';
-  rtl?: boolean;
-  // Translation objects for multi-language support
-  translations?: {
-    ar?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    en?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-    fr?: {
-      title?: string;
-      description?: string;
-      submitButtonText?: string;
-      fields?: Record<string, {
-        label?: string;
-        placeholder?: string;
-        options?: string[];
-      }>;
-    };
-  };
+  // Fixed to Arabic with RTL only
+  formLanguage: 'ar';
+  rtl: boolean;
 }
 
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
-  setFormLanguage: (language: 'ar' | 'en' | 'fr') => void;
-  getFieldTranslation: (fieldId: string, propertyName: 'label' | 'placeholder' | 'options', language?: 'ar' | 'en' | 'fr') => any;
-  setFieldTranslation: (fieldId: string, propertyName: 'label' | 'placeholder' | 'options', value: any, language?: 'ar' | 'en' | 'fr') => void;
 }
 
 const defaultFormState: FormState = {
   id: '',
-  title: 'New Form',
+  title: 'نموذج جديد',
   description: '',
   data: [],
   isPublished: false,
@@ -75,47 +40,13 @@ const defaultFormState: FormState = {
   buttonStyle: 'rounded',
   formLanguage: 'ar',
   rtl: true,
-  translations: {
-    ar: {
-      title: 'نموذج جديد',
-      description: '',
-      submitButtonText: 'إرسال الطلب',
-      fields: {}
-    },
-    en: {
-      title: 'New Form',
-      description: '',
-      submitButtonText: 'Submit',
-      fields: {}
-    },
-    fr: {
-      title: 'Nouveau Formulaire',
-      description: '',
-      submitButtonText: 'Soumettre',
-      fields: {}
-    }
-  }
 };
 
-export const useFormStore = create<FormStore>((set, get) => ({
+export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
   
   setFormState: (form) => {
     console.log("Setting form state:", form);
-    
-    // Ensure translations are properly initialized if not provided
-    if (form.translations) {
-      // Make sure each language has fields object
-      if (form.translations.ar && !form.translations.ar.fields) {
-        form.translations.ar.fields = {};
-      }
-      if (form.translations.en && !form.translations.en.fields) {
-        form.translations.en.fields = {};
-      }
-      if (form.translations.fr && !form.translations.fr.fields) {
-        form.translations.fr.fields = {};
-      }
-    }
     
     set((state) => ({ 
       formState: { 
@@ -125,117 +56,5 @@ export const useFormStore = create<FormStore>((set, get) => ({
     }));
   },
   
-  resetFormState: () => set({ formState: {...defaultFormState} }),
-  
-  setFormLanguage: (language) => set((state) => {
-    console.log(`Setting form language to: ${language}`);
-    
-    // Ensure translations object exists with proper structure
-    const translations = state.formState.translations || {
-      ar: { title: 'نموذج جديد', description: '', submitButtonText: 'إرسال الطلب', fields: {} },
-      en: { title: 'New Form', description: '', submitButtonText: 'Submit', fields: {} },
-      fr: { title: 'Nouveau Formulaire', description: '', submitButtonText: 'Soumettre', fields: {} }
-    };
-    
-    // Ensure each language has fields object
-    if (!translations.ar.fields) translations.ar.fields = {};
-    if (!translations.en.fields) translations.en.fields = {};
-    if (!translations.fr.fields) translations.fr.fields = {};
-    
-    // Get translated values for current language
-    const currentLangTranslations = translations[language] || {};
-    
-    console.log(`Switching to language: ${language}, translations:`, currentLangTranslations);
-    
-    // Create updated form state with new language settings
-    const updatedFormState = {
-      ...state.formState,
-      formLanguage: language,
-      rtl: language === 'ar',
-      // Update form title, description and submit button from translations
-      title: currentLangTranslations.title || state.formState.title,
-      description: currentLangTranslations.description || state.formState.description,
-      submitButtonText: currentLangTranslations.submitButtonText || 
-        (language === 'ar' ? 'إرسال الطلب' : language === 'en' ? 'Submit' : 'Soumettre'),
-      // Ensure translations object is preserved with proper structure
-      translations: translations
-    };
-    
-    console.log("Updated form state with new language:", updatedFormState);
-    
-    return {
-      formState: updatedFormState
-    };
-  }),
-  
-  getFieldTranslation: (fieldId, propertyName, language) => {
-    const state = get();
-    const currentLang = language || state.formState.formLanguage || 'ar';
-    
-    // Check if translations object exists
-    if (!state.formState.translations) {
-      console.log('No translations object found');
-      return undefined;
-    }
-    
-    // Safely access nested properties
-    const langTranslations = state.formState.translations[currentLang];
-    if (!langTranslations) {
-      console.log(`No translations found for language: ${currentLang}`);
-      return undefined;
-    }
-    
-    // Ensure fields object exists before trying to access it
-    const fields = langTranslations.fields || {};
-    
-    // Access the field translation if it exists
-    const fieldTranslations = fields[fieldId];
-    if (!fieldTranslations) {
-      console.log(`No translations found for field: ${fieldId}`);
-      return undefined;
-    }
-    
-    // Return the property value
-    return fieldTranslations[propertyName];
-  },
-  
-  setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
-    const currentLang = language || state.formState.formLanguage || 'ar';
-    
-    // Create a properly structured deep copy of translations
-    const existingTranslations = state.formState.translations || {};
-    
-    const newTranslations = {
-      ar: {
-        ...existingTranslations.ar,
-        fields: { ...(existingTranslations.ar?.fields || {}) }
-      },
-      en: {
-        ...existingTranslations.en,
-        fields: { ...(existingTranslations.en?.fields || {}) }
-      },
-      fr: {
-        ...existingTranslations.fr,
-        fields: { ...(existingTranslations.fr?.fields || {}) }
-      }
-    };
-    
-    // Ensure the field object exists for the target language
-    if (!newTranslations[currentLang].fields[fieldId]) {
-      newTranslations[currentLang].fields[fieldId] = {};
-    }
-    
-    // Set the property value
-    newTranslations[currentLang].fields[fieldId][propertyName] = value;
-    
-    console.log(`Set translation for ${fieldId}.${propertyName} in ${currentLang}:`, value);
-    console.log("New translations structure:", newTranslations);
-    
-    return {
-      formState: {
-        ...state.formState,
-        translations: newTranslations
-      }
-    };
-  })
+  resetFormState: () => set({ formState: {...defaultFormState} })
 }));

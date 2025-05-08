@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
 // Define language types
-type Language = 'en' | 'ar' | 'fr';
+type Language = 'ar' | 'en' | 'fr';
 
 // Create context
 interface I18nContextType {
@@ -12,7 +12,7 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  language: 'en',
+  language: 'ar', // Default to Arabic
   setLanguage: () => {},
   t: () => '',
 });
@@ -120,13 +120,17 @@ interface I18nProviderProps {
 }
 
 export const I18nProvider = ({ children }: I18nProviderProps) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>('ar'); // Default to Arabic
 
   // Load language from localStorage on component mount
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') as Language;
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar' || savedLanguage === 'fr')) {
       setLanguage(savedLanguage);
+    } else {
+      // Default to Arabic if no language is saved
+      setLanguage('ar');
+      localStorage.setItem('language', 'ar');
     }
   }, []);
 
