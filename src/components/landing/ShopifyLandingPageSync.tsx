@@ -54,13 +54,6 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       return;
     }
     
-    if (!isPublished) {
-      toast.error(language === 'ar' 
-        ? 'يجب نشر الصفحة أولاً' 
-        : 'You must publish the page first');
-      return;
-    }
-    
     setIsSyncing(true);
     setSyncStatus('syncing');
     
@@ -172,7 +165,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       ) : (
         <Button
           onClick={handleSync}
-          disabled={isSyncing || !isPublished}
+          disabled={isSyncing}
           className="w-full"
         >
           {isSyncing ? (
@@ -187,14 +180,6 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             </>
           )}
         </Button>
-      )}
-      
-      {!isPublished && (
-        <p className="text-sm text-amber-600 mt-2">
-          {language === 'ar'
-            ? 'يجب نشر الصفحة أولاً قبل نشرها على شوبيفاي'
-            : 'You must publish the page first before publishing to Shopify'}
-        </p>
       )}
     </div>
   );

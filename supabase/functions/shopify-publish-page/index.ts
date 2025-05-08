@@ -229,35 +229,57 @@ serve(async (req) => {
     // Save sync record in database
     const pageUrl = `https://${normalizedShop}/pages/${pageSlug}`;
     
-    // Check if sync record already exists
-    const { data: existingSyncData, error: existingSyncError } = await supabase
-      .from('shopify_page_syncs')
-      .select('id')
-      .eq('page_id', pageId)
-      .limit(1);
-      
-    if (existingSyncError) {
-      console.error("Error checking existing sync record:", existingSyncError);
+    // Try to create the shopify_page_syncs table if it doesn't exist
+    try {
+      await supabase.rpc('create_table_if_not_exists', {
+        p_table_name: 'shopify_page_syncs',
+        p_table_definition: `
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          page_id UUID NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+          shop_id TEXT NOT NULL,
+          synced_url TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        `
+      });
+    } catch (err) {
+      console.log("Table may already exist or couldn't be created:", err);
     }
     
-    if (existingSyncData && existingSyncData.length > 0) {
-      // Update existing record
-      await supabase
+    // Check if sync record already exists
+    try {
+      const { data: existingSyncData, error: existingSyncError } = await supabase
         .from('shopify_page_syncs')
-        .update({
-          synced_url: pageUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingSyncData[0].id);
-    } else {
-      // Create new record
-      await supabase
-        .from('shopify_page_syncs')
-        .insert({
-          page_id: pageId,
-          shop_id: shop,
-          synced_url: pageUrl
-        });
+        .select('id')
+        .eq('page_id', pageId)
+        .limit(1);
+        
+      if (existingSyncError) {
+        console.error("Error checking existing sync record:", existingSyncError);
+      }
+      
+      if (existingSyncData && existingSyncData.length > 0) {
+        // Update existing record
+        await supabase
+          .from('shopify_page_syncs')
+          .update({
+            synced_url: pageUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingSyncData[0].id);
+      } else {
+        // Create new record
+        await supabase
+          .from('shopify_page_syncs')
+          .insert({
+            page_id: pageId,
+            shop_id: shop,
+            synced_url: pageUrl
+          });
+      }
+    } catch (e) {
+      console.error("Error handling sync record:", e);
+      // Continue despite error, as this is not critical
     }
 
     return new Response(JSON.stringify({
