@@ -25,7 +25,7 @@ interface FormFieldProps {
   };
 }
 
-// خريطة المكونات - ثابتة خارج المكون الرئيسي
+// نقل خريطة المكونات خارج المكون لمنع إعادة إنشائها في كل رسم
 const FIELD_COMPONENTS = {
   'text': TextInput,
   'textarea': TextArea,
@@ -42,6 +42,17 @@ const FIELD_COMPONENTS = {
   'image': ImageField,
   'email': TextInput, // البريد الإلكتروني يستخدم مكون النص
   'phone': TextInput, // الهاتف يستخدم مكون النص
+};
+
+// دالة المقارنة المخصصة للتحقق من تغييرات الخصائص
+const arePropsEqual = (prevProps: FormFieldProps, nextProps: FormFieldProps) => {
+  return (
+    prevProps.field.id === nextProps.field.id &&
+    prevProps.field.type === nextProps.field.type &&
+    prevProps.field.label === nextProps.field.label &&
+    prevProps.field.required === nextProps.field.required &&
+    JSON.stringify(prevProps.formStyle) === JSON.stringify(nextProps.formStyle)
+  );
 };
 
 // مكون وظيفي بسيط يتجنب التحديثات غير الضرورية
@@ -71,5 +82,5 @@ const FormField = (props: FormFieldProps) => {
   return <Component field={field} formStyle={formStyle} />;
 };
 
-// استخدام memo للحد من عمليات إعادة التصيير غير الضرورية
-export default React.memo(FormField);
+// استخدام memo مع دالة المقارنة المخصصة للحد من عمليات إعادة التصيير غير الضرورية
+export default React.memo(FormField, arePropsEqual);

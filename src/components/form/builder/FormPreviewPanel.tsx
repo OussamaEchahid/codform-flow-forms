@@ -20,6 +20,51 @@ interface FormPreviewPanelProps {
   submitButtonText?: string;
 }
 
+// استخدام مكون خارجي للأزرار لمنع إعادة الرسم غير الضروري
+const StepButtons = React.memo(({ 
+  currentStep,
+  totalSteps,
+  onPreviousStep,
+  onNextStep,
+  language
+}: { 
+  currentStep: number;
+  totalSteps: number;
+  onPreviousStep: () => void;
+  onNextStep: () => void;
+  language: string;
+}) => {
+  if (totalSteps <= 1) return null;
+  
+  return (
+    <div className="flex items-center space-x-2 rtl:space-x-reverse">
+      <Button 
+        size="sm" 
+        variant="outline"
+        onClick={onPreviousStep}
+        disabled={currentStep <= 1}
+        type="button"
+      >
+        {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </Button>
+      <span className="text-sm font-medium">
+        {currentStep} / {totalSteps}
+      </span>
+      <Button 
+        size="sm" 
+        variant="outline"
+        onClick={onNextStep}
+        disabled={currentStep >= totalSteps}
+        type="button"
+      >
+        {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+});
+
+StepButtons.displayName = 'StepButtons';
+
 // استخدام ref بدلاً من state لمنع التحديثات غير الضرورية
 const FormPreviewPanel = (props: FormPreviewPanelProps) => {
   const {
@@ -36,40 +81,11 @@ const FormPreviewPanel = (props: FormPreviewPanelProps) => {
   } = props;
   
   const { t, language } = useI18n();
-  const previewKeyRef = React.useRef(`preview-${refreshKey}-${currentStep}`);
   
-  // تحديث المرجع فقط عندما تتغير القيم المهمة
-  React.useEffect(() => {
-    previewKeyRef.current = `preview-${refreshKey}-${currentStep}`;
-  }, [refreshKey, currentStep]);
+  // استخدام useMemo بدلاً من useRef وuseEffect
+  const previewKey = React.useMemo(() => `preview-${refreshKey}-${currentStep}`, [refreshKey, currentStep]);
   
-  // زر السابق - ثابت
-  const PreviousButton = React.useMemo(() => (
-    <Button 
-      size="sm" 
-      variant="outline"
-      onClick={onPreviousStep}
-      disabled={currentStep <= 1}
-      type="button"
-    >
-      {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-    </Button>
-  ), [currentStep, language, onPreviousStep]);
-
-  // زر التالي - ثابت
-  const NextButton = React.useMemo(() => (
-    <Button 
-      size="sm" 
-      variant="outline"
-      onClick={onNextStep}
-      disabled={currentStep >= totalSteps}
-      type="button"
-    >
-      {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-    </Button>
-  ), [currentStep, language, onNextStep, totalSteps]);
-
-  // رسالة في حالة عدم وجود حقول
+  // رسالة في حالة عدم وجود حقول - مذكرة لمنع إعادة الإنشاء
   const emptyFieldsMessage = React.useMemo(() => {
     if (!fields || fields.length === 0) {
       return (
@@ -94,19 +110,19 @@ const FormPreviewPanel = (props: FormPreviewPanelProps) => {
 
         {/* التحكم في النموذج متعدد الخطوات */}
         {totalSteps > 1 && (
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            {PreviousButton}
-            <span className="text-sm font-medium">
-              {currentStep} / {totalSteps}
-            </span>
-            {NextButton}
-          </div>
+          <StepButtons 
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            onPreviousStep={onPreviousStep}
+            onNextStep={onNextStep}
+            language={language}
+          />
         )}
       </div>
 
       <div className="form-preview-container flex-1 overflow-auto border rounded-md">
         <FormPreview
-          key={previewKeyRef.current}
+          key={previewKey}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}

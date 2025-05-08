@@ -63,23 +63,48 @@ const defaultFormState: FormState = {
   lastSaved: Date.now()
 };
 
+// كود مساعد للدمج الآمن للكائنات بدون تغيير غير مقصود
+const safeMerge = <T extends object>(original: T, updates: Partial<T>): T => {
+  // إذا كان التحديث فارغاً، عد بالقيمة الأصلية كما هي
+  if (!updates || Object.keys(updates).length === 0) {
+    return original;
+  }
+  // إنشاء نسخة جديدة بدلاً من تعديل الأصل
+  return { ...original, ...updates };
+};
+
 // Using persist middleware to keep form state in localStorage as a backup
 export const useFormStore = create<FormStore>()(
   persist(
     (set) => ({
       formState: {...defaultFormState},
+      
       setFormState: (form) => set((state) => {
+        // منع التحديثات غير الضرورية
+        if (!form || Object.keys(form).length === 0) {
+          return state;
+        }
+        
         // Prepare form style object, combining existing with new values
-        const formStyle = {
-          ...(state.formState.formStyle || defaultFormStyle),
-          ...(form.formStyle || {}),
-        };
+        const formStyle = safeMerge(
+          state.formState.formStyle || defaultFormStyle,
+          form.formStyle || {}
+        );
         
         // If any top-level style properties are provided, update the formStyle object
-        if (form.primaryColor) formStyle.primaryColor = form.primaryColor;
-        if (form.borderRadius) formStyle.borderRadius = form.borderRadius;
-        if (form.fontSize) formStyle.fontSize = form.fontSize;
-        if (form.buttonStyle) formStyle.buttonStyle = form.buttonStyle;
+        // but without triggering updates if values haven't changed
+        if (form.primaryColor && form.primaryColor !== formStyle.primaryColor) {
+          formStyle.primaryColor = form.primaryColor;
+        }
+        if (form.borderRadius && form.borderRadius !== formStyle.borderRadius) {
+          formStyle.borderRadius = form.borderRadius;
+        }
+        if (form.fontSize && form.fontSize !== formStyle.fontSize) {
+          formStyle.fontSize = form.fontSize;
+        }
+        if (form.buttonStyle && form.buttonStyle !== formStyle.buttonStyle) {
+          formStyle.buttonStyle = form.buttonStyle;
+        }
         
         // Update the form state with new values and sync style properties
         const updatedForm = {
@@ -100,19 +125,44 @@ export const useFormStore = create<FormStore>()(
         };
       }),
       
-      updateFormData: (data) => set((state) => ({
-        formState: {
-          ...state.formState,
-          data: data,
-          isDirty: true
+      updateFormData: (data) => set((state) => {
+        // منع التحديثات غير الضرورية
+        if (JSON.stringify(data) === JSON.stringify(state.formState.data)) {
+          return state;
         }
-      })),
+        
+        return {
+          formState: {
+            ...state.formState,
+            data: data,
+            isDirty: true
+          }
+        };
+      }),
       
       updateFormStyle: (style) => set((state) => {
-        const formStyle = {
-          ...(state.formState.formStyle || defaultFormStyle),
-          ...style,
-        };
+        // منع التحديثات غير الضرورية
+        if (!style || Object.keys(style).length === 0) {
+          return state;
+        }
+        
+        const currentStyle = state.formState.formStyle || defaultFormStyle;
+        
+        // فحص ما إذا كانت هناك أي تغييرات فعلية
+        let hasChanges = false;
+        for (const key in style) {
+          if (style[key as keyof typeof style] !== currentStyle[key as keyof typeof currentStyle]) {
+            hasChanges = true;
+            break;
+          }
+        }
+        
+        // إذا لم تكن هناك تغييرات، عد بالحالة كما هي
+        if (!hasChanges) {
+          return state;
+        }
+        
+        const formStyle = safeMerge(currentStyle, style);
         
         return {
           formState: {
@@ -128,7 +178,13 @@ export const useFormStore = create<FormStore>()(
         };
       }),
       
-      resetFormState: () => set({ formState: {...defaultFormState, id: '', lastSaved: Date.now()} }),
+      resetFormState: () => set({ 
+        formState: {
+          ...defaultFormState, 
+          id: '', 
+          lastSaved: Date.now()
+        } 
+      }),
       
       markAsSaved: () => set((state) => ({
         formState: {
@@ -138,12 +194,19 @@ export const useFormStore = create<FormStore>()(
         }
       })),
       
-      markAsDirty: () => set((state) => ({
-        formState: {
-          ...state.formState,
-          isDirty: true
+      markAsDirty: () => set((state) => {
+        // منع التحديثات غير الضرورية
+        if (state.formState.isDirty) {
+          return state;
         }
-      }))
+        
+        return {
+          formState: {
+            ...state.formState,
+            isDirty: true
+          }
+        };
+      })
     }),
     {
       name: 'form-store', // name for localStorage
