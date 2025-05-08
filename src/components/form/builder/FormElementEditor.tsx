@@ -38,10 +38,14 @@ const SortableFormElement = ({
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: element.id });
   const { language } = useI18n();
   
+  // Add error boundaries for element rendering
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  
+  // Fallback label if element data is incomplete
+  const elementLabel = element.label || element.type || 'Unnamed Element';
   
   return (
     <div 
@@ -88,7 +92,7 @@ const SortableFormElement = ({
             <span className="border-r h-4 mx-2"></span>
             
             <span className="font-medium">
-              {element.label || element.type} {language === 'ar' ? 'إعدادات' : 'configuration'}
+              {elementLabel} {language === 'ar' ? 'إعدادات' : 'configuration'}
             </span>
           </div>
         </div>
@@ -122,10 +126,13 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
 
+  // Improved error handling for elements
+  const safeElements = Array.isArray(elements) ? elements : [];
+
   return (
     <div className="space-y-4">
-      {elements && elements.length > 0 ? (
-        elements.map((element, index) => (
+      {safeElements.length > 0 ? (
+        safeElements.map((element, index) => (
           <SortableFormElement
             key={element.id || index}
             element={element}

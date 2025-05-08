@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -304,28 +303,37 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
-      // Handle style properties correctly
+      // Remove style properties from top-level database fields
+      // to avoid database column errors
+      const stylesToRemove = ['primaryColor', 'borderRadius', 'fontSize', 'buttonStyle'];
+      stylesToRemove.forEach(style => {
+        if (dbData[style] !== undefined) {
+          delete dbData[style];
+        }
+      });
+      
       // Extract style properties from formStyle if available
-      if (formData.formStyle) {
-        dbData.primaryColor = formData.formStyle.primaryColor || formData.primaryColor;
-        dbData.borderRadius = formData.formStyle.borderRadius || formData.borderRadius;
-        dbData.fontSize = formData.formStyle.fontSize || formData.fontSize;
-        dbData.buttonStyle = formData.formStyle.buttonStyle || formData.buttonStyle;
-      }
-
+      const formStyle = formData.formStyle || {};
+      
       // Ensure data field is properly structured with style
       if (dbData.data && Array.isArray(dbData.data)) {
+        // Add formStyle to data structure instead of separate columns
+        const styleData = {
+          primaryColor: formStyle.primaryColor || formData.primaryColor || '#9b87f5',
+          borderRadius: formStyle.borderRadius || formData.borderRadius || '0.5rem',
+          fontSize: formStyle.fontSize || formData.fontSize || '1rem',
+          buttonStyle: formStyle.buttonStyle || formData.buttonStyle || 'rounded',
+        };
+        
+        // Store styling in data
+        dbData._formStyles = styleData;
+        
         // Include form style data in each step
         dbData.data = dbData.data.map((step: any) => {
           // Add formStyle to each step
           const stepWithStyle = {
             ...step,
-            formStyle: {
-              primaryColor: dbData.primaryColor || formData.primaryColor,
-              borderRadius: dbData.borderRadius || formData.borderRadius,
-              fontSize: dbData.fontSize || formData.fontSize,
-              buttonStyle: dbData.buttonStyle || formData.buttonStyle,
-            },
+            formStyle: styleData,
           };
 
           // Make sure all fields have proper IDs 
@@ -341,6 +349,8 @@ export const useFormTemplates = () => {
           return stepWithStyle;
         });
       }
+      
+      console.log('Prepared data for database:', dbData);
       
       // Update form in Supabase with updated_at field
       dbData.updated_at = new Date().toISOString();
@@ -489,18 +499,30 @@ export const useFormTemplates = () => {
       
       console.log('Form loaded from database:', data);
       
-      // Format data for form state with proper style structure
-      const formStyle = {
-        primaryColor: data.primaryColor || '#9b87f5',
-        borderRadius: data.borderRadius || '0.5rem',
-        fontSize: data.fontSize || '1rem',
-        buttonStyle: data.buttonStyle || 'rounded',
-      };
+      // Extract style properties from data._formStyles or from individual fields
+      let formStyle;
+      if (data._formStyles) {
+        // Get from embedded structure
+        formStyle = data._formStyles;
+      } else {
+        // Fallback to default values
+        formStyle = {
+          primaryColor: '#9b87f5',
+          borderRadius: '0.5rem',
+          fontSize: '1rem',
+          buttonStyle: 'rounded',
+        };
+      }
       
       const formData: FormData = {
         ...data,
         isPublished: data.is_published,
         formStyle: formStyle,
+        // Add style properties at the top level for backward compatibility
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       };
       
       // Update form state

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -256,7 +255,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
 
-  // Create a debounced save function
+  // Create a debounced save function with better error handling
   const debouncedSave = useCallback(
     debounce(async (formId, formData) => {
       try {
@@ -266,9 +265,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           console.log("Autosave successful");
           setLastSaveTimestamp(Date.now());
           // Don't show toast for autosaves to avoid too many notifications
+        } else {
+          console.warn("Autosave failed, but continuing with UI updates");
+          // Even if autosave fails, we want to continue with UI updates
         }
       } catch (error) {
         console.error("Error during autosave:", error);
+        // Errors during autosave should not break the UI
       }
     }, 2000),
     []
@@ -399,7 +402,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         toast.success(
           newPublishState 
             ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+            : (language === 'ar' ? 'ت�� إلغاء نشر النموذج' : 'Form unpublished')
         );
         
         // Update form state
@@ -423,29 +426,73 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     try {
       console.log("Adding new element of type:", type);
       
+      // Create a unique ID for the new element
+      const newElementId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create the new element with proper ID
       const newElement = {
         type,
-        id: `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        id: newElementId,
         label: language === 'ar' ? `${type} جديد` : `New ${type}`,
         placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
         content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
       };
       
       console.log("Created new element:", newElement);
+      
+      // Add element to the local state first, don't wait for save
       const updatedElements = [...formElements, newElement];
       setFormElements(updatedElements);
       markAsDirty();
       
-      // Update selected element
-      setTimeout(() => {
-        setSelectedElementIndex(updatedElements.length - 1);
-        setRefreshKey(prev => prev + 1);
-        toast.success(language === 'ar' ? 'تم إضافة عنصر جديد' : 'New element added');
-      }, 100);
+      // Update selected element and refresh UI immediately
+      setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
+      
+      // Show success message regardless of autosave status
+      toast.success(language === 'ar' ? 'تم إضافة عنصر جديد' : 'New element added');
+      
+      // Trigger autosave in the background, but don't wait for result
+      if (currentFormId) {
+        console.log("Triggering autosave after element addition");
+        // Create form step from elements
+        const formStep: FormStep = {
+          id: '1',
+          title: 'Main Step',
+          fields: updatedElements
+        };
+        
+        // Prepare form data with all necessary fields
+        const formData: Partial<FormData> = {
+          title: formTitle,
+          description: formDescription,
+          data: [formStep],
+          submitButtonText: submitButtonText,
+          formStyle: { ...formStyle }
+        };
+        
+        // Use debounced save but don't wait for it
+        debouncedSave(currentFormId, formData);
+      }
     } catch (error: any) {
       console.error("Error adding element:", error);
       toast.error(language === 'ar' ? 'خطأ في إضافة عنصر جديد' : 'Error adding new element');
       setErrorMessage(error.message || 'Unknown error');
+      
+      // Even if there's an error, still try to add the element locally
+      try {
+        const fallbackElement = {
+          type,
+          id: `${type}-${Date.now()}-fallback`,
+          label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+          required: false
+        };
+        const updatedElements = [...formElements, fallbackElement];
+        setFormElements(updatedElements);
+        setRefreshKey(prev => prev + 1);
+      } catch (e) {
+        console.error("Fallback element addition failed:", e);
+      }
     }
   };
 
