@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
@@ -34,10 +34,12 @@ const FormBuilderPage = () => {
   // Handle connection issues automatically
   useEffect(() => {
     if (tokenError) {
+      console.log("Token error detected, enabling bypass");
       setBypassEnabled(true);
       
       if (!failSafeMode) {
         toggleFailSafeMode(true);
+        console.log("Enabling fail-safe mode automatically");
       }
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
@@ -58,13 +60,13 @@ const FormBuilderPage = () => {
     }
   }, []);
   
-  const enableBypass = useCallback(() => {
+  const enableBypass = () => {
     setBypassEnabled(true);
     localStorage.setItem('bypass_auth', 'true');
     toast.success(language === 'ar' 
       ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج' 
       : 'Bypass mode activated. You can continue managing forms.');
-  }, [language]);
+  };
 
   if (!actualHasAccess) {
     return (
@@ -86,7 +88,6 @@ const FormBuilderPage = () => {
               <Button 
                 onClick={() => navigate('/shopify')}
                 className="w-full"
-                type="button"
               >
                 {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
               </Button>
@@ -95,7 +96,6 @@ const FormBuilderPage = () => {
                 variant="outline"
                 onClick={enableBypass}
                 className="w-full"
-                type="button"
               >
                 {language === 'ar' ? 'متابعة على أي حال' : 'Continue Anyway'}
               </Button>
@@ -131,7 +131,7 @@ const FormBuilderPage = () => {
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          formId && <FormBuilderEditor formId={formId} />
+          <FormBuilderEditor formId={formId} />
         )}
       </div>
       

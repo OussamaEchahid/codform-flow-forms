@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -147,13 +147,8 @@ function AppRoutes() {
 }
 
 function App() {
-  const initRef = useRef(false);
-
-  // Clean placeholder tokens and validate connection on startup - using useRef to prevent infinite loops
-  useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-
+  // Clean placeholder tokens and validate connection on startup
+  React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
     // Attempt to validate the connection state with retry logic

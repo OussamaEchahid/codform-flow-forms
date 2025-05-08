@@ -1,33 +1,37 @@
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { 
-  DndContext, 
+import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
+import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n';
+import { useFormStore } from '@/hooks/useFormStore';
+import {
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
 } from '@dnd-kit/core';
-import { 
-  arrayMove,
+import {
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy
+  arrayMove,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { FormField, FormStep } from '@/lib/form-utils';
+import FieldEditor from '@/components/form/FieldEditor';
+import FormHeader from '@/components/form/builder/FormHeader';
+import FormElementEditor from '@/components/form/builder/FormElementEditor';
+import FormElementList from '@/components/form/builder/FormElementList';
+import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
+import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
+import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import { useShopify } from '@/hooks/useShopify';
+import { Dialog } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
-import FormElementList from './FormElementList';
-import FormElementEditor from './FormElementEditor';
-import FormPreviewPanel from './FormPreviewPanel';
-import FormHeader from './FormHeader';
-import FormStyleEditor, { FormStyle } from './FormStyleEditor';
-import { FormField, FormStep, createEmptyField } from '@/lib/form-utils';
-import { useFormStore } from '@/hooks/useFormStore';
-import { toast } from 'sonner';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -36,24 +40,474 @@ interface FormBuilderEditorProps {
 const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const navigate = useNavigate();
   const params = useParams();
-  const currentFormId = formId || params.formId;
-  const { loadForm, saveForm } = useFormTemplates();
-  const { formState, setFormState, updateFormData, updateFormStyle, markAsDirty } = useFormStore();
+  const { t, language } = useI18n();
+  const shopifyIntegration = useShopify();
+  const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
+  const { formState, setFormState, resetFormState } = useFormStore();
   
-  const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
-  const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
   
-  // Add refresh counter to force FormPreviewPanel to re-render only when needed
-  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [formStyle, setFormStyle] = useState(() => {
+    const storedStyle = localStorage.getItem('selectedTemplateStyle');
+    return storedStyle ? JSON.parse(storedStyle) : {
+      primaryColor: '#9b87f5',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      buttonStyle: 'rounded',
+    };
+  });
   
-  // Use ref to prevent excessive updates
-  const loadedFormRef = useRef(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [formElements, setFormElements] = useState<Array<FormField>>([]);
   
-  // State for DnD operations
+  const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
+  const [formTitle, setFormTitle] = useState('نموذج جديد');
+  const [formDescription, setFormDescription] = useState('');
+  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
+  const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
+
+  const availableElements = [
+    { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
+    { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
+    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
+    { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
+    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
+    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
+    { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
+    { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
+    { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
+    { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
+    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
+  ];
+
+  // Get active shop ID for database operations
+  const getActiveShopId = () => {
+    return shopifyIntegration.shop || localStorage.getItem('shopify_store');
+  };
+
+  // Clear form state when navigating away or when component unmounts
+  useEffect(() => {
+    return () => {
+      resetFormState();
+    };
+  }, []);
+
+  // Initialize a new form if no form ID is provided
+  const initializeNewForm = async () => {
+    try {
+      const shopId = getActiveShopId();
+      if (!shopId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
+        return;
+      }
+
+      // Create a new ID for the form
+      const newId = uuidv4();
+      setCurrentFormId(newId);
+
+      // Prepare initial form data
+      const initialFormStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: []
+      };
+
+      // Create new form in database
+      const { data, error } = await supabase.from('forms').insert({
+        id: newId,
+        title: formTitle,
+        description: formDescription,
+        data: [initialFormStep],
+        shop_id: shopId,
+        is_published: false,
+        submitButtonText: submitButtonText
+      }).select();
+
+      if (error) {
+        console.error("Error creating new form:", error);
+        toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
+        return;
+      }
+
+      // Update form state
+      resetFormState(); // Clear any previous form state
+      setFormState({
+        id: newId,
+        title: formTitle,
+        description: formDescription,
+        data: [initialFormStep],
+        isPublished: false,
+        shop_id: shopId,
+        submitButtonText: submitButtonText
+      });
+
+      toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
+    } catch (error) {
+      console.error("Error initializing new form:", error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
+    }
+  };
+
+  // Load form data when formId changes
+  useEffect(() => {
+    const loadFormData = async () => {
+      const id = formId || params.formId;
+      
+      if (id) {
+        setCurrentFormId(id);
+        try {
+          // Reset form state before loading new form
+          resetFormState();
+          
+          const formData = await loadForm(id);
+          
+          if (formData) {
+            setFormTitle(formData.title || 'نموذج جديد');
+            setFormDescription(formData.description || '');
+            setFormElements(
+              formData.data?.flatMap(step => step.fields) || []
+            );
+            setIsPublished(!!formData.isPublished || !!formData.is_published);
+            setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
+            
+            // Update form style if available
+            if (formData.primaryColor || formData.borderRadius || formData.fontSize || formData.buttonStyle) {
+              setFormStyle({
+                primaryColor: formData.primaryColor || formStyle.primaryColor,
+                borderRadius: formData.borderRadius || formStyle.borderRadius,
+                fontSize: formData.fontSize || formStyle.fontSize,
+                buttonStyle: formData.buttonStyle || formStyle.buttonStyle
+              });
+            }
+            
+            console.log("Loaded form data:", formData);
+          } else {
+            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+            navigate('/form-builder');
+          }
+        } catch (error) {
+          console.error("Error loading form:", error);
+          toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+        }
+      } else {
+        // If no form ID, initialize a new form
+        await initializeNewForm();
+      }
+    };
+    
+    loadFormData();
+  }, [formId, params.formId]);
+
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [formElements]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    
+    try {
+      if (!currentFormId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+        setIsSaving(false);
+        return;
+      }
+      
+      // Create form step from elements
+      const formStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: formElements
+      };
+      
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.warn("No active shop ID found, saving without shop association");
+      }
+      
+      // إعداد بيانات النموذج للحفظ مع تضمين submitButtonText
+      const formData: Partial<FormData> = {
+        title: formTitle,
+        description: formDescription,
+        data: [formStep],
+        shop_id: shopId,
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
+      };
+      
+      console.log("Saving form with data:", formData);
+      
+      // محاولة التحديث المباشر في قاعدة البيانات
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          title: formTitle,
+          description: formDescription,
+          data: [formStep],
+          shop_id: shopId,
+          updated_at: new Date().toISOString(),
+          submitButtonText: submitButtonText,
+          primaryColor: formStyle.primaryColor,
+          borderRadius: formStyle.borderRadius,
+          fontSize: formStyle.fontSize,
+          buttonStyle: formStyle.buttonStyle
+        })
+        .eq('id', currentFormId);
+      
+      if (error) {
+        console.error("Database update failed:", error);
+        
+        // إذا فشل التحديث المباشر، نحاول استخدام وظيفة saveForm
+        const success = await saveForm(currentFormId, formData);
+        
+        if (success) {
+          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        } else {
+          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
+        }
+      } else {
+        // تحديث حالة النموذج في الذاكرة
+        setFormState({
+          ...formState,
+          ...formData,
+          id: currentFormId
+        });
+        
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        
+        // تحديث حالة الحفظ
+        setRefreshKey(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error("Error saving form:", error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+    }
+    
+    setIsSaving(false);
+  };
+
+  const handlePublish = async () => {
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+      return;
+    }
+    
+    setIsPublishing(true);
+    
+    try {
+      // Save form before publishing
+      await handleSave();
+      
+      // Toggle publish status
+      const newPublishState = !isPublished;
+      
+      // Try direct database update for publishing
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          is_published: newPublishState,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentFormId);
+      
+      if (error) {
+        console.error("Direct database update for publishing failed:", error);
+        
+        // If direct update fails, try using the publishForm method
+        const success = await publishForm(currentFormId, newPublishState);
+        
+        if (success) {
+          setIsPublished(newPublishState);
+          toast.success(
+            newPublishState 
+              ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+          );
+        } else {
+          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+        }
+      } else {
+        setIsPublished(newPublishState);
+        toast.success(
+          newPublishState 
+            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+        );
+        
+        // تحديث حالة النموذج في الذاكرة
+        setFormState({
+          ...formState,
+          isPublished: newPublishState
+        });
+      }
+    } catch (error) {
+      console.error("Error publishing form:", error);
+      toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
+    }
+    
+    setIsPublishing(false);
+  };
+
+  const addElement = (type: string) => {
+    const newElement = {
+      type,
+      id: `${type}-${Date.now()}`,
+      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+    };
+    
+    const updatedElements = [...formElements, newElement];
+    setFormElements(updatedElements);
+    setTimeout(() => {
+      setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const editElement = (index: number) => {
+    const element = formElements[index];
+    setCurrentEditingField(element);
+    setIsFieldEditorOpen(true);
+  };
+
+  const deleteElement = (index: number) => {
+    const updatedElements = [...formElements];
+    updatedElements.splice(index, 1);
+    setFormElements(updatedElements);
+    setSelectedElementIndex(null);
+    setRefreshKey(prev => prev + 1);
+    
+    // Save after deleting element
+    setTimeout(() => handleSave(), 300);
+  };
+
+  const duplicateElement = (index: number) => {
+    const element = formElements[index];
+    const newElement = {
+      ...element,
+      id: `${element.id}-copy-${Date.now()}`
+    };
+    
+    const updatedElements = [...formElements];
+    updatedElements.splice(index + 1, 0, newElement);
+    setFormElements(updatedElements);
+    
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      handleSave();
+    }, 100);
+    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+  };
+
+  const handleSelectTemplate = async (templateId: number) => {
+    const template = formTemplates.find(t => t.id === templateId);
+    if (template) {
+      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+      
+      setFormStyle({
+        primaryColor: template.primaryColor || formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
+      });
+      
+      const newElements = template.data.flatMap(step => 
+        step.fields.map(field => ({
+          ...field,
+          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        }))
+      );
+      
+      setFormTitle(template.title);
+      setFormDescription(template.description);
+      setFormElements(newElements);
+      setRefreshKey(prev => prev + 1);
+      setIsTemplateDialogOpen(false);
+      
+      // Save the form immediately after applying template
+      setTimeout(() => handleSave(), 500);
+    }
+  };
+
+  const saveField = (updatedField: FormField) => {
+    const newElements = [...formElements];
+    const index = newElements.findIndex(el => el.id === updatedField.id);
+    if (index !== -1) {
+      newElements[index] = updatedField;
+      setFormElements(newElements);
+    }
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
+    
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+      handleSave();
+    }, 100);
+  };
+
+  const handleStyleChange = (key: string, value: string) => {
+    setFormStyle({
+      ...formStyle,
+      [key]: value
+    });
+    setRefreshKey(prev => prev + 1);
+    
+    // Save style immediately when it changes
+    setTimeout(() => handleSave(), 300);
+  };
+
+  const handleSaveStyle = () => {
+    setIsStyleDialogOpen(false);
+    localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+    
+    // Save form with updated style
+    handleSave();
+  };
+
+  const handleShopifyIntegration = async (settings: any) => {
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
+      return;
+    }
+    
+    try {
+      await shopifyIntegration.syncForm({ 
+        formId: currentFormId,
+        shopDomain: shopifyIntegration.shop,
+        settings
+      });
+      
+      toast.success(
+        language === 'ar' 
+          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+          : 'Shopify settings saved successfully'
+      );
+      
+      // Save form after Shopify integration
+      handleSave();
+    } catch (error) {
+      console.error("Error saving Shopify settings:", error);
+      toast.error(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'Error saving Shopify settings'
+      );
+    }
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -65,582 +519,187 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     })
   );
 
-  // Load form data on component mount or form ID change
-  useEffect(() => {
-    if (currentFormId && !loadedFormRef.current) {
-      const loadFormData = async () => {
-        console.log('Attempting to load form with ID:', currentFormId);
-        try {
-          const form = await loadForm(currentFormId);
-          
-          if (!form) {
-            toast.error('لم يتم العثور على النموذج');
-            navigate('/form-builder');
-          } else {
-            loadedFormRef.current = true;
-          }
-        } catch (error) {
-          console.error('Error loading form:', error);
-          toast.error('حدث خطأ أثناء تحميل النموذج');
-          navigate('/form-builder');
-        }
-      };
-      
-      loadFormData();
-    } else if (!currentFormId) {
-      // No form ID provided, redirect to dashboard
-      navigate('/form-builder');
-    }
-  }, [currentFormId, loadForm, navigate]);
-
-  // Extract the current step's fields for the editor and preview - memoize to prevent unnecessary recalculations
-  const currentStepFields = React.useMemo(() => {
-    if (activeTabIndex >= 0 && 
-        formState.data && 
-        Array.isArray(formState.data) && 
-        formState.data[activeTabIndex]?.fields) {
-      return formState.data[activeTabIndex].fields;
-    }
-    return [];
-  }, [activeTabIndex, formState.data]);
-
-  // Add new element to the current step
-  const addElement = useCallback((type: string) => {
-    try {
-      if (!formState.data || !Array.isArray(formState.data) || !formState.data[activeTabIndex]) {
-        console.error('No active step to add element to');
-        toast.error('لا يوجد خطوة نشطة لإضافة العنصر إليها');
-        return;
-      }
-
-      // Create a new element with a unique ID
-      const newElement = createEmptyField(type);
-      
-      // Prepare the updated data array
-      const updatedData = [...formState.data];
-      
-      // Add the new element to the current step
-      updatedData[activeTabIndex] = {
-        ...updatedData[activeTabIndex],
-        fields: [...updatedData[activeTabIndex].fields, newElement]
-      };
-      
-      // Update the form state first (local state)
-      updateFormData(updatedData);
-      
-      // Mark form as dirty
-      markAsDirty();
-      
-      // Select the newly added element
-      setSelectedElementIndex(updatedData[activeTabIndex].fields.length - 1);
-      
-      // Force FormPreviewPanel to re-render
-      setPreviewRefreshKey(prev => prev + 1);
-      
-      // Show success toast
-      toast.success('تم إضافة العنصر بنجاح');
-      
-      // Try to auto-save but don't block UI
-      autosaveForm(updatedData).catch(error => {
-        console.warn('Autosave failed, but continuing with UI updates', error);
-      });
-    } catch (error) {
-      console.error('Error adding element:', error);
-      toast.error('حدث خطأ أثناء إضافة العنصر');
-    }
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
-
-  // Update an element in the current step
-  const updateElement = useCallback((index: number, updatedElement: FormField) => {
-    if (!formState.data || !Array.isArray(formState.data)) return;
-    
-    const updatedData = [...formState.data];
-    
-    // Make sure the active tab index is valid
-    if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
-      // Make sure the field index is valid
-      if (index >= 0 && index < updatedData[activeTabIndex].fields.length) {
-        updatedData[activeTabIndex].fields[index] = updatedElement;
-        updateFormData(updatedData);
-        markAsDirty();
-        
-        // Force FormPreviewPanel to re-render
-        setPreviewRefreshKey(prev => prev + 1);
-        
-        // Auto-save
-        autosaveForm(updatedData);
-      }
-    }
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
-
-  // Delete an element from the current step
-  const deleteElement = useCallback((index: number) => {
-    if (!formState.data || !Array.isArray(formState.data)) return;
-    
-    const updatedData = [...formState.data];
-    
-    // Make sure the active tab index is valid
-    if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
-      // Remove the element at the specified index
-      updatedData[activeTabIndex].fields = updatedData[activeTabIndex].fields.filter((_, i) => i !== index);
-      updateFormData(updatedData);
-      setSelectedElementIndex(null);
-      markAsDirty();
-      
-      // Force FormPreviewPanel to re-render
-      setPreviewRefreshKey(prev => prev + 1);
-      
-      // Auto-save
-      autosaveForm(updatedData);
-    }
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
-
-  // Duplicate an element in the current step
-  const duplicateElement = useCallback((index: number) => {
-    if (!formState.data || !Array.isArray(formState.data)) return;
-    
-    const updatedData = [...formState.data];
-    
-    // Make sure the active tab index is valid
-    if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
-      // Make a copy of the element
-      const elementToDuplicate = updatedData[activeTabIndex].fields[index];
-      const duplicatedElement = {
-        ...elementToDuplicate,
-        id: uuidv4(),
-        label: `${elementToDuplicate.label || 'العنصر'} (نسخة)`
-      };
-      
-      // Insert the duplicated element after the original
-      updatedData[activeTabIndex].fields.splice(index + 1, 0, duplicatedElement);
-      updateFormData(updatedData);
-      markAsDirty();
-      
-      // Force FormPreviewPanel to re-render
-      setPreviewRefreshKey(prev => prev + 1);
-      
-      // Select the duplicated element
-      setSelectedElementIndex(index + 1);
-      
-      // Auto-save
-      autosaveForm(updatedData);
-    }
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
-  
-  // Auto-save form changes - memoize to avoid creating new functions on each render
-  const autosaveForm = useCallback(async (updatedData?: FormStep[]) => {
-    if (!currentFormId) return false;
-    
-    try {
-      const dataToSave = updatedData || formState.data;
-      
-      return await saveForm(currentFormId, {
-        data: dataToSave
-      });
-    } catch (error) {
-      console.error('Error autosaving form:', error);
-      return false;
-    }
-  }, [currentFormId, formState.data, saveForm]);
-
-  // Save form changes
-  const handleSaveForm = useCallback(async () => {
-    if (!currentFormId) return;
-    
-    setIsSaving(true);
-    const success = await saveForm(currentFormId, {
-      title: formState.title,
-      description: formState.description,
-      data: formState.data,
-      submitButtonText: formState.submitButtonText
-    });
-    setIsSaving(false);
-    
-    if (success) {
-      toast.success('تم حفظ النموذج بنجاح');
-    }
-  }, [currentFormId, formState, saveForm]);
-
-  // Handle publish form - stubbed out function
-  const handlePublishForm = useCallback(async () => {
-    // This is just a stub function that would be implemented
-    setIsPublishing(true);
-    // Simulate an API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsPublishing(false);
-  }, []);
-
-  // Handle drag end for reordering elements
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over || active.id === over.id) {
       return;
     }
     
-    try {
-      // Get the indices of the dragged and target elements
-      const oldIndex = parseInt(active.id.toString().split('-')[1]);
-      const newIndex = parseInt(over.id.toString().split('-')[1]);
+    setFormElements((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
       
-      // Update the form data with the new order
-      if (!formState.data || !Array.isArray(formState.data)) return;
-      
-      const updatedData = [...formState.data];
-      
-      // Make sure the active tab index is valid
-      if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
-        updatedData[activeTabIndex].fields = arrayMove(
-          updatedData[activeTabIndex].fields,
-          oldIndex,
-          newIndex
-        );
-        
-        updateFormData(updatedData);
-        setSelectedElementIndex(newIndex);
-        markAsDirty();
-        
-        // Force FormPreviewPanel to re-render
-        setPreviewRefreshKey(prev => prev + 1);
-        
-        // Auto-save
-        autosaveForm(updatedData);
-      }
-    } catch (error) {
-      console.error('Error during drag operation:', error);
-      toast.error('حدث خطأ أثناء تغيير ترتيب العناصر');
-    }
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty, autosaveForm]);
+      return arrayMove(items, oldIndex, newIndex);
+    });
 
-  // Add new step to the form
-  const addStep = useCallback(() => {
-    if (!formState.data || !Array.isArray(formState.data)) {
-      const newStep: FormStep = {
-        id: uuidv4(),
-        title: 'خطوة جديدة',
-        fields: []
-      };
-      
-      updateFormData([newStep]);
-      setActiveTabIndex(0);
-      return;
-    }
-    
-    const newStep: FormStep = {
-      id: uuidv4(),
-      title: `خطوة ${formState.data.length + 1}`,
-      fields: []
-    };
-    
-    const updatedData = [...formState.data, newStep];
-    updateFormData(updatedData);
-    
-    // Switch to the new step
-    setActiveTabIndex(updatedData.length - 1);
-    setSelectedElementIndex(null);
-    markAsDirty();
-    
-    // Force FormPreviewPanel to re-render
-    setPreviewRefreshKey(prev => prev + 1);
-    
-    // Auto-save
-    autosaveForm(updatedData);
-  }, [formState.data, updateFormData, markAsDirty, autosaveForm]);
-
-  // Delete a step from the form
-  const deleteStep = useCallback((index: number) => {
-    if (!formState.data || !Array.isArray(formState.data) || formState.data.length <= 1) {
-      toast.error('لا يمكن حذف الخطوة الوحيدة في النموذج');
-      return;
-    }
-    
-    const updatedData = formState.data.filter((_, i) => i !== index);
-    updateFormData(updatedData);
-    
-    if (activeTabIndex >= updatedData.length) {
-      setActiveTabIndex(updatedData.length - 1);
-    }
-    
-    setSelectedElementIndex(null);
-    markAsDirty();
-    
-    // Force FormPreviewPanel to re-render
-    setPreviewRefreshKey(prev => prev + 1);
-    
-    // Auto-save
-    autosaveForm(updatedData);
-  }, [formState.data, activeTabIndex, updateFormData, markAsDirty, autosaveForm]);
-
-  // Update step title
-  const updateStepTitle = useCallback((index: number, title: string) => {
-    if (!formState.data || !Array.isArray(formState.data)) return;
-    
-    const updatedData = [...formState.data];
-    
-    if (index >= 0 && index < updatedData.length) {
-      updatedData[index] = {
-        ...updatedData[index],
-        title
-      };
-      
-      updateFormData(updatedData);
-      markAsDirty();
-      
-      // Auto-save
-      autosaveForm(updatedData);
-    }
-  }, [formState.data, updateFormData, markAsDirty, autosaveForm]);
-  
-  // Compute current step and total steps for preview
-  const currentStep = React.useMemo(() => {
-    return formState.data && Array.isArray(formState.data) && formState.data.length > 0 ? activeTabIndex + 1 : 1;
-  }, [formState.data, activeTabIndex]);
-  
-  const totalSteps = React.useMemo(() => {
-    return formState.data && Array.isArray(formState.data) ? formState.data.length : 1;
-  }, [formState.data]);
-  
-  // Prepare FormStyle object from formState - memoized to prevent recalculations
-  const formStyleData = React.useMemo((): FormStyle => {
-    return {
-      primaryColor: formState.formStyle?.primaryColor || formState.primaryColor || '#9b87f5',
-      borderRadius: formState.formStyle?.borderRadius || formState.borderRadius || '0.5rem',
-      fontSize: formState.formStyle?.fontSize || formState.fontSize || '1rem',
-      buttonStyle: formState.formStyle?.buttonStyle || formState.buttonStyle || 'rounded'
-    };
-  }, [formState.formStyle, formState.primaryColor, formState.borderRadius, formState.fontSize, formState.buttonStyle]);
-
-  // Handle style changes
-  const handleStyleChange = useCallback((style: Partial<FormStyle>) => {
-    updateFormStyle(style);
-    markAsDirty();
-    
-    // Force FormPreviewPanel to re-render
-    setPreviewRefreshKey(prev => prev + 1);
-    
-    // Auto-save style changes
-    if (currentFormId) {
-      saveForm(currentFormId, { 
-        formStyle: style
-      }).catch(console.error);
-    }
-  }, [currentFormId, updateFormStyle, markAsDirty, saveForm]);
-
-  // Memoize the form element list props to prevent unnecessary renders
-  const formElementListProps = React.useMemo(() => ({
-    availableElements: [
-      { type: 'text', label: 'حقل نص', icon: 'T' },
-      { type: 'email', label: 'بريد إلكتروني', icon: '@' },
-      { type: 'phone', label: 'رقم هاتف', icon: '📱' },
-      { type: 'textarea', label: 'نص متعدد الأسطر', icon: '¶' },
-      { type: 'select', label: 'قائمة منسدلة', icon: '▼' },
-      { type: 'checkbox', label: 'خانة اختيار', icon: '☑' },
-      { type: 'radio', label: 'زر راديو', icon: '○' },
-      { type: 'text/html', label: 'نص/HTML', icon: '</>' }
-    ],
-    onAddElement: addElement
-  }), [addElement]);
-
-  // Memoize form header props
-  const formHeaderProps = React.useMemo(() => ({
-    formTitle: formState.title,
-    isPublished: formState.isPublished || false,
-    onTitleChange: (title: string) => setFormState({ ...formState, title, isDirty: true }),
-    onSave: handleSaveForm,
-    onStyleOpen: () => setIsStyleDialogOpen(true),
-    onTemplateOpen: () => setIsTemplateDialogOpen(true),
-    onPublish: handlePublishForm,
-    isSaving,
-    isPublishing,
-    lastSaved: formState.lastSaved
-  }), [formState, handleSaveForm, handlePublishForm, isSaving, isPublishing, setFormState]);
-
-  // Handlers for stepping through the form preview
-  const handlePreviousStep = useCallback(() => {
-    if (activeTabIndex > 0) {
-      setActiveTabIndex(activeTabIndex - 1);
+    setTimeout(() => {
       setSelectedElementIndex(null);
-    }
-  }, [activeTabIndex]);
-  
-  const handleNextStep = useCallback(() => {
-    if (formState.data && Array.isArray(formState.data) && activeTabIndex < formState.data.length - 1) {
-      setActiveTabIndex(activeTabIndex + 1);
-      setSelectedElementIndex(null);
-    }
-  }, [formState.data, activeTabIndex]);
+      setRefreshKey(prev => prev + 1);
+      handleSave();
+    }, 300);
+  };
+
+  // Handle submit button text change with auto-save
+  const handleSubmitButtonTextChange = (text: string) => {
+    setSubmitButtonText(text);
+    // Save after changing submit button text
+    setTimeout(() => handleSave(), 300);
+  };
 
   return (
-    <div className="container mx-auto py-6">
-      <FormHeader {...formHeaderProps} />
+    <main className="flex-1 overflow-auto">
+      <FormHeader 
+        onSave={handleSave}
+        onPublish={handlePublish}
+        onStyleOpen={() => setIsStyleDialogOpen(true)}
+        onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+        isSaving={isSaving}
+        isPublishing={isPublishing}
+        isPublished={isPublished}
+      />
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        <div className="lg:col-span-8 space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <Tabs defaultValue="elements" className="w-full">
-                <TabsList className="w-full">
-                  <TabsTrigger value="elements">عناصر النموذج</TabsTrigger>
-                  <TabsTrigger value="style">تصميم النموذج</TabsTrigger>
-                  <TabsTrigger value="settings">إعدادات النموذج</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="elements" className="py-4 space-y-6">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {formState.data && Array.isArray(formState.data) && formState.data.map((step, index) => (
-                      <button
-                        key={step.id}
-                        className={`px-4 py-2 rounded-md ${
-                          activeTabIndex === index ? 'bg-primary text-white' : 'bg-gray-100'
-                        }`}
-                        onClick={() => {
-                          setActiveTabIndex(index);
-                          setSelectedElementIndex(null);
-                        }}
-                        type="button"
-                      >
-                        {step.title || `خطوة ${index + 1}`}
-                      </button>
-                    ))}
-                    
-                    <button
-                      type="button"
-                      className="px-4 py-2 rounded-md bg-gray-100 text-gray-600"
-                      onClick={addStep}
-                    >
-                      + إضافة خطوة
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <h3 className="font-medium mb-3">إضافة عناصر</h3>
-                      <FormElementList {...formElementListProps} />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <h3 className="font-medium mb-3">
-                        عناصر الخطوة {formState.data && Array.isArray(formState.data) && activeTabIndex >= 0 
-                          ? formState.data[activeTabIndex]?.title || `خطوة ${activeTabIndex + 1}`
-                          : ''}
-                      </h3>
-                      
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <SortableContext
-                          items={currentStepFields.map((_, index) => `field-${index}`)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <FormElementEditor
-                            elements={currentStepFields}
-                            selectedIndex={selectedElementIndex}
-                            onSelectElement={(index) => setSelectedElementIndex(index)}
-                            onEditElement={(index) => {
-                              setSelectedElementIndex(index);
-                              // Additional logic for editing if needed
-                            }}
-                            onDeleteElement={deleteElement}
-                            onDuplicateElement={duplicateElement}
-                          />
-                        </SortableContext>
-                      </DndContext>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="style" className="py-4">
-                  <FormStyleEditor 
-                    formStyle={formStyleData}
-                    onStyleChange={handleStyleChange}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="settings" className="py-4">
-                  <div className="space-y-4">
-                    <div className="form-group">
-                      <label className="block text-sm font-medium mb-1">عنوان النموذج</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border rounded-md"
-                        value={formState.title || ''}
-                        onChange={(e) => {
-                          setFormState({ ...formState, title: e.target.value, isDirty: true });
-                          // Force FormPreviewPanel to re-render
-                          setPreviewRefreshKey(prev => prev + 1);
-                        }}
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label className="block text-sm font-medium mb-1">وصف النموذج</label>
-                      <textarea
-                        className="w-full px-3 py-2 border rounded-md"
-                        value={formState.description || ''}
-                        onChange={(e) => {
-                          setFormState({ ...formState, description: e.target.value, isDirty: true });
-                          // Force FormPreviewPanel to re-render
-                          setPreviewRefreshKey(prev => prev + 1);
-                        }}
-                        rows={3}
-                      ></textarea>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label className="block text-sm font-medium mb-1">نص زر الإرسال</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border rounded-md"
-                        value={formState.submitButtonText || 'إرسال الطلب'}
-                        onChange={(e) => {
-                          setFormState({ ...formState, submitButtonText: e.target.value, isDirty: true });
-                          // Force FormPreviewPanel to re-render
-                          setPreviewRefreshKey(prev => prev + 1);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
+        <div className="col-span-2 border-r bg-white p-4">
+          <FormElementList 
+            availableElements={availableElements}
+            onAddElement={addElement}
+          />
         </div>
         
-        <div className="lg:col-span-4">
+        <div className="col-span-6 bg-gray-50 p-6">
+          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+          </h2>
+          
+          {/* Form Basic Information Section */}
+          <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+            <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'معلومات النموذج الأساسية' : 'Form Basic Information'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
+                  {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+                </label>
+                <input
+                  type="text"
+                  value={formTitle}
+                  onChange={(e) => {
+                    setFormTitle(e.target.value);
+                    // Autosave with debounce
+                    setTimeout(() => handleSave(), 500);
+                  }}
+                  className="w-full p-2 border rounded-md"
+                  placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
+                  {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+                </label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => {
+                    setFormDescription(e.target.value);
+                    // Autosave with debounce
+                    setTimeout(() => handleSave(), 500);
+                  }}
+                  className="w-full p-2 border rounded-md"
+                  placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
+                  {language === 'ar' ? 'نص زر الإرسال' : 'Submit Button Text'}
+                </label>
+                <input
+                  type="text"
+                  value={submitButtonText}
+                  onChange={(e) => handleSubmitButtonTextChange(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  placeholder={language === 'ar' ? 'أدخل نص زر الإرسال' : 'Enter submit button text'}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={formElements.map(el => el.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <FormElementEditor
+                elements={formElements}
+                selectedIndex={selectedElementIndex}
+                onSelectElement={setSelectedElementIndex}
+                onEditElement={editElement}
+                onDeleteElement={deleteElement}
+                onDuplicateElement={duplicateElement}
+              />
+            </SortableContext>
+          </DndContext>
+        </div>
+        
+        <div className="col-span-4 border-l bg-white p-6">
           <FormPreviewPanel
-            formTitle={formState.title}
-            formDescription={formState.description}
-            submitButtonText={formState.submitButtonText}
-            fields={currentStepFields}
-            formStyle={formStyleData}
-            currentStep={currentStep}
-            totalSteps={totalSteps}
-            onPreviousStep={handlePreviousStep}
-            onNextStep={handleNextStep}
-            refreshKey={previewRefreshKey}
+            formTitle={formTitle}
+            formDescription={formDescription}
+            currentStep={currentPreviewStep}
+            totalSteps={1}
+            formStyle={formStyle}
+            fields={formElements}
+            onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+            onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
+            refreshKey={refreshKey}
+            submitButtonText={submitButtonText}
           />
         </div>
       </div>
       
-      {/* Style Editor Dialog */}
       <FormStyleEditor
         isOpen={isStyleDialogOpen}
         onOpenChange={setIsStyleDialogOpen}
-        formStyle={formStyleData}
+        formStyle={formStyle}
         onStyleChange={handleStyleChange}
-        onSave={() => {
-          setIsStyleDialogOpen(false);
-          if (currentFormId) {
-            saveForm(currentFormId, { 
-              formStyle: formStyleData
-            }).catch(console.error);
-          }
-        }}
+        onSave={handleSaveStyle}
       />
-    </div>
+
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <FormTemplatesDialog 
+          open={isTemplateDialogOpen}
+          onSelect={handleSelectTemplate} 
+          onClose={() => setIsTemplateDialogOpen(false)}
+        />
+      </Dialog>
+
+      {isFieldEditorOpen && currentEditingField && (
+        <FieldEditor
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => setIsFieldEditorOpen(false)}
+        />
+      )}
+
+      {currentFormId && (
+        <div className="mt-6">
+          <ShopifyIntegration
+            formId={currentFormId}
+            onSave={handleShopifyIntegration}
+            isSyncing={shopifyIntegration.isSyncing}
+          />
+        </div>
+      )}
+    </main>
   );
 };
 
-export default React.memo(FormBuilderEditor);
+export default FormBuilderEditor;

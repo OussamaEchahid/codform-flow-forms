@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -19,90 +19,72 @@ const Forms = () => {
   const [hasShopifyConnected, setHasShopifyConnected] = useState(false);
   const [forms, setForms] = useState([]);
   const [currentShop, setCurrentShop] = useState<string | null>(null);
-  
-  // Use ref to prevent effect from running multiple times with the same values
-  const effectRunRef = useRef(false);
 
   // Determine access based on various conditions
   const hasAccess = !!user || shopifyConnected || hasShopifyConnected;
 
-  // Check Shopify connection and load forms - memoize with useCallback
-  const checkShopifyConnection = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Try to get shop from localStorage first as fallback
-      const shopFromLocalStorage = localStorage.getItem('shopify_store');
-      const isConnectedFromLocalStorage = localStorage.getItem('shopify_connected') === 'true';
-      
-      // Set initial connection state
-      setHasShopifyConnected(shopifyConnected || isConnectedFromLocalStorage);
-      
-      // Use shop from context or localStorage
-      const activeShop = shop || shopFromLocalStorage;
-      setCurrentShop(activeShop);
-      
-      if (activeShop) {
-        console.log("Active shop found:", activeShop);
-        
-        // Try to fetch forms for this shop
-        const { data: formsData, error: formsError } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('shop_id', activeShop)
-          .order('created_at', { ascending: false });
-        
-        if (formsError) {
-          console.error("Error fetching forms:", formsError);
-          toast.error(language === 'ar' 
-            ? 'خطأ في جلب النماذج' 
-            : 'Error fetching forms');
-        } else if (formsData) {
-          console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
-          setForms(formsData);
-          
-          // If we found forms, we definitely have a connection
-          if (formsData.length > 0) {
-            setHasShopifyConnected(true);
-            localStorage.setItem('shopify_connected', 'true');
-          }
-        }
-      } else {
-        console.log("No active shop found");
-      }
-    } catch (error) {
-      console.error("Error in checkShopifyConnection:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [shop, shopifyConnected, language]);
-  
-  // Run effect once on mount and when dependencies change
+  // Check Shopify connection and load forms
   useEffect(() => {
-    // Don't run the effect if it has already run with the same dependencies
-    if (effectRunRef.current) {
-      return;
-    }
-    
-    console.log("Fetching forms from database...");
-    checkShopifyConnection();
-    
-    // Mark that this effect has run
-    effectRunRef.current = true;
-    
-    // Reset effectRunRef when dependencies change
-    return () => {
-      effectRunRef.current = false;
+    const checkShopifyConnection = async () => {
+      setIsLoading(true);
+      try {
+        // Try to get shop from localStorage first as fallback
+        const shopFromLocalStorage = localStorage.getItem('shopify_store');
+        const isConnectedFromLocalStorage = localStorage.getItem('shopify_connected') === 'true';
+        
+        // Set initial connection state
+        setHasShopifyConnected(shopifyConnected || isConnectedFromLocalStorage);
+        
+        // Use shop from context or localStorage
+        const activeShop = shop || shopFromLocalStorage;
+        setCurrentShop(activeShop);
+        
+        if (activeShop) {
+          console.log("Active shop found:", activeShop);
+          
+          // Try to fetch forms for this shop
+          const { data: formsData, error: formsError } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('shop_id', activeShop)
+            .order('created_at', { ascending: false });
+          
+          if (formsError) {
+            console.error("Error fetching forms:", formsError);
+            toast.error(language === 'ar' 
+              ? 'خطأ في جلب النماذج' 
+              : 'Error fetching forms');
+          } else if (formsData) {
+            console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
+            setForms(formsData);
+            
+            // If we found forms, we definitely have a connection
+            if (formsData.length > 0) {
+              setHasShopifyConnected(true);
+              localStorage.setItem('shopify_connected', 'true');
+            }
+          }
+        } else {
+          console.log("No active shop found");
+        }
+      } catch (error) {
+        console.error("Error in checkShopifyConnection:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [checkShopifyConnection]);
+    
+    checkShopifyConnection();
+  }, [shop, shopifyConnected]);
 
   // Handle bypass access for development or testing
-  const enableBypass = useCallback(() => {
+  const enableBypass = () => {
     localStorage.setItem('bypass_auth', 'true');
     setHasShopifyConnected(true);
     toast.success(language === 'ar' 
       ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج' 
       : 'Bypass mode activated. You can continue managing forms.');
-  }, [language]);
+  };
 
   // Render loading state while checking connection
   if (isLoading) {
@@ -135,7 +117,6 @@ const Forms = () => {
               <Button 
                 onClick={() => navigate('/shopify-connect')}
                 className="w-full"
-                type="button"
               >
                 {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
               </Button>
@@ -144,7 +125,6 @@ const Forms = () => {
                 variant="outline"
                 onClick={enableBypass}
                 className="w-full"
-                type="button"
               >
                 {language === 'ar' ? 'متابعة على أي حال' : 'Continue Anyway'}
               </Button>
@@ -175,7 +155,6 @@ const Forms = () => {
                 variant="outline"
                 onClick={() => navigate('/shopify-connect')}
                 className="ml-2"
-                type="button"
               >
                 {language === 'ar' ? 'التحقق من الاتصال' : 'Verify Connection'}
               </Button>
@@ -185,7 +164,7 @@ const Forms = () => {
       )}
       
       <div className="flex-1">
-        <FormBuilderDashboard key={`dashboard-${currentShop}`} initialForms={forms} forceRefresh={false} />
+        <FormBuilderDashboard key={`dashboard-${currentShop}`} initialForms={forms} forceRefresh={true} />
       </div>
       
       {/* Debug info in development mode */}

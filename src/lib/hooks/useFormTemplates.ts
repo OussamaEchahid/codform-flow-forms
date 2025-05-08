@@ -17,17 +17,11 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   submitButtonText?: string;
-  // Style properties
+  // Add style properties
   primaryColor?: string;
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
-  formStyle?: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
-  };
 }
 
 export interface FormTemplate {
@@ -39,12 +33,10 @@ export interface FormTemplate {
 }
 
 export const useFormTemplates = () => {
-  const { formState, setFormState, resetFormState, markAsSaved, markAsDirty } = useFormStore();
+  const { setFormState, resetFormState } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
@@ -55,7 +47,6 @@ export const useFormTemplates = () => {
   const fetchForms = async () => {
     try {
       setIsLoading(true);
-      setError(null);
       const shopId = getActiveShopId();
       
       if (!shopId) {
@@ -75,43 +66,15 @@ export const useFormTemplates = () => {
       if (error) {
         console.error('Error fetching forms:', error);
         toast.error('خطأ في جلب النماذج');
-        setError(error.message);
         setIsLoading(false);
         return;
       }
       
-      console.log('Forms fetched successfully:', data);
-      
       // Transform data to match FormData interface
-      const formattedData = data.map(form => {
-        // Extract style properties from the data if available
-        let formStyle = {
-          primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
-          fontSize: '1rem',
-          buttonStyle: 'rounded',
-        };
-
-        // Check if form has styling data
-        if (form.data && Array.isArray(form.data) && form.data.length > 0) {
-          // Try to extract style from the data structure
-          const firstStep = form.data[0];
-          if (firstStep && firstStep.formStyle) {
-            formStyle = firstStep.formStyle;
-          }
-        }
-
-        return {
-          ...form,
-          isPublished: form.is_published,
-          // Ensure form styling is properly structured
-          formStyle,
-          primaryColor: formStyle.primaryColor,
-          borderRadius: formStyle.borderRadius,
-          fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
-        };
-      });
+      const formattedData = data.map(form => ({
+        ...form,
+        isPublished: form.is_published
+      }));
       
       // Remove any duplicates by ID
       const uniqueForms = formattedData.reduce((acc: FormData[], current) => {
@@ -124,10 +87,9 @@ export const useFormTemplates = () => {
       
       setForms(uniqueForms);
       setIsLoading(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching forms', error);
       toast.error('خطأ في جلب النماذج');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
     }
   };
@@ -136,7 +98,6 @@ export const useFormTemplates = () => {
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
-      setError(null);
       resetFormState(); // Clear any previous form state
       
       const template = formTemplates.find(t => t.id === templateId);
@@ -155,52 +116,35 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // New form data with properly structured style properties
+      // New form data
       const newFormId = uuidv4();
-      const formStyle = {
-        primaryColor: template.primaryColor || '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-      };
-      
-      // Add style to each step
-      const dataWithStyle = template.data.map(step => ({
-        ...step,
-        formStyle,  // Add style to each step
-      }));
-      
       const formData: FormData = {
         id: newFormId,
         title: template.title,
         description: template.description,
-        data: dataWithStyle,
+        data: template.data,
         isPublished: false,
         shop_id: shopId,
-        formStyle,
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
+        primaryColor: template.primaryColor,
       };
 
-      // Insert into Supabase - send only database columns
+      // Insert into Supabase
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: template.title,
           description: template.description,
-          data: dataWithStyle,
+          data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          primaryColor: template.primaryColor
         });
 
       if (error) {
         console.error('Error saving form to database:', error);
         toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setError(error.message);
         setIsLoading(false);
         return null;
       }
@@ -213,10 +157,9 @@ export const useFormTemplates = () => {
       
       setIsLoading(false);
       return formData;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating form from template', error);
       toast.error('خطأ في إنشاء نموذج من قالب');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return null;
     }
@@ -226,7 +169,6 @@ export const useFormTemplates = () => {
   const createDefaultForm = async () => {
     try {
       setIsLoading(true);
-      setError(null);
       resetFormState(); // Clear any previous form state
       
       const defaultTemplate = formTemplates[0]; // Use first template as default
@@ -240,41 +182,23 @@ export const useFormTemplates = () => {
       }
 
       const newFormId = uuidv4();
-      const formStyle = {
-        primaryColor: defaultTemplate.primaryColor || '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-      };
-
-      // Add style to each step in the data
-      const dataWithStyle = defaultTemplate.data.map(step => ({
-        ...step,
-        formStyle,  // Add style to each step
-      }));
-
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
         description: 'نموذج جديد',
-        data: dataWithStyle,
+        data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
-        formStyle,
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
       };
 
-      // Insert into Supabase - send only valid database columns
+      // Insert into Supabase
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: 'نموذج جديد',
           description: 'نموذج جديد',
-          data: dataWithStyle,
+          data: defaultTemplate.data,
           is_published: false,
           shop_id: shopId,
           user_id: user?.id
@@ -283,7 +207,6 @@ export const useFormTemplates = () => {
       if (error) {
         console.error('Error saving form to database:', error);
         toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setError(error.message);
         setIsLoading(false);
         return null;
       }
@@ -296,10 +219,9 @@ export const useFormTemplates = () => {
       
       setIsLoading(false);
       return formData;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating default form', error);
       toast.error('خطأ في إنشاء نموذج جديد');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return null;
     }
@@ -309,62 +231,26 @@ export const useFormTemplates = () => {
   const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
-      setError(null);
-      console.log('Starting to save form:', formId);
       
-      // Start with clean database object
-      const dbData: any = {};
-      
-      // Copy safe fields that exist in database schema
-      const safeFields = ['title', 'description', 'data', 'is_published', 'shop_id', 'user_id'];
-      for (const field of safeFields) {
-        if (field in formData) {
-          if (field === 'isPublished') {
-            dbData.is_published = formData.isPublished;
-          } else {
-            dbData[field] = formData[field as keyof FormData];
-          }
-        }
+      // Convert isPublished to is_published for database
+      const dbData: any = { ...formData };
+      if (dbData.isPublished !== undefined) {
+        dbData.is_published = dbData.isPublished;
+        delete dbData.isPublished;
       }
       
-      // Ensure form style is embedded in the data field
-      if (dbData.data && Array.isArray(dbData.data)) {
-        // Get styles either from formData.formStyle or from individual style props
-        const formStyle = formData.formStyle || {
-          primaryColor: formData.primaryColor || '#9b87f5',
-          borderRadius: formData.borderRadius || '0.5rem',
-          fontSize: formData.fontSize || '1rem',
-          buttonStyle: formData.buttonStyle || 'rounded',
-        };
-        
-        // Add formStyle to each step
-        dbData.data = dbData.data.map((step: any) => ({
-          ...step,
-          formStyle,
-        }));
-      }
-      
-      console.log('Prepared data for database:', dbData);
-      
-      // Update form in Supabase with updated_at field
-      dbData.updated_at = new Date().toISOString();
-      
-      const { data, error } = await supabase
+      // Update form in Supabase
+      const { error } = await supabase
         .from('forms')
         .update(dbData)
-        .eq('id', formId)
-        .select();
+        .eq('id', formId);
       
       if (error) {
         console.error('Error updating form:', error);
         toast.error('خطأ في تحديث النموذج');
-        setError(error.message);
         setIsLoading(false);
         return false;
       }
-      
-      console.log("Form saved successfully to database:", data);
-      setLastSavedId(formId);
       
       // Update local state if forms list is loaded
       if (forms.length > 0) {
@@ -373,15 +259,11 @@ export const useFormTemplates = () => {
         ));
       }
       
-      // Mark as saved in the form store
-      markAsSaved();
-      
       setIsLoading(false);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving form', error);
       toast.error('خطأ في حفظ النموذج');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return false;
     }
@@ -391,21 +273,16 @@ export const useFormTemplates = () => {
   const publishForm = async (formId: string, publish: boolean) => {
     try {
       setIsLoading(true);
-      setError(null);
       
       // Update form in Supabase
       const { error } = await supabase
         .from('forms')
-        .update({ 
-          is_published: publish,
-          updated_at: new Date().toISOString()
-        })
+        .update({ is_published: publish })
         .eq('id', formId);
       
       if (error) {
         console.error('Error publishing form:', error);
         toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
-        setError(error.message);
         setIsLoading(false);
         return false;
       }
@@ -418,10 +295,9 @@ export const useFormTemplates = () => {
       toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
       setIsLoading(false);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error publishing form', error);
       toast.error('خطأ في تغيير حالة نشر النموذج');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return false;
     }
@@ -431,7 +307,6 @@ export const useFormTemplates = () => {
   const deleteForm = async (formId: string) => {
     try {
       setIsLoading(true);
-      setError(null);
       
       // Delete form from Supabase
       const { error } = await supabase
@@ -442,7 +317,6 @@ export const useFormTemplates = () => {
       if (error) {
         console.error('Error deleting form:', error);
         toast.error('خطأ في حذف النموذج');
-        setError(error.message);
         setIsLoading(false);
         return false;
       }
@@ -453,10 +327,9 @@ export const useFormTemplates = () => {
       toast.success('تم حذف النموذج بنجاح');
       setIsLoading(false);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting form', error);
       toast.error('خطأ في حذف النموذج');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return false;
     }
@@ -465,9 +338,7 @@ export const useFormTemplates = () => {
   // Load a specific form by ID
   const loadForm = async (formId: string) => {
     try {
-      console.log('Loading form:', formId);
       setIsLoading(true);
-      setError(null);
       resetFormState(); // Clear previous form state
       
       // Fetch form from Supabase
@@ -480,7 +351,6 @@ export const useFormTemplates = () => {
       if (error) {
         console.error('Error loading form:', error);
         toast.error('خطأ في تحميل النموذج');
-        setError(error.message);
         setIsLoading(false);
         return null;
       }
@@ -491,47 +361,20 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      console.log('Form loaded from database:', data);
-      
-      // Extract style properties from data if available
-      let formStyle = {
-        primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-      };
-      
-      // Try to extract style from the data structure
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const firstStep = data.data[0];
-        if (firstStep && firstStep.formStyle) {
-          formStyle = firstStep.formStyle;
-        }
-      }
-      
+      // Format data for form state
       const formData: FormData = {
         ...data,
-        isPublished: data.is_published,
-        formStyle,
-        // Add style properties at the top level for backward compatibility
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle
+        isPublished: data.is_published
       };
       
       // Update form state
-      setFormState({
-        ...formData,
-        isDirty: false
-      });
+      setFormState(formData);
       
       setIsLoading(false);
       return formData;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading form', error);
       toast.error('خطأ في تحميل النموذج');
-      setError(error.message || 'Unknown error');
       setIsLoading(false);
       return null;
     }
@@ -546,13 +389,11 @@ export const useFormTemplates = () => {
     saveForm,
     publishForm,
     deleteForm,
-    loadForm,
-    lastSavedId,
-    error
+    loadForm
   };
 };
 
-// Template data definitions
+// Update the template data to use id as string instead of number
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,
@@ -561,7 +402,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#9b87f5',
     data: [
       {
-        id: '1',
+        id: '1', // Changed from number to string
         title: 'Customer Information',
         fields: [
           {
@@ -596,7 +437,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#6adbb8',
     data: [
       {
-        id: '1',
+        id: '1', // Changed from number to string
         title: 'Contact Details',
         fields: [
           {
@@ -631,7 +472,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#f0b34c',
     data: [
       {
-        id: '1',
+        id: '1', // Changed from number to string
         title: 'Personal Information',
         fields: [
           {
@@ -658,7 +499,7 @@ export const formTemplates: FormTemplate[] = [
         ]
       },
       {
-        id: '2',
+        id: '2', // Changed from number to string
         title: 'Event Details',
         fields: [
           {
