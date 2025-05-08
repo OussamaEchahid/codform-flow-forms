@@ -161,19 +161,17 @@ export const useFormStore = create<FormStore>((set, get) => ({
       translations[currentLang] = { fields: {} };
     }
     
-    // Ensure fields object exists
+    // Ensure fields object exists - we don't need to check if it exists with a condition
+    // since we'll create it if needed
     if (!translations[currentLang].fields) {
       translations[currentLang].fields = {};
     }
     
-    // Ensure field entry exists
-    if (!translations[currentLang].fields[fieldId]) {
-      translations[currentLang].fields[fieldId] = {};
-    }
+    // No need to check if the field entry exists since we'll create or update it directly
     
-    // Set the translation
+    // Set the translation by creating or updating the field entry
     translations[currentLang].fields[fieldId] = {
-      ...translations[currentLang].fields[fieldId],
+      ...translations[currentLang].fields[fieldId] || {},
       [propertyName]: value
     };
     
