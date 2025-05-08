@@ -49,6 +49,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
               variant="outline"
               onClick={onPreviousStep}
               disabled={currentStep <= 1}
+              type="button"
             >
               {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
@@ -60,6 +61,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
               variant="outline"
               onClick={onNextStep}
               disabled={currentStep >= totalSteps}
+              type="button"
             >
               {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </Button>
@@ -69,7 +71,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 
       <div className="form-preview-container flex-1 overflow-auto border rounded-md">
         <FormPreview
-          key={`preview-${refreshKey}`}
+          key={`preview-${refreshKey}-${currentStep}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}
@@ -93,4 +95,4 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   );
 };
 
-export default React.memo(FormPreviewPanel); // Added memo to prevent unnecessary re-renders
+export default React.memo(FormPreviewPanel);

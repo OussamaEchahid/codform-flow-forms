@@ -6,7 +6,6 @@ import { FormField } from '@/lib/form-utils';
 import { Button } from '@/components/ui/button';
 import { Edit, Copy, Trash, GripVertical } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { toast } from 'sonner';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -18,7 +17,7 @@ interface FormElementEditorProps {
 }
 
 // Individual form element component with drag handle
-const SortableFormElement = ({ 
+const SortableFormElement = React.memo(({ 
   element, 
   index, 
   isSelected, 
@@ -35,7 +34,10 @@ const SortableFormElement = ({
   onDelete: () => void,
   onDuplicate: () => void
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: element.id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
+    id: `field-${index}`,
+    data: { id: element.id }
+  });
   const { language } = useI18n();
   
   // Add error boundaries for element rendering
@@ -47,12 +49,35 @@ const SortableFormElement = ({
   // Fallback label if element data is incomplete
   const elementLabel = element.label || element.type || 'Unnamed Element';
   
+  const handleClick = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    onSelect();
+  }, [onSelect]);
+
+  const handleEdit = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onEdit();
+  }, [onEdit]);
+
+  const handleDelete = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete();
+  }, [onDelete]);
+
+  const handleDuplicate = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDuplicate();
+  }, [onDuplicate]);
+  
   return (
     <div 
       ref={setNodeRef}
       style={style}
       className={`bg-white p-4 rounded-md border ${isSelected ? 'ring-2 ring-[#9b87f5]' : ''}`}
-      onClick={onSelect}
+      onClick={handleClick}
     >
       <div className="flex items-center gap-2">
         <div 
@@ -69,10 +94,8 @@ const SortableFormElement = ({
               variant="ghost" 
               size="sm" 
               className="text-red-500 p-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
+              onClick={handleDelete}
+              type="button"
             >
               <Trash size={16} />
             </Button>
@@ -81,10 +104,8 @@ const SortableFormElement = ({
               variant="ghost" 
               size="sm" 
               className="text-blue-500 p-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDuplicate();
-              }}
+              onClick={handleDuplicate}
+              type="button"
             >
               <Copy size={16} />
             </Button>
@@ -102,11 +123,8 @@ const SortableFormElement = ({
             variant="ghost" 
             size="sm"
             className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onEdit();
-            }}
+            onClick={handleEdit}
+            type="button"
           >
             <Edit size={16} />
           </Button>
@@ -114,7 +132,7 @@ const SortableFormElement = ({
       </div>
     </div>
   );
-};
+});
 
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
   elements,
@@ -127,14 +145,16 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const { language } = useI18n();
 
   // Improved error handling for elements
-  const safeElements = Array.isArray(elements) ? elements : [];
+  const safeElements = React.useMemo(() => (
+    Array.isArray(elements) ? elements : []
+  ), [elements]);
 
   return (
     <div className="space-y-4">
       {safeElements.length > 0 ? (
         safeElements.map((element, index) => (
           <SortableFormElement
-            key={element.id || index}
+            key={`sortable-${element.id || index}`}
             element={element}
             index={index}
             isSelected={selectedIndex === index}
@@ -156,4 +176,4 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   );
 };
 
-export default FormElementEditor;
+export default React.memo(FormElementEditor);

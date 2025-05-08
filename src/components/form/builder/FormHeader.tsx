@@ -6,14 +6,14 @@ import { FileCheck, Palette, Save, BookTemplateIcon } from 'lucide-react';
 
 interface FormHeaderProps {
   formTitle?: string;
-  onTitleChange?: (title: any) => void;
+  onTitleChange?: (title: string) => void;
   onSave: () => void;
   onPublish: () => void;
   onStyleOpen: () => void;
   onTemplateOpen: () => void;
   isSaving: boolean;
   isPublishing: boolean;
-  isPublished: boolean;
+  isPublished?: boolean;
   lastSaved?: number | null;
 }
 
@@ -26,7 +26,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
   onTemplateOpen,
   isSaving,
   isPublishing,
-  isPublished,
+  isPublished = false,
   lastSaved
 }) => {
   const { language } = useI18n();
@@ -51,6 +51,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           onClick={onSave}
           disabled={isSaving}
           className="flex items-center gap-2"
+          type="button"
         >
           {isSaving ? (
             <>
@@ -70,6 +71,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           onClick={onPublish}
           disabled={isPublishing}
           className="flex items-center gap-2"
+          type="button"
         >
           {isPublishing ? (
             <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -95,6 +97,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           variant="outline" 
           onClick={onStyleOpen}
           className="flex items-center gap-2"
+          type="button"
         >
           <Palette size={16} />
           <span>{language === 'ar' ? 'تخصيص المظهر' : 'Customize Appearance'}</span>
@@ -104,6 +107,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           variant="outline"
           onClick={onTemplateOpen}
           className="flex items-center gap-2"
+          type="button"
         >
           <BookTemplateIcon size={16} />
           <span>{language === 'ar' ? 'استخدام قالب' : 'Use Template'}</span>
@@ -113,4 +117,4 @@ const FormHeader: React.FC<FormHeaderProps> = ({
   );
 };
 
-export default React.memo(FormHeader); // Added memo to prevent unnecessary re-renders
+export default React.memo(FormHeader);

@@ -30,6 +30,10 @@ const FormElementList: React.FC<FormElementListProps> = ({
 }) => {
   const { language } = useI18n();
 
+  const handleAddElement = React.useCallback((type: string) => {
+    onAddElement(type);
+  }, [onAddElement]);
+
   return (
     <div className="space-y-2">
       <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
@@ -45,7 +49,7 @@ const FormElementList: React.FC<FormElementListProps> = ({
             variant="ghost" 
             size="sm"
             className="p-1" 
-            onClick={() => onAddElement(element.type)}
+            onClick={() => handleAddElement(element.type)}
             type="button"
           >
             <Plus size={16} />
@@ -63,4 +67,4 @@ const FormElementList: React.FC<FormElementListProps> = ({
   );
 };
 
-export default React.memo(FormElementList); // Added memo to prevent unnecessary re-renders
+export default React.memo(FormElementList);
