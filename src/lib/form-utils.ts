@@ -8,6 +8,11 @@ export interface FieldStyle {
   borderWidth?: string;
   borderColor?: string;
   padding?: string;
+  titleSize?: 'small' | 'medium' | 'large';
+  alignment?: 'left' | 'center' | 'right';
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
 }
 
 export interface FormField {
@@ -28,6 +33,8 @@ export interface FormField {
   disabled?: boolean;
   whatsappNumber?: string;
   message?: string;
+  direction?: 'rtl' | 'ltr';
+  description?: string;
 }
 
 export interface FormStep {
