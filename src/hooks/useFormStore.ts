@@ -144,7 +144,12 @@ export const useFormStore = create<FormStore>((set, get) => ({
       return undefined;
     }
     
-    // Return the property value (can be undefined if property doesn't exist)
+    // Check if the property exists on the field
+    if (!(propertyName in langTranslations[fieldId])) {
+      return undefined;
+    }
+    
+    // Return the property value
     return langTranslations[fieldId][propertyName];
   },
   setFieldTranslation: (fieldId, propertyName, value, language) => set((state) => {
