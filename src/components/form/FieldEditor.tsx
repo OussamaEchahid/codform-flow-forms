@@ -153,7 +153,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number" 
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value || 0}
+                          value={field.value}
                         />
                       </FormControl>
                     </FormItem>
@@ -170,7 +170,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number"
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value || 0}
+                          value={field.value}
                         />
                       </FormControl>
                     </FormItem>
