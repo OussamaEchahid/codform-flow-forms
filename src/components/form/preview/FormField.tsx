@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
@@ -25,8 +25,8 @@ interface FormFieldProps {
   };
 }
 
-// نقل خريطة المكونات خارج دالة التصيير لمنع إعادة إنشاء المكونات
-const fieldComponentMap: Record<string, React.ComponentType<any>> = {
+// خريطة المكونات - ثابتة خارج المكون الرئيسي
+const FIELD_COMPONENTS = {
   'text': TextInput,
   'textarea': TextArea,
   'radio': RadioGroup,
@@ -40,37 +40,36 @@ const fieldComponentMap: Record<string, React.ComponentType<any>> = {
   'countdown': CountdownTimer,
   'whatsapp': WhatsAppButton,
   'image': ImageField,
-  'email': TextInput, // تعيين بريد إلكتروني كنوع نص
-  'phone': TextInput, // تعيين هاتف كنوع نص
+  'email': TextInput, // البريد الإلكتروني يستخدم مكون النص
+  'phone': TextInput, // الهاتف يستخدم مكون النص
 };
 
-const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
+// مكون وظيفي بسيط يتجنب التحديثات غير الضرورية
+const FormField = (props: FormFieldProps) => {
+  const { field, formStyle } = props;
+  
+  // التحقق من صحة البيانات
   if (!field || !field.type) {
-    console.warn('حقل غير صالح:', field);
     return null;
   }
 
-  // تحسين المكون باستخدام useMemo لمنع إعادة التسجيل غير الضروري
-  const Component = useMemo(() => {
-    // معالجة تعيين نوع الحقل
-    let fieldType = field.type;
-    
-    // تعيين البريد الإلكتروني والهاتف كمدخلات نصية
-    if (fieldType === 'email' || fieldType === 'phone') {
-      fieldType = 'text';
-    }
+  // تحديد نوع المكون المناسب
+  let fieldType = field.type;
+  
+  // تعامل مع أنماط الإدخال الخاصة
+  if (fieldType === 'email' || fieldType === 'phone') {
+    fieldType = 'text';
+  }
 
-    return fieldComponentMap[fieldType];
-  }, [field.type]);
+  const Component = FIELD_COMPONENTS[fieldType as keyof typeof FIELD_COMPONENTS];
   
   if (!Component) {
-    console.warn(`نوع حقل غير معروف: ${field.type}، الأنواع المتاحة:`, Object.keys(fieldComponentMap));
     return null;
   }
 
+  // عرض المكون المناسب مع البيانات المطلوبة
   return <Component field={field} formStyle={formStyle} />;
-});
+};
 
-FormField.displayName = 'FormField';
-
-export default FormField;
+// استخدام memo للحد من عمليات إعادة التصيير غير الضرورية
+export default React.memo(FormField);

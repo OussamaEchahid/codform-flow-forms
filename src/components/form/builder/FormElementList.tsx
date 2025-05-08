@@ -24,46 +24,52 @@ const defaultElements = [
   { type: 'text/html', label: 'نص/HTML', icon: '</>' }
 ];
 
-const FormElementList = React.memo(({ 
+const FormElementList = ({ 
   availableElements = defaultElements, 
   onAddElement 
 }: FormElementListProps) => {
   const { language } = useI18n();
 
-  // إنشاء عناصر القائمة بشكل أكثر استقرارًا
+  const handleAddElement = React.useCallback((type: string) => {
+    onAddElement(type);
+  }, [onAddElement]);
+  
+  // إنشاء عناصر القائمة بطريقة مستقرة
+  const listItems = React.useMemo(() => {
+    return availableElements.map((element) => (
+      <div 
+        key={element.type}
+        className="flex justify-between items-center p-3 hover:bg-gray-50 border rounded-md"
+      >
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="p-1" 
+          onClick={() => handleAddElement(element.type)}
+          type="button"
+        >
+          <Plus size={16} />
+        </Button>
+        
+        <div className="flex items-center gap-2">
+          <span>{element.label}</span>
+          <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
+            {element.icon}
+          </span>
+        </div>
+      </div>
+    ));
+  }, [availableElements, handleAddElement]);
+
   return (
     <div className="space-y-2">
       <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
       </h3>
       
-      {availableElements.map((element) => (
-        <div 
-          key={element.type}
-          className="flex justify-between items-center p-3 hover:bg-gray-50 border rounded-md"
-        >
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="p-1" 
-            onClick={() => onAddElement(element.type)}
-            type="button"
-          >
-            <Plus size={16} />
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <span>{element.label}</span>
-            <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
-              {element.icon}
-            </span>
-          </div>
-        </div>
-      ))}
+      {listItems}
     </div>
   );
-});
+};
 
-FormElementList.displayName = 'FormElementList';
-
-export default FormElementList;
+export default React.memo(FormElementList);

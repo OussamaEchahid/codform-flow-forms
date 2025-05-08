@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -21,28 +21,30 @@ interface FormPreviewProps {
   submitButtonText?: string;
 }
 
-const FormPreview = React.memo(({
-  formTitle,
-  formDescription,
-  currentStep,
-  totalSteps,
-  children,
-  formStyle = {
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  },
-  fields = [],
-  submitButtonText = 'إرسال الطلب',
-}: FormPreviewProps) => {
+// ثابت من الخارج لضمان عدم إعادة التصيير
+const defaultFormStyle = {
+  primaryColor: '#9b87f5',
+  borderRadius: '0.5rem',
+  fontSize: '1rem',
+  buttonStyle: 'rounded',
+};
+
+const FormPreview = (props: FormPreviewProps) => {
+  const {
+    formTitle,
+    formDescription,
+    currentStep,
+    totalSteps,
+    children,
+    formStyle = defaultFormStyle,
+    fields = [],
+    submitButtonText = 'إرسال الطلب',
+  } = props;
+  
   const { language } = useI18n();
   
-  // استخدم ثابت بدلاً من الحالة لتجنب إعادة التصيير
-  const stableKey = React.useRef("form-preview-stable").current;
-  
-  // تحسين متغيرات CSS لمنع إعادة الحساب عند كل تصيير
-  const cssVars = useMemo(() => {
+  // متغيرات CSS - ثابتة فقط عند تغيير القيم ذات الصلة
+  const cssVars = React.useMemo(() => {
     return {
       fontSize: formStyle.fontSize,
       '--form-primary-color': formStyle.primaryColor,
@@ -50,8 +52,8 @@ const FormPreview = React.memo(({
     } as React.CSSProperties;
   }, [formStyle.fontSize, formStyle.primaryColor, formStyle.borderRadius]);
   
-  // تحسين مؤشرات الخطوة لمنع إعادة التصيير غير الضرورية
-  const stepIndicators = useMemo(() => {
+  // مؤشرات الخطوات - ثابت عند تغيير القيم ذات الصلة
+  const stepIndicators = React.useMemo(() => {
     if (totalSteps <= 1) return null;
     
     return (
@@ -94,8 +96,8 @@ const FormPreview = React.memo(({
     );
   }, [currentStep, totalSteps]);
 
-  // تحسين عناصر النموذج لمنع إعادة التصيير غير الضروري
-  const formFieldElements = useMemo(() => {
+  // الحقول وزر الإرسال - ثابت عند تغيير القيم ذات الصلة
+  const formContent = React.useMemo(() => {
     if (!fields || fields.length === 0) {
       return children;
     }
@@ -113,9 +115,9 @@ const FormPreview = React.memo(({
         <button
           className="w-full py-2 px-4 text-white font-medium"
           style={{
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
+            backgroundColor: formStyle.primaryColor || defaultFormStyle.primaryColor,
             borderRadius: formStyle.buttonStyle === 'rounded' ? '9999px' : 
-                          formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
+                         formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
           }}
           type="button"
         >
@@ -127,20 +129,25 @@ const FormPreview = React.memo(({
   
   return (
     <div 
-      key={stableKey}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={cssVars}
     >
       <div 
         className="p-4 border-b" 
         style={{ 
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          backgroundColor: formStyle.primaryColor || defaultFormStyle.primaryColor,
           color: 'white',
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
         }}
       >
-        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
+        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>
+          {formTitle}
+        </h2>
+        {formDescription && (
+          <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>
+            {formDescription}
+          </p>
+        )}
       </div>
       
       {stepIndicators}
@@ -152,12 +159,10 @@ const FormPreview = React.memo(({
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
-        {formFieldElements}
+        {formContent}
       </div>
     </div>
   );
-});
+};
 
-FormPreview.displayName = 'FormPreview';
-
-export default FormPreview;
+export default React.memo(FormPreview);

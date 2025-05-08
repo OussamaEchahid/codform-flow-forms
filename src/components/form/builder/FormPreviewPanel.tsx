@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -20,22 +20,31 @@ interface FormPreviewPanelProps {
   submitButtonText?: string;
 }
 
-const FormPreviewPanel = React.memo(({
-  formTitle,
-  formDescription,
-  fields,
-  formStyle,
-  currentStep,
-  totalSteps,
-  onPreviousStep,
-  onNextStep,
-  refreshKey = 0,
-  submitButtonText = 'إرسال الطلب',
-}: FormPreviewPanelProps) => {
-  const { t, language } = useI18n();
+// استخدام ref بدلاً من state لمنع التحديثات غير الضرورية
+const FormPreviewPanel = (props: FormPreviewPanelProps) => {
+  const {
+    formTitle,
+    formDescription,
+    fields,
+    formStyle,
+    currentStep,
+    totalSteps,
+    onPreviousStep,
+    onNextStep,
+    refreshKey = 0,
+    submitButtonText = 'إرسال الطلب',
+  } = props;
   
-  // تحسين الأزرار لمنع إعادة التصيير غير الضروري
-  const PreviousButton = useMemo(() => (
+  const { t, language } = useI18n();
+  const previewKeyRef = React.useRef(`preview-${refreshKey}-${currentStep}`);
+  
+  // تحديث المرجع فقط عندما تتغير القيم المهمة
+  React.useEffect(() => {
+    previewKeyRef.current = `preview-${refreshKey}-${currentStep}`;
+  }, [refreshKey, currentStep]);
+  
+  // زر السابق - ثابت
+  const PreviousButton = React.useMemo(() => (
     <Button 
       size="sm" 
       variant="outline"
@@ -47,7 +56,8 @@ const FormPreviewPanel = React.memo(({
     </Button>
   ), [currentStep, language, onPreviousStep]);
 
-  const NextButton = useMemo(() => (
+  // زر التالي - ثابت
+  const NextButton = React.useMemo(() => (
     <Button 
       size="sm" 
       variant="outline"
@@ -59,8 +69,8 @@ const FormPreviewPanel = React.memo(({
     </Button>
   ), [currentStep, language, onNextStep, totalSteps]);
 
-  // تحسين محتوى FormPreview لمنع إعادة التصيير غير الضروري
-  const emptyFieldsMessage = useMemo(() => {
+  // رسالة في حالة عدم وجود حقول
+  const emptyFieldsMessage = React.useMemo(() => {
     if (!fields || fields.length === 0) {
       return (
         <div className="text-center p-6">
@@ -74,10 +84,6 @@ const FormPreviewPanel = React.memo(({
     }
     return null;
   }, [fields, language]);
-  
-  // استخدام مفتاح مستقر لتجنب إعادة الإنشاء غير الضروري
-  const stablePreviewKey = useMemo(() => `preview-${refreshKey}-${currentStep}`, 
-    [refreshKey, currentStep]);
   
   return (
     <div className="h-full flex flex-col">
@@ -100,7 +106,7 @@ const FormPreviewPanel = React.memo(({
 
       <div className="form-preview-container flex-1 overflow-auto border rounded-md">
         <FormPreview
-          key={stablePreviewKey}
+          key={previewKeyRef.current}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}
@@ -114,8 +120,6 @@ const FormPreviewPanel = React.memo(({
       </div>
     </div>
   );
-});
+};
 
-FormPreviewPanel.displayName = 'FormPreviewPanel';
-
-export default FormPreviewPanel;
+export default React.memo(FormPreviewPanel);
