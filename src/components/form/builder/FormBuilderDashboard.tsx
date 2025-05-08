@@ -35,7 +35,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         setHasLoadedForms(true);
       } catch (error) {
         console.error("Error loading forms:", error);
-        toast.error(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
+        toast.error(
+          language === 'ar' ? 'خطأ في تحميل النماذج' : 
+          language === 'fr' ? 'Erreur lors du chargement des formulaires' : 
+          'Error loading forms'
+        );
       }
     };
 
@@ -67,7 +71,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       console.log("Starting form creation process...");
       setIsCreatingForm(true);
-      toast.loading(language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 'Creating new form...');
+      toast.loading(
+        language === 'ar' ? 'جاري إنشاء نموذج جديد...' : 
+        language === 'fr' ? 'Création d\'un nouveau formulaire...' : 
+        'Creating new form...'
+      );
       
       const newForm = await createDefaultForm();
       console.log("Form creation result:", newForm);
@@ -81,13 +89,21 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         }, 100);
       } else {
         console.error("Form creation failed, no ID returned");
-        toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
+        toast.error(
+          language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 
+          language === 'fr' ? 'Erreur lors de la création du formulaire' : 
+          'Error creating new form'
+        );
         setIsCreatingForm(false);
       }
     } catch (error) {
       console.error("Error creating form:", error);
       toast.dismiss();
-      toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error creating new form');
+      toast.error(
+        language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 
+        language === 'fr' ? 'Erreur lors de la création du formulaire' : 
+        'Error creating new form'
+      );
       setIsCreatingForm(false);
     }
   };
@@ -100,7 +116,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleSelectTemplate = async (templateId: number) => {
     try {
       setIsTemplateDialogOpen(false);
-      toast.loading(language === 'ar' ? 'جاري إنشاء نموذج من القالب...' : 'Creating form from template...');
+      toast.loading(
+        language === 'ar' ? 'جاري إنشاء نموذج من القالب...' : 
+        language === 'fr' ? 'Création d\'un formulaire à partir d\'un modèle...' : 
+        'Creating form from template...'
+      );
       
       console.log("Creating form from template:", templateId);
       const newForm = await createFormFromTemplate(templateId);
@@ -117,18 +137,18 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       } else {
         console.error("Template form creation failed, no ID returned");
         toast.error(
-          language === 'ar'
-            ? 'خطأ في إنشاء نموذج من القالب'
-            : 'Error creating form from template'
+          language === 'ar' ? 'خطأ في إنشاء نموذج من القالب' : 
+          language === 'fr' ? 'Erreur lors de la création du formulaire à partir du modèle' : 
+          'Error creating form from template'
         );
       }
     } catch (error) {
       console.error("Error creating form from template:", error);
       toast.dismiss();
       toast.error(
-        language === 'ar'
-          ? 'خطأ في إنشاء نموذج من القالب'
-          : 'Error creating form from template'
+        language === 'ar' ? 'خطأ في إنشاء نموذج من القالب' : 
+        language === 'fr' ? 'Erreur lors de la création du formulaire à partir du modèle' : 
+        'Error creating form from template'
       );
     }
   };
@@ -138,10 +158,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">
-            {language === 'ar' ? 'النماذج' : 'Forms'}
+            {language === 'ar' ? 'النماذج' : 
+             language === 'fr' ? 'Formulaires' : 'Forms'}
           </h1>
           <p className="text-gray-500">
-            {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 'Manage your Cash On Delivery forms'}
+            {language === 'ar' ? 'إدارة نماذج الدفع عند الاستلام' : 
+             language === 'fr' ? 'Gérer vos formulaires de paiement à la livraison' : 
+             'Manage your Cash On Delivery forms'}
           </p>
         </div>
         
@@ -150,7 +173,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
             variant="outline"
             onClick={() => setIsTemplateDialogOpen(true)}
           >
-            {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
+            {language === 'ar' ? 'استخدام قالب' : 
+             language === 'fr' ? 'Utiliser un modèle' : 
+             'Use Template'}
           </Button>
           
           <Button 
@@ -158,7 +183,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
             disabled={isLoading || isCreatingForm}
           >
             <Plus className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-            {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+            {language === 'ar' ? 'إنشاء نموذج جديد' : 
+             language === 'fr' ? 'Créer un nouveau formulaire' : 
+             'Create New Form'}
           </Button>
         </div>
       </div>
