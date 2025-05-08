@@ -229,9 +229,9 @@ export const useFormEditor = (formId?: string) => {
           }
         }
         
-        // Check for submit button text in main data
-        if (formData.submitButtonText) {
-          setSubmitButtonText(formData.submitButtonText);
+        // Check for submit button text in main data - fix case sensitivity
+        if (formData.submitbuttontext) {
+          setSubmitButtonText(formData.submitbuttontext);
         }
       }
       
@@ -246,7 +246,7 @@ export const useFormEditor = (formId?: string) => {
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
-        submitButtonText: submitButtonText
+        submitButtonText: formData.submitbuttontext || submitButtonText
       });
       
       console.log("Loaded form data:", formData);
@@ -295,14 +295,14 @@ export const useFormEditor = (formId?: string) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // Prepare all form data for saving - explicitly include submitButtonText
+      // Prepare all form data for saving - fix case sensitivity issue with submitButtonText/submitbuttontext
       const dbData = {
         title: formTitle,
         description: formDescription,
         data: formSteps,
         shop_id: shopId,
         updated_at: new Date().toISOString(),
-        submitButtonText: submitButtonText
+        submitbuttontext: submitButtonText // Using lowercase to match database column name
       };
       
       console.log("Saving form with data:", dbData);
@@ -360,7 +360,7 @@ export const useFormEditor = (formId?: string) => {
             title: formTitle,
             description: formDescription,
             data: formSteps,
-            submitButtonText: submitButtonText,
+            submitbuttontext: submitButtonText, // Using lowercase to match database column name
             // Include other necessary fields
             primaryColor: formStyle.primaryColor,
             borderRadius: formStyle.borderRadius,

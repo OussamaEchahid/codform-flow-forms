@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -17,7 +16,13 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
-  submitButtonText?: string; // Added this field
+  submitButtonText?: string; 
+  submitbuttontext?: string; // Added lowercase version to match DB column
+  // Add style properties
+  primaryColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  buttonStyle?: string;
 }
 
 export interface FormTemplate {
@@ -208,16 +213,23 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Save form changes
-  const saveForm = async (formId: string, formData: Partial<FormData>) => {
+  // Save form changes with retry logic
+  const saveForm = async (formId: string, formData: Partial<FormData>, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
+      console.log(`Attempting to save form (attempt ${retryCount + 1}/${maxRetries + 1})`, formId, formData);
       
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
       if (dbData.isPublished !== undefined) {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
+      }
+      
+      // Make sure submitButtonText is saved as submitbuttontext
+      if (dbData.submitButtonText !== undefined) {
+        dbData.submitbuttontext = dbData.submitButtonText;
+        delete dbData.submitButtonText;
       }
       
       // Update form in Supabase
