@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -8,9 +9,11 @@ import { Trash } from 'lucide-react';
 interface OptionFieldEditorProps {
   field: FormField;
   onChange: (field: FormField) => void;
+  onSave?: (field: FormField) => void;  // Make this optional to fix compatibility
+  onClose?: () => void;                // Make this optional to fix compatibility
 }
 
-const OptionFieldEditor: React.FC<OptionFieldEditorProps> = ({ field, onChange }) => {
+const OptionFieldEditor: React.FC<OptionFieldEditorProps> = ({ field, onChange, onSave, onClose }) => {
   const { language } = useI18n();
   const [options, setOptions] = useState<Array<{ value: string; label: string }>>([]);
 
@@ -35,6 +38,14 @@ const OptionFieldEditor: React.FC<OptionFieldEditorProps> = ({ field, onChange }
       ...field,
       options: newOptions
     });
+    
+    // If onSave is provided (as a prop), call it as well with the updated field
+    if (onSave) {
+      onSave({
+        ...field,
+        options: newOptions
+      });
+    }
   };
 
   const addOption = () => {
@@ -57,19 +68,25 @@ const OptionFieldEditor: React.FC<OptionFieldEditorProps> = ({ field, onChange }
   // Handle min length change - convert string to number
   const handleMinLengthChange = (value: string) => {
     const newMinLength = value ? parseInt(value, 10) : undefined;
-    onChange({
+    const updatedField = {
       ...field,
       minLength: newMinLength
-    });
+    };
+    
+    onChange(updatedField);
+    if (onSave) onSave(updatedField);
   };
 
   // Handle max length change - convert string to number
   const handleMaxLengthChange = (value: string) => {
     const newMaxLength = value ? parseInt(value, 10) : undefined;
-    onChange({
+    const updatedField = {
       ...field,
       maxLength: newMaxLength
-    });
+    };
+    
+    onChange(updatedField);
+    if (onSave) onSave(updatedField);
   };
 
   return (

@@ -410,14 +410,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
               <div className="p-4">
                 <div className="mb-4">
                   <div className="bg-gray-50 p-3 rounded-md mb-4">
-                    <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full ${shopifyIntegration?.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {shopifyIntegration?.connected ? 
-                          (language === 'ar' ? 'متصل' : 'Connected') : 
-                          (language === 'ar' ? 'غير متصل' : 'Not Connected')}
-                      </span>
-                    </div>
+                    <ShopifyConnectionStatus />
                   </div>
                   <ShopifyIntegration formId={localFormData.id} />
                   <ShopifyFormSync formId={localFormData.id} />

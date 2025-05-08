@@ -29,7 +29,14 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       case 'select':
       case 'radio':
       case 'checkbox':
-        return <OptionFieldEditor field={field} onSave={onSave} onClose={onClose} />;
+        return (
+          <OptionFieldEditor 
+            field={field} 
+            onChange={onSave} // Pass onSave as onChange to match the component's expected props
+            onSave={onSave} 
+            onClose={onClose} 
+          />
+        );
       
       case 'whatsapp':
         return (
