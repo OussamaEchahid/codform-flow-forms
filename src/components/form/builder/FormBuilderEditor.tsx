@@ -112,9 +112,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
   }, [id, loadFormData, language]); 
 
-  // Safe save handler with debounce
-  const safeSave = useCallback(() => {
-    debouncedSave();
+  // Safe save handler with debounce - FIXED: Now returns a Promise<void> to match expected type
+  const safeSave = useCallback(async (): Promise<void> => {
+    return new Promise((resolve) => {
+      debouncedSave();
+      // Resolve the promise immediately since the actual save is debounced
+      resolve();
+    });
   }, [debouncedSave]);
 
   // Handle form drag-and-drop reordering with improved error handling

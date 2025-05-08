@@ -15,21 +15,17 @@ export function standardizeFormData(
   const formStep: FormStep = {
     id: '1',
     title: 'Main Step',
-    fields: formElements
-  };
-
-  // Ensure metadata exists and is properly structured
-  if (!formStep.metadata) {
-    formStep.metadata = {};
-  }
-  
-  // Store style properties in the metadata
-  formStep.metadata.formStyle = {
-    primaryColor: formStyle.primaryColor,
-    borderRadius: formStyle.borderRadius,
-    fontSize: formStyle.fontSize,
-    buttonStyle: formStyle.buttonStyle,
-    submitButtonText: submitButtonText
+    fields: formElements,
+    // Always initialize metadata to prevent undefined errors
+    metadata: {
+      formStyle: {
+        primaryColor: formStyle.primaryColor || '#9b87f5',
+        borderRadius: formStyle.borderRadius || '0.5rem',
+        fontSize: formStyle.fontSize || '1rem',
+        buttonStyle: formStyle.buttonStyle || 'rounded',
+        submitButtonText: submitButtonText || 'إرسال الطلب'
+      }
+    }
   };
 
   return [formStep];
@@ -41,24 +37,38 @@ export function standardizeFormData(
  */
 export async function withRetry<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3
+  maxRetries: number = 3,
+  initialDelay: number = 500
 ): Promise<T> {
   let retryCount = 0;
+  let lastError: Error | null = null;
   
-  while (true) {
+  while (retryCount <= maxRetries) {
     try {
       return await operation();
     } catch (error) {
-      retryCount++;
-      console.error(`Operation failed (attempt ${retryCount}):`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Operation failed (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
       
-      if (retryCount >= maxRetries) {
-        throw error;
+      retryCount++;
+      
+      if (retryCount > maxRetries) {
+        break;
       }
       
-      // Exponential backoff
-      const delay = Math.pow(2, retryCount) * 500;
+      // Exponential backoff with jitter
+      const delay = Math.pow(2, retryCount) * initialDelay + Math.floor(Math.random() * 200);
+      console.log(`Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+  
+  throw lastError || new Error('Operation failed after multiple retries');
+}
+
+/**
+ * Safely check if an object is a promise
+ */
+export function isPromise<T>(value: any): value is Promise<T> {
+  return Boolean(value && typeof value.then === 'function');
 }
