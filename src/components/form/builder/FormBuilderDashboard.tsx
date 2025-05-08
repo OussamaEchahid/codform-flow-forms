@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
@@ -7,6 +8,7 @@ import { Plus } from 'lucide-react';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { toast } from 'sonner';
+import { useFormStore } from '@/hooks/useFormStore';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -20,10 +22,16 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const navigate = useNavigate();
   const { language } = useI18n();
   const { forms, isLoading, fetchForms, createFormFromTemplate, createDefaultForm } = useFormTemplates();
+  const { resetFormState } = useFormStore();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
+
+  // Reset form state when component mounts
+  useEffect(() => {
+    resetFormState();
+  }, []);
 
   // Fetch forms on component mount
   useEffect(() => {
@@ -54,6 +62,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   const handleCreateForm = async () => {
     try {
+      // Reset form state before creating a new one
+      resetFormState();
+      
       const newForm = await createDefaultForm();
       if (newForm) {
         // Navigate to form builder with the new form ID
@@ -66,12 +77,18 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   };
 
   const handleSelectForm = (formId: string) => {
+    // Reset form state before navigating
+    resetFormState();
     navigate(`/form-builder/${formId}`);
   };
 
   const handleSelectTemplate = async (templateId: number) => {
     try {
       setIsTemplateDialogOpen(false);
+      
+      // Reset form state before creating from template
+      resetFormState();
+      
       const newForm = await createFormFromTemplate(templateId);
       
       if (newForm) {

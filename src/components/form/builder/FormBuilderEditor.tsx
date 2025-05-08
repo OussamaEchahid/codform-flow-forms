@@ -43,7 +43,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  const { formState, setFormState, resetFormState } = useFormStore();
+  const { formState, setFormState, resetFormState, updateFormData } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -170,11 +170,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           const formData = await loadForm(id);
           
           if (formData) {
+            console.log("Loaded form data:", formData);
+            
             setFormTitle(formData.title || 'نموذج جديد');
             setFormDescription(formData.description || '');
-            setFormElements(
-              formData.data?.flatMap(step => step.fields) || []
-            );
+            
+            // Ensure we have form data to work with
+            if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
+              // Extract fields from all steps
+              const allFields = formData.data.flatMap(step => step.fields || []);
+              setFormElements(allFields);
+            } else {
+              console.warn("Form data is empty or invalid, initializing with empty array");
+              setFormElements([]);
+            }
+            
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
             
@@ -188,7 +198,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               });
             }
             
-            console.log("Loaded form data:", formData);
+            console.log("Form elements after loading:", formElements);
+            setRefreshKey(prev => prev + 1);
           } else {
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
             navigate('/form-builder');
@@ -253,12 +264,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        // Update form state
+        
+        // Update form state in the store
         setFormState({
           ...formState,
           ...formData,
           id: currentFormId
         });
+        
+        // Also update the form data specifically
+        updateFormData([formStep]);
+        
         // Update refresh key to trigger UI updates
         setRefreshKey(prev => prev + 1);
       } else {
@@ -274,7 +290,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handlePublish = async () => {
     if (!currentFormId) {
-      toast.error(language === 'ar' ? 'لم يتم ��لعثور على معرف النموذج' : 'Form ID not found');
+      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
       return;
     }
     
@@ -287,32 +303,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Toggle publish status
       const newPublishState = !isPublished;
       
-      // Try direct database update for publishing
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          is_published: newPublishState,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentFormId);
+      // Try updating the publish status
+      const success = await publishForm(currentFormId, newPublishState);
       
-      if (error) {
-        console.error("Direct database update for publishing failed:", error);
-        
-        // If direct update fails, try using the publishForm method
-        const success = await publishForm(currentFormId, newPublishState);
-        
-        if (success) {
-          setIsPublished(newPublishState);
-          toast.success(
-            newPublishState 
-              ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
-          );
-        } else {
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
-        }
-      } else {
+      if (success) {
         setIsPublished(newPublishState);
         toast.success(
           newPublishState 
@@ -320,11 +314,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
         );
         
-        // Update form state in the memory
+        // Update form state
         setFormState({
           ...formState,
           isPublished: newPublishState
         });
+      } else {
+        toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
       }
     } catch (error) {
       console.error("Error publishing form:", error);
@@ -345,9 +341,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     const updatedElements = [...formElements, newElement];
     setFormElements(updatedElements);
+    
+    // Auto-save after adding an element
     setTimeout(() => {
       setSelectedElementIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
+      handleSave();
     }, 100);
   };
 
@@ -515,11 +514,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 300);
   };
 
-  // Handle submit button text change with auto-save
+  // Auto-save when form title, description, or submit button text changes
+  const handleFormTitleChange = (value: string) => {
+    setFormTitle(value);
+    // Autosave with debounce
+    setTimeout(() => handleSave(), 500);
+  };
+  
+  const handleFormDescriptionChange = (value: string) => {
+    setFormDescription(value);
+    // Autosave with debounce
+    setTimeout(() => handleSave(), 500);
+  };
+  
   const handleSubmitButtonTextChange = (text: string) => {
     setSubmitButtonText(text);
-    // Save after changing submit button text
-    setTimeout(() => handleSave(), 300);
+    // Autosave with debounce
+    setTimeout(() => handleSave(), 500);
   };
 
   return (
@@ -561,11 +572,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 <input
                   type="text"
                   value={formTitle}
-                  onChange={(e) => {
-                    setFormTitle(e.target.value);
-                    // Autosave with debounce
-                    setTimeout(() => handleSave(), 500);
-                  }}
+                  onChange={(e) => handleFormTitleChange(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
                 />
@@ -577,11 +584,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 </label>
                 <textarea
                   value={formDescription}
-                  onChange={(e) => {
-                    setFormDescription(e.target.value);
-                    // Autosave with debounce
-                    setTimeout(() => handleSave(), 500);
-                  }}
+                  onChange={(e) => handleFormDescriptionChange(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
                   rows={3}

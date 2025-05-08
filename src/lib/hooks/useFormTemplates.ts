@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -17,7 +18,7 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   submitButtonText?: string;
-  // Add style properties
+  // Style properties
   primaryColor?: string;
   borderRadius?: string;
   fontSize?: string;
@@ -241,7 +242,9 @@ export const useFormTemplates = () => {
       
       console.log("Saving form with ID:", formId, "and data:", dbData);
       
-      // Update form in Supabase
+      // Update form in Supabase with updated_at field
+      dbData.updated_at = new Date().toISOString();
+      
       const { data, error } = await supabase
         .from('forms')
         .update(dbData)
@@ -264,12 +267,6 @@ export const useFormTemplates = () => {
         ));
       }
       
-      // Update form state
-      setFormState({
-        ...formData,
-        id: formId
-      });
-      
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -288,7 +285,10 @@ export const useFormTemplates = () => {
       // Update form in Supabase
       const { error } = await supabase
         .from('forms')
-        .update({ is_published: publish })
+        .update({ 
+          is_published: publish,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', formId);
       
       if (error) {

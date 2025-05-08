@@ -20,6 +20,7 @@ export interface FormState {
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
+  updateFormData: (data: any[]) => void;
   resetFormState: () => void;
 }
 
@@ -43,6 +44,12 @@ export const useFormStore = create<FormStore>((set) => ({
     formState: {
       ...state.formState,
       ...form
+    }
+  })),
+  updateFormData: (data) => set((state) => ({
+    formState: {
+      ...state.formState,
+      data: data
     }
   })),
   resetFormState: () => set({ formState: {...defaultFormState} })
