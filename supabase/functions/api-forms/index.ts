@@ -1,12 +1,6 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-};
+import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
   // Handle CORS
@@ -42,11 +36,19 @@ serve(async (req) => {
       .single()
 
     if (error) {
+      console.error('Database error:', error)
       throw error
     }
 
     if (!formData) {
+      console.error(`Form with ID ${formId} not found`)
       throw new Error(`Form with ID ${formId} not found`)
+    }
+
+    // Ensure form is published
+    if (!formData.is_published) {
+      console.error(`Form with ID ${formId} is not published`)
+      throw new Error(`Form with ID ${formId} is not published`)
     }
 
     console.log('Successfully fetched form:', formData.title, 'ID:', formId)
@@ -65,7 +67,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error getting form:', error.message)
     
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      success: false
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
@@ -79,34 +84,51 @@ serve(async (req) => {
 function transformFormData(formData) {
   console.log('Transform function received data type:', typeof formData)
   
-  if (!formData || !formData.data) {
+  // Check if form data exists
+  if (!formData) {
+    console.error('No form data provided to transform');
     return {
-      id: formData.id,
-      title: formData.title,
-      description: formData.description,
-      primaryColor: formData.primary_color || '#9b87f5',
-      submitbuttontext: formData.submitbuttontext || 'إرسال الطلب', // Add lowercase submitbuttontext
+      id: 'unknown',
+      title: 'Error',
+      description: 'Form data not available',
+      primaryColor: '#9b87f5',
+      submitbuttontext: 'إرسال الطلب',
+      submitButtonText: 'إرسال الطلب',
       fields: []
     }
   }
-
-  const data = formData.data
   
-  console.log('Form data array length:', Array.isArray(data) ? data.length : 'not an array')
+  // Initialize result with default values
+  const result = {
+    id: formData.id,
+    title: formData.title,
+    description: formData.description,
+    primaryColor: formData.primary_color || '#9b87f5',
+    // Include both versions of submit button text for compatibility
+    submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
+    submitButtonText: formData.submitbuttontext || 'إرسال الطلب',
+    fields: []
+  }
   
-  // Log a portion of the raw form data structure
-  console.log('Raw form data structure:', JSON.stringify(data).substring(0, 500) + '...')
+  // Check for data property in formData
+  const dataField = formData.data
   
-  // Check if form has steps
-  const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields))
-  console.log('Form has steps:', hasSteps)
+  if (!dataField) {
+    console.error('Form data missing data property')
+    return result
+  }
+  
+  // Log raw data for debugging
+  console.log('Raw form data structure:', JSON.stringify(dataField).substring(0, 500) + '...')
   
   let transformedFields = []
   
-  if (hasSteps) {
-    // Process multi-step form
-    console.log('Processing as multi-step form')
-    data.forEach((step, stepIndex) => {
+  // Handle different data structures
+  if (Array.isArray(dataField)) {
+    // This is likely a multi-step form
+    console.log('Processing as multi-step form with', dataField.length, 'steps')
+    
+    dataField.forEach((step, stepIndex) => {
       // Add a step marker field
       transformedFields.push({
         id: step.id || `step-${stepIndex}`,
@@ -118,6 +140,32 @@ function transformFormData(formData) {
       
       // Process fields in this step
       if (step.fields && Array.isArray(step.fields)) {
+        console.log(`Processing ${step.fields.length} fields in step ${stepIndex}`)
+        step.fields.forEach(field => {
+          transformedFields.push({
+            ...field,
+            stepId: step.id,
+            stepTitle: step.title,
+            stepIndex: stepIndex
+          })
+        })
+      } else {
+        console.log(`No fields array found in step ${stepIndex}`)
+      }
+    })
+  } else if (typeof dataField === 'object' && dataField.steps && Array.isArray(dataField.steps)) {
+    // Handle nested steps format
+    console.log('Processing nested steps format with', dataField.steps.length, 'steps')
+    dataField.steps.forEach((step, stepIndex) => {
+      transformedFields.push({
+        id: step.id || `step-${stepIndex}`,
+        type: 'step',
+        label: step.title || `Step ${stepIndex + 1}`,
+        stepIndex: stepIndex,
+        isStep: true
+      })
+      
+      if (step.fields && Array.isArray(step.fields)) {
         step.fields.forEach(field => {
           transformedFields.push({
             ...field,
@@ -128,51 +176,29 @@ function transformFormData(formData) {
         })
       }
     })
-  } else {
-    // Process single-step form with nested fields structure
-    console.log('Processing as single-step form with nested fields structure')
-    let totalFields = 0
+  } else if (typeof dataField === 'object') {
+    // Handle flat object format
+    console.log('Processing flat object format')
     
-    if (Array.isArray(data) && data.length > 0) {
-      data.forEach((step, stepIndex) => {
-        // Add a step marker field
-        transformedFields.push({
-          id: step.id || `${stepIndex + 1}`,
-          type: 'step',
-          label: step.title || `Step ${stepIndex + 1}`,
-          stepIndex: stepIndex,
-          isStep: true
-        })
-        
-        // Process fields in this step
-        if (step.fields && Array.isArray(step.fields)) {
-          step.fields.forEach(field => {
-            transformedFields.push({
-              ...field,
-              stepId: step.id,
-              stepTitle: step.title,
-              stepIndex: stepIndex
-            })
-            totalFields++
-          })
-        }
-      })
+    // Try to extract fields from where they might be located
+    const fieldsArray = dataField.fields || dataField.elements || [];
+    
+    if (Array.isArray(fieldsArray) && fieldsArray.length > 0) {
+      transformedFields = fieldsArray.map(field => ({
+        ...field,
+        stepIndex: 0,
+        stepTitle: 'Default Step'
+      }))
+    } else {
+      console.error('Could not find fields array in form data structure')
     }
-    
-    console.log('Total fields processed:', totalFields)
   }
   
-  // Construct the final transformed data object with both camelCase and lowercase variants
-  // to ensure compatibility with all components 
-  return {
-    id: formData.id,
-    title: formData.title,
-    description: formData.description,
-    primaryColor: formData.primary_color || '#9b87f5',
-    submitbuttontext: formData.submitbuttontext || 'إرسال الطلب', // Add lowercase from database
-    submitButtonText: formData.submitbuttontext || 'إرسال الطلب', // Add camelCase for component compatibility
-    fields: transformedFields,
-    // Add any form-wide settings
-    data: data // Keep the original data structure for advanced processing
-  }
+  console.log(`Transform complete, found ${transformedFields.length} fields`)
+  
+  result.fields = transformedFields
+  // Keep original data for advanced processing if needed
+  result.data = dataField
+  
+  return result
 }

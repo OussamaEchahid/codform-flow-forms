@@ -1,6 +1,9 @@
 
 // CODFORM Initializer Module
-function CODFORMInitializer(API_BASE_URL) {
+function CODFORMInitializer() {
+  // Explicitly set the API base URL to the Supabase Edge Function URL
+  const API_BASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
+  
   const { 
     loadForm, 
     showLoader, 
@@ -30,7 +33,7 @@ function CODFORMInitializer(API_BASE_URL) {
       
       if (!formId) {
         console.error('CODFORM: No form ID provided');
-        showError(container);
+        showError(container, 'No form ID provided');
         return;
       }
       
@@ -38,11 +41,11 @@ function CODFORMInitializer(API_BASE_URL) {
       loadForm(container, formId, productId);
       
       // Set up retry button
-      const retryButton = container.querySelector('#codform-retry-' + container.id.split('-').pop());
+      const retryButton = container.querySelector('.codform-retry-button');
       if (retryButton) {
         retryButton.addEventListener('click', function() {
+          console.log('CODFORM: Retry button clicked, reloading form');
           hideError(container);
-          showLoader(container);
           loadForm(container, formId, productId);
         });
       }

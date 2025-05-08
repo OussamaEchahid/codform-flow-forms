@@ -6,9 +6,18 @@ function CODFORMFormLoader(API_BASE_URL) {
   
   function loadForm(container, formId, productId) {
     console.log('CODFORM: Loading form', formId);
-    const apiUrl = API_BASE_URL + '/api-forms/' + formId;
+    
+    // Use provided API_BASE_URL or fallback to the Supabase Edge Function URL
+    const baseUrl = API_BASE_URL || 'https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1';
+    const apiUrl = `${baseUrl}/api-forms/${formId}`;
     
     console.log('CODFORM: Fetching form from:', apiUrl);
+    
+    // Show loader while fetching
+    showLoader(container);
+    hideError(container);
+    hideForm(container);
+    hideSuccess(container);
     
     fetch(apiUrl, {
       method: 'GET',
@@ -21,17 +30,26 @@ function CODFORMFormLoader(API_BASE_URL) {
       .then(response => {
         console.log('CODFORM: API Response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to load form: ' + response.status);
+          throw new Error(`Failed to load form: ${response.status} - ${response.statusText}`);
         }
         return response.json();
       })
       .then(data => {
         console.log('CODFORM: Form data received:', data);
+        
+        // Verify data integrity before rendering
+        if (!data || (data.fields && data.fields.length === 0 && (!data.data || !Array.isArray(data.data)))) {
+          throw new Error('Invalid form data: No fields found');
+        }
+        
+        hideLoader(container);
         renderForm(container, data, productId, submitForm);
+        showForm(container);
       })
       .catch(error => {
         console.error('CODFORM: Error loading form', error);
-        showError(container);
+        hideLoader(container);
+        showError(container, error.message);
       });
   }
   
@@ -66,10 +84,17 @@ function CODFORMFormLoader(API_BASE_URL) {
     if (success) success.style.display = 'none';
   }
   
-  function showError(container) {
+  function showError(container, errorMessage) {
     hideLoader(container);
     const error = container.querySelector('.codform-error');
-    if (error) error.style.display = 'block';
+    if (error) {
+      // Update error message if provided
+      const errorText = error.querySelector('.codform-error-text');
+      if (errorText && errorMessage) {
+        errorText.textContent = errorMessage;
+      }
+      error.style.display = 'block';
+    }
   }
   
   function hideError(container) {
