@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { 
@@ -47,6 +47,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   
+  // Add refresh counter to force FormPreviewPanel to re-render only when needed
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  
+  // Use ref to prevent excessive updates
+  const loadedFormRef = useRef(false);
+  
   // State for DnD operations
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,19 +67,27 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Load form data on component mount or form ID change
   useEffect(() => {
-    if (currentFormId) {
+    if (currentFormId && !loadedFormRef.current) {
       const loadFormData = async () => {
         console.log('Attempting to load form with ID:', currentFormId);
-        const form = await loadForm(currentFormId);
-        
-        if (!form) {
-          toast.error('لم يتم العثور على النموذج');
+        try {
+          const form = await loadForm(currentFormId);
+          
+          if (!form) {
+            toast.error('لم يتم العثور على النموذج');
+            navigate('/form-builder');
+          } else {
+            loadedFormRef.current = true;
+          }
+        } catch (error) {
+          console.error('Error loading form:', error);
+          toast.error('حدث خطأ أثناء تحميل النموذج');
           navigate('/form-builder');
         }
       };
       
       loadFormData();
-    } else {
+    } else if (!currentFormId) {
       // No form ID provided, redirect to dashboard
       navigate('/form-builder');
     }
@@ -120,6 +134,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Select the newly added element
       setSelectedElementIndex(updatedData[activeTabIndex].fields.length - 1);
       
+      // Force FormPreviewPanel to re-render
+      setPreviewRefreshKey(prev => prev + 1);
+      
       // Show success toast
       toast.success('تم إضافة العنصر بنجاح');
       
@@ -147,6 +164,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         updateFormData(updatedData);
         markAsDirty();
         
+        // Force FormPreviewPanel to re-render
+        setPreviewRefreshKey(prev => prev + 1);
+        
         // Auto-save
         autosaveForm(updatedData);
       }
@@ -166,6 +186,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       updateFormData(updatedData);
       setSelectedElementIndex(null);
       markAsDirty();
+      
+      // Force FormPreviewPanel to re-render
+      setPreviewRefreshKey(prev => prev + 1);
       
       // Auto-save
       autosaveForm(updatedData);
@@ -192,6 +215,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       updatedData[activeTabIndex].fields.splice(index + 1, 0, duplicatedElement);
       updateFormData(updatedData);
       markAsDirty();
+      
+      // Force FormPreviewPanel to re-render
+      setPreviewRefreshKey(prev => prev + 1);
       
       // Select the duplicated element
       setSelectedElementIndex(index + 1);
@@ -252,29 +278,37 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return;
     }
     
-    // Get the indices of the dragged and target elements
-    const oldIndex = parseInt(active.id.toString().split('-')[1]);
-    const newIndex = parseInt(over.id.toString().split('-')[1]);
-    
-    // Update the form data with the new order
-    if (!formState.data || !Array.isArray(formState.data)) return;
-    
-    const updatedData = [...formState.data];
-    
-    // Make sure the active tab index is valid
-    if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
-      updatedData[activeTabIndex].fields = arrayMove(
-        updatedData[activeTabIndex].fields,
-        oldIndex,
-        newIndex
-      );
+    try {
+      // Get the indices of the dragged and target elements
+      const oldIndex = parseInt(active.id.toString().split('-')[1]);
+      const newIndex = parseInt(over.id.toString().split('-')[1]);
       
-      updateFormData(updatedData);
-      setSelectedElementIndex(newIndex);
-      markAsDirty();
+      // Update the form data with the new order
+      if (!formState.data || !Array.isArray(formState.data)) return;
       
-      // Auto-save
-      autosaveForm(updatedData);
+      const updatedData = [...formState.data];
+      
+      // Make sure the active tab index is valid
+      if (activeTabIndex >= 0 && activeTabIndex < updatedData.length) {
+        updatedData[activeTabIndex].fields = arrayMove(
+          updatedData[activeTabIndex].fields,
+          oldIndex,
+          newIndex
+        );
+        
+        updateFormData(updatedData);
+        setSelectedElementIndex(newIndex);
+        markAsDirty();
+        
+        // Force FormPreviewPanel to re-render
+        setPreviewRefreshKey(prev => prev + 1);
+        
+        // Auto-save
+        autosaveForm(updatedData);
+      }
+    } catch (error) {
+      console.error('Error during drag operation:', error);
+      toast.error('حدث خطأ أثناء تغيير ترتيب العناصر');
     }
   }, [formState.data, activeTabIndex, updateFormData, markAsDirty, autosaveForm]);
 
@@ -306,6 +340,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setSelectedElementIndex(null);
     markAsDirty();
     
+    // Force FormPreviewPanel to re-render
+    setPreviewRefreshKey(prev => prev + 1);
+    
     // Auto-save
     autosaveForm(updatedData);
   }, [formState.data, updateFormData, markAsDirty, autosaveForm]);
@@ -326,6 +363,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     setSelectedElementIndex(null);
     markAsDirty();
+    
+    // Force FormPreviewPanel to re-render
+    setPreviewRefreshKey(prev => prev + 1);
     
     // Auto-save
     autosaveForm(updatedData);
@@ -375,6 +415,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     updateFormStyle(style);
     markAsDirty();
     
+    // Force FormPreviewPanel to re-render
+    setPreviewRefreshKey(prev => prev + 1);
+    
     // Auto-save style changes
     if (currentFormId) {
       saveForm(currentFormId, { 
@@ -411,6 +454,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     isPublishing,
     lastSaved: formState.lastSaved
   }), [formState, handleSaveForm, handlePublishForm, isSaving, isPublishing, setFormState]);
+
+  // Handlers for stepping through the form preview
+  const handlePreviousStep = useCallback(() => {
+    if (activeTabIndex > 0) {
+      setActiveTabIndex(activeTabIndex - 1);
+      setSelectedElementIndex(null);
+    }
+  }, [activeTabIndex]);
+  
+  const handleNextStep = useCallback(() => {
+    if (formState.data && Array.isArray(formState.data) && activeTabIndex < formState.data.length - 1) {
+      setActiveTabIndex(activeTabIndex + 1);
+      setSelectedElementIndex(null);
+    }
+  }, [formState.data, activeTabIndex]);
 
   return (
     <div className="container mx-auto py-6">
@@ -508,7 +566,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                         type="text"
                         className="w-full px-3 py-2 border rounded-md"
                         value={formState.title || ''}
-                        onChange={(e) => setFormState({ ...formState, title: e.target.value, isDirty: true })}
+                        onChange={(e) => {
+                          setFormState({ ...formState, title: e.target.value, isDirty: true });
+                          // Force FormPreviewPanel to re-render
+                          setPreviewRefreshKey(prev => prev + 1);
+                        }}
                       />
                     </div>
                     
@@ -517,7 +579,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                       <textarea
                         className="w-full px-3 py-2 border rounded-md"
                         value={formState.description || ''}
-                        onChange={(e) => setFormState({ ...formState, description: e.target.value, isDirty: true })}
+                        onChange={(e) => {
+                          setFormState({ ...formState, description: e.target.value, isDirty: true });
+                          // Force FormPreviewPanel to re-render
+                          setPreviewRefreshKey(prev => prev + 1);
+                        }}
                         rows={3}
                       ></textarea>
                     </div>
@@ -528,7 +594,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                         type="text"
                         className="w-full px-3 py-2 border rounded-md"
                         value={formState.submitButtonText || 'إرسال الطلب'}
-                        onChange={(e) => setFormState({ ...formState, submitButtonText: e.target.value, isDirty: true })}
+                        onChange={(e) => {
+                          setFormState({ ...formState, submitButtonText: e.target.value, isDirty: true });
+                          // Force FormPreviewPanel to re-render
+                          setPreviewRefreshKey(prev => prev + 1);
+                        }}
                       />
                     </div>
                   </div>
@@ -547,18 +617,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             formStyle={formStyleData}
             currentStep={currentStep}
             totalSteps={totalSteps}
-            onPreviousStep={() => {
-              if (activeTabIndex > 0) {
-                setActiveTabIndex(activeTabIndex - 1);
-                setSelectedElementIndex(null);
-              }
-            }}
-            onNextStep={() => {
-              if (formState.data && Array.isArray(formState.data) && activeTabIndex < formState.data.length - 1) {
-                setActiveTabIndex(activeTabIndex + 1);
-                setSelectedElementIndex(null);
-              }
-            }}
+            onPreviousStep={handlePreviousStep}
+            onNextStep={handleNextStep}
+            refreshKey={previewRefreshKey}
           />
         </div>
       </div>
@@ -582,4 +643,4 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   );
 };
 
-export default React.memo(FormBuilderEditor); // Added memo to prevent unnecessary re-renders
+export default React.memo(FormBuilderEditor);

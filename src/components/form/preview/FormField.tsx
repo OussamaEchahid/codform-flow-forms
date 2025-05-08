@@ -42,7 +42,7 @@ const fieldComponentMap: Record<string, React.ComponentType<any>> = {
   'image': ImageField,
 };
 
-const FormField: React.FC<FormFieldProps> = React.memo(({ field, formStyle }) => {
+const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;

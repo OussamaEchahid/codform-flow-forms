@@ -1,5 +1,5 @@
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -20,7 +20,7 @@ interface FormPreviewPanelProps {
   submitButtonText?: string;
 }
 
-const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
+const FormPreviewPanel = React.memo(({
   formTitle,
   formDescription,
   fields,
@@ -31,7 +31,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
   onNextStep,
   refreshKey = 0,
   submitButtonText = 'إرسال الطلب',
-}) => {
+}: FormPreviewPanelProps) => {
   const { t, language } = useI18n();
   
   // Memoize buttons to prevent unnecessary re-renders
@@ -75,6 +75,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
     return null;
   }, [fields, language]);
   
+  // Avoid creating a new key on every render by using a stable key
+  const stablePreviewKey = useMemo(() => `preview-${refreshKey}-${currentStep}`, 
+    [refreshKey, currentStep]);
+  
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -96,7 +100,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
 
       <div className="form-preview-container flex-1 overflow-auto border rounded-md">
         <FormPreview
-          key={`preview-${refreshKey}-${currentStep}`}
+          key={stablePreviewKey}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}

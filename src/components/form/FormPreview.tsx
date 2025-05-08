@@ -37,7 +37,8 @@ const FormPreview: React.FC<FormPreviewProps> = React.memo(({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { language } = useI18n();
-  // Remove the state that was causing re-renders
+  
+  // Use a constant key instead of state to avoid re-renders
   const refreshKey = 0;
   
   // Memoize the CSS variables to prevent re-calculation on each render
@@ -126,7 +127,7 @@ const FormPreview: React.FC<FormPreviewProps> = React.memo(({
   
   return (
     <div 
-      key={refreshKey}
+      key={`form-preview-${refreshKey}`}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={cssVars}
     >
