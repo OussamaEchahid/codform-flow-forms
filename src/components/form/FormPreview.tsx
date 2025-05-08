@@ -21,7 +21,7 @@ interface FormPreviewProps {
   submitButtonText?: string;
 }
 
-const FormPreview: React.FC<FormPreviewProps> = React.memo(({
+const FormPreview = React.memo(({
   formTitle,
   formDescription,
   currentStep,
@@ -39,7 +39,7 @@ const FormPreview: React.FC<FormPreviewProps> = React.memo(({
   const { language } = useI18n();
   
   // Use a constant key instead of state to avoid re-renders
-  const refreshKey = 0;
+  const stableRefreshKey = 0;
   
   // Memoize the CSS variables to prevent re-calculation on each render
   const cssVars = useMemo(() => {
@@ -127,7 +127,7 @@ const FormPreview: React.FC<FormPreviewProps> = React.memo(({
   
   return (
     <div 
-      key={`form-preview-${refreshKey}`}
+      key={`form-preview-${stableRefreshKey}`}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={cssVars}
     >

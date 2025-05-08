@@ -30,45 +30,35 @@ const FormElementList: React.FC<FormElementListProps> = React.memo(({
 }) => {
   const { language } = useI18n();
 
-  // Create a memoized callback for each element type
-  const createAddElementHandler = useCallback((type: string) => {
-    return () => onAddElement(type);
-  }, [onAddElement]);
-
   return (
     <div className="space-y-2">
       <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'عناصر للإضافة' : 'Elements To Add'}
       </h3>
       
-      {availableElements.map((element) => {
-        // Creating a stable callback for each element
-        const handleAddThisElement = createAddElementHandler(element.type);
-        
-        return (
-          <div 
-            key={element.type}
-            className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
+      {availableElements.map((element) => (
+        <div 
+          key={element.type}
+          className="flex justify-between items-center p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
+        >
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="p-1" 
+            onClick={() => onAddElement(element.type)}
+            type="button"
           >
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="p-1" 
-              onClick={handleAddThisElement}
-              type="button"
-            >
-              <Plus size={16} />
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <span>{element.label}</span>
-              <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
-                {element.icon}
-              </span>
-            </div>
+            <Plus size={16} />
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <span>{element.label}</span>
+            <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
+              {element.icon}
+            </span>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 });
