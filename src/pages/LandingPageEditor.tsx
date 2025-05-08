@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Monitor, Smartphone, Tablet, Save, ExternalLink, ChevronLeft } from 'lucide-react';
@@ -10,6 +11,7 @@ import LandingPageTemplateSelector from '@/components/landing/LandingPageTemplat
 import LandingPageSections from '@/components/landing/LandingPageSections';
 import LandingPagePreview from '@/components/landing/LandingPagePreview';
 import LandingPageSettings from '@/components/landing/LandingPageSettings';
+import ShopifyLandingPageSync from '@/components/landing/ShopifyLandingPageSync';
 
 interface PageTemplate {
   id: string;
@@ -326,7 +328,7 @@ const LandingPageEditor = () => {
                     onClick={() => setPreviewMode('desktop')}
                     className="rounded-r-none border-r"
                   >
-                    <Monitor className="h-4 w-4" /> {/* Changed from Desktop to Monitor */}
+                    <Monitor className="h-4 w-4" />
                   </Button>
                   <Button
                     variant={previewMode === 'tablet' ? 'default' : 'ghost'}
@@ -384,14 +386,38 @@ const LandingPageEditor = () => {
           <div className="grid grid-cols-12 min-h-[calc(100vh-4rem)]">
             {/* Left Sidebar */}
             <div className="col-span-3 bg-white border-r overflow-auto h-[calc(100vh-4rem)]">
-              <LandingPageSections 
-                content={content} 
-                selectedSection={selectedSection}
-                onSelectSection={setSelectedSection}
-                onUpdateSection={handleSectionUpdate}
-                onAddSection={handleAddSection}
-                onRemoveSection={handleRemoveSection}
-              />
+              {/* Tabs for Sections and Shopify */}
+              <Tabs defaultValue="sections" className="w-full">
+                <TabsList className="w-full">
+                  <TabsTrigger value="sections" className="flex-1">
+                    {language === 'ar' ? 'الأقسام' : 'Sections'}
+                  </TabsTrigger>
+                  <TabsTrigger value="shopify" className="flex-1">
+                    {language === 'ar' ? 'شوبيفاي' : 'Shopify'}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="sections" className="p-0 border-0">
+                  <LandingPageSections 
+                    content={content} 
+                    selectedSection={selectedSection}
+                    onSelectSection={setSelectedSection}
+                    onUpdateSection={handleSectionUpdate}
+                    onAddSection={handleAddSection}
+                    onRemoveSection={handleRemoveSection}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="shopify" className="p-4 border-0">
+                  {page && (
+                    <ShopifyLandingPageSync 
+                      pageId={page.id}
+                      pageSlug={page.slug}
+                      isPublished={page.is_published}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Preview Area */}

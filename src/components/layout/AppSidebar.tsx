@@ -45,13 +45,8 @@ const AppSidebar = () => {
   const navItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
-    { 
-      title: language === 'ar' ? 'صفحات الهبوط' : 'Landing Pages', 
-      path: '/landing-pages', 
-      icon: Layout 
-    },
+    { title: t('landingPages'), path: '/landing-pages', icon: Layout },
     { title: t('orders'), path: '/orders', icon: ShoppingCart },
-    { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
     { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
     { title: t('settings'), path: '/settings', icon: Settings },
