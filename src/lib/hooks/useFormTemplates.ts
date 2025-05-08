@@ -83,17 +83,35 @@ export const useFormTemplates = () => {
       console.log('Forms fetched successfully:', data);
       
       // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
-        ...form,
-        isPublished: form.is_published,
-        // Ensure form styling is properly structured
-        formStyle: {
-          primaryColor: form.primaryColor || '#9b87f5',
-          borderRadius: form.borderRadius || '0.5rem',
-          fontSize: form.fontSize || '1rem',
-          buttonStyle: form.buttonStyle || 'rounded',
+      const formattedData = data.map(form => {
+        // Extract style properties from the data if available
+        let formStyle = {
+          primaryColor: '#9b87f5',
+          borderRadius: '0.5rem',
+          fontSize: '1rem',
+          buttonStyle: 'rounded',
+        };
+
+        // Check if form has styling data
+        if (form.data && Array.isArray(form.data) && form.data.length > 0) {
+          // Try to extract style from the data structure
+          const firstStep = form.data[0];
+          if (firstStep && firstStep.formStyle) {
+            formStyle = firstStep.formStyle;
+          }
         }
-      }));
+
+        return {
+          ...form,
+          isPublished: form.is_published,
+          // Ensure form styling is properly structured
+          formStyle,
+          primaryColor: formStyle.primaryColor,
+          borderRadius: formStyle.borderRadius,
+          fontSize: formStyle.fontSize,
+          buttonStyle: formStyle.buttonStyle
+        };
+      });
       
       // Remove any duplicates by ID
       const uniqueForms = formattedData.reduce((acc: FormData[], current) => {
@@ -146,26 +164,27 @@ export const useFormTemplates = () => {
         buttonStyle: 'rounded',
       };
       
+      // Add style to each step
+      const dataWithStyle = template.data.map(step => ({
+        ...step,
+        formStyle,  // Add style to each step
+      }));
+      
       const formData: FormData = {
         id: newFormId,
         title: template.title,
         description: template.description,
-        data: template.data,
+        data: dataWithStyle,
         isPublished: false,
         shop_id: shopId,
+        formStyle,
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
-        formStyle: formStyle,
       };
 
-      // Insert into Supabase - include style properties in the data field also
-      const dataWithStyle = template.data.map(step => ({
-        ...step,
-        formStyle,  // Add style to each step for future compatibility
-      }));
-
+      // Insert into Supabase - send only database columns
       const { error } = await supabase
         .from('forms')
         .insert({
@@ -175,11 +194,7 @@ export const useFormTemplates = () => {
           data: dataWithStyle,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: formStyle.primaryColor,
-          borderRadius: formStyle.borderRadius,
-          fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
+          user_id: user?.id
         });
 
       if (error) {
@@ -232,35 +247,37 @@ export const useFormTemplates = () => {
         buttonStyle: 'rounded',
       };
 
+      // Add style to each step in the data
+      const dataWithStyle = defaultTemplate.data.map(step => ({
+        ...step,
+        formStyle,  // Add style to each step
+      }));
+
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
         description: 'نموذج جديد',
-        data: defaultTemplate.data,
+        data: dataWithStyle,
         isPublished: false,
         shop_id: shopId,
-        formStyle: formStyle,
+        formStyle,
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         fontSize: formStyle.fontSize,
         buttonStyle: formStyle.buttonStyle,
       };
 
-      // Insert into Supabase
+      // Insert into Supabase - send only valid database columns
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: 'نموذج جديد',
           description: 'نموذج جديد',
-          data: defaultTemplate.data,
+          data: dataWithStyle,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: formStyle.primaryColor,
-          borderRadius: formStyle.borderRadius,
-          fontSize: formStyle.fontSize,
-          buttonStyle: formStyle.buttonStyle
+          user_id: user?.id
         });
         
       if (error) {
@@ -294,60 +311,37 @@ export const useFormTemplates = () => {
       setIsLoading(true);
       setError(null);
       console.log('Starting to save form:', formId);
-      console.log('Form data to save:', formData);
       
-      // Convert isPublished to is_published for database
-      const dbData: any = { ...formData };
-      if (dbData.isPublished !== undefined) {
-        dbData.is_published = dbData.isPublished;
-        delete dbData.isPublished;
+      // Start with clean database object
+      const dbData: any = {};
+      
+      // Copy safe fields that exist in database schema
+      const safeFields = ['title', 'description', 'data', 'is_published', 'shop_id', 'user_id'];
+      for (const field of safeFields) {
+        if (field in formData) {
+          if (field === 'isPublished') {
+            dbData.is_published = formData.isPublished;
+          } else {
+            dbData[field] = formData[field as keyof FormData];
+          }
+        }
       }
       
-      // Remove style properties from top-level database fields
-      // to avoid database column errors
-      const stylesToRemove = ['primaryColor', 'borderRadius', 'fontSize', 'buttonStyle'];
-      stylesToRemove.forEach(style => {
-        if (dbData[style] !== undefined) {
-          delete dbData[style];
-        }
-      });
-      
-      // Extract style properties from formStyle if available
-      const formStyle = formData.formStyle || {};
-      
-      // Ensure data field is properly structured with style
+      // Ensure form style is embedded in the data field
       if (dbData.data && Array.isArray(dbData.data)) {
-        // Add formStyle to data structure instead of separate columns
-        const styleData = {
-          primaryColor: formStyle.primaryColor || formData.primaryColor || '#9b87f5',
-          borderRadius: formStyle.borderRadius || formData.borderRadius || '0.5rem',
-          fontSize: formStyle.fontSize || formData.fontSize || '1rem',
-          buttonStyle: formStyle.buttonStyle || formData.buttonStyle || 'rounded',
+        // Get styles either from formData.formStyle or from individual style props
+        const formStyle = formData.formStyle || {
+          primaryColor: formData.primaryColor || '#9b87f5',
+          borderRadius: formData.borderRadius || '0.5rem',
+          fontSize: formData.fontSize || '1rem',
+          buttonStyle: formData.buttonStyle || 'rounded',
         };
         
-        // Store styling in data
-        dbData._formStyles = styleData;
-        
-        // Include form style data in each step
-        dbData.data = dbData.data.map((step: any) => {
-          // Add formStyle to each step
-          const stepWithStyle = {
-            ...step,
-            formStyle: styleData,
-          };
-
-          // Make sure all fields have proper IDs 
-          if (step.fields && Array.isArray(step.fields)) {
-            stepWithStyle.fields = step.fields.map((field: any) => {
-              if (!field.id) {
-                field.id = `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-              }
-              return field;
-            });
-          }
-          
-          return stepWithStyle;
-        });
+        // Add formStyle to each step
+        dbData.data = dbData.data.map((step: any) => ({
+          ...step,
+          formStyle,
+        }));
       }
       
       console.log('Prepared data for database:', dbData);
@@ -499,25 +493,26 @@ export const useFormTemplates = () => {
       
       console.log('Form loaded from database:', data);
       
-      // Extract style properties from data._formStyles or from individual fields
-      let formStyle;
-      if (data._formStyles) {
-        // Get from embedded structure
-        formStyle = data._formStyles;
-      } else {
-        // Fallback to default values
-        formStyle = {
-          primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
-          fontSize: '1rem',
-          buttonStyle: 'rounded',
-        };
+      // Extract style properties from data if available
+      let formStyle = {
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded',
+      };
+      
+      // Try to extract style from the data structure
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        const firstStep = data.data[0];
+        if (firstStep && firstStep.formStyle) {
+          formStyle = firstStep.formStyle;
+        }
       }
       
       const formData: FormData = {
         ...data,
         isPublished: data.is_published,
-        formStyle: formStyle,
+        formStyle,
         // Add style properties at the top level for backward compatibility
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
@@ -566,7 +561,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#9b87f5',
     data: [
       {
-        id: '1', // Changed from number to string
+        id: '1',
         title: 'Customer Information',
         fields: [
           {
@@ -601,7 +596,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#6adbb8',
     data: [
       {
-        id: '1', // Changed from number to string
+        id: '1',
         title: 'Contact Details',
         fields: [
           {
@@ -636,7 +631,7 @@ export const formTemplates: FormTemplate[] = [
     primaryColor: '#f0b34c',
     data: [
       {
-        id: '1', // Changed from number to string
+        id: '1',
         title: 'Personal Information',
         fields: [
           {
@@ -663,7 +658,7 @@ export const formTemplates: FormTemplate[] = [
         ]
       },
       {
-        id: '2', // Changed from number to string
+        id: '2',
         title: 'Event Details',
         fields: [
           {

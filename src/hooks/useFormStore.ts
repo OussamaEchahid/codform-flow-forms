@@ -10,7 +10,7 @@ export interface FormState {
   is_published?: boolean; // Added for consistency with database field
   shop_id?: string;
   submitButtonText?: string;
-  // Style properties stored in formStyle object for consistency
+  // Style properties are stored in formStyle object
   formStyle?: {
     primaryColor?: string;
     borderRadius?: string;
@@ -26,8 +26,6 @@ export interface FormState {
   isDirty?: boolean;
   // Track last save timestamp
   lastSaved?: number;
-  // For storing form styling in database compatible format
-  _formStyles?: any;
 }
 
 interface FormStore {
@@ -40,6 +38,13 @@ interface FormStore {
   markAsDirty: () => void;
 }
 
+const defaultFormStyle = {
+  primaryColor: '#9b87f5',
+  borderRadius: '0.5rem',
+  fontSize: '1rem',
+  buttonStyle: 'rounded',
+};
+
 const defaultFormState: FormState = {
   id: '',
   title: 'نموذج جديد',
@@ -48,17 +53,12 @@ const defaultFormState: FormState = {
   isPublished: false,
   shop_id: undefined,
   submitButtonText: 'إرسال الطلب',
-  formStyle: {
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  },
+  formStyle: {...defaultFormStyle},
   // Also set top-level style properties for backward compatibility
-  primaryColor: '#9b87f5',
-  borderRadius: '0.5rem',
-  fontSize: '1rem',
-  buttonStyle: 'rounded',
+  primaryColor: defaultFormStyle.primaryColor,
+  borderRadius: defaultFormStyle.borderRadius,
+  fontSize: defaultFormStyle.fontSize,
+  buttonStyle: defaultFormStyle.buttonStyle,
   isDirty: false,
   lastSaved: Date.now()
 };
@@ -69,32 +69,37 @@ export const useFormStore = create<FormStore>()(
     (set) => ({
       formState: {...defaultFormState},
       setFormState: (form) => set((state) => {
-        // Ensure style properties are synchronized
+        // Prepare form style object, combining existing with new values
         const formStyle = {
-          ...(state.formState.formStyle || {}),
+          ...(state.formState.formStyle || defaultFormStyle),
           ...(form.formStyle || {}),
-          primaryColor: form.primaryColor || form.formStyle?.primaryColor || state.formState.formStyle?.primaryColor || state.formState.primaryColor,
-          borderRadius: form.borderRadius || form.formStyle?.borderRadius || state.formState.formStyle?.borderRadius || state.formState.borderRadius,
-          fontSize: form.fontSize || form.formStyle?.fontSize || state.formState.formStyle?.fontSize || state.formState.fontSize,
-          buttonStyle: form.buttonStyle || form.formStyle?.buttonStyle || state.formState.formStyle?.buttonStyle || state.formState.buttonStyle,
         };
         
-        // Ensure top-level style properties are synchronized with formStyle
+        // If any top-level style properties are provided, update the formStyle object
+        if (form.primaryColor) formStyle.primaryColor = form.primaryColor;
+        if (form.borderRadius) formStyle.borderRadius = form.borderRadius;
+        if (form.fontSize) formStyle.fontSize = form.fontSize;
+        if (form.buttonStyle) formStyle.buttonStyle = form.buttonStyle;
+        
+        // Update the form state with new values and sync style properties
         const updatedForm = {
           ...state.formState,
           ...form,
           formStyle,
+          // Always sync top-level style properties with formStyle object
           primaryColor: formStyle.primaryColor,
           borderRadius: formStyle.borderRadius,
           fontSize: formStyle.fontSize,
           buttonStyle: formStyle.buttonStyle,
-          isDirty: form.isDirty !== false // Keep dirty flag unless explicitly set to false
+          // Keep dirty flag unless explicitly set to false
+          isDirty: form.isDirty !== undefined ? form.isDirty : state.formState.isDirty
         };
         
         return {
           formState: updatedForm
         };
       }),
+      
       updateFormData: (data) => set((state) => ({
         formState: {
           ...state.formState,
@@ -102,25 +107,29 @@ export const useFormStore = create<FormStore>()(
           isDirty: true
         }
       })),
+      
       updateFormStyle: (style) => set((state) => {
         const formStyle = {
-          ...(state.formState.formStyle || {}),
+          ...(state.formState.formStyle || defaultFormStyle),
           ...style,
         };
         
         return {
           formState: {
             ...state.formState,
-            primaryColor: style.primaryColor || state.formState.primaryColor,
-            borderRadius: style.borderRadius || state.formState.borderRadius,
-            fontSize: style.fontSize || state.formState.fontSize,
-            buttonStyle: style.buttonStyle || state.formState.buttonStyle,
             formStyle,
+            // Keep top-level style properties in sync
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle,
             isDirty: true
           }
         };
       }),
-      resetFormState: () => set({ formState: {...defaultFormState} }),
+      
+      resetFormState: () => set({ formState: {...defaultFormState, id: '', lastSaved: Date.now()} }),
+      
       markAsSaved: () => set((state) => ({
         formState: {
           ...state.formState,
@@ -128,6 +137,7 @@ export const useFormStore = create<FormStore>()(
           lastSaved: Date.now()
         }
       })),
+      
       markAsDirty: () => set((state) => ({
         formState: {
           ...state.formState,
