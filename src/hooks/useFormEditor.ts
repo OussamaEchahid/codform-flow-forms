@@ -38,10 +38,12 @@ export const useFormEditor = (formId?: string) => {
   const [isPublished, setIsPublished] = useState<boolean>(false);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [currentPreviewStep, setCurrentPreviewStep] = useState<number>(1);
+  const [saveRetries, setSaveRetries] = useState<number>(0);
+  const maxSaveRetries = 3;
 
   // Get active shop ID for database operations
   const getActiveShopId = () => {
-    return localStorage.getItem('shopify_store');
+    return localStorage.getItem('shopify_store') || sessionStorage.getItem('shopify_store');
   };
 
   // Initialize a new form if no form ID is provided
@@ -64,21 +66,50 @@ export const useFormEditor = (formId?: string) => {
         fields: []
       };
 
-      // Create new form in database
-      const { data, error } = await supabase.from('forms').insert({
-        id: newId,
-        title: formTitle,
-        description: formDescription,
-        data: [initialFormStep],
-        shop_id: shopId,
-        is_published: false,
-        submitButtonText: submitButtonText
-      }).select();
+      // Create new form in database with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      let success = false;
 
-      if (error) {
-        console.error("Error creating new form:", error);
-        toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
-        return;
+      while (!success && retryCount < maxRetries) {
+        try {
+          const { data, error } = await supabase.from('forms').insert({
+            id: newId,
+            title: formTitle,
+            description: formDescription,
+            data: [initialFormStep],
+            shop_id: shopId,
+            is_published: false,
+            submitButtonText: submitButtonText
+          }).select();
+
+          if (error) {
+            console.error(`Attempt ${retryCount + 1} failed:`, error);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          } else {
+            success = true;
+          }
+        } catch (err) {
+          console.error(`Error on attempt ${retryCount + 1}:`, err);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+        }
+      }
+
+      if (!success) {
+        throw new Error('Failed to create new form after multiple attempts');
       }
 
       // Update form state
@@ -112,39 +143,70 @@ export const useFormEditor = (formId?: string) => {
       // Reset form state before loading new form
       resetFormState();
       
-      // Fetch form from database
-      const { data, error } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // Fetch form from database with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      let formData = null;
       
-      if (error) {
-        console.error('Error loading form:', error);
-        toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-        return;
+      while (!formData && retryCount < maxRetries) {
+        try {
+          const { data, error } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+          
+          if (error) {
+            console.error(`Attempt ${retryCount + 1} to load form failed:`, error);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          } else if (!data) {
+            if (retryCount >= maxRetries - 1) {
+              toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+              return;
+            }
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          } else {
+            formData = data;
+          }
+        } catch (err) {
+          console.error(`Error on attempt ${retryCount + 1} to load form:`, err);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+        }
       }
       
-      if (!data) {
+      if (!formData) {
         toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
         return;
       }
       
       // Extract form data
-      setFormTitle(data.title || 'نموذج جديد');
-      setFormDescription(data.description || '');
+      setFormTitle(formData.title || 'نموذج جديد');
+      setFormDescription(formData.description || '');
       
       // Extract fields from steps
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const formFields = data.data.flatMap(step => step.fields || []);
+      if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
+        const formFields = formData.data.flatMap(step => step.fields || []);
         setFormElements(formFields);
         
         // Extract style properties from metadata if available
         let formMetadata = undefined;
-        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
           // Check if metadata exists, if not create it
-          if (data.data[0] && data.data[0].metadata) {
-            formMetadata = data.data[0].metadata.formStyle;
+          if (formData.data[0] && formData.data[0].metadata) {
+            formMetadata = formData.data[0].metadata.formStyle;
           }
         }
         
@@ -162,17 +224,17 @@ export const useFormEditor = (formId?: string) => {
         }
         
         // Check for submit button text in main data
-        if (data.submitButtonText) {
-          setSubmitButtonText(data.submitButtonText);
+        if (formData.submitButtonText) {
+          setSubmitButtonText(formData.submitButtonText);
         }
       }
       
-      setIsPublished(!!data.isPublished || !!data.is_published);
+      setIsPublished(!!formData.isPublished || !!formData.is_published);
       
       // Update form state in store
       setFormState({
-        ...data,
-        isPublished: data.is_published,
+        ...formData,
+        isPublished: formData.is_published,
         // Ensure style properties are set
         primaryColor: formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
@@ -181,15 +243,20 @@ export const useFormEditor = (formId?: string) => {
         submitButtonText: submitButtonText
       });
       
-      console.log("Loaded form data:", data);
+      console.log("Loaded form data:", formData);
     } catch (error) {
       console.error("Error loading form:", error);
       toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
     }
   };
 
-  // Handle saving form data
+  // Handle saving form data with retry mechanism
   const handleSave = async () => {
+    if (isSaving) {
+      console.log("Save operation already in progress, skipping duplicate save");
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -238,18 +305,48 @@ export const useFormEditor = (formId?: string) => {
       
       console.log("Saving form with data:", dbData);
       
-      // Update database directly
+      // Try direct update
       const { error } = await supabase
         .from('forms')
         .update(dbData)
         .eq('id', currentFormId);
       
       if (error) {
-        console.error("Database update failed:", error);
-        toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
-        setIsSaving(false);
-        return;
+        console.error("Direct database update failed:", error);
+        
+        // If direct update fails and we haven't exceeded retries, try alternate saving method
+        if (saveRetries < maxSaveRetries) {
+          setSaveRetries(prev => prev + 1);
+          
+          // Try using the saveForm method from useFormTemplates
+          const alternateSuccess = await saveForm(currentFormId, {
+            title: formTitle,
+            description: formDescription,
+            data: [formStep],
+            submitButtonText: submitButtonText,
+            // Include other necessary fields
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle
+          });
+          
+          if (alternateSuccess) {
+            toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
+            setRefreshKey(prev => prev + 1);
+            setSaveRetries(0);
+            setIsSaving(false);
+            return;
+          } else {
+            throw new Error('Both save methods failed');
+          }
+        } else {
+          throw error;
+        }
       }
+      
+      // Reset save retries on successful save
+      setSaveRetries(0);
       
       // Update form state in memory
       setFormState({
@@ -356,6 +453,7 @@ export const useFormEditor = (formId?: string) => {
     }, 100);
   };
 
+  // Delete element with auto-save
   const deleteElement = (index: number) => {
     const updatedElements = [...formElements];
     updatedElements.splice(index, 1);
@@ -367,6 +465,7 @@ export const useFormEditor = (formId?: string) => {
     setTimeout(() => handleSave(), 300);
   };
 
+  // Duplicate element with auto-save
   const duplicateElement = (index: number) => {
     const element = formElements[index];
     const newElement = {
@@ -385,6 +484,7 @@ export const useFormEditor = (formId?: string) => {
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
   };
 
+  // Update element with auto-save
   const updateElement = (updatedField: FormField) => {
     const newElements = [...formElements];
     const index = newElements.findIndex(el => el.id === updatedField.id);
@@ -400,7 +500,7 @@ export const useFormEditor = (formId?: string) => {
     }, 100);
   };
 
-  // Handle style changes
+  // Handle style changes with auto-save
   const handleStyleChange = (key: string, value: string) => {
     setFormStyle(prev => ({
       ...prev,
@@ -410,7 +510,7 @@ export const useFormEditor = (formId?: string) => {
     setTimeout(() => handleSave(), 300);
   };
 
-  // Update form meta information
+  // Update form meta information with auto-save
   const updateFormMeta = (field: 'title' | 'description' | 'submitButtonText', value: string) => {
     if (field === 'title') {
       setFormTitle(value);

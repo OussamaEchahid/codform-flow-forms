@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -40,11 +41,11 @@ export const useFormTemplates = () => {
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
-    return shop || localStorage.getItem('shopify_store');
+    return shop || localStorage.getItem('shopify_store') || sessionStorage.getItem('shopify_store');
   };
 
-  // Fetch all forms
-  const fetchForms = async () => {
+  // Fetch all forms with retry logic
+  const fetchForms = async (retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
       const shopId = getActiveShopId();
@@ -65,6 +66,16 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error fetching forms:', error);
+        
+        if (retryCount < maxRetries) {
+          console.log(`Retrying fetch (${retryCount + 1}/${maxRetries})...`);
+          // Exponential backoff
+          setTimeout(() => {
+            fetchForms(retryCount + 1, maxRetries);
+          }, Math.pow(2, retryCount) * 1000);
+          return;
+        }
+        
         toast.error('خطأ في جلب النماذج');
         setIsLoading(false);
         return;
@@ -89,6 +100,15 @@ export const useFormTemplates = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching forms', error);
+      
+      if (retryCount < maxRetries) {
+        console.log(`Retrying fetch (${retryCount + 1}/${maxRetries})...`);
+        setTimeout(() => {
+          fetchForms(retryCount + 1, maxRetries);
+        }, Math.pow(2, retryCount) * 1000);
+        return;
+      }
+      
       toast.error('خطأ في جلب النماذج');
       setIsLoading(false);
     }
@@ -128,25 +148,53 @@ export const useFormTemplates = () => {
         primaryColor: template.primaryColor,
       };
 
-      // Insert into Supabase
-      const { error } = await supabase
-        .from('forms')
-        .insert({
-          id: newFormId,
-          title: template.title,
-          description: template.description,
-          data: template.data,
-          is_published: false,
-          shop_id: shopId,
-          user_id: user?.id,
-          primaryColor: template.primaryColor
-        });
+      // Insert into Supabase with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      let success = false;
+      
+      while (!success && retryCount < maxRetries) {
+        try {
+          const { error } = await supabase
+            .from('forms')
+            .insert({
+              id: newFormId,
+              title: template.title,
+              description: template.description,
+              data: template.data,
+              is_published: false,
+              shop_id: shopId,
+              user_id: user?.id,
+              primaryColor: template.primaryColor
+            });
 
-      if (error) {
-        console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setIsLoading(false);
-        return null;
+          if (error) {
+            console.error(`Error saving form to database (attempt ${retryCount + 1}):`, error);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          } else {
+            success = true;
+          }
+        } catch (err) {
+          console.error(`Error on attempt ${retryCount + 1}:`, err);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
+
+      if (!success) {
+        throw new Error('Failed to create form after multiple attempts');
       }
 
       setFormState(formData);
@@ -191,26 +239,54 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
-      // Insert into Supabase
-      const { error } = await supabase
-        .from('forms')
-        .insert({
-          id: newFormId,
-          title: 'نموذج جديد',
-          description: 'نموذج جديد',
-          data: defaultTemplate.data,
-          is_published: false,
-          shop_id: shopId,
-          user_id: user?.id
-        });
-        
-      if (error) {
-        console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setIsLoading(false);
-        return null;
+      // Insert into Supabase with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      let success = false;
+      
+      while (!success && retryCount < maxRetries) {
+        try {
+          const { error } = await supabase
+            .from('forms')
+            .insert({
+              id: newFormId,
+              title: 'نموذج جديد',
+              description: 'نموذج جديد',
+              data: defaultTemplate.data,
+              is_published: false,
+              shop_id: shopId,
+              user_id: user?.id
+            });
+
+          if (error) {
+            console.error(`Error saving form to database (attempt ${retryCount + 1}):`, error);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              throw error;
+            }
+            
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          } else {
+            success = true;
+          }
+        } catch (err) {
+          console.error(`Error on attempt ${retryCount + 1}:`, err);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
       }
 
+      if (!success) {
+        throw new Error('Failed to create form after multiple attempts');
+      }
+        
       setFormState(formData);
       toast.success('تم إنشاء نموذج جديد');
       
@@ -227,10 +303,11 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Save form changes
-  const saveForm = async (formId: string, formData: Partial<FormData>) => {
+  // Save form changes with retry logic
+  const saveForm = async (formId: string, formData: Partial<FormData>, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
+      console.log(`Attempting to save form (attempt ${retryCount + 1}/${maxRetries + 1})`, formId, formData);
       
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
@@ -246,10 +323,27 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
-        console.error('Error updating form:', error);
-        toast.error('خطأ في تحديث النموذج');
-        setIsLoading(false);
-        return false;
+        console.error(`Error updating form (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retry
+          const retryDelay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying save in ${retryDelay}ms...`);
+          
+          setIsLoading(false);
+          
+          // Retry after delay
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await saveForm(formId, formData, retryCount + 1, maxRetries);
+              resolve(result);
+            }, retryDelay);
+          });
+        } else {
+          toast.error('خطأ في تحديث النموذج');
+          setIsLoading(false);
+          return false;
+        }
       }
       
       // Update local state if forms list is loaded
@@ -259,18 +353,36 @@ export const useFormTemplates = () => {
         ));
       }
       
+      console.log(`Form saved successfully (attempt ${retryCount + 1})`, formId);
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Error saving form', error);
+      console.error(`Error saving form (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        // Exponential backoff for retry
+        const retryDelay = Math.pow(2, retryCount) * 1000;
+        console.log(`Retrying save in ${retryDelay}ms...`);
+        
+        setIsLoading(false);
+        
+        // Retry after delay
+        return new Promise(resolve => {
+          setTimeout(async () => {
+            const result = await saveForm(formId, formData, retryCount + 1, maxRetries);
+            resolve(result);
+          }, retryDelay);
+        });
+      }
+      
       toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
       return false;
     }
   };
 
-  // Publish or unpublish a form
-  const publishForm = async (formId: string, publish: boolean) => {
+  // Publish or unpublish a form with retry logic
+  const publishForm = async (formId: string, publish: boolean, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
       
@@ -281,10 +393,27 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
-        console.error('Error publishing form:', error);
-        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
-        setIsLoading(false);
-        return false;
+        console.error(`Error publishing form (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retry
+          const retryDelay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying publish in ${retryDelay}ms...`);
+          
+          setIsLoading(false);
+          
+          // Retry after delay
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await publishForm(formId, publish, retryCount + 1, maxRetries);
+              resolve(result);
+            }, retryDelay);
+          });
+        } else {
+          toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+          setIsLoading(false);
+          return false;
+        }
       }
       
       // Update local state
@@ -296,15 +425,32 @@ export const useFormTemplates = () => {
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Error publishing form', error);
+      console.error(`Error publishing form (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        // Exponential backoff for retry
+        const retryDelay = Math.pow(2, retryCount) * 1000;
+        console.log(`Retrying publish in ${retryDelay}ms...`);
+        
+        setIsLoading(false);
+        
+        // Retry after delay
+        return new Promise(resolve => {
+          setTimeout(async () => {
+            const result = await publishForm(formId, publish, retryCount + 1, maxRetries);
+            resolve(result);
+          }, retryDelay);
+        });
+      }
+      
       toast.error('خطأ في تغيير حالة نشر النموذج');
       setIsLoading(false);
       return false;
     }
   };
 
-  // Delete a form
-  const deleteForm = async (formId: string) => {
+  // Delete a form with retry logic
+  const deleteForm = async (formId: string, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
       
@@ -315,10 +461,27 @@ export const useFormTemplates = () => {
         .eq('id', formId);
       
       if (error) {
-        console.error('Error deleting form:', error);
-        toast.error('خطأ في حذف النموذج');
-        setIsLoading(false);
-        return false;
+        console.error(`Error deleting form (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retry
+          const retryDelay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying delete in ${retryDelay}ms...`);
+          
+          setIsLoading(false);
+          
+          // Retry after delay
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await deleteForm(formId, retryCount + 1, maxRetries);
+              resolve(result);
+            }, retryDelay);
+          });
+        } else {
+          toast.error('خطأ في حذف النموذج');
+          setIsLoading(false);
+          return false;
+        }
       }
       
       // Update local state
@@ -328,15 +491,32 @@ export const useFormTemplates = () => {
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Error deleting form', error);
+      console.error(`Error deleting form (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        // Exponential backoff for retry
+        const retryDelay = Math.pow(2, retryCount) * 1000;
+        console.log(`Retrying delete in ${retryDelay}ms...`);
+        
+        setIsLoading(false);
+        
+        // Retry after delay
+        return new Promise(resolve => {
+          setTimeout(async () => {
+            const result = await deleteForm(formId, retryCount + 1, maxRetries);
+            resolve(result);
+          }, retryDelay);
+        });
+      }
+      
       toast.error('خطأ في حذف النموذج');
       setIsLoading(false);
       return false;
     }
   };
   
-  // Load a specific form by ID
-  const loadForm = async (formId: string) => {
+  // Load a specific form by ID with retry logic
+  const loadForm = async (formId: string, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
       resetFormState(); // Clear previous form state
@@ -346,19 +526,52 @@ export const useFormTemplates = () => {
         .from('forms')
         .select('*')
         .eq('id', formId)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        console.error('Error loading form:', error);
-        toast.error('خطأ في تحميل النموذج');
-        setIsLoading(false);
-        return null;
+        console.error(`Error loading form (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retry
+          const retryDelay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying load in ${retryDelay}ms...`);
+          
+          setIsLoading(false);
+          
+          // Retry after delay
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await loadForm(formId, retryCount + 1, maxRetries);
+              resolve(result);
+            }, retryDelay);
+          });
+        } else {
+          toast.error('خطأ في تحميل النموذج');
+          setIsLoading(false);
+          return null;
+        }
       }
       
       if (!data) {
-        toast.error('النموذج غير موجود');
-        setIsLoading(false);
-        return null;
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retry
+          const retryDelay = Math.pow(2, retryCount) * 1000;
+          console.log(`Form not found, retrying load in ${retryDelay}ms...`);
+          
+          setIsLoading(false);
+          
+          // Retry after delay
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await loadForm(formId, retryCount + 1, maxRetries);
+              resolve(result);
+            }, retryDelay);
+          });
+        } else {
+          toast.error('النموذج غير موجود');
+          setIsLoading(false);
+          return null;
+        }
       }
       
       // Format data for form state
@@ -370,10 +583,28 @@ export const useFormTemplates = () => {
       // Update form state
       setFormState(formData);
       
+      console.log(`Form loaded successfully (attempt ${retryCount + 1})`, formId, formData);
       setIsLoading(false);
       return formData;
     } catch (error) {
-      console.error('Error loading form', error);
+      console.error(`Error loading form (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        // Exponential backoff for retry
+        const retryDelay = Math.pow(2, retryCount) * 1000;
+        console.log(`Retrying load in ${retryDelay}ms...`);
+        
+        setIsLoading(false);
+        
+        // Retry after delay
+        return new Promise(resolve => {
+          setTimeout(async () => {
+            const result = await loadForm(formId, retryCount + 1, maxRetries);
+            resolve(result);
+          }, retryDelay);
+        });
+      }
+      
       toast.error('خطأ في تحميل النموذج');
       setIsLoading(false);
       return null;

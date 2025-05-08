@@ -28,13 +28,23 @@ function CODFORMFormSubmitter(API_BASE_URL) {
     // Show loading state
     form.classList.add('codform-loading');
     const submitButton = form.querySelector('.codform-submit-button');
-    const originalButtonText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.textContent = 'جاري الإرسال...';
+    const originalButtonText = submitButton ? submitButton.textContent : 'إرسال';
     
-    const apiUrl = API_BASE_URL + '/api-submissions';
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'جاري الإرسال...';
+    }
+    
+    // Make sure we have a valid API URL
+    const apiUrl = API_BASE_URL ? (API_BASE_URL + '/api-submissions') : '/api/submissions';
     
     console.log('CODFORM: Submitting form to:', apiUrl);
+    
+    // Set timeout to handle network failures
+    const timeoutId = setTimeout(() => {
+      console.error('CODFORM: Submission timeout');
+      handleSubmissionError('Network timeout');
+    }, 30000); // 30 second timeout
     
     fetch(apiUrl, {
       method: 'POST',
@@ -49,6 +59,7 @@ function CODFORMFormSubmitter(API_BASE_URL) {
       }),
     })
       .then(response => {
+        clearTimeout(timeoutId);
         console.log('CODFORM: Submit response status:', response.status);
         if (!response.ok) {
           throw new Error('Failed to submit form: ' + response.status);
@@ -62,16 +73,23 @@ function CODFORMFormSubmitter(API_BASE_URL) {
         showSuccess(container);
       })
       .catch(error => {
-        console.error('CODFORM: Error submitting form', error);
-        
-        // Reset button state
-        form.classList.remove('codform-loading');
+        clearTimeout(timeoutId);
+        handleSubmissionError(error);
+      });
+      
+    function handleSubmissionError(error) {
+      console.error('CODFORM: Error submitting form', error);
+      
+      // Reset button state
+      form.classList.remove('codform-loading');
+      if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
-        
-        // Show error message
-        alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
-      });
+      }
+      
+      // Show error message
+      alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
+    }
   }
   
   // Helper functions for showing/hiding elements
