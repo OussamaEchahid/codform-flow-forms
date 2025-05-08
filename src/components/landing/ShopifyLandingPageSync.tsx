@@ -4,7 +4,8 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { ShopIcon, LoaderCircle } from 'lucide-react';
+import { Store, LoaderCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -136,7 +137,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       {syncStatus === 'synced' ? (
         <div className="space-y-2">
           <div className="flex items-center text-green-600 text-sm">
-            <ShopIcon className="h-4 w-4 mr-1" />
+            <Store className="h-4 w-4 mr-1" />
             {language === 'ar'
               ? 'تم النشر على شوبيفاي'
               : 'Published to Shopify'}
@@ -181,7 +182,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             </>
           ) : (
             <>
-              <ShopIcon className="h-4 w-4 mr-2" />
+              <Store className="h-4 w-4 mr-2" />
               {language === 'ar' ? 'نشر على شوبيفاي' : 'Publish to Shopify'}
             </>
           )}
