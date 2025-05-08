@@ -25,8 +25,8 @@ interface FieldFormValues {
   helpText: string;
   options?: { value: string; label: string }[];
   defaultValue?: string;
-  minLength?: number;
-  maxLength?: number;
+  minLength?: number; // Clearly defined as number
+  maxLength?: number; // Clearly defined as number
 }
 
 const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
@@ -43,6 +43,15 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   );
   const [newOption, setNewOption] = useState({ value: '', label: '' });
 
+  // Convert string values to numbers with safe defaults
+  const minLengthValue = typeof field.minLength === 'string' 
+    ? Number(field.minLength) || 0 
+    : (field.minLength || 0);
+
+  const maxLengthValue = typeof field.maxLength === 'string'
+    ? Number(field.maxLength) || 0
+    : (field.maxLength || 0);
+
   const form = useForm<FieldFormValues>({
     defaultValues: {
       label: field.label || '',
@@ -50,8 +59,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       placeholder: field.placeholder || '',
       helpText: field.helpText || '',
       defaultValue: field.defaultValue || '',
-      minLength: field.minLength || 0,
-      maxLength: field.maxLength || 0,
+      minLength: minLengthValue,
+      maxLength: maxLengthValue,
     },
   });
 
@@ -68,8 +77,9 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       placeholder: values.placeholder,
       helpText: values.helpText,
       defaultValue: values.defaultValue,
-      minLength: typeof values.minLength === 'string' ? Number(values.minLength) || 0 : values.minLength,
-      maxLength: typeof values.maxLength === 'string' ? Number(values.maxLength) || 0 : values.maxLength,
+      // Ensure values are numbers
+      minLength: typeof values.minLength === 'string' ? Number(values.minLength) || 0 : (values.minLength || 0),
+      maxLength: typeof values.maxLength === 'string' ? Number(values.maxLength) || 0 : (values.maxLength || 0),
     };
     
     // Add options for select, radio, checkbox types
@@ -153,7 +163,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number" 
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value !== undefined ? field.value : 0}
+                          // Ensure the value is a number
+                          value={Number(field.value) || 0}
                         />
                       </FormControl>
                     </FormItem>
@@ -170,7 +181,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                         <Input 
                           type="number"
                           onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value !== undefined ? field.value : 0}
+                          // Ensure the value is a number
+                          value={Number(field.value) || 0}
                         />
                       </FormControl>
                     </FormItem>
