@@ -34,7 +34,7 @@ const FormPreviewPanel = React.memo(({
 }: FormPreviewPanelProps) => {
   const { t, language } = useI18n();
   
-  // Memoize buttons to prevent unnecessary re-renders
+  // تحسين الأزرار لمنع إعادة التصيير غير الضروري
   const PreviousButton = useMemo(() => (
     <Button 
       size="sm" 
@@ -59,7 +59,7 @@ const FormPreviewPanel = React.memo(({
     </Button>
   ), [currentStep, language, onNextStep, totalSteps]);
 
-  // Memoize the children for FormPreview to prevent unnecessary re-renders
+  // تحسين محتوى FormPreview لمنع إعادة التصيير غير الضروري
   const emptyFieldsMessage = useMemo(() => {
     if (!fields || fields.length === 0) {
       return (
@@ -75,7 +75,7 @@ const FormPreviewPanel = React.memo(({
     return null;
   }, [fields, language]);
   
-  // Avoid creating a new key on every render by using a stable key
+  // استخدام مفتاح مستقر لتجنب إعادة الإنشاء غير الضروري
   const stablePreviewKey = useMemo(() => `preview-${refreshKey}-${currentStep}`, 
     [refreshKey, currentStep]);
   
@@ -86,7 +86,7 @@ const FormPreviewPanel = React.memo(({
           {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
         </h2>
 
-        {/* Controls for multi-step form */}
+        {/* التحكم في النموذج متعدد الخطوات */}
         {totalSteps > 1 && (
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
             {PreviousButton}

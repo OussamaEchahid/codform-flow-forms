@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -24,12 +24,13 @@ const defaultElements = [
   { type: 'text/html', label: 'نص/HTML', icon: '</>' }
 ];
 
-const FormElementList: React.FC<FormElementListProps> = React.memo(({ 
+const FormElementList = React.memo(({ 
   availableElements = defaultElements, 
   onAddElement 
-}) => {
+}: FormElementListProps) => {
   const { language } = useI18n();
 
+  // إنشاء عناصر القائمة بشكل أكثر استقرارًا
   return (
     <div className="space-y-2">
       <h3 className={`font-medium text-lg mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
@@ -39,7 +40,7 @@ const FormElementList: React.FC<FormElementListProps> = React.memo(({
       {availableElements.map((element) => (
         <div 
           key={element.type}
-          className="flex justify-between items-center p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
+          className="flex justify-between items-center p-3 hover:bg-gray-50 border rounded-md"
         >
           <Button 
             variant="ghost" 

@@ -35,13 +35,13 @@ const FormPreview = React.memo(({
   },
   fields = [],
   submitButtonText = 'إرسال الطلب',
-}) => {
+}: FormPreviewProps) => {
   const { language } = useI18n();
   
-  // Use a constant key instead of state to avoid re-renders
-  const stableRefreshKey = 0;
+  // استخدم ثابت بدلاً من الحالة لتجنب إعادة التصيير
+  const stableKey = React.useRef("form-preview-stable").current;
   
-  // Memoize the CSS variables to prevent re-calculation on each render
+  // تحسين متغيرات CSS لمنع إعادة الحساب عند كل تصيير
   const cssVars = useMemo(() => {
     return {
       fontSize: formStyle.fontSize,
@@ -50,7 +50,7 @@ const FormPreview = React.memo(({
     } as React.CSSProperties;
   }, [formStyle.fontSize, formStyle.primaryColor, formStyle.borderRadius]);
   
-  // Memoize the step indicators to prevent unnecessary re-renders
+  // تحسين مؤشرات الخطوة لمنع إعادة التصيير غير الضرورية
   const stepIndicators = useMemo(() => {
     if (totalSteps <= 1) return null;
     
@@ -94,7 +94,7 @@ const FormPreview = React.memo(({
     );
   }, [currentStep, totalSteps]);
 
-  // Memoize form fields to prevent unnecessary re-renders
+  // تحسين عناصر النموذج لمنع إعادة التصيير غير الضروري
   const formFieldElements = useMemo(() => {
     if (!fields || fields.length === 0) {
       return children;
@@ -127,7 +127,7 @@ const FormPreview = React.memo(({
   
   return (
     <div 
-      key={`form-preview-${stableRefreshKey}`}
+      key={stableKey}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={cssVars}
     >

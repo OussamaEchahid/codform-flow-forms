@@ -25,7 +25,7 @@ interface FormFieldProps {
   };
 }
 
-// Define a mapping of field types to components - moved outside component to prevent recreation
+// نقل خريطة المكونات خارج دالة التصيير لمنع إعادة إنشاء المكونات
 const fieldComponentMap: Record<string, React.ComponentType<any>> = {
   'text': TextInput,
   'textarea': TextArea,
@@ -40,20 +40,22 @@ const fieldComponentMap: Record<string, React.ComponentType<any>> = {
   'countdown': CountdownTimer,
   'whatsapp': WhatsAppButton,
   'image': ImageField,
+  'email': TextInput, // تعيين بريد إلكتروني كنوع نص
+  'phone': TextInput, // تعيين هاتف كنوع نص
 };
 
 const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   if (!field || !field.type) {
-    console.warn('Invalid field:', field);
+    console.warn('حقل غير صالح:', field);
     return null;
   }
 
-  // Use useMemo to prevent unnecessary recalculations
+  // تحسين المكون باستخدام useMemo لمنع إعادة التسجيل غير الضروري
   const Component = useMemo(() => {
-    // Handle field type mapping
+    // معالجة تعيين نوع الحقل
     let fieldType = field.type;
     
-    // Map email and phone to text inputs
+    // تعيين البريد الإلكتروني والهاتف كمدخلات نصية
     if (fieldType === 'email' || fieldType === 'phone') {
       fieldType = 'text';
     }
@@ -62,7 +64,7 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   }, [field.type]);
   
   if (!Component) {
-    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(fieldComponentMap));
+    console.warn(`نوع حقل غير معروف: ${field.type}، الأنواع المتاحة:`, Object.keys(fieldComponentMap));
     return null;
   }
 
