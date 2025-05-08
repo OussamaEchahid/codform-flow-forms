@@ -25,6 +25,11 @@ import ShopifyTest from "@/pages/ShopifyTest";
 import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 
+// Landing Pages
+import LandingPages from "@/pages/LandingPages";
+import LandingPageEditor from "@/pages/LandingPageEditor";
+import LandingPageView from "@/pages/LandingPageView";
+
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
 import { toast, Toaster as SonnerToaster } from "sonner"; 
@@ -157,6 +162,9 @@ function AppRoutes() {
       <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
       <Route path="/auth/*" element={<Auth />} />
       
+      {/* Public landing page routes */}
+      <Route path="/landing/:slug" element={<LandingPageView />} />
+      
       {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/settings" element={<Settings />} />
@@ -171,6 +179,9 @@ function AppRoutes() {
         <Route path="/forms" element={<Forms />} />
         <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/landing-pages" element={<LandingPages />} />
+        <Route path="/landing-pages/editor" element={<LandingPageEditor />} />
+        <Route path="/landing-pages/editor/:id" element={<LandingPageEditor />} />
       </Route>
       
       {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
