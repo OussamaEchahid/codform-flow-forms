@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
@@ -42,21 +42,24 @@ const fieldComponentMap: Record<string, React.ComponentType<FormFieldProps>> = {
   'image': ImageField,
 };
 
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
+const FormField: React.FC<FormFieldProps> = React.memo(({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
   }
 
-  // Handle field type mapping
-  let fieldType = field.type;
-  
-  // Map email and phone to text inputs
-  if (fieldType === 'email' || fieldType === 'phone') {
-    fieldType = 'text';
-  }
+  // Use useMemo to prevent unnecessary recalculations
+  const Component = useMemo(() => {
+    // Handle field type mapping
+    let fieldType = field.type;
+    
+    // Map email and phone to text inputs
+    if (fieldType === 'email' || fieldType === 'phone') {
+      fieldType = 'text';
+    }
 
-  const Component = fieldComponentMap[fieldType];
+    return fieldComponentMap[fieldType];
+  }, [field.type]);
   
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(fieldComponentMap));
@@ -64,6 +67,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   }
 
   return <Component field={field} formStyle={formStyle} />;
-};
+});
 
-export default React.memo(FormField);
+FormField.displayName = 'FormField';
+
+export default FormField;

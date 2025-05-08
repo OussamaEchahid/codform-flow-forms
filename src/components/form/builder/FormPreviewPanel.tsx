@@ -58,6 +58,22 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
       {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
     </Button>
   ), [currentStep, language, onNextStep, totalSteps]);
+
+  // Memoize the children for FormPreview to prevent unnecessary re-renders
+  const emptyFieldsMessage = React.useMemo(() => {
+    if (!fields || fields.length === 0) {
+      return (
+        <div className="text-center p-6">
+          <p className="text-gray-500 mb-4">
+            {language === 'ar' 
+              ? 'أضف عناصر إلى النموذج لمعاينتها هنا'
+              : 'Add form elements to preview them here'}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  }, [fields, language]);
   
   return (
     <div className="h-full flex flex-col">
@@ -89,15 +105,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
           fields={fields}
           submitButtonText={submitButtonText}
         >
-          {(!fields || fields.length === 0) && (
-            <div className="text-center p-6">
-              <p className="text-gray-500 mb-4">
-                {language === 'ar' 
-                  ? 'أضف عناصر إلى النموذج لمعاينتها هنا'
-                  : 'Add form elements to preview them here'}
-              </p>
-            </div>
-          )}
+          {emptyFieldsMessage}
         </FormPreview>
       </div>
     </div>
