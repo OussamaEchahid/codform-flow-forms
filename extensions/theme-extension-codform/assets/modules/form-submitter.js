@@ -1,8 +1,18 @@
 
 // CODFORM Form Submitter Module
 function CODFORMFormSubmitter(API_BASE_URL) {
+  let isSubmitting = false; // Flag to prevent duplicate submissions
+
   function submitForm(container, form, formId) {
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.log('CODFORM: Submission already in progress, skipping duplicate submission');
+      return;
+    }
+    
+    isSubmitting = true;
     console.log('CODFORM: Submitting form', formId);
+    
     const formData = new FormData(form);
     const data = {};
     
@@ -105,6 +115,8 @@ function CODFORMFormSubmitter(API_BASE_URL) {
           // Show success message
           hideForm(container);
           showSuccess(container);
+          // Reset submission flag
+          isSubmitting = false;
         })
         .catch(error => {
           clearTimeout(timeoutId);
@@ -139,6 +151,9 @@ function CODFORMFormSubmitter(API_BASE_URL) {
       } else {
         alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
       }
+      
+      // Reset submission flag
+      isSubmitting = false;
     }
   }
   

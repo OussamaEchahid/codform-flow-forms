@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useI18n } from '@/lib/i18n';
@@ -16,7 +16,8 @@ interface FormEditorCanvasProps {
   onDragEnd: (event: DragEndEvent) => void;
 }
 
-const FormEditorCanvas: React.FC<FormEditorCanvasProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const FormEditorCanvas: React.FC<FormEditorCanvasProps> = memo(({
   elements,
   selectedElementIndex,
   onSelectElement,
@@ -27,49 +28,48 @@ const FormEditorCanvas: React.FC<FormEditorCanvasProps> = ({
 }) => {
   const { language } = useI18n();
 
+  // Memoize the items array to prevent unnecessary re-renders
+  const itemIds = React.useMemo(() => elements.map(el => el.id), [elements]);
+
   return (
-    <div className="col-span-6 bg-gray-50 p-6">
-      <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-        {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
-      </h2>
-      
-      <div className="space-y-4">
-        <DndContext 
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
+    <div className="space-y-4">
+      <DndContext 
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext 
+          items={itemIds}
+          strategy={verticalListSortingStrategy}
         >
-          <SortableContext 
-            items={elements.map(el => el.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <FormElementEditor
-              elements={elements}
-              selectedIndex={selectedElementIndex}
-              onSelectElement={onSelectElement}
-              onEditElement={onEditElement}
-              onDeleteElement={onDeleteElement}
-              onDuplicateElement={onDuplicateElement}
-            />
-          </SortableContext>
-        </DndContext>
-        
-        {elements.length === 0 && (
-          <div className="text-center p-6 border rounded-md border-dashed">
-            <p className="text-gray-500 mb-2">
-              {language === 'ar' 
-                ? 'لا توجد عناصر في النموذج' 
-                : 'No elements in this form'}
-            </p>
-            <p className="text-gray-500 text-sm">
-              {language === 'ar' 
-                ? 'اختر نوع العنصر من القائمة لإضافته' 
-                : 'Choose an element type from the panel to add'}
-            </p>
-          </div>
-        )}
-      </div>
+          <FormElementEditor
+            elements={elements}
+            selectedIndex={selectedElementIndex}
+            onSelectElement={onSelectElement}
+            onEditElement={onEditElement}
+            onDeleteElement={onDeleteElement}
+            onDuplicateElement={onDuplicateElement}
+          />
+        </SortableContext>
+      </DndContext>
+      
+      {elements.length === 0 && (
+        <div className="text-center p-6 border rounded-md border-dashed">
+          <p className="text-gray-500 mb-2">
+            {language === 'ar' 
+              ? 'لا توجد عناصر في النموذج' 
+              : 'No elements in this form'}
+          </p>
+          <p className="text-gray-500 text-sm">
+            {language === 'ar' 
+              ? 'اختر نوع العنصر من القائمة لإضافته' 
+              : 'Choose an element type from the panel to add'}
+          </p>
+        </div>
+      )}
     </div>
   );
-};
+});
+
+FormEditorCanvas.displayName = 'FormEditorCanvas';
 
 export default FormEditorCanvas;

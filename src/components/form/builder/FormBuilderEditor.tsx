@@ -53,12 +53,28 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   useEffect(() => {
     console.log('FormBuilderEditor: Loading form data for ID:', id);
     if (id) {
-      loadFormData(id).catch(err => {
-        console.error("Error loading form data:", err);
-        toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
-      });
+      // Adding an abort controller to prevent multiple loads
+      const controller = new AbortController();
+      
+      // Use a cleanup function to prevent state updates after unmount
+      const loadData = async () => {
+        try {
+          await loadFormData(id);
+        } catch (err) {
+          console.error("Error loading form data:", err);
+          if (!controller.signal.aborted) {
+            toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
+          }
+        }
+      };
+      
+      loadData();
+      
+      return () => {
+        controller.abort();
+      };
     }
-  }, [id, loadFormData]);
+  }, [id]); // Removed loadFormData from dependencies to prevent re-triggering
 
   // Safe save handler with error handling
   const safeSave = async () => {

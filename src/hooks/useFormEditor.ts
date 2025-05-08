@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -39,15 +39,16 @@ export const useFormEditor = (formId?: string) => {
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [currentPreviewStep, setCurrentPreviewStep] = useState<number>(1);
   const [saveRetries, setSaveRetries] = useState<number>(0);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const maxSaveRetries = 3;
 
-  // Get active shop ID for database operations
-  const getActiveShopId = () => {
+  // Get active shop ID for database operations - memoized to prevent rerenders
+  const getActiveShopId = useCallback(() => {
     return localStorage.getItem('shopify_store') || sessionStorage.getItem('shopify_store');
-  };
+  }, []);
 
-  // Initialize a new form if no form ID is provided
-  const initializeNewForm = async () => {
+  // Initialize a new form if no form ID is provided - memoized
+  const initializeNewForm = useCallback(async () => {
     try {
       const shopId = getActiveShopId();
       if (!shopId) {
@@ -129,16 +130,24 @@ export const useFormEditor = (formId?: string) => {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
     }
-  };
+  }, [formTitle, formDescription, submitButtonText, getActiveShopId, language, resetFormState, setFormState]);
 
-  // Load form data
-  const loadFormData = async (id?: string) => {
+  // Load form data - memoized with useCallback to prevent it from changing on each render
+  const loadFormData = useCallback(async (id?: string) => {
     if (!id) {
       await initializeNewForm();
       return;
     }
 
+    // Set loading flag to prevent duplicate loads
+    if (hasLoaded && id === currentFormId) {
+      console.log("Skipping duplicate form load for ID:", id);
+      return;
+    }
+    
+    console.log("Loading form data for ID:", id);
     setCurrentFormId(id);
+    
     try {
       // Reset form state before loading new form
       resetFormState();
@@ -244,14 +253,25 @@ export const useFormEditor = (formId?: string) => {
       });
       
       console.log("Loaded form data:", formData);
+      // Mark as loaded to prevent redundant loads
+      setHasLoaded(true);
     } catch (error) {
       console.error("Error loading form:", error);
       toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
     }
-  };
+  }, [
+    currentFormId, 
+    hasLoaded, 
+    initializeNewForm, 
+    language, 
+    resetFormState, 
+    setFormState, 
+    formStyle, 
+    submitButtonText
+  ]);
 
   // Handle saving form data with retry mechanism
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (isSaving) {
       console.log("Save operation already in progress, skipping duplicate save");
       return;
@@ -370,10 +390,24 @@ export const useFormEditor = (formId?: string) => {
     }
     
     setIsSaving(false);
-  };
+  }, [
+    currentFormId,
+    formDescription,
+    formElements,
+    formStyle,
+    formTitle,
+    getActiveShopId,
+    isSaving,
+    language,
+    maxSaveRetries,
+    saveForm,
+    saveRetries,
+    setFormState,
+    submitButtonText
+  ]);
 
   // Handle publishing form
-  const handlePublish = async () => {
+  const handlePublish = useCallback(async () => {
     if (!currentFormId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
       return;
@@ -433,10 +467,10 @@ export const useFormEditor = (formId?: string) => {
     }
     
     setIsPublishing(false);
-  };
+  }, [currentFormId, formState, handleSave, isPublished, language, publishForm, setFormState]);
 
-  // Update form field operations
-  const addElement = (type: string) => {
+  // Update form field operations with useCallback
+  const addElement = useCallback((type: string) => {
     const newElement = {
       type,
       id: `${type}-${Date.now()}`,
@@ -451,10 +485,10 @@ export const useFormEditor = (formId?: string) => {
       setSelectedElementIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
     }, 100);
-  };
+  }, [formElements, language]);
 
   // Delete element with auto-save
-  const deleteElement = (index: number) => {
+  const deleteElement = useCallback((index: number) => {
     const updatedElements = [...formElements];
     updatedElements.splice(index, 1);
     setFormElements(updatedElements);
@@ -463,10 +497,10 @@ export const useFormEditor = (formId?: string) => {
     
     // Save after deleting element
     setTimeout(() => handleSave(), 300);
-  };
+  }, [formElements, handleSave]);
 
   // Duplicate element with auto-save
-  const duplicateElement = (index: number) => {
+  const duplicateElement = useCallback((index: number) => {
     const element = formElements[index];
     const newElement = {
       ...element,
@@ -482,10 +516,10 @@ export const useFormEditor = (formId?: string) => {
       handleSave();
     }, 100);
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
-  };
+  }, [formElements, handleSave, language]);
 
   // Update element with auto-save
-  const updateElement = (updatedField: FormField) => {
+  const updateElement = useCallback((updatedField: FormField) => {
     const newElements = [...formElements];
     const index = newElements.findIndex(el => el.id === updatedField.id);
     if (index !== -1) {
@@ -498,20 +532,20 @@ export const useFormEditor = (formId?: string) => {
       setRefreshKey(prev => prev + 1);
       handleSave();
     }, 100);
-  };
+  }, [formElements, handleSave]);
 
   // Handle style changes with auto-save
-  const handleStyleChange = (key: string, value: string) => {
+  const handleStyleChange = useCallback((key: string, value: string) => {
     setFormStyle(prev => ({
       ...prev,
       [key]: value
     }));
     
     setTimeout(() => handleSave(), 300);
-  };
+  }, [handleSave]);
 
   // Update form meta information with auto-save
-  const updateFormMeta = (field: 'title' | 'description' | 'submitButtonText', value: string) => {
+  const updateFormMeta = useCallback((field: 'title' | 'description' | 'submitButtonText', value: string) => {
     if (field === 'title') {
       setFormTitle(value);
     } else if (field === 'description') {
@@ -521,7 +555,14 @@ export const useFormEditor = (formId?: string) => {
     }
     
     setTimeout(() => handleSave(), 500);
-  };
+  }, [handleSave]);
+
+  // Initial load effect - uses the memoized callback and has proper dependency array
+  useEffect(() => {
+    if (!hasLoaded && formId) {
+      loadFormData(formId);
+    }
+  }, [formId, hasLoaded, loadFormData]);
 
   return {
     formTitle,
