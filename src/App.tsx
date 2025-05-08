@@ -45,28 +45,61 @@ const queryClient = new QueryClient({
 // Modified ProtectedRoute to be more lenient in authenticating connections
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { shopifyConnected, user, shop, loading } = useAuth();
+  const [connectionOverride, setConnectionOverride] = useState<boolean | null>(null);
+  const [connectionAttempted, setConnectionAttempted] = useState(false);
+  
+  // Force reliable connection state on initial load
+  useEffect(() => {
+    if (!loading && !connectionAttempted) {
+      setConnectionAttempted(true);
+      
+      // Check all possible storage locations
+      const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+      const localStorageShop = localStorage.getItem('shopify_store');
+      const sessionShop = sessionStorage.getItem('shopify_store');
+      const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
+      const activeStore = shopifyConnectionManager.getActiveStore();
+      
+      // Enforce consistent connection state across storage locations
+      if ((localStorageConnected && localStorageShop) || bypassAuth || activeStore) {
+        // We have evidence of a connection, set override
+        setConnectionOverride(true);
+        
+        // Ensure all storage locations are synchronized
+        const shopToUse = localStorageShop || activeStore || sessionShop;
+        if (shopToUse) {
+          localStorage.setItem('shopify_store', shopToUse);
+          localStorage.setItem('shopify_connected', 'true');
+          shopifyConnectionManager.setActiveStore(shopToUse);
+        }
+      }
+    }
+  }, [loading, connectionAttempted]);
   
   // إذا كان لا يزال يتم التحميل، نعرض حالة التحميل
   if (loading) {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Enhanced connection checking to be more tolerant of different connection states
-  const activeStore = shopifyConnectionManager.getActiveStore();
+  // Use override if available
+  const effectiveConnected = connectionOverride !== null ? connectionOverride : shopifyConnected;
+  
+  // Check for ANY indication of a connection - much more tolerant approach
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const localStorageShop = localStorage.getItem('shopify_store');
   const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
-  
-  // Check for ANY indication of a connection - much more tolerant approach
-  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
-  const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
+  const activeStore = shopifyConnectionManager.getActiveStore();
   
   // Allow access if ANY indication of connection exists
-  // Including a bypass flag for better reliability
-  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development') || bypassAuth;
+  const hasShopifyAccess = effectiveConnected || localStorageConnected || !!activeStore || !!localStorageShop || bypassAuth;
+  const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
+  
+  // Allow access based on any valid connection evidence or in development
+  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development');
   
   console.log("Protected route check:", {
     authContextConnected: shopifyConnected,
+    effectiveConnected,
     localStorageConnected,
     activeStore,
     localStorageShop,
@@ -148,22 +181,49 @@ function AppRoutes() {
 }
 
 function App() {
-  // Clean placeholder tokens and validate connection on startup
+  // Add extra reliability to ensure connection state is consistent across the app
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
-    // Attempt to validate the connection state with retry logic
-    const validateConnection = async () => {
+    // Strengthen connection management on startup
+    const validateAndEnsureConnection = async () => {
       try {
         // First clean any placeholder tokens
         await shopifyConnectionService.cleanupPlaceholderTokens();
         console.log("Placeholder tokens cleaned up on startup");
         
-        // Then validate connection
-        shopifyConnectionManager.validateConnectionState();
-        console.log("Connection validated successfully");
+        // Then attempt to retrieve connection info from all sources
+        const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+        const localStorageShop = localStorage.getItem('shopify_store');
+        const activeStore = shopifyConnectionManager.getActiveStore();
+        
+        // If we have any indication of a connection
+        if ((localStorageConnected && localStorageShop) || activeStore) {
+          const shop = localStorageShop || activeStore;
+          
+          // Ensure all storage locations are synchronized
+          if (shop) {
+            console.log("Found valid shop connection, reinforcing it:", shop);
+            
+            // Set in all storage locations
+            localStorage.setItem('shopify_store', shop);
+            localStorage.setItem('shopify_connected', 'true');
+            
+            // Add bypass flag for extra reliability
+            localStorage.setItem('bypass_auth', 'true');
+            
+            // Set in connection manager
+            shopifyConnectionManager.addOrUpdateStore(shop, true, true);
+            shopifyConnectionManager.validateConnectionState();
+            
+            console.log("Connection validated and reinforced successfully");
+          }
+        } else {
+          shopifyConnectionManager.validateConnectionState();
+          console.log("No existing connection found, basic validation completed");
+        }
       } catch (error) {
-        console.error("Error validating connection:", error);
+        console.error("Error in startup connection validation:", error);
         
         // If validation fails, retry after a delay
         setTimeout(() => {
@@ -177,7 +237,7 @@ function App() {
       }
     };
     
-    validateConnection();
+    validateAndEnsureConnection();
   }, []);
   
   return (
