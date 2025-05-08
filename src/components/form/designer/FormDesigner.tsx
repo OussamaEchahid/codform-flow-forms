@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -409,9 +410,6 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
             <TabsContent value="shopify">
               <div className="p-4">
                 <div className="mb-4">
-                  <div className="bg-gray-50 p-3 rounded-md mb-4">
-                    <ShopifyConnectionStatus />
-                  </div>
                   <ShopifyIntegration formId={localFormData.id} />
                   <ShopifyFormSync formId={localFormData.id} />
                 </div>
