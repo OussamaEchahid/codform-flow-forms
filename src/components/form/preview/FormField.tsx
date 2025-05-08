@@ -15,14 +15,17 @@ import WhatsAppButton from './fields/WhatsAppButton';
 import ImageField from './fields/ImageField';
 import HtmlContent from './fields/HtmlContent';
 
-interface FormFieldProps {
+// Update the interface to make all properties required
+export interface FormStyleProps {
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
+}
+
+export interface FormFieldProps {
   field: FormFieldType;
-  formStyle: {
-    primaryColor: string;
-    borderRadius: string;
-    fontSize: string;
-    buttonStyle: string;
-  };
+  formStyle: FormStyleProps;
 }
 
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
@@ -39,7 +42,15 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     fieldType = 'text';
   }
 
-  const components: { [key: string]: React.FC<FormFieldProps> } = {
+  // Ensure formStyle has all required properties with default values
+  const completeFormStyle: FormStyleProps = {
+    primaryColor: formStyle.primaryColor || '#9b87f5',
+    borderRadius: formStyle.borderRadius || '0.5rem',
+    fontSize: formStyle.fontSize || '1rem',
+    buttonStyle: formStyle.buttonStyle || 'rounded'
+  };
+
+  const components: { [key: string]: React.FC<any> } = {
     'text': TextInput,
     'textarea': TextArea,
     'radio': RadioGroup,
@@ -61,7 +72,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  return <Component field={field} formStyle={formStyle} />;
+  return <Component field={field} formStyle={completeFormStyle} />;
 };
 
 export default FormField;

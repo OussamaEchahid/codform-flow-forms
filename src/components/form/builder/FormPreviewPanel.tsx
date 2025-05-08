@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FormStyleProps } from '../preview/FormField';
 
 interface FormPreviewPanelProps {
   formTitle: string;
@@ -37,6 +38,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   submitButtonText = 'إرسال الطلب',
 }) => {
   const { t, language } = useI18n();
+
+  // Ensure formStyle has all required properties
+  const completeFormStyle: FormStyleProps = {
+    primaryColor: formStyle?.primaryColor || '#9b87f5',
+    borderRadius: formStyle?.borderRadius || '0.5rem',
+    fontSize: formStyle?.fontSize || '1rem',
+    buttonStyle: formStyle?.buttonStyle || 'rounded'
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -78,7 +87,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formDescription={formDescription}
           currentStep={currentStep}
           totalSteps={totalSteps}
-          formStyle={formStyle}
+          formStyle={completeFormStyle}
           fields={fields}
           submitButtonText={submitButtonText}
         >

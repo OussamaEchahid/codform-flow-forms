@@ -9,6 +9,7 @@ interface TitleFieldProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    buttonStyle?: string;  // Added buttonStyle
   };
 }
 

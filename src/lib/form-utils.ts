@@ -29,6 +29,15 @@ export interface FormStep {
   id: string;
   title: string;
   fields: FormField[];
+  metadata?: {
+    formStyle?: {
+      primaryColor?: string;
+      borderRadius?: string;
+      fontSize?: string;
+      buttonStyle?: string;
+      submitButtonText?: string;
+    }
+  };
 }
 
 export interface FormTemplate {

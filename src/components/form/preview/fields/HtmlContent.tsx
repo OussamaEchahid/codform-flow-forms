@@ -9,6 +9,7 @@ interface HtmlContentProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    buttonStyle?: string;  // Added buttonStyle
   };
 }
 

@@ -177,7 +177,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           if (error) {
             console.error('Error loading form:', error);
             toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-            setIsLoading(false);
             return;
           }
           
@@ -197,7 +196,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             setFormElements(formFields);
             
             // Extract style properties from metadata if available
-            const formMetadata = data.data[0]?.metadata?.formStyle;
+            let formMetadata = undefined;
+            if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+              // Check if metadata exists, if not create it
+              if (data.data[0] && data.data[0].metadata) {
+                formMetadata = data.data[0].metadata.formStyle;
+              }
+            }
+            
             if (formMetadata) {
               setFormStyle({
                 primaryColor: formMetadata.primaryColor || '#9b87f5',
