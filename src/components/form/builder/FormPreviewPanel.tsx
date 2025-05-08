@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
@@ -35,7 +35,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
   const { t, language } = useI18n();
   
   // Memoize buttons to prevent unnecessary re-renders
-  const previousButton = useCallback(() => (
+  const PreviousButton = useMemo(() => (
     <Button 
       size="sm" 
       variant="outline"
@@ -47,7 +47,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
     </Button>
   ), [currentStep, language, onPreviousStep]);
 
-  const nextButton = useCallback(() => (
+  const NextButton = useMemo(() => (
     <Button 
       size="sm" 
       variant="outline"
@@ -60,7 +60,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
   ), [currentStep, language, onNextStep, totalSteps]);
 
   // Memoize the children for FormPreview to prevent unnecessary re-renders
-  const emptyFieldsMessage = React.useMemo(() => {
+  const emptyFieldsMessage = useMemo(() => {
     if (!fields || fields.length === 0) {
       return (
         <div className="text-center p-6">
@@ -85,11 +85,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = React.memo(({
         {/* Controls for multi-step form */}
         {totalSteps > 1 && (
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            {previousButton()}
+            {PreviousButton}
             <span className="text-sm font-medium">
               {currentStep} / {totalSteps}
             </span>
-            {nextButton()}
+            {NextButton}
           </div>
         )}
       </div>
