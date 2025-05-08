@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import FormsPage from './FormsPage';
 
-// إعادة توجيه المستخدم للصفحة الجديدة FormsPage
 const Forms = () => {
-  return <Navigate to="/forms" replace />;
+  return <FormsPage />;
 };
 
 export default Forms;

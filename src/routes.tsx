@@ -14,7 +14,7 @@ import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/api/shopify-callback';
 import NotFound from '@/pages/NotFound'; 
 import Dashboard from '@/pages/Dashboard';
-import FormsPage from '@/pages/FormsPage';
+import Forms from '@/pages/Forms';
 import Orders from '@/pages/Orders';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
@@ -31,7 +31,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/forms',
-    Component: FormsPage,
+    Component: Forms,
   },
   {
     path: '/form-builder',
