@@ -46,17 +46,17 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
   const [isStyleEditorOpen, setIsStyleEditorOpen] = useState<boolean>(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState<number>(0);
   
-  // Sync with external formData when it changes
+  // مزامنة البيانات المحلية عندما تتغير البيانات الخارجية
   useEffect(() => {
     setLocalFormData({...formData});
   }, [formData.id]);
   
-  // Helper to get current step fields
+  // دالة مساعدة للحصول على حقول الخطوة الحالية
   const getCurrentStepFields = () => {
     return localFormData.steps[currentStep]?.fields || [];
   };
   
-  // Save form data
+  // حفظ بيانات النموذج
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -74,7 +74,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     }
   };
   
-  // Toggle publish state
+  // تبديل حالة النشر
   const handlePublishToggle = async () => {
     try {
       const success = await onPublish(localFormData.id, !localFormData.isPublished);
@@ -92,7 +92,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     }
   };
   
-  // Add a new step
+  // إضافة خطوة جديدة
   const handleAddStep = () => {
     const newStep: FormStep = {
       id: `step-${localFormData.steps.length + 1}`,
@@ -108,7 +108,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Add a field to the current step
+  // إضافة حقل للخطوة الحالية
   const handleAddField = (fieldType: string) => {
     const newField: FormField = {
       id: `field-${Date.now()}`,
@@ -129,7 +129,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Update a field
+  // تحديث حقل
   const handleUpdateField = (fieldIndex: number, updatedField: FormField) => {
     const updatedSteps = [...localFormData.steps];
     updatedSteps[currentStep].fields[fieldIndex] = updatedField;
@@ -141,7 +141,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Delete a field
+  // حذف حقل
   const handleDeleteField = (fieldIndex: number) => {
     const updatedSteps = [...localFormData.steps];
     updatedSteps[currentStep].fields = updatedSteps[currentStep].fields.filter((_, i) => i !== fieldIndex);
@@ -154,7 +154,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Handle drag end for reordering fields
+  // معالجة انتهاء السحب لإعادة ترتيب الحقول
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -183,7 +183,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     }
   };
   
-  // Update style
+  // تحديث نمط النموذج
   const handleUpdateStyle = (style: typeof localFormData.style) => {
     setLocalFormData(prev => ({
       ...prev,
@@ -192,7 +192,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Update form metadata
+  // تحديث بيانات النموذج
   const handleUpdateMeta = (data: { title?: string, description?: string, submitButtonText?: string }) => {
     setLocalFormData(prev => ({
       ...prev,
@@ -201,7 +201,7 @@ const FormDesigner: React.FC<FormDesignerProps> = ({ formData, onSave, onPublish
     refreshPreview();
   };
   
-  // Refresh preview
+  // تحديث المعاينة
   const refreshPreview = () => {
     setPreviewRefreshKey(prev => prev + 1);
   };

@@ -114,7 +114,7 @@ const FormCanvas: React.FC<FormCanvasProps> = ({
           onSelect={() => onSelectField(index)}
           onDelete={() => onDeleteField(index)}
           onEdit={() => {
-            // For now, just select the field - we'll add an editor later
+            // للآن، سنكتفي بتحديد الحقل - سنقوم بإضافة محرر لاحقاً
             onSelectField(index);
           }}
         />

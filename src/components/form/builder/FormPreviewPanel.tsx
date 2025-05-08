@@ -39,7 +39,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { t, language } = useI18n();
 
-  // Ensure formStyle has all required properties with default values
+  // التأكد من أن نمط النموذج يحتوي على جميع الخصائص المطلوبة مع القيم الافتراضية
   const completeFormStyle: FormStyleProps = {
     primaryColor: formStyle?.primaryColor || '#9b87f5',
     borderRadius: formStyle?.borderRadius || '0.5rem',
@@ -54,7 +54,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
         </h2>
 
-        {/* Controls for multi-step form */}
+        {/* أزرار التنقل بين خطوات النموذج */}
         {totalSteps > 1 && (
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
             <Button 
