@@ -118,7 +118,7 @@ export const useFormTemplates = () => {
         new Map(formattedData.map(item => [item.id, item])).values()
       );
       
-      console.log('Fetched forms:', uniqueForms);
+      console.log(`Fetched ${uniqueForms.length} unique forms`);
       setForms(uniqueForms);
       setIsLoading(false);
     } catch (error) {
@@ -152,7 +152,7 @@ export const useFormTemplates = () => {
 
       console.log("Creating form from template:", template.title);
       
-      // Initialize field translations for each language
+      // Initialize translations with proper structure
       const defaultTranslations = {
         ar: {
           title: 'نموذج جديد',
@@ -248,7 +248,7 @@ export const useFormTemplates = () => {
       toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
       // Refresh forms list
-      fetchForms();
+      await fetchForms();
       
       setIsLoading(false);
       return formData;
@@ -276,9 +276,9 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      console.log("Creating default form using template:", defaultTemplate.title);
+      console.log("Creating default form for shop:", shopId);
       
-      // Initialize translations for the new form
+      // Initialize translations with proper structure
       const defaultTranslations = {
         ar: {
           title: 'نموذج جديد',
@@ -348,7 +348,7 @@ export const useFormTemplates = () => {
       console.log("Creating form with data:", formData);
       
       // Insert into Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
@@ -365,25 +365,25 @@ export const useFormTemplates = () => {
           formLanguage: 'ar',
           rtl: true,
           translations: defaultTranslations
-        })
-        .select();
+        });
         
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ ال��موذج في قاعدة البيانات');
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
         setIsLoading(false);
         return null;
       }
 
       console.log("Form created successfully:", newFormId);
+      
+      // Set the form state with the new form data
       setFormState(formData);
       
       toast.success('تم إنشاء نموذج جديد');
       
       // Refresh forms list
-      fetchForms();
+      await fetchForms();
       
-      console.log('Successfully created new form:', formData);
       setIsLoading(false);
       return formData;
     } catch (error) {
@@ -406,7 +406,7 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
-      console.log('Saving form data:', dbData);
+      console.log('Saving form data for ID:', formId);
       
       // Update form in Supabase
       const { error } = await supabase
@@ -423,9 +423,10 @@ export const useFormTemplates = () => {
       
       // Update local state if forms list is loaded
       if (forms.length > 0) {
-        setForms(forms.map(form => 
+        const updatedForms = forms.map(form => 
           form.id === formId ? { ...form, ...formData } : form
-        ));
+        );
+        setForms(updatedForms);
       }
       
       setIsLoading(false);
@@ -556,7 +557,7 @@ export const useFormTemplates = () => {
       // Ensure fields exists for each language
       if (!ensuredTranslations.ar.fields) ensuredTranslations.ar.fields = {};
       if (!ensuredTranslations.en.fields) ensuredTranslations.en.fields = {};
-      if (!ensuredTranslations.fr.fields) ensuredTranslations.fr.fields = {};
+      if (!ensuredTranslations.fr.fields) ensureduredTranslations.fr.fields = {};
       
       // Format data for form state
       const formData: FormData = {

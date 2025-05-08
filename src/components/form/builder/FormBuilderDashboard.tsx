@@ -52,12 +52,17 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     } else {
       loadForms();
     }
-  }, [forceRefresh]);
+  }, [forceRefresh, fetchForms, initialForms]);
 
   // Update local forms when the forms from hook change
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
-      setLocalForms(forms);
+      // Remove duplicates based on form ID
+      const uniqueForms = Array.from(
+        new Map(forms.map(form => [form.id, form])).values()
+      );
+      setLocalForms(uniqueForms);
+      console.log("Updated local forms with deduplicated data:", uniqueForms.length);
     }
   }, [forms, hasLoadedForms]);
 
@@ -83,10 +88,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       if (newForm && newForm.id) {
         console.log("Form created successfully, navigating to:", newForm.id);
+        
         // Add a small delay to ensure the store is updated before navigating
         setTimeout(() => {
+          // Make sure we navigate to the form builder URL correctly
           navigate(`/form-builder/${newForm.id}`);
-        }, 100);
+        }, 300);
       } else {
         console.error("Form creation failed, no ID returned");
         toast.error(
@@ -122,6 +129,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         'Creating form from template...'
       );
       
+      setIsCreatingForm(true);
       console.log("Creating form from template:", templateId);
       const newForm = await createFormFromTemplate(templateId);
       console.log("Template form creation result:", newForm);
@@ -130,10 +138,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       if (newForm && newForm.id) {
         console.log("Template form created successfully, navigating to:", newForm.id);
+        
         // Add a small delay to ensure the store is updated before navigating
         setTimeout(() => {
           navigate(`/form-builder/${newForm.id}`);
-        }, 100);
+        }, 300);
       } else {
         console.error("Template form creation failed, no ID returned");
         toast.error(
@@ -141,6 +150,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           language === 'fr' ? 'Erreur lors de la création du formulaire à partir du modèle' : 
           'Error creating form from template'
         );
+        setIsCreatingForm(false);
       }
     } catch (error) {
       console.error("Error creating form from template:", error);
@@ -150,6 +160,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         language === 'fr' ? 'Erreur lors de la création du formulaire à partir du modèle' : 
         'Error creating form from template'
       );
+      setIsCreatingForm(false);
     }
   };
 

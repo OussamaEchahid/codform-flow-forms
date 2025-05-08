@@ -53,13 +53,19 @@ const Forms = () => {
             console.error("Error fetching forms:", formsError);
             toast.error(language === 'ar' 
               ? 'خطأ في جلب النماذج' 
+              : language === 'fr'
+              ? 'Erreur lors de la récupération des formulaires'
               : 'Error fetching forms');
           } else if (formsData) {
-            console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
-            setForms(formsData);
+            // Remove duplicates based on ID
+            const uniqueForms = Array.from(
+              new Map(formsData.map(form => [form.id, form])).values()
+            );
+            console.log(`Found ${uniqueForms.length} unique forms for shop ${activeShop}`);
+            setForms(uniqueForms);
             
             // If we found forms, we definitely have a connection
-            if (formsData.length > 0) {
+            if (uniqueForms.length > 0) {
               setHasShopifyConnected(true);
               localStorage.setItem('shopify_connected', 'true');
             }
@@ -75,7 +81,7 @@ const Forms = () => {
     };
     
     checkShopifyConnection();
-  }, [shop, shopifyConnected]);
+  }, [shop, shopifyConnected, language]);
 
   // Handle bypass access for development or testing
   const enableBypass = () => {
@@ -83,6 +89,8 @@ const Forms = () => {
     setHasShopifyConnected(true);
     toast.success(language === 'ar' 
       ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج' 
+      : language === 'fr'
+      ? 'Mode contournement activé. Vous pouvez continuer à gérer les formulaires'
       : 'Bypass mode activated. You can continue managing forms.');
   };
 
@@ -92,7 +100,9 @@ const Forms = () => {
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-lg">
-          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+          {language === 'ar' ? 'جاري التحميل...' : 
+           language === 'fr' ? 'Chargement...' :
+           'Loading...'}
         </span>
       </div>
     );
@@ -105,11 +115,15 @@ const Forms = () => {
         <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
           <div className="text-center py-4">
             <h2 className="text-xl font-bold mb-4">
-              {language === 'ar' ? 'الوصول مقيد' : 'Access Restricted'}
+              {language === 'ar' ? 'الوصول مقيد' : 
+               language === 'fr' ? 'Accès restreint' :
+               'Access Restricted'}
             </h2>
             <p className="mb-6">
               {language === 'ar' 
                 ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم النماذج' 
+                : language === 'fr'
+                ? 'Veuillez vous connecter ou connecter une boutique Shopify pour accéder aux formulaires'
                 : 'Please login or connect a Shopify store to access forms'}
             </p>
             
@@ -118,7 +132,9 @@ const Forms = () => {
                 onClick={() => navigate('/shopify-connect')}
                 className="w-full"
               >
-                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
+                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 
+                 language === 'fr' ? 'Connecter une boutique Shopify' :
+                 'Connect Shopify Store'}
               </Button>
               
               <Button
@@ -126,7 +142,9 @@ const Forms = () => {
                 onClick={enableBypass}
                 className="w-full"
               >
-                {language === 'ar' ? 'متابعة على أي حال' : 'Continue Anyway'}
+                {language === 'ar' ? 'متابعة على أي حال' : 
+                 language === 'fr' ? 'Continuer quand même' :
+                 'Continue Anyway'}
               </Button>
             </div>
           </div>
@@ -148,6 +166,8 @@ const Forms = () => {
               <span>
                 {language === 'ar' 
                   ? 'يرجى التحقق من اتصال Shopify الخاص بك'
+                  : language === 'fr'
+                  ? 'Veuillez vérifier votre connexion Shopify'
                   : 'Please verify your Shopify connection'}
               </span>
               <Button
@@ -156,7 +176,9 @@ const Forms = () => {
                 onClick={() => navigate('/shopify-connect')}
                 className="ml-2"
               >
-                {language === 'ar' ? 'التحقق من الاتصال' : 'Verify Connection'}
+                {language === 'ar' ? 'التحقق من الاتصال' : 
+                 language === 'fr' ? 'Vérifier la connexion' :
+                 'Verify Connection'}
               </Button>
             </AlertDescription>
           </Alert>
@@ -164,7 +186,11 @@ const Forms = () => {
       )}
       
       <div className="flex-1">
-        <FormBuilderDashboard key={`dashboard-${currentShop}`} initialForms={forms} forceRefresh={true} />
+        <FormBuilderDashboard 
+          key={`dashboard-${currentShop}`} 
+          initialForms={forms} 
+          forceRefresh={true} 
+        />
       </div>
       
       {/* Debug info in development mode */}
