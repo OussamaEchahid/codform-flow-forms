@@ -1,9 +1,12 @@
+
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { FileCheck, Palette, Save, BookTemplateIcon } from 'lucide-react';
 
 interface FormHeaderProps {
+  formTitle?: string;
+  onTitleChange?: (title: any) => void;
   onSave: () => void;
   onPublish: () => void;
   onStyleOpen: () => void;
@@ -15,6 +18,8 @@ interface FormHeaderProps {
 }
 
 const FormHeader: React.FC<FormHeaderProps> = ({
+  formTitle,
+  onTitleChange,
   onSave,
   onPublish,
   onStyleOpen,

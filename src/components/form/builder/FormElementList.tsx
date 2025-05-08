@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 interface FormElementListProps {
-  availableElements: Array<{
+  availableElements?: Array<{
     type: string;
     label: string;
     icon: string;
@@ -13,7 +13,21 @@ interface FormElementListProps {
   onAddElement: (type: string) => void;
 }
 
-const FormElementList: React.FC<FormElementListProps> = ({ availableElements, onAddElement }) => {
+const defaultElements = [
+  { type: 'text', label: 'حقل نص', icon: 'T' },
+  { type: 'email', label: 'بريد إلكتروني', icon: '@' },
+  { type: 'phone', label: 'رقم هاتف', icon: '📱' },
+  { type: 'textarea', label: 'نص متعدد الأسطر', icon: '¶' },
+  { type: 'select', label: 'قائمة منسدلة', icon: '▼' },
+  { type: 'checkbox', label: 'خانة اختيار', icon: '☑' },
+  { type: 'radio', label: 'زر راديو', icon: '○' },
+  { type: 'text/html', label: 'نص/HTML', icon: '</>' }
+];
+
+const FormElementList: React.FC<FormElementListProps> = ({ 
+  availableElements = defaultElements, 
+  onAddElement 
+}) => {
   const { language } = useI18n();
 
   return (

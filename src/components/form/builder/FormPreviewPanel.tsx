@@ -5,23 +5,20 @@ import { useI18n } from '@/lib/i18n';
 import FormPreview from '@/components/form/FormPreview';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FormStyle } from './FormStyleEditor';
 
 interface FormPreviewPanelProps {
   formTitle: string;
   formDescription?: string;
   fields: FormField[];
-  formStyle?: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
-  };
+  formStyle?: Partial<FormStyle>;
   currentStep: number;
   totalSteps: number;
   onPreviousStep: () => void;
   onNextStep: () => void;
   refreshKey?: number;
   submitButtonText?: string;
+  buttonText?: string; // Added for backward compatibility
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -35,8 +32,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   onNextStep,
   refreshKey = 0,
   submitButtonText = 'إرسال الطلب',
+  buttonText, // Added for backward compatibility
 }) => {
   const { t, language } = useI18n();
+  
+  // Use buttonText as a fallback for submitButtonText
+  const finalButtonText = submitButtonText || buttonText || 'إرسال الطلب';
   
   useEffect(() => {
     console.log("FormPreviewPanel updated with fields:", fields);
@@ -85,7 +86,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={formStyle}
           fields={fields}
-          submitButtonText={submitButtonText}
+          submitButtonText={finalButtonText}
         >
           {(!fields || fields.length === 0) && (
             <div className="text-center p-6">

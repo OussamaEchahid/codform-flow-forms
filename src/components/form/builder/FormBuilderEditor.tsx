@@ -22,7 +22,7 @@ import FormElementList from './FormElementList';
 import FormElementEditor from './FormElementEditor';
 import FormPreviewPanel from './FormPreviewPanel';
 import FormHeader from './FormHeader';
-import FormStyleEditor from './FormStyleEditor';
+import FormStyleEditor, { FormStyle } from './FormStyleEditor';
 import { FormField, FormStep, createEmptyField } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
@@ -44,6 +44,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   
   // State for DnD operations
   const sensors = useSensors(
@@ -336,6 +338,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       autosaveForm(updatedData);
     }
   };
+  
+  // Compute current step and total steps for preview
+  const currentStep = formState.data && Array.isArray(formState.data) && formState.data.length > 0 ? activeTabIndex + 1 : 1;
+  const totalSteps = formState.data && Array.isArray(formState.data) ? formState.data.length : 1;
+  
+  // Prepare FormStyle object from formState
+  const formStyleData: Partial<FormStyle> = {
+    primaryColor: formState.formStyle?.primaryColor || formState.primaryColor || '#9b87f5',
+    borderRadius: formState.formStyle?.borderRadius || formState.borderRadius || '0.5rem',
+    fontSize: formState.formStyle?.fontSize || formState.fontSize || '1rem',
+    buttonStyle: formState.formStyle?.buttonStyle || formState.buttonStyle || 'rounded'
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -344,11 +358,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         isPublished={formState.isPublished || false}
         onTitleChange={(title) => setFormState({ ...formState, title, isDirty: true })}
         onSave={handleSaveForm}
+        onStyleOpen={() => setIsStyleDialogOpen(true)}
+        onTemplateOpen={() => setIsTemplateDialogOpen(true)}
         onPublish={async () => {
           // This would be handled by parent component
         }}
         isSaving={isSaving}
         isPublishing={isPublishing}
+        lastSaved={formState.lastSaved}
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
@@ -428,12 +445,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 
                 <TabsContent value="style" className="py-4">
                   <FormStyleEditor 
-                    formStyle={formState.formStyle || {
-                      primaryColor: formState.primaryColor || '#9b87f5',
-                      borderRadius: formState.borderRadius || '0.5rem',
-                      fontSize: formState.fontSize || '1rem',
-                      buttonStyle: formState.buttonStyle || 'rounded'
-                    }}
+                    formStyle={formStyleData}
                     onStyleChange={(style) => {
                       updateFormStyle(style);
                       markAsDirty();
@@ -492,15 +504,42 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             formDescription={formState.description}
             buttonText={formState.submitButtonText}
             fields={currentStepFields}
-            formStyle={formState.formStyle || {
-              primaryColor: formState.primaryColor || '#9b87f5',
-              borderRadius: formState.borderRadius || '0.5rem',
-              fontSize: formState.fontSize || '1rem',
-              buttonStyle: formState.buttonStyle || 'rounded'
+            formStyle={formStyleData}
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            onPreviousStep={() => {
+              if (activeTabIndex > 0) {
+                setActiveTabIndex(activeTabIndex - 1);
+                setSelectedElementIndex(null);
+              }
+            }}
+            onNextStep={() => {
+              if (formState.data && Array.isArray(formState.data) && activeTabIndex < formState.data.length - 1) {
+                setActiveTabIndex(activeTabIndex + 1);
+                setSelectedElementIndex(null);
+              }
             }}
           />
         </div>
       </div>
+      
+      {/* Style Editor Dialog */}
+      <FormStyleEditor
+        isOpen={isStyleDialogOpen}
+        onOpenChange={setIsStyleDialogOpen}
+        formStyle={formStyleData}
+        onStyleChange={(style) => {
+          updateFormStyle(style);
+        }}
+        onSave={() => {
+          setIsStyleDialogOpen(false);
+          if (currentFormId) {
+            saveForm(currentFormId, { 
+              formStyle: formStyleData
+            }).catch(console.error);
+          }
+        }}
+      />
     </div>
   );
 };
