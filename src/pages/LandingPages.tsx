@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import CreateLandingPageDialog from '@/components/landing/CreateLandingPageDialog';
 
 interface LandingPage {
   id: string;
@@ -40,6 +41,7 @@ const LandingPages = () => {
   const navigate = useNavigate();
   const [pages, setPages] = useState<LandingPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchLandingPages();
@@ -70,7 +72,7 @@ const LandingPages = () => {
   };
 
   const handleCreatePage = () => {
-    navigate('/landing-pages/editor');
+    setCreateDialogOpen(true);
   };
 
   const handleEditPage = (id: string) => {
@@ -109,7 +111,7 @@ const LandingPages = () => {
         .eq('page_id', id)
         .single();
 
-      if (templateError) throw templateError;
+      if (templateError && templateError.code !== 'PGRST116') throw templateError;
 
       const newTitle = `${pageToDuplicate.title} (${language === 'ar' ? 'نسخة' : 'Copy'})`;
       const newSlug = `${pageToDuplicate.slug}-copy-${Date.now()}`;
@@ -266,6 +268,12 @@ const LandingPages = () => {
             </TableBody>
           </Table>
         </Card>
+        
+        {/* Create Landing Page Dialog */}
+        <CreateLandingPageDialog 
+          open={createDialogOpen}
+          onClose={() => setCreateDialogOpen(false)}
+        />
       </div>
     </AppLayout>
   );

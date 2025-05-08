@@ -92,7 +92,7 @@ export const routes: RouteObject[] = [
     path: '/shopify-sync',
     Component: ShopifySync,
   },
-  // Add landing pages routes
+  // Landing pages routes
   {
     path: '/landing-pages',
     Component: LandingPages,
