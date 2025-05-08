@@ -18,7 +18,7 @@ interface FormPreviewPanelProps {
   onNextStep: () => void;
   refreshKey?: number;
   submitButtonText?: string;
-  buttonText?: string; // Added for backward compatibility
+  // Remove buttonText from props since we use submitButtonText instead
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -32,18 +32,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   onNextStep,
   refreshKey = 0,
   submitButtonText = 'إرسال الطلب',
-  buttonText, // Added for backward compatibility
 }) => {
   const { t, language } = useI18n();
   
-  // Use buttonText as a fallback for submitButtonText
-  const finalButtonText = submitButtonText || buttonText || 'إرسال الطلب';
+  // Removed useEffect that was logging on every render
+  // This was likely causing re-renders due to prop changes from logging
   
-  useEffect(() => {
-    console.log("FormPreviewPanel updated with fields:", fields);
-    console.log("Current form style:", formStyle);
-  }, [fields, formStyle]);
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -86,7 +80,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={formStyle}
           fields={fields}
-          submitButtonText={finalButtonText}
+          submitButtonText={submitButtonText}
         >
           {(!fields || fields.length === 0) && (
             <div className="text-center p-6">

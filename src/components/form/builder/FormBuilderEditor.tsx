@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { 
@@ -79,16 +79,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [currentFormId, loadForm, navigate]);
 
-  // Extract the current step's fields for the editor and preview
-  const currentStepFields = activeTabIndex >= 0 && 
-    formState.data && 
-    Array.isArray(formState.data) && 
-    formState.data[activeTabIndex]?.fields
-      ? formState.data[activeTabIndex].fields
-      : [];
+  // Extract the current step's fields for the editor and preview - memoize to prevent unnecessary recalculations
+  const currentStepFields = React.useMemo(() => {
+    if (activeTabIndex >= 0 && 
+        formState.data && 
+        Array.isArray(formState.data) && 
+        formState.data[activeTabIndex]?.fields) {
+      return formState.data[activeTabIndex].fields;
+    }
+    return [];
+  }, [activeTabIndex, formState.data]);
 
   // Add new element to the current step
-  const addElement = (type: string) => {
+  const addElement = useCallback((type: string) => {
     try {
       if (!formState.data || !Array.isArray(formState.data) || !formState.data[activeTabIndex]) {
         console.error('No active step to add element to');
@@ -114,24 +117,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Mark form as dirty
       markAsDirty();
       
-      // Try to auto-save but don't block UI if it fails
-      autosaveForm(updatedData).catch(error => {
-        console.warn('Autosave failed, but continuing with UI updates', error);
-      });
-      
       // Select the newly added element
       setSelectedElementIndex(updatedData[activeTabIndex].fields.length - 1);
       
       // Show success toast
       toast.success('تم إضافة العنصر بنجاح');
+      
+      // Try to auto-save but don't block UI
+      autosaveForm(updatedData).catch(error => {
+        console.warn('Autosave failed, but continuing with UI updates', error);
+      });
     } catch (error) {
       console.error('Error adding element:', error);
       toast.error('حدث خطأ أثناء إضافة العنصر');
     }
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
 
   // Update an element in the current step
-  const updateElement = (index: number, updatedElement: FormField) => {
+  const updateElement = useCallback((index: number, updatedElement: FormField) => {
     if (!formState.data || !Array.isArray(formState.data)) return;
     
     const updatedData = [...formState.data];
@@ -148,10 +151,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         autosaveForm(updatedData);
       }
     }
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
 
   // Delete an element from the current step
-  const deleteElement = (index: number) => {
+  const deleteElement = useCallback((index: number) => {
     if (!formState.data || !Array.isArray(formState.data)) return;
     
     const updatedData = [...formState.data];
@@ -167,10 +170,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Auto-save
       autosaveForm(updatedData);
     }
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
 
   // Duplicate an element in the current step
-  const duplicateElement = (index: number) => {
+  const duplicateElement = useCallback((index: number) => {
     if (!formState.data || !Array.isArray(formState.data)) return;
     
     const updatedData = [...formState.data];
@@ -196,10 +199,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Auto-save
       autosaveForm(updatedData);
     }
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty]);
   
-  // Auto-save form changes
-  const autosaveForm = async (updatedData?: FormStep[]) => {
+  // Auto-save form changes - memoize to avoid creating new functions on each render
+  const autosaveForm = useCallback(async (updatedData?: FormStep[]) => {
     if (!currentFormId) return false;
     
     try {
@@ -212,10 +215,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       console.error('Error autosaving form:', error);
       return false;
     }
-  };
+  }, [currentFormId, formState.data, saveForm]);
 
   // Save form changes
-  const handleSaveForm = async () => {
+  const handleSaveForm = useCallback(async () => {
     if (!currentFormId) return;
     
     setIsSaving(true);
@@ -230,10 +233,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     if (success) {
       toast.success('تم حفظ النموذج بنجاح');
     }
-  };
+  }, [currentFormId, formState, saveForm]);
+
+  // Handle publish form - stubbed out function
+  const handlePublishForm = useCallback(async () => {
+    // This is just a stub function that would be implemented
+    setIsPublishing(true);
+    // Simulate an API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsPublishing(false);
+  }, []);
 
   // Handle drag end for reordering elements
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over || active.id === over.id) {
@@ -264,10 +276,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Auto-save
       autosaveForm(updatedData);
     }
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty, autosaveForm]);
 
   // Add new step to the form
-  const addStep = () => {
+  const addStep = useCallback(() => {
     if (!formState.data || !Array.isArray(formState.data)) {
       const newStep: FormStep = {
         id: uuidv4(),
@@ -296,10 +308,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     // Auto-save
     autosaveForm(updatedData);
-  };
+  }, [formState.data, updateFormData, markAsDirty, autosaveForm]);
 
   // Delete a step from the form
-  const deleteStep = (index: number) => {
+  const deleteStep = useCallback((index: number) => {
     if (!formState.data || !Array.isArray(formState.data) || formState.data.length <= 1) {
       toast.error('لا يمكن حذف الخطوة الوحيدة في النموذج');
       return;
@@ -317,10 +329,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     // Auto-save
     autosaveForm(updatedData);
-  };
+  }, [formState.data, activeTabIndex, updateFormData, markAsDirty, autosaveForm]);
 
   // Update step title
-  const updateStepTitle = (index: number, title: string) => {
+  const updateStepTitle = useCallback((index: number, title: string) => {
     if (!formState.data || !Array.isArray(formState.data)) return;
     
     const updatedData = [...formState.data];
@@ -337,19 +349,27 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Auto-save
       autosaveForm(updatedData);
     }
-  };
+  }, [formState.data, updateFormData, markAsDirty, autosaveForm]);
   
   // Compute current step and total steps for preview
-  const currentStep = formState.data && Array.isArray(formState.data) && formState.data.length > 0 ? activeTabIndex + 1 : 1;
-  const totalSteps = formState.data && Array.isArray(formState.data) ? formState.data.length : 1;
+  const currentStep = React.useMemo(() => {
+    return formState.data && Array.isArray(formState.data) && formState.data.length > 0 ? activeTabIndex + 1 : 1;
+  }, [formState.data, activeTabIndex]);
   
-  // Prepare FormStyle object from formState
-  const formStyleData: Partial<FormStyle> = {
-    primaryColor: formState.formStyle?.primaryColor || formState.primaryColor || '#9b87f5',
-    borderRadius: formState.formStyle?.borderRadius || formState.borderRadius || '0.5rem',
-    fontSize: formState.formStyle?.fontSize || formState.fontSize || '1rem',
-    buttonStyle: formState.formStyle?.buttonStyle || formState.buttonStyle || 'rounded'
-  };
+  const totalSteps = React.useMemo(() => {
+    return formState.data && Array.isArray(formState.data) ? formState.data.length : 1;
+  }, [formState.data]);
+  
+  // Prepare FormStyle object from formState - memoized to prevent recalculations
+  const formStyleData = React.useMemo(() => {
+    const style: FormStyle = {
+      primaryColor: formState.formStyle?.primaryColor || formState.primaryColor || '#9b87f5',
+      borderRadius: formState.formStyle?.borderRadius || formState.borderRadius || '0.5rem',
+      fontSize: formState.formStyle?.fontSize || formState.fontSize || '1rem',
+      buttonStyle: formState.formStyle?.buttonStyle || formState.buttonStyle || 'rounded'
+    };
+    return style;
+  }, [formState.formStyle, formState.primaryColor, formState.borderRadius, formState.fontSize, formState.buttonStyle]);
 
   return (
     <div className="container mx-auto py-6">
@@ -360,9 +380,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         onSave={handleSaveForm}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
-        onPublish={async () => {
-          // This would be handled by parent component
-        }}
+        onPublish={handlePublishForm}
         isSaving={isSaving}
         isPublishing={isPublishing}
         lastSaved={formState.lastSaved}
@@ -407,7 +425,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <h3 className="font-medium mb-3">إضافة عناصر</h3>
-                      <FormElementList onAddElement={addElement} />
+                      <FormElementList 
+                        onAddElement={addElement} 
+                      />
                     </div>
                     
                     <div className="md:col-span-2">
@@ -502,7 +522,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           <FormPreviewPanel
             formTitle={formState.title}
             formDescription={formState.description}
-            buttonText={formState.submitButtonText}
+            submitButtonText={formState.submitButtonText}
             fields={currentStepFields}
             formStyle={formStyleData}
             currentStep={currentStep}

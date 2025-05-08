@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { FileCheck, Palette, Save, BookTemplateIcon } from 'lucide-react';
@@ -31,8 +31,8 @@ const FormHeader: React.FC<FormHeaderProps> = ({
 }) => {
   const { language } = useI18n();
 
-  // Format last saved time
-  const formatLastSaved = () => {
+  // Memoize the formatted time to prevent recalculation on every render
+  const formattedLastSaved = useMemo(() => {
     if (!lastSaved) return null;
     
     const date = new Date(lastSaved);
@@ -41,7 +41,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
       minute: '2-digit',
       second: '2-digit'
     });
-  };
+  }, [lastSaved, language]);
 
   return (
     <div className="flex items-center justify-between bg-white p-4 border-b shadow-sm">
@@ -85,7 +85,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
         
         {lastSaved && (
           <span className="text-xs text-gray-500 mx-2">
-            {language === 'ar' ? `آخر حفظ: ${formatLastSaved()}` : `Last saved: ${formatLastSaved()}`}
+            {language === 'ar' ? `آخر حفظ: ${formattedLastSaved}` : `Last saved: ${formattedLastSaved}`}
           </span>
         )}
       </div>
