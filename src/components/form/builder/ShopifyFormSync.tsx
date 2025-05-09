@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -203,7 +202,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
-      // Update this line to not pass any arguments
+      // Fix: Remove the argument as refreshConnection now accepts an optional parameter
       const success = await refreshConnection();
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');

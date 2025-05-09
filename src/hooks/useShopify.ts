@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -362,7 +361,7 @@ export const useShopify = () => {
   }, [shop, loadProducts, testConnection]);
 
   // Add the missing refreshConnection method
-  const refreshConnection = useCallback(async (): Promise<boolean> => {
+  const refreshConnection = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
     try {
       setIsLoading(true);
       setTokenError(false);
@@ -370,7 +369,7 @@ export const useShopify = () => {
       setIsNetworkError(false);
       
       // Test connection first to validate current token
-      const isValid = await testConnection(true); // Force token refresh
+      const isValid = await testConnection(forceRefresh || true); // Force token refresh
       
       if (!isValid) {
         setTokenError(true);
