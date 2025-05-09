@@ -63,21 +63,14 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .replace(/^-+/, '')
         .replace(/-+$/, '');
       
-      // استخراج معرف المنتج الأساسي من معرف Shopify GID
-      let cleanProductId = null;
-      if (productId) {
-        // إذا كان معرف المنتج هو GID من Shopify، تخزين المعرف الكامل كما هو
-        // سنقوم بمعالجته في وظيفة النشر إلى Shopify
-        cleanProductId = productId;
-        
-        console.log('Using Shopify product ID:', productId);
-      }
+      // استخدام معرّف المنتج كما هو (سواء كان GID من Shopify أو معرّف محلي)
+      const selectedProductId = productId || null;
       
       console.log('Creating landing page with:', { 
         title: pageName, 
         slug, 
         is_published: false,
-        product_id: cleanProductId
+        product_id: selectedProductId
       });
       
       // إنشاء الصفحة
@@ -87,7 +80,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
           title: pageName,
           slug,
           is_published: false,
-          product_id: cleanProductId
+          product_id: selectedProductId
         })
         .select()
         .single();
