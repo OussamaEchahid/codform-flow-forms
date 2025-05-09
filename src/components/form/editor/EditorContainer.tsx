@@ -8,7 +8,7 @@ interface EditorContainerProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  open: boolean; // Add open prop to control dialog visibility
+  open: boolean; // هذه الخاصية مطلوبة
 }
 
 const EditorContainer = ({ title, onClose, children, open }: EditorContainerProps) => {

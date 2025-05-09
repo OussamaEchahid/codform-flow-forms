@@ -123,7 +123,9 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog open={dialogOpen} onOpenChange={(open) => {
+      if (!open) handleDialogClose();
+    }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import EditorContainer from './editor/EditorContainer';
@@ -17,6 +17,12 @@ interface FieldEditorProps {
 
 const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const { language } = useI18n();
+  const [isOpen, setIsOpen] = useState(true); // أضفنا حالة للتحكم في فتح/إغلاق الحوار
+  
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose();
+  };
   
   const renderEditorByType = () => {
     switch (field.type) {
@@ -24,7 +30,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       case 'email':
       case 'phone':
       case 'textarea':
-        return <TextFieldEditor field={field} onSave={onSave} onClose={onClose} />;
+        return <TextFieldEditor field={field} onSave={onSave} onClose={handleClose} />;
       
       case 'select':
       case 'radio':
@@ -34,7 +40,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
             field={field} 
             onChange={onSave} // Pass onSave as onChange to match the component's expected props
             onSave={onSave} 
-            onClose={onClose} 
+            onClose={handleClose} 
           />
         );
       
@@ -43,15 +49,15 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           <WhatsAppFieldEditor
             field={field}
             onSave={onSave}
-            onCancel={onClose}
+            onCancel={handleClose}
           />
         );
         
       case 'image':
-        return <ImageFieldEditor field={field} onSave={onSave} onClose={onClose} />;
+        return <ImageFieldEditor field={field} onSave={onSave} onClose={handleClose} />;
         
       default:
-        return <GenericFieldEditor field={field} onSave={onSave} onClose={onClose} />;
+        return <GenericFieldEditor field={field} onSave={onSave} onClose={handleClose} />;
     }
   };
 
@@ -60,7 +66,11 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     : `Edit ${field.label || field.type} Field`;
 
   return (
-    <EditorContainer title={editorTitle} onClose={onClose}>
+    <EditorContainer 
+      title={editorTitle} 
+      onClose={handleClose}
+      open={isOpen} // نمرر خاصية open المطلوبة
+    >
       {renderEditorByType()}
     </EditorContainer>
   );
