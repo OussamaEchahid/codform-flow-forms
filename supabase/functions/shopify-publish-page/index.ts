@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log(`[${requestId}] Processing shopify-publish-page request`);
 
     // Parse request data
-    const { pageId, pageSlug, shop } = await req.json();
+    const { pageId, pageSlug, shop, productId } = await req.json();
 
     // Validate inputs
     if (!pageId || !pageSlug || !shop) {
@@ -38,6 +38,9 @@ serve(async (req) => {
     }
 
     console.log(`[${requestId}] Publishing page ${pageId} with slug ${pageSlug} to shop ${shop}`);
+    if (productId) {
+      console.log(`[${requestId}] Linking with product: ${productId}`);
+    }
 
     // Create Supabase client with admin rights to access the database
     const supabaseAdmin = createClient(
@@ -100,8 +103,25 @@ serve(async (req) => {
       );
     }
 
+    // If productId is provided in the request, update the landing_pages table
+    if (productId && pageData.product_id !== productId) {
+      const { error: updateError } = await supabaseAdmin
+        .from("landing_pages")
+        .update({ product_id: productId })
+        .eq("id", pageId);
+        
+      if (updateError) {
+        console.error(`[${requestId}] Error updating product ID in landing page:`, updateError);
+      } else {
+        console.log(`[${requestId}] Updated product ID for landing page to: ${productId}`);
+      }
+    }
+
     // Extract the page content
     const pageTemplate = pageData.landing_page_templates?.[0]?.content;
+    
+    // Get the actual product ID to use (from request or from the database)
+    const actualProductId = productId || pageData.product_id;
     
     // Generate the HTML content for the Shopify page
     const shopifyPageContent = generateShopifyPageContent(pageData, pageTemplate || {});
@@ -141,31 +161,95 @@ serve(async (req) => {
       );
     }
 
+    // If we have a product ID, try to associate the page content with the product
+    let productResult = null;
+    if (actualProductId) {
+      console.log(`[${requestId}] Attempting to associate page with product: ${actualProductId}`);
+      
+      try {
+        // Fetch the Shopify product ID based on our stored product ID
+        const { data: productData, error: productError } = await supabaseAdmin
+          .from("shopify_product_settings")
+          .select("product_id")
+          .eq("id", actualProductId)
+          .single();
+          
+        const shopifyProductId = productData?.product_id || actualProductId;
+        
+        if (shopifyProductId) {
+          // Call the Shopify API to update the product with our custom page content
+          productResult = await updateShopifyProduct(
+            shopDomain, 
+            accessToken, 
+            apiVersion, 
+            shopifyProductId, 
+            pageData.title,
+            shopifyPageContent, 
+            requestId
+          );
+          
+          if (productResult) {
+            console.log(`[${requestId}] Successfully updated product ${shopifyProductId} with landing page content`);
+          }
+        }
+      } catch (error) {
+        console.error(`[${requestId}] Error associating page with product:`, error);
+        // We don't want to fail the entire operation if just the product update fails
+      }
+    }
+
     // Save the sync record
     const syncedUrl = `https://${shopDomain}/pages/${pageSlug}`;
     
-    const { error: syncError } = await supabaseAdmin
-      .from("shopify_page_syncs")
-      .upsert({
-        page_id: pageId,
-        shop_id: shop,
-        synced_url: syncedUrl,
-      }, {
-        onConflict: "page_id,shop_id"
-      });
-
-    if (syncError) {
+    try {
+      // Because the unique constraint doesn't exist yet, do a check first
+      const { data: existingSyncData } = await supabaseAdmin
+        .from("shopify_page_syncs")
+        .select("id")
+        .eq("page_id", pageId)
+        .eq("shop_id", shop);
+        
+      if (existingSyncData && existingSyncData.length > 0) {
+        // Update existing record
+        await supabaseAdmin
+          .from("shopify_page_syncs")
+          .update({ synced_url: syncedUrl })
+          .eq("id", existingSyncData[0].id);
+      } else {
+        // Create new record
+        await supabaseAdmin
+          .from("shopify_page_syncs")
+          .insert({
+            page_id: pageId,
+            shop_id: shop,
+            synced_url: syncedUrl
+          });
+      }
+    } catch (syncError) {
       console.error(`[${requestId}] Error saving sync record:`, syncError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Page was published but failed to save sync record" 
-        }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
-          status: 500 
+      // Don't fail the whole operation for this
+    }
+
+    // Get product URL if a product was associated
+    let productUrl = null;
+    if (productResult && actualProductId) {
+      // Get the product handle to construct a URL
+      try {
+        const productHandle = await getShopifyProductHandle(
+          shopDomain, 
+          accessToken, 
+          apiVersion, 
+          actualProductId, 
+          requestId
+        );
+        
+        if (productHandle) {
+          productUrl = `https://${shopDomain}/products/${productHandle}`;
         }
-      );
+      } catch (error) {
+        console.error(`[${requestId}] Error getting product handle:`, error);
+        // Don't fail for this
+      }
     }
 
     console.log(`[${requestId}] Successfully published page to Shopify: ${syncedUrl}`);
@@ -174,7 +258,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Page published successfully", 
-        url: syncedUrl 
+        url: syncedUrl,
+        productUrl: productUrl 
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -359,7 +444,17 @@ function generateContentFromTemplate(template) {
         }
         
         if (section.content) {
-          content += `<div>${section.content}</div>`;
+          if (typeof section.content === 'object') {
+            if (section.content.heading) {
+              content += `<h3>${section.content.heading}</h3>`;
+            }
+            if (section.content.subheading) {
+              content += `<p class="subheading">${section.content.subheading}</p>`;
+            }
+            // Add more content types as needed
+          } else {
+            content += `<div>${section.content}</div>`;
+          }
         }
         
         // Handle elements within the section
@@ -496,6 +591,97 @@ async function updateShopifyPage(shopDomain, accessToken, apiVersion, pageId, ti
     return await response.json();
   } catch (error) {
     console.error(`[${requestId}] Error updating Shopify page:`, error);
+    return null;
+  }
+}
+
+// Get the handle (slug) of a Shopify product
+async function getShopifyProductHandle(shopDomain, accessToken, apiVersion, productId, requestId) {
+  console.log(`[${requestId}] Fetching product handle for ID: ${productId}`);
+  
+  try {
+    const response = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/products/${productId}.json`, {
+      method: "GET",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json"
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`[${requestId}] Error fetching product: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (data.product && data.product.handle) {
+      return data.product.handle;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`[${requestId}] Error fetching product handle:`, error);
+    return null;
+  }
+}
+
+// Update a Shopify product with custom content
+async function updateShopifyProduct(shopDomain, accessToken, apiVersion, productId, title, html, requestId) {
+  console.log(`[${requestId}] Updating product ${productId} with landing page content`);
+  
+  try {
+    // Get the current product data first
+    const getResponse = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/products/${productId}.json`, {
+      method: "GET",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json"
+      }
+    });
+    
+    if (!getResponse.ok) {
+      console.error(`[${requestId}] Error fetching product for update: ${getResponse.status} ${getResponse.statusText}`);
+      return null;
+    }
+    
+    const productData = await getResponse.json();
+    const product = productData.product;
+    
+    if (!product) {
+      console.error(`[${requestId}] Product not found: ${productId}`);
+      return null;
+    }
+    
+    // Update the product description with our custom HTML
+    // We'll append to the existing description
+    const updatedProduct = {
+      product: {
+        id: productId,
+        body_html: html // Replace the product description with our custom HTML
+        // Alternatively, we could append: product.body_html + html
+      }
+    };
+    
+    const updateResponse = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/products/${productId}.json`, {
+      method: "PUT",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(updatedProduct)
+    });
+    
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error(`[${requestId}] Error updating product: ${updateResponse.status} ${updateResponse.statusText}`);
+      console.error(`[${requestId}] Response body: ${errorText}`);
+      return null;
+    }
+    
+    return await updateResponse.json();
+  } catch (error) {
+    console.error(`[${requestId}] Error updating product:`, error);
     return null;
   }
 }

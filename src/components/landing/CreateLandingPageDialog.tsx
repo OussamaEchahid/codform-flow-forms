@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Store } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateLandingPageDialogProps {
   open: boolean;
@@ -22,21 +23,28 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
   const [pageName, setPageName] = useState('');
   const [productId, setProductId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(open);
 
   // Shopify integration
   const { isConnected, shop, products: shopifyProducts, loadProducts, isLoading: isLoadingShopifyProducts } = useShopify();
   
   // Load Shopify products when the dialog opens
   useEffect(() => {
+    setDialogOpen(open);
+    
     if (open && isConnected) {
       loadProducts();
     }
   }, [open, isConnected, loadProducts]);
 
-  // تأكد من عدم عرض أي شيء إذا كان الحوار مغلقًا
-  if (!open) {
-    return null;
-  }
+  // Handle dialog close in a synchronized manner
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    // استخدم مهلة صغيرة قبل استدعاء onClose للسماح للحالة باستقرار أولاً
+    setTimeout(() => {
+      onClose();
+    }, 10);
+  };
   
   const handleCreatePage = async () => {
     if (!pageName.trim()) {
@@ -62,18 +70,13 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .insert({
           title: pageName,
           slug,
-          is_published: false
+          is_published: false,
+          product_id: productId || null
         })
         .select()
         .single();
       
       if (error) throw error;
-      
-      // تخزين معرف منتج Shopify في جدول منفصل إذا تم تحديده
-      if (productId) {
-        // هنا يمكن تخزين معرف منتج Shopify في جدول منفصل
-        // سيتم تنفيذ ذلك في الدالة الطرفية
-      }
       
       // الانتقال إلى المحرر
       navigate(`/landing-pages/editor/${data.id}`);
@@ -83,13 +86,18 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
       toast.error(language === 'ar' ? 'خطأ في إنشاء الصفحة' : 'Error creating page');
     } finally {
       setIsCreating(false);
-      onClose();
+      handleDialogClose();
     }
   };
 
+  // تأكد من عدم عرض أي شيء إذا كان الحوار مغلقًا
+  if (!open || !dialogOpen) {
+    return null;
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) onClose();
+    <Dialog open={dialogOpen} onOpenChange={(isOpen) => {
+      if (!isOpen) handleDialogClose();
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -112,21 +120,39 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
           </div>
           
           <div>
-            <Label>
+            <Label className="flex items-center">
+              <Store className="h-4 w-4 mr-2" />
               {language === 'ar' ? 'اختر منتج شوبيفاي' : 'Select Shopify Product'}
             </Label>
             
-            <select
-              className="w-full border rounded-md p-2"
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-            >
-              <option value="">
-                {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
-              </option>
-              
-              {isConnected ? (
-                isLoadingShopifyProducts ? (
+            {!isConnected ? (
+              <Alert variant="warning" className="mt-2">
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'يجب عليك الاتصال بشوبيفاي أولاً لربط صفحة الهبوط بمنتج' 
+                    : 'You must connect to Shopify first to link landing page with a product'}
+                </AlertDescription>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => window.location.href = '/shopify-connect'}
+                >
+                  {language === 'ar' ? 'اتصل بشوبيفاي' : 'Connect to Shopify'}
+                </Button>
+              </Alert>
+            ) : (
+              <select
+                className="w-full border rounded-md p-2 mt-1"
+                value={productId}
+                onChange={(e) => setProductId(e.target.value)}
+                disabled={isLoadingShopifyProducts}
+              >
+                <option value="">
+                  {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
+                </option>
+                
+                {isLoadingShopifyProducts ? (
                   <option disabled>{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</option>
                 ) : shopifyProducts.length > 0 ? (
                   shopifyProducts.map((product) => (
@@ -136,28 +162,14 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
                   ))
                 ) : (
                   <option disabled>{language === 'ar' ? 'لا توجد منتجات' : 'No products found'}</option>
-                )
-              ) : (
-                <option disabled>
-                  {language === 'ar' 
-                    ? 'يرجى الاتصال بشوبيفاي أولاً' 
-                    : 'You must connect to Shopify first'}
-                </option>
-              )}
-            </select>
-            
-            {!isConnected && (
-              <p className="text-sm text-amber-600 mt-1">
-                {language === 'ar' 
-                  ? 'يجب عليك الاتصال بشوبيفاي أولاً' 
-                  : 'You must connect to Shopify first'}
-              </p>
+                )}
+              </select>
             )}
           </div>
         </div>
         
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleDialogClose}>
             {language === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
           <Button onClick={handleCreatePage} disabled={isCreating}>
