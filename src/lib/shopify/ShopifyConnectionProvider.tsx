@@ -70,7 +70,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     connectionLogger.info(`Forced connection state to connected with shop: ${shop}`);
   }, []);
   
-  // Test connection function - updated to accept optional forceRefresh parameter
+  // Test connection function - with proper typing for the optional parameter
   const testConnection = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
     // No need to test if we don't have a shop
     if (!shopDomain) {
@@ -116,7 +116,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     }
   }, [shopDomain]);
   
-  // Function to test a token
+  // Function to test a token - improved error handling
   const testToken = useCallback(async (shop: string, token: string): Promise<boolean> => {
     if (!shop || !token) return false;
     
