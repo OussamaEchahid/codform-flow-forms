@@ -19,7 +19,23 @@ interface RequestPayload {
   timestamp?: number;
   forceRefresh?: boolean;
   maxRetries?: number;
+  checkPermissions?: boolean;
 }
+
+// Required Shopify scopes for our application
+const REQUIRED_SCOPES = [
+  'write_products', 
+  'read_products',
+  'read_orders',
+  'write_orders',
+  'write_script_tags',
+  'read_themes',
+  'write_themes',
+  'read_content',
+  'write_content',
+  // Metaobjects require this scope (not in our app yet)
+  // 'write_metaobject_definitions'
+];
 
 // Helper to add retries for fetch requests
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -57,6 +73,49 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
   throw lastError || new Error('All fetch attempts failed');
 }
 
+// Check if the token has all required permissions
+async function checkTokenPermissions(shop: string, accessToken: string, requestId: string): Promise<{
+  valid: boolean;
+  missingScopes: string[];
+  currentScopes: string[];
+}> {
+  try {
+    console.log(`[${requestId}] Checking token permissions/scopes`);
+    
+    // Make a request to get the current access scopes
+    const response = await fetchWithRetry(`https://${shop}/admin/oauth/access_scopes.json`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken,
+        'Cache-Control': 'no-store',
+      },
+    }, 2);
+
+    if (!response.ok) {
+      console.error(`[${requestId}] Failed to get access scopes: ${response.status}`);
+      return { valid: false, missingScopes: REQUIRED_SCOPES, currentScopes: [] };
+    }
+
+    const data = await response.json();
+    const currentScopes = data.access_scopes.map((scope: any) => scope.handle);
+    
+    console.log(`[${requestId}] Current access scopes:`, currentScopes);
+    
+    // Check if all required scopes are present
+    const missingScopes = REQUIRED_SCOPES.filter(scope => !currentScopes.includes(scope));
+    
+    if (missingScopes.length > 0) {
+      console.log(`[${requestId}] Missing scopes:`, missingScopes);
+      return { valid: false, missingScopes, currentScopes };
+    }
+    
+    return { valid: true, missingScopes: [], currentScopes };
+  } catch (error) {
+    console.error(`[${requestId}] Error checking permissions:`, error);
+    return { valid: false, missingScopes: REQUIRED_SCOPES, currentScopes: [] };
+  }
+}
+
 serve(async (req) => {
   console.log(`Initializing shopify-test-connection function`);
 
@@ -70,7 +129,7 @@ serve(async (req) => {
   try {
     // Parse request body
     const payload: RequestPayload = await req.json();
-    let { shop, accessToken, forceRefresh } = payload;
+    let { shop, accessToken, forceRefresh, checkPermissions } = payload;
     const requestId = payload.requestId || `req_test_${Math.random().toString(36).substring(2, 8)}`;
     const maxRetries = payload.maxRetries || 3;
 
@@ -126,6 +185,14 @@ serve(async (req) => {
       const shopName = shopData.shop?.name || 'unknown';
       
       console.log(`[${requestId}] Successfully connected to shop: ${shopName}`);
+      
+      // Check permissions if requested
+      let permissionsResult = { valid: true, missingScopes: [], currentScopes: [] };
+      
+      if (checkPermissions) {
+        permissionsResult = await checkTokenPermissions(shopDomain, accessToken, requestId);
+        console.log(`[${requestId}] Permissions check result:`, permissionsResult);
+      }
 
       // Update shop record in database to mark as active
       if (forceRefresh) {
@@ -152,7 +219,13 @@ serve(async (req) => {
           success: true,
           shop: shopName,
           domain: shopDomain,
-          details: shopData.shop
+          details: shopData.shop,
+          permissions: checkPermissions ? {
+            valid: permissionsResult.valid,
+            missingScopes: permissionsResult.missingScopes,
+            currentScopes: permissionsResult.currentScopes,
+            hasMetaobjectPermission: permissionsResult.currentScopes.includes('write_metaobject_definitions')
+          } : undefined
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
