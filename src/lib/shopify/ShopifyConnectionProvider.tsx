@@ -16,7 +16,7 @@ interface ShopifyConnectionContextType {
   forceSetConnected: (shop: string) => void;
   disconnect: () => Promise<void>;
   reload: () => Promise<void>;
-  testConnection: (forceRefresh: boolean) => Promise<boolean>;
+  testConnection: (forceRefresh?: boolean) => Promise<boolean>;
 }
 
 // Create context with default values
