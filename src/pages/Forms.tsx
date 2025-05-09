@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
@@ -36,7 +35,6 @@ const Forms = () => {
       
       // Test the connection with a single parameter
       try {
-        // Fix: Pass only one argument to testConnection
         const isValid = await testConnection(true);
         
         if (!isValid) {
