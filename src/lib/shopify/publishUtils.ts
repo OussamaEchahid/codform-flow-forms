@@ -1,6 +1,10 @@
-import { Form } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+
 import { ShopifySettings } from "./ShopifySettingsProvider";
+import { supabase } from "@/integrations/supabase/client";
+
+// Import Form from database types instead of @/types
+import { Database } from "@/integrations/supabase/database.types";
+type Form = Database["public"]["Tables"]["forms"]["Row"];
 
 export const logShopifySettings = (settings: ShopifySettings, prefix: string = '') => {
   console.group(`${prefix || 'Shopify'} Settings:`);
