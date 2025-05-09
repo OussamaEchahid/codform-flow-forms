@@ -60,6 +60,10 @@ export const useShopify = () => {
         if (data && data.length > 0) {
           setAccessToken(data[0].access_token || '');
           setIsConnected(true);
+          // Test connection immediately to verify token
+          testConnection().catch(err => {
+            console.log('Initial connection test failed:', err);
+          });
           return;
         }
 
@@ -99,6 +103,29 @@ export const useShopify = () => {
       const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
       const timestamp = new Date().toISOString();
       
+      // First verify token is valid
+      try {
+        const { data: testData, error: testError } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+          body: { 
+            shop, 
+            accessToken: token,
+            requestId: `verify_${requestId}`,
+            timestamp
+          }
+        });
+        
+        if (testError || !testData?.success) {
+          throw new Error('Token validation failed before fetching products');
+        }
+        
+        console.log('Token validation successful, proceeding to fetch products');
+      } catch (testError) {
+        console.error('Token validation failed:', testError);
+        setTokenError(true);
+        setIsLoading(false);
+        return [];
+      }
+      
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
         body: { 
@@ -113,9 +140,14 @@ export const useShopify = () => {
         throw error;
       }
 
-      setProducts(data?.products || []);
+      if (!data || !data.products) {
+        console.error('Invalid product data returned:', data);
+        throw new Error('No products data returned from Shopify API');
+      }
+      
+      setProducts(data.products || []);
       setIsLoading(false);
-      return data?.products || [];
+      return data.products || [];
     } catch (error) {
       console.error('Error loading products:', error);
       setIsLoading(false);
@@ -154,7 +186,8 @@ export const useShopify = () => {
           shop, 
           accessToken: tokenData[0].access_token || '',
           requestId,
-          timestamp
+          timestamp,
+          forceRefresh: withRetry
         }
       });
 
@@ -162,13 +195,13 @@ export const useShopify = () => {
         throw error;
       }
 
-      if (data.success) {
+      if (data?.success) {
         setIsConnected(true);
         setTokenError(false);
         setTokenExpired(false);
         return true;
       } else {
-        throw new Error(data.message || 'Connection test failed');
+        throw new Error(data?.message || 'Connection test failed');
       }
     } catch (error) {
       console.error('Connection test failed:', error);
@@ -222,6 +255,35 @@ export const useShopify = () => {
         return { success: true, message: 'Form saved for future sync' };
       }
       
+      // First verify token is valid
+      const { data: tokenData, error: tokenError } = await shopifyStores()
+        .select('access_token')
+        .eq('shop', shopDomain)
+        .single();
+        
+      if (tokenError || !tokenData?.access_token) {
+        throw new Error('Could not retrieve valid access token');
+      }
+      
+      // Test connection before sync
+      try {
+        const { data: testData, error: testError } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+          body: { 
+            shop: shopDomain, 
+            accessToken: tokenData.access_token
+          }
+        });
+        
+        if (testError || !testData?.success) {
+          throw new Error('Token validation failed before form sync');
+        }
+        
+        console.log('Token validation successful, proceeding with form sync');
+      } catch (testError) {
+        console.error('Token validation failed:', testError);
+        throw new Error('Could not verify Shopify connection before sync');
+      }
+      
       // Add a unique request ID and timestamp for debugging
       const requestId = `req_sync_${Math.random().toString(36).substring(2, 10)}`;
       const timestamp = new Date().toISOString();
@@ -232,6 +294,7 @@ export const useShopify = () => {
           shop: shopDomain,
           formId: formData.formId,
           settings: formData.settings,
+          accessToken: tokenData.access_token,
           requestId,
           timestamp
         }

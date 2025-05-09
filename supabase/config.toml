@@ -4,18 +4,15 @@ project_id = "mtyfuwdsshlzqwjujavp"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "storage"]
 
 [db]
 port = 54322
 
 [studio]
-enabled = true
 port = 54323
-api_url = "http://localhost"
 
 [inbucket]
-enabled = true
 port = 54324
 
 [storage]
@@ -27,9 +24,20 @@ enabled = true
 [realtime]
 enabled = true
 
-[analytics]
-enabled = false
-
-[experimental.functions.shopify-publish-page]
+[functions.shopify-auth]
 verify_jwt = false
 
+[functions.shopify-callback]
+verify_jwt = false
+
+[functions.shopify-products]
+verify_jwt = false
+
+[functions.shopify-test-connection]
+verify_jwt = false
+
+[functions.shopify-sync-form]
+verify_jwt = false
+
+[functions.shopify-publish-page]
+verify_jwt = false

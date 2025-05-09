@@ -1,158 +1,149 @@
-import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+
+// CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-console.log("Initializing shopify-test-connection function");
+interface RequestPayload {
+  shop: string;
+  accessToken: string;
+  requestId?: string;
+  timestamp?: number;
+  forceRefresh?: boolean;
+}
 
 serve(async (req) => {
-  // Handle OPTIONS request for CORS
+  console.log(`Initializing shopify-test-connection function`);
+
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log(`Test connection request received: ${req.url}`);
-  
+  console.log('Test connection request received:', req.url);
+
   try {
-    const { shop, accessToken, requestId } = await req.json();
-    
-    // Log with request ID if provided
-    const logPrefix = requestId ? `[${requestId}]` : '';
-    console.log(`${logPrefix} Testing connection for shop: ${shop}`);
+    // Parse request body
+    const payload: RequestPayload = await req.json();
+    let { shop, accessToken, forceRefresh } = payload;
+    const requestId = payload.requestId || `req_test_${Math.random().toString(36).substring(2, 8)}`;
 
     if (!shop || !accessToken) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Missing required parameters: shop and accessToken" 
+        JSON.stringify({
+          success: false,
+          message: 'Missing shop or accessToken in request',
         }),
-        { 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    // Normalize shop domain
-    const shopDomain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
-    console.log(`${logPrefix} Using normalized shop domain: ${shopDomain}`);
+    console.log(`[${requestId}] Testing connection for shop: ${shop}`);
 
-    // Test API connection by making a simple call
+    // Normalize shop domain
+    const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+    console.log(`[${requestId}] Using normalized shop domain: ${shopDomain}`);
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Test access token by fetching shop info from Shopify
     try {
-      const shopResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json`, {
+      const response = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json`, {
         headers: {
+          'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
+          // Prevent caching
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+        // Add cache busting query param
+        cache: 'no-store',
       });
-      
-      if (!shopResponse.ok) {
-        // If response is not OK, check specific status codes
-        const responseBody = await shopResponse.text();
-        console.error(`${logPrefix} Connection test failed with status ${shopResponse.status}: ${responseBody}`);
-        
-        // If it's an authentication issue
-        if (shopResponse.status === 401 || shopResponse.status === 403) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              message: "Invalid or expired access token",
-              status: shopResponse.status,
-              details: responseBody
-            }),
-            { 
-              status: 401,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          );
-        }
-        
-        // Other error cases
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: `API request failed with status ${shopResponse.status}`,
-            status: shopResponse.status,
-            details: responseBody
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+
+      if (!response.ok) {
+        throw new Error(`Shopify API returned ${response.status}: ${await response.text()}`);
       }
-      
-      // Successfully validated token
-      const shopData = await shopResponse.json();
-      console.log(`${logPrefix} Connection test successful for shop: ${shopData.shop.name}`);
-      
-      // Update the shop record in the database to mark as active
-      try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        // Update shop as active
-        const { error } = await supabase
+
+      const shopData = await response.json();
+      const shopName = shopData.shop?.name || 'unknown';
+
+      // Update shop record in database to mark as active
+      if (forceRefresh) {
+        const { data: updateData, error: updateError } = await supabase
           .from('shopify_stores')
-          .update({ is_active: true })
-          .eq('shop', shop);
-          
-        if (error) {
-          console.error(`${logPrefix} Error updating shop record:`, error);
+          .update({
+            access_token: accessToken,
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop', shopDomain);
+
+        if (updateError) {
+          console.error(`[${requestId}] Error updating shop in database:`, updateError);
         } else {
-          console.log(`${logPrefix} Updated shop ${shop} in database`);
+          console.log(`[${requestId}] Updated shop ${shopDomain} in database`);
         }
-      } catch (dbError) {
-        console.error(`${logPrefix} Database update error:`, dbError);
-        // Continue execution since the API connection was successful
       }
-      
+
+      console.log(`[${requestId}] Connection test successful for shop: ${shopName}`);
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Connection successful",
-          shop: shopData.shop.name,
-          shopDomain: shopDomain,
-          myshopifyDomain: shopData.shop.myshopify_domain
+        JSON.stringify({
+          success: true,
+          shop: shopName,
+          domain: shopDomain,
         }),
-        { 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
-    } catch (apiError) {
-      // Network or other errors
-      console.error(`${logPrefix} API connection error:`, apiError);
-      
+    } catch (error) {
+      console.error(`Error testing connection:`, error);
+
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: apiError instanceof Error ? apiError.message : "Unknown API connection error",
-          error: apiError instanceof Error ? apiError.name : "NetworkError"
+        JSON.stringify({
+          success: false,
+          message: `Failed to connect to Shopify API: ${error.message}`,
         }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,  // Unauthorized if token is invalid
         }
       );
     }
   } catch (error) {
-    console.error("General error in test-connection function:", error);
-    
+    console.error(`Unhandled server error:`, error);
+
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: "Server error processing connection test",
-        error: error instanceof Error ? error.message : "Unknown error"
+      JSON.stringify({
+        success: false,
+        message: `Server error: ${error.message}`,
       }),
-      { 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
 });
+
+// To invoke:
+// curl -i --location --request POST 'http://localhost:54321/functions/v1/shopify-test-connection' \
+//   --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+//   --header 'Content-Type: application/json' \
+//   --data '{"shop":"example.myshopify.com","accessToken":"shpat_..."}'

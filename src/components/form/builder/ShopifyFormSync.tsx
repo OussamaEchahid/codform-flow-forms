@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, RefreshCw, Upload, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useShopify } from '@/hooks/useShopify';
 
 interface ShopifyFormSyncProps {
   formId: string;
@@ -15,12 +16,13 @@ interface ShopifyFormSyncProps {
 
 const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const { language } = useI18n();
-  const { shop } = useAuth();
+  const { shop, testConnection, refreshConnection } = useShopify();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [syncsCount, setSyncsCount] = useState<number>(0);
   const [isFormPublished, setIsFormPublished] = useState<boolean>(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     // Check form publication status
@@ -80,6 +82,16 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
+      // First verify connection
+      const connectionValid = await testConnection();
+      
+      if (!connectionValid) {
+        toast.error(language === 'ar' ? 'فشل الاتصال بـ Shopify. يرجى تحديث الاتصال أولاً' : 'Shopify connection failed. Please refresh connection first');
+        setIsSyncing(false);
+        setSyncStatus('error');
+        return;
+      }
+
       // First ensure the form is published
       const { error: publishError } = await supabase
         .from('forms')
@@ -96,12 +108,31 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         return;
       }
 
+      // Get access token for the current shop
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shop)
+        .single();
+        
+      if (tokenError || !tokenData?.access_token) {
+        console.error('Error getting access token:', tokenError);
+        toast.error(language === 'ar' ? 'خطأ في الحصول على رمز الوصول' : 'Error getting access token');
+        setIsSyncing(false);
+        setSyncStatus('error');
+        return;
+      }
+
       // Call the Supabase edge function to sync the form with Shopify
       const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
-        body: JSON.stringify({
+        body: {
           formId: formId,
-          shop: shop
-        })
+          shop: shop,
+          accessToken: tokenData.access_token,
+          // Add timestamp and unique ID to avoid caching issues
+          timestamp: Date.now(),
+          requestId: `sync_${Math.random().toString(36).substring(2, 10)}`
+        }
       });
 
       if (error) {
@@ -119,7 +150,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         return;
       }
 
-      if (data.success) {
+      if (data?.success) {
         const newSyncsCount = syncsCount + 1;
         const currentTime = new Date().toLocaleString();
         
@@ -150,7 +181,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
           setIsFormPublished(formData.is_published);
         }
       } else {
-        toast.error(data.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync'));
+        toast.error(data?.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync'));
         setSyncStatus('error');
         
         // Save error status
@@ -166,6 +197,42 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    try {
+      const success = await refreshConnection();
+      if (success) {
+        toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
+        // Try sync again after reconnection
+        await handleSync();
+      } else {
+        toast.error(language === 'ar' ? 'فشل إعادة الاتصال' : 'Failed to reconnect');
+      }
+    } catch (error) {
+      console.error('Error reconnecting:', error);
+      toast.error(language === 'ar' ? 'حدث خطأ أثناء إعادة الاتصال' : 'Error during reconnection');
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  const handleRetryConnection = async () => {
+    setIsReconnecting(true);
+    try {
+      const success = await testConnection(true);
+      if (success) {
+        toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');
+      } else {
+        toast.error(language === 'ar' ? 'فشل تجديد الاتصال' : 'Connection refresh failed');
+      }
+    } catch (error) {
+      console.error('Error retrying connection:', error);
+      toast.error(language === 'ar' ? 'حدث خطأ أثناء تجديد الاتصال' : 'Error refreshing connection');
+    } finally {
+      setIsReconnecting(false);
     }
   };
 
@@ -262,20 +329,52 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
             </div>
           </div>
           
-          <Button
-            onClick={handleSync}
-            disabled={isSyncing || !shop || !formId}
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-          >
-            {isSyncing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : syncStatus === 'success' ? (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
+          <div className="flex flex-col space-y-2">
+            <Button
+              onClick={handleSync}
+              disabled={isSyncing || !shop || !formId}
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+            >
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : syncStatus === 'success' ? (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              {language === 'ar' ? 'مزامنة النموذج' : 'Sync Form'}
+            </Button>
+            
+            <Button
+              onClick={handleRetryConnection}
+              disabled={isReconnecting}
+              variant="outline"
+              className="w-full"
+            >
+              {isReconnecting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              {language === 'ar' ? 'تجديد الاتصال' : 'Refresh Connection'}
+            </Button>
+            
+            {syncStatus === 'error' && (
+              <Button
+                onClick={handleReconnect}
+                disabled={isReconnecting}
+                variant="secondary"
+                className="w-full"
+              >
+                {isReconnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                )}
+                {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
+              </Button>
             )}
-            {language === 'ar' ? 'مزامنة النموذج' : 'Sync Form'}
-          </Button>
+          </div>
           
           {syncStatus === 'success' && (
             <div className="bg-green-50 p-3 rounded-lg border border-green-100 mt-4">
@@ -309,8 +408,8 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
                   </p>
                   <p className="text-xs text-red-600 mt-1">
                     {language === 'ar'
-                      ? 'يرجى التأكد من أنك متصل بمتجر Shopify الخاص بك والمحاولة مرة أخرى'
-                      : 'Please ensure you are connected to your Shopify store and try again'}
+                      ? 'يرجى التأكد من أنك متصل بمتجر Shopify الخاص بك والمحاولة مرة أخرى. جرب تحديث الاتصال أولاً.'
+                      : 'Please ensure you are connected to your Shopify store and try again. Try refreshing connection first.'}
                   </p>
                 </div>
               </div>
