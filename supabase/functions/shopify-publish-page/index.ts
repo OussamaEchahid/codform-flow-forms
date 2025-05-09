@@ -23,6 +23,7 @@ interface RequestPayload {
   forceMetaobjectCreation?: boolean;
   fallbackOnly?: boolean;
   debugMode?: boolean;
+  ignoreMetaobjectErrors?: boolean;  // Added ignoreMetaobjectErrors parameter
 }
 
 interface MetaobjectDefinition {
@@ -471,10 +472,21 @@ serve(async (req) => {
   try {
     // Parse request body
     const payload: RequestPayload = await req.json();
-    const { pageId, pageSlug, productId, shop, accessToken, forceMetaobjectCreation, fallbackOnly, debugMode } = payload;
+    const { 
+      pageId, 
+      pageSlug, 
+      productId, 
+      shop, 
+      accessToken, 
+      forceMetaobjectCreation, 
+      fallbackOnly, 
+      debugMode,
+      ignoreMetaobjectErrors  // Get ignoreMetaobjectErrors from payload
+    } = payload;
     const requestId = payload.requestId || `req_${Math.random().toString(36).substring(2, 8)}`;
     
     console.log(`[${requestId}] Processing shopify-publish-page request at ${new Date().toISOString()}`);
+    console.log(`[${requestId}] Debug mode: ${debugMode ? 'enabled' : 'disabled'}, Fallback only: ${fallbackOnly ? 'enabled' : 'disabled'}, Ignore metaobject errors: ${ignoreMetaobjectErrors ? 'enabled' : 'disabled'}`);
 
     if (!pageId || !pageSlug || !productId || !shop || !accessToken) {
       return new Response(
@@ -632,9 +644,25 @@ serve(async (req) => {
           metaobjectErrors = metaResult.errors;
           
           console.log(`[${requestId}] Metaobject creation result:`, metaResult);
+
+          // If ignoreMetaobjectErrors is true and we have errors, continue with fallback approach
+          if (!metaResult.success && ignoreMetaobjectErrors) {
+            console.log(`[${requestId}] Ignoring metaobject errors and continuing with fallback approach`);
+            // We'll set a flag so we know we ignored errors
+            metaobjectErrors = { ignored: true, original: metaResult.errors };
+          } else if (!metaResult.success && !ignoreMetaobjectErrors) {
+            throw new Error(`Metaobject creation failed: ${JSON.stringify(metaResult.errors)}`);
+          }
         } catch (metaError) {
           console.error(`[${requestId}] Error creating metaobject:`, metaError);
-          // Continue with fallback approach - we'll just update the product
+          
+          // If ignoreMetaobjectErrors is true, continue with fallback approach
+          if (!ignoreMetaobjectErrors) {
+            // Only throw an error if we're not ignoring metaobject errors
+            throw metaError;
+          } else {
+            console.log(`[${requestId}] Ignoring metaobject error and continuing with fallback approach`);
+          }
         }
       }
       
@@ -755,6 +783,7 @@ serve(async (req) => {
           fallbackUsed: !metaobjectCreated,
           fallbackSuccess: fallbackSuccess,
           hasMetaobjectPermission: permissionsFlag,
+          ignoreMetaobjectErrorsWasActive: ignoreMetaobjectErrors,  // Add this to the response for debugging
           debugMode: debugMode ? {
             pageData: {
               id: pageData.id,

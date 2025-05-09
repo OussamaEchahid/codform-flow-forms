@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -41,6 +40,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useShopifySettings } from '@/lib/shopify/ShopifySettingsProvider';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -65,6 +65,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
   const { language } = useI18n();
   const navigate = useNavigate();
   const { isConnected, shop, products, isLoading: isShopifyLoading, loadProducts, testConnection } = useShopify();
+  const { settings } = useShopifySettings(); // Import the shopify settings
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -77,12 +78,20 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
   const [syncStatus, setSyncStatus] = useState<'none' | 'synced' | 'error'>('none');
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncInfo, setSyncInfo] = useState<any>(null);
-  const [debugMode, setDebugMode] = useState<boolean>(false);
-  const [fallbackMode, setFallbackMode] = useState<boolean>(false);
+  const [debugMode, setDebugMode] = useState<boolean>(settings.debugMode);
+  const [fallbackMode, setFallbackMode] = useState<boolean>(settings.fallbackModeOnly);
+  const [ignoreMetaobjectErrors, setIgnoreMetaobjectErrors] = useState<boolean>(settings.ignoreMetaobjectErrors);
   const [retryCount, setRetryCount] = useState<number>(0);
   const [permissionError, setPermissionError] = useState<boolean>(false);
   const [loadPermissions, setLoadPermissions] = useState<boolean>(false);
   const [missingPermissions, setMissingPermissions] = useState<string[]>([]);
+
+  // Sync local state with global settings
+  useEffect(() => {
+    setDebugMode(settings.debugMode);
+    setFallbackMode(settings.fallbackModeOnly);
+    setIgnoreMetaobjectErrors(settings.ignoreMetaobjectErrors);
+  }, [settings.debugMode, settings.fallbackModeOnly, settings.ignoreMetaobjectErrors]);
 
   // Load products when connected
   useEffect(() => {
@@ -222,7 +231,10 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
       console.log('Publishing page to Shopify', {
         pageId,
         pageSlug,
-        productId: selectedProductId
+        productId: selectedProductId,
+        fallbackMode,
+        debugMode,
+        ignoreMetaobjectErrors
       });
       
       // Show toast with progress
@@ -243,6 +255,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
           timestamp: Date.now(),
           fallbackOnly: fallbackMode,
           debugMode: debugMode,
+          ignoreMetaobjectErrors: ignoreMetaobjectErrors, // Pass the ignoreMetaobjectErrors setting
         }
       });
       
@@ -582,6 +595,30 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                       {language === 'ar' ? 'وضع التصحيح' : 'Debug Mode'}
                     </Label>
                   </div>
+                </div>
+
+                {/* Add ignore metaobject errors switch */}
+                <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
+                  <Switch
+                    id="ignore-metaobject-errors"
+                    checked={ignoreMetaobjectErrors}
+                    onCheckedChange={setIgnoreMetaobjectErrors}
+                  />
+                  <Label htmlFor="ignore-metaobject-errors" className="cursor-pointer">
+                    {language === 'ar' ? 'تجاهل أخطاء Metaobject' : 'Ignore Metaobject Errors'}
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {language === 'ar'
+                          ? 'متابعة النشر حتى مع وجود أخطاء في metaobject'
+                          : 'Continue publishing even when metaobject errors occur'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 
                 {permissionError && (
