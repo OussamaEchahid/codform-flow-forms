@@ -17,14 +17,12 @@ const Dashboard = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   
   useEffect(() => {
-    // التحقق من معلمات URL للتوجيه من شوبيفاي
     const shopifyConnectedParam = searchParams.get("shopify_connected");
     const shopParam = searchParams.get("shop");
     const authSuccess = searchParams.get("auth_success");
     
     console.log("Dashboard params:", { shopifyConnectedParam, shopParam, authSuccess });
     
-    // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
     if (shopifyConnectedParam === "true" && shopParam) {
       const message = language === 'ar'
         ? `تم الاتصال بمتجر ${shopParam} بنجاح`
@@ -32,13 +30,11 @@ const Dashboard = () => {
         
       toast.success(message);
       
-      // إزالة معلمات URL من العنوان
       if (window.history.replaceState) {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
       
-      // تعيين علامة الزيارة الأولى
       const firstVisitKey = `first_visit_${shopParam}`;
       if (!localStorage.getItem(firstVisitKey)) {
         setIsFirstVisit(true);
@@ -47,14 +43,13 @@ const Dashboard = () => {
     }
   }, [searchParams, language]);
 
-  // إنشاء بيانات عشوائية للرسوم البيانية
+  // بيانات عشوائية للرسوم البيانية
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
     date: `${i + 1}/4`,
     orders: Math.floor(Math.random() * 10),
     revenue: Math.floor(Math.random() * 1000),
   }));
 
-  // التوجيه إلى صفحة Shopify
   const handleConnectShopify = () => {
     navigate('/shopify');
   };
@@ -109,14 +104,11 @@ const Dashboard = () => {
         <Card className="p-6 hover:shadow-lg transition-all duration-300">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-purple-100">
-              <DollarSign className="w-6 h-6 text-[#9b87f5]" />
+              <ShoppingCart className="w-6 h-6 text-[#9b87f5]" />
             </div>
             <div>
-              <p className="text-gray-600 mb-1">Revenue</p>
-              <div className="flex items-baseline">
-                <span className="text-3xl font-bold">5,520</span>
-                <span className="text-sm text-gray-500 ml-1">MAD</span>
-              </div>
+              <p className="text-gray-600 mb-1">Orders</p>
+              <h3 className="text-3xl font-bold">24</h3>
             </div>
           </div>
         </Card>
@@ -139,32 +131,20 @@ const Dashboard = () => {
         <Card className="p-6 hover:shadow-lg transition-all duration-300">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-purple-100">
-              <ShoppingCart className="w-6 h-6 text-[#9b87f5]" />
+              <DollarSign className="w-6 h-6 text-[#9b87f5]" />
             </div>
             <div>
-              <p className="text-gray-600 mb-1">Orders</p>
-              <h3 className="text-3xl font-bold">24</h3>
+              <p className="text-gray-600 mb-1">Revenue</p>
+              <div className="flex items-baseline">
+                <span className="text-3xl font-bold">5,520</span>
+                <span className="text-sm text-gray-500 ml-1">MAD</span>
+              </div>
             </div>
           </div>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card className="p-6 hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold mb-4">Revenue</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sampleData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#9b87f5" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-        
         <Card className="p-6 hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold mb-4">Orders</h3>
           <div className="h-[300px]">
@@ -175,6 +155,21 @@ const Dashboard = () => {
                 <YAxis />
                 <Tooltip />
                 <Line type="monotone" dataKey="orders" stroke="#9b87f5" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+        
+        <Card className="p-6 hover:shadow-lg transition-all duration-300">
+          <h3 className="text-lg font-semibold mb-4">Revenue</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sampleData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="revenue" stroke="#9b87f5" />
               </LineChart>
             </ResponsiveContainer>
           </div>
