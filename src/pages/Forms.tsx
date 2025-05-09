@@ -34,14 +34,12 @@ const Forms = () => {
       // Make sure connection state is up to date
       syncState();
       
-      // Also test the connection to make sure token is valid
-      // Added try-catch to better handle connection failures
+      // Test the connection with a single parameter
       try {
-        const isValid = await testConnection();
+        const isValid = await testConnection(true);
         
         if (!isValid) {
           console.warn('Token validation failed in Forms page');
-          // Let the error state handle this instead of a toast
         }
       } catch (testError) {
         console.error('Error testing connection in Forms page:', testError);

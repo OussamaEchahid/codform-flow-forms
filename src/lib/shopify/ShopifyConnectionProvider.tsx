@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { shopifyStores, shopifySupabase } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
+import { connectionCache, CONNECTION_STATE_KEY } from './utils/connection-cache';
+import { connectionLogger } from './utils/connection-logger';
 
 // Define the context interface
 interface ShopifyConnectionContextType {
@@ -30,19 +32,6 @@ const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
   reload: async () => {},
   testConnection: async () => false,
 });
-
-// Manage token validation cache with timestamps to avoid excessive API calls
-const tokenValidationCache = new Map<string, { isValid: boolean; timestamp: number }>();
-const VALIDATION_CACHE_TTL = 60 * 1000; // 1 minute cache validity
-const CONNECTION_STATE_KEY = 'shopify_connection_state';
-
-// Create a custom logger for connection-related events
-const connectionLogger = {
-  info: (message: string) => console.log(`[ShopifyConnection] ${message}`),
-  error: (message: string, error?: any) => console.error(`[ShopifyConnection] ${message}`, error),
-  warn: (message: string) => console.warn(`[ShopifyConnection] ${message}`),
-  debug: (message: string, data?: any) => console.log(`[ShopifyConnection] ${message}`, data),
-};
 
 export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -84,9 +73,9 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
     
     // Skip test if we tested recently, unless forceRefresh is true
     const now = Date.now();
-    if (!forceRefresh && tokenValidationCache.has(shopDomain)) {
-      const cached = tokenValidationCache.get(shopDomain)!;
-      if (now - cached.timestamp < VALIDATION_CACHE_TTL) {
+    if (!forceRefresh && connectionCache.isValidationResultFresh(shopDomain)) {
+      const cached = connectionCache.getValidationResult(shopDomain);
+      if (cached) {
         connectionLogger.debug(`Using cached validation result for ${shopDomain}: ${cached.isValid}`);
         return cached.isValid;
       }
@@ -138,7 +127,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       if (testResult.error || !testResult.data?.success) {
         // Clear cached validation result
-        tokenValidationCache.delete(shopDomain);
+        connectionCache.clearValidationResult(shopDomain);
         
         const errorMessage = testResult.error?.message || testResult.data?.message || 'فشل اختبار الاتصال';
         connectionLogger.error(`Connection test failed: ${errorMessage}`);
@@ -147,7 +136,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       }
       
       // Cache the validation result
-      tokenValidationCache.set(shopDomain, { isValid: true, timestamp: now });
+      connectionCache.setValidationResult(shopDomain, true);
       
       // Update connection state in localStorage and provider
       const state = {
@@ -184,7 +173,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       connectionLogger.error('Connection test error:', error);
       
       // Clear cached validation result
-      tokenValidationCache.delete(shopDomain);
+      connectionCache.clearValidationResult(shopDomain);
       
       // Update state to reflect error
       const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف أثناء اختبار الاتصال';
@@ -265,6 +254,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       syncState();
       
       // If we have a shop, test the connection
+      // IMPORTANT: Only pass a single boolean parameter to testConnection
       if (shopDomain) {
         await testConnection(true);
       }
@@ -297,7 +287,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       shopifyConnectionManager.clearAllStores();
       
       // Clear token validation cache
-      tokenValidationCache.clear();
+      connectionCache.clearAllValidationResults();
       
       // Update state
       setIsConnected(false);
