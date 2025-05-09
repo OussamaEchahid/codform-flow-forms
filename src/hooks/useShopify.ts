@@ -361,6 +361,48 @@ export const useShopify = () => {
     }
   }, [shop, loadProducts, testConnection]);
 
+  // Add the missing refreshConnection method
+  const refreshConnection = useCallback(async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setTokenError(false);
+      setTokenExpired(false);
+      setIsNetworkError(false);
+      
+      // Test connection first to validate current token
+      const isValid = await testConnection(true); // Force token refresh
+      
+      if (!isValid) {
+        setTokenError(true);
+        setTokenExpired(true);
+        return false;
+      }
+      
+      // Clear product cache
+      if (shop) {
+        const cacheKey = `products:${shop}`;
+        productCache.delete(cacheKey);
+      }
+      
+      // Load products to verify connection is working
+      try {
+        await loadProducts();
+        toast.success('تم تحديث الاتصال بنجاح');
+        return true;
+      } catch (loadError) {
+        console.error('Error loading products after connection refresh:', loadError);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error refreshing connection:', error);
+      setTokenError(true);
+      setIsNetworkError(true);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shop, testConnection, loadProducts]);
+
   // Emergency reset for recovery
   const emergencyReset = useCallback(() => {
     // Clear all Shopify-related localStorage items
@@ -408,6 +450,8 @@ export const useShopify = () => {
     emergencyReset,
     testConnection,
     refreshProducts,
-    getAccessToken
+    getAccessToken,
+    // Add the refreshConnection method to the returned object
+    refreshConnection
   };
 };

@@ -203,6 +203,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
+      // Update this line to not pass any arguments
       const success = await refreshConnection();
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
