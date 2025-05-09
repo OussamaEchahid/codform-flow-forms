@@ -53,15 +53,15 @@ serve(async (req) => {
     }
 
     // Normalize shop domain
-    let normalizedShopDomain = shop
+    let normalizedShopDomain = shop;
     if (!normalizedShopDomain.includes('myshopify.com')) {
-      normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`
+      normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
     }
 
     console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
 
     // Call Shopify GraphQL API to get products - FIXED QUERY to use price instead of priceV2
-    const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json` 
+    const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json`;
     const query = `
       {
         products(first: 50) {
@@ -88,10 +88,7 @@ serve(async (req) => {
                   node {
                     id
                     title
-                    price {
-                      amount
-                      currencyCode
-                    }
+                    price
                     availableForSale
                   }
                 }
@@ -100,7 +97,7 @@ serve(async (req) => {
           }
         }
       }
-    `
+    `;
 
     let retryCount = 0;
     const maxRetries = 2;
@@ -224,7 +221,7 @@ serve(async (req) => {
           variants: (node.variants?.edges || []).map(variant => ({
             id: variant.node.id,
             title: variant.node.title,
-            price: variant.node.price?.amount,
+            price: variant.node.price,
             available: variant.node.availableForSale,
           }))
         }
@@ -255,6 +252,7 @@ serve(async (req) => {
               .insert({
                 shop: normalizedShopDomain,
                 access_token: accessToken,
+                token_type: 'offline',
                 is_active: true
               })
             
@@ -265,6 +263,7 @@ serve(async (req) => {
               .from('shopify_stores')
               .update({
                 access_token: accessToken,
+                token_type: 'offline',
                 is_active: true,
                 updated_at: new Date().toISOString()
               })

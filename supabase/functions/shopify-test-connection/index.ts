@@ -86,8 +86,8 @@ serve(async (req) => {
       );
     }
     
-    console.log(`[${requestId}] Successfully connected to shop: ${shop}`);
-    console.log(`[${requestId}] Connection test successful for shop: ${shop}`);
+    console.log(`[${requestId}] Successfully connected to shop: ${normalizedShopDomain}`);
+    console.log(`[${requestId}] Connection test successful for shop: ${normalizedShopDomain}`);
     
     return new Response(
       JSON.stringify({ 

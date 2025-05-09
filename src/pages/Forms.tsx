@@ -16,19 +16,34 @@ const Forms = () => {
     isLoading,
     isValidating, 
     error,
-    syncState
+    syncState,
+    testConnection
   } = useShopifyConnection();
   
   // Check connection once on load
   useEffect(() => {
-    if (!isLoading && !isConnected && !shopDomain) {
-      toast.error('لا يوجد اتصال بمتجر Shopify. الرجاء الاتصال بمتجرك أولاً.');
-      navigate('/shopify');
-    }
+    const checkConnection = async () => {
+      if (isLoading || isValidating) return;
+      
+      if (!isConnected && !shopDomain) {
+        toast.error('لا يوجد اتصال بمتجر Shopify. الرجاء الاتصال بمتجرك أولاً.');
+        navigate('/shopify');
+        return;
+      }
+      
+      // Make sure connection state is up to date
+      syncState();
+      
+      // Also test the connection to make sure token is valid
+      const isValid = await testConnection();
+      
+      if (!isValid) {
+        toast.error('رمز الوصول إلى Shopify غير صالح أو منتهي الصلاحية. الرجاء تحديث رمز الوصول.');
+      }
+    };
     
-    // Sync state to ensure we have the latest connection information
-    syncState();
-  }, [isConnected, shopDomain, isLoading, navigate, syncState]);
+    checkConnection();
+  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection]);
   
   // Show loading state
   if (isLoading || isValidating) {

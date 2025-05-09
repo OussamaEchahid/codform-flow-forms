@@ -20,7 +20,7 @@ const productCache = new Map<string, { products: ShopifyProduct[], timestamp: nu
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
 export const useShopify = () => {
-  const { shopDomain: shop, isConnected } = useShopifyConnection();
+  const { shopDomain: shop, isConnected, testConnection } = useShopifyConnection();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -40,107 +40,38 @@ export const useShopify = () => {
   // Rate limiting for API calls
   const requestsInProgress = new Map<string, Promise<any>>();
   
-  // Test connection with the Shopify API
-  const testConnection = useCallback(async (force = false) => {
-    if (!shop) return false;
-    
+  // Get access token for the current shop
+  const getAccessToken = useCallback(async (shopDomain: string): Promise<string | null> => {
     try {
-      const cacheKey = `connection_test:${shop}`;
-      const cachedResult = localStorage.getItem(cacheKey);
+      if (!shopDomain) return null;
       
-      // Use cached result unless forced refresh
-      if (!force && cachedResult) {
-        const { isValid, timestamp } = JSON.parse(cachedResult);
-        const now = Date.now();
-        // Cache valid for 5 minutes
-        if (now - timestamp < 5 * 60 * 1000) {
-          return isValid;
-        }
-      }
-      
-      // Get token
-      const { data: tokenData, error: tokenError } = await shopifyStores()
+      const { data, error } = await shopifyStores()
         .select('access_token')
-        .eq('shop', shop)
+        .eq('shop', shopDomain)
         .single();
         
-      if (tokenError || !tokenData?.access_token) {
+      if (error || !data?.access_token) {
+        console.error('Error getting access token:', error);
         setTokenError(true);
-        return false;
+        return null;
       }
       
-      // Test token
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { 
-          shop, 
-          accessToken: tokenData.access_token,
-          timestamp: Date.now(), // Prevent caching
-          requestId: `conn_test_${Math.random().toString(36).substring(2, 10)}`
-        }
-      });
-      
-      if (error) {
-        console.error('[Shopify Connection] Test error:', error);
-        setIsNetworkError(true);
-        return false;
-      }
-      
-      const isValid = data?.success === true;
-      
-      // Cache the result
-      localStorage.setItem(cacheKey, JSON.stringify({
-        isValid,
-        timestamp: Date.now()
-      }));
-      
-      if (!isValid) {
-        setTokenError(true);
-      } else {
-        setTokenError(false);
-      }
-      
-      return isValid;
+      return data.access_token;
     } catch (error) {
-      console.error('[Shopify Connection] Test error:', error);
-      setIsNetworkError(true);
-      return false;
+      console.error('Error getting access token:', error);
+      setTokenError(true);
+      return null;
     }
-  }, [shop]);
+  }, []);
   
-  // Refresh connection with Shopify
-  const refreshConnection = useCallback(async () => {
-    if (!shop) return false;
-    
-    try {
-      // Clear any cached connection test results
-      localStorage.removeItem(`connection_test:${shop}`);
-      
-      // Test connection with force refresh
-      const isValid = await testConnection(true);
-      
-      if (isValid) {
-        // Clear error states
-        setTokenError(false);
-        setTokenExpired(false);
-        setIsNetworkError(false);
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('[Shopify Connection] Refresh error:', error);
-      setIsNetworkError(true);
-      return false;
-    }
-  }, [shop, testConnection]);
-
   // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
     if (!isConnected || !shop) {
+      console.log('Cannot load products: no active connection or shop');
       return [];
     }
 
-    // Check cache first
+    // Check if already loaded and cached
     const cacheKey = `products:${shop}`;
     const cached = productCache.get(cacheKey);
     const now = Date.now();
@@ -168,23 +99,21 @@ export const useShopify = () => {
     // Start a new request and track it
     const requestPromise = (async () => {
       try {
-        // Get token
-        const { data: tokenData, error: tokenError } = await shopifyStores()
-          .select('*')
-          .eq('shop', shop)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (tokenError || !tokenData || tokenData.length === 0) {
-          throw new Error('Token not found');
-        }
-
-        const token = tokenData[0].access_token || '';
+        // Get token for the current shop
+        const token = await getAccessToken(shop);
         
-        // Add a unique request ID and timestamp for debugging
+        if (!token) {
+          throw new Error('لا يمكن الحصول على رمز الوصول للمتجر');
+        }
+        
+        setAccessToken(token);
+        
+        // Generate unique request ID
         const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
         
-        // Fetch products using edge function
+        console.log('Fetching products with request ID:', requestId);
+        
+        // Call Shopify Products Edge Function
         const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
           body: { 
             shop, 
@@ -192,35 +121,73 @@ export const useShopify = () => {
             requestId
           }
         });
-
+        
         if (error) {
-          setIsNetworkError(true);
-          throw error;
+          console.error('Error invoking shopify-products function:', error);
+          
+          // Retry with API route
+          console.log('Retrying with API route...');
+          setIsRetrying(true);
+          
+          const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(shop)}&debug=true`);
+          
+          if (!apiResponse.ok) {
+            throw new Error(`API route returned status: ${apiResponse.status}`);
+          }
+          
+          const apiData = await apiResponse.json();
+          
+          if (apiData.error) {
+            throw new Error(apiData.error.message || 'API error');
+          }
+          
+          if (apiData.products) {
+            setProducts(apiData.products);
+            productCache.set(cacheKey, { products: apiData.products, timestamp: now });
+            return apiData.products;
+          } else {
+            throw new Error('No products returned from API route');
+          }
         }
 
-        if (!data || !data.products) {
-          console.error('Invalid product data returned:', data);
-          throw new Error('No products data returned from Shopify API');
+        if (!data || !data.success || !data.products) {
+          if (data?.errors) {
+            console.error('GraphQL errors from Shopify:', data.errors);
+            throw new Error(data.errors[0]?.message || 'GraphQL error');
+          }
+          throw new Error('Invalid response from Shopify API');
         }
         
+        // Clear error states if successful
+        setTokenError(false);
+        setTokenExpired(false);
         setIsNetworkError(false);
-        setProducts(data.products || []);
         
-        // Cache the results
-        productCache.set(cacheKey, { 
-          products: data.products || [], 
-          timestamp: Date.now() 
-        });
+        // Set and cache products
+        setProducts(data.products || []);
+        productCache.set(cacheKey, { products: data.products || [], timestamp: now });
+        console.log(`Successfully fetched ${data.products.length} products`);
         
         return data.products || [];
       } catch (error) {
         console.error('Error loading products:', error);
-        setTokenError(true);
-        setIsNetworkError(true);
+        
+        // Handle different error types
+        if (error instanceof Error) {
+          if (error.message.includes('token') || error.message.includes('auth')) {
+            setTokenError(true);
+            setTokenExpired(true);
+          } else {
+            setIsNetworkError(true);
+          }
+        } else {
+          setIsNetworkError(true);
+        }
+        
         throw error;
       } finally {
         setIsLoading(false);
-        // Remove the tracked promise
+        setIsRetrying(false);
         requestsInProgress.delete(cacheKey);
       }
     })();
@@ -229,7 +196,7 @@ export const useShopify = () => {
     requestsInProgress.set(cacheKey, requestPromise);
     
     return requestPromise;
-  }, [isConnected, shop]);
+  }, [isConnected, shop, getAccessToken]);
 
   // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
@@ -259,13 +226,10 @@ export const useShopify = () => {
         return { success: true, message: 'Form saved for future sync' };
       }
       
-      // First verify token is valid
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('access_token')
-        .eq('shop', shopDomain)
-        .single();
-        
-      if (tokenError || !tokenData?.access_token) {
+      // Get token
+      const token = await getAccessToken(shopDomain);
+      
+      if (!token) {
         throw new Error('Could not retrieve valid access token');
       }
       
@@ -278,7 +242,7 @@ export const useShopify = () => {
           shop: shopDomain,
           formId: formData.formId,
           settings: formData.settings,
-          accessToken: tokenData.access_token,
+          accessToken: token,
           requestId
         }
       });
@@ -306,7 +270,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop, pendingSyncForms]);
+  }, [isConnected, failSafeMode, shop, getAccessToken, pendingSyncForms]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
@@ -369,6 +333,34 @@ export const useShopify = () => {
     setPendingSyncForms(formIds);
   }, []);
 
+  // Force refresh products (clear cache and reload)
+  const refreshProducts = useCallback(async () => {
+    // Clear cache for the current shop
+    const cacheKey = `products:${shop}`;
+    productCache.delete(cacheKey);
+    
+    // Reset error states
+    setTokenError(false);
+    setTokenExpired(false);
+    setIsNetworkError(false);
+    
+    try {
+      // Test connection first
+      const isValid = await testConnection();
+      
+      if (!isValid) {
+        throw new Error('Connection test failed - please check your access token');
+      }
+      
+      // Load products
+      return await loadProducts();
+    } catch (error) {
+      console.error('Error refreshing products:', error);
+      toast.error('فشل في تحديث المنتجات: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+      throw error;
+    }
+  }, [shop, loadProducts, testConnection]);
+
   // Emergency reset for recovery
   const emergencyReset = useCallback(() => {
     // Clear all Shopify-related localStorage items
@@ -411,10 +403,11 @@ export const useShopify = () => {
     toggleFailSafeMode,
     loadProducts,
     syncForm,
-    syncFormWithShopify, // Alias for compatibility
+    syncFormWithShopify,
     resyncPendingForms,
     emergencyReset,
-    testConnection, // Add missing method
-    refreshConnection // Add missing method
+    testConnection,
+    refreshProducts,
+    getAccessToken
   };
 };
