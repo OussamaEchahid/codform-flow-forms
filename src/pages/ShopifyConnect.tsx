@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
+import ShopifySettings from '@/components/shopify/ShopifySettings'; // أضفناه هنا
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
@@ -128,6 +129,9 @@ const ShopifyConnect = () => {
             </Button>
           </div>
         </div>
+        
+        {/* إضافة مكون الإعدادات هنا */}
+        <ShopifySettings />
         
         <ShopifyConnection />
       </div>
