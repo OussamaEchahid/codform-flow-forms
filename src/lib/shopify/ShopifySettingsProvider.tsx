@@ -6,11 +6,17 @@ interface ShopifySettings {
   embedPosition: 'product-page' | 'cart-page' | 'checkout';
   useCustomCSS: boolean;
   customCSS: string;
+  // إضافة الإعدادات الجديدة المطلوبة
+  fallbackModeOnly: boolean;
+  debugMode: boolean;
+  ignoreMetaobjectErrors: boolean;
 }
 
 interface ShopifySettingsContextType {
   settings: ShopifySettings;
   updateSettings: (newSettings: Partial<ShopifySettings>) => void;
+  // إضافة دالة resetSettings
+  resetSettings: () => void;
 }
 
 const defaultSettings: ShopifySettings = {
@@ -18,11 +24,16 @@ const defaultSettings: ShopifySettings = {
   embedPosition: 'product-page',
   useCustomCSS: false,
   customCSS: '',
+  // إضافة القيم الافتراضية للإعدادات الجديدة
+  fallbackModeOnly: false,
+  debugMode: false,
+  ignoreMetaobjectErrors: false,
 };
 
 const ShopifySettingsContext = createContext<ShopifySettingsContextType>({
   settings: defaultSettings,
   updateSettings: () => {},
+  resetSettings: () => {},
 });
 
 export const useShopifySettings = () => useContext(ShopifySettingsContext);
@@ -33,7 +44,7 @@ interface ShopifySettingsProviderProps {
 
 export const ShopifySettingsProvider: React.FC<ShopifySettingsProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<ShopifySettings>(() => {
-    // Try to get settings from localStorage
+    // محاولة استرجاع الإعدادات من التخزين المحلي
     const storedSettings = localStorage.getItem('shopify_settings');
     return storedSettings ? JSON.parse(storedSettings) : defaultSettings;
   });
@@ -44,8 +55,14 @@ export const ShopifySettingsProvider: React.FC<ShopifySettingsProviderProps> = (
     localStorage.setItem('shopify_settings', JSON.stringify(updatedSettings));
   };
 
+  // إضافة دالة لإعادة تعيين الإعدادات
+  const resetSettings = () => {
+    setSettings(defaultSettings);
+    localStorage.setItem('shopify_settings', JSON.stringify(defaultSettings));
+  };
+
   return (
-    <ShopifySettingsContext.Provider value={{ settings, updateSettings }}>
+    <ShopifySettingsContext.Provider value={{ settings, updateSettings, resetSettings }}>
       {children}
     </ShopifySettingsContext.Provider>
   );
