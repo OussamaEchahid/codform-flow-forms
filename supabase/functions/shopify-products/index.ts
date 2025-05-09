@@ -61,7 +61,7 @@ serve(async (req) => {
     console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
 
     // Call Shopify GraphQL API to get products
-    const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-07/graphql.json`
+    const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json` // Updated API version
     const query = `
       {
         products(first: 50) {
@@ -88,7 +88,7 @@ serve(async (req) => {
                   node {
                     id
                     title
-                    priceV2 {
+                    price: priceV2 {
                       amount
                       currencyCode
                     }
@@ -100,7 +100,7 @@ serve(async (req) => {
           }
         }
       }
-    `
+    ` // Updated query with price: priceV2 alias to match newer Shopify API
 
     let retryCount = 0;
     const maxRetries = 2;
@@ -224,7 +224,7 @@ serve(async (req) => {
           variants: (node.variants?.edges || []).map(variant => ({
             id: variant.node.id,
             title: variant.node.title,
-            price: variant.node.priceV2?.amount,
+            price: variant.node.price?.amount,
             available: variant.node.availableForSale,
           }))
         }

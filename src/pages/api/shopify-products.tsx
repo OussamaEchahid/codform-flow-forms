@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       
       // Call Shopify Admin API directly from this endpoint as a fallback
       const shopDomain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
-      const graphqlEndpoint = `https://${shopDomain}/admin/api/2023-07/graphql.json`;
+      const graphqlEndpoint = `https://${shopDomain}/admin/api/2023-10/graphql.json`;
       
       const graphqlQuery = `
         query {
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
                     node {
                       id
                       title
-                      priceV2 {
+                      price: priceV2 {
                         amount
                         currencyCode
                       }
@@ -209,7 +209,7 @@ export async function GET(request: Request) {
           variants = node.variants.edges.map((variant: any) => ({
             id: variant.node.id,
             title: variant.node.title,
-            price: variant.node.priceV2.amount,
+            price: variant.node.price?.amount,
             available: variant.node.availableForSale,
           }));
         }
