@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,7 @@ const ConnectionErrorHandler: React.FC<ConnectionErrorHandlerProps> = ({
   const handleRetry = async () => {
     setIsRetrying(true);
     try {
-      // Fixed: Pass only one argument to testConnection
+      // Pass true to force a refresh of the connection test
       const success = await testConnection(true);
       
       if (success) {

@@ -82,8 +82,8 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
-      // First verify connection - using testConnection without arguments
-      const connectionValid = await testConnection();
+      // First verify connection - using testConnection with a boolean parameter (false for regular check)
+      const connectionValid = await testConnection(false);
       
       if (!connectionValid) {
         toast.error(language === 'ar' ? 'فشل الاتصال بـ Shopify. يرجى تحديث الاتصال أولاً' : 'Shopify connection failed. Please refresh connection first');

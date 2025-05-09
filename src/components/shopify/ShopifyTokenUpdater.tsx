@@ -107,8 +107,8 @@ export const ShopifyTokenUpdater = () => {
       await syncState();
       await reload();
       
-      // Test the connection after update
-      const isConnected = await testConnection();
+      // Test the connection after update with forceRefresh=true
+      const isConnected = await testConnection(true);
       
       if (!isConnected) {
         throw new Error('تم تحديث الرمز، لكن اختبار الاتصال فشل. يرجى التحقق من الرمز وإعادة المحاولة.');

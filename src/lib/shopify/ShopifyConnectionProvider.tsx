@@ -314,7 +314,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
     // Fetch shop data and test connection
     const checkConnection = async () => {
       if (shopDomain) {
-        // FIXED: Pass a boolean parameter to testConnection
+        // Passing a single boolean parameter (false) to testConnection
         await testConnection(false);
       }
       setIsLoading(false);
