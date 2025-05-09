@@ -40,10 +40,9 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
   // Handle dialog close in a synchronized manner
   const handleDialogClose = () => {
     setDialogOpen(false);
-    // استخدم مهلة صغيرة قبل استدعاء onClose للسماح للحالة باستقرار أولاً
     setTimeout(() => {
       onClose();
-    }, 10);
+    }, 100);
   };
   
   const handleCreatePage = async () => {
@@ -64,6 +63,13 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .replace(/^-+/, '')
         .replace(/-+$/, '');
       
+      console.log('Creating landing page with:', { 
+        title: pageName, 
+        slug, 
+        is_published: false,
+        product_id: productId || null 
+      });
+      
       // إنشاء الصفحة
       const { data, error } = await supabase
         .from('landing_pages')
@@ -76,22 +82,26 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting landing page:', error);
+        throw error;
+      }
+      
+      console.log('Created landing page:', data);
       
       // الانتقال إلى المحرر
-      navigate(`/landing-pages/editor/${data.id}`);
       toast.success(language === 'ar' ? 'تم إنشاء الصفحة بنجاح' : 'Page created successfully');
+      navigate(`/landing-pages/editor/${data.id}`);
     } catch (error) {
       console.error('Error creating page:', error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء الصفحة' : 'Error creating page');
     } finally {
       setIsCreating(false);
-      handleDialogClose();
     }
   };
 
   // تأكد من عدم عرض أي شيء إذا كان الحوار مغلقًا
-  if (!open || !dialogOpen) {
+  if (!open && !dialogOpen) {
     return null;
   }
 
@@ -154,7 +164,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
                 
                 {isLoadingShopifyProducts ? (
                   <option disabled>{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</option>
-                ) : shopifyProducts.length > 0 ? (
+                ) : shopifyProducts && shopifyProducts.length > 0 ? (
                   shopifyProducts.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.title}
