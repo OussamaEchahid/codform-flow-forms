@@ -64,7 +64,10 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
   }, []);
   
   // Test connection function with improved token validation and error handling
-  const testConnection = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
+  // IMPORTANT: This function takes a SINGLE boolean parameter:
+  // @param forceRefresh - Whether to force a fresh test ignoring cache (default: false)
+  // @returns Promise<boolean> - Whether the connection is valid
+  const testConnection = useCallback(async (forceRefresh: boolean = false): Promise<boolean> => {
     // No need to test if we don't have a shop
     if (!shopDomain) {
       connectionLogger.warn('Cannot test connection: no shop domain available');
@@ -236,7 +239,6 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
   }, []);
 
   // Reload connection state and validate
-  // FIXED: Properly handle single boolean parameter for testConnection
   const reload = useCallback(async () => {
     const now = Date.now();
     
@@ -312,7 +314,8 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
     // Fetch shop data and test connection
     const checkConnection = async () => {
       if (shopDomain) {
-        await testConnection();
+        // FIXED: Pass a boolean parameter to testConnection
+        await testConnection(false);
       }
       setIsLoading(false);
     };
