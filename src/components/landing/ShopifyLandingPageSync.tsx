@@ -72,7 +72,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     
     setIsLoadingProducts(true);
     try {
-      const { data, error } = await fetch(`/api/shopify-products?shop=${shop}&timestamp=${Date.now()}`)
+      // First attempt: Try the API route with cache-busting
+      const timestamp = Date.now();
+      const requestId = Math.random().toString(36).substring(2, 10);
+      
+      const { data, error } = await fetch(`/api/shopify-products?shop=${shop}&t=${timestamp}&rid=${requestId}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
         .then(res => {
           if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
           return res.json();
@@ -84,10 +94,39 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
 
       if (data && Array.isArray(data.products)) {
         setAvailableProducts(data.products);
+        toast.success(`تم تحميل ${data.products.length} منتج`);
       }
     } catch (error) {
       console.error('Error loading products:', error);
-      toast.error('Failed to load products');
+      toast.error('فشل تحميل المنتجات، المحاولة مرة أخرى');
+      
+      try {
+        // Second attempt: Directly call the edge function as a fallback
+        const { data, error } = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg`
+          },
+          body: JSON.stringify({ shop })
+        })
+          .then(res => {
+            if (!res.ok) throw new Error(`Edge function error: ${res.status}`);
+            return res.json();
+          });
+
+        if (error) {
+          throw new Error(error.message || 'Error fetching products from edge function');
+        }
+
+        if (data && Array.isArray(data.products)) {
+          setAvailableProducts(data.products);
+          toast.success(`تم تحميل ${data.products.length} منتج (طريقة بديلة)`);
+        }
+      } catch (secondError) {
+        console.error('Both product loading methods failed:', secondError);
+        toast.error('فشل تحميل المنتجات بكلا الطريقتين');
+      }
     } finally {
       setIsLoadingProducts(false);
     }
@@ -166,11 +205,11 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       
       try {
         // Call the Supabase edge function to sync with Shopify
-        const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-publish-page`, {
+        const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-publish-page', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'}`,
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg`,
           },
           body: JSON.stringify({
             pageId,
