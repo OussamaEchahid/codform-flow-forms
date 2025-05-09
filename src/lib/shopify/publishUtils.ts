@@ -76,25 +76,26 @@ export const getFormMetaobjectDefinition = async (form: Form, shop: string, acce
       }
     `;
 
-    // Add timeout to fetch operations
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    // Use Promise.race for timeout instead of AbortController
+    const timeoutPromise = new Promise<null>((_, reject) => {
+      setTimeout(() => reject(new Error('Fetch operation timed out after 10s')), 10000);
+    });
     
     try {
-      const response = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
+      const fetchPromise = fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
         },
-        body: JSON.stringify({ query }),
-        signal: controller.signal
+        body: JSON.stringify({ query })
       });
       
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.error('Failed to get metaobject definition:', response.status, response.statusText);
+      // Race the promises to implement timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (!response || !response.ok) {
+        console.error('Failed to get metaobject definition:', response?.status, response?.statusText);
         return null;
       }
 
@@ -103,7 +104,6 @@ export const getFormMetaobjectDefinition = async (form: Form, shop: string, acce
 
       return definition;
     } catch (fetchError) {
-      clearTimeout(timeoutId);
       console.error('Network error getting metaobject definition:', fetchError);
       
       // Return null but don't throw to allow fallback publishing to work

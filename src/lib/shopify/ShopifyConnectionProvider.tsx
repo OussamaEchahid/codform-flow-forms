@@ -121,17 +121,19 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       let response;
 
       try {
-        // Set a timeout for fetch operations to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
-        response = await shopifySupabase.functions.invoke('shopify-test-connection', {
-          body: { shop, accessToken: token },
-          headers: { 'Cache-Control': 'no-cache' },
-          signal: controller.signal
+        // Set up a timeout using Promise.race instead of AbortController
+        const timeoutPromise = new Promise<{data: null, error: Error}>((_, reject) => {
+          setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 5000);
         });
         
-        clearTimeout(timeoutId);
+        // Create the actual function call
+        const functionPromise = shopifySupabase.functions.invoke('shopify-test-connection', {
+          body: { shop, accessToken: token },
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        // Race the promises to implement timeout
+        response = await Promise.race([functionPromise, timeoutPromise]);
       } catch (fetchError) {
         // Handle network errors gracefully
         connectionLogger.error('Network error in token test:', fetchError);
@@ -194,7 +196,8 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       // Check if this is a network error
       if (error.message?.includes('Failed to fetch') || 
           error.message?.includes('NetworkError') ||
-          error.name === 'AbortError') {
+          error.name === 'AbortError' ||
+          error.message?.includes('timeout')) {
         setIsNetworkError(true);
       }
       // Be lenient with errors - if we have a token, consider it valid
