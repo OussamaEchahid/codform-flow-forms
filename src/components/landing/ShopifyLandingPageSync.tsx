@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { Store, LoaderCircle, Eye, ExternalLink, RefreshCw } from 'lucide-react';
+import { Store, LoaderCircle, Eye, ExternalLink, RefreshCw, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -27,6 +27,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [syncedUrl, setSyncedUrl] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
+  const [productData, setProductData] = useState<any>(null);
   
   useEffect(() => {
     if (pageId) {
@@ -64,9 +65,40 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       if (!error && data && data.product_id) {
         setProductId(data.product_id);
         console.log('Found product ID for page:', data.product_id);
+        
+        // If it's a Shopify product ID, try to fetch more details
+        if (data.product_id.startsWith('gid://shopify/Product/') && shop) {
+          fetchProductDetails(data.product_id);
+        }
       }
     } catch (error) {
       console.error('Error fetching page product ID:', error);
+    }
+  };
+  
+  // Fetch product details from Shopify
+  const fetchProductDetails = async (productGid: string) => {
+    if (!shop) return;
+    
+    try {
+      // Extract the ID from the GID
+      const productId = productGid.split('/').pop();
+      
+      // Call our API to get product details
+      const { data, error } = await supabase.functions.invoke('shopify-products', {
+        body: { 
+          shop,
+          productId
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.product) {
+        setProductData(data.product);
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
     }
   };
   
@@ -111,6 +143,11 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         if (data?.url) {
           setSyncedUrl(data.url);
         }
+        
+        // If we synced a product, refresh its data
+        if (productId) {
+          fetchProductDetails(productId);
+        }
       } else {
         throw new Error(data?.message || 'Unknown error');
       }
@@ -141,16 +178,29 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const viewProductPage = () => {
     if (!shop || !productId) return;
     
-    // If the product ID is a Shopify GID, extract the last part of it
+    // If we have syncedUrl from a product sync, use that directly
+    if (syncedUrl && productId) {
+      window.open(syncedUrl, '_blank');
+      return;
+    }
+    
+    // If we have product data with a handle, use that
+    if (productData && productData.handle) {
+      const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
+      window.open(`https://${domain}/products/${productData.handle}`, '_blank');
+      return;
+    }
+    
+    // Otherwise try to extract product ID from GID
     let shopifyProductId = productId;
     if (productId.startsWith('gid://shopify/Product/')) {
       const parts = productId.split('/');
       shopifyProductId = parts[parts.length - 1];
     }
     
-    // Open the product page in Shopify in a new tab
+    // Open the product page in Shopify admin
     const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
-    window.open(`https://${domain}/products/${shopifyProductId}`, '_blank');
+    window.open(`https://${domain}/admin/products/${shopifyProductId}`, '_blank');
   };
 
   const viewLocalPage = () => {
@@ -178,9 +228,32 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   
   return (
     <div className="bg-white p-4 rounded-lg border">
-      <h3 className="font-medium mb-2">
-        {language === 'ar' ? 'نشر على شوبيفاي' : 'Publish to Shopify'}
-      </h3>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-medium">
+          {language === 'ar' ? 'نشر على شوبيفاي' : 'Publish to Shopify'}
+        </h3>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Info className="h-4 w-4" />
+              <span className="sr-only">More information</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="font-medium">
+                {language === 'ar' ? 'كيف يعمل هذا؟' : 'How does this work?'}
+              </h4>
+              <p className="text-sm text-gray-600">
+                {language === 'ar'
+                  ? 'عند النقر على "نشر على شوبيفاي"، نقوم بإنشاء metaobject مخصص في متجر شوبيفاي الخاص بك لتخزين محتوى صفحة الهبوط. إذا ربطت الصفحة بمنتج، سيتم تحديث وصف المنتج أيضًا بنفس المحتوى.'
+                  : 'When you click "Publish to Shopify", we create a custom metaobject in your Shopify store to store your landing page content. If you\'ve linked the page to a product, the product description will also be updated with the same content.'}
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
       
       <p className="text-sm text-gray-600 mb-4">
         {language === 'ar'
@@ -191,10 +264,25 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       {/* Product information */}
       {productId ? (
         <Alert className="mb-4 bg-green-50 border-green-200">
-          <AlertDescription className="text-green-800">
+          <AlertTitle className="text-green-800 font-medium">
             {language === 'ar'
-              ? 'سيتم تطبيق محتوى هذه الصفحة على صفحة المنتج المحدد في شوبيفاي وستحل محل وصف المنتج الحالي'
-              : 'This page content will replace the product description on the selected product page in Shopify'}
+              ? 'سيتم تطبيق هذه الصفحة على المنتج'
+              : 'This page will be applied to product'}
+          </AlertTitle>
+          <AlertDescription className="text-green-800">
+            {productData ? (
+              <>
+                {language === 'ar'
+                  ? `المنتج: ${productData.title}`
+                  : `Product: ${productData.title}`}
+              </>
+            ) : (
+              <>
+                {language === 'ar'
+                  ? 'سيتم تحديث وصف المنتج بالكامل بمحتوى صفحة الهبوط هذه.'
+                  : 'The product description will be completely replaced with this landing page content.'}
+              </>
+            )}
           </AlertDescription>
         </Alert>
       ) : (
@@ -311,6 +399,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
               </>
             )}
           </Button>
+          
+          <p className="text-xs text-gray-500 mt-1">
+            {language === 'ar'
+              ? 'سيتم إنشاء metaobjects مخصصة لتخزين بيانات الصفحة'
+              : 'Custom metaobjects will be created to store page data'}
+          </p>
         </div>
       )}
     </div>
