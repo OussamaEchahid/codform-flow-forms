@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -22,7 +22,7 @@ const Forms = () => {
   useEffect(() => {
     if (!isLoading && !isConnected && !shopDomain) {
       toast.error('لا يوجد اتصال بمتجر Shopify. الرجاء الاتصال بمتجرك أولاً.');
-      navigate('/shopify-connect');
+      navigate('/shopify');
     }
   }, [isConnected, shopDomain, isLoading, navigate]);
   
@@ -41,13 +41,13 @@ const Forms = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <Alert variant="destructive" className="max-w-md mb-4">
-          <AlertTriangle className="h-4 w-4 mr-2" />
+          <AlertTriangle className="h-4 w-4 ml-2" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         
         <div className="flex gap-2 mt-4">
           <Button 
-            onClick={() => navigate('/shopify-connect')}
+            onClick={() => navigate('/shopify')}
           >
             الاتصال بـ Shopify
           </Button>
