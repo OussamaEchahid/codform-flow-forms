@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -81,7 +82,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
-      // First verify connection - using testConnection with a boolean parameter (false for regular check)
+      // First verify connection - using testConnection with a single boolean parameter
       const connectionValid = await testConnection(false);
       
       if (!connectionValid) {
@@ -197,7 +198,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
     try {
-      // Use testConnection with a boolean parameter set to true to force refresh
+      // Use testConnection with a single boolean parameter set to true to force refresh
       const success = await testConnection(true);
       if (success) {
         toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');

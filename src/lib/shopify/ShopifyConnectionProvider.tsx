@@ -259,6 +259,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       // If we have a shop, test the connection
       if (shopDomain) {
+        // Fix: Only pass one argument to testConnection
         await testConnection(true);
       }
       
