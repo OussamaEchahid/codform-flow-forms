@@ -6,6 +6,7 @@ import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
 import { Store, LoaderCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -22,6 +23,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const { isConnected, shop } = useShopify();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'not_synced' | 'syncing' | 'synced'>('not_synced');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   useEffect(() => {
     if (pageId) {
@@ -184,6 +186,29 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           )}
         </Button>
       )}
+      
+      {/* Using Dialog component properly instead of raw DialogPortal */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'تفاصيل النشر على شوبيفاي' : 'Shopify Publishing Details'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              {language === 'ar'
+                ? 'تفاصيل نشر الصفحة على متجر شوبيفاي الخاص بك'
+                : 'Details about publishing this page to your Shopify store'}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)}>
+              {language === 'ar' ? 'إغلاق' : 'Close'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
