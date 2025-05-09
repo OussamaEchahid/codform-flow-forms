@@ -2,12 +2,13 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Redirect to the new ShopifyConnect page
+// Redirect to the ShopifyConnect page
 const Shopify = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    navigate('/shopify-connect');
+    // Simple redirect with replace to avoid navigation history issues
+    navigate('/shopify-connect', { replace: true });
   }, [navigate]);
   
   return (

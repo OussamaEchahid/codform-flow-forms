@@ -2,9 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth';
 
 interface ShopifyFormSync {
   formId: string;
@@ -16,13 +15,16 @@ interface ShopifyFormSync {
   };
 }
 
+// Cache for API responses to reduce redundant calls
+const productCache = new Map<string, { products: ShopifyProduct[], timestamp: number }>();
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
 export const useShopify = () => {
-  const { shop } = useAuth();
+  const { shopDomain: shop, isConnected } = useShopifyConnection();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [tokenError, setTokenError] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
   const [accessToken, setAccessToken] = useState<string>('');
@@ -35,208 +37,105 @@ export const useShopify = () => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
 
-  // Initialize connection state
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (!shop) {
-        setIsConnected(false);
-        return;
-      }
+  // Rate limiting for API calls
+  const requestsInProgress = new Map<string, Promise<any>>();
 
-      try {
-        // Try to get token from db
-        const { data, error } = await shopifyStores()
-          .select('*')
-          .eq('shop', shop)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (error) {
-          console.error('Error fetching token:', error);
-          setIsConnected(false);
-          setTokenError(true);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          setAccessToken(data[0].access_token || '');
-          setIsConnected(true);
-          // Test connection immediately to verify token
-          testConnection().catch(err => {
-            console.log('Initial connection test failed:', err);
-            setIsNetworkError(true);
-          });
-          return;
-        }
-
-        setIsConnected(false);
-      } catch (error) {
-        console.error('Error in checkConnection:', error);
-        setIsConnected(false);
-        setTokenError(true);
-        setIsNetworkError(true);
-      }
-    };
-
-    checkConnection();
-  }, [shop]);
-
-  // Load products when connected
+  // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
     if (!isConnected || !shop) {
       return [];
     }
 
-    setIsLoading(true);
-    try {
-      // Get token
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', shop)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (tokenError || !tokenData || tokenData.length === 0) {
-        throw new Error('Token not found');
-      }
-
-      const token = tokenData[0].access_token || '';
-      
-      // Add a unique request ID and timestamp for debugging
-      const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
-      const timestamp = new Date().toISOString();
-      
-      // First verify token is valid
+    // Check cache first
+    const cacheKey = `products:${shop}`;
+    const cached = productCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp < CACHE_EXPIRY)) {
+      console.log('Using cached products data');
+      setProducts(cached.products);
+      return cached.products;
+    }
+    
+    // Check if request is already in progress
+    if (requestsInProgress.has(cacheKey)) {
+      console.log('Product request already in progress, waiting...');
       try {
-        const { data: testData, error: testError } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+        const result = await requestsInProgress.get(cacheKey);
+        return result;
+      } catch (error) {
+        console.error('Error waiting for in-progress request:', error);
+        throw error;
+      }
+    }
+
+    setIsLoading(true);
+    
+    // Start a new request and track it
+    const requestPromise = (async () => {
+      try {
+        // Get token
+        const { data: tokenData, error: tokenError } = await shopifyStores()
+          .select('*')
+          .eq('shop', shop)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (tokenError || !tokenData || tokenData.length === 0) {
+          throw new Error('Token not found');
+        }
+
+        const token = tokenData[0].access_token || '';
+        
+        // Add a unique request ID and timestamp for debugging
+        const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
+        
+        // Fetch products using edge function
+        const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
           body: { 
             shop, 
             accessToken: token,
-            requestId: `verify_${requestId}`,
-            timestamp
+            requestId
           }
         });
-        
-        if (testError || !testData?.success) {
-          throw new Error('Token validation failed before fetching products');
+
+        if (error) {
+          setIsNetworkError(true);
+          throw error;
+        }
+
+        if (!data || !data.products) {
+          console.error('Invalid product data returned:', data);
+          throw new Error('No products data returned from Shopify API');
         }
         
-        console.log('Token validation successful, proceeding to fetch products');
         setIsNetworkError(false);
-      } catch (testError) {
-        console.error('Token validation failed:', testError);
+        setProducts(data.products || []);
+        
+        // Cache the results
+        productCache.set(cacheKey, { 
+          products: data.products || [], 
+          timestamp: Date.now() 
+        });
+        
+        return data.products || [];
+      } catch (error) {
+        console.error('Error loading products:', error);
         setTokenError(true);
         setIsNetworkError(true);
+        throw error;
+      } finally {
         setIsLoading(false);
-        return [];
+        // Remove the tracked promise
+        requestsInProgress.delete(cacheKey);
       }
-      
-      // Fetch products using edge function
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { 
-          shop, 
-          accessToken: token,
-          requestId,
-          timestamp
-        }
-      });
-
-      if (error) {
-        setIsNetworkError(true);
-        throw error;
-      }
-
-      if (!data || !data.products) {
-        console.error('Invalid product data returned:', data);
-        throw new Error('No products data returned from Shopify API');
-      }
-      
-      setIsNetworkError(false);
-      setProducts(data.products || []);
-      setIsLoading(false);
-      return data.products || [];
-    } catch (error) {
-      console.error('Error loading products:', error);
-      setIsLoading(false);
-      setTokenError(true);
-      setIsNetworkError(true);
-      return [];
-    }
+    })();
+    
+    // Store the promise for deduplication
+    requestsInProgress.set(cacheKey, requestPromise);
+    
+    return requestPromise;
   }, [isConnected, shop]);
-
-  // Test connection
-  const testConnection = useCallback(async (withRetry = false) => {
-    if (!shop) return false;
-    
-    if (withRetry) {
-      setIsRetrying(true);
-    }
-    
-    try {
-      // Get token
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', shop)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (tokenError || !tokenData || tokenData.length === 0) {
-        throw new Error('Token not found');
-      }
-      
-      // Add a unique request ID and timestamp for debugging
-      const requestId = `req_test_${Math.random().toString(36).substring(2, 10)}`;
-      const timestamp = new Date().toISOString();
-
-      // Test token with a simple API call
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { 
-          shop, 
-          accessToken: tokenData[0].access_token || '',
-          requestId,
-          timestamp,
-          forceRefresh: withRetry
-        }
-      });
-
-      if (error) {
-        setIsNetworkError(true);
-        throw error;
-      }
-
-      if (data?.success) {
-        setIsConnected(true);
-        setTokenError(false);
-        setTokenExpired(false);
-        setIsNetworkError(false);
-        return true;
-      } else {
-        throw new Error(data?.message || 'Connection test failed');
-      }
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      setIsConnected(false);
-      setTokenError(true);
-      setIsNetworkError(true);
-      return false;
-    } finally {
-      if (withRetry) {
-        setIsRetrying(false);
-      }
-    }
-  }, [shop]);
-
-  // Toggle fail-safe mode
-  const toggleFailSafeMode = useCallback((value?: boolean) => {
-    const newValue = value !== undefined ? value : !failSafeMode;
-    setFailSafeMode(newValue);
-    localStorage.setItem('shopify_failsafe', newValue ? 'true' : 'false');
-  }, [failSafeMode]);
-
-  // Refresh connection
-  const refreshConnection = useCallback(async () => {
-    return await testConnection(true);
-  }, [testConnection]);
 
   // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
@@ -276,31 +175,8 @@ export const useShopify = () => {
         throw new Error('Could not retrieve valid access token');
       }
       
-      // Test connection before sync
-      try {
-        const { data: testData, error: testError } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-          body: { 
-            shop: shopDomain, 
-            accessToken: tokenData.access_token
-          }
-        });
-        
-        if (testError || !testData?.success) {
-          setIsNetworkError(true);
-          throw new Error('Token validation failed before form sync');
-        }
-        
-        console.log('Token validation successful, proceeding with form sync');
-        setIsNetworkError(false);
-      } catch (testError) {
-        console.error('Token validation failed:', testError);
-        setIsNetworkError(true);
-        throw new Error('Could not verify Shopify connection before sync');
-      }
-      
-      // Add a unique request ID and timestamp for debugging
+      // Add a unique request ID for debugging
       const requestId = `req_sync_${Math.random().toString(36).substring(2, 10)}`;
-      const timestamp = new Date().toISOString();
 
       // Real sync with Shopify
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
@@ -309,8 +185,7 @@ export const useShopify = () => {
           formId: formData.formId,
           settings: formData.settings,
           accessToken: tokenData.access_token,
-          requestId,
-          timestamp
+          requestId
         }
       });
 
@@ -341,6 +216,13 @@ export const useShopify = () => {
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
+
+  // Toggle fail-safe mode
+  const toggleFailSafeMode = useCallback((value?: boolean) => {
+    const newValue = value !== undefined ? value : !failSafeMode;
+    setFailSafeMode(newValue);
+    localStorage.setItem('shopify_failsafe', newValue ? 'true' : 'false');
+  }, [failSafeMode]);
 
   // Resync pending forms
   const resyncPendingForms = useCallback(async () => {
@@ -405,15 +287,14 @@ export const useShopify = () => {
     localStorage.removeItem('shopify_last_url_shop');
     
     // Reset state
-    setIsConnected(false);
     setTokenError(false);
     setTokenExpired(false);
     setFailSafeMode(false);
     setPendingSyncForms([]);
     setIsNetworkError(false);
     
-    // Clear Shopify connection manager
-    shopifyConnectionManager.clearAllStores();
+    // Clear product cache
+    productCache.clear();
     
     return true;
   }, []);
@@ -435,8 +316,6 @@ export const useShopify = () => {
     isNetworkError,
     toggleFailSafeMode,
     loadProducts,
-    testConnection,
-    refreshConnection,
     syncForm,
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,

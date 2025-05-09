@@ -3,14 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCcw, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 const ShopifyConnect = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoading, error, syncState } = useShopifyConnection();
+  const { isLoading, error, syncState, isConnected, shopDomain } = useShopifyConnection();
   const [isResetting, setIsResetting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -37,6 +37,18 @@ const ShopifyConnect = () => {
     checkUrlParams();
   }, [location.search, syncState]);
   
+  // Redirect to dashboard if already connected
+  useEffect(() => {
+    if (isConnected && shopDomain && !isLoading) {
+      const redirectTimer = setTimeout(() => {
+        toast.success(`تم الاتصال بمتجر ${shopDomain}، جاري التوجيه إلى لوحة التحكم`);
+        navigate('/dashboard', { replace: true });
+      }, 1500);
+      
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [isConnected, shopDomain, isLoading, navigate]);
+  
   // Reset connection
   const handleReset = async () => {
     try {
@@ -54,10 +66,6 @@ const ShopifyConnect = () => {
       toast.error('Failed to reset connection state');
       setIsResetting(false);
     }
-  };
-
-  const handleExternalOpen = () => {
-    window.open("https://codform-flow-forms.lovable.app/shopify-connect", "_blank");
   };
 
   // Show loading state
@@ -114,25 +122,14 @@ const ShopifyConnect = () => {
             <p className="text-blue-700 font-medium">صفحة الاتصال بمتجر Shopify</p>
           </div>
           <p className="mt-2 text-sm text-blue-600">
-            أنت الآن على صفحة الاتصال بمتجر Shopify. إذا كنت تواجه مشكلة في الاتصال، جرب إعادة تعيين حالة الاتصال أدناه.
+            قم بربط متجر Shopify الخاص بك لتتمكن من استخدام المنصة. إذا كنت تواجه مشكلة في الاتصال، جرب إعادة تعيين حالة الاتصال.
           </p>
-          <div className="mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-300 hover:bg-blue-100"
-              onClick={handleExternalOpen}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              فتح في نافذة جديدة
-            </Button>
-          </div>
         </div>
         
         <ShopifyConnection />
       </div>
     </div>
   );
-};
+}
 
 export default ShopifyConnect;
