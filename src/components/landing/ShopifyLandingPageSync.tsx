@@ -4,7 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { Store, LoaderCircle } from 'lucide-react';
+import { Store, LoaderCircle, Eye, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -24,6 +24,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'not_synced' | 'syncing' | 'synced'>('not_synced');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [syncedUrl, setSyncedUrl] = useState<string | null>(null);
   
   useEffect(() => {
     if (pageId) {
@@ -33,7 +34,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   
   const checkSyncStatus = async () => {
     try {
-      // Check if this page has been synced to Shopify
+      // التحقق مما إذا كانت هذه الصفحة قد تمت مزامنتها مع Shopify
       const { data, error } = await supabase
         .from('shopify_page_syncs')
         .select('id, synced_url')
@@ -42,6 +43,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         
       if (!error && data && data.length > 0) {
         setSyncStatus('synced');
+        setSyncedUrl(data[0].synced_url || null);
       }
     } catch (error) {
       console.error('Error checking sync status:', error);
@@ -56,14 +58,11 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       return;
     }
     
-    // No need to check for local publishing status
-    // We're publishing directly to Shopify
-    
     setIsSyncing(true);
     setSyncStatus('syncing');
     
     try {
-      // Call Shopify API to publish the landing page
+      // استدعاء واجهة برمجة التطبيقات الخاصة بـ Shopify لنشر صفحة الهبوط
       const { data, error } = await supabase.functions.invoke('shopify-publish-page', {
         body: { 
           pageId,
@@ -79,6 +78,11 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           ? 'تم نشر الصفحة على شوبيفاي بنجاح' 
           : 'Page published to Shopify successfully');
         setSyncStatus('synced');
+        
+        // حفظ عنوان URL للصفحة المنشورة
+        if (data?.url) {
+          setSyncedUrl(data.url);
+        }
       } else {
         throw new Error(data?.message || 'Unknown error');
       }
@@ -96,9 +100,18 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const viewShopifyPage = () => {
     if (!shop) return;
     
-    // Open the Shopify page in a new tab
+    if (syncedUrl) {
+      window.open(syncedUrl, '_blank');
+      return;
+    }
+    
+    // فتح صفحة Shopify في علامة تبويب جديدة
     const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
     window.open(`https://${domain}/pages/${pageSlug}`, '_blank');
+  };
+
+  const viewLocalPage = () => {
+    window.open(`/landing/${pageSlug}`, '_blank');
   };
   
   if (!isConnected) {
@@ -132,6 +145,36 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           : 'Publish this landing page as a page in your Shopify store'}
       </p>
       
+      {/* أزرار المعاينة */}
+      <div className="mb-4 border-b pb-4">
+        <h4 className="text-sm font-medium mb-2">
+          {language === 'ar' ? 'معاينة الصفحة' : 'Preview Page'}
+        </h4>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={viewLocalPage}
+            className="flex items-center"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {language === 'ar' ? 'معاينة محلية' : 'Local Preview'}
+          </Button>
+          
+          {syncStatus === 'synced' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={viewShopifyPage}
+              className="flex items-center"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'معاينة في شوبيفاي' : 'Shopify Preview'}
+            </Button>
+          )}
+        </div>
+      </div>
+      
       {syncStatus === 'synced' ? (
         <div className="space-y-2">
           <div className="flex items-center text-green-600 text-sm">
@@ -141,31 +184,24 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
               : 'Published to Shopify'}
           </div>
           
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={viewShopifyPage}
-            >
-              {language === 'ar' ? 'عرض الصفحة' : 'View Page'}
-            </Button>
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSync}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                <>
-                  <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
-                  {language === 'ar' ? 'جاري التحديث...' : 'Updating...'}
-                </>
-              ) : (
-                language === 'ar' ? 'تحديث الصفحة' : 'Update Page'
-              )}
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="w-full"
+          >
+            {isSyncing ? (
+              <>
+                <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                {language === 'ar' ? 'جاري التحديث...' : 'Updating...'}
+              </>
+            ) : (
+              <>
+                <Store className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'تحديث في شوبيفاي' : 'Update on Shopify'}
+              </>
+            )}
+          </Button>
         </div>
       ) : (
         <Button
@@ -187,28 +223,30 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         </Button>
       )}
       
-      {/* Using Dialog component properly instead of raw DialogPortal */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ar' ? 'تفاصيل النشر على شوبيفاي' : 'Shopify Publishing Details'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>
-              {language === 'ar'
-                ? 'تفاصيل نشر الصفحة على متجر شوبيفاي الخاص بك'
-                : 'Details about publishing this page to your Shopify store'}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsDialogOpen(false)}>
-              {language === 'ar' ? 'إغلاق' : 'Close'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* استخدام مكون Dialog بشكل صحيح */}
+      {isDialogOpen && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {language === 'ar' ? 'تفاصيل النشر على شوبيفاي' : 'Shopify Publishing Details'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>
+                {language === 'ar'
+                  ? 'تفاصيل نشر الصفحة على متجر شوبيفاي الخاص بك'
+                  : 'Details about publishing this page to your Shopify store'}
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setIsDialogOpen(false)}>
+                {language === 'ar' ? 'إغلاق' : 'Close'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

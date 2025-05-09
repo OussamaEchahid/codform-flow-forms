@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Smartphone, Tablet, Save, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Save, ExternalLink, ChevronLeft, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import LandingPageTemplateSelector from '@/components/landing/LandingPageTemplateSelector';
 import LandingPageSections from '@/components/landing/LandingPageSections';
 import LandingPagePreview from '@/components/landing/LandingPagePreview';
 import LandingPageSettings from '@/components/landing/LandingPageSettings';
@@ -29,6 +28,25 @@ interface LandingPage {
   created_at: string;
 }
 
+// تعريف محتوى قالب افتراضي بسيط
+const DEFAULT_TEMPLATE = {
+  sections: [
+    {
+      id: 'header-section',
+      type: 'header',
+      title: 'قسم العنوان',
+      content: {
+        heading: 'عنوان الصفحة',
+        subheading: 'وصف قصير للصفحة'
+      },
+      style: {
+        backgroundColor: '#ffffff',
+        padding: '2rem'
+      }
+    }
+  ]
+};
+
 const LandingPageEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -38,11 +56,10 @@ const LandingPageEditor = () => {
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [page, setPage] = useState<LandingPage | null>(null);
   const [template, setTemplate] = useState<PageTemplate | null>(null);
-  const [content, setContent] = useState<any>(null);
+  const [content, setContent] = useState<any>(DEFAULT_TEMPLATE);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-  const [templateSelectorOpen, setTemplateSelectorOpen] = useState<boolean>(!id);
   const [activeTab, setActiveTab] = useState<string>('editor');
   
   const isNewPage = !id;
@@ -80,8 +97,8 @@ const LandingPageEditor = () => {
         setTemplate(templateData);
         setContent(templateData.content);
       } else {
-        // No template for this page, open the selector
-        setTemplateSelectorOpen(true);
+        // استخدام القالب الافتراضي إذا لم يكن هناك قالب مخصص للصفحة
+        createDefaultTemplate();
       }
     } catch (error) {
       console.error('Error fetching page data:', error);
@@ -95,61 +112,22 @@ const LandingPageEditor = () => {
     navigate('/landing-pages');
   };
 
-  const handleSelectTemplate = async (templateContent: any) => {
-    setContent(templateContent);
-    setTemplateSelectorOpen(false);
+  const createDefaultTemplate = async () => {
+    if (!id) return;
     
-    if (isNewPage) {
-      await handleCreatePage(templateContent);
-    } else if (id) {
-      await handleSaveTemplate(templateContent);
-    }
-  };
-
-  const handleCreatePage = async (templateContent: any) => {
     try {
-      setIsSaving(true);
-      
-      const title = language === 'ar' ? 'صفحة جديدة' : 'New Page';
-      const slug = `page-${Date.now()}`;
-      
-      const { data: newPage, error: pageError } = await supabase
-        .from('landing_pages')
-        .insert({
-          title,
-          slug,
-          is_published: false
-        })
-        .select()
-        .single();
-      
-      if (pageError) throw pageError;
-      
-      const { error: templateError } = await supabase
+      const { error } = await supabase
         .from('landing_page_templates')
         .insert({
-          page_id: newPage.id,
-          content: templateContent
+          page_id: id,
+          content: DEFAULT_TEMPLATE
         });
+        
+      if (error) throw error;
       
-      if (templateError) throw templateError;
-      
-      setPage(newPage);
-      setTemplate({
-        id: 'new',
-        page_id: newPage.id,
-        content: templateContent
-      });
-      
-      // Replace URL with the new page ID without page reload
-      navigate(`/landing-pages/editor/${newPage.id}`, { replace: true });
-      
-      toast.success(language === 'ar' ? 'تم إنشاء الصفحة بنجاح' : 'Page created successfully');
+      setContent(DEFAULT_TEMPLATE);
     } catch (error) {
-      console.error('Error creating page:', error);
-      toast.error(language === 'ar' ? 'خطأ في إنشاء الصفحة' : 'Error creating page');
-    } finally {
-      setIsSaving(false);
+      console.error('Error creating default template:', error);
     }
   };
 
@@ -160,7 +138,7 @@ const LandingPageEditor = () => {
       setIsSaving(true);
       
       if (template) {
-        // Update existing template
+        // تحديث القالب الموجود
         const { error } = await supabase
           .from('landing_page_templates')
           .update({ content: templateContent })
@@ -168,7 +146,7 @@ const LandingPageEditor = () => {
           
         if (error) throw error;
       } else {
-        // Create new template
+        // إنشاء قالب جديد
         const { error } = await supabase
           .from('landing_page_templates')
           .insert({
@@ -287,6 +265,11 @@ const LandingPageEditor = () => {
     setSelectedSection(null);
   };
 
+  const handleViewPage = () => {
+    if (!page) return;
+    window.open(`/landing/${page.slug}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -300,146 +283,147 @@ const LandingPageEditor = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {templateSelectorOpen && !isLoading ? (
-        <LandingPageTemplateSelector 
-          onSelect={handleSelectTemplate}
-          onBack={handleBackToList}
-        />
-      ) : (
-        <>
-          {/* Header */}
-          <div className="bg-white border-b sticky top-0 z-10">
-            <div className="container mx-auto p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleBackToList}>
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  {language === 'ar' ? 'العودة إلى القائمة' : 'Back to list'}
-                </Button>
-                <h1 className="text-xl font-semibold">
-                  {page?.title || (language === 'ar' ? 'صفحة جديدة' : 'New Page')}
-                </h1>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="border rounded-md flex">
-                  <Button
-                    variant={previewMode === 'desktop' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPreviewMode('desktop')}
-                    className="rounded-r-none border-r"
-                  >
-                    <Monitor className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={previewMode === 'tablet' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPreviewMode('tablet')}
-                    className="rounded-none border-r"
-                  >
-                    <Tablet className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={previewMode === 'mobile' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPreviewMode('mobile')}
-                    className="rounded-l-none"
-                  >
-                    <Smartphone className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  {language === 'ar' ? 'الإعدادات' : 'Settings'}
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => handleSaveTemplate()}
-                  disabled={isSaving || !content}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving 
-                    ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') 
-                    : (language === 'ar' ? 'حفظ' : 'Save')}
-                </Button>
-                
-                <Button
-                  variant={page?.is_published ? "secondary" : "default"}
-                  onClick={handleTogglePublish}
-                  disabled={isPublishing || !page}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  {isPublishing
-                    ? (language === 'ar' ? 'جاري المعالجة...' : 'Processing...')
-                    : page?.is_published
-                      ? (language === 'ar' ? 'إلغاء النشر' : 'Unpublish')
-                      : (language === 'ar' ? 'نشر' : 'Publish')}
-                </Button>
-              </div>
-            </div>
+      {/* Header */}
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="container mx-auto p-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleBackToList}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {language === 'ar' ? 'العودة إلى القائمة' : 'Back to list'}
+            </Button>
+            <h1 className="text-xl font-semibold">
+              {page?.title || (language === 'ar' ? 'صفحة جديدة' : 'New Page')}
+            </h1>
           </div>
-
-          {/* Editor Layout */}
-          <div className="grid grid-cols-12 min-h-[calc(100vh-4rem)]">
-            {/* Left Sidebar */}
-            <div className="col-span-3 bg-white border-r overflow-auto h-[calc(100vh-4rem)]">
-              {/* Tabs for Sections and Shopify */}
-              <Tabs defaultValue="sections" className="w-full">
-                <TabsList className="w-full">
-                  <TabsTrigger value="sections" className="flex-1">
-                    {language === 'ar' ? 'الأقسام' : 'Sections'}
-                  </TabsTrigger>
-                  <TabsTrigger value="shopify" className="flex-1">
-                    {language === 'ar' ? 'شوبيفاي' : 'Shopify'}
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="sections" className="p-0 border-0">
-                  <LandingPageSections 
-                    content={content} 
-                    selectedSection={selectedSection}
-                    onSelectSection={setSelectedSection}
-                    onUpdateSection={handleSectionUpdate}
-                    onAddSection={handleAddSection}
-                    onRemoveSection={handleRemoveSection}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="shopify" className="p-4 border-0">
-                  {page && (
-                    <ShopifyLandingPageSync 
-                      pageId={page.id}
-                      pageSlug={page.slug}
-                      isPublished={page.is_published}
-                    />
-                  )}
-                </TabsContent>
-              </Tabs>
+          
+          <div className="flex items-center gap-2">
+            <div className="border rounded-md flex">
+              <Button
+                variant={previewMode === 'desktop' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPreviewMode('desktop')}
+                className="rounded-r-none border-r"
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={previewMode === 'tablet' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPreviewMode('tablet')}
+                className="rounded-none border-r"
+              >
+                <Tablet className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={previewMode === 'mobile' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPreviewMode('mobile')}
+                className="rounded-l-none"
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
             </div>
+            
+            <Button
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+            >
+              {language === 'ar' ? 'الإعدادات' : 'Settings'}
+            </Button>
+            
+            {page && (
+              <Button
+                variant="outline"
+                onClick={handleViewPage}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'معاينة' : 'Preview'}
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline"
+              onClick={() => handleSaveTemplate()}
+              disabled={isSaving || !content}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving 
+                ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') 
+                : (language === 'ar' ? 'حفظ' : 'Save')}
+            </Button>
+            
+            <Button
+              variant={page?.is_published ? "secondary" : "default"}
+              onClick={handleTogglePublish}
+              disabled={isPublishing || !page}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              {isPublishing
+                ? (language === 'ar' ? 'جاري المعالجة...' : 'Processing...')
+                : page?.is_published
+                  ? (language === 'ar' ? 'إلغاء النشر' : 'Unpublish')
+                  : (language === 'ar' ? 'نشر' : 'Publish')}
+            </Button>
+          </div>
+        </div>
+      </div>
 
-            {/* Preview Area */}
-            <div className="col-span-9 bg-gray-100 overflow-auto h-[calc(100vh-4rem)] p-4">
-              <LandingPagePreview 
+      {/* Editor Layout */}
+      <div className="grid grid-cols-12 min-h-[calc(100vh-4rem)]">
+        {/* Left Sidebar */}
+        <div className="col-span-3 bg-white border-r overflow-auto h-[calc(100vh-4rem)]">
+          {/* Tabs for Sections and Shopify */}
+          <Tabs defaultValue="sections" className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="sections" className="flex-1">
+                {language === 'ar' ? 'الأقسام' : 'Sections'}
+              </TabsTrigger>
+              <TabsTrigger value="shopify" className="flex-1">
+                {language === 'ar' ? 'شوبيفاي' : 'Shopify'}
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="sections" className="p-0 border-0">
+              <LandingPageSections 
                 content={content} 
-                mode={previewMode}
                 selectedSection={selectedSection}
                 onSelectSection={setSelectedSection}
+                onUpdateSection={handleSectionUpdate}
+                onAddSection={handleAddSection}
+                onRemoveSection={handleRemoveSection}
               />
-            </div>
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="shopify" className="p-4 border-0">
+              {page && (
+                <ShopifyLandingPageSync 
+                  pageId={page.id}
+                  pageSlug={page.slug}
+                  isPublished={page.is_published}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
 
-          {/* Settings Modal */}
-          {settingsOpen && page && (
-            <LandingPageSettings 
-              page={page}
-              onSave={handleSavePage}
-              onClose={() => setSettingsOpen(false)}
-            />
-          )}
-        </>
+        {/* Preview Area */}
+        <div className="col-span-9 bg-gray-100 overflow-auto h-[calc(100vh-4rem)] p-4">
+          <LandingPagePreview 
+            content={content} 
+            mode={previewMode}
+            selectedSection={selectedSection}
+            onSelectSection={setSelectedSection}
+          />
+        </div>
+      </div>
+
+      {/* Settings Modal - تأكد من عدم عرضه إلا عندما يكون مفتوحًا */}
+      {settingsOpen && page && (
+        <LandingPageSettings 
+          page={page}
+          onSave={handleSavePage}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
     </div>
   );

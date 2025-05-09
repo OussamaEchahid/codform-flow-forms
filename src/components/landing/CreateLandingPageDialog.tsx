@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
@@ -21,43 +22,16 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
   const [pageName, setPageName] = useState('');
   const [productId, setProductId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [shopifyTabActive, setShopifyTabActive] = useState(true);
-  const [localProducts, setLocalProducts] = useState<any[]>([]);
-  const [isLoadingLocalProducts, setIsLoadingLocalProducts] = useState(false);
-  
+
   // Shopify integration
   const { isConnected, shop, products: shopifyProducts, loadProducts, isLoading: isLoadingShopifyProducts } = useShopify();
   
   // Load Shopify products when the dialog opens
   useEffect(() => {
-    if (open && isConnected && shopifyTabActive) {
+    if (open && isConnected) {
       loadProducts();
     }
-  }, [open, isConnected, shopifyTabActive, loadProducts]);
-  
-  // Load local products
-  useEffect(() => {
-    const fetchLocalProducts = async () => {
-      if (!open || shopifyTabActive) return;
-      
-      try {
-        setIsLoadingLocalProducts(true);
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, name')
-          .order('name');
-          
-        if (error) throw error;
-        setLocalProducts(data || []);
-      } catch (error) {
-        console.error('Error fetching local products:', error);
-      } finally {
-        setIsLoadingLocalProducts(false);
-      }
-    };
-    
-    fetchLocalProducts();
-  }, [open, shopifyTabActive]);
+  }, [open, isConnected, loadProducts]);
 
   // تأكد من عدم عرض أي شيء إذا كان الحوار مغلقًا
   if (!open) {
@@ -73,7 +47,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
     try {
       setIsCreating(true);
       
-      // Generate a slug from the page name
+      // توليد الرابط المختصر من اسم الصفحة
       const slug = pageName
         .toLowerCase()
         .replace(/\s+/g, '-')
@@ -82,13 +56,12 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .replace(/^-+/, '')
         .replace(/-+$/, '');
       
-      // Create the landing page
+      // إنشاء الصفحة
       const { data, error } = await supabase
         .from('landing_pages')
         .insert({
           title: pageName,
           slug,
-          product_id: !shopifyTabActive ? productId : null,
           is_published: false
         })
         .select()
@@ -96,13 +69,13 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
       
       if (error) throw error;
       
-      // Store Shopify product ID in a separate table if selected
-      if (shopifyTabActive && productId) {
-        // You would store the Shopify product ID in a separate table
-        // This part will be implemented in the edge function
+      // تخزين معرف منتج Shopify في جدول منفصل إذا تم تحديده
+      if (productId) {
+        // هنا يمكن تخزين معرف منتج Shopify في جدول منفصل
+        // سيتم تنفيذ ذلك في الدالة الطرفية
       }
       
-      // Navigate to the editor
+      // الانتقال إلى المحرر
       navigate(`/landing-pages/editor/${data.id}`);
       toast.success(language === 'ar' ? 'تم إنشاء الصفحة بنجاح' : 'Page created successfully');
     } catch (error) {
@@ -121,7 +94,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {language === 'ar' ? 'صفحة جديدة' : 'New Page'}
+            {language === 'ar' ? 'صفحة هبوط جديدة' : 'New Landing Page'}
           </DialogTitle>
         </DialogHeader>
         
@@ -139,95 +112,46 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
           </div>
           
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>
-                {language === 'ar' ? 'اختر المنتج' : 'Select Product'}
-              </Label>
-              
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  variant={!shopifyTabActive ? "default" : "outline"}
-                  onClick={() => setShopifyTabActive(false)}
-                  className="text-xs"
-                  size="sm"
-                >
-                  {language === 'ar' ? 'منتجات الموقع' : 'Local Products'}
-                </Button>
-                <Button
-                  type="button"
-                  variant={shopifyTabActive ? "default" : "outline"}
-                  onClick={() => setShopifyTabActive(true)}
-                  className="text-xs"
-                  size="sm"
-                >
-                  {language === 'ar' ? 'منتجات شوبيفاي' : 'Shopify Products'}
-                </Button>
-              </div>
-            </div>
+            <Label>
+              {language === 'ar' ? 'اختر منتج شوبيفاي' : 'Select Shopify Product'}
+            </Label>
             
-            {shopifyTabActive ? (
-              <div>
-                <select
-                  className="w-full border rounded-md p-2"
-                  value={productId}
-                  onChange={(e) => setProductId(e.target.value)}
-                >
-                  <option value="">
-                    {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
-                  </option>
-                  
-                  {isConnected ? (
-                    isLoadingShopifyProducts ? (
-                      <option disabled>{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</option>
-                    ) : shopifyProducts.length > 0 ? (
-                      shopifyProducts.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.title}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>{language === 'ar' ? 'لا توجد منتجات' : 'No products found'}</option>
-                    )
-                  ) : (
-                    <option disabled>
-                      {language === 'ar' 
-                        ? 'يرجى الاتصال بشوبيفاي أولاً' 
-                        : 'You must connect to Shopify first'}
-                    </option>
-                  )}
-                </select>
-                
-                {!isConnected && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    {language === 'ar' 
-                      ? 'يجب عليك الاتصال بشوبيفاي أولاً' 
-                      : 'You must connect to Shopify first'}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <select
-                className="w-full border rounded-md p-2"
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-              >
-                <option value="">
-                  {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
-                </option>
-                
-                {isLoadingLocalProducts ? (
+            <select
+              className="w-full border rounded-md p-2"
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+            >
+              <option value="">
+                {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
+              </option>
+              
+              {isConnected ? (
+                isLoadingShopifyProducts ? (
                   <option disabled>{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</option>
-                ) : localProducts.length > 0 ? (
-                  localProducts.map((product) => (
+                ) : shopifyProducts.length > 0 ? (
+                  shopifyProducts.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {product.name}
+                      {product.title}
                     </option>
                   ))
                 ) : (
                   <option disabled>{language === 'ar' ? 'لا توجد منتجات' : 'No products found'}</option>
-                )}
-              </select>
+                )
+              ) : (
+                <option disabled>
+                  {language === 'ar' 
+                    ? 'يرجى الاتصال بشوبيفاي أولاً' 
+                    : 'You must connect to Shopify first'}
+                </option>
+              )}
+            </select>
+            
+            {!isConnected && (
+              <p className="text-sm text-amber-600 mt-1">
+                {language === 'ar' 
+                  ? 'يجب عليك الاتصال بشوبيفاي أولاً' 
+                  : 'You must connect to Shopify first'}
+              </p>
             )}
           </div>
         </div>
