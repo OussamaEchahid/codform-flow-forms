@@ -37,7 +37,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   
   const checkSyncStatus = async () => {
     try {
-      // التحقق مما إذا كانت هذه الصفحة قد تمت مزامنتها مع Shopify
+      // Check if this page has been synced with Shopify
       const { data, error } = await supabase
         .from('shopify_page_syncs')
         .select('id, synced_url')
@@ -89,13 +89,13 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     setSyncStatus('syncing');
     
     try {
-      // استدعاء واجهة برمجة التطبيقات الخاصة بـ Shopify لنشر صفحة الهبوط
+      // Call the API to publish the landing page to Shopify
       const { data, error } = await supabase.functions.invoke('shopify-publish-page', {
         body: { 
           pageId,
           pageSlug,
           shop,
-          productId // إرسال معرف المنتج للربط مع صفحة المنتج
+          productId // Send the product ID to link with the product page
         }
       });
       
@@ -107,7 +107,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           : 'Page published to Shopify successfully');
         setSyncStatus('synced');
         
-        // حفظ عنوان URL للصفحة المنشورة
+        // Save the URL of the published page
         if (data?.url) {
           setSyncedUrl(data.url);
         }
@@ -133,7 +133,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       return;
     }
     
-    // فتح صفحة Shopify في علامة تبويب جديدة
+    // Open the Shopify page in a new tab
     const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
     window.open(`https://${domain}/pages/${pageSlug}`, '_blank');
   };
@@ -141,14 +141,14 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const viewProductPage = () => {
     if (!shop || !productId) return;
     
-    // إذا كان معرف المنتج هو GID من Shopify، استخراج الجزء الأخير منه
+    // If the product ID is a Shopify GID, extract the last part of it
     let shopifyProductId = productId;
     if (productId.startsWith('gid://shopify/Product/')) {
       const parts = productId.split('/');
       shopifyProductId = parts[parts.length - 1];
     }
     
-    // فتح صفحة المنتج في Shopify في علامة تبويب جديدة
+    // Open the product page in Shopify in a new tab
     const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
     window.open(`https://${domain}/products/${shopifyProductId}`, '_blank');
   };
@@ -188,18 +188,26 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           : 'Publish this landing page to your Shopify store and apply it to the product page'}
       </p>
       
-      {/* معلومات المنتج */}
-      {productId && (
+      {/* Product information */}
+      {productId ? (
+        <Alert className="mb-4 bg-green-50 border-green-200">
+          <AlertDescription className="text-green-800">
+            {language === 'ar'
+              ? 'سيتم تطبيق محتوى هذه الصفحة على صفحة المنتج المحدد في شوبيفاي وستحل محل وصف المنتج الحالي'
+              : 'This page content will replace the product description on the selected product page in Shopify'}
+          </AlertDescription>
+        </Alert>
+      ) : (
         <Alert className="mb-4 bg-blue-50">
           <AlertDescription>
             {language === 'ar'
-              ? 'سيتم تطبيق هذه الصفحة على المنتج المحدد في شوبيفاي'
-              : 'This page will be applied to the selected product in Shopify'}
+              ? 'لم يتم تحديد منتج لهذه الصفحة. يرجى تحديد منتج أولاً في إعدادات الصفحة.'
+              : 'No product has been selected for this page. Please select a product first in the page settings.'}
           </AlertDescription>
         </Alert>
       )}
       
-      {/* أزرار المعاينة */}
+      {/* Preview buttons */}
       <div className="mb-4 border-b pb-4">
         <h4 className="text-sm font-medium mb-2">
           {language === 'ar' ? 'معاينة الصفحة' : 'Preview Page'}
@@ -217,15 +225,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           
           {syncStatus === 'synced' && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={viewShopifyPage}
-                className="flex items-center"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {language === 'ar' ? 'معاينة الصفحة في شوبيفاي' : 'View Page in Shopify'}
-              </Button>
+              {syncedUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={viewShopifyPage}
+                  className="flex items-center"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {language === 'ar' ? 'معاينة الصفحة في شوبيفاي' : 'View Page in Shopify'}
+                </Button>
+              )}
               
               {productId && (
                 <Button
@@ -243,7 +253,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         </div>
       </div>
       
-      {/* حالة المزامنة والنشر */}
+      {/* Sync status and publishing */}
       {syncStatus === 'synced' ? (
         <div className="space-y-2">
           <div className="flex items-center text-green-600 text-sm">
