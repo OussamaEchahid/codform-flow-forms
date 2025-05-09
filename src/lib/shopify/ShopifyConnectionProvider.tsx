@@ -259,7 +259,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       // If we have a shop, test the connection
       if (shopDomain) {
-        await testConnection(true); // Pass only one argument - forceRefresh
+        await testConnection(true); // Fixed: Pass only one argument - forceRefresh
       }
       
       connectionLogger.debug('Reload completed');
