@@ -161,7 +161,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         try {
           // First verify connection - but with a short timeout
           const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(false), 3000));
-          const connectionPromise = testConnection(false); // Pass false to use regular check
+          const connectionPromise = testConnection();
           
           // Use race to implement timeout
           const connectionValid = await Promise.race([connectionPromise, timeoutPromise]);
