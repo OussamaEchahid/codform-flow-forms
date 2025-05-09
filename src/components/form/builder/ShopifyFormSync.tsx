@@ -202,7 +202,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
-      // Fix: Remove the argument as refreshConnection now accepts an optional parameter
+      // Fix: Call refreshConnection with no arguments since it's optional
       const success = await refreshConnection();
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');

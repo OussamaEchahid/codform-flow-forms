@@ -196,7 +196,7 @@ export const useShopify = () => {
     
     return requestPromise;
   }, [isConnected, shop, getAccessToken]);
-
+  
   // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
     if (!isConnected && !failSafeMode) {
@@ -360,7 +360,7 @@ export const useShopify = () => {
     }
   }, [shop, loadProducts, testConnection]);
 
-  // Add the missing refreshConnection method
+  // Fix the refreshConnection method to properly handle the optional parameter
   const refreshConnection = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -368,8 +368,9 @@ export const useShopify = () => {
       setTokenExpired(false);
       setIsNetworkError(false);
       
-      // Test connection first to validate current token
-      const isValid = await testConnection(forceRefresh || true); // Force token refresh
+      // Make sure we're passing the forceRefresh parameter correctly
+      // Only pass it if it's explicitly provided (not undefined)
+      const isValid = await testConnection(forceRefresh !== undefined ? forceRefresh : true);
       
       if (!isValid) {
         setTokenError(true);
