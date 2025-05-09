@@ -197,7 +197,7 @@ const Forms = () => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected];
+  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected]);
   
   // Check connection once on load with improved reliability
   useEffect(() => {
