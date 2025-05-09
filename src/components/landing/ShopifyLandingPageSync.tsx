@@ -1,1031 +1,542 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  AlertCircle,
-  CheckCircle,
-  Code,
-  ExternalLink,
-  Eye,
-  Info,
-  Loader2,
-  RefreshCw,
-  RotateCcw,
-  Settings,
-  Share2,
-  ShieldAlert,
-  ShoppingCart,
-  WifiOff
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, CheckCircle, Loader2, RefreshCw, Upload, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { useShopify } from '@/hooks/useShopify';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useShopifySettings } from '@/lib/shopify/ShopifySettingsProvider';
-import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
   pageSlug: string;
   isPublished: boolean;
+  productId?: string;
 }
 
-interface PublishResult {
-  success: boolean;
-  message: string;
-  metaobjectCreated?: boolean;
-  metaobjectId?: string;
-  productUrl?: string;
-  landingPageUrl?: string;
-  fallbackUsed?: boolean;
-  fallbackSuccess?: boolean;
-  hasMetaobjectPermission?: boolean;
-  metaobjectErrors?: any[];
-}
-
-const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId, pageSlug, isPublished }) => {
-  const { language } = useI18n();
-  const navigate = useNavigate();
-  const { 
-    isConnected, 
-    shop, 
-    products, 
-    isLoading: isShopifyLoading, 
-    loadProducts, 
-    testConnection 
-  } = useShopify();
+const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ 
+  pageId,
+  pageSlug,
+  isPublished,
+  productId: initialProductId 
+}) => {
+  const { shop, isConnected, isNetworkError, testConnection, refreshConnection } = useShopify();
   const { settings } = useShopifySettings();
-  const { isNetworkError } = useShopifyConnection(); // Get network error state from context
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error' | 'partial'>('idle');
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [syncsCount, setSyncsCount] = useState<number>(0);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(initialProductId || null);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [syncAttempts, setSyncAttempts] = useState(0);
+  const [networkErrors, setNetworkErrors] = useState(0);
   
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [isPublishing, setIsPublishing] = useState<boolean>(false);
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState<boolean>(false);
-  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState<boolean>(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [publishResult, setPublishResult] = useState<PublishResult | null>(null);
-  const [selectedConnectionTab, setSelectedConnectionTab] = useState<'connect' | 'debug'>('connect');
-  const [syncStatus, setSyncStatus] = useState<'none' | 'synced' | 'error'>('none');
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [syncInfo, setSyncInfo] = useState<any>(null);
-  const [debugMode, setDebugMode] = useState<boolean>(settings.debugMode);
-  const [fallbackMode, setFallbackMode] = useState<boolean>(settings.fallbackModeOnly);
-  const [ignoreMetaobjectErrors, setIgnoreMetaobjectErrors] = useState<boolean>(settings.ignoreMetaobjectErrors);
-  const [retryCount, setRetryCount] = useState<number>(0);
-  const [permissionError, setPermissionError] = useState<boolean>(false);
-  const [loadPermissions, setLoadPermissions] = useState<boolean>(false);
-  const [missingPermissions, setMissingPermissions] = useState<string[]>([]);
-  const [bypassValidation, setBypassValidation] = useState<boolean>(false); // New state for bypassing validation
-
-  // Sync local state with global settings
-  useEffect(() => {
-    setDebugMode(settings.debugMode);
-    setFallbackMode(settings.fallbackModeOnly);
-    setIgnoreMetaobjectErrors(settings.ignoreMetaobjectErrors);
-  }, [settings.debugMode, settings.fallbackModeOnly, settings.ignoreMetaobjectErrors]);
-
-  // Enable bypass validation if network error is detected
+  // Derived state - switch to emergency mode after too many network errors
+  const isEmergencyMode = networkErrors >= 2 || isNetworkError || syncAttempts >= 3 || settings.fallbackModeOnly;
+  
   useEffect(() => {
     if (isNetworkError) {
-      setBypassValidation(true);
-      // Auto-enable fallback mode with network errors
-      setFallbackMode(true);
-      console.log('Network error detected, enabling bypass validation and fallback mode');
+      setNetworkErrors(prev => prev + 1);
     }
   }, [isNetworkError]);
 
-  // Load products when connected
   useEffect(() => {
-    if (isConnected && shop) {
-      loadProducts().catch(err => {
-        console.error("Error loading products:", err);
-        // If products can't be loaded, we'll still show the UI with empty products
-      });
+    // Load saved sync information from localStorage
+    const storedSyncInfo = localStorage.getItem(`page_sync_${pageId}`);
+    if (storedSyncInfo) {
+      try {
+        const syncInfo = JSON.parse(storedSyncInfo);
+        setLastSynced(syncInfo.lastSynced);
+        setSyncsCount(syncInfo.count || 0);
+        setSyncStatus(syncInfo.status || 'idle');
+        
+        if (syncInfo.productId) {
+          setSelectedProductId(syncInfo.productId);
+        }
+      } catch (e) {
+        console.error('Error parsing sync info:', e);
+      }
     }
-  }, [isConnected, shop, loadProducts]);
-
-  // Check existing sync
-  useEffect(() => {
-    const checkExistingSync = async () => {
-      if (!pageId) return;
-      
-      try {
-        setIsLoading(true);
-        
-        const { data, error } = await supabase
-          .from('shopify_page_syncs')
-          .select('*')
-          .eq('page_id', pageId)
-          .maybeSingle();
-          
-        if (error) {
-          console.error('Error checking sync status:', error);
-          return;
-        }
-        
-        if (data) {
-          setSyncStatus('synced');
-          setSyncInfo(data);
-        }
-      } catch (error) {
-        console.error('Error checking sync:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     
-    checkExistingSync();
-  }, [pageId]);
+    // Load products if we're connected to Shopify
+    if (shop && isConnected) {
+      loadProducts();
+    }
+  }, [pageId, shop, isConnected]);
 
-  const handleCheckPermissions = async () => {
-    if (!isConnected || !shop) return;
+  const loadProducts = async () => {
+    if (!shop) return;
     
+    setIsLoadingProducts(true);
     try {
-      setLoadPermissions(true);
-      
-      // Skip permission check if we have network errors
-      if (isNetworkError || bypassValidation) {
-        console.log('Skipping permission check due to network issues');
-        // Auto-enable fallback mode and assume we need it
-        setFallbackMode(true);
-        setPermissionError(true);
-        setMissingPermissions(['Assuming permissions missing due to network issues']);
-        return;
-      }
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
-          body: { 
-            shop, 
-            accessToken: '', // Will be retrieved server-side
-            checkPermissions: true,
-            requestId: `perm_check_${Math.random().toString(36).substring(2, 8)}`
-          }
+      const { data, error } = await fetch(`/api/shopify-products?shop=${shop}&timestamp=${Date.now()}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
+          return res.json();
         });
-        
-        if (error || !data?.success) {
-          console.error('Error checking permissions:', error || data?.message);
-          // If check fails, assume we need fallback mode
-          setFallbackMode(true);
-          setPermissionError(true);
-          return;
-        }
-        
-        if (data.permissions) {
-          setPermissionError(!data.permissions.valid);
-          setMissingPermissions(data.permissions.missingScopes || []);
-          
-          if (!data.permissions.hasMetaobjectPermission) {
-            console.log('Missing metaobject permission');
-            setFallbackMode(true); // Auto-enable fallback mode
-          }
-        }
-      } catch (error) {
-        console.error('Network error checking permissions:', error);
-        // Auto-enable fallback mode on network errors
-        setFallbackMode(true);
-        setPermissionError(true);
+
+      if (error) {
+        throw new Error(error.message || 'Error fetching products');
+      }
+
+      if (data && Array.isArray(data.products)) {
+        setAvailableProducts(data.products);
       }
     } catch (error) {
-      console.error('Error in handleCheckPermissions:', error);
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
     } finally {
-      setLoadPermissions(false);
+      setIsLoadingProducts(false);
     }
   };
 
-  useEffect(() => {
-    if (isConnected && shop) {
-      handleCheckPermissions();
-    }
-  }, [isConnected, shop, isNetworkError, bypassValidation]);
-
-  const handleOpenDialog = () => {
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-  };
-
-  const checkConnection = async (): Promise<boolean> => {
-    // Skip connection test if we're in network error mode or bypass validation
-    if (isNetworkError || bypassValidation || fallbackMode) {
-      console.log('Skipping connection test due to network issues or fallback mode');
-      return true; // Assume connection is valid
-    }
-    
-    if (!isConnected) {
-      toast.error(language === 'ar' ? 'يرجى الاتصال بـ Shopify أولاً' : 'Please connect to Shopify first');
-      return false;
-    }
-    
-    try {
-      const result = await testConnection(true);
-      if (!result) {
-        toast.error(language === 'ar' ? 'فشل اختبار الاتصال' : 'Connection test failed');
-      }
-      return result;
-    } catch (error) {
-      console.error('Connection test error:', error);
-      // If this is likely a network error, be permissive
-      if (error.message?.includes('Failed to fetch') || 
-          error.message?.includes('NetworkError')) {
-        console.log('Network error detected during connection test, proceeding anyway');
-        setBypassValidation(true);
-        return true;
-      }
-      toast.error(language === 'ar' ? 'خطأ في اختبار الاتصال' : 'Connection test error');
-      return false;
-    }
-  };
-
-  const handlePublishToShopify = async () => {
-    if (!pageId || !selectedProductId || !shop) {
-      toast.error(language === 'ar' ? 'الرجاء اختيار منتج أولاً' : 'Please select a product first');
+  const handleSync = async () => {
+    if (!pageId || !pageSlug) {
+      toast.error('Missing page information');
       return;
     }
     
-    if (!isPublished) {
-      toast.error(language === 'ar' ? 'يرجى نشر الصفحة أولاً' : 'Please publish the page first');
+    if (!shop) {
+      toast.error('Not connected to a Shopify store');
       return;
     }
     
+    if (!selectedProductId) {
+      toast.error('Please select a product first');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus('idle');
+    setErrorDetails(null);
+    setSyncAttempts(prev => prev + 1);
+
     try {
-      setIsPublishing(true);
-      setPublishResult(null);
-      setSyncError(null);
+      // Check for network issues and use emergency mode if needed
+      let useEmergencyMode = isEmergencyMode;
       
-      // First test connection - but skip if we're in fallback mode or have network issues
-      let connectionValid = true;
-      if (!fallbackMode && !isNetworkError && !bypassValidation) {
-        connectionValid = await checkConnection();
+      if (!useEmergencyMode) {
+        try {
+          // First verify connection - but with a short timeout
+          const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(false), 3000));
+          const connectionPromise = testConnection();
+          
+          // Use race to implement timeout
+          const connectionValid = await Promise.race([connectionPromise, timeoutPromise]);
+          
+          if (!connectionValid) {
+            console.warn('Connection test timed out or failed, switching to emergency mode');
+            useEmergencyMode = true;
+            setNetworkErrors(prev => prev + 1);
+          }
+        } catch (e) {
+          console.error('Error in connection test:', e);
+          useEmergencyMode = true;
+          setNetworkErrors(prev => prev + 1);
+        }
       }
-      
-      if (!connectionValid && !fallbackMode && !isNetworkError && !bypassValidation) {
-        setIsPublishing(false);
-        setIsErrorDialogOpen(true);
-        setSyncError('connection_failed');
+
+      // Get access token for the current shop - will be used by the edge function
+      let accessToken = '';
+      try {
+        const tokenResponse = await fetch(`/api/shopify-token?shop=${shop}`);
+        if (!tokenResponse.ok) {
+          throw new Error(`Failed to get token: ${tokenResponse.status}`);
+        }
+        const tokenData = await tokenResponse.json();
+        accessToken = tokenData.accessToken;
+        
+        if (!accessToken) {
+          throw new Error('No access token returned');
+        }
+      } catch (tokenError) {
+        console.error('Error getting access token:', tokenError);
+        toast.error('Failed to get access token');
+        setIsSyncing(false);
+        setSyncStatus('error');
+        setErrorDetails('Failed to retrieve access token');
         return;
       }
       
-      console.log('Publishing page to Shopify', {
-        pageId,
-        pageSlug,
-        productId: selectedProductId,
-        fallbackMode,
-        debugMode,
-        ignoreMetaobjectErrors,
-        bypassValidation,
-        isNetworkError
-      });
-      
-      // Show toast with progress
-      const toastId = toast.loading(
-        language === 'ar' 
-          ? 'جاري النشر في متجر Shopify...' 
-          : 'Publishing to Shopify store...'
-      );
+      // Generate a unique request ID for tracking
+      const requestId = `sync_${Math.random().toString(36).substring(2, 10)}`;
       
       try {
-        const { data, error } = await supabase.functions.invoke('shopify-publish-page', {
-          body: {
+        // Call the Supabase edge function to sync with Shopify
+        const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-publish-page`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'}`,
+          },
+          body: JSON.stringify({
             pageId,
             pageSlug,
             productId: selectedProductId,
             shop,
-            accessToken: '', // Will be retrieved server-side
-            requestId: `publish_${Math.random().toString(36).substring(2, 8)}`,
+            accessToken,
+            requestId,
             timestamp: Date.now(),
-            fallbackOnly: fallbackMode || isNetworkError || bypassValidation, // Use fallback if network issues
-            debugMode: debugMode,
-            ignoreMetaobjectErrors: ignoreMetaobjectErrors || isNetworkError || bypassValidation, // Ignore errors with network issues
-          }
+            // Pass ShopifySettings values to the function
+            fallbackOnly: useEmergencyMode || settings.fallbackModeOnly,
+            debugMode: settings.debugMode,
+            ignoreMetaobjectErrors: useEmergencyMode || settings.ignoreMetaobjectErrors,
+            bypassConnectionCheck: useEmergencyMode, // Skip connection validation in emergency mode
+            forceMetaobjectCreation: false,
+            maxRetries: useEmergencyMode ? 5 : 3 // More retries in emergency mode
+          })
         });
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('Failed to parse JSON response:', jsonError);
+          throw new Error('Invalid response from server');
+        }
+
+        if (!response.ok) {
+          console.error('Error response from publish function:', data);
+          throw new Error(data?.message || `Error: ${response.status}`);
+        }
         
-        if (error) {
-          console.error('Error from shopify-publish-page function:', error);
+        if (!data) {
+          throw new Error('Empty response from server');
+        }
+
+        if (data.success) {
+          const newSyncsCount = syncsCount + 1;
+          const currentTime = new Date().toLocaleString();
           
-          // Check if this is a network error
-          if (error.message?.includes('Failed to fetch') || 
-              error.message?.includes('NetworkError') ||
-              error.message?.includes('Failed to send')) {
-            
-            // Enable bypass mode and try again with full fallback
-            if (!fallbackMode || !ignoreMetaobjectErrors) {
-              setBypassValidation(true);
-              setFallbackMode(true);
-              setIgnoreMetaobjectErrors(true);
-              
-              toast.error(language === 'ar' 
-                ? 'خطأ في الشبكة، جاري إعادة المحاولة بالوضع الاحتياطي...' 
-                : 'Network error, retrying with fallback mode...', 
-                { id: toastId }
-              );
-              
-              // Try again with fallback mode
-              setIsPublishing(false);
-              setTimeout(() => {
-                handlePublishToShopify();
-              }, 500);
-              return;
-            }
-            
-            // If already in fallback mode, show network error
-            toast.error(language === 'ar' ? 'خطأ في الشبكة' : 'Network error', { id: toastId });
-            setSyncError('network_error');
-            setIsErrorDialogOpen(true);
-            return;
+          // Save sync info to localStorage
+          const syncInfo = {
+            lastSynced: currentTime,
+            count: newSyncsCount,
+            status: data.fallbackSuccess || data.productUpdateSuccess ? 
+              (data.metaobjectCreated ? 'success' : 'partial') : 'error',
+            productId: selectedProductId
+          };
+          localStorage.setItem(`page_sync_${pageId}`, JSON.stringify(syncInfo));
+          
+          // Update state
+          setSyncStatus(syncInfo.status);
+          setLastSynced(currentTime);
+          setSyncsCount(newSyncsCount);
+          
+          // Show appropriate toast message
+          if (data.metaobjectCreated) {
+            toast.success('Page published successfully to Shopify');
+          } else if (data.fallbackSuccess || data.productUpdateSuccess) {
+            toast.success('Page published with fallback method');
+          } else {
+            toast.warning('Page published with limited functionality');
           }
+        } else if (data.retryWithFallback && syncAttempts < 3) {
+          // Auto-retry with fallback mode
+          console.log('Retrying with fallback mode enabled');
           
-          toast.error(language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify', { id: toastId });
-          setSyncError('function_error');
-          setIsErrorDialogOpen(true);
+          // Increment network errors count to trigger emergency mode
+          setNetworkErrors(prev => prev + 2); // Ensure emergency mode is triggered
+          
+          // Small delay before retry
+          setTimeout(() => handleSync(), 1000);
           return;
-        }
-        
-        if (!data.success) {
-          console.error('Error from function:', data.message);
-          toast.error(data.message || (language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify'), { id: toastId });
-          setPublishResult(data);
-          setSyncError('api_error');
-          setIsErrorDialogOpen(true);
-          return;
-        }
-        
-        // Success
-        setPublishResult(data);
-        toast.success(language === 'ar' ? 'تم النشر بنجاح' : 'Published successfully', { id: toastId });
-        setSyncStatus('synced');
-        setIsDialogOpen(false);
-        setIsSuccessDialogOpen(true);
-        
-        // Update sync info
-        const { data: syncData } = await supabase
-          .from('shopify_page_syncs')
-          .select('*')
-          .eq('page_id', pageId)
-          .maybeSingle();
-          
-        if (syncData) {
-          setSyncInfo(syncData);
-        }
-      } catch (functionError) {
-        console.error('Error invoking function:', functionError);
-        
-        // Check if it's a network error
-        if (functionError.message?.includes('Failed to fetch') || 
-            functionError.message?.includes('NetworkError')) {
-          
-          // Set network error state
-          setBypassValidation(true);
-          setSyncError('network_error');
-          
-          toast.error(language === 'ar' ? 'خطأ في الشبكة' : 'Network error', { id: toastId });
-          setIsErrorDialogOpen(true);
         } else {
-          toast.error(language === 'ar' ? 'حدث خطأ أثناء النشر' : 'Error during publishing', { id: toastId });
-          setSyncError('unknown_error');
-          setIsErrorDialogOpen(true);
+          setSyncStatus('error');
+          setErrorDetails(data.message || 'Unknown error');
+          
+          // Save error status
+          localStorage.setItem(`page_sync_${pageId}`, JSON.stringify({
+            lastSynced: lastSynced,
+            count: syncsCount,
+            status: 'error',
+            productId: selectedProductId
+          }));
+          
+          toast.error(data.message || 'Error publishing page');
         }
+      } catch (error) {
+        console.error('Network error during page publishing:', error);
+        setSyncStatus('error');
+        setErrorDetails(`Network error: ${error.message}`);
+        
+        // Network errors trigger emergency mode
+        setNetworkErrors(prev => prev + 1);
+        
+        // Save error info
+        localStorage.setItem(`page_sync_${pageId}`, JSON.stringify({
+          lastSynced: lastSynced,
+          count: syncsCount,
+          status: 'error',
+          productId: selectedProductId
+        }));
+        
+        toast.error('Network error during publishing');
       }
     } catch (error) {
-      console.error('Error in handlePublishToShopify:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء النشر' : 'Error during publishing');
-      setSyncError('unknown_error');
-      setIsErrorDialogOpen(true);
+      console.error('Error in sync process:', error);
+      setSyncStatus('error');
+      setErrorDetails(`Error: ${error.message}`);
+      toast.error('Unexpected error during sync');
     } finally {
-      setIsPublishing(false);
+      setIsSyncing(false);
     }
   };
 
-  const handleRetry = () => {
-    setRetryCount(prevCount => prevCount + 1);
-    setIsErrorDialogOpen(false);
-    // Wait a bit before reopening the publish dialog
-    setTimeout(() => {
-      setIsDialogOpen(true);
-    }, 500);
-  };
-
-  const renderErrorMessage = () => {
-    switch (syncError) {
-      case 'connection_failed':
-        return {
-          title: language === 'ar' ? 'فشل الاتصال' : 'Connection Failed',
-          description: language === 'ar' 
-            ? 'لم نتمكن من الاتصال بمتجر Shopify الخاص بك. يرجى التحقق من اتصالك والمحاولة مرة أخرى.'
-            : 'We could not connect to your Shopify store. Please check your connection and try again.'
-        };
-      case 'function_error':
-        return {
-          title: language === 'ar' ? 'خطأ في وظيفة النشر' : 'Publishing Function Error',
-          description: language === 'ar'
-            ? 'حدث خطأ في وظيفة النشر. يرجى المحاولة مرة أخرى لاحقًا.'
-            : 'There was an error in the publishing function. Please try again later.'
-        };
-      case 'network_error':
-        return {
-          title: language === 'ar' ? 'خطأ في الشبكة' : 'Network Error',
-          description: language === 'ar'
-            ? 'حدث خطأ في الشبكة أثناء محاولة الاتصال بـ Shopify. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى، أو استخدام وضع النشر الاحتياطي.'
-            : 'A network error occurred while trying to connect to Shopify. Please check your internet connection and try again, or use fallback publishing mode.'
-        };
-      case 'api_error':
-        return {
-          title: language === 'ar' ? 'خطأ API' : 'API Error',
-          description: publishResult?.message || (language === 'ar' 
-            ? 'حدث خطأ أثناء الاتصال بـ Shopify API. يرجى المحاولة مرة أخرى.'
-            : 'There was an error connecting to the Shopify API. Please try again.')
-        };
-      default:
-        return {
-          title: language === 'ar' ? 'خطأ غير معروف' : 'Unknown Error',
-          description: language === 'ar'
-            ? 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقًا.'
-            : 'An unexpected error occurred. Please try again later.'
-        };
-    }
-  };
-
-  // Redirect to Shopify connect page
-  const handleConnectShopify = () => {
-    navigate('/shopify-connect');
-  };
-
-  // Open product URL in new tab
-  const handleOpenProduct = () => {
-    if (publishResult?.productUrl) {
-      window.open(publishResult.productUrl, '_blank');
-    }
-  };
-
-  // Open landing page URL in new tab
-  const handleOpenLandingPage = () => {
-    if (publishResult?.landingPageUrl) {
-      window.open(publishResult.landingPageUrl, '_blank');
-    } else if (syncInfo?.synced_url) {
-      window.open(syncInfo.synced_url, '_blank');
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    try {
+      const success = await refreshConnection();
+      if (success) {
+        toast.success('Successfully reconnected to Shopify');
+        await loadProducts();
+        
+        // Reset error counters after successful reconnection
+        setNetworkErrors(0);
+        setSyncAttempts(0);
+      } else {
+        toast.error('Failed to reconnect');
+        setNetworkErrors(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error reconnecting:', error);
+      toast.error('Error during reconnection');
+      setNetworkErrors(prev => prev + 1);
+    } finally {
+      setIsReconnecting(false);
     }
   };
 
   return (
-    <div className="space-y-4 p-4">
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl">
-            {language === 'ar' ? 'نشر في متجر Shopify' : 'Publish to Shopify Store'}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ar' 
-              ? 'اربط هذه الصفحة بمنتج في متجر Shopify الخاص بك'
-              : 'Link this landing page to a product in your Shopify store'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            {isConnected ? (
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
-                <p className="font-medium text-sm">
-                  {language === 'ar' 
-                    ? `متصل بمتجر: ${shop}` 
-                    : `Connected to shop: ${shop}`}
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <div className="h-2.5 w-2.5 rounded-full bg-amber-500"></div>
-                <p className="text-sm text-amber-700 font-medium">
-                  {language === 'ar' 
-                    ? 'غير متصل بمتجر Shopify' 
-                    : 'Not connected to a Shopify store'}
-                </p>
-              </div>
-            )}
-            
-            {(isNetworkError || bypassValidation) && (
-              <Alert variant="warning" className="mt-2 bg-amber-50">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'وضع الاتصال المحدود' : 'Limited Connection Mode'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'تم اكتشاف مشكلات في الشبكة. سنستخدم وضع النشر الاحتياطي.' 
-                    : 'Network issues detected. Using fallback publishing mode.'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {permissionError && (
-              <Alert variant="warning" className="mt-2 bg-amber-50">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'مشكلة في الصلاحيات' : 'Permission Issue'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'التطبيق يفتقر إلى بعض الصلاحيات المطلوبة. سيتم استخدام طريقة بديلة.' 
-                    : 'The app lacks some required permissions. A fallback method will be used.'}
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {syncStatus === 'synced' ? (
-              <>
-                <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                  <div className="flex items-start">
-                    <CheckCircle className="text-green-600 h-5 w-5 mt-0.5 mr-2" />
-                    <div>
-                      <p className="font-medium text-green-800">
-                        {language === 'ar' 
-                          ? 'تم ربط هذه الصفحة بمتجر Shopify'
-                          : 'This page is linked to your Shopify store'}
-                      </p>
-                      <p className="text-sm text-green-600 mt-1">
-                        {language === 'ar'
-                          ? 'تم المزامنة في: ' + new Date(syncInfo?.updated_at || '').toLocaleString()
-                          : 'Last synced: ' + new Date(syncInfo?.updated_at || '').toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenDialog}
-                    className="flex-1"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'إعادة النشر' : 'Re-publish'}
-                  </Button>
-                  
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleOpenLandingPage}
-                    className="flex-1"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'معاينة الصفحة' : 'View Page'}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <Button
-                onClick={handleOpenDialog}
-                disabled={!isConnected || isLoading || !isPublished}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'نشر في Shopify' : 'Publish to Shopify'}
-                  </>
-                )}
-              </Button>
-            )}
-            
-            {!isPublished && (
-              <Alert variant="warning" className="mt-2 bg-amber-50">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'الصفحة غير منشورة' : 'Page Not Published'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'يجب نشر الصفحة قبل ربطها بمتجر Shopify.' 
-                    : 'You must publish the page before linking it to Shopify.'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {!isConnected && (
-              <Button 
-                variant="outline"
-                onClick={handleConnectShopify}
-                className="w-full mt-2"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {language === 'ar' ? 'الاتصال بـ Shopify' : 'Connect to Shopify'}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Product Selection Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ar' ? 'اختر منتج للربط' : 'Select Product to Link'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'ar' 
-                ? 'اختر المنتج الذي ترغب في ربط صفحة الهبوط هذه به.'
-                : 'Choose the product you want to link this landing page to.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-3">
-            {isShopifyLoading ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              </div>
-            ) : !products || products.length === 0 ? (
-              <Alert variant="warning" className="bg-amber-50">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'لا توجد منتجات' : 'No Products'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'لم نتمكن من العثور على أي منتجات في متجرك.' 
-                    : 'We could not find any products in your store.'}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="product">
-                    {language === 'ar' ? 'المنتج' : 'Product'}
-                  </Label>
-                  <Select
-                    value={selectedProductId}
-                    onValueChange={setSelectedProductId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'ar' ? "اختر منتج..." : "Select a product..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Switch
-                      id="fallback-mode"
-                      checked={fallbackMode || isNetworkError || bypassValidation}
-                      disabled={isNetworkError || bypassValidation} // Disable if we have network errors
-                      onCheckedChange={setFallbackMode}
-                    />
-                    <Label htmlFor="fallback-mode" className="cursor-pointer">
-                      {language === 'ar' ? 'وضع الاحتياطي فقط' : 'Fallback Mode Only'}
-                    </Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-gray-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {language === 'ar'
-                            ? 'استخدام الطريقة الاحتياطية البسيطة فقط (تحديث وصف المنتج والميتا فيلدز)'
-                            : 'Use simple fallback method only (product description and metafields update)'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Switch
-                      id="debug-mode"
-                      checked={debugMode}
-                      onCheckedChange={setDebugMode}
-                    />
-                    <Label htmlFor="debug-mode" className="cursor-pointer">
-                      {language === 'ar' ? 'وضع التصحيح' : 'Debug Mode'}
-                    </Label>
-                  </div>
-                </div>
-
-                {/* Add ignore metaobject errors switch */}
-                <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
-                  <Switch
-                    id="ignore-metaobject-errors"
-                    checked={ignoreMetaobjectErrors || isNetworkError || bypassValidation}
-                    disabled={isNetworkError || bypassValidation} // Disable if we have network errors
-                    onCheckedChange={setIgnoreMetaobjectErrors}
-                  />
-                  <Label htmlFor="ignore-metaobject-errors" className="cursor-pointer">
-                    {language === 'ar' ? 'تجاهل أخطاء Metaobject' : 'Ignore Metaobject Errors'}
-                  </Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-gray-500" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {language === 'ar'
-                          ? 'متابعة النشر حتى مع وجود أخطاء في metaobject'
-                          : 'Continue publishing even when metaobject errors occur'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                {/* Network error mode indicator */}
-                {(isNetworkError || bypassValidation) && (
-                  <Alert variant="warning" className="bg-amber-50 border-amber-200">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertTitle>
-                      {language === 'ar' ? 'وضع الشبكة المحدود' : 'Limited Network Mode'}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {language === 'ar' 
-                        ? 'تم اكتشاف مشكلات في الشبكة. سيتم تفعيل جميع خيارات الاحتياط تلقائيًا لضمان نجاح النشر.'
-                        : 'Network issues detected. All failsafe options have been automatically enabled to ensure publishing succeeds.'}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {permissionError && (
-                  <Alert variant="warning" className="bg-amber-50">
-                    <ShieldAlert className="h-4 w-4" />
-                    <AlertTitle>
-                      {language === 'ar' ? 'صلاحيات مفقودة' : 'Missing Permissions'}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {language === 'ar' 
-                        ? 'بعض الصلاحيات مفقودة. سيتم استخدام طريقة بديلة للنشر.' 
-                        : 'Some permissions are missing. A fallback publishing method will be used.'}
-                      {missingPermissions.length > 0 && (
-                        <div className="mt-2 text-xs">
-                          {language === 'ar' ? 'الصلاحيات المفقودة:' : 'Missing permissions:'}
-                          <ul className="list-disc ms-4 mt-1">
-                            {missingPermissions.map((scope, idx) => (
-                              <li key={idx}>{scope}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            )}
+    <Card className="w-full border border-gray-200 shadow-sm">
+      <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold">
+              Shopify Integration
+            </CardTitle>
+            <CardDescription>
+              Publish this landing page to your Shopify store
+            </CardDescription>
           </div>
           
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button
-              variant="outline"
-              onClick={handleCloseDialog}
-              disabled={isPublishing}
-            >
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
-            </Button>
-            <Button
-              onClick={handlePublishToShopify}
-              disabled={!selectedProductId || isPublishing}
-            >
-              {isPublishing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ar' ? 'جاري النشر...' : 'Publishing...'}
-                </>
+          {syncStatus === 'success' && (
+            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1 px-2 py-1">
+              <CheckCircle className="h-3 w-3" />
+              Synced
+            </Badge>
+          )}
+          
+          {syncStatus === 'partial' && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 flex items-center gap-1 px-2 py-1">
+              <CheckCircle className="h-3 w-3" />
+              Partial Sync
+            </Badge>
+          )}
+          
+          {syncStatus === 'error' && (
+            <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1 px-2 py-1">
+              <AlertCircle className="h-3 w-3" />
+              Sync Failed
+            </Badge>
+          )}
+          
+          {isEmergencyMode && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 flex items-center gap-1 px-2 py-1 ml-2">
+              <AlertCircle className="h-3 w-3" />
+              Fallback Mode
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-6 space-y-4">
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              {shop ? (
+                <p className="flex items-center gap-2 font-medium">
+                  <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                  Connected to: {shop}
+                </p>
               ) : (
-                <>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  {language === 'ar' ? 'نشر الآن' : 'Publish Now'}
-                </>
+                <p className="flex items-center gap-2 text-amber-600">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  No connected store found
+                </p>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Success Dialog */}
-      <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-green-700">
-              <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
-              {language === 'ar' ? 'تم النشر بنجاح!' : 'Published Successfully!'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-3">
-            <div className="bg-green-50 border border-green-100 p-3 rounded-md">
-              <p>
-                {language === 'ar'
-                  ? 'تم ربط صفحة الهبوط بنجاح بمنتجك في متجر Shopify.'
-                  : 'Your landing page has been successfully linked to your Shopify product.'}
+              
+              <p className="text-sm mt-1">
+                <span className={isPublished ? "text-green-600" : "text-amber-600"}>
+                  {isPublished 
+                    ? '✓ Page is published' 
+                    : '⚠️ Page not published'}
+                </span>
               </p>
               
-              {publishResult?.fallbackUsed && (
-                <div className="mt-2 p-2 bg-white border border-green-100 rounded-sm">
-                  <span className="text-sm font-medium">
-                    {language === 'ar' ? 'تم استخدام الطريقة البديلة:' : 'Used fallback method:'}
-                  </span>
-                  <ul className="text-xs list-disc ms-5 mt-1">
-                    <li>
-                      {language === 'ar' 
-                        ? 'تم تحديث وصف المنتج بإضافة رابط الصفحة'
-                        : 'Updated product description with page link'}
-                    </li>
-                    {publishResult.fallbackSuccess && (
-                      <li>
-                        {language === 'ar'
-                          ? 'تم إضافة metafield للمنتج'
-                          : 'Added metafield to product'}
-                      </li>
-                    )}
-                  </ul>
-                </div>
+              {lastSynced && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Last synced: {lastSynced}
+                </p>
+              )}
+              
+              {syncsCount > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Sync count: {syncsCount}
+                </p>
+              )}
+              
+              {isEmergencyMode && (
+                <p className="text-xs text-amber-600 mt-1">
+                  <span className="font-medium">Network issues detected:</span> Using fallback connection mode
+                </p>
               )}
             </div>
             
-            {debugMode && publishResult && (
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-md">
-                <details>
-                  <summary className="cursor-pointer flex items-center font-medium">
-                    <Code className="h-4 w-4 mr-2" />
-                    {language === 'ar' ? 'معلومات التصحيح' : 'Debug Information'}
-                  </summary>
-                  <pre className="text-xs mt-2 p-2 bg-slate-100 rounded overflow-x-auto">
-                    {JSON.stringify(publishResult, null, 2)}
-                  </pre>
-                </details>
+            <div className="flex flex-col items-end">
+              <div className={`text-sm font-medium ${
+                syncStatus === 'success' 
+                  ? 'text-green-600' 
+                  : syncStatus === 'partial'
+                    ? 'text-amber-600'
+                    : 'text-gray-500'
+              }`}>
+                {syncStatus === 'success' 
+                  ? 'In sync'
+                  : syncStatus === 'partial'
+                    ? 'Partially synced'
+                    : 'Not synced'}
               </div>
-            )}
-          </div>
-          
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setIsSuccessDialogOpen(false)}
-            >
-              {language === 'ar' ? 'إغلاق' : 'Close'}
-            </Button>
-            
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={handleOpenLandingPage}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              {language === 'ar' ? 'معاينة الصفحة' : 'View Page'}
-            </Button>
-            
-            <Button
-              className="flex-1"
-              onClick={handleOpenProduct}
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              {language === 'ar' ? 'فتح المنتج' : 'Open Product'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Error Dialog */}
-      <Dialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-red-700">
-              <AlertCircle className="mr-2 h-5 w-5 text-red-600" />
-              {language === 'ar' ? 'فشل النشر' : 'Publishing Failed'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-3">
-            <div className="bg-red-50 border border-red-100 p-3 rounded-md">
-              <h4 className="font-medium text-red-800">{renderErrorMessage().title}</h4>
-              <p className="mt-1 text-red-700">{renderErrorMessage().description}</p>
+              <p className="text-xs text-gray-500">
+                Sync needed after changes
+              </p>
             </div>
-            
-            {syncError === 'network_error' && (
-              <Alert variant="warning" className="bg-amber-50">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'مشكلة في الشبكة' : 'Network Issue'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'تم اكتشاف مشكلات في الشبكة. حاول استخدام وضع النشر الاحتياطي لتجاوز هذه المشكلة.'
-                    : 'Network issues have been detected. Try using fallback publishing mode to bypass this issue.'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {publishResult?.hasMetaobjectPermission === false && (
-              <Alert variant="warning" className="bg-amber-50">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>
-                  {language === 'ar' ? 'مشكلة في الصلاحيات' : 'Permission Issue'}
-                </AlertTitle>
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'التطبيق يفتقد صلاحية "write_metaobject_definitions". تم تفعيل وضع النشر الاحتياطي تلقائياً.'
-                    : 'App is missing "write_metaobject_definitions" permission. Fallback mode has been enabled automatically.'}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {debugMode && publishResult && (
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-md">
-                <details>
-                  <summary className="cursor-pointer flex items-center font-medium">
-                    <Code className="h-4 w-4 mr-2" />
-                    {language === 'ar' ? 'معلومات التصحيح' : 'Debug Information'}
-                  </summary>
-                  <pre className="text-xs mt-2 p-2 bg-slate-100 rounded overflow-x-auto">
-                    {JSON.stringify(publishResult, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Product selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Select Product to Link</label>
+          <select 
+            className="w-full border border-gray-300 rounded-md p-2"
+            value={selectedProductId || ''}
+            onChange={(e) => setSelectedProductId(e.target.value || null)}
+            disabled={isLoadingProducts || isSyncing}
+          >
+            <option value="">-- Select a product --</option>
+            {availableProducts.map(product => (
+              <option key={product.id} value={product.id}>
+                {product.title}
+              </option>
+            ))}
+          </select>
+          {isLoadingProducts && (
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading products...
+            </div>
+          )}
+        </div>
+        
+        <div className="flex flex-col space-y-2">
+          <Button
+            onClick={handleSync}
+            disabled={isSyncing || !shop || !pageId || !selectedProductId || isReconnecting}
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : syncStatus === 'success' ? (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {isSyncing ? 'Publishing...' : 'Publish to Shopify'}
+          </Button>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setIsErrorDialogOpen(false)}
-            >
-              {language === 'ar' ? 'إغلاق' : 'Close'}
-            </Button>
-            
-            {/* Enable fallback options for network issues */}
-            {(syncError === 'network_error' || syncError === 'connection_failed') && (
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setFallbackMode(true);
-                  setIgnoreMetaobjectErrors(true);
-                  setBypassValidation(true);
-                  handleRetry();
-                }}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                {language === 'ar' ? 'استخدام الوضع الاحتياطي' : 'Use Full Fallback Mode'}
-              </Button>
+          <Button
+            onClick={handleReconnect}
+            disabled={isReconnecting || isSyncing}
+            variant="outline"
+            className="w-full"
+          >
+            {isReconnecting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
             )}
-            
-            {/* Auto-enable fallback mode on next attempt if permission issue detected */}
-            {publishResult?.hasMetaobjectPermission === false && !fallbackMode && (
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setFallbackMode(true);
-                  handleRetry();
-                }}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                {language === 'ar' ? 'استخدام الوضع الاحتياطي' : 'Use Fallback Mode'}
-              </Button>
-            )}
-            
-            <Button
-              className="flex-1"
-              onClick={handleRetry}
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            Refresh Connection
+          </Button>
+        </div>
+        
+        {syncStatus === 'success' && (
+          <div className="bg-green-50 p-3 rounded-lg border border-green-100 mt-4">
+            <div className="flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  Page successfully published to your store
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Your landing page is now linked to the selected product
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {syncStatus === 'partial' && (
+          <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 mt-4">
+            <div className="flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">
+                  Page published with fallback method
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  Due to network issues, we used an alternative method to publish your page
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {syncStatus === 'error' && (
+          <div className="bg-red-50 p-3 rounded-lg border border-red-100 mt-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">
+                  Error publishing page
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {errorDetails || 'Please ensure you are connected to your Shopify store and try again.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {isEmergencyMode && (
+          <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-orange-800">
+                  Network Issues Detected
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Using emergency fallback mode due to network connectivity issues. We'll use simplified methods to ensure your page gets published.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

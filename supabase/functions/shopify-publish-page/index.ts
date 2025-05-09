@@ -23,7 +23,9 @@ interface RequestPayload {
   forceMetaobjectCreation?: boolean;
   fallbackOnly?: boolean;
   debugMode?: boolean;
-  ignoreMetaobjectErrors?: boolean;  // Added ignoreMetaobjectErrors parameter
+  ignoreMetaobjectErrors?: boolean;
+  bypassConnectionCheck?: boolean;  // Added to bypass connection checking
+  maxRetries?: number;  // Allow configuring the number of retries
 }
 
 interface MetaobjectDefinition {
@@ -32,8 +34,8 @@ interface MetaobjectDefinition {
   displayName: string;
 }
 
-// Helper to add retries for fetch requests
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+// Helper to add retries for fetch requests with better error handling
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3, requestId = "unknown"): Promise<Response> {
   let lastError;
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -41,31 +43,46 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
       // Exponential backoff
       if (attempt > 0) {
         const delay = Math.min(100 * Math.pow(2, attempt), 2000);
-        console.log(`Retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms before retry`);
+        console.log(`[${requestId}] Retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms before retry`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       
-      const response = await fetch(url, options);
+      // Add request timeout to avoid hanging forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
-      // Retry on server errors (5xx)
-      if (response.status >= 500 && response.status < 600 && attempt < maxRetries - 1) {
-        console.log(`Server error: ${response.status}, will retry`);
-        continue;
+      const fetchOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      try {
+        const response = await fetch(url, fetchOptions);
+        clearTimeout(timeoutId);
+        
+        // Retry on server errors (5xx)
+        if (response.status >= 500 && response.status < 600 && attempt < maxRetries - 1) {
+          console.log(`[${requestId}] Server error: ${response.status}, will retry`);
+          continue;
+        }
+        
+        return response;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError; // Re-throw to be caught by outer try/catch
       }
-      
-      return response;
     } catch (error) {
-      console.error(`Fetch attempt ${attempt + 1} failed:`, error);
+      console.error(`[${requestId}] Fetch attempt ${attempt + 1} failed:`, error);
       lastError = error;
       
-      // Only retry on network errors
-      if (error.name !== 'TypeError' && error.name !== 'NetworkError') {
+      // Only retry on network errors or timeouts
+      if (error.name !== 'TypeError' && error.name !== 'NetworkError' && error.name !== 'AbortError') {
         throw error;
       }
     }
   }
   
-  throw lastError || new Error('All fetch attempts failed');
+  throw lastError || new Error(`All fetch attempts failed for ${url}`);
 }
 
 // Try REST API fallback for metafield creation
@@ -75,7 +92,8 @@ async function tryRestApiFallback(
   productId: string,
   pageContent: any,
   pageSlug: string,
-  requestId: string
+  requestId: string,
+  maxRetries = 3
 ): Promise<boolean> {
   try {
     console.log(`[${requestId}] Attempting REST API fallback for metafield creation`);
@@ -96,27 +114,74 @@ async function tryRestApiFallback(
       }
     };
     
-    const response = await fetchWithRetry(
-      `https://${shop}/admin/api/2023-10/products/${numericProductId}/metafields.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": accessToken
+    try {
+      const response = await fetchWithRetry(
+        `https://${shop}/admin/api/2023-10/products/${numericProductId}/metafields.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": accessToken,
+            "Cache-Control": "no-cache, no-store"
+          },
+          body: JSON.stringify(metafieldData)
         },
-        body: JSON.stringify(metafieldData)
-      },
-      3
-    );
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[${requestId}] Failed to create metafield:`, errorText);
-      return false;
+        maxRetries,
+        requestId
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[${requestId}] Failed to create metafield:`, errorText);
+        return false;
+      }
+      
+      console.log(`[${requestId}] Successfully created metafield as fallback`);
+      return true;
+    } catch (error) {
+      console.error(`[${requestId}] Network error in REST API fallback:`, error);
+      
+      // Try a different approach for metafields
+      try {
+        console.log(`[${requestId}] Attempting alternative metafield creation method`);
+        
+        // Alternative approach using different endpoint
+        const alternativeResponse = await fetchWithRetry(
+          `https://${shop}/admin/api/2023-10/metafields.json`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": accessToken,
+              "Cache-Control": "no-cache, no-store"
+            },
+            body: JSON.stringify({
+              metafield: {
+                namespace: "codform",
+                key: "landing_page_" + numericProductId,
+                value: landingPageUrl,
+                owner_id: numericProductId,
+                owner_resource: "product",
+                type: "url"
+              }
+            })
+          },
+          2,
+          requestId
+        );
+        
+        if (!alternativeResponse.ok) {
+          console.error(`[${requestId}] Alternative metafield creation failed:`, await alternativeResponse.text());
+          return false;
+        }
+        
+        console.log(`[${requestId}] Successfully created metafield with alternative method`);
+        return true;
+      } catch (altError) {
+        console.error(`[${requestId}] Alternative metafield approach also failed:`, altError);
+        return false;
+      }
     }
-    
-    console.log(`[${requestId}] Successfully created metafield as fallback`);
-    return true;
   } catch (error) {
     console.error(`[${requestId}] Error in REST API fallback:`, error);
     return false;
@@ -131,7 +196,8 @@ async function tryCreateMetaobject(
   pageTitle: string,
   pageContent: any,
   forceMetaobjectCreation: boolean = false,
-  requestId: string
+  requestId: string,
+  maxRetries = 3
 ): Promise<{success: boolean, metaobjectId?: string, metaobjectHandle?: string, errors?: any[]}> {
   console.log(`[${requestId}] Checking for existing metaobject definition`);
   
@@ -157,20 +223,39 @@ async function tryCreateMetaobject(
       }
     `;
     
-    const definitionsResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken
-      },
-      body: JSON.stringify({
-        query: metaobjectDefinitionQuery
-      }),
-    }, 3);
+    let definitionsResponse;
+    try {
+      definitionsResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+          'Cache-Control': 'no-cache, no-store'
+        },
+        body: JSON.stringify({
+          query: metaobjectDefinitionQuery
+        }),
+      }, maxRetries, requestId);
+    } catch (fetchError) {
+      console.error(`[${requestId}] Network error fetching metaobject definitions:`, fetchError);
+      return { 
+        success: false, 
+        errors: [{ 
+          message: "Network error fetching metaobject definitions", 
+          type: "network_error",
+          details: fetchError
+        }]
+      };
+    }
     
     if (!definitionsResponse.ok) {
       console.error(`[${requestId}] GraphQL query for metaobject definitions failed: ${definitionsResponse.status}`);
-      const errorText = await definitionsResponse.text();
+      let errorText = "Unknown error";
+      try {
+        errorText = await definitionsResponse.text();
+      } catch (e) {
+        console.error(`[${requestId}] Failed to read error response text:`, e);
+      }
       console.error(`[${requestId}] Error details:`, errorText);
       return { 
         success: false, 
@@ -178,8 +263,17 @@ async function tryCreateMetaobject(
       };
     }
     
-    const definitionsData = await definitionsResponse.json();
-    console.log(`[${requestId}] Metaobject definitions response:`, JSON.stringify(definitionsData));
+    let definitionsData;
+    try {
+      definitionsData = await definitionsResponse.json();
+      console.log(`[${requestId}] Metaobject definitions response:`, JSON.stringify(definitionsData));
+    } catch (jsonError) {
+      console.error(`[${requestId}] Failed to parse JSON response:`, jsonError);
+      return { 
+        success: false, 
+        errors: [{ message: "Failed to parse metaobject definitions response", details: jsonError }]
+      };
+    }
     
     // Check for permission errors
     if (definitionsData.errors) {
@@ -278,21 +372,40 @@ async function tryCreateMetaobject(
         }
       };
       
-      const createDefinitionResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken
-        },
-        body: JSON.stringify({
-          query: createDefinitionMutation,
-          variables: definitionInput
-        }),
-      }, 2);
+      let createDefinitionResponse;
+      try {
+        createDefinitionResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken,
+            'Cache-Control': 'no-cache, no-store'
+          },
+          body: JSON.stringify({
+            query: createDefinitionMutation,
+            variables: definitionInput
+          }),
+        }, 2, requestId);
+      } catch (fetchError) {
+        console.error(`[${requestId}] Network error creating metaobject definition:`, fetchError);
+        return { 
+          success: false, 
+          errors: [{ 
+            message: "Network error creating metaobject definition", 
+            type: "network_error",
+            details: fetchError
+          }]
+        };
+      }
       
       if (!createDefinitionResponse.ok) {
         console.error(`[${requestId}] Failed to create metaobject definition: ${createDefinitionResponse.status}`);
-        const errorText = await createDefinitionResponse.text();
+        let errorText = "Unknown error";
+        try {
+          errorText = await createDefinitionResponse.text();
+        } catch (e) {
+          console.error(`[${requestId}] Failed to read error response text:`, e);
+        }
         console.error(`[${requestId}] Error details:`, errorText);
         return { 
           success: false,
@@ -300,8 +413,17 @@ async function tryCreateMetaobject(
         };
       }
       
-      const createDefinitionResult = await createDefinitionResponse.json();
-      console.log(`[${requestId}] Metaobject definition creation response:`, JSON.stringify(createDefinitionResult));
+      let createDefinitionResult;
+      try {
+        createDefinitionResult = await createDefinitionResponse.json();
+        console.log(`[${requestId}] Metaobject definition creation response:`, JSON.stringify(createDefinitionResult));
+      } catch (jsonError) {
+        console.error(`[${requestId}] Failed to parse definition creation response:`, jsonError);
+        return { 
+          success: false, 
+          errors: [{ message: "Failed to parse definition creation response", details: jsonError }]
+        };
+      }
       
       // Check for permission errors
       if (createDefinitionResult.errors) {
@@ -403,21 +525,40 @@ async function tryCreateMetaobject(
       }
     };
     
-    const createMetaobjectResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken
-      },
-      body: JSON.stringify({
-        query: createMetaobjectMutation,
-        variables: metaobjectInput
-      }),
-    }, 2);
+    let createMetaobjectResponse;
+    try {
+      createMetaobjectResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+          'Cache-Control': 'no-cache, no-store'
+        },
+        body: JSON.stringify({
+          query: createMetaobjectMutation,
+          variables: metaobjectInput
+        }),
+      }, maxRetries, requestId);
+    } catch (fetchError) {
+      console.error(`[${requestId}] Network error creating metaobject:`, fetchError);
+      return { 
+        success: false, 
+        errors: [{ 
+          message: "Network error creating metaobject", 
+          type: "network_error",
+          details: fetchError
+        }]
+      };
+    }
     
     if (!createMetaobjectResponse.ok) {
       console.error(`[${requestId}] Failed to create metaobject: ${createMetaobjectResponse.status}`);
-      const errorText = await createMetaobjectResponse.text();
+      let errorText = "Unknown error";
+      try {
+        errorText = await createMetaobjectResponse.text();
+      } catch (e) {
+        console.error(`[${requestId}] Failed to read error response text:`, e);
+      }
       console.error(`[${requestId}] Error details:`, errorText);
       return { 
         success: false,
@@ -425,8 +566,17 @@ async function tryCreateMetaobject(
       };
     }
     
-    const createMetaobjectResult = await createMetaobjectResponse.json();
-    console.log(`[${requestId}] Metaobject creation response:`, JSON.stringify(createMetaobjectResult));
+    let createMetaobjectResult;
+    try {
+      createMetaobjectResult = await createMetaobjectResponse.json();
+      console.log(`[${requestId}] Metaobject creation response:`, JSON.stringify(createMetaobjectResult));
+    } catch (jsonError) {
+      console.error(`[${requestId}] Failed to parse metaobject creation response:`, jsonError);
+      return { 
+        success: false, 
+        errors: [{ message: "Failed to parse metaobject creation response", details: jsonError }]
+      };
+    }
     
     if (createMetaobjectResult.data?.metaobjectCreate?.userErrors?.length > 0) {
       console.error(`[${requestId}] User errors in metaobject creation:`, createMetaobjectResult.data.metaobjectCreate.userErrors);
@@ -481,12 +631,14 @@ serve(async (req) => {
       forceMetaobjectCreation, 
       fallbackOnly, 
       debugMode,
-      ignoreMetaobjectErrors  // Get ignoreMetaobjectErrors from payload
+      ignoreMetaobjectErrors,
+      bypassConnectionCheck,
+      maxRetries = 4
     } = payload;
-    const requestId = payload.requestId || `req_${Math.random().toString(36).substring(2, 8)}`;
+    const requestId = payload.requestId || `publish_${Math.random().toString(36).substring(2, 8)}`;
     
     console.log(`[${requestId}] Processing shopify-publish-page request at ${new Date().toISOString()}`);
-    console.log(`[${requestId}] Debug mode: ${debugMode ? 'enabled' : 'disabled'}, Fallback only: ${fallbackOnly ? 'enabled' : 'disabled'}, Ignore metaobject errors: ${ignoreMetaobjectErrors ? 'enabled' : 'disabled'}`);
+    console.log(`[${requestId}] Debug mode: ${debugMode ? 'enabled' : 'disabled'}, Fallback only: ${fallbackOnly ? 'enabled' : 'disabled'}, Ignore metaobject errors: ${ignoreMetaobjectErrors ? 'enabled' : 'disabled'}, Bypass connection check: ${bypassConnectionCheck ? 'enabled' : 'disabled'}`);
 
     if (!pageId || !pageSlug || !productId || !shop || !accessToken) {
       return new Response(
@@ -517,59 +669,105 @@ serve(async (req) => {
     
     console.log(`[${requestId}] Linking with product: ${productId}`);
     
-    // Check permissions first
+    // Skip connection check if requested (for high-latency environments)
     let permissionsFlag = false;
     
-    try {
-      const permissionsResponse = await fetchWithRetry(`https://${shop}/admin/oauth/access_scopes.json`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken,
-          'Cache-Control': 'no-store',
-        },
-      }, 2);
-      
-      if (permissionsResponse.ok) {
-        const scopesData = await permissionsResponse.json();
-        const scopes = scopesData.access_scopes.map((scope: any) => scope.handle);
-        permissionsFlag = scopes.includes('write_metaobject_definitions');
-        console.log(`[${requestId}] Permission check: write_metaobject_definitions = ${permissionsFlag}`);
-      } else {
-        console.log(`[${requestId}] Could not verify permissions: ${permissionsResponse.status}`);
-      }
-    } catch (error) {
-      console.log(`[${requestId}] Error checking permissions: ${error}`);
-    }
-    
-    // Test access token validity before proceeding
-    console.log(`[${requestId}] Testing access token validity for shop: ${shop}`);
-    try {
-      const shopResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/shop.json`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken,
-          'Cache-Control': 'no-store',
-        },
-      }, 3);
-      
-      if (!shopResponse.ok) {
-        throw new Error(`Shopify API returned ${shopResponse.status}: ${await shopResponse.text()}`);
-      }
-      
-      console.log(`[${requestId}] Access token validated successfully`);
-    } catch (error) {
-      console.error(`[${requestId}] Access token validation failed:`, error);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Access token validation failed: ${error.message}`,
-          hasPermission: permissionsFlag
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
+    if (!bypassConnectionCheck) {
+      try {
+        // Check permissions first with retries and longer timeout
+        console.log(`[${requestId}] Checking permissions for shop: ${shop}`);
+        try {
+          const permissionsResponse = await fetchWithRetry(`https://${shop}/admin/oauth/access_scopes.json`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': accessToken,
+              'Cache-Control': 'no-store, no-cache',
+            },
+          }, 3, requestId);
+          
+          if (permissionsResponse.ok) {
+            const scopesData = await permissionsResponse.json();
+            const scopes = scopesData.access_scopes.map((scope: any) => scope.handle);
+            permissionsFlag = scopes.includes('write_metaobject_definitions');
+            console.log(`[${requestId}] Permission check: write_metaobject_definitions = ${permissionsFlag}`);
+          } else {
+            console.log(`[${requestId}] Could not verify permissions: ${permissionsResponse.status}`);
+          }
+        } catch (error) {
+          console.log(`[${requestId}] Error checking permissions: ${error}`);
+          if (ignoreMetaobjectErrors) {
+            console.log(`[${requestId}] Continuing despite permission check error (ignoreMetaobjectErrors=true)`);
+          } else {
+            throw new Error(`Permission check failed: ${error.message}`);
+          }
         }
-      );
+        
+        // Test access token validity before proceeding
+        console.log(`[${requestId}] Testing access token validity for shop: ${shop}`);
+        try {
+          const shopResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/shop.json`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': accessToken,
+              'Cache-Control': 'no-store, no-cache',
+            },
+          }, 3, requestId);
+          
+          if (!shopResponse.ok) {
+            throw new Error(`Shopify API returned ${shopResponse.status}: ${await shopResponse.text()}`);
+          }
+          
+          console.log(`[${requestId}] Access token validated successfully`);
+        } catch (error) {
+          console.error(`[${requestId}] Access token validation failed:`, error);
+          
+          if (debugMode) {
+            // If in debug mode, continue despite errors but log them
+            console.log(`[${requestId}] Continuing despite token validation failure (debugMode=true)`);
+          } else if (fallbackOnly || ignoreMetaobjectErrors) {
+            // If in fallback mode or ignoring errors, continue but log warning
+            console.log(`[${requestId}] Continuing in fallback mode despite token validation issues`);
+          } else {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                message: `Access token validation failed: ${error.message}`,
+                hasPermission: permissionsFlag,
+                errorType: "token_validation_error",
+                retryWithFallback: true,
+                debug: debugMode ? { error: error.stack || error.message } : undefined
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 401,
+              }
+            );
+          }
+        }
+      } catch (connectionError) {
+        console.error(`[${requestId}] Connection verification error:`, connectionError);
+        
+        if (fallbackOnly || ignoreMetaobjectErrors || debugMode) {
+          // Continue with fallback method if in fallback mode or ignoring errors
+          console.log(`[${requestId}] Continuing despite connection verification error due to fallback/ignore settings`);
+        } else {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: `Connection verification failed: ${connectionError.message}`,
+              errorType: "connection_error",
+              retryWithFallback: true,
+              debug: debugMode ? { error: connectionError.stack || connectionError.message } : undefined
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 502, // Bad Gateway for connection issues
+            }
+          );
+        }
+      }
+    } else {
+      console.log(`[${requestId}] Bypassing connection check as requested`);
     }
     
     // Fetch page data from Supabase
@@ -601,20 +799,33 @@ serve(async (req) => {
         
       console.log(`[${requestId}] Using cleaned product ID: ${cleanProductId}`);
       
-      const productResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/products/${cleanProductId}.json`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken,
-          'Cache-Control': 'no-store',
-        },
-      }, 3);
-      
-      if (!productResponse.ok) {
-        throw new Error(`Failed to fetch product: ${productResponse.status} ${await productResponse.text()}`);
+      let productData;
+      try {
+        const productResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/products/${cleanProductId}.json`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken,
+            'Cache-Control': 'no-store, no-cache',
+          },
+        }, maxRetries, requestId);
+        
+        if (!productResponse.ok) {
+          throw new Error(`Failed to fetch product: ${productResponse.status} ${await productResponse.text()}`);
+        }
+        
+        productData = await productResponse.json();
+        console.log(`[${requestId}] Product fetched successfully: ${productData.product.title}`);
+      } catch (productError) {
+        console.error(`[${requestId}] Error fetching product:`, productError);
+        
+        if (fallbackOnly || ignoreMetaobjectErrors || debugMode) {
+          // In fallback or debug mode, try to continue even if product fetch fails
+          console.log(`[${requestId}] Continuing with limited product data due to fallback/debug settings`);
+          productData = { product: { id: cleanProductId, title: "Unknown Product", handle: "unknown" } };
+        } else {
+          throw productError; // Re-throw to be caught by outer catch block
+        }
       }
-      
-      const productData = await productResponse.json();
-      console.log(`[${requestId}] Product fetched successfully: ${productData.product.title}`);
       
       // Prepare landing page link and update product description
       const landingPageUrl = `https://${shop}/pages/${pageSlug}`;
@@ -635,7 +846,8 @@ serve(async (req) => {
             pageData.title, 
             pageContent, 
             forceMetaobjectCreation,
-            requestId
+            requestId,
+            maxRetries
           );
           
           metaobjectId = metaResult.metaobjectId;
@@ -674,33 +886,42 @@ serve(async (req) => {
       
       // Preserve existing content but add our link
       let currentDescription = productData.product.body_html || '';
+      let productUpdateSuccess = false;
       
-      // Only add the link if it doesn't already exist
-      if (!currentDescription.includes(landingPageUrl)) {
-        const updatedDescription = currentDescription + '\n' + landingPageLink;
-        
-        const updateProductResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/products/${productData.product.id}.json`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken
-          },
-          body: JSON.stringify({
-            product: {
-              id: productData.product.id,
-              body_html: updatedDescription
-            }
-          })
-        }, 3);
-        
-        if (!updateProductResponse.ok) {
-          console.error(`[${requestId}] Failed to update product description: ${await updateProductResponse.text()}`);
-          // We'll still save the sync info even if this part fails
+      try {
+        // Only add the link if it doesn't already exist
+        if (!currentDescription.includes(landingPageUrl)) {
+          const updatedDescription = currentDescription + '\n' + landingPageLink;
+          
+          const updateProductResponse = await fetchWithRetry(`https://${shop}/admin/api/2023-10/products/${productData.product.id}.json`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': accessToken,
+              'Cache-Control': 'no-store, no-cache',
+            },
+            body: JSON.stringify({
+              product: {
+                id: productData.product.id,
+                body_html: updatedDescription
+              }
+            })
+          }, maxRetries, requestId);
+          
+          if (!updateProductResponse.ok) {
+            console.error(`[${requestId}] Failed to update product description: ${await updateProductResponse.text()}`);
+            // We'll still save the sync info even if this part fails
+          } else {
+            console.log(`[${requestId}] Successfully updated product description`);
+            productUpdateSuccess = true;
+          }
         } else {
-          console.log(`[${requestId}] Successfully updated product description`);
+          console.log(`[${requestId}] Landing page link already exists in product description`);
+          productUpdateSuccess = true;
         }
-      } else {
-        console.log(`[${requestId}] Landing page link already exists in product description`);
+      } catch (descriptionError) {
+        console.error(`[${requestId}] Error updating product description:`, descriptionError);
+        // Continue to next approach, don't throw
       }
       
       // If metaobject creation failed but product description was updated,
@@ -714,7 +935,8 @@ serve(async (req) => {
             productData.product.id, 
             pageContent,
             pageSlug,
-            requestId
+            requestId,
+            maxRetries
           );
           
           console.log(`[${requestId}] Fallback metafield creation result: ${fallbackSuccess ? 'success' : 'failed'}`);
@@ -770,10 +992,13 @@ serve(async (req) => {
         // Continue even if database update fails
       }
       
+      // Determine overall success - if ANY of the publishing methods worked
+      const overallSuccess = metaobjectCreated || fallbackSuccess || productUpdateSuccess;
+      
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'Page published successfully',
+          success: overallSuccess,
+          message: overallSuccess ? 'Page published successfully' : 'Partial publishing success',
           metaobjectCreated: metaobjectCreated,
           metaobjectId,
           metaobjectHandle,
@@ -782,8 +1007,10 @@ serve(async (req) => {
           landingPageUrl,
           fallbackUsed: !metaobjectCreated,
           fallbackSuccess: fallbackSuccess,
+          productUpdateSuccess: productUpdateSuccess,
           hasMetaobjectPermission: permissionsFlag,
-          ignoreMetaobjectErrorsWasActive: ignoreMetaobjectErrors,  // Add this to the response for debugging
+          ignoreMetaobjectErrorsWasActive: ignoreMetaobjectErrors,
+          bypassConnectionCheckWasActive: bypassConnectionCheck,
           debugMode: debugMode ? {
             pageData: {
               id: pageData.id,
@@ -809,6 +1036,8 @@ serve(async (req) => {
           success: false,
           message: error.message || 'Unknown error occurred',
           hasMetaobjectPermission: permissionsFlag,
+          errorType: "processing_error",
+          retryWithFallback: true,
           debug: debugMode ? { error: error.stack || error.message } : undefined
         }),
         {
@@ -823,6 +1052,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         message: error.message || 'Unknown error occurred',
+        errorType: "request_processing_error",
         debug: { error: error.stack || error.message }
       }),
       {
