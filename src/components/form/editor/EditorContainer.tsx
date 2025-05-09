@@ -2,18 +2,22 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 
 interface EditorContainerProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  open: boolean; // Add open prop to control dialog visibility
 }
 
-const EditorContainer = ({ title, onClose, children }: EditorContainerProps) => {
+const EditorContainer = ({ title, onClose, children, open }: EditorContainerProps) => {
   return (
-    <div className="fixed inset-0 z-50 overflow-auto bg-black/50 flex items-center justify-center">
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-auto">
-        <div className="sticky top-0 bg-gray-100 p-2 flex items-center justify-between border-b z-10">
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) onClose();
+    }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="flex items-center justify-between border-b p-2 sticky top-0 bg-gray-100 z-10">
           <h3 className="font-medium text-gray-700">{title}</h3>
           <Button
             variant="ghost"
@@ -23,10 +27,12 @@ const EditorContainer = ({ title, onClose, children }: EditorContainerProps) => 
           >
             <X className="h-4 w-4" />
           </Button>
+        </DialogHeader>
+        <div className="max-h-[80vh] overflow-auto">
+          {children}
         </div>
-        {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

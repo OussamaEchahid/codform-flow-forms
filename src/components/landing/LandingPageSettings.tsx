@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useShopify } from '@/hooks/useShopify';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +40,7 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [shopifyTabActive, setShopifyTabActive] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(true); // Dialog open state
   const { isConnected, products: shopifyProducts, loadProducts } = useShopify();
 
   // Load normal products
@@ -87,12 +89,19 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
         product_id: productId || null,
       });
       
+      setDialogOpen(false);
       onClose();
     } catch (error) {
       console.error('Error saving page:', error);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Handle dialog close
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    onClose();
   };
 
   // Handle slug auto-generation when title changes
@@ -114,153 +123,151 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">
-              {language === 'ar' ? 'إعدادات الصفحة' : 'Page Settings'}
-            </h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">
-                  {language === 'ar' ? 'عنوان الصفحة' : 'Page Title'}
-                </Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="slug">
-                  {language === 'ar' ? 'الرابط المختصر' : 'Slug'}
-                </Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  required
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  {language === 'ar' 
-                    ? 'سيتم استخدام هذا في رابط الصفحة' 
-                    : 'This will be used in the page URL'}
-                </p>
-              </div>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {language === 'ar' ? 'إعدادات الصفحة' : 'Page Settings'}
+          </DialogTitle>
+          <Button variant="ghost" size="icon" onClick={handleDialogClose} className="absolute right-4 top-4">
+            <X className="h-5 w-5" />
+          </Button>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">
+                {language === 'ar' ? 'عنوان الصفحة' : 'Page Title'}
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="slug">
+                {language === 'ar' ? 'الرابط المختصر' : 'Slug'}
+              </Label>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                required
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                {language === 'ar' 
+                  ? 'سيتم استخدام هذا في رابط الصفحة' 
+                  : 'This will be used in the page URL'}
+              </p>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button 
-                    type="button"
-                    variant={!shopifyTabActive ? "default" : "outline"}
-                    onClick={() => setShopifyTabActive(false)}
-                    className="text-sm"
-                  >
-                    {language === 'ar' ? 'منتجات الموقع' : 'Local Products'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={shopifyTabActive ? "default" : "outline"}
-                    onClick={() => setShopifyTabActive(true)}
-                    className="text-sm"
-                  >
-                    {language === 'ar' ? 'منتجات شوبيفاي' : 'Shopify Products'}
-                  </Button>
-                </div>
-              </div>
-              
-              {shopifyTabActive ? (
-                <div>
-                  <Label htmlFor="shopify-product">
-                    {language === 'ar' ? 'منتج شوبيفاي' : 'Shopify Product'}
-                  </Label>
-                  <select
-                    id="shopify-product"
-                    className="w-full border rounded-md p-2"
-                    value={productId}
-                    onChange={(e) => setProductId(e.target.value)}
-                  >
-                    <option value="">
-                      {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
-                    </option>
-                    {isConnected ? (
-                      shopifyProducts.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.title}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>
-                        {language === 'ar' ? 'يرجى الاتصال بشوبيفاي أولاً' : 'Please connect to Shopify first'}
-                      </option>
-                    )}
-                  </select>
-                  {!isConnected && (
-                    <p className="text-sm text-amber-600 mt-1">
-                      {language === 'ar' 
-                        ? 'يجب عليك الاتصال بشوبيفاي أولاً' 
-                        : 'You must connect to Shopify first'}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor="product">
-                    {language === 'ar' ? 'المنتج' : 'Product'}
-                  </Label>
-                  <select
-                    id="product"
-                    className="w-full border rounded-md p-2"
-                    value={productId}
-                    onChange={(e) => setProductId(e.target.value)}
-                  >
-                    <option value="">
-                      {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
-                    </option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between">
-                <Label htmlFor="is_published" className="cursor-pointer">
-                  {language === 'ar' ? 'نشر الصفحة' : 'Publish Page'}
-                </Label>
-                <Switch
-                  id="is_published"
-                  checked={isPublished}
-                  onCheckedChange={setIsPublished}
-                />
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  variant={!shopifyTabActive ? "default" : "outline"}
+                  onClick={() => setShopifyTabActive(false)}
+                  className="text-sm"
+                >
+                  {language === 'ar' ? 'منتجات الموقع' : 'Local Products'}
+                </Button>
+                <Button
+                  type="button"
+                  variant={shopifyTabActive ? "default" : "outline"}
+                  onClick={() => setShopifyTabActive(true)}
+                  className="text-sm"
+                >
+                  {language === 'ar' ? 'منتجات شوبيفاي' : 'Shopify Products'}
+                </Button>
               </div>
             </div>
             
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" type="button" onClick={onClose}>
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving
-                  ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                  : (language === 'ar' ? 'حفظ' : 'Save')}
-              </Button>
+            {shopifyTabActive ? (
+              <div>
+                <Label htmlFor="shopify-product">
+                  {language === 'ar' ? 'منتج شوبيفاي' : 'Shopify Product'}
+                </Label>
+                <select
+                  id="shopify-product"
+                  className="w-full border rounded-md p-2"
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                >
+                  <option value="">
+                    {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
+                  </option>
+                  {isConnected ? (
+                    shopifyProducts.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.title}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>
+                      {language === 'ar' ? 'يرجى الاتصال بشوبيفاي أولاً' : 'Please connect to Shopify first'}
+                    </option>
+                  )}
+                </select>
+                {!isConnected && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    {language === 'ar' 
+                      ? 'يجب عليك الاتصال بشوبيفاي أولاً' 
+                      : 'You must connect to Shopify first'}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="product">
+                  {language === 'ar' ? 'المنتج' : 'Product'}
+                </Label>
+                <select
+                  id="product"
+                  className="w-full border rounded-md p-2"
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                >
+                  <option value="">
+                    {language === 'ar' ? 'اختر منتج...' : 'Select product...'}
+                  </option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="is_published" className="cursor-pointer">
+                {language === 'ar' ? 'نشر الصفحة' : 'Publish Page'}
+              </Label>
+              <Switch
+                id="is_published"
+                checked={isPublished}
+                onCheckedChange={setIsPublished}
+              />
             </div>
-          </form>
-        </div>
-      </div>
-    </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" type="button" onClick={handleDialogClose}>
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving
+                ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                : (language === 'ar' ? 'حفظ' : 'Save')}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
