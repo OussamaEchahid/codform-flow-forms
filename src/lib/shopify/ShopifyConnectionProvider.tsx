@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { shopifyStores, shopifySupabase } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
@@ -266,7 +267,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       // If we have a shop, test the connection
       if (shopDomain) {
-        // Fix: Pass forceRefresh as a single boolean parameter
+        // Fix: Pass forceRefresh as a single boolean parameter without additional arguments
         await testConnection(true);
       }
       
