@@ -34,12 +34,14 @@ const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
 });
 
 // Manage token validation cache with timestamps to avoid excessive API calls
-const tokenValidationCache = new Map<string, { valid: boolean; timestamp: number }>();
+const tokenValidationCache = new Map<string, { valid: boolean; timestamp: number; token: string }>();
 
 // Max validation attempts before backing off
 const MAX_SYNC_ATTEMPTS = 3;
 // Cache validation results for this many milliseconds
 const VALIDATION_CACHE_MS = 5 * 60 * 1000; // 5 minutes
+// Token refresh interval when token is valid
+const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
 // Provider component
 export function ShopifyConnectionProvider({ children }: { children: React.ReactNode }) {
@@ -51,6 +53,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   const [syncAttempts, setSyncAttempts] = useState<number>(0);
   const validationInProgress = useRef<boolean>(false);
   const lastSyncTimestamp = useRef<number>(0);
+  const tokenRefreshTimer = useRef<NodeJS.Timeout | null>(null);
   
   // Force set connected state
   const forceSetConnected = useCallback((shop: string) => {
@@ -75,6 +78,19 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // No need to test if we don't have a shop
     if (!shopDomain) {
       return false;
+    }
+
+    // Check if we need to force refresh or can use cached result
+    if (!forceRefresh) {
+      // Check if we have a recent valid cached result
+      const cacheKey = `connection:${shopDomain}`;
+      const cache = tokenValidationCache.get(cacheKey);
+      const now = Date.now();
+      
+      if (cache && (now - cache.timestamp) < VALIDATION_CACHE_MS) {
+        connectionLogger.debug(`Using cached connection validation for ${shopDomain}: ${cache.valid}`);
+        return cache.valid;
+      }
     }
     
     // Get token for shop
@@ -101,15 +117,40 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
           timestamp: Date.now(),
           requestId: `test_conn_${Math.random().toString(36).substring(2, 10)}`,
         }),
+        // Prevent any caching issues
+        cache: 'no-store',
       });
       
       if (!response.ok) {
-        connectionLogger.error('API request error:', await response.text());
+        const errorText = await response.text();
+        connectionLogger.error('API request error:', errorText);
+        
+        // Cache the negative result
+        tokenValidationCache.set(`connection:${shopDomain}`, { 
+          valid: false, 
+          timestamp: Date.now(),
+          token: data.access_token 
+        });
+        
         return false;
       }
       
       const result = await response.json();
-      return result.success === true;
+      const isValid = result.success === true;
+      
+      // Cache the validation result
+      tokenValidationCache.set(`connection:${shopDomain}`, { 
+        valid: isValid, 
+        timestamp: Date.now(),
+        token: data.access_token 
+      });
+      
+      // Schedule token refresh
+      if (isValid) {
+        scheduleTokenRefresh();
+      }
+      
+      return isValid;
     } catch (error) {
       connectionLogger.error('Error testing connection:', error);
       return false;
@@ -123,6 +164,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // Detect placeholder token
     if (token === 'placeholder_token') {
       connectionLogger.warn(`Detected placeholder token for shop: ${shop}`);
+      setError('Token appears to be a placeholder - please update your access token');
       return false;
     }
     
@@ -131,8 +173,15 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     const cachedValidation = tokenValidationCache.get(cacheKey);
     const now = Date.now();
     
-    if (cachedValidation && (now - cachedValidation.timestamp) < VALIDATION_CACHE_MS) {
+    if (cachedValidation && (now - cachedValidation.timestamp) < VALIDATION_CACHE_MS && cachedValidation.token === token) {
       connectionLogger.debug(`Using cached token validation for ${shop}: ${cachedValidation.valid}`);
+      
+      if (!cachedValidation.valid) {
+        setError('Token validation failed - please reconnect or update your access token');
+      } else {
+        setError(null);
+      }
+      
       return cachedValidation.valid;
     }
     
@@ -149,7 +198,24 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
           timestamp: now,
           requestId: `test_token_${Math.random().toString(36).substring(2, 10)}`,
         }),
+        // Prevent any caching issues
+        cache: 'no-store',
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        connectionLogger.error('API request error in testToken:', errorText);
+        
+        // Cache the negative result
+        tokenValidationCache.set(cacheKey, { 
+          valid: false, 
+          timestamp: now,
+          token
+        });
+        
+        setError('Token validation failed - please reconnect or update your access token');
+        return false;
+      }
       
       const result = await response.json();
       const isValid = result.success === true;
@@ -157,7 +223,8 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       // Cache the validation result
       tokenValidationCache.set(cacheKey, { 
         valid: isValid, 
-        timestamp: now 
+        timestamp: now,
+        token 
       });
       
       if (!isValid) {
@@ -166,6 +233,9 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       } else {
         connectionLogger.info(`Token validation successful for ${shop}`);
         setError(null);
+        
+        // Schedule token refresh
+        scheduleTokenRefresh();
       }
       
       return isValid;
@@ -174,11 +244,30 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       // Cache the negative result to avoid hammering the API with failed requests
       tokenValidationCache.set(cacheKey, { 
         valid: false, 
-        timestamp: now 
+        timestamp: now,
+        token 
       });
+      setError('Error validating token');
       return false;
     }
   }, []);
+
+  // Schedule periodic token validation to ensure it stays valid
+  const scheduleTokenRefresh = useCallback(() => {
+    if (tokenRefreshTimer.current) {
+      clearTimeout(tokenRefreshTimer.current);
+    }
+    
+    // Schedule token refresh
+    tokenRefreshTimer.current = setTimeout(() => {
+      if (shopDomain && isConnected) {
+        connectionLogger.info('Performing scheduled token validation');
+        testConnection(true).catch(() => {
+          connectionLogger.error('Scheduled token validation failed');
+        });
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+  }, [testConnection, shopDomain, isConnected]);
   
   // Sync state with all sources of truth, with rate limiting
   const syncState = useCallback(async () => {
@@ -327,6 +416,11 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       shopifyConnectionManager.addOrUpdateStore(shopToUse, isConnected);
       
       connectionLogger.info(`Connection state synchronized to ${isConnected ? 'connected' : 'disconnected'} with shop: ${shopToUse}`);
+      
+      // Schedule token refresh if connected
+      if (isConnected) {
+        scheduleTokenRefresh();
+      }
     } catch (error) {
       connectionLogger.error('Error synchronizing connection state:', error);
       setError('Error synchronizing connection state');
@@ -343,12 +437,18 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
         }, 60000); // Reset after 1 minute of stability
       }
     }
-  }, [shopDomain, isConnected, syncAttempts, testToken]);
+  }, [shopDomain, isConnected, syncAttempts, testToken, scheduleTokenRefresh]);
   
   // Disconnect function
   const disconnect = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Clear any scheduled token refreshes
+      if (tokenRefreshTimer.current) {
+        clearTimeout(tokenRefreshTimer.current);
+        tokenRefreshTimer.current = null;
+      }
       
       if (shopDomain) {
         // Deactivate in database
@@ -359,7 +459,8 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
             
           connectionLogger.info(`Deactivated shop ${shopDomain} in database`);
           
-          // Consider clearing the token for extra security
+          // Clear all token caches for this shop
+          tokenValidationCache.clear();
         } catch (dbError) {
           connectionLogger.error('Error deactivating store in database:', dbError);
         }
@@ -403,11 +504,28 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // Re-sync state
     await syncState();
     
-    // Test connection - explicitly passing false as the argument
-    await testConnection(false);
+    // Test connection - explicitly passing false to avoid TypeScript error
+    const isValid = await testConnection(false);
     
-    connectionLogger.info('Connection reloaded');
+    if (isValid) {
+      toast.success('تم تحديث الاتصال بنجاح');
+    } else {
+      toast.error('فشل تجديد الاتصال, الرجاء تحديث رمز الوصول');
+    }
+    
+    connectionLogger.info('Connection reloaded, validation result:', isValid);
+    
+    return isValid;
   }, [syncState, testConnection]);
+  
+  // Cleanup function for token refresh timer
+  useEffect(() => {
+    return () => {
+      if (tokenRefreshTimer.current) {
+        clearTimeout(tokenRefreshTimer.current);
+      }
+    };
+  }, []);
   
   // Initialize once on mount
   useEffect(() => {
@@ -481,10 +599,27 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       
       // Run the sync state function to consolidate all sources of truth
       await syncState();
+      
+      // Schedule token refresh if connected
+      if (isConnected && shopDomain) {
+        scheduleTokenRefresh();
+      }
     };
     
     initializeConnection();
-  }, [syncState]);
+    
+    // Add event listener for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'shopify_connected' || e.key === 'shopify_store') {
+        syncState();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [syncState, scheduleTokenRefresh, isConnected]);
   
   // Export context value
   const contextValue: ShopifyConnectionContextType = {

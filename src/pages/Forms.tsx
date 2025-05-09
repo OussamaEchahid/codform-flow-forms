@@ -32,14 +32,15 @@ const Forms = () => {
       }
       
       // Make sure connection state is up to date
-      syncState();
+      await syncState();
       
-      // Also test the connection to make sure token is valid
-      // Pass false explicitly to avoid the TypeScript error
+      // Test the connection to make sure token is valid
+      // Pass explicit false to avoid TypeScript error
       const isValid = await testConnection(false);
       
       if (!isValid) {
         toast.error('رمز الوصول إلى Shopify غير صالح أو منتهي الصلاحية. الرجاء تحديث رمز الوصول.');
+        navigate('/settings');
       }
     };
     
@@ -67,9 +68,9 @@ const Forms = () => {
         
         <div className="flex gap-2 mt-4">
           <Button 
-            onClick={() => navigate('/shopify')}
+            onClick={() => navigate('/settings')}
           >
-            الاتصال بـ Shopify
+            تحديث رمز الوصول
           </Button>
           
           <Button 

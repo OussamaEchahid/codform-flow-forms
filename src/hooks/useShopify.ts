@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -63,6 +64,13 @@ export const useShopify = () => {
     }
   }, []);
   
+  // Reset error states function
+  const resetErrorStates = useCallback(() => {
+    setTokenError(false);
+    setTokenExpired(false);
+    setIsNetworkError(false);
+  }, []);
+  
   // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
     if (!isConnected || !shop) {
@@ -98,6 +106,16 @@ export const useShopify = () => {
     // Start a new request and track it
     const requestPromise = (async () => {
       try {
+        // Reset error states
+        resetErrorStates();
+        
+        // Verify connection is valid before proceeding
+        const connectionValid = await testConnection(false);
+        
+        if (!connectionValid) {
+          throw new Error('Shopify connection validation failed');
+        }
+        
         // Get token for the current shop
         const token = await getAccessToken(shop);
         
@@ -158,9 +176,7 @@ export const useShopify = () => {
         }
         
         // Clear error states if successful
-        setTokenError(false);
-        setTokenExpired(false);
-        setIsNetworkError(false);
+        resetErrorStates();
         
         // Set and cache products
         setProducts(data.products || []);
@@ -195,7 +211,7 @@ export const useShopify = () => {
     requestsInProgress.set(cacheKey, requestPromise);
     
     return requestPromise;
-  }, [isConnected, shop, getAccessToken]);
+  }, [isConnected, shop, getAccessToken, testConnection, resetErrorStates]);
   
   // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
@@ -205,6 +221,9 @@ export const useShopify = () => {
 
     setIsSyncing(true);
     try {
+      // Reset error states
+      resetErrorStates();
+      
       const shopDomain = formData.shopDomain || shop;
       
       if (!shopDomain) {
@@ -223,6 +242,13 @@ export const useShopify = () => {
         // Mock success
         console.log('Form saved for future sync:', formData);
         return { success: true, message: 'Form saved for future sync' };
+      }
+      
+      // Test connection first
+      const isConnectionValid = await testConnection(false);
+      
+      if (!isConnectionValid) {
+        throw new Error('Shopify connection test failed. Please update your access token.');
       }
       
       // Get token
@@ -269,7 +295,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop, getAccessToken, pendingSyncForms]);
+  }, [isConnected, failSafeMode, shop, getAccessToken, pendingSyncForms, testConnection, resetErrorStates]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
@@ -301,6 +327,14 @@ export const useShopify = () => {
         return;
       }
 
+      // Verify connection status before attempting resync
+      const connectionValid = await testConnection(true);
+      
+      if (!connectionValid) {
+        toast.error('Connection validation failed. Please update your access token.');
+        throw new Error('Connection validation failed');
+      }
+
       for (const formData of pendingSyncs) {
         try {
           await syncForm(formData);
@@ -323,7 +357,7 @@ export const useShopify = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [isConnected, shop, syncForm]);
+  }, [isConnected, shop, syncForm, testConnection]);
 
   // Load pending syncs on init
   useEffect(() => {
@@ -339,13 +373,11 @@ export const useShopify = () => {
     productCache.delete(cacheKey);
     
     // Reset error states
-    setTokenError(false);
-    setTokenExpired(false);
-    setIsNetworkError(false);
+    resetErrorStates();
     
     try {
       // Test connection first
-      const isValid = await testConnection();
+      const isValid = await testConnection(true);
       
       if (!isValid) {
         throw new Error('Connection test failed - please check your access token');
@@ -358,22 +390,21 @@ export const useShopify = () => {
       toast.error('فشل في تحديث المنتجات: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
       throw error;
     }
-  }, [shop, loadProducts, testConnection]);
+  }, [shop, loadProducts, testConnection, resetErrorStates]);
 
-  // Fix the refreshConnection method to properly handle the optional parameter
-  const refreshConnection = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
+  // Refresh the connection with better error handling
+  const refreshConnection = useCallback(async (forceRefresh: boolean = false): Promise<boolean> => {
     try {
       setIsLoading(true);
-      setTokenError(false);
-      setTokenExpired(false);
-      setIsNetworkError(false);
+      resetErrorStates();
       
-      // Pass the forceRefresh parameter to testConnection
+      // Test connection with the provided forceRefresh parameter
       const isValid = await testConnection(forceRefresh);
       
       if (!isValid) {
         setTokenError(true);
         setTokenExpired(true);
+        toast.error('فشل اختبار الاتصال. يرجى تحديث رمز الوصول.');
         return false;
       }
       
@@ -390,17 +421,19 @@ export const useShopify = () => {
         return true;
       } catch (loadError) {
         console.error('Error loading products after connection refresh:', loadError);
+        toast.error('نجح اختبار الاتصال ولكن فشل تحميل المنتجات');
         return false;
       }
     } catch (error) {
       console.error('Error refreshing connection:', error);
       setTokenError(true);
       setIsNetworkError(true);
+      toast.error('خطأ في تحديث الاتصال: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [shop, testConnection, loadProducts]);
+  }, [shop, testConnection, loadProducts, resetErrorStates]);
 
   // Emergency reset for recovery
   const emergencyReset = useCallback(() => {
@@ -413,18 +446,20 @@ export const useShopify = () => {
     localStorage.removeItem('shopify_recovery_mode');
     localStorage.removeItem('shopify_last_url_shop');
     
+    // Clear all token validation cache
+    tokenValidationCache.clear();
+    
     // Reset state
-    setTokenError(false);
-    setTokenExpired(false);
+    resetErrorStates();
     setFailSafeMode(false);
     setPendingSyncForms([]);
-    setIsNetworkError(false);
     
     // Clear product cache
     productCache.clear();
     
+    toast.success('تم إعادة تعيين حالة الاتصال بنجاح');
     return true;
-  }, []);
+  }, [resetErrorStates]);
 
   return {
     isLoading,
@@ -450,7 +485,11 @@ export const useShopify = () => {
     testConnection,
     refreshProducts,
     getAccessToken,
-    // Add the refreshConnection method to the returned object
     refreshConnection
   };
+};
+
+// Share the productCache with the rest of the application
+export const clearShopifyCache = () => {
+  productCache.clear();
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -8,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useShopify } from '@/hooks/useShopify';
+import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 interface ShopifyFormSyncProps {
   formId: string;
@@ -15,13 +17,15 @@ interface ShopifyFormSyncProps {
 
 const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const { language } = useI18n();
-  const { shop, testConnection, refreshConnection } = useShopify();
+  const { shop, refreshConnection } = useShopify();
+  const { testConnection } = useShopifyConnection();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [syncsCount, setSyncsCount] = useState<number>(0);
   const [isFormPublished, setIsFormPublished] = useState<boolean>(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Check form publication status
@@ -79,13 +83,18 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
 
     setIsSyncing(true);
     setSyncStatus('idle');
+    setErrorMessage(null);
 
     try {
-      // First verify connection - using testConnection with a boolean parameter
-      const connectionValid = await testConnection();
+      // First verify connection explicitly passing true to force fresh check
+      const connectionValid = await testConnection(true);
       
       if (!connectionValid) {
-        toast.error(language === 'ar' ? 'فشل الاتصال بـ Shopify. يرجى تحديث الاتصال أولاً' : 'Shopify connection failed. Please refresh connection first');
+        const errorMsg = language === 'ar' 
+          ? 'فشل الاتصال بـ Shopify. يرجى تحديث رمز الوصول أولاً' 
+          : 'Shopify connection failed. Please update your access token first';
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
         setIsSyncing(false);
         setSyncStatus('error');
         return;
@@ -116,6 +125,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         
       if (tokenError || !tokenData?.access_token) {
         console.error('Error getting access token:', tokenError);
+        setErrorMessage(language === 'ar' ? 'خطأ في الحصول على رمز الوصول' : 'Error getting access token');
         toast.error(language === 'ar' ? 'خطأ في الحصول على رمز الوصول' : 'Error getting access token');
         setIsSyncing(false);
         setSyncStatus('error');
@@ -131,11 +141,15 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
           // Add timestamp and unique ID to avoid caching issues
           timestamp: Date.now(),
           requestId: `sync_${Math.random().toString(36).substring(2, 10)}`
+        },
+        headers: {
+          'Cache-Control': 'no-store, no-cache'
         }
       });
 
       if (error) {
         console.error('Error syncing form with Shopify:', error);
+        setErrorMessage(error.message);
         toast.error(language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form');
         setSyncStatus('error');
         setIsSyncing(false);
@@ -180,7 +194,9 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
           setIsFormPublished(formData.is_published);
         }
       } else {
-        toast.error(data?.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync'));
+        const errorMsg = data?.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync');
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
         setSyncStatus('error');
         
         // Save error status
@@ -192,7 +208,9 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
       }
     } catch (error) {
       console.error('Error syncing form:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ غير متوقع' : 'Unexpected error');
+      const errorMsg = error instanceof Error ? error.message : (language === 'ar' ? 'حدث خطأ غير متوقع' : 'Unexpected error');
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
@@ -201,19 +219,24 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
 
   const handleReconnect = async () => {
     setIsReconnecting(true);
+    setErrorMessage(null);
     try {
-      // Call refreshConnection without arguments
-      const success = await refreshConnection();
+      // Call refreshConnection with true to force refresh
+      const success = await refreshConnection(true);
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
         // Try sync again after reconnection
         await handleSync();
       } else {
-        toast.error(language === 'ar' ? 'فشل إعادة الاتصال' : 'Failed to reconnect');
+        const errorMsg = language === 'ar' ? 'فشل إعادة الاتصال' : 'Failed to reconnect';
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error reconnecting:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء إعادة الاتصال' : 'Error during reconnection');
+      const errorMsg = error instanceof Error ? error.message : (language === 'ar' ? 'حدث خطأ أثناء إعادة الاتصال' : 'Error during reconnection');
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsReconnecting(false);
     }
@@ -221,17 +244,24 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
 
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
+    setErrorMessage(null);
     try {
-      // Use testConnection with a boolean parameter
+      // Use testConnection with explicit true to force refresh
       const success = await testConnection(true);
       if (success) {
         toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');
+        // Clear error if successful
+        setSyncStatus('idle');
       } else {
-        toast.error(language === 'ar' ? 'فشل تجديد الاتصال' : 'Connection refresh failed');
+        const errorMsg = language === 'ar' ? 'فشل تجديد الاتصال' : 'Connection refresh failed';
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error retrying connection:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء تجديد الاتصال' : 'Error refreshing connection');
+      const errorMsg = error instanceof Error ? error.message : (language === 'ar' ? 'حدث خطأ أثناء تجديد الاتصال' : 'Error refreshing connection');
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsReconnecting(false);
     }
@@ -407,6 +437,11 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
                       ? 'حدث خطأ أثناء مزامنة النموذج'
                       : 'Error syncing form with your store'}
                   </p>
+                  {errorMessage && (
+                    <p className="text-xs text-red-700 mt-1 font-medium">
+                      {errorMessage}
+                    </p>
+                  )}
                   <p className="text-xs text-red-600 mt-1">
                     {language === 'ar'
                       ? 'يرجى التأكد من أنك متصل بمتجر Shopify الخاص بك والمحاولة مرة أخرى. جرب تحديث الاتصال أولاً.'
