@@ -368,9 +368,8 @@ export const useShopify = () => {
       setTokenExpired(false);
       setIsNetworkError(false);
       
-      // Make sure we're passing the forceRefresh parameter correctly
-      // Only pass it if it's explicitly provided (not undefined)
-      const isValid = await testConnection(forceRefresh !== undefined ? forceRefresh : true);
+      // Pass the forceRefresh parameter to testConnection
+      const isValid = await testConnection(forceRefresh);
       
       if (!isValid) {
         setTokenError(true);

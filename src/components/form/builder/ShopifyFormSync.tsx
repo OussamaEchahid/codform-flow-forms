@@ -81,7 +81,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
-      // First verify connection
+      // First verify connection - using testConnection with a boolean parameter
       const connectionValid = await testConnection();
       
       if (!connectionValid) {
@@ -202,7 +202,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
-      // Fix: Call refreshConnection with no arguments since it's optional
+      // Call refreshConnection without arguments
       const success = await refreshConnection();
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
@@ -222,6 +222,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
     try {
+      // Use testConnection with a boolean parameter
       const success = await testConnection(true);
       if (success) {
         toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');
