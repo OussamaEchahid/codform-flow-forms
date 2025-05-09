@@ -1,8 +1,4 @@
 
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 
@@ -10,6 +6,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json',
 }
 
 interface RequestPayload {
@@ -64,9 +62,13 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
       lastError = error;
       
       // Only retry on network errors
-      if (error.name !== 'TypeError' && error.name !== 'NetworkError') {
-        throw error;
+      if (error instanceof TypeError || error.name === 'NetworkError') {
+        if (attempt < maxRetries - 1) {
+          continue;
+        }
       }
+      
+      throw error;
     }
   }
   
@@ -141,20 +143,48 @@ async function checkTokenPermissions(shop: string, accessToken: string, requestI
 }
 
 serve(async (req) => {
-  console.log(`Initializing shopify-test-connection function`);
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Test connection request received:', req.url);
+  const requestIdPart = Math.random().toString(36).substring(2, 8);
 
   try {
     // Parse request body
-    const payload: RequestPayload = await req.json();
+    let payload: RequestPayload;
+    const contentType = req.headers.get('content-type') || '';
+    
+    try {
+      if (contentType.includes('application/json')) {
+        payload = await req.json();
+      } else {
+        // For GET requests or URL parameters
+        const url = new URL(req.url);
+        payload = {
+          shop: url.searchParams.get('shop') || '',
+          accessToken: url.searchParams.get('accessToken') || '',
+          requestId: url.searchParams.get('requestId') || `req_test_${requestIdPart}`,
+          forceRefresh: url.searchParams.get('forceRefresh') === 'true'
+        };
+      }
+    } catch (parseError) {
+      console.error('Error parsing request payload:', parseError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Invalid request format',
+          error: parseError instanceof Error ? parseError.message : 'Failed to parse request body'
+        }),
+        {
+          headers: { ...corsHeaders },
+          status: 400,
+        }
+      );
+    }
+    
     let { shop, accessToken, forceRefresh, checkPermissions } = payload;
-    const requestId = payload.requestId || `req_test_${Math.random().toString(36).substring(2, 8)}`;
+    const requestId = payload.requestId || `req_test_${requestIdPart}`;
     const maxRetries = payload.maxRetries || 3;
 
     if (!shop) {
@@ -164,7 +194,7 @@ serve(async (req) => {
           message: 'Missing shop in request',
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders },
           status: 400,
         }
       );
@@ -179,11 +209,28 @@ serve(async (req) => {
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error(`[${requestId}] Missing Supabase credentials`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Server configuration error - missing database credentials',
+        }),
+        {
+          headers: { ...corsHeaders },
+          status: 500,
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // If accessToken is not provided, try to get it from the database
     if (!accessToken) {
       try {
+        console.log(`[${requestId}] No token provided, fetching from database`);
+        
         const { data: tokenData, error: tokenError } = await supabase
           .from('shopify_stores')
           .select('access_token')
@@ -200,7 +247,7 @@ serve(async (req) => {
               message: 'No active token found for this shop',
             }),
             {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              headers: { ...corsHeaders },
               status: 404,
             }
           );
@@ -216,21 +263,23 @@ serve(async (req) => {
               message: 'No valid token found for this shop',
             }),
             {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              headers: { ...corsHeaders },
               status: 404,
             }
           );
         }
+        
+        console.log(`[${requestId}] Successfully retrieved token from database`);
       } catch (dbError) {
         console.error(`[${requestId}] Database error fetching token:`, dbError);
         return new Response(
           JSON.stringify({
             success: false,
             message: 'Error retrieving token from database',
-            error: dbError.message,
+            error: dbError instanceof Error ? dbError.message : String(dbError),
           }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders },
             status: 500,
           }
         );
@@ -258,6 +307,24 @@ serve(async (req) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`[${requestId}] Shopify API error (${response.status}):`, errorText);
+        
+        // Special handling for common errors
+        if (response.status === 401) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Authentication failed - token is invalid or expired',
+              status: response.status,
+              tokenError: true,
+              isTokenExpired: true
+            }),
+            {
+              headers: { ...corsHeaders },
+              status: 200, // Return 200 with error info in body
+            }
+          );
+        }
+        
         throw new Error(`Shopify API returned ${response.status}: ${errorText}`);
       }
 
@@ -281,19 +348,24 @@ serve(async (req) => {
 
       // Update shop record in database to mark as active
       if (forceRefresh) {
-        const { data: updateData, error: updateError } = await supabase
-          .from('shopify_stores')
-          .update({
-            access_token: accessToken,
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('shop', shopDomain);
+        try {
+          const { error: updateError } = await supabase
+            .from('shopify_stores')
+            .update({
+              access_token: accessToken,
+              is_active: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('shop', shopDomain);
 
-        if (updateError) {
-          console.error(`[${requestId}] Error updating shop in database:`, updateError);
-        } else {
-          console.log(`[${requestId}] Updated shop ${shopDomain} in database`);
+          if (updateError) {
+            console.error(`[${requestId}] Error updating shop in database:`, updateError);
+          } else {
+            console.log(`[${requestId}] Updated shop ${shopDomain} in database`);
+          }
+        } catch (updateError) {
+          console.error(`[${requestId}] Exception updating database:`, updateError);
+          // Don't fail the request if the update fails
         }
       }
 
@@ -312,36 +384,43 @@ serve(async (req) => {
           } : undefined,
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders },
           status: 200,
         }
       );
 
     } catch (error) {
       console.error(`[${requestId}] Error testing connection:`, error);
+      
+      // Try to determine if it's a network error
+      const isNetworkError = error instanceof TypeError || 
+                            (error instanceof Error && (
+                              error.message?.includes('Failed to fetch') || 
+                              error.message?.includes('NetworkError') ||
+                              error.name === 'TypeError'
+                            ));
+                            
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Error testing connection: ${error.message}`,
-          isNetworkError: error.message?.includes('Failed to fetch') || 
-                        error.message?.includes('NetworkError') ||
-                        error.name === 'TypeError',
+          message: `Error testing connection: ${error instanceof Error ? error.message : String(error)}`,
+          isNetworkError,
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
+          headers: { ...corsHeaders },
+          status: 200, // Return 200 with error info in body
         }
       );
     }
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error(`[${requestIdPart}] Error processing request:`, error);
     return new Response(
       JSON.stringify({
         success: false,
-        message: `Error processing request: ${error.message}`,
+        message: `Error processing request: ${error instanceof Error ? error.message : String(error)}`,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders },
         status: 500,
       }
     );
