@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -94,9 +95,18 @@ export const useShopify = () => {
 
       const token = tokenData[0].access_token || '';
       
+      // Add a unique request ID and timestamp for debugging
+      const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
+      const timestamp = new Date().toISOString();
+      
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop, accessToken: token }
+        body: { 
+          shop, 
+          accessToken: token,
+          requestId,
+          timestamp
+        }
       });
 
       if (error) {
@@ -133,10 +143,19 @@ export const useShopify = () => {
       if (tokenError || !tokenData || tokenData.length === 0) {
         throw new Error('Token not found');
       }
+      
+      // Add a unique request ID and timestamp for debugging
+      const requestId = `req_test_${Math.random().toString(36).substring(2, 10)}`;
+      const timestamp = new Date().toISOString();
 
       // Test token with a simple API call
       const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { shop, accessToken: tokenData[0].access_token || '' }
+        body: { 
+          shop, 
+          accessToken: tokenData[0].access_token || '',
+          requestId,
+          timestamp
+        }
       });
 
       if (error) {
@@ -202,13 +221,19 @@ export const useShopify = () => {
         console.log('Form saved for future sync:', formData);
         return { success: true, message: 'Form saved for future sync' };
       }
+      
+      // Add a unique request ID and timestamp for debugging
+      const requestId = `req_sync_${Math.random().toString(36).substring(2, 10)}`;
+      const timestamp = new Date().toISOString();
 
       // Real sync with Shopify
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: {
           shop: shopDomain,
           formId: formData.formId,
-          settings: formData.settings
+          settings: formData.settings,
+          requestId,
+          timestamp
         }
       });
 
@@ -232,7 +257,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop]);
+  }, [isConnected, failSafeMode, shop, pendingSyncForms]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;

@@ -1,182 +1,157 @@
+import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 console.log("Initializing shopify-test-connection function");
 
-// دالة لتنظيف نطاق المتجر
-function cleanShopDomain(shop: string): string {
-  if (!shop) return "";
-  
-  let cleanedShop = shop.trim();
-  
-  // إزالة البروتوكول إذا كان موجودًا
-  if (cleanedShop.startsWith('http')) {
-    try {
-      const url = new URL(cleanedShop);
-      cleanedShop = url.hostname;
-    } catch (e) {
-      console.error("Error cleaning shop URL:", e);
-    }
-  }
-  
-  // التأكد من أنه ينتهي بـ myshopify.com
-  if (!cleanedShop.endsWith('myshopify.com')) {
-    if (!cleanedShop.includes('.')) {
-      cleanedShop = `${cleanedShop}.myshopify.com`;
-    }
-  }
-  
-  return cleanedShop;
-}
-
-// خدمة الطلبات
 serve(async (req) => {
-  // التعامل مع طلبات OPTIONS لـ CORS
+  // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 200 });
+    return new Response(null, { headers: corsHeaders });
   }
 
   console.log(`Test connection request received: ${req.url}`);
   
   try {
-    // استخراج البيانات من طلب POST
-    let requestData = {};
-    try {
-      requestData = await req.json();
-    } catch (e) {
-      console.error("Error parsing request body:", e);
-      const bodyText = await req.text();
-      console.log("Raw request body:", bodyText);
-      
-      // Try to parse as URL parameters if it's not valid JSON
-      if (bodyText && !bodyText.trim().startsWith('{')) {
-        try {
-          const params = new URLSearchParams(bodyText);
-          requestData = {
-            shop: params.get('shop'),
-            accessToken: params.get('accessToken') || params.get('token')
-          };
-        } catch (e2) {
-          console.error("Error parsing URL params:", e2);
-        }
-      }
-    }
+    const { shop, accessToken, requestId } = await req.json();
     
-    // If we still don't have a shop parameter, check query parameters
-    if (!requestData || !("shop" in requestData)) {
-      const url = new URL(req.url);
-      const shop = url.searchParams.get('shop');
-      const accessToken = url.searchParams.get('token') || url.searchParams.get('accessToken');
-      
-      if (shop) {
-        requestData = { 
-          ...requestData, 
-          shop,
-          ...(accessToken ? { accessToken } : {})
-        };
-      }
-    }
-    
-    if (!requestData || !("shop" in requestData)) {
-      throw new Error('المعلمات المطلوبة مفقودة: shop و accessToken');
-    }
-    
-    // تنظيف نطاق المتجر
-    const shop = cleanShopDomain(requestData.shop as string);
-    const accessToken = requestData.accessToken as string;
-    
-    console.log(`Testing connection for shop: ${shop}`);
-    
-    // If we don't have an access token, the connection is still valid but limited
-    if (!accessToken) {
-      console.log("No access token provided, but shop exists in database");
+    // Log with request ID if provided
+    const logPrefix = requestId ? `[${requestId}]` : '';
+    console.log(`${logPrefix} Testing connection for shop: ${shop}`);
+
+    if (!shop || !accessToken) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Store exists in database but no token was provided to test API',
-          shop_info: {
-            domain: shop,
-            myshopify_domain: shop
-          }
+        JSON.stringify({ 
+          success: false, 
+          message: "Missing required parameters: shop and accessToken" 
         }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          },
-          status: 200
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
-    
-    // إذا كان الرمز مؤقتًا، ارجع خطأ على الفور
-    if (accessToken === 'placeholder_token') {
-      throw new Error('الرمز المؤقت (placeholder_token) غير صالح للاتصال');
-    }
-    
-    // إجراء طلب اختبار إلى API متجر Shopify
-    const shopUrl = `https://${shop}/admin/api/2023-07/shop.json`;
-    
-    const response = await fetch(shopUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // التحقق من الاستجابة
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Invalid token or shop. Status: ${response.status}, Response: ${errorText}`);
-      throw new Error(`رمز الوصول غير صالح. الخطأ: ${response.status} ${response.statusText}`);
-    }
-    
-    // تحليل الاستجابة للتأكد من صحتها
-    const data = await response.json();
-    
-    if (!data.shop || !data.shop.id) {
-      throw new Error('تنسيق استجابة غير صالح من API متجر Shopify');
-    }
-    
-    // ارجع استجابة ناجحة
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'تم التحقق من صحة رمز الوصول',
-        shop_info: {
-          id: data.shop.id,
-          name: data.shop.name,
-          email: data.shop.email,
-          domain: data.shop.domain,
-          myshopify_domain: data.shop.myshopify_domain
+
+    // Normalize shop domain
+    const shopDomain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
+    console.log(`${logPrefix} Using normalized shop domain: ${shopDomain}`);
+
+    // Test API connection by making a simple call
+    try {
+      const shopResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json`, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
         }
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 200
+      });
+      
+      if (!shopResponse.ok) {
+        // If response is not OK, check specific status codes
+        const responseBody = await shopResponse.text();
+        console.error(`${logPrefix} Connection test failed with status ${shopResponse.status}: ${responseBody}`);
+        
+        // If it's an authentication issue
+        if (shopResponse.status === 401 || shopResponse.status === 403) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: "Invalid or expired access token",
+              status: shopResponse.status,
+              details: responseBody
+            }),
+            { 
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+        
+        // Other error cases
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: `API request failed with status ${shopResponse.status}`,
+            status: shopResponse.status,
+            details: responseBody
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
-    );
+      
+      // Successfully validated token
+      const shopData = await shopResponse.json();
+      console.log(`${logPrefix} Connection test successful for shop: ${shopData.shop.name}`);
+      
+      // Update the shop record in the database to mark as active
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Update shop as active
+        const { error } = await supabase
+          .from('shopify_stores')
+          .update({ is_active: true })
+          .eq('shop', shop);
+          
+        if (error) {
+          console.error(`${logPrefix} Error updating shop record:`, error);
+        } else {
+          console.log(`${logPrefix} Updated shop ${shop} in database`);
+        }
+      } catch (dbError) {
+        console.error(`${logPrefix} Database update error:`, dbError);
+        // Continue execution since the API connection was successful
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Connection successful",
+          shop: shopData.shop.name,
+          shopDomain: shopDomain,
+          myshopifyDomain: shopData.shop.myshopify_domain
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } catch (apiError) {
+      // Network or other errors
+      console.error(`${logPrefix} API connection error:`, apiError);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: apiError instanceof Error ? apiError.message : "Unknown API connection error",
+          error: apiError instanceof Error ? apiError.name : "NetworkError"
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
   } catch (error) {
-    // ارجع استجابة الخطأ
-    console.error('Error testing connection:', error);
+    console.error("General error in test-connection function:", error);
     
     return new Response(
-      JSON.stringify({
-        success: false,
-        message: error instanceof Error ? error.message : 'حدث خطأ غير معروف',
-        error: error instanceof Error ? error.message : 'حدث خطأ غير معروف'
+      JSON.stringify({ 
+        success: false, 
+        message: "Server error processing connection test",
+        error: error instanceof Error ? error.message : "Unknown error"
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 200 // استخدام الحالة 200 حتى مع الأخطاء لتمكين العميل من معالجة الخطأ
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
