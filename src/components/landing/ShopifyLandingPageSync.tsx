@@ -63,6 +63,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         
       if (!error && data && data.product_id) {
         setProductId(data.product_id);
+        console.log('Found product ID for page:', data.product_id);
       }
     } catch (error) {
       console.error('Error fetching page product ID:', error);
@@ -140,9 +141,16 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const viewProductPage = () => {
     if (!shop || !productId) return;
     
+    // إذا كان معرف المنتج هو GID من Shopify، استخراج الجزء الأخير منه
+    let shopifyProductId = productId;
+    if (productId.startsWith('gid://shopify/Product/')) {
+      const parts = productId.split('/');
+      shopifyProductId = parts[parts.length - 1];
+    }
+    
     // فتح صفحة المنتج في Shopify في علامة تبويب جديدة
     const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
-    window.open(`https://${domain}/products/${productId}`, '_blank');
+    window.open(`https://${domain}/products/${shopifyProductId}`, '_blank');
   };
 
   const viewLocalPage = () => {

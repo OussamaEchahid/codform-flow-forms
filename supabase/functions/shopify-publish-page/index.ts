@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
 
@@ -163,18 +162,21 @@ serve(async (req) => {
 
     // If we have a product ID, try to associate the page content with the product
     let productResult = null;
+    let shopifyProductId = null;
+    
     if (actualProductId) {
       console.log(`[${requestId}] Attempting to associate page with product: ${actualProductId}`);
       
       try {
-        // Fetch the Shopify product ID based on our stored product ID
-        const { data: productData, error: productError } = await supabaseAdmin
-          .from("shopify_product_settings")
-          .select("product_id")
-          .eq("id", actualProductId)
-          .single();
-          
-        const shopifyProductId = productData?.product_id || actualProductId;
+        // Check if the product ID is a Shopify GID format
+        if (actualProductId.startsWith('gid://shopify/Product/')) {
+          // Extract the numeric ID from the GID format
+          shopifyProductId = actualProductId.split('/').pop();
+          console.log(`[${requestId}] Extracted Shopify product ID from GID: ${shopifyProductId}`);
+        } else {
+          // If it's already in another format, try to use it directly
+          shopifyProductId = actualProductId;
+        }
         
         if (shopifyProductId) {
           // Call the Shopify API to update the product with our custom page content
@@ -232,14 +234,14 @@ serve(async (req) => {
 
     // Get product URL if a product was associated
     let productUrl = null;
-    if (productResult && actualProductId) {
+    if (productResult && shopifyProductId) {
       // Get the product handle to construct a URL
       try {
         const productHandle = await getShopifyProductHandle(
           shopDomain, 
           accessToken, 
           apiVersion, 
-          actualProductId, 
+          shopifyProductId, 
           requestId
         );
         
