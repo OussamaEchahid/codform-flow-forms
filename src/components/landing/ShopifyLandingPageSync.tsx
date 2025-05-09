@@ -16,9 +16,12 @@ import {
   ExternalLink,
   ShoppingBag,
   EyeIcon,
+  AlertTriangle,
+  InfoIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -30,6 +33,13 @@ interface ProductOption {
   id: string;
   title: string;
   handle?: string;
+}
+
+interface PublishStep {
+  id: string;
+  name: string;
+  status: 'pending' | 'loading' | 'success' | 'error';
+  message?: string;
 }
 
 const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
@@ -54,7 +64,15 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const [metaobjectCreated, setMetaobjectCreated] = useState<boolean>(false);
   const [syncInProgress, setSyncInProgress] = useState<boolean>(false);
   const [debugMode, setDebugMode] = useState<boolean>(false);
-  
+  const [publishSteps, setPublishSteps] = useState<PublishStep[]>([
+    { id: 'connection', name: language === 'ar' ? 'التحقق من الاتصال' : 'Verify Connection', status: 'pending' },
+    { id: 'product', name: language === 'ar' ? 'جلب معلومات المنتج' : 'Fetch Product', status: 'pending' },
+    { id: 'metaobject', name: language === 'ar' ? 'إنشاء Metaobject' : 'Create Metaobject', status: 'pending' },
+    { id: 'description', name: language === 'ar' ? 'تحديث وصف المنتج' : 'Update Product Description', status: 'pending' },
+    { id: 'complete', name: language === 'ar' ? 'اكتمال العملية' : 'Complete', status: 'pending' },
+  ]);
+  const [useFallbackOnly, setUseFallbackOnly] = useState<boolean>(false);
+
   // Fetch sync status and products on mount
   useEffect(() => {
     if (pageId) {
@@ -68,7 +86,25 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     // Check if debug mode is enabled via localStorage
     const isDebugMode = localStorage.getItem('shopify_debug_mode') === 'true';
     setDebugMode(isDebugMode);
+    
+    // Check if fallback mode is enabled via localStorage
+    const fallbackOnly = localStorage.getItem('shopify_fallback_only') === 'true';
+    setUseFallbackOnly(fallbackOnly);
   }, [pageId, shop]);
+
+  const updateStepStatus = (stepId: string, status: 'pending' | 'loading' | 'success' | 'error', message?: string) => {
+    setPublishSteps(steps => 
+      steps.map(step => 
+        step.id === stepId ? { ...step, status, message } : step
+      )
+    );
+  };
+  
+  const resetSteps = () => {
+    setPublishSteps(steps => 
+      steps.map(step => ({ ...step, status: 'pending', message: undefined }))
+    );
+  };
 
   const fetchSyncStatus = async () => {
     try {
@@ -158,20 +194,26 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       }
       
       // First test connection
+      updateStepStatus('connection', 'loading');
+      
       const { data: testData, error: testError } = await supabase.functions.invoke('shopify-test-connection', {
         body: { 
           shop,
           accessToken: shopData.access_token,
           requestId: `test_${Math.random().toString(36).substring(2, 9)}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          maxRetries: 3 // Add retry option
         }
       });
       
       if (testError || !testData?.success) {
         console.error('Connection test failed:', testError || 'No success response');
         setConnectionError(true);
+        updateStepStatus('connection', 'error', 'Failed to connect to Shopify API');
         throw new Error('Shopify connection test failed');
       }
+      
+      updateStepStatus('connection', 'success');
       
       // Request products with the validated token
       const requestId = `prod_req_${Math.random().toString(36).substring(2, 9)}`;
@@ -235,6 +277,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     setSyncStatus('idle');
     setSyncInProgress(true);
     setMetaobjectCreated(false);
+    resetSteps();
 
     try {
       // Get access token
@@ -245,24 +288,32 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         .single();
       
       if (shopError || !shopData?.access_token) {
+        updateStepStatus('connection', 'error', 'Could not retrieve valid access token');
         throw new Error('Could not retrieve valid access token');
       }
       
       // First test connection before proceeding
+      updateStepStatus('connection', 'loading');
+      
       const { data: testData, error: testError } = await supabase.functions.invoke('shopify-test-connection', {
         body: { 
           shop,
           accessToken: shopData.access_token,
           requestId: `test_before_publish_${Math.random().toString(36).substring(2, 9)}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          maxRetries: 3
         }
       });
       
       if (testError || !testData?.success) {
         console.error('Connection test failed before publish:', testError || 'No success response');
+        updateStepStatus('connection', 'error', 'Shopify connection test failed, cannot publish');
         setConnectionError(true);
         throw new Error('Shopify connection test failed, cannot publish');
       }
+      
+      updateStepStatus('connection', 'success');
+      updateStepStatus('product', 'loading');
 
       // Now publish the page
       const currentRetryCount = retryCount;
@@ -278,7 +329,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           accessToken: shopData.access_token,
           requestId,
           timestamp: Date.now(),
-          forceMetaobjectCreation: currentRetryCount > 0 // Force creation of metaobject on retry
+          forceMetaobjectCreation: currentRetryCount > 0, // Force creation of metaobject on retry
+          fallbackOnly: useFallbackOnly // Option to use fallback only
         }
       });
 
@@ -287,10 +339,15 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         setErrorMessage(`Error publishing to Shopify: ${error.message}`);
         setSyncStatus('error');
         
+        // Update step statuses based on the error
+        updateStepStatus('product', 'error', 'Failed to process product data');
+        
         // Increment retry count for next attempt
         setRetryCount(currentRetryCount + 1);
         throw error;
       }
+
+      updateStepStatus('product', 'success');
 
       if (!data?.success) {
         console.error('Unsuccessful publish response:', data);
@@ -302,12 +359,25 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         throw new Error(data?.message || 'Publish failed');
       }
 
+      // Update metaobject status
+      if (data.metaobjectCreated) {
+        updateStepStatus('metaobject', 'success');
+        setMetaobjectCreated(true);
+      } else if (data.fallbackUsed) {
+        updateStepStatus('metaobject', 'success', 'Used fallback method');
+      } else {
+        updateStepStatus('metaobject', 'error', 'Metaobject creation failed, using fallbacks');
+      }
+      
+      // Update description status
+      updateStepStatus('description', 'success');
+
       // Update sync status in database
       const syncData = {
         page_id: pageId,
         product_id: selectedProductId,
         shop_id: shop,
-        synced_url: data.productUrl || null
+        synced_url: data.landingPageUrl || null
       };
 
       // Check if sync record exists
@@ -330,13 +400,16 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             .insert(syncData);
 
       const { error: syncError } = await syncOperation;
-      if (syncError) console.error('Error saving sync data:', syncError);
+      if (syncError) {
+        console.error('Error saving sync data:', syncError);
+      } else {
+        updateStepStatus('complete', 'success');
+      }
 
       // Update UI state
-      setSyncedUrl(data.productUrl || null);
+      setSyncedUrl(data.landingPageUrl || null);
       setLastSyncTimestamp(new Date().toLocaleString());
       setSyncStatus('success');
-      setMetaobjectCreated(!!data.metaobjectId);
       setRetryCount(0); // Reset retry count on success
       
       toast.success(
@@ -349,6 +422,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       console.error('Error in handlePublishToShopify:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setErrorMessage(errorMsg);
+      updateStepStatus('complete', 'error', errorMsg);
       toast.error(
         language === 'ar'
           ? `فشل النشر إلى Shopify: ${errorMsg}`
@@ -363,6 +437,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
     setErrorMessage(null);
+    updateStepStatus('connection', 'loading');
+    
     try {
       // Get shop token
       const { data: shopData, error: shopError } = await supabase
@@ -372,6 +448,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         .single();
       
       if (shopError || !shopData?.access_token) {
+        updateStepStatus('connection', 'error', 'Could not retrieve valid access token');
         throw new Error('Could not retrieve valid access token');
       }
       
@@ -382,12 +459,14 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           accessToken: shopData.access_token,
           forceRefresh: true,
           requestId: `retry_${Math.random().toString(36).substring(2, 9)}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          maxRetries: 3
         }
       });
       
       if (error || !data?.success) {
         console.error('Connection retry failed:', error || 'No success response');
+        updateStepStatus('connection', 'error', 'Connection retry failed');
         toast.error(
           language === 'ar'
             ? 'فشلت إعادة الاتصال، يرجى التحقق من صلاحية الرمز'
@@ -396,6 +475,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         return;
       }
       
+      updateStepStatus('connection', 'success');
       setConnectionError(false);
       toast.success(
         language === 'ar'
@@ -437,6 +517,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     const newMode = !debugMode;
     setDebugMode(newMode);
     localStorage.setItem('shopify_debug_mode', newMode ? 'true' : 'false');
+  };
+  
+  const toggleFallbackMode = () => {
+    const newMode = !useFallbackOnly;
+    setUseFallbackOnly(newMode);
+    localStorage.setItem('shopify_fallback_only', newMode ? 'true' : 'false');
+    toast.info(
+      language === 'ar'
+        ? `تم ${newMode ? 'تفعيل' : 'تعطيل'} وضع الرجوع`
+        : `Fallback-only mode ${newMode ? 'enabled' : 'disabled'}`
+    );
   };
 
   return (
@@ -523,6 +614,19 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
               </div>
             </div>
           )}
+          
+          {useFallbackOnly && (
+            <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-200">
+              <div className="flex items-center gap-2 text-amber-600">
+                <InfoIcon className="h-4 w-4" />
+                <span className="font-medium text-sm">
+                  {language === 'ar' 
+                    ? 'وضع الرجوع مفعل: سيتم استخدام واصفات المنتج فقط' 
+                    : 'Fallback mode enabled: Using product descriptions only'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="space-y-2">
@@ -589,14 +693,47 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             </Alert>
           )}
           
+          {/* Publication Steps Progress */}
           {syncInProgress && (
-            <div className="p-2 bg-blue-50 border border-blue-200 rounded mt-2 flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <p className="text-sm text-blue-700">
-                {language === 'ar' 
-                  ? 'جاري إنشاء وتحديث Metaobject...'
-                  : 'Creating and updating metaobject...'}
-              </p>
+            <div className="mt-4 space-y-2 border rounded-lg p-3 bg-gray-50">
+              <div className="flex justify-between mb-2">
+                <h4 className="text-sm font-medium">
+                  {language === 'ar' ? 'تقدم عملية النشر:' : 'Publication Progress:'}
+                </h4>
+              </div>
+              
+              <div className="space-y-3">
+                {publishSteps.map((step) => (
+                  <div key={step.id} className="flex items-center gap-2">
+                    {step.status === 'loading' ? (
+                      <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                    ) : step.status === 'success' ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : step.status === 'error' ? (
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : (
+                      <div className="h-4 w-4 rounded-full border border-gray-300"></div>
+                    )}
+                    
+                    <span className={`text-sm ${
+                      step.status === 'success' ? 'text-green-700' : 
+                      step.status === 'error' ? 'text-red-700' :
+                      step.status === 'loading' ? 'text-blue-700' : 'text-gray-500'
+                    }`}>
+                      {step.name}
+                    </span>
+                    
+                    {step.message && (
+                      <span className="text-xs text-gray-500 ml-2">({step.message})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <Progress 
+                value={publishSteps.filter(s => s.status === 'success').length / publishSteps.length * 100} 
+                className="h-1.5 mt-2"
+              />
             </div>
           )}
           
@@ -639,16 +776,52 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           )}
           
           {debugMode && (
-            <div className="mt-4 p-2 bg-gray-50 border border-gray-200 rounded text-xs space-y-1">
-              <p><strong>Debug Info</strong></p>
-              <p>Selected Product ID: {selectedProductId || 'None'}</p>
-              <p>Retry Count: {retryCount}</p>
-              <p>Connection Status: {connectionError ? 'Error' : 'OK'}</p>
-              <p>Metaobject Created: {metaobjectCreated ? 'Yes' : 'No'}</p>
-              <p>Products Loaded: {products.length}</p>
-              <p>Sync Status: {syncStatus}</p>
-              <p>Last Sync: {lastSyncTimestamp || 'Never'}</p>
-              {errorMessage && <p>Last Error: {errorMessage}</p>}
+            <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-xs space-y-2">
+              <p className="font-semibold mb-2">Debug Information</p>
+              
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-gray-600">Selected Product:</span>
+                <span>{selectedProductId || 'None'}</span>
+                
+                <span className="text-gray-600">Retry Count:</span>
+                <span>{retryCount}</span>
+                
+                <span className="text-gray-600">Connection Status:</span>
+                <span>{connectionError ? 'Error' : 'OK'}</span>
+                
+                <span className="text-gray-600">Metaobject Created:</span>
+                <span>{metaobjectCreated ? 'Yes' : 'No'}</span>
+                
+                <span className="text-gray-600">Products Loaded:</span>
+                <span>{products.length}</span>
+                
+                <span className="text-gray-600">Sync Status:</span>
+                <span>{syncStatus}</span>
+                
+                <span className="text-gray-600">Fallback Mode:</span>
+                <span>{useFallbackOnly ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              
+              <div className="border-t pt-2 mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs"
+                  onClick={toggleFallbackMode}
+                >
+                  {useFallbackOnly 
+                    ? language === 'ar' ? 'تعطيل وضع الرجوع' : 'Disable Fallback Mode' 
+                    : language === 'ar' ? 'تفعيل وضع الرجوع' : 'Enable Fallback Mode'
+                  }
+                </Button>
+              </div>
+              
+              {errorMessage && (
+                <div className="border-t border-gray-300 pt-2">
+                  <p className="font-semibold text-xs text-red-600">Last Error:</p>
+                  <p className="text-xs text-red-600 break-words">{errorMessage}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

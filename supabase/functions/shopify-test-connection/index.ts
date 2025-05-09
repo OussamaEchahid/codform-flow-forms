@@ -18,6 +18,43 @@ interface RequestPayload {
   requestId?: string;
   timestamp?: number;
   forceRefresh?: boolean;
+  maxRetries?: number;
+}
+
+// Helper to add retries for fetch requests
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Exponential backoff
+      if (attempt > 0) {
+        const delay = Math.min(100 * Math.pow(2, attempt), 2000);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const response = await fetch(url, options);
+      
+      // Retry on server errors (5xx)
+      if (response.status >= 500 && response.status < 600 && attempt < maxRetries - 1) {
+        console.log(`Server error: ${response.status}, will retry`);
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      console.error(`Fetch attempt ${attempt + 1} failed:`, error);
+      lastError = error;
+      
+      // Only retry on network errors
+      if (error.name !== 'TypeError' && error.name !== 'NetworkError') {
+        throw error;
+      }
+    }
+  }
+  
+  throw lastError || new Error('All fetch attempts failed');
 }
 
 serve(async (req) => {
@@ -35,6 +72,7 @@ serve(async (req) => {
     const payload: RequestPayload = await req.json();
     let { shop, accessToken, forceRefresh } = payload;
     const requestId = payload.requestId || `req_test_${Math.random().toString(36).substring(2, 8)}`;
+    const maxRetries = payload.maxRetries || 3;
 
     if (!shop || !accessToken) {
       return new Response(
@@ -65,7 +103,9 @@ serve(async (req) => {
       // Add random cache-busting query parameter
       const cacheBuster = `?timestamp=${Date.now()}&_=${Math.random().toString(36).substring(2)}`;
       
-      const response = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json${cacheBuster}`, {
+      console.log(`[${requestId}] Making request to Shopify API to test connection`);
+      
+      const response = await fetchWithRetry(`https://${shopDomain}/admin/api/2023-10/shop.json${cacheBuster}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
@@ -74,15 +114,18 @@ serve(async (req) => {
           'Pragma': 'no-cache',
           'Expires': '0',
         },
-      });
+      }, maxRetries);
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[${requestId}] Shopify API error (${response.status}):`, errorText);
         throw new Error(`Shopify API returned ${response.status}: ${errorText}`);
       }
 
       const shopData = await response.json();
       const shopName = shopData.shop?.name || 'unknown';
+      
+      console.log(`[${requestId}] Successfully connected to shop: ${shopName}`);
 
       // Update shop record in database to mark as active
       if (forceRefresh) {
@@ -109,6 +152,7 @@ serve(async (req) => {
           success: true,
           shop: shopName,
           domain: shopDomain,
+          details: shopData.shop
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -116,16 +160,25 @@ serve(async (req) => {
         }
       );
     } catch (error) {
-      console.error(`Error testing connection:`, error);
+      console.error(`[${requestId}] Error testing connection:`, error);
+
+      // Determine if this is an authorization error or something else
+      const errorMessage = error.message || 'Unknown error';
+      const status = errorMessage.includes('401') ? 401 : 
+                     errorMessage.includes('403') ? 403 : 
+                     errorMessage.includes('429') ? 429 : 500;
 
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Failed to connect to Shopify API: ${error.message}`,
+          message: `Failed to connect to Shopify API: ${errorMessage}`,
+          errorType: status === 401 || status === 403 ? 'auth' : 
+                    status === 429 ? 'rate_limit' : 'server',
+          status
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,  // Unauthorized if token is invalid
+          status,
         }
       );
     }
@@ -136,6 +189,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         message: `Server error: ${error.message}`,
+        errorType: 'server'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
