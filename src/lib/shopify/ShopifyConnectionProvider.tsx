@@ -2,16 +2,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { ConnectionLogger } from '@/lib/shopify/debug-logger';
-
-// Connection logger for better debugging
-const logger = new ConnectionLogger('Shopify Connection');
+import { connectionLogger } from '@/lib/shopify/debug-logger';
 
 // Context interface
 interface ShopifyConnectionContextType {
   isConnected: boolean;
   shopDomain: string | null;
   isLoading: boolean;
+  isValidating: boolean; // Added this property to fix the error
   error: string | null;
   syncState: () => Promise<void>;
   forceSetConnected: (shop: string) => void;
@@ -24,6 +22,7 @@ const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
   isConnected: false,
   shopDomain: null,
   isLoading: true,
+  isValidating: false, // Added with default value of false
   error: null,
   syncState: async () => {},
   forceSetConnected: () => {},
@@ -36,6 +35,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [shopDomain, setShopDomain] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isValidating, setIsValidating] = useState<boolean>(false); // Added this state variable
   const [error, setError] = useState<string | null>(null);
   const [syncAttempts, setSyncAttempts] = useState<number>(0);
   
@@ -54,12 +54,13 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // Update connection manager
     shopifyConnectionManager.addOrUpdateStore(shop, true);
     
-    logger.info(`Forced connection state to connected with shop: ${shop}`);
+    connectionLogger.info(`Forced connection state to connected with shop: ${shop}`);
   }, []);
   
   // Sync state with all sources of truth
   const syncState = useCallback(async () => {
     try {
+      setIsValidating(true); // Added to indicate validation in progress
       setSyncAttempts(prev => prev + 1);
       
       // Collect data from all sources
@@ -68,7 +69,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       const activeStore = shopifyConnectionManager.getActiveStore();
       const inRecovery = syncAttempts >= 3;
       
-      logger.info('Synchronizing connection state:', {
+      connectionLogger.info('Synchronizing connection state:', {
         localStorage: {
           storedShop,
           isConnected: isConnectedInStorage
@@ -97,6 +98,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
         setIsConnected(false);
         setShopDomain(null);
         setIsLoading(false);
+        setIsValidating(false); // Added to indicate validation is complete
         return;
       }
       
@@ -112,7 +114,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
           .limit(1);
         
         if (error) {
-          logger.error('Error fetching store from database:', error);
+          connectionLogger.error('Error fetching store from database:', error);
           // If database query fails but we have other evidence of connection,
           // still consider connected
           if (isConnectedInStorage || activeStore) {
@@ -127,7 +129,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
             try {
               await testToken(shopToUse, data[0].access_token);
             } catch (testError) {
-              logger.error('Token test failed:', testError);
+              connectionLogger.error('Token test failed:', testError);
               // Even if token test fails, we still consider connected
               // but will show an error
             }
@@ -146,14 +148,14 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               });
-              logger.info(`Created store record for ${shopToUse}`);
+              connectionLogger.info(`Created store record for ${shopToUse}`);
             } catch (insertError) {
-              logger.error('Error creating store record:', insertError);
+              connectionLogger.error('Error creating store record:', insertError);
             }
           }
         }
       } catch (dbError) {
-        logger.error('Database error during syncState:', dbError);
+        connectionLogger.error('Database error during syncState:', dbError);
         // If database query fails but we have other evidence of connection,
         // still consider connected
         if (isConnectedInStorage || activeStore) {
@@ -170,12 +172,13 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       
       shopifyConnectionManager.addOrUpdateStore(shopToUse, isConnected);
       
-      logger.info(`Connection state synchronized to ${isConnected ? 'connected' : 'disconnected'} with shop: ${shopToUse}`);
+      connectionLogger.info(`Connection state synchronized to ${isConnected ? 'connected' : 'disconnected'} with shop: ${shopToUse}`);
     } catch (error) {
-      logger.error('Error during syncState:', error);
+      connectionLogger.error('Error during syncState:', error);
       setError('Error synchronizing connection state');
     } finally {
       setIsLoading(false);
+      setIsValidating(false); // Added to ensure validation is complete
     }
   }, [shopDomain, isConnected, syncAttempts]);
   
@@ -199,7 +202,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       
       return true;
     } catch (error) {
-      logger.error('Token test error:', error);
+      connectionLogger.error('Token test error:', error);
       throw error;
     }
   };
@@ -207,6 +210,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   // Reload function - recheck connection state
   const reload = useCallback(async () => {
     setIsLoading(true);
+    setIsValidating(true); // Added to indicate validation in progress
     await syncState();
   }, [syncState]);
   
@@ -214,6 +218,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   const disconnect = useCallback(async () => {
     try {
       setIsLoading(true);
+      setIsValidating(true); // Added to indicate validation in progress
       
       // Clear local storage
       localStorage.removeItem('shopify_store');
@@ -234,9 +239,9 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
             })
             .eq('shop', shopDomain);
           
-          logger.info(`Marked ${shopDomain} as inactive in database`);
+          connectionLogger.info(`Marked ${shopDomain} as inactive in database`);
         } catch (dbError) {
-          logger.error('Error updating database during disconnect:', dbError);
+          connectionLogger.error('Error updating database during disconnect:', dbError);
         }
       }
       
@@ -245,12 +250,13 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       setShopDomain(null);
       setError(null);
       
-      logger.info('Successfully disconnected from Shopify');
+      connectionLogger.info('Successfully disconnected from Shopify');
     } catch (error) {
-      logger.error('Error during disconnect:', error);
+      connectionLogger.error('Error during disconnect:', error);
       setError('Error disconnecting from Shopify');
     } finally {
       setIsLoading(false);
+      setIsValidating(false); // Added to ensure validation is complete
     }
   }, [shopDomain]);
   
@@ -261,7 +267,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
         const urlParams = new URLSearchParams(window.location.search);
         const shopParam = urlParams.get('shop');
         
-        logger.info('Checking shop from URL:', { 
+        connectionLogger.info('Checking shop from URL:', { 
           shopDomain: shopParam,
           isShopifyRequest: !!shopParam
         });
@@ -273,12 +279,12 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
           // Set active shop in connection manager
           shopifyConnectionManager.setActiveStore(shopParam);
           
-          logger.info(`Setting active shop from URL: ${shopParam}`);
+          connectionLogger.info(`Setting active shop from URL: ${shopParam}`);
           
           // Allow state to be initialized by regular sync
         }
       } catch (error) {
-        logger.error('Error checking URL parameters:', error);
+        connectionLogger.error('Error checking URL parameters:', error);
       }
     };
     
@@ -292,11 +298,11 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
         const activeStore = shopifyConnectionManager.getActiveStore();
         
         if (activeStore) {
-          logger.info(`Setting active shop from connection manager: ${activeStore}`);
+          connectionLogger.info(`Setting active shop from connection manager: ${activeStore}`);
           forceSetConnected(activeStore);
         }
       } catch (error) {
-        logger.error('Error checking connection manager:', error);
+        connectionLogger.error('Error checking connection manager:', error);
       }
     };
     
@@ -330,13 +336,13 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     
     if (syncAttempts >= 10) {
       // After many attempts, state is still unstable - stop trying
-      logger.info('Connection state stabilization attempts exhausted');
+      connectionLogger.info('Connection state stabilization attempts exhausted');
     }
     
     // When connection appears stable, reset attempts counter
     if (syncAttempts > 0 && isConnected === !!localStorage.getItem('shopify_connected')) {
       const timeout = setTimeout(() => {
-        logger.info('Connection appears stable, reset sync attempts counter');
+        connectionLogger.info('Connection appears stable, reset sync attempts counter');
         setSyncAttempts(0);
       }, 60000);
       
@@ -349,6 +355,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     isConnected,
     shopDomain,
     isLoading,
+    isValidating,  // Added to context value
     error,
     syncState,
     forceSetConnected,

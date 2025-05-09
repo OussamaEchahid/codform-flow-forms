@@ -2,21 +2,29 @@
 /**
  * Simple logger utility for connection debugging
  */
-class ConnectionLogger {
-  private readonly LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'info';
-  private readonly LEVELS = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
-  };
+export class ConnectionLogger {
+  private readonly LOG_LEVEL: string;
+  private readonly LEVELS: Record<string, number>;
+  
+  constructor(prefix: string = 'Shopify Connection') {
+    this.LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'info';
+    this.LEVELS = {
+      debug: 0,
+      info: 1,
+      warn: 2,
+      error: 3
+    };
+    this.prefix = prefix;
+  }
+
+  private prefix: string;
 
   /**
    * Log a debug message
    */
   debug(message: string, ...args: any[]): void {
     if (this.shouldLog('debug')) {
-      console.debug(`[Shopify Connection][DEBUG] ${message}`, ...args);
+      console.debug(`[${this.prefix}][DEBUG] ${message}`, ...args);
     }
   }
 
@@ -25,7 +33,7 @@ class ConnectionLogger {
    */
   info(message: string, ...args: any[]): void {
     if (this.shouldLog('info')) {
-      console.info(`[Shopify Connection][INFO] ${message}`, ...args);
+      console.info(`[${this.prefix}][INFO] ${message}`, ...args);
     }
   }
 
@@ -34,7 +42,7 @@ class ConnectionLogger {
    */
   warn(message: string, ...args: any[]): void {
     if (this.shouldLog('warn')) {
-      console.warn(`[Shopify Connection][WARN] ${message}`, ...args);
+      console.warn(`[${this.prefix}][WARN] ${message}`, ...args);
     }
   }
 
@@ -43,16 +51,17 @@ class ConnectionLogger {
    */
   error(message: string, ...args: any[]): void {
     if (this.shouldLog('error')) {
-      console.error(`[Shopify Connection][ERROR] ${message}`, ...args);
+      console.error(`[${this.prefix}][ERROR] ${message}`, ...args);
     }
   }
 
   /**
    * Check if we should log at this level
    */
-  private shouldLog(level: keyof typeof this.LEVELS): boolean {
-    return this.LEVELS[level] >= this.LEVELS[this.LOG_LEVEL as keyof typeof this.LEVELS];
+  private shouldLog(level: string): boolean {
+    return this.LEVELS[level] >= this.LEVELS[this.LOG_LEVEL];
   }
 }
 
+// Create and export a default instance for convenience
 export const connectionLogger = new ConnectionLogger();
