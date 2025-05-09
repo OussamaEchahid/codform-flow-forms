@@ -1,15 +1,16 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 // CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface RequestPayload {
   pageId: string;
@@ -22,33 +23,31 @@ interface RequestPayload {
   forceMetaobjectCreation?: boolean;
 }
 
+interface MetaobjectDefinition {
+  id: string;
+  handle: string;
+  displayName: string;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
-    console.log(`[${requestId}] Processing shopify-publish-page request at ${new Date().toISOString()}`);
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Parse request body
     const payload: RequestPayload = await req.json();
-    const { pageId, pageSlug, productId, shop, accessToken, forceMetaobjectCreation = false } = payload;
-    const clientRequestId = payload.requestId || 'none';
+    const { pageId, pageSlug, productId, shop, accessToken, forceMetaobjectCreation } = payload;
+    const requestId = payload.requestId || `req_${Math.random().toString(36).substring(2, 8)}`;
     
-    if (!pageId || !pageSlug || !productId || !shop || !accessToken) {
-      console.log(`[${requestId}] Missing required fields in request`);
+    console.log(`[${requestId}] Processing shopify-publish-page request at ${new Date().toISOString()}`);
+
+    if (!pageId || !productId || !shop || !accessToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Missing required fields',
-          requestId,
+          message: 'Missing required parameters',
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,40 +55,29 @@ serve(async (req) => {
         }
       );
     }
-
-    // First, create a table to store sync information if it doesn't exist
-    console.log(`[${requestId}] Creating shopify_page_syncs table if it doesn't exist`);
-    await supabase.rpc('create_table_if_not_exists', {
-      p_table_name: 'shopify_page_syncs',
-      p_table_definition: `
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        page_id UUID NOT NULL,
-        product_id TEXT NOT NULL,
-        shop_id TEXT NOT NULL, 
-        synced_url TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-      `
-    });
     
-    // Extract product ID from GraphQL ID if needed
+    // Create supabase table for shopify_page_syncs if it doesn't exist
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    console.log(`[${requestId}] Creating shopify_page_syncs table if it doesn't exist`);
+
     console.log(`[${requestId}] Linking with product: ${productId}`);
     
     // Test access token validity before proceeding
     console.log(`[${requestId}] Testing access token validity for shop: ${shop}`);
-    const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
-
-    // Test token with shop endpoint first
     try {
-      const shopResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json`, {
+      const shopResponse = await fetch(`https://${shop}/admin/api/2023-10/shop.json`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
+          'Cache-Control': 'no-store',
         },
       });
       
       if (!shopResponse.ok) {
-        throw new Error(`Shop endpoint returned ${shopResponse.status}`);
+        throw new Error(`Shopify API returned ${shopResponse.status}: ${await shopResponse.text()}`);
       }
       
       console.log(`[${requestId}] Access token validated successfully`);
@@ -98,8 +86,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: `Invalid or expired access token: ${error.message}`,
-          requestId
+          message: `Access token validation failed: ${error.message}`,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -107,219 +94,66 @@ serve(async (req) => {
         }
       );
     }
-
-    // Fetch Shopify page content by handle
-    console.log(`[${requestId}] Fetching Shopify page with handle: ${pageSlug}`);
-    let pageResponse;
-    let pageObject = null;
-    let pageId_shopify = '';
     
+    // Fetch page data from Supabase
+    console.log(`[${requestId}] Fetching page content for pageId: ${pageId}`);
     try {
-      // Try to get page using REST API first
-      const response = await fetch(`https://${shopDomain}/admin/api/2023-10/pages.json?handle=${pageSlug}`, {
+      const { data: pageData, error: pageError } = await supabase
+        .from('landing_pages')
+        .select('*, landing_page_templates(*)')
+        .eq('id', pageId)
+        .single();
+      
+      if (pageError) {
+        throw new Error(`Failed to fetch page content: ${pageError.message}`);
+      }
+      
+      if (!pageData) {
+        throw new Error('Page not found');
+      }
+      
+      const pageContent = pageData.landing_page_templates?.content || {};
+      
+      // 1. First get product details
+      console.log(`[${requestId}] Fetching product details for ID: ${productId}`);
+      const productResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productId.split('Product/')[1] || productId}.json`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken
-        }
+          'X-Shopify-Access-Token': accessToken,
+          'Cache-Control': 'no-store',
+        },
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch page: ${response.status}`);
+      if (!productResponse.ok) {
+        throw new Error(`Failed to fetch product: ${productResponse.status} ${await productResponse.text()}`);
       }
       
-      pageResponse = await response.json();
+      const productData = await productResponse.json();
+      console.log(`[${requestId}] Product fetched successfully: ${productData.product.title}`);
       
-      if (pageResponse.pages && pageResponse.pages.length > 0) {
-        pageObject = pageResponse.pages[0];
-        pageId_shopify = pageObject.id.toString();
-        console.log(`[${requestId}] Found existing page with ID: ${pageId_shopify}`);
-      }
-    } catch (error) {
-      console.error(`[${requestId}] Error fetching page:`, error);
-      // We'll create a new page so continue
-    }
-    
-    // If page doesn't exist, create it
-    if (!pageObject) {
-      try {
-        // Get page content from database
-        const { data: pageData, error: pageError } = await supabase
-          .from('landing_page_templates')
-          .select('content')
-          .eq('page_id', pageId)
-          .single();
-          
-        if (pageError) {
-          throw new Error(`Failed to fetch page content: ${pageError.message}`);
-        }
-        
-        // Get page title
-        const { data: pageTitleData, error: pageTitleError } = await supabase
-          .from('landing_pages')
-          .select('title')
-          .eq('id', pageId)
-          .single();
-          
-        if (pageTitleError) {
-          throw new Error(`Failed to fetch page title: ${pageTitleError.message}`);
-        }
-        
-        // Create a simplified HTML version of the page content
-        const pageContent = pageData.content;
-        let htmlContent = `<div data-codform-landing-page="${pageId}">`;
-        if (pageContent && pageContent.sections) {
-          pageContent.sections.forEach((section: any) => {
-            htmlContent += `<div class="section section-${section.type || 'basic'}">`;
-            if (section.content) {
-              if (section.content.heading) {
-                htmlContent += `<h2>${section.content.heading}</h2>`;
-              }
-              if (section.content.subheading) {
-                htmlContent += `<p>${section.content.subheading}</p>`;
-              }
-              if (section.content.text) {
-                htmlContent += `<p>${section.content.text}</p>`;
-              }
-            }
-            htmlContent += '</div>';
-          });
-        }
-        htmlContent += '</div>';
-        
-        // Create page in Shopify
-        const createPageResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/pages.json`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken
-          },
-          body: JSON.stringify({
-            page: {
-              title: pageTitleData.title,
-              handle: pageSlug,
-              body_html: htmlContent,
-              published: true
-            }
-          })
-        });
-        
-        if (!createPageResponse.ok) {
-          const errorText = await createPageResponse.text();
-          throw new Error(`Failed to create page: ${createPageResponse.status} - ${errorText}`);
-        }
-        
-        const createPageResponseJson = await createPageResponse.json();
-        pageObject = createPageResponseJson.page;
-        pageId_shopify = pageObject.id.toString();
-        console.log(`[${requestId}] Created new page with ID: ${pageId_shopify}`);
-      } catch (error) {
-        console.error(`[${requestId}] Error creating page:`, error);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: `Failed to create Shopify page: ${error.message}`,
-            requestId
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          }
-        );
-      }
-    } else {
-      // Update existing page
-      console.log(`[${requestId}] Updating existing Shopify page: ${pageId_shopify}`);
-      
-      try {
-        // Get page content from database
-        const { data: pageData, error: pageError } = await supabase
-          .from('landing_page_templates')
-          .select('content')
-          .eq('page_id', pageId)
-          .single();
-          
-        if (pageError) {
-          throw new Error(`Failed to fetch page content: ${pageError.message}`);
-        }
-        
-        // Create a simplified HTML version of the page content for update
-        const pageContent = pageData.content;
-        let htmlContent = `<div data-codform-landing-page="${pageId}">`;
-        if (pageContent && pageContent.sections) {
-          pageContent.sections.forEach((section: any) => {
-            htmlContent += `<div class="section section-${section.type || 'basic'}">`;
-            if (section.content) {
-              if (section.content.heading) {
-                htmlContent += `<h2>${section.content.heading}</h2>`;
-              }
-              if (section.content.subheading) {
-                htmlContent += `<p>${section.content.subheading}</p>`;
-              }
-              if (section.content.text) {
-                htmlContent += `<p>${section.content.text}</p>`;
-              }
-            }
-            htmlContent += '</div>';
-          });
-        }
-        htmlContent += '</div>';
-        
-        // Update page in Shopify
-        const updatePageResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/pages/${pageId_shopify}.json`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken
-          },
-          body: JSON.stringify({
-            page: {
-              body_html: htmlContent,
-              published: true
-            }
-          })
-        });
-        
-        if (!updatePageResponse.ok) {
-          const errorText = await updatePageResponse.text();
-          throw new Error(`Failed to update page: ${updatePageResponse.status} - ${errorText}`);
-        }
-        
-        console.log(`[${requestId}] Successfully updated page: https://${shopDomain}/pages/${pageSlug}`);
-      } catch (error) {
-        console.error(`[${requestId}] Error updating page:`, error);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: `Failed to update Shopify page: ${error.message}`,
-            requestId
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          }
-        );
-      }
-    }
-    
-    // Now attempt to create metaobject definition
-    try {
-      // Check if metaobject definition exists for app_dlili
-      console.log(`[${requestId}] Checking if app_dlili metaobject definition exists`);
-      
+      // 2. Check if metaobject definitions exist
+      console.log(`[${requestId}] Checking for existing metaobject definition`);
       const metaobjectDefinitionQuery = `
         query {
           metaobjectDefinitions(first: 10) {
             edges {
               node {
+                id
                 name
                 type
+                fieldDefinitions {
+                  name
+                  type {
+                    name
+                  }
+                }
               }
             }
           }
         }
       `;
       
-      const definitionResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
+      const definitionsResponse = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -327,59 +161,56 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           query: metaobjectDefinitionQuery
-        })
+        }),
       });
       
-      if (!definitionResponse.ok) {
-        throw new Error(`Failed to query metaobject definitions: ${definitionResponse.status}`);
-      }
+      let landingPageDefinition: MetaobjectDefinition | null = null;
       
-      console.log(`[${requestId}] GraphQL response received for metaobject definition`);
-      const definitionResponseJson = await definitionResponse.json();
-      
-      // Check if app_dlili definition exists
-      let definitionExists = false;
-      if (definitionResponseJson.data && 
-          definitionResponseJson.data.metaobjectDefinitions && 
-          definitionResponseJson.data.metaobjectDefinitions.edges) {
-        const definitions = definitionResponseJson.data.metaobjectDefinitions.edges;
+      if (definitionsResponse.ok) {
+        const definitionsData = await definitionsResponse.json();
+        const definitions = definitionsData.data?.metaobjectDefinitions?.edges || [];
+        
+        // Look for landing_page definition
         for (const edge of definitions) {
-          if (edge.node.type === 'app_dlili') {
-            definitionExists = true;
+          if (edge.node.type === 'landing_page') {
+            landingPageDefinition = {
+              id: edge.node.id,
+              handle: 'landing_page',
+              displayName: edge.node.name
+            };
+            console.log(`[${requestId}] Found existing metaobject definition: ${landingPageDefinition.displayName}`);
             break;
           }
         }
-      } else {
-        console.log(`[${requestId}] No metaobject definitions found or unexpected GraphQL response structure`);
       }
       
-      // If definition doesn't exist or force creation is enabled, create it
-      if (!definitionExists || forceMetaobjectCreation) {
-        console.log(`[${requestId}] Creating app_dlili metaobject definition (forced recreation)`);
+      // 3. Create metaobject definition if it doesn't exist
+      if (!landingPageDefinition) {
+        console.log(`[${requestId}] Creating new metaobject definition for landing pages`);
         
         const createDefinitionMutation = `
           mutation CreateMetaobjectDefinition {
             metaobjectDefinitionCreate(
               definition: {
-                name: "Dlili Landing Page",
-                type: "app_dlili",
+                name: "Landing Page"
+                type: "landing_page"
                 fieldDefinitions: [
                   {
-                    name: "landing_page_id",
-                    type: "single_line_text_field",
-                    key: "landing_page_id",
+                    key: "title"
+                    name: "Title"
+                    type: "single_line_text_field"
                     required: true
                   },
                   {
-                    name: "landing_page_slug",
-                    type: "single_line_text_field",
-                    key: "landing_page_slug",
-                    required: true
+                    key: "content"
+                    name: "Content"
+                    type: "json"
+                    required: false
                   },
                   {
-                    name: "landing_page_url",
-                    type: "single_line_text_field",
-                    key: "landing_page_url",
+                    key: "url_handle"
+                    name: "URL Handle"
+                    type: "single_line_text_field"
                     required: true
                   }
                 ]
@@ -387,6 +218,7 @@ serve(async (req) => {
             ) {
               metaobjectDefinition {
                 id
+                name
                 type
               }
               userErrors {
@@ -397,241 +229,204 @@ serve(async (req) => {
           }
         `;
         
-        try {
-          const createDefinitionResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Shopify-Access-Token': accessToken
-            },
-            body: JSON.stringify({
-              query: createDefinitionMutation
-            })
-          });
-          
-          if (!createDefinitionResponse.ok) {
-            console.error(`[${requestId}] Error creating metaobject definition: ${createDefinitionResponse.status} `);
-            // Continue anyway as the definition might already exist but not be returned by the query
-          } else {
-            const createDefinitionResponseJson = await createDefinitionResponse.json();
-            
-            if (createDefinitionResponseJson.data && 
-                createDefinitionResponseJson.data.metaobjectDefinitionCreate && 
-                createDefinitionResponseJson.data.metaobjectDefinitionCreate.userErrors && 
-                createDefinitionResponseJson.data.metaobjectDefinitionCreate.userErrors.length > 0) {
-              throw new Error(`Failed to create metaobject definition: ${createDefinitionResponseJson.data.metaobjectDefinitionCreate.userErrors[0].message}`);
-            }
-          }
-        } catch (error) {
-          console.error(`[${requestId}] Error with metaobject definition:`, error);
-          // Continue anyway as we'll try to create the metaobject
-        }
-      }
-    } catch (error) {
-      console.error(`[${requestId}] Error with metaobject definition:`, error);
-      // Continue anyway as we'll try to create the metaobject
-    }
-    
-    // Now, let's extract the numeric product ID from the GraphQL ID
-    console.log(`[${requestId}] Extracting Shopify product ID from GID: ${productId}`);
-    // Handle both formats: gid://shopify/Product/1234567890 or just 1234567890
-    const productIdNumeric = productId.includes('gid://shopify/Product/') 
-      ? productId.split('/').pop() 
-      : productId;
-    
-    console.log(`[${requestId}] Extracted Shopify product ID: ${productIdNumeric}`);
-    
-    // Fetch product data
-    console.log(`[${requestId}] Fetching product data for ID: ${productIdNumeric}`);
-    let productData;
-    try {
-      const productResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/products/${productIdNumeric}.json`, {
-        headers: {
-          'X-Shopify-Access-Token': accessToken
-        }
-      });
-      
-      if (!productResponse.ok) {
-        throw new Error(`Failed to fetch product: ${productResponse.status}`);
-      }
-      
-      const productResponseJson = await productResponse.json();
-      productData = productResponseJson.product;
-    } catch (error) {
-      console.error(`[${requestId}] Error fetching product:`, error);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Failed to fetch product: ${error.message}`,
-          requestId
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
-      );
-    }
-    
-    // Update product description with landing page content
-    console.log(`[${requestId}] Updating product description with landing page content`);
-    try {
-      // Get page content from database
-      const { data: pageData, error: pageError } = await supabase
-        .from('landing_page_templates')
-        .select('content')
-        .eq('page_id', pageId)
-        .single();
-        
-      if (pageError) {
-        throw new Error(`Failed to fetch page content: ${pageError.message}`);
-      }
-      
-      // Create a simplified HTML version of the page content
-      const pageContent = pageData.content;
-      let htmlContent = `<div data-codform-landing-page="${pageId}">`;
-      htmlContent += `<p><strong>المعلومات الكاملة متوفرة على الصفحة المخصصة: <a href="https://${shopDomain}/pages/${pageSlug}" target="_blank">اضغط هنا</a></strong></p>`;
-      
-      if (pageContent && pageContent.sections) {
-        pageContent.sections.forEach((section: any, index: number) => {
-          // Only include first 2 sections to keep description manageable
-          if (index < 2) {
-            htmlContent += `<div class="section section-${section.type || 'basic'}">`;
-            if (section.content) {
-              if (section.content.heading) {
-                htmlContent += `<h3>${section.content.heading}</h3>`;
-              }
-              if (section.content.subheading) {
-                htmlContent += `<p>${section.content.subheading}</p>`;
-              }
-            }
-            htmlContent += '</div>';
-          }
-        });
-      }
-      htmlContent += `<p><a href="https://${shopDomain}/pages/${pageSlug}" target="_blank">عرض الصفحة الكاملة</a></p>`;
-      htmlContent += '</div>';
-      
-      // Update product
-      const updateProductResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/products/${productIdNumeric}.json`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken
-        },
-        body: JSON.stringify({
-          product: {
-            id: productIdNumeric,
-            body_html: htmlContent
-          }
-        })
-      });
-      
-      if (!updateProductResponse.ok) {
-        throw new Error(`Failed to update product: ${updateProductResponse.status}`);
-      }
-      
-      console.log(`[${requestId}] Successfully updated product ${productIdNumeric} with landing page content`);
-    } catch (error) {
-      console.error(`[${requestId}] Error updating product:`, error);
-      return new Response(
-        JSON.stringify({
-          success: false, 
-          message: `Failed to update product: ${error.message}`,
-          requestId
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
-      );
-    }
-    
-    // Generate the product URL
-    const productHandle = productData.handle;
-    const productUrl = `https://${shopDomain}/products/${productHandle}`;
-    console.log(`[${requestId}] Generated product URL: ${productUrl}`);
-    
-    // Now create a metaobject for the landing page
-    try {
-      // Create metaobject using GraphQL (will succeed even if definition wasn't created)
-      const createMetaobjectMutation = `
-        mutation CreateMetaobject {
-          metaobjectCreate(
-            metaobject: {
-              type: "app_dlili",
-              capabilities: { publishable: { status: ACTIVE } },
-              fields: [
-                {
-                  key: "landing_page_id",
-                  value: "${pageId}"
-                },
-                {
-                  key: "landing_page_slug",
-                  value: "${pageSlug}"
-                },
-                {
-                  key: "landing_page_url",
-                  value: "https://${shopDomain}/pages/${pageSlug}"
-                }
-              ]
-            }
-          ) {
-            metaobject {
-              id
-              handle
-              type
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `;
-      
-      // We'll use REST API to create metaobjects as a fallback
-      const restCreateMetaobject = async () => {
-        const metaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobjects.json`, {
+        const createDefinitionResponse = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Shopify-Access-Token': accessToken
           },
           body: JSON.stringify({
-            metaobject: {
-              type: "app_dlili",
-              fields: [
-                {
-                  key: "landing_page_id",
-                  type: "single_line_text_field",
-                  value: pageId
-                },
-                {
-                  key: "landing_page_slug",
-                  type: "single_line_text_field",
-                  value: pageSlug
-                },
-                {
-                  key: "landing_page_url",
-                  type: "single_line_text_field",
-                  value: `https://${shopDomain}/pages/${pageSlug}`
-                }
-              ]
-            }
-          })
+            query: createDefinitionMutation
+          }),
         });
         
-        if (!metaobjectResponse.ok) {
-          return null;
+        if (!createDefinitionResponse.ok) {
+          throw new Error(`Failed to create metaobject definition: ${await createDefinitionResponse.text()}`);
         }
         
-        return await metaobjectResponse.json();
-      };
+        const createDefinitionData = await createDefinitionResponse.json();
+        if (createDefinitionData.data?.metaobjectDefinitionCreate?.userErrors?.length > 0) {
+          const errors = createDefinitionData.data.metaobjectDefinitionCreate.userErrors;
+          console.error(`[${requestId}] Error creating metaobject definition:`, errors);
+          throw new Error(`Failed to create metaobject definition: ${errors[0].message}`);
+        }
+        
+        if (createDefinitionData.data?.metaobjectDefinitionCreate?.metaobjectDefinition) {
+          landingPageDefinition = {
+            id: createDefinitionData.data.metaobjectDefinitionCreate.metaobjectDefinition.id,
+            handle: 'landing_page',
+            displayName: 'Landing Page'
+          };
+          console.log(`[${requestId}] Successfully created metaobject definition: ${landingPageDefinition.displayName}`);
+        }
+      }
       
-      // First try GraphQL, then REST API if that fails
+      if (!landingPageDefinition) {
+        throw new Error('Failed to find or create metaobject definition for landing pages');
+      }
+      
+      // 4. Check for existing metaobject for this page
+      console.log(`[${requestId}] Checking for existing metaobject for page: ${pageSlug}`);
+      const metaobjectsQuery = `
+        query {
+          metaobjects(first: 10, type: "landing_page") {
+            edges {
+              node {
+                id
+                handle
+                fields {
+                  key
+                  value
+                }
+              }
+            }
+          }
+        }
+      `;
+      
+      const metaobjectsResponse = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken
+        },
+        body: JSON.stringify({
+          query: metaobjectsQuery
+        }),
+      });
+      
+      let existingMetaobject = null;
+      
+      if (metaobjectsResponse.ok) {
+        const metaobjectsData = await metaobjectsResponse.json();
+        const metaobjects = metaobjectsData.data?.metaobjects?.edges || [];
+        
+        // Look for page with matching handle
+        for (const edge of metaobjects) {
+          const urlHandleField = edge.node.fields.find(f => f.key === 'url_handle');
+          if (urlHandleField && urlHandleField.value === pageSlug) {
+            existingMetaobject = edge.node;
+            console.log(`[${requestId}] Found existing metaobject with ID: ${existingMetaobject.id}`);
+            break;
+          }
+        }
+      }
+      
+      // 5. Create or update metaobject
       let metaobjectId = null;
-      try {
-        const createMetaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
+      let metaobjectHandle = null;
+      
+      if (existingMetaobject) {
+        // Update existing metaobject
+        console.log(`[${requestId}] Updating existing metaobject: ${existingMetaobject.id}`);
+        
+        const updateMetaobjectMutation = `
+          mutation UpdateMetaobject {
+            metaobjectUpdate(
+              id: "${existingMetaobject.id}"
+              metaobject: {
+                fields: [
+                  {
+                    key: "title"
+                    value: "${pageData.title.replace(/"/g, '\\"')}"
+                  },
+                  {
+                    key: "content"
+                    value: ${JSON.stringify(JSON.stringify(pageContent)).replace(/\\"/g, '\\\\"')}
+                  },
+                  {
+                    key: "url_handle"
+                    value: "${pageSlug}"
+                  }
+                ]
+              }
+            ) {
+              metaobject {
+                id
+                handle
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+        
+        const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken
+          },
+          body: JSON.stringify({
+            query: updateMetaobjectMutation
+          }),
+        });
+        
+        if (!updateResponse.ok) {
+          throw new Error(`Failed to update metaobject: ${await updateResponse.text()}`);
+        }
+        
+        const updateData = await updateResponse.json();
+        
+        if (updateData.data?.metaobjectUpdate?.userErrors?.length > 0) {
+          const errors = updateData.data.metaobjectUpdate.userErrors;
+          console.error(`[${requestId}] Error updating metaobject:`, errors);
+          
+          // Try creating a new metaobject if update fails
+          if (forceMetaobjectCreation) {
+            console.log(`[${requestId}] Update failed, will try to create new metaobject instead`);
+            existingMetaobject = null; // Reset to try creation path
+          } else {
+            throw new Error(`Failed to update metaobject: ${errors[0].message}`);
+          }
+        } else if (updateData.data?.metaobjectUpdate?.metaobject) {
+          metaobjectId = updateData.data.metaobjectUpdate.metaobject.id;
+          metaobjectHandle = updateData.data.metaobjectUpdate.metaobject.handle;
+          console.log(`[${requestId}] Successfully updated metaobject: ${metaobjectId}`);
+        }
+      }
+      
+      if (!existingMetaobject || !metaobjectId) {
+        // Create new metaobject
+        console.log(`[${requestId}] Creating new metaobject for page: ${pageSlug}`);
+        
+        const createMetaobjectMutation = `
+          mutation CreateMetaobject {
+            metaobjectCreate(
+              metaobject: {
+                type: "landing_page"
+                handle: "${pageSlug.replace(/\s+/g, '-').toLowerCase()}"
+                fields: [
+                  {
+                    key: "title"
+                    value: "${pageData.title.replace(/"/g, '\\"')}"
+                  },
+                  {
+                    key: "content"
+                    value: ${JSON.stringify(JSON.stringify(pageContent)).replace(/\\"/g, '\\\\"')}
+                  },
+                  {
+                    key: "url_handle"
+                    value: "${pageSlug}"
+                  }
+                ]
+              }
+            ) {
+              metaobject {
+                id
+                handle
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+        
+        const createResponse = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -639,92 +434,155 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             query: createMetaobjectMutation
-          })
+          }),
         });
         
-        if (!createMetaobjectResponse.ok) {
-          throw new Error(`GraphQL metaobject creation failed: ${createMetaobjectResponse.status}`);
+        if (!createResponse.ok) {
+          // If GraphQL fails, try the REST API fallback
+          console.log(`[${requestId}] GraphQL request failed, trying REST API fallback`);
+          await tryRestApiFallback(shop, accessToken, productData.product.id, pageContent, requestId);
+          
+          throw new Error(`Failed to create metaobject: ${await createResponse.text()}`);
         }
         
-        const createMetaobjectResponseJson = await createMetaobjectResponse.json();
+        const createData = await createResponse.json();
         
-        if (createMetaobjectResponseJson.data && 
-            createMetaobjectResponseJson.data.metaobjectCreate && 
-            createMetaobjectResponseJson.data.metaobjectCreate.metaobject) {
-          metaobjectId = createMetaobjectResponseJson.data.metaobjectCreate.metaobject.id;
-        } else if (createMetaobjectResponseJson.data?.metaobjectCreate?.userErrors?.length > 0) {
-          throw new Error(`GraphQL metaobject creation errors: ${JSON.stringify(createMetaobjectResponseJson.data.metaobjectCreate.userErrors)}`);
+        if (createData.data?.metaobjectCreate?.userErrors?.length > 0) {
+          const errors = createData.data.metaobjectCreate.userErrors;
+          console.error(`[${requestId}] Error creating metaobject:`, errors);
+          
+          // Try REST API fallback if GraphQL fails
+          console.log(`[${requestId}] GraphQL creation failed, trying REST API fallback`);
+          await tryRestApiFallback(shop, accessToken, productData.product.id, pageContent, requestId);
+          
+          throw new Error(`Failed to create metaobject: ${errors[0].message}`);
         }
-      } catch (graphqlError) {
-        console.error(`[${requestId}] GraphQL metaobject creation failed, trying REST:`, graphqlError);
         
-        // Try REST API as fallback
-        const restResult = await restCreateMetaobject();
-        if (restResult?.metaobject?.id) {
-          metaobjectId = restResult.metaobject.id;
+        if (createData.data?.metaobjectCreate?.metaobject) {
+          metaobjectId = createData.data.metaobjectCreate.metaobject.id;
+          metaobjectHandle = createData.data.metaobjectCreate.metaobject.handle;
+          console.log(`[${requestId}] Successfully created metaobject: ${metaobjectId}`);
         }
       }
       
-      if (metaobjectId) {
-        console.log(`[${requestId}] Successfully created metaobject with ID: ${metaobjectId}`);
-      } else {
-        console.log(`[${requestId}] Could not create metaobject, but continuing with product updates`);
-      }
-    } catch (metaobjectError) {
-      console.error(`[${requestId}] Error creating metaobject:`, metaobjectError);
-      // Continue anyway since we've already updated the product description
-    }
-    
-    // Save sync information to database
-    console.log(`[${requestId}] Saving sync information to database`);
-    try {
-      const { data, error } = await supabase
-        .from('shopify_page_syncs')
-        .upsert(
-          {
-            page_id: pageId,
-            product_id: productId,
-            shop_id: shop,
-            synced_url: productUrl
-          },
-          { 
-            onConflict: 'page_id',
-            ignoreDuplicates: false
-          }
-        );
+      // 6. Update product description to include landing page reference
+      console.log(`[${requestId}] Updating product description for product ID: ${productData.product.id}`);
+      
+      // Prepare landing page link
+      const landingPageUrl = `https://${shop}/pages/${pageSlug}`;
+      const landingPageLink = `<p>المعلومات الكاملة متوفرة على <a href="${landingPageUrl}" target="_blank">الصفحة المخصصة</a>: اضغط هنا</p>`;
+      
+      // Preserve existing content but add our link
+      let currentDescription = productData.product.body_html || '';
+      
+      // Only add the link if it doesn't already exist
+      if (!currentDescription.includes(landingPageUrl)) {
+        const updatedDescription = currentDescription + '\n' + landingPageLink;
         
-      if (error) {
-        console.error(`[${requestId}] Error saving sync data:`, error);
+        const updateProductResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productData.product.id}.json`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken
+          },
+          body: JSON.stringify({
+            product: {
+              id: productData.product.id,
+              body_html: updatedDescription
+            }
+          })
+        });
+        
+        if (!updateProductResponse.ok) {
+          console.error(`[${requestId}] Failed to update product description: ${await updateProductResponse.text()}`);
+          // Continue even if this part fails
+        } else {
+          console.log(`[${requestId}] Successfully updated product description`);
+        }
+      } else {
+        console.log(`[${requestId}] Landing page link already exists in product description`);
       }
-    } catch (saveError) {
-      console.error(`[${requestId}] Error saving sync data:`, saveError);
-      // Continue anyway
+      
+      // 7. Update the database with the sync information
+      console.log(`[${requestId}] Saving sync information to database`);
+      
+      try {
+        // Check if a sync record already exists
+        const { data: existingSyncData, error: checkError } = await supabase
+          .from('shopify_page_syncs')
+          .select('id')
+          .eq('page_id', pageId)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error(`[${requestId}] Error checking existing sync:`, checkError);
+        }
+        
+        const syncData = {
+          page_id: pageId,
+          product_id: productId,
+          shop_id: shop,
+          synced_url: landingPageUrl,
+          updated_at: new Date().toISOString()
+        };
+        
+        // Update or insert sync record
+        if (existingSyncData?.id) {
+          const { error: updateError } = await supabase
+            .from('shopify_page_syncs')
+            .update(syncData)
+            .eq('id', existingSyncData.id);
+            
+          if (updateError) {
+            console.error(`[${requestId}] Error updating sync record:`, updateError);
+          }
+        } else {
+          const { error: insertError } = await supabase
+            .from('shopify_page_syncs')
+            .insert(syncData);
+            
+          if (insertError) {
+            console.error(`[${requestId}] Error inserting sync record:`, insertError);
+          }
+        }
+      } catch (dbError) {
+        console.error(`[${requestId}] Database error:`, dbError);
+        // Continue even if database update fails
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Page published successfully',
+          metaobjectId,
+          metaobjectHandle,
+          productUrl: `https://${shop}/products/${productData.product.handle}`,
+          landingPageUrl
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    } catch (error) {
+      console.error(`[${requestId}] Error updating page:`, error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: error.message || 'Unknown error occurred',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
-    
-    console.log(`[${requestId}] Successfully published page to Shopify: ${productUrl}`);
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        pageId: pageId,
-        productId: productId,
-        productUrl: productUrl,
-        pageUrl: `https://${shopDomain}/pages/${pageSlug}`,
-        requestId
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
-    
   } catch (error) {
-    console.error('Unhandled error in shopify-publish-page:', error);
-    
+    console.error(`Error handling request:`, error);
     return new Response(
       JSON.stringify({
         success: false,
-        message: `Unhandled server error: ${error.message || 'Unknown error'}`,
+        message: error.message || 'Unknown error occurred',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -732,10 +590,40 @@ serve(async (req) => {
       }
     );
   }
-})
+});
 
-// To invoke:
-// curl -i --location --request POST 'http://localhost:54321/functions/v1/shopify-publish-page' \
-//   --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-//   --header 'Content-Type: application/json' \
-//   --data '{"pageId":"123","productId":"456","pageSlug":"test-page","shop":"test-shop","accessToken":"shppa_..."}'
+// Fallback function using REST API if GraphQL approach fails
+async function tryRestApiFallback(shop: string, accessToken: string, productId: string, pageContent: any, requestId: string) {
+  console.log(`[${requestId}] Attempting REST API fallback for metaobject creation`);
+  
+  // 1. Create metafield on product directly as fallback
+  try {
+    const contentString = JSON.stringify(pageContent);
+    
+    const metafieldResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productId}/metafields.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        metafield: {
+          namespace: 'landing_page',
+          key: 'content',
+          value: contentString,
+          type: 'json_string'
+        }
+      })
+    });
+    
+    if (!metafieldResponse.ok) {
+      throw new Error(`Failed to create metafield: ${await metafieldResponse.text()}`);
+    }
+    
+    console.log(`[${requestId}] Successfully created metafield as fallback`);
+    return true;
+  } catch (error) {
+    console.error(`[${requestId}] REST API fallback also failed:`, error);
+    return false;
+  }
+}

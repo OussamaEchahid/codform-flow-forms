@@ -62,20 +62,23 @@ serve(async (req) => {
 
     // Test access token by fetching shop info from Shopify
     try {
-      const response = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json`, {
+      // Add random cache-busting query parameter
+      const cacheBuster = `?timestamp=${Date.now()}&_=${Math.random().toString(36).substring(2)}`;
+      
+      const response = await fetch(`https://${shopDomain}/admin/api/2023-10/shop.json${cacheBuster}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
           // Prevent caching
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Expires': '0',
         },
-        // Add cache busting query param
-        cache: 'no-store',
       });
 
       if (!response.ok) {
-        throw new Error(`Shopify API returned ${response.status}: ${await response.text()}`);
+        const errorText = await response.text();
+        throw new Error(`Shopify API returned ${response.status}: ${errorText}`);
       }
 
       const shopData = await response.json();
@@ -141,9 +144,3 @@ serve(async (req) => {
     );
   }
 });
-
-// To invoke:
-// curl -i --location --request POST 'http://localhost:54321/functions/v1/shopify-test-connection' \
-//   --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-//   --header 'Content-Type: application/json' \
-//   --data '{"shop":"example.myshopify.com","accessToken":"shpat_..."}'

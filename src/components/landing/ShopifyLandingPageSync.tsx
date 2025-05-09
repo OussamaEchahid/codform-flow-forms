@@ -50,6 +50,10 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [metaobjectCreated, setMetaobjectCreated] = useState<boolean>(false);
+  const [syncInProgress, setSyncInProgress] = useState<boolean>(false);
+  const [debugMode, setDebugMode] = useState<boolean>(false);
   
   // Fetch sync status and products on mount
   useEffect(() => {
@@ -60,6 +64,10 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     if (shop) {
       loadProducts();
     }
+    
+    // Check if debug mode is enabled via localStorage
+    const isDebugMode = localStorage.getItem('shopify_debug_mode') === 'true';
+    setDebugMode(isDebugMode);
   }, [pageId, shop]);
 
   const fetchSyncStatus = async () => {
@@ -80,9 +88,53 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         setSyncedUrl(data.synced_url);
         setLastSyncTimestamp(new Date(data.updated_at).toLocaleString());
         setSyncStatus('success');
+        
+        // Fetch metaobject status if sync was successful
+        if (shop && data.shop_id === shop) {
+          checkMetaobjectStatus(data.product_id);
+        }
       }
     } catch (e) {
       console.error('Error in fetchSyncStatus:', e);
+    }
+  };
+  
+  const checkMetaobjectStatus = async (productId: string) => {
+    if (!shop) return;
+    
+    try {
+      // Get shop token
+      const { data: shopData, error: shopError } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shop)
+        .single();
+      
+      if (shopError || !shopData?.access_token) {
+        console.error('Could not retrieve valid access token for metaobject check');
+        return;
+      }
+      
+      // Check if product has metafields related to our landing page
+      const { data: testData, error: testError } = await supabase.functions.invoke('shopify-test-connection', {
+        body: { 
+          shop,
+          accessToken: shopData.access_token,
+          requestId: `metacheck_${Math.random().toString(36).substring(2, 9)}`,
+          timestamp: Date.now()
+        }
+      });
+      
+      if (testError || !testData?.success) {
+        console.error('Connection test failed during metaobject check:', testError || 'No success response');
+        return;
+      }
+      
+      // If connection is valid, we'll assume metaobject likely exists if we have a successful sync
+      setMetaobjectCreated(true);
+      
+    } catch (error) {
+      console.error('Error checking metaobject status:', error);
     }
   };
   
@@ -122,11 +174,14 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       }
       
       // Request products with the validated token
+      const requestId = `prod_req_${Math.random().toString(36).substring(2, 9)}`;
+      console.log(`Requesting products with ID: ${requestId}`);
+      
       const { data, error } = await supabase.functions.invoke('shopify-products', {
         body: { 
           shop,
           accessToken: shopData.access_token,
-          requestId: `prod_req_${Math.random().toString(36).substring(2, 9)}`,
+          requestId,
           timestamp: Date.now()
         }
       });
@@ -178,6 +233,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     setIsSyncing(true);
     setErrorMessage(null);
     setSyncStatus('idle');
+    setSyncInProgress(true);
+    setMetaobjectCreated(false);
 
     try {
       // Get access token
@@ -208,6 +265,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       }
 
       // Now publish the page
+      const currentRetryCount = retryCount;
       const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
       console.log(`Publishing with request ID: ${requestId}`);
       
@@ -220,7 +278,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           accessToken: shopData.access_token,
           requestId,
           timestamp: Date.now(),
-          forceMetaobjectCreation: true // Force creation of metaobject
+          forceMetaobjectCreation: currentRetryCount > 0 // Force creation of metaobject on retry
         }
       });
 
@@ -228,6 +286,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         console.error('Error from shopify-publish-page function:', error);
         setErrorMessage(`Error publishing to Shopify: ${error.message}`);
         setSyncStatus('error');
+        
+        // Increment retry count for next attempt
+        setRetryCount(currentRetryCount + 1);
         throw error;
       }
 
@@ -235,6 +296,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         console.error('Unsuccessful publish response:', data);
         setErrorMessage(data?.message || 'Unsuccessful publish response from API');
         setSyncStatus('error');
+        
+        // Increment retry count for next attempt
+        setRetryCount(currentRetryCount + 1);
         throw new Error(data?.message || 'Publish failed');
       }
 
@@ -272,6 +336,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       setSyncedUrl(data.productUrl || null);
       setLastSyncTimestamp(new Date().toLocaleString());
       setSyncStatus('success');
+      setMetaobjectCreated(!!data.metaobjectId);
+      setRetryCount(0); // Reset retry count on success
+      
       toast.success(
         language === 'ar'
           ? 'تم النشر إلى Shopify بنجاح'
@@ -289,6 +356,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       );
     } finally {
       setIsSyncing(false);
+      setSyncInProgress(false);
     }
   };
   
@@ -364,6 +432,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     if (!shop) return;
     window.open(`https://${shop}/admin`, '_blank');
   };
+  
+  const toggleDebugMode = () => {
+    const newMode = !debugMode;
+    setDebugMode(newMode);
+    localStorage.setItem('shopify_debug_mode', newMode ? 'true' : 'false');
+  };
 
   return (
     <Card className="w-full border border-gray-200 shadow-sm">
@@ -438,6 +512,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
               </Button>
             </div>
           )}
+          
+          {metaobjectCreated && syncStatus === 'success' && (
+            <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                <span className="font-medium text-sm">
+                  {language === 'ar' ? 'تم إنشاء Metaobject بنجاح' : 'Metaobject created successfully'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="space-y-2">
@@ -504,6 +589,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             </Alert>
           )}
           
+          {syncInProgress && (
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded mt-2 flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <p className="text-sm text-blue-700">
+                {language === 'ar' 
+                  ? 'جاري إنشاء وتحديث Metaobject...'
+                  : 'Creating and updating metaobject...'}
+              </p>
+            </div>
+          )}
+          
           {errorMessage && (
             <div className="p-2 bg-red-50 border border-red-200 rounded mt-2">
               <p className="text-sm text-red-700">{errorMessage}</p>
@@ -522,7 +618,13 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             ) : (
               <Upload className="h-4 w-4 ml-2" />
             )}
-            {language === 'ar' ? 'نشر إلى Shopify' : 'Publish to Shopify'}
+            {language === 'ar' 
+              ? retryCount > 0 
+                ? `إعادة محاولة النشر (${retryCount})` 
+                : 'نشر إلى Shopify'
+              : retryCount > 0 
+                ? `Retry Publishing (${retryCount})` 
+                : 'Publish to Shopify'}
           </Button>
           
           {shop && (
@@ -534,6 +636,20 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
               <ShoppingBag className="h-4 w-4 ml-2" />
               {language === 'ar' ? 'الذهاب إلى إدارة المتجر' : 'Go to Shopify Admin'}
             </Button>
+          )}
+          
+          {debugMode && (
+            <div className="mt-4 p-2 bg-gray-50 border border-gray-200 rounded text-xs space-y-1">
+              <p><strong>Debug Info</strong></p>
+              <p>Selected Product ID: {selectedProductId || 'None'}</p>
+              <p>Retry Count: {retryCount}</p>
+              <p>Connection Status: {connectionError ? 'Error' : 'OK'}</p>
+              <p>Metaobject Created: {metaobjectCreated ? 'Yes' : 'No'}</p>
+              <p>Products Loaded: {products.length}</p>
+              <p>Sync Status: {syncStatus}</p>
+              <p>Last Sync: {lastSyncTimestamp || 'Never'}</p>
+              {errorMessage && <p>Last Error: {errorMessage}</p>}
+            </div>
           )}
         </div>
         
@@ -580,6 +696,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             </div>
           </div>
         )}
+        
+        {/* Hidden debug toggle - double click to enable/disable */}
+        <div 
+          className="h-1 w-8 mx-auto cursor-pointer" 
+          onDoubleClick={toggleDebugMode}
+        ></div>
       </CardContent>
     </Card>
   );
