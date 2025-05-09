@@ -4,22 +4,23 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { ShopifyConnectionProvider } from '@/lib/shopify/ShopifyConnectionProvider';
-import { ShopifySettingsProvider } from '@/lib/shopify/ShopifySettingsProvider';
-import RootLayout from './layouts/RootLayout';
-import Dashboard from './pages/Dashboard';
-import Forms from './pages/Forms';
-import FormSettings from './pages/FormSettings';
-import Submissions from './pages/Submissions';
-import Shopify from './pages/Shopify';
-import ShopifyConnect from './pages/ShopifyConnect';
-import ShopifyCallback from './pages/api/shopify-callback';
-import NotFound from './pages/NotFound';
+import { ShopifySettingsProvider } from '@/lib/shopify/ShopifySettingsProvider'; // أضفناه هنا
+import Layout from '@/layouts/RootLayout';
+import Dashboard from '@/pages/Dashboard';
+import Forms from '@/pages/Forms';
+import FormSettings from '@/pages/FormSettings';
+import Submissions from '@/pages/Submissions';
+import Shopify from '@/pages/Shopify';
+import ShopifyConnect from '@/pages/ShopifyConnect';
+import ShopifyCallback from '@/pages/api/shopify-callback';
+import NotFound from '@/pages/NotFound';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { queryClient } from './lib/query-client';
-import ThemeSettings from './pages/ThemeSettings';
+import { queryClient } from '@/lib/query-client';
+import ThemeSettings from '@/pages/ThemeSettings';
 
 function App() {
+  // تنظيف tokens placeholder عند بدء التطبيق
   useEffect(() => {
     const cleanupTokens = async () => {
       try {
@@ -27,11 +28,13 @@ function App() {
         await shopifyConnectionService.cleanupPlaceholderTokens();
         console.log('Placeholder tokens cleaned up on startup');
         
+        // تأكد من تزامن حالة الاتصال
         const storedShop = localStorage.getItem('shopify_store');
         const connected = localStorage.getItem('shopify_connected') === 'true';
         
         if (storedShop && connected) {
           console.log('Found valid shop connection, reinforcing it:', storedShop);
+          // تعزيز حالة الاتصال
           shopifyConnectionManager.addOrUpdateStore(storedShop, true);
           await shopifyConnectionService.syncStoreToDatabase(storedShop);
           console.log('Connection validated and reinforced successfully');
@@ -42,18 +45,24 @@ function App() {
     };
     
     cleanupTokens();
+    
+    // مسح ذاكرة التخزين المؤقت للاستعلامات عند بدء التطبيق
     queryClient.clear();
+    
+    return () => {
+      // تنظيف عند إزالة المكون
+    };
   }, []);
 
   return (
     <BrowserRouter>
-      <ShopifySettingsProvider>
+      <ShopifySettingsProvider> {/* أضفناه هنا */}
         <ShopifyConnectionProvider>
           <SonnerToaster position="top-right" />
           <Toaster />
           <Suspense fallback={<div>جاري التحميل...</div>}>
             <Routes>
-              <Route path="/" element={<RootLayout />}>
+              <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="forms" element={<Forms />} />
@@ -68,7 +77,7 @@ function App() {
             </Routes>
           </Suspense>
         </ShopifyConnectionProvider>
-      </ShopifySettingsProvider>
+      </ShopifySettingsProvider> {/* أضفناه هنا */}
     </BrowserRouter>
   );
 }
