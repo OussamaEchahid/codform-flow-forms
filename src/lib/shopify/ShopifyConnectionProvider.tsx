@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { shopifyStores } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
@@ -15,7 +16,7 @@ interface ShopifyConnectionContextType {
   forceSetConnected: (shop: string) => void;
   disconnect: () => Promise<void>;
   reload: () => Promise<void>;
-  testConnection: (forceRefresh?: boolean) => Promise<boolean>; // Updated to accept optional parameter
+  testConnection: (forceRefresh?: boolean) => Promise<boolean>;
 }
 
 // Create context with default values
@@ -29,7 +30,7 @@ const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
   forceSetConnected: () => {},
   disconnect: async () => {},
   reload: async () => {},
-  testConnection: async () => false, // Default implementation
+  testConnection: async () => false,
 });
 
 // Manage token validation cache with timestamps to avoid excessive API calls
@@ -402,8 +403,8 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // Re-sync state
     await syncState();
     
-    // Test connection
-    await testConnection();
+    // Test connection - explicitly passing false as the argument
+    await testConnection(false);
     
     connectionLogger.info('Connection reloaded');
   }, [syncState, testConnection]);

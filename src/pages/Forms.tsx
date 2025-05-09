@@ -35,7 +35,8 @@ const Forms = () => {
       syncState();
       
       // Also test the connection to make sure token is valid
-      const isValid = await testConnection();
+      // Pass false explicitly to avoid the TypeScript error
+      const isValid = await testConnection(false);
       
       if (!isValid) {
         toast.error('رمز الوصول إلى Shopify غير صالح أو منتهي الصلاحية. الرجاء تحديث رمز الوصول.');
