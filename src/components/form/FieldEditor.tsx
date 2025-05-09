@@ -17,7 +17,7 @@ interface FieldEditorProps {
 
 const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const { language } = useI18n();
-  const [isOpen, setIsOpen] = useState(true); // أضفنا حالة للتحكم في فتح/إغلاق الحوار
+  const [isOpen, setIsOpen] = useState(true);
   
   const handleClose = () => {
     setIsOpen(false);
@@ -69,7 +69,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     <EditorContainer 
       title={editorTitle} 
       onClose={handleClose}
-      open={isOpen} // نمرر خاصية open المطلوبة
+      open={isOpen}
     >
       {renderEditorByType()}
     </EditorContainer>

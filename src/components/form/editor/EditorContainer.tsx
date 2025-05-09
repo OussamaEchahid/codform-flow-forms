@@ -8,14 +8,17 @@ interface EditorContainerProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  open: boolean; // هذه الخاصية مطلوبة
+  open: boolean; // خاصية التحكم في العرض/الإخفاء
 }
 
 const EditorContainer = ({ title, onClose, children, open }: EditorContainerProps) => {
+  // استخدام onOpenChange للتأكد من تفعيل onClose عند إغلاق الحوار
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) onClose();
-    }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader className="flex items-center justify-between border-b p-2 sticky top-0 bg-gray-100 z-10">
           <h3 className="font-medium text-gray-700">{title}</h3>

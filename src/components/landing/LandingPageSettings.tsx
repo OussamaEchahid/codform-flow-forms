@@ -40,7 +40,7 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [shopifyTabActive, setShopifyTabActive] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(true); // Dialog open state
+  const [dialogOpen, setDialogOpen] = useState(true);
   const { isConnected, products: shopifyProducts, loadProducts } = useShopify();
 
   // Load normal products
@@ -122,10 +122,19 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
     }
   };
 
+  // هذا هو التعديل الأساسي الذي سيمنع حدوث الخطأ
+  // تأكد من أن العنصر DialogContent موجود فقط عندما يكون الحوار مفتوحًا
+  if (!dialogOpen) {
+    return null;
+  }
+
   return (
-    <Dialog open={dialogOpen} onOpenChange={(open) => {
-      if (!open) handleDialogClose();
-    }}>
+    <Dialog 
+      open={dialogOpen} 
+      onOpenChange={(open) => {
+        if (!open) handleDialogClose();
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
