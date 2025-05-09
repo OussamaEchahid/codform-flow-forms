@@ -16,7 +16,7 @@ serve(async (req) => {
   try {
     // Generate a unique request ID for tracking
     const body = await req.json();
-    const { pageId, pageSlug, shop, productId, requestId, timestamp } = body;
+    const { pageId, pageSlug, shop, productId, requestId, timestamp, forceRecreateMetaobject } = body;
     
     // Use provided request ID or generate a new one
     const trackingId = requestId || Math.random().toString(36).substring(2, 10);
@@ -143,29 +143,33 @@ serve(async (req) => {
       // Convert page content to HTML
       const htmlContent = convertTemplateToHTML(pageContent);
       
-      // First, check if our app's metaobject definition exists
+      // First, check if our app's metaobject definition exists - USE GraphQL for better reliability
       console.log(`[${trackingId}] Checking if app_dlili metaobject definition exists`);
       
       let definitionId;
-      let appDefinition;
+      let existingDefinition = false;
       
+      // Use GraphQL to check for metaobject definition
       try {
-        // Use GraphQL for better reliability with metaobjects
         const metaobjectQuery = `
           query {
-            metaobjectDefinitions(first: 10) {
+            metaobjectDefinitions(first: 20) {
               edges {
                 node {
                   id
                   name
                   type
+                  fieldDefinitions {
+                    name
+                    key
+                  }
                 }
               }
             }
           }
         `;
         
-        const graphqlResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/graphql.json`, {
+        const graphqlResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -176,125 +180,210 @@ serve(async (req) => {
         
         if (!graphqlResponse.ok) {
           const errorText = await graphqlResponse.text();
-          console.error(`[${trackingId}] GraphQL query error: ${graphqlResponse.status} ${errorText}`);
+          console.error(`[${trackingId}] GraphQL metaobject definition query failed: ${graphqlResponse.status} ${errorText}`);
           throw new Error(`GraphQL query failed: ${graphqlResponse.status}`);
         }
         
         const graphqlData = await graphqlResponse.json();
-        console.log(`[${trackingId}] GraphQL response received`);
+        console.log(`[${trackingId}] GraphQL response received for metaobject definition`);
         
         if (graphqlData.data && graphqlData.data.metaobjectDefinitions) {
           const definitions = graphqlData.data.metaobjectDefinitions.edges.map((edge: any) => edge.node);
-          appDefinition = definitions.find((def: any) => def.type === 'app_dlili');
+          console.log(`[${trackingId}] Found ${definitions.length} metaobject definitions in the store`);
           
-          if (appDefinition) {
-            definitionId = appDefinition.id;
-            console.log(`[${trackingId}] Found existing metaobject definition with ID: ${definitionId}`);
+          // Look for app_dlili type
+          const appDliliDefinition = definitions.find((def: any) => def.type === 'app_dlili');
+          
+          if (appDliliDefinition) {
+            console.log(`[${trackingId}] Found existing app_dlili definition: ${JSON.stringify(appDliliDefinition)}`);
+            definitionId = appDliliDefinition.id;
+            existingDefinition = true;
+          } else {
+            console.log(`[${trackingId}] No app_dlili definition found, will create one`);
+            existingDefinition = false;
           }
+        } else {
+          console.log(`[${trackingId}] No metaobject definitions found or unexpected GraphQL response structure`);
         }
       } catch (graphqlError) {
-        console.error(`[${trackingId}] Error fetching metaobject definitions with GraphQL:`, graphqlError);
-        console.log(`[${trackingId}] Falling back to REST API`);
+        console.error(`[${trackingId}] GraphQL error:`, graphqlError);
         
-        // Fall back to REST API if GraphQL fails
+        // Fall back to REST API
+        console.log(`[${trackingId}] Falling back to REST API to check metaobject definitions`);
         try {
-          const metaobjectDefinitionsResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobject_definitions.json`, {
-            method: 'GET',
+          const defResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobject_definitions.json`, {
             headers: {
-              'Content-Type': 'application/json',
               'X-Shopify-Access-Token': accessToken
             }
           });
           
-          if (!metaobjectDefinitionsResponse.ok) {
-            const errorText = await metaobjectDefinitionsResponse.text();
-            throw new Error(`Failed to fetch metaobject definitions: ${metaobjectDefinitionsResponse.status} ${errorText}`);
+          if (!defResponse.ok) {
+            const errorText = await defResponse.text();
+            console.error(`[${trackingId}] REST API failed to fetch definitions: ${errorText}`);
+            throw new Error(`REST API query failed: ${defResponse.status}`);
           }
           
-          const metaobjectDefinitions = await metaobjectDefinitionsResponse.json();
-          appDefinition = metaobjectDefinitions.metaobject_definitions?.find((def: any) => def.type === 'app_dlili');
+          const defData = await defResponse.json();
           
-          if (appDefinition) {
-            definitionId = appDefinition.id;
-            console.log(`[${trackingId}] Found existing metaobject definition with REST API: ${definitionId}`);
+          if (defData.metaobject_definitions) {
+            const appDliliDef = defData.metaobject_definitions.find((def: any) => def.type === 'app_dlili');
+            if (appDliliDef) {
+              definitionId = appDliliDef.id;
+              existingDefinition = true;
+              console.log(`[${trackingId}] Found existing app_dlili definition using REST API: ${definitionId}`);
+            }
           }
         } catch (restError) {
           console.error(`[${trackingId}] REST API also failed:`, restError);
-          // We'll continue and create the definition below if needed
         }
       }
       
-      // Create our metaobject definition if it doesn't exist
-      if (!appDefinition) {
-        console.log(`[${trackingId}] Creating app_dlili metaobject definition`);
+      // Create a metaobject definition if it doesn't exist
+      if (!existingDefinition || forceRecreateMetaobject) {
+        console.log(`[${trackingId}] Creating app_dlili metaobject definition${forceRecreateMetaobject ? ' (forced recreation)' : ''}`);
         try {
-          const createDefinitionResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobject_definitions.json`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Shopify-Access-Token': accessToken
-            },
-            body: JSON.stringify({
-              metaobject_definition: {
-                name: "App Dlili",
-                type: "app_dlili",
-                fieldDefinitions: [
-                  {
-                    name: "Page",
-                    key: "page",
-                    type: "json",
-                    description: "The page content"
-                  },
-                  {
-                    name: "Reviews",
-                    key: "reviews",
-                    type: "json",
-                    description: "Product reviews"
-                  },
-                  {
-                    name: "Upsell",
-                    key: "upsell",
-                    type: "json",
-                    description: "Upsell products"
-                  },
-                  {
-                    name: "Form Settings",
-                    key: "form_settings",
-                    type: "json",
-                    description: "Form settings"
-                  },
-                  {
-                    name: "Quantity Offers",
-                    key: "quantity_offers",
-                    type: "json",
-                    description: "Quantity offers"
-                  },
-                  {
-                    name: "Tracking",
-                    key: "tracking",
-                    type: "json",
-                    description: "Tracking settings"
+          // First check if there's an existing definition with the same type to update rather than create
+          if (existingDefinition && definitionId) {
+            console.log(`[${trackingId}] Updating existing definition with ID: ${definitionId}`);
+            try {
+              const updateDefResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobject_definitions/${definitionId}.json`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Shopify-Access-Token': accessToken
+                },
+                body: JSON.stringify({
+                  metaobject_definition: {
+                    fieldDefinitions: [
+                      {
+                        name: "Page",
+                        key: "page",
+                        type: "json",
+                        description: "The page content"
+                      },
+                      {
+                        name: "Reviews",
+                        key: "reviews",
+                        type: "json",
+                        description: "Product reviews"
+                      },
+                      {
+                        name: "Upsell",
+                        key: "upsell",
+                        type: "json",
+                        description: "Upsell products"
+                      },
+                      {
+                        name: "Form Settings",
+                        key: "form_settings",
+                        type: "json",
+                        description: "Form settings"
+                      },
+                      {
+                        name: "Quantity Offers",
+                        key: "quantity_offers",
+                        type: "json",
+                        description: "Quantity offers"
+                      },
+                      {
+                        name: "Tracking",
+                        key: "tracking",
+                        type: "json",
+                        description: "Tracking settings"
+                      }
+                    ]
                   }
-                ],
-                access: {
-                  storefront: "PUBLIC_READ"
-                }
+                })
+              });
+              
+              if (!updateDefResponse.ok) {
+                const errorText = await updateDefResponse.text();
+                console.error(`[${trackingId}] Failed to update definition: ${updateDefResponse.status} ${errorText}`);
+                throw new Error(`Failed to update metaobject definition: ${updateDefResponse.status}`);
               }
-            })
-          });
-          
-          if (!createDefinitionResponse.ok) {
-            const errorText = await createDefinitionResponse.text();
-            console.error(`[${trackingId}] Error creating metaobject definition: ${errorText}`);
-            throw new Error(`Failed to create metaobject definition: ${createDefinitionResponse.status}`);
+              
+              const updatedDef = await updateDefResponse.json();
+              definitionId = updatedDef.metaobject_definition.id;
+              console.log(`[${trackingId}] Successfully updated metaobject definition with ID: ${definitionId}`);
+            } catch (updateError) {
+              console.error(`[${trackingId}] Error updating definition:`, updateError);
+              // Continue execution but try to create a new one
+            }
+          } else {
+            // Create new definition
+            const createDefResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobject_definitions.json`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': accessToken
+              },
+              body: JSON.stringify({
+                metaobject_definition: {
+                  name: "App Dlili",
+                  type: "app_dlili",
+                  fieldDefinitions: [
+                    {
+                      name: "Page",
+                      key: "page",
+                      type: "json",
+                      description: "The page content"
+                    },
+                    {
+                      name: "Reviews",
+                      key: "reviews",
+                      type: "json",
+                      description: "Product reviews"
+                    },
+                    {
+                      name: "Upsell",
+                      key: "upsell",
+                      type: "json",
+                      description: "Upsell products"
+                    },
+                    {
+                      name: "Form Settings",
+                      key: "form_settings",
+                      type: "json",
+                      description: "Form settings"
+                    },
+                    {
+                      name: "Quantity Offers",
+                      key: "quantity_offers",
+                      type: "json",
+                      description: "Quantity offers"
+                    },
+                    {
+                      name: "Tracking",
+                      key: "tracking",
+                      type: "json",
+                      description: "Tracking settings"
+                    }
+                  ],
+                  access: {
+                    storefront: "PUBLIC_READ"
+                  }
+                }
+              })
+            });
+            
+            if (!createDefResponse.ok) {
+              const errorText = await createDefResponse.text();
+              console.error(`[${trackingId}] Error creating metaobject definition: ${createDefResponse.status} ${errorText}`);
+              throw new Error(`Failed to create metaobject definition: ${createDefResponse.status}`);
+            }
+            
+            const createDefData = await createDefResponse.json();
+            if (createDefData.metaobject_definition) {
+              definitionId = createDefData.metaobject_definition.id;
+              console.log(`[${trackingId}] Successfully created metaobject definition with ID: ${definitionId}`);
+            } else {
+              console.error(`[${trackingId}] Unexpected response creating definition:`, JSON.stringify(createDefData));
+              throw new Error('Failed to get definition ID from creation response');
+            }
           }
-          
-          const createDefinitionData = await createDefinitionResponse.json();
-          definitionId = createDefinitionData.metaobject_definition.id;
-          console.log(`[${trackingId}] Created metaobject definition with ID: ${definitionId}`);
-        } catch (createDefinitionError) {
-          console.error(`[${trackingId}] Error creating definition:`, createDefinitionError);
-          // Continue execution and focus on updating the product directly
+        } catch (defError) {
+          console.error(`[${trackingId}] Error with metaobject definition:`, defError);
+          // Continue execution, we'll try to update the product directly
         }
       }
       
@@ -421,32 +510,116 @@ serve(async (req) => {
         // Try to create or update the metaobject if we have a definition
         if (definitionId) {
           try {
-            // Check if metaobject already exists for this page
-            console.log(`[${trackingId}] Checking if metaobject exists with handle: ${metaobjectHandle}`);
+            let existingMetaobjectId = null;
+            
+            // First check if there are any existing metaobjects of our type
             try {
-              const metaobjectsResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/metaobjects.json?handle=${metaobjectHandle}`, {
-                method: 'GET',
+              console.log(`[${trackingId}] Checking for existing metaobjects with handle: ${metaobjectHandle}`);
+              
+              // Try GraphQL first for better metaobject filtering
+              const metaobjectsQuery = `
+                query {
+                  metaobjects(first: 10, type: "app_dlili") {
+                    edges {
+                      node {
+                        id
+                        handle
+                        fields {
+                          key
+                          value
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              
+              const graphqlMetaobjectsResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Shopify-Access-Token': accessToken
-                }
+                },
+                body: JSON.stringify({ query: metaobjectsQuery })
               });
               
-              if (!metaobjectsResponse.ok) {
-                const errorText = await metaobjectsResponse.text();
-                console.error(`[${trackingId}] Error checking metaobject: ${errorText}`);
-                throw new Error(`Failed to check metaobjects: ${metaobjectsResponse.status}`);
-              }
-              
-              const metaobjectsData = await metaobjectsResponse.json();
-              let metaobjectId;
-              
-              if (metaobjectsData.metaobjects && metaobjectsData.metaobjects.length > 0) {
-                // Metaobject exists, update it
-                metaobjectId = metaobjectsData.metaobjects[0].id;
-                console.log(`[${trackingId}] Updating existing metaobject with ID: ${metaobjectId}`);
+              if (graphqlMetaobjectsResponse.ok) {
+                const graphqlMetaData = await graphqlMetaobjectsResponse.json();
+                console.log(`[${trackingId}] GraphQL metaobjects query succeeded`);
                 
-                const updateMetaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/metaobjects/${metaobjectId}.json`, {
+                if (graphqlMetaData.data && graphqlMetaData.data.metaobjects && graphqlMetaData.data.metaobjects.edges) {
+                  const metaobjects = graphqlMetaData.data.metaobjects.edges.map((edge: any) => edge.node);
+                  console.log(`[${trackingId}] Found ${metaobjects.length} app_dlili metaobjects`);
+                  
+                  // Look for one with matching handle
+                  const matchingMetaobject = metaobjects.find((m: any) => m.handle === metaobjectHandle);
+                  
+                  if (matchingMetaobject) {
+                    existingMetaobjectId = matchingMetaobject.id;
+                    console.log(`[${trackingId}] Found existing metaobject with matching handle: ${existingMetaobjectId}`);
+                  } else if (metaobjects.length > 0 && forceRecreateMetaobject) {
+                    // If force recreate is requested, just use the first one
+                    existingMetaobjectId = metaobjects[0].id;
+                    console.log(`[${trackingId}] Using first available metaobject: ${existingMetaobjectId} (forced recreation)`);
+                  }
+                } else {
+                  console.log(`[${trackingId}] No metaobjects found or unexpected GraphQL response structure`);
+                }
+              } else {
+                const errorText = await graphqlMetaobjectsResponse.text();
+                console.error(`[${trackingId}] GraphQL metaobjects query failed: ${graphqlMetaobjectsResponse.status} ${errorText}`);
+                
+                // Fall back to REST API
+                console.log(`[${trackingId}] Falling back to REST API for metaobjects`);
+                const restMetaobjectsResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobjects.json?type=app_dlili`, {
+                  headers: {
+                    'X-Shopify-Access-Token': accessToken
+                  }
+                });
+                
+                if (restMetaobjectsResponse.ok) {
+                  const metaobjectsData = await restMetaobjectsResponse.json();
+                  
+                  if (metaobjectsData.metaobjects && metaobjectsData.metaobjects.length > 0) {
+                    console.log(`[${trackingId}] Found ${metaobjectsData.metaobjects.length} metaobjects using REST API`);
+                    
+                    // Look for matching handle
+                    const matchingMetaobject = metaobjectsData.metaobjects.find(
+                      (m: any) => m.handle === metaobjectHandle
+                    );
+                    
+                    if (matchingMetaobject) {
+                      existingMetaobjectId = matchingMetaobject.id;
+                      console.log(`[${trackingId}] Found existing metaobject with matching handle: ${existingMetaobjectId}`);
+                    } else if (forceRecreateMetaobject) {
+                      // Just use the first one if force recreate
+                      existingMetaobjectId = metaobjectsData.metaobjects[0].id;
+                      console.log(`[${trackingId}] Using first available metaobject: ${existingMetaobjectId} (forced recreation)`);
+                    }
+                  }
+                } else {
+                  const errorText = await restMetaobjectsResponse.text();
+                  console.error(`[${trackingId}] REST metaobjects query failed: ${restMetaobjectsResponse.status} ${errorText}`);
+                }
+              }
+            } catch (checkError) {
+              console.error(`[${trackingId}] Error checking existing metaobjects:`, checkError);
+            }
+            
+            // Prepare the page content for the metaobject field
+            const pageFieldValue = JSON.stringify({
+              title: pageContent.title || "",
+              meta_description: pageContent.metaDescription || "",
+              meta_keywords: pageContent.metaKeywords || "",
+              content: pageContent
+            });
+            
+            if (existingMetaobjectId) {
+              // Update existing metaobject
+              console.log(`[${trackingId}] Updating existing metaobject with ID: ${existingMetaobjectId}`);
+              
+              try {
+                const updateMetaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobjects/${existingMetaobjectId}.json`, {
                   method: 'PUT',
                   headers: {
                     'Content-Type': 'application/json',
@@ -454,16 +627,10 @@ serve(async (req) => {
                   },
                   body: JSON.stringify({
                     metaobject: {
-                      id: metaobjectId,
                       fields: [
                         {
                           key: "page",
-                          value: JSON.stringify({
-                            "title": pageContent.title || "",
-                            "meta_description": pageContent.metaDescription || "",
-                            "meta_keywords": pageContent.metaKeywords || "",
-                            "content": pageContent
-                          })
+                          value: pageFieldValue
                         }
                       ]
                     }
@@ -472,16 +639,24 @@ serve(async (req) => {
                 
                 if (!updateMetaobjectResponse.ok) {
                   const errorText = await updateMetaobjectResponse.text();
-                  console.error(`[${trackingId}] Error updating metaobject: ${errorText}`);
+                  console.error(`[${trackingId}] Error updating metaobject: ${updateMetaobjectResponse.status} ${errorText}`);
                   throw new Error(`Failed to update metaobject: ${updateMetaobjectResponse.status}`);
                 }
                 
-                console.log(`[${trackingId}] Successfully updated metaobject with ID: ${metaobjectId}`);
-              } else {
-                // Create new metaobject
-                console.log(`[${trackingId}] Creating new metaobject with handle: ${metaobjectHandle}`);
-                
-                const createMetaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/metaobjects.json`, {
+                console.log(`[${trackingId}] Successfully updated metaobject`);
+              } catch (updateError) {
+                console.error(`[${trackingId}] Error updating existing metaobject:`, updateError);
+                // Try creating a new one
+                existingMetaobjectId = null;
+              }
+            }
+            
+            // Create new metaobject if needed
+            if (!existingMetaobjectId) {
+              console.log(`[${trackingId}] Creating new metaobject with handle: ${metaobjectHandle}`);
+              
+              try {
+                const createMetaobjectResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/metaobjects.json`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -494,12 +669,7 @@ serve(async (req) => {
                       fields: [
                         {
                           key: "page",
-                          value: JSON.stringify({
-                            "title": pageContent.title || "",
-                            "meta_description": pageContent.metaDescription || "",
-                            "meta_keywords": pageContent.metaKeywords || "",
-                            "content": pageContent
-                          })
+                          value: pageFieldValue
                         }
                       ]
                     }
@@ -508,91 +678,108 @@ serve(async (req) => {
                 
                 if (!createMetaobjectResponse.ok) {
                   const errorText = await createMetaobjectResponse.text();
-                  console.error(`[${trackingId}] Error creating metaobject: ${errorText}`);
+                  console.error(`[${trackingId}] Error creating metaobject: ${createMetaobjectResponse.status} ${errorText}`);
                   throw new Error(`Failed to create metaobject: ${createMetaobjectResponse.status}`);
                 }
                 
                 const metaobjectData = await createMetaobjectResponse.json();
-                metaobjectId = metaobjectData.metaobject.id;
-                console.log(`[${trackingId}] Created metaobject with ID: ${metaobjectId}`);
+                existingMetaobjectId = metaobjectData.metaobject.id;
+                console.log(`[${trackingId}] Created metaobject with ID: ${existingMetaobjectId}`);
+              } catch (createError) {
+                console.error(`[${trackingId}] Error creating metaobject:`, createError);
+                throw createError;
               }
-              
-              // Set metafield for product to reference our metaobject
-              if (metaobjectId) {
-                console.log(`[${trackingId}] Setting metafield for product to reference metaobject`);
-                try {
-                  // First check if the metafield already exists
-                  const existingMetafieldsResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/products/${shopifyProductId}/metafields.json`, {
+            }
+            
+            // Set metafield for product to reference our metaobject
+            if (existingMetaobjectId) {
+              console.log(`[${trackingId}] Setting metafield for product to reference metaobject`);
+              try {
+                // First check if the metafield already exists
+                const existingMetafieldsResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/products/${shopifyProductId}/metafields.json`, {
+                  headers: {
+                    'X-Shopify-Access-Token': accessToken
+                  }
+                });
+                
+                if (!existingMetafieldsResponse.ok) {
+                  const errorText = await existingMetafieldsResponse.text();
+                  console.error(`[${trackingId}] Error fetching existing metafields: ${errorText}`);
+                  throw new Error(`Failed to fetch existing metafields: ${existingMetafieldsResponse.status}`);
+                }
+                
+                const existingMetafieldsData = await existingMetafieldsResponse.json();
+                const existingMetafield = existingMetafieldsData.metafields?.find(
+                  (m: any) => m.namespace === "codform" && m.key === "landing_page"
+                );
+                
+                if (existingMetafield) {
+                  // Update existing metafield
+                  console.log(`[${trackingId}] Updating existing metafield: ${existingMetafield.id}`);
+                  
+                  const updateMetafieldResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/products/${shopifyProductId}/metafields/${existingMetafield.id}.json`, {
+                    method: 'PUT',
                     headers: {
+                      'Content-Type': 'application/json',
                       'X-Shopify-Access-Token': accessToken
-                    }
+                    },
+                    body: JSON.stringify({
+                      metafield: {
+                        id: existingMetafield.id,
+                        value: existingMetaobjectId.replace(/^gid:\/\/shopify\/Metaobject\//, ""),
+                        type: "metaobject_reference"
+                      }
+                    })
                   });
                   
-                  const existingMetafieldsData = await existingMetafieldsResponse.json();
-                  const existingMetafield = existingMetafieldsData.metafields?.find(
-                    (m: any) => m.namespace === "codform" && m.key === "landing_page"
-                  );
-                  
-                  if (existingMetafield) {
-                    // Update existing metafield
-                    const updateMetafieldResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/products/${shopifyProductId}/metafields/${existingMetafield.id}.json`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-Shopify-Access-Token': accessToken
-                      },
-                      body: JSON.stringify({
-                        metafield: {
-                          id: existingMetafield.id,
-                          value: metaobjectId,
-                          type: "metaobject_reference"
-                        }
-                      })
-                    });
-                    
-                    if (!updateMetafieldResponse.ok) {
-                      const errorText = await updateMetafieldResponse.text();
-                      console.error(`[${trackingId}] Error updating metafield: ${errorText}`);
-                    } else {
-                      console.log(`[${trackingId}] Successfully updated metafield reference to metaobject`);
-                    }
-                  } else {
-                    // Create new metafield
-                    const metafieldResponse = await fetch(`https://${shopDomain}/admin/api/2023-07/products/${shopifyProductId}/metafields.json`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-Shopify-Access-Token': accessToken
-                      },
-                      body: JSON.stringify({
-                        metafield: {
-                          namespace: "codform",
-                          key: "landing_page",
-                          value: metaobjectId,
-                          type: "metaobject_reference"
-                        }
-                      })
-                    });
-                    
-                    if (!metafieldResponse.ok) {
-                      const errorText = await metafieldResponse.text();
-                      console.error(`[${trackingId}] Error setting metafield: ${errorText}`);
-                    } else {
-                      console.log(`[${trackingId}] Successfully linked product to metaobject via metafield`);
-                    }
+                  if (!updateMetafieldResponse.ok) {
+                    const errorText = await updateMetafieldResponse.text();
+                    console.error(`[${trackingId}] Error updating metafield: ${updateMetafieldResponse.status} ${errorText}`);
+                    throw new Error(`Failed to update metafield: ${updateMetafieldResponse.status}`);
                   }
-                } catch (metafieldError) {
-                  console.error(`[${trackingId}] Error with metafield operation:`, metafieldError);
-                  console.log(`[${trackingId}] Continuing despite metafield error`);
+                  
+                  console.log(`[${trackingId}] Successfully updated metafield reference`);
+                } else {
+                  // Create new metafield
+                  console.log(`[${trackingId}] Creating new metafield for product ${shopifyProductId}`);
+                  
+                  // Extract the ID part from the metaobject ID
+                  const metaobjectIdValue = existingMetaobjectId.replace(/^gid:\/\/shopify\/Metaobject\//, "");
+                  console.log(`[${trackingId}] Using metaobject reference value: ${metaobjectIdValue}`);
+                  
+                  const metafieldResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/products/${shopifyProductId}/metafields.json`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Shopify-Access-Token': accessToken
+                    },
+                    body: JSON.stringify({
+                      metafield: {
+                        namespace: "codform",
+                        key: "landing_page",
+                        value: metaobjectIdValue,
+                        type: "metaobject_reference"
+                      }
+                    })
+                  });
+                  
+                  if (!metafieldResponse.ok) {
+                    const errorText = await metafieldResponse.text();
+                    console.error(`[${trackingId}] Error creating metafield: ${metafieldResponse.status} ${errorText}`);
+                    console.error(`[${trackingId}] Response body: ${errorText}`);
+                    throw new Error(`Failed to create metafield: ${metafieldResponse.status}`);
+                  }
+                  
+                  console.log(`[${trackingId}] Successfully created metafield linking product to metaobject`);
                 }
+              } catch (metafieldError) {
+                console.error(`[${trackingId}] Error with metafield operation:`, metafieldError);
+                // Log error but continue execution since we've already updated the product HTML
               }
-            } catch (metaobjectError) {
-              console.error(`[${trackingId}] Error with metaobject operations:`, metaobjectError);
-              // Continue execution since we already updated the product HTML directly
             }
-          } catch (metaobjectFlowError) {
-            console.error(`[${trackingId}] Error in metaobject flow:`, metaobjectFlowError);
-            // Continue since we already updated the product HTML
+          } catch (metaobjectError) {
+            console.error(`[${trackingId}] Error with metaobject operations:`, metaobjectError);
+            // Log error but continue execution since we've already updated the product HTML
           }
         }
         
@@ -614,8 +801,7 @@ serve(async (req) => {
             shop_id: shop,
             synced_url: pageUrl
           }, { onConflict: 'page_id' })
-          .select()
-          .single();
+          .select();
           
         if (syncError) {
           console.error(`[${trackingId}] Error saving sync data: ${syncError.message}`);

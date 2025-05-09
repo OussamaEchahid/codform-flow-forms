@@ -33,6 +33,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   const [isRetrying, setIsRetrying] = useState(false);
   const [connectionVerified, setConnectionVerified] = useState(false);
   const [verifyingConnection, setVerifyingConnection] = useState(false);
+  const [isCreatingMetaobject, setIsCreatingMetaobject] = useState(false);
+  const [metaobjectStatus, setMetaobjectStatus] = useState<'not_created' | 'creating' | 'created'>('not_created');
   
   useEffect(() => {
     if (pageId) {
@@ -224,6 +226,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     setIsSyncing(true);
     setSyncStatus('syncing');
     setErrorDetails(null);
+    setMetaobjectStatus('creating');
     
     try {
       // Send request with debugging information
@@ -231,6 +234,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       const requestTimestamp = new Date().toISOString();
       
       console.log(`Starting publish request ${requestId} at ${requestTimestamp}`);
+      
+      // First create the metaobject using the specialized function
+      setIsCreatingMetaobject(true);
       
       // Call the API to publish the landing page to Shopify
       const publishResponse = await supabase.functions.invoke('shopify-publish-page', {
@@ -240,7 +246,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           shop,
           productId, // Send the product ID to link with the product page
           requestId, // Send request ID for tracking
-          timestamp: requestTimestamp
+          timestamp: requestTimestamp,
+          forceRecreateMetaobject: true // Force recreation of metaobject
         }
       });
       
@@ -248,6 +255,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         console.error('Error from shopify-publish-page function:', publishResponse.error);
         throw new Error(publishResponse.error.message || 'خطأ غير معروف في نشر الصفحة');
       }
+      
+      setIsCreatingMetaobject(false);
+      setMetaobjectStatus('created');
       
       const data = publishResponse.data;
       
@@ -272,6 +282,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     } catch (error) {
       console.error('Error publishing to Shopify:', error);
       setSyncStatus('not_synced');
+      setMetaobjectStatus('not_created');
       
       // Extract error message to show to user
       let errorMsg = 'Error connecting to Shopify';
@@ -288,6 +299,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         : 'Error publishing to Shopify');
     } finally {
       setIsSyncing(false);
+      setIsCreatingMetaobject(false);
     }
   };
 
@@ -340,6 +352,14 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     window.location.href = '/shopify-connect';
   };
   
+  const openMetaobjectsAdmin = () => {
+    if (!shop) return;
+    
+    // Open the Shopify metaobjects admin page
+    const domain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
+    window.open(`https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/content/metaobjects`, '_blank');
+  };
+  
   if (!isConnected) {
     return (
       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
@@ -383,6 +403,20 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
                   ? 'عند النقر على "نشر على شوبيفاي"، نقوم بإنشاء metaobject مخصص في متجر شوبيفاي الخاص بك لتخزين محتوى صفحة الهبوط. إذا ربطت الصفحة بمنتج، سيتم تحديث وصف المنتج أيضًا بنفس المحتوى.'
                   : 'When you click "Publish to Shopify", we create a custom metaobject in your Shopify store to store your landing page content. If you\'ve linked the page to a product, the product description will also be updated with the same content.'}
               </p>
+              
+              <div className="mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs" 
+                  onClick={openMetaobjectsAdmin}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  {language === 'ar' 
+                    ? 'عرض Metaobjects في شوبيفاي' 
+                    : 'View Metaobjects in Shopify'}
+                </Button>
+              </div>
               
               <div className="mt-4 text-sm">
                 <h5 className="text-orange-700 font-medium">
@@ -473,6 +507,48 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           </AlertDescription>
         </Alert>
       )}
+      
+      {/* Metaobject Status */}
+      <Alert className={`mb-4 ${metaobjectStatus === 'created' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+        <AlertTitle className="font-medium">
+          {language === 'ar' ? 'حالة Metaobject' : 'Metaobject Status'}
+        </AlertTitle>
+        <AlertDescription>
+          {isCreatingMetaobject ? (
+            <div className="flex items-center">
+              <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+              {language === 'ar' ? 'جاري إنشاء Metaobject...' : 'Creating Metaobject...'}
+            </div>
+          ) : metaobjectStatus === 'created' ? (
+            <div>
+              <div className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                {language === 'ar' ? 'تم إنشاء Metaobject بنجاح' : 'Metaobject created successfully'}
+              </div>
+              <p className="text-xs mt-1">
+                {language === 'ar'
+                  ? 'يمكنك عرض الـ Metaobjects في لوحة تحكم شوبيفاي'
+                  : 'You can view metaobjects in your Shopify admin'}
+              </p>
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="text-xs p-0 h-auto mt-1" 
+                onClick={openMetaobjectsAdmin}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                {language === 'ar' ? 'عرض في شوبيفاي' : 'View in Shopify'}
+              </Button>
+            </div>
+          ) : (
+            <div>
+              {language === 'ar'
+                ? 'سيتم إنشاء Metaobject لتخزين محتوى الصفحة عند النشر على شوبيفاي'
+                : 'A metaobject will be created to store the page content when publishing to Shopify'}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
       
       {/* Connection error message */}
       {errorDetails && (
