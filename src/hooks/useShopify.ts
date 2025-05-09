@@ -39,6 +39,100 @@ export const useShopify = () => {
 
   // Rate limiting for API calls
   const requestsInProgress = new Map<string, Promise<any>>();
+  
+  // Test connection with the Shopify API
+  const testConnection = useCallback(async (force = false) => {
+    if (!shop) return false;
+    
+    try {
+      const cacheKey = `connection_test:${shop}`;
+      const cachedResult = localStorage.getItem(cacheKey);
+      
+      // Use cached result unless forced refresh
+      if (!force && cachedResult) {
+        const { isValid, timestamp } = JSON.parse(cachedResult);
+        const now = Date.now();
+        // Cache valid for 5 minutes
+        if (now - timestamp < 5 * 60 * 1000) {
+          return isValid;
+        }
+      }
+      
+      // Get token
+      const { data: tokenData, error: tokenError } = await shopifyStores()
+        .select('access_token')
+        .eq('shop', shop)
+        .single();
+        
+      if (tokenError || !tokenData?.access_token) {
+        setTokenError(true);
+        return false;
+      }
+      
+      // Test token
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+        body: { 
+          shop, 
+          accessToken: tokenData.access_token,
+          timestamp: Date.now(), // Prevent caching
+          requestId: `conn_test_${Math.random().toString(36).substring(2, 10)}`
+        }
+      });
+      
+      if (error) {
+        console.error('[Shopify Connection] Test error:', error);
+        setIsNetworkError(true);
+        return false;
+      }
+      
+      const isValid = data?.success === true;
+      
+      // Cache the result
+      localStorage.setItem(cacheKey, JSON.stringify({
+        isValid,
+        timestamp: Date.now()
+      }));
+      
+      if (!isValid) {
+        setTokenError(true);
+      } else {
+        setTokenError(false);
+      }
+      
+      return isValid;
+    } catch (error) {
+      console.error('[Shopify Connection] Test error:', error);
+      setIsNetworkError(true);
+      return false;
+    }
+  }, [shop]);
+  
+  // Refresh connection with Shopify
+  const refreshConnection = useCallback(async () => {
+    if (!shop) return false;
+    
+    try {
+      // Clear any cached connection test results
+      localStorage.removeItem(`connection_test:${shop}`);
+      
+      // Test connection with force refresh
+      const isValid = await testConnection(true);
+      
+      if (isValid) {
+        // Clear error states
+        setTokenError(false);
+        setTokenExpired(false);
+        setIsNetworkError(false);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('[Shopify Connection] Refresh error:', error);
+      setIsNetworkError(true);
+      return false;
+    }
+  }, [shop, testConnection]);
 
   // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
@@ -319,6 +413,8 @@ export const useShopify = () => {
     syncForm,
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
-    emergencyReset
+    emergencyReset,
+    testConnection, // Added missing method
+    refreshConnection // Added missing method
   };
 };
