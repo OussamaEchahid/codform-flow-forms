@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -81,7 +82,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setSyncStatus('idle');
 
     try {
-      // First verify connection - using testConnection with a boolean parameter
+      // First verify connection - using testConnection without arguments
       const connectionValid = await testConnection();
       
       if (!connectionValid) {
@@ -125,74 +126,50 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
       // Call the Supabase edge function to sync the form with Shopify
       const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
         body: {
-          formId: formId,
-          shop: shop,
+          formId,
+          shop,
           accessToken: tokenData.access_token,
-          // Add timestamp and unique ID to avoid caching issues
-          timestamp: Date.now(),
-          requestId: `sync_${Math.random().toString(36).substring(2, 10)}`
+          position: 'product-page' // Default position
         }
       });
 
       if (error) {
         console.error('Error syncing form with Shopify:', error);
-        toast.error(language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form');
+        toast.error(language === 'ar' ? 'فشل في مزامنة النموذج مع Shopify' : 'Failed to sync form with Shopify');
         setSyncStatus('error');
         setIsSyncing(false);
-        
-        // Save error status
-        localStorage.setItem(`form_sync_${formId}`, JSON.stringify({
-          lastSynced: lastSynced,
-          count: syncsCount,
-          status: 'error'
-        }));
         return;
       }
 
-      if (data?.success) {
-        const newSyncsCount = syncsCount + 1;
-        const currentTime = new Date().toLocaleString();
-        
-        // Check returned publication status
-        setIsFormPublished(data.published_status || true);
-        
-        // Save sync info to localStorage
-        const syncInfo = {
-          lastSynced: currentTime,
-          count: newSyncsCount,
-          status: 'success'
-        };
-        localStorage.setItem(`form_sync_${formId}`, JSON.stringify(syncInfo));
-        
-        setSyncStatus('success');
-        setLastSynced(currentTime);
-        setSyncsCount(newSyncsCount);
-        toast.success(language === 'ar' ? 'تم مزامنة النموذج بنجاح' : 'Form synced successfully');
-        
-        // Force refresh form status
-        const { data: formData } = await supabase
-          .from('forms')
-          .select('is_published')
-          .eq('id', formId)
-          .single();
-          
-        if (formData) {
-          setIsFormPublished(formData.is_published);
-        }
-      } else {
-        toast.error(data?.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync'));
+      if (!data || !data.success) {
+        const errorMsg = data?.message || 'Unknown error';
+        console.error('Sync response error:', errorMsg);
+        toast.error(language === 'ar' ? `فشل في المزامنة: ${errorMsg}` : `Sync failed: ${errorMsg}`);
         setSyncStatus('error');
-        
-        // Save error status
-        localStorage.setItem(`form_sync_${formId}`, JSON.stringify({
-          lastSynced: lastSynced,
-          count: syncsCount,
-          status: 'error'
-        }));
+        setIsSyncing(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error syncing form:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ غير متوقع' : 'Unexpected error');
+
+      // Update sync info in localStorage
+      const now = new Date().toISOString();
+      const newCount = syncsCount + 1;
+      
+      localStorage.setItem(`form_sync_${formId}`, JSON.stringify({
+        lastSynced: now,
+        count: newCount,
+        status: 'success'
+      }));
+      
+      setLastSynced(now);
+      setSyncsCount(newCount);
+      setSyncStatus('success');
+      toast.success(language === 'ar' ? 'تمت مزامنة النموذج بنجاح مع متجر Shopify' : 'Form successfully synced with Shopify store');
+      
+      // Ensure the form is marked as published in state
+      setIsFormPublished(true);
+    } catch (err) {
+      console.error('Unexpected error during sync:', err);
+      toast.error(language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'An error occurred during sync');
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
@@ -206,14 +183,13 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
       const success = await refreshConnection();
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
-        // Try sync again after reconnection
-        await handleSync();
+        handleSync(); // Try syncing again after reconnection
       } else {
-        toast.error(language === 'ar' ? 'فشل إعادة الاتصال' : 'Failed to reconnect');
+        toast.error(language === 'ar' ? 'فشل إعادة الاتصال' : 'Reconnection failed');
       }
     } catch (error) {
       console.error('Error reconnecting:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء إعادة الاتصال' : 'Error during reconnection');
+      toast.error(language === 'ar' ? 'خطأ في إعادة الاتصال' : 'Error reconnecting');
     } finally {
       setIsReconnecting(false);
     }
@@ -222,201 +198,181 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
     try {
-      // Use testConnection with a boolean parameter
+      // Use testConnection with a boolean parameter set to true to force refresh
       const success = await testConnection(true);
       if (success) {
         toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');
+        handleSync(); // Try syncing again after connection refresh
       } else {
         toast.error(language === 'ar' ? 'فشل تجديد الاتصال' : 'Connection refresh failed');
       }
     } catch (error) {
-      console.error('Error retrying connection:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء تجديد الاتصال' : 'Error refreshing connection');
+      console.error('Error refreshing connection:', error);
+      toast.error(language === 'ar' ? 'خطأ في تجديد الاتصال' : 'Error refreshing connection');
     } finally {
       setIsReconnecting(false);
     }
   };
 
   return (
-    <Card className="w-full border border-gray-200 shadow-sm">
-      <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold">
-              {language === 'ar' ? 'مزامنة Shopify' : 'Shopify Synchronization'}
-            </CardTitle>
-            <CardDescription>
-              {language === 'ar'
-                ? 'مزامنة النموذج مع متجر Shopify الخاص بك'
-                : 'Sync this form with your Shopify store'}
-            </CardDescription>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center">
+          <div className="flex-1">
+            {language === 'ar' ? 'مزامنة النموذج مع Shopify' : 'Shopify Form Sync'}
           </div>
-          
-          {syncStatus === 'success' && (
-            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1 px-2 py-1">
-              <CheckCircle className="h-3 w-3" />
-              {language === 'ar' ? 'تمت المزامنة' : 'Synced'}
+          {shop && (
+            <Badge variant="outline" className="ml-2">
+              {shop}
             </Badge>
           )}
-          
-          {syncStatus === 'error' && (
-            <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1 px-2 py-1">
-              <AlertCircle className="h-3 w-3" />
-              {language === 'ar' ? 'فشلت المزامنة' : 'Sync Failed'}
-            </Badge>
-          )}
-        </div>
+        </CardTitle>
+        <CardDescription>
+          {language === 'ar'
+            ? 'مزامنة هذا النموذج مع متجر Shopify الخاص بك لعرضه على صفحات المنتج'
+            : 'Sync this form with your Shopify store to display it on product pages'}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
+      <CardContent>
+        {!shop ? (
+          <div className="flex flex-col items-center p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <AlertCircle className="h-6 w-6 text-yellow-500 mb-2" />
+            <p className="text-center text-yellow-700 mb-2">
+              {language === 'ar'
+                ? 'لم يتم الاتصال بمتجر Shopify'
+                : 'Not connected to a Shopify store'}
+            </p>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/shopify'}
+              className="mt-2"
+            >
+              {language === 'ar' ? 'الاتصال الآن' : 'Connect Now'}
+            </Button>
+          </div>
+        ) : syncStatus === 'success' ? (
+          <div className="flex flex-col">
+            <div className="flex items-center p-4 bg-green-50 border border-green-200 rounded-md mb-4">
+              <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
               <div>
-                {shop ? (
-                  <p className="flex items-center gap-2 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    {language === 'ar'
-                      ? `متصل بـ: ${shop}`
-                      : `Connected to: ${shop}`}
-                  </p>
-                ) : (
-                  <p className="flex items-center gap-2 text-amber-600">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    {language === 'ar'
-                      ? 'لم يتم العثور على متجر متصل'
-                      : 'No connected store found'}
-                  </p>
-                )}
-                
-                <p className="text-sm mt-1">
-                  <span className={isFormPublished ? "text-green-600" : "text-amber-600"}>
-                    {isFormPublished 
-                      ? (language === 'ar' ? '✓ النموذج منشور' : '✓ Form is published') 
-                      : (language === 'ar' ? '⚠️ النموذج غير منشور' : '⚠️ Form not published')}
-                  </span>
+                <p className="text-green-800">
+                  {language === 'ar' 
+                    ? 'تمت المزامنة بنجاح مع متجر Shopify' 
+                    : 'Successfully synced with Shopify store'}
                 </p>
-                
                 {lastSynced && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {language === 'ar'
-                      ? `آخر مزامنة: ${lastSynced}`
-                      : `Last synced: ${lastSynced}`}
-                  </p>
-                )}
-                
-                {syncsCount > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {language === 'ar'
-                      ? `عدد مرات المزامنة: ${syncsCount}`
-                      : `Sync count: ${syncsCount}`}
+                  <p className="text-green-600 text-sm">
+                    {language === 'ar' 
+                      ? `آخر تحديث: ${new Date(lastSynced).toLocaleString()}` 
+                      : `Last updated: ${new Date(lastSynced).toLocaleString()}`}
                   </p>
                 )}
               </div>
-              
-              <div className="flex flex-col items-end">
-                <div className={`text-sm font-medium ${syncStatus === 'success' ? 'text-green-600' : 'text-gray-500'}`}>
-                  {syncStatus === 'success' ? (
-                    language === 'ar' ? 'متزامن' : 'In sync'
-                  ) : (
-                    language === 'ar' ? 'غير متزامن' : 'Not synced'
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {language === 'ar'
-                    ? 'يجب المزامنة بعد التغييرات'
-                    : 'Sync needed after changes'}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={handleSync}
+                disabled={isSyncing}
+                variant="outline"
+                size="sm"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جاري المزامنة...' : 'Syncing...'}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'إعادة المزامنة' : 'Resync'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : syncStatus === 'error' ? (
+          <div className="flex flex-col">
+            <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-md mb-4">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+              <div>
+                <p className="text-red-800">
+                  {language === 'ar' 
+                    ? 'فشلت المزامنة مع متجر Shopify' 
+                    : 'Failed to sync with Shopify store'}
+                </p>
+                <p className="text-red-600 text-sm">
+                  {language === 'ar' 
+                    ? 'يرجى التحقق من اتصال Shopify والمحاولة مرة أخرى' 
+                    : 'Please check your Shopify connection and try again'}
                 </p>
               </div>
             </div>
-          </div>
-          
-          <div className="flex flex-col space-y-2">
-            <Button
-              onClick={handleSync}
-              disabled={isSyncing || !shop || !formId}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-            >
-              {isSyncing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : syncStatus === 'success' ? (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {language === 'ar' ? 'مزامنة النموذج' : 'Sync Form'}
-            </Button>
-            
-            <Button
-              onClick={handleRetryConnection}
-              disabled={isReconnecting}
-              variant="outline"
-              className="w-full"
-            >
-              {isReconnecting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {language === 'ar' ? 'تجديد الاتصال' : 'Refresh Connection'}
-            </Button>
-            
-            {syncStatus === 'error' && (
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
-                onClick={handleReconnect}
+                onClick={handleRetryConnection}
                 disabled={isReconnecting}
-                variant="secondary"
-                className="w-full"
+                variant="outline"
+                size="sm"
               >
                 {isReconnecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جاري التحقق...' : 'Checking...'}
+                  </>
                 ) : (
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'تحديث الاتصال' : 'Refresh Connection'}
+                  </>
                 )}
-                {language === 'ar' ? 'إعادة الاتصال بـ Shopify' : 'Reconnect to Shopify'}
               </Button>
-            )}
+              <Button
+                onClick={handleSync}
+                disabled={isSyncing}
+                size="sm"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جاري المزامنة...' : 'Syncing...'}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          
-          {syncStatus === 'success' && (
-            <div className="bg-green-50 p-3 rounded-lg border border-green-100 mt-4">
-              <div className="flex items-start gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-green-800">
-                    {language === 'ar'
-                      ? 'تم مزامنة النموذج بنجاح مع متجرك'
-                      : 'Form successfully synced with your store'}
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    {language === 'ar'
-                      ? 'سيظهر النموذج الآن في صفحة المنتج في متجرك'
-                      : 'Your form will now appear on your store product page'}
-                  </p>
-                </div>
-              </div>
+        ) : (
+          <div className="flex flex-col">
+            <p className="mb-4">
+              {language === 'ar'
+                ? 'مزامنة هذا النموذج مع متجر Shopify الخاص بك سيسمح بعرضه على صفحات المنتج.'
+                : 'Syncing this form with your Shopify store will allow it to be displayed on product pages.'}
+            </p>
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSync}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {language === 'ar' ? 'جاري المزامنة...' : 'Syncing...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'مزامنة مع Shopify' : 'Sync with Shopify'}
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-          
-          {syncStatus === 'error' && (
-            <div className="bg-red-50 p-3 rounded-lg border border-red-100 mt-4">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-800">
-                    {language === 'ar'
-                      ? 'حدث خطأ أثناء مزامنة النموذج'
-                      : 'Error syncing form with your store'}
-                  </p>
-                  <p className="text-xs text-red-600 mt-1">
-                    {language === 'ar'
-                      ? 'يرجى التأكد من أنك متصل بمتجر Shopify الخاص بك والمحاولة مرة أخرى. جرب تحديث الاتصال أولاً.'
-                      : 'Please ensure you are connected to your Shopify store and try again. Try refreshing connection first.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

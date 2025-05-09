@@ -2,11 +2,11 @@
 import React, { useEffect } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import ConnectionErrorHandler from '@/components/shopify/ConnectionErrorHandler';
 
 const Forms = () => {
   const navigate = useNavigate();
@@ -35,15 +35,27 @@ const Forms = () => {
       syncState();
       
       // Also test the connection to make sure token is valid
-      const isValid = await testConnection();
-      
-      if (!isValid) {
-        toast.error('رمز الوصول إلى Shopify غير صالح أو منتهي الصلاحية. الرجاء تحديث رمز الوصول.');
+      // Added try-catch to better handle connection failures
+      try {
+        const isValid = await testConnection();
+        
+        if (!isValid) {
+          console.warn('Token validation failed in Forms page');
+          // Let the error state handle this instead of a toast
+        }
+      } catch (testError) {
+        console.error('Error testing connection in Forms page:', testError);
       }
     };
     
     checkConnection();
   }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection]);
+
+  // Logic to retry connection and continue to FormsPage
+  const handleRetrySuccess = () => {
+    // If retry is successful, simply remain on the page
+    // The component will rerender with updated connection state
+  };
   
   // Show loading state
   if (isLoading || isValidating) {
@@ -58,11 +70,13 @@ const Forms = () => {
   // Show error state
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <Alert variant="destructive" className="max-w-md mb-4">
-          <AlertTriangle className="h-4 w-4 ml-2" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+      <div className="flex flex-col items-center justify-center h-screen max-w-md mx-auto">
+        <ConnectionErrorHandler 
+          onRetrySuccess={handleRetrySuccess}
+          showReconnectButton={true}
+          showResetButton={true}
+          className="w-full"
+        />
         
         <div className="flex gap-2 mt-4">
           <Button 

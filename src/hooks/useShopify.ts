@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -18,8 +19,16 @@ interface ShopifyFormSync {
 const productCache = new Map<string, { products: ShopifyProduct[], timestamp: number }>();
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
+// A logger for the Shopify hook
+const shopifyLogger = {
+  info: (message: string) => console.log(`[useShopify] ${message}`),
+  error: (message: string, error?: any) => console.error(`[useShopify] ${message}`, error),
+  warn: (message: string) => console.warn(`[useShopify] ${message}`),
+  debug: (message: string, data?: any) => console.log(`[useShopify] ${message}`, data),
+};
+
 export const useShopify = () => {
-  const { shopDomain: shop, isConnected, testConnection } = useShopifyConnection();
+  const { shopDomain: shop, isConnected, testConnection, syncState, reload } = useShopifyConnection();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -44,20 +53,29 @@ export const useShopify = () => {
     try {
       if (!shopDomain) return null;
       
+      shopifyLogger.debug(`Getting access token for ${shopDomain}`);
+      
       const { data, error } = await shopifyStores()
         .select('access_token')
         .eq('shop', shopDomain)
         .single();
         
       if (error || !data?.access_token) {
-        console.error('Error getting access token:', error);
+        shopifyLogger.error('Error getting access token:', error);
+        setTokenError(true);
+        return null;
+      }
+      
+      // Check for placeholder token
+      if (data.access_token === 'placeholder_token') {
+        shopifyLogger.warn(`Placeholder token detected for ${shopDomain}`);
         setTokenError(true);
         return null;
       }
       
       return data.access_token;
     } catch (error) {
-      console.error('Error getting access token:', error);
+      shopifyLogger.error('Error getting access token:', error);
       setTokenError(true);
       return null;
     }
@@ -66,7 +84,7 @@ export const useShopify = () => {
   // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
     if (!isConnected || !shop) {
-      console.log('Cannot load products: no active connection or shop');
+      shopifyLogger.warn('Cannot load products: no active connection or shop');
       return [];
     }
 
@@ -76,19 +94,19 @@ export const useShopify = () => {
     const now = Date.now();
     
     if (cached && (now - cached.timestamp < CACHE_EXPIRY)) {
-      console.log('Using cached products data');
+      shopifyLogger.debug('Using cached products data');
       setProducts(cached.products);
       return cached.products;
     }
     
     // Check if request is already in progress
     if (requestsInProgress.has(cacheKey)) {
-      console.log('Product request already in progress, waiting...');
+      shopifyLogger.debug('Product request already in progress, waiting...');
       try {
         const result = await requestsInProgress.get(cacheKey);
         return result;
       } catch (error) {
-        console.error('Error waiting for in-progress request:', error);
+        shopifyLogger.error('Error waiting for in-progress request:', error);
         throw error;
       }
     }
@@ -110,7 +128,7 @@ export const useShopify = () => {
         // Generate unique request ID
         const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
         
-        console.log('Fetching products with request ID:', requestId);
+        shopifyLogger.debug('Fetching products with request ID:', requestId);
         
         // Call Shopify Products Edge Function
         const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
@@ -122,10 +140,10 @@ export const useShopify = () => {
         });
         
         if (error) {
-          console.error('Error invoking shopify-products function:', error);
+          shopifyLogger.error('Error invoking shopify-products function:', error);
           
           // Retry with API route
-          console.log('Retrying with API route...');
+          shopifyLogger.debug('Retrying with API route...');
           setIsRetrying(true);
           
           const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(shop)}&debug=true`);
@@ -151,7 +169,7 @@ export const useShopify = () => {
 
         if (!data || !data.success || !data.products) {
           if (data?.errors) {
-            console.error('GraphQL errors from Shopify:', data.errors);
+            shopifyLogger.error('GraphQL errors from Shopify:', data.errors);
             throw new Error(data.errors[0]?.message || 'GraphQL error');
           }
           throw new Error('Invalid response from Shopify API');
@@ -165,11 +183,11 @@ export const useShopify = () => {
         // Set and cache products
         setProducts(data.products || []);
         productCache.set(cacheKey, { products: data.products || [], timestamp: now });
-        console.log(`Successfully fetched ${data.products.length} products`);
+        shopifyLogger.debug(`Successfully fetched ${data.products.length} products`);
         
         return data.products || [];
       } catch (error) {
-        console.error('Error loading products:', error);
+        shopifyLogger.error('Error loading products:', error);
         
         // Handle different error types
         if (error instanceof Error) {
@@ -221,7 +239,7 @@ export const useShopify = () => {
         setPendingSyncForms([...pendingSyncForms, formData.formId]);
         
         // Mock success
-        console.log('Form saved for future sync:', formData);
+        shopifyLogger.debug('Form saved for future sync:', formData);
         return { success: true, message: 'Form saved for future sync' };
       }
       
@@ -255,7 +273,7 @@ export const useShopify = () => {
       setIsNetworkError(false);
       return data;
     } catch (error) {
-      console.error('Error syncing form with Shopify:', error);
+      shopifyLogger.error('Error syncing form with Shopify:', error);
       setIsSyncing(false);
       setIsNetworkError(true);
       
@@ -306,7 +324,7 @@ export const useShopify = () => {
           await syncForm(formData);
           successCount++;
         } catch (error) {
-          console.error('Error resyncing form:', error);
+          shopifyLogger.error('Error resyncing form:', error);
           failCount++;
         }
       }
@@ -317,7 +335,7 @@ export const useShopify = () => {
       
       toast.success(`Resynced ${successCount} forms successfully${failCount > 0 ? `, ${failCount} failed` : ''}`);
     } catch (error) {
-      console.error('Error in resyncPendingForms:', error);
+      shopifyLogger.error('Error in resyncPendingForms:', error);
       toast.error('Error resyncing pending forms');
       setIsNetworkError(true);
     } finally {
@@ -345,7 +363,7 @@ export const useShopify = () => {
     
     try {
       // Test connection first
-      const isValid = await testConnection();
+      const isValid = await testConnection(true); // Force refresh of connection
       
       if (!isValid) {
         throw new Error('Connection test failed - please check your access token');
@@ -354,7 +372,7 @@ export const useShopify = () => {
       // Load products
       return await loadProducts();
     } catch (error) {
-      console.error('Error refreshing products:', error);
+      shopifyLogger.error('Error refreshing products:', error);
       toast.error('فشل في تحديث المنتجات: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
       throw error;
     }
@@ -389,11 +407,11 @@ export const useShopify = () => {
         toast.success('تم تحديث الاتصال بنجاح');
         return true;
       } catch (loadError) {
-        console.error('Error loading products after connection refresh:', loadError);
+        shopifyLogger.error('Error loading products after connection refresh:', loadError);
         return false;
       }
     } catch (error) {
-      console.error('Error refreshing connection:', error);
+      shopifyLogger.error('Error refreshing connection:', error);
       setTokenError(true);
       setIsNetworkError(true);
       return false;
@@ -450,7 +468,6 @@ export const useShopify = () => {
     testConnection,
     refreshProducts,
     getAccessToken,
-    // Add the refreshConnection method to the returned object
     refreshConnection
   };
 };
