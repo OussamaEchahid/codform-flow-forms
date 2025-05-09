@@ -216,6 +216,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_page_syncs: {
+        Row: {
+          created_at: string
+          id: string
+          page_id: string
+          shop_id: string
+          synced_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_id: string
+          shop_id: string
+          synced_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_id?: string
+          shop_id?: string
+          synced_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_page_syncs_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopify_product_settings: {
         Row: {
           block_id: string | null
@@ -317,6 +352,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      create_table_if_not_exists: {
+        Args: { p_table_name: string; p_table_definition: string }
+        Returns: undefined
       }
       create_timestamp_trigger: {
         Args: { table_name: string }

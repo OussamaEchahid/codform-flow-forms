@@ -32,3 +32,4 @@ enabled = false
 
 [experimental.functions.shopify-publish-page]
 verify_jwt = false
+

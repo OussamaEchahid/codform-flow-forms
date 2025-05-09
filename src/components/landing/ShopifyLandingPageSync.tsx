@@ -54,6 +54,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       return;
     }
     
+    // No need to check for local publishing status
+    // We're publishing directly to Shopify
+    
     setIsSyncing(true);
     setSyncStatus('syncing');
     
