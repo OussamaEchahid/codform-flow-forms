@@ -1,10 +1,13 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
 import { tokenValidationCache } from '@/lib/shopify/ShopifyConnectionProvider';
+
+// Test store configuration for development
+const DEV_TEST_STORE = 'astrem.myshopify.com';
+const DEV_TEST_TOKEN = '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';
 
 interface ShopifyFormSync {
   formId: string;
@@ -22,7 +25,7 @@ const productCache = new Map<string, { products: ShopifyProduct[], timestamp: nu
 const CACHE_EXPIRY = 2 * 60 * 1000; 
 
 export const useShopify = () => {
-  const { shopDomain: shop, isConnected, testConnection } = useShopifyConnection();
+  const { shopDomain: shop, isConnected, testConnection, isDevMode } = useShopifyConnection();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -47,6 +50,13 @@ export const useShopify = () => {
   const getAccessToken = useCallback(async (shopDomain: string): Promise<string | null> => {
     try {
       if (!shopDomain) return null;
+      
+      // Development mode test store bypass
+      if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log(`[DEV MODE] Using hardcoded token for test store: ${DEV_TEST_STORE}`);
+        setAccessToken(DEV_TEST_TOKEN);
+        return DEV_TEST_TOKEN;
+      }
       
       // Generate unique request ID for logging
       const requestId = `get_token_${Math.random().toString(36).substring(2, 8)}`;
@@ -78,7 +88,7 @@ export const useShopify = () => {
       setTokenError(true);
       return null;
     }
-  }, []);
+  }, [isDevMode]);
   
   // Reset error states function
   const resetErrorStates = useCallback(() => {
@@ -101,6 +111,55 @@ export const useShopify = () => {
   
   // Load products when connected - use the connection provider for status
   const loadProducts = useCallback(async () => {
+    // Development mode bypass for test store
+    if (isDevMode && shop === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Using mock products for test store');
+      
+      // Create some mock products for test store in development
+      const mockProducts: ShopifyProduct[] = [
+        {
+          id: 'gid://shopify/Product/1',
+          title: '[DEV] Test Product 1',
+          handle: 'test-product-1',
+          description: 'This is a test product for development mode',
+          images: [{
+            id: 'gid://shopify/ProductImage/1',
+            src: 'https://via.placeholder.com/800x600?text=Test+Product+1',
+            altText: 'Test Product 1'
+          }],
+          variants: [{
+            id: 'gid://shopify/ProductVariant/1',
+            title: 'Default',
+            price: '19.99'
+          }]
+        },
+        {
+          id: 'gid://shopify/Product/2',
+          title: '[DEV] Test Product 2',
+          handle: 'test-product-2',
+          description: 'This is another test product for development mode',
+          images: [{
+            id: 'gid://shopify/ProductImage/2',
+            src: 'https://via.placeholder.com/800x600?text=Test+Product+2',
+            altText: 'Test Product 2'
+          }],
+          variants: [{
+            id: 'gid://shopify/ProductVariant/2',
+            title: 'Default',
+            price: '29.99'
+          }]
+        }
+      ];
+      
+      setProducts(mockProducts);
+      
+      // Cache the mock products
+      const cacheKey = `products:${shop}`;
+      productCache.set(cacheKey, { products: mockProducts, timestamp: Date.now() });
+      
+      return mockProducts;
+    }
+    
     if (!isConnected || !shop) {
       console.log('Cannot load products: no active connection or shop');
       return [];
@@ -256,10 +315,21 @@ export const useShopify = () => {
     requestsInProgress.set(cacheKey, requestPromise);
     
     return requestPromise;
-  }, [isConnected, shop, getAccessToken, testConnection, resetErrorStates]);
+  }, [isConnected, shop, getAccessToken, testConnection, resetErrorStates, isDevMode]);
   
   // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
+    // Development mode bypass for test store
+    if (isDevMode && (shop === DEV_TEST_STORE || formData.shopDomain === DEV_TEST_STORE)) {
+      console.log('[DEV MODE] Mock form sync for test store:', formData);
+      toast.success('تم مزامنة النموذج مع متجر الاختبار (وضع التطوير)');
+      return { 
+        success: true, 
+        message: 'تمت المزامنة بنجاح (وضع التطوير)',
+        devMode: true
+      };
+    }
+    
     if (!isConnected && !failSafeMode) {
       throw new Error('Not connected to Shopify');
     }
@@ -345,7 +415,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop, getAccessToken, pendingSyncForms, testConnection, resetErrorStates]);
+  }, [isConnected, failSafeMode, shop, getAccessToken, pendingSyncForms, testConnection, resetErrorStates, isDevMode]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
@@ -559,6 +629,7 @@ export const useShopify = () => {
     failSafeMode,
     pendingSyncForms,
     isNetworkError,
+    isDevMode, // Export the dev mode flag
     toggleFailSafeMode,
     loadProducts,
     syncForm,

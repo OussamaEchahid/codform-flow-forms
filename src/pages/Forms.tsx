@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +7,9 @@ import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { clearShopifyCache } from '@/hooks/useShopify';
+
+// Test store configuration for development
+const DEV_TEST_STORE = 'astrem.myshopify.com';
 
 const Forms = () => {
   const navigate = useNavigate();
@@ -19,7 +21,8 @@ const Forms = () => {
     error,
     syncState,
     testConnection,
-    reload
+    reload,
+    isDevMode // Use the isDevMode flag from context
   } = useShopifyConnection();
   
   const [isVerifying, setIsVerifying] = useState(false);
@@ -34,12 +37,25 @@ const Forms = () => {
     retryAttempts: number;
     lastTestResult: boolean | null;
     lastTestTime: string | null;
+    devModeEnabled?: boolean;
+    testStoreActive?: boolean;
   }>({
     connectionState: 'unknown',
     retryAttempts: 0,
     lastTestResult: null,
-    lastTestTime: null
+    lastTestTime: null,
+    devModeEnabled: isDevMode,
+    testStoreActive: shopDomain === DEV_TEST_STORE
   });
+  
+  // Update debug info when relevant props change
+  useEffect(() => {
+    setDebugInfo(prev => ({
+      ...prev,
+      devModeEnabled: isDevMode,
+      testStoreActive: shopDomain === DEV_TEST_STORE
+    }));
+  }, [isDevMode, shopDomain]);
   
   // Reset cached connection data
   const resetConnectionCache = useCallback(() => {
@@ -59,26 +75,63 @@ const Forms = () => {
   
   // Try API-based connection check first
   const checkConnectionViaApi = useCallback(async (shopName: string): Promise<boolean> => {
+    // Dev mode bypass for test store
+    if (isDevMode && shopName === DEV_TEST_STORE) {
+      console.log(`[DEV MODE] Bypassing API connection check for test store: ${shopName}`);
+      return true;
+    }
+    
     try {
       console.log(`Checking connection via API for shop: ${shopName}`);
-      const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopName)}&force=true`);
       
-      if (!response.ok) {
-        console.error('API connection check failed:', await response.text());
-        return false;
+      // Try POST first
+      try {
+        const postResponse = await fetch(`/api/shopify-test-connection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop: shopName, 
+            force: true,
+            requestId: `api_check_${Math.random().toString(36).substring(2, 8)}`
+          })
+        });
+        
+        if (postResponse.ok) {
+          const result = await postResponse.json();
+          console.log('API POST connection check result:', result);
+          return result.success === true;
+        }
+        
+        // Fallback to GET if POST fails
+        throw new Error('POST request failed');
+      } catch (postError) {
+        console.log('Falling back to GET request:', postError);
+        const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopName)}&force=true`);
+        
+        if (!response.ok) {
+          console.error('API connection check failed:', await response.text());
+          return false;
+        }
+        
+        const result = await response.json();
+        console.log('API GET connection check result:', result);
+        return result.success === true;
       }
-      
-      const result = await response.json();
-      console.log('API connection check result:', result);
-      return result.success === true;
     } catch (error) {
       console.error('Error in API connection check:', error);
       return false;
     }
-  }, []);
+  }, [isDevMode]);
   
   // Manual connection check - with retries and clear validation
   const manualConnectionCheck = useCallback(async () => {
+    // Dev mode bypass for test store
+    if (isDevMode && shopDomain === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Bypassing manual connection check for test store');
+      toast.success('متجر الاختبار متصل في وضع التطوير');
+      return true;
+    }
+    
     setManualRetryAttempted(true);
     setIsVerifying(true);
     
@@ -166,15 +219,25 @@ const Forms = () => {
     } finally {
       setIsVerifying(false);
     }
-  }, [navigate, syncState, testConnection, reload, shopDomain, checkConnectionViaApi]);
+  }, [navigate, syncState, testConnection, reload, shopDomain, checkConnectionViaApi, isDevMode]);
   
   // Advanced check connection function with better retry mechanism
   const checkConnection = useCallback(async () => {
-    const requestId = `forms_check_${Math.random().toString(36).substring(2, 8)}`;
+    // Dev mode bypass - don't check connection for test store
+    if (isDevMode && shopDomain === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Skipping connection check for test store');
+      setDebugInfo(prev => ({
+        ...prev,
+        connectionState: 'dev_mode_bypass',
+        lastTestResult: true,
+        lastTestTime: new Date().toISOString()
+      }));
+      return;
+    }
     
     // Skip check if we're already loading/validating or have redirected
     if (isLoading || isValidating || isVerifying || hasRedirected) {
-      console.log(`[${requestId}] Skipping connection check, status:`, { 
+      console.log(`Skipping connection check, status:`, { 
         isLoading, isValidating, isVerifying, hasRedirected 
       });
       return;
@@ -270,10 +333,16 @@ const Forms = () => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected, isVerifying, checkConnectionViaApi]);
+  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected, isVerifying, checkConnectionViaApi, isDevMode]);
   
   // Check connection once on load with improved reliability
   useEffect(() => {
+    // Skip connection check in dev mode for test store
+    if (isDevMode && shopDomain === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Using test store in dev mode, skipping connection check');
+      return;
+    }
+    
     const timerRef = setTimeout(() => {
       if (!hasRedirected) {
         checkConnection();
@@ -281,7 +350,7 @@ const Forms = () => {
     }, 400); // Short delay to let other effects settle
     
     return () => clearTimeout(timerRef);
-  }, [checkConnection, hasRedirected]);
+  }, [checkConnection, hasRedirected, isDevMode, shopDomain]);
   
   // Show loading state
   if (isLoading || isValidating || isVerifying) {

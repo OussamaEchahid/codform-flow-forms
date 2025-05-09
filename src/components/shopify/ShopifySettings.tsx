@@ -4,13 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { AlertCircle, Info, RefreshCw, Wrench } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useShopifySettings } from '@/lib/shopify/ShopifySettingsProvider';
+import { toast } from 'sonner';
+
+// Test store configuration
+const DEV_TEST_STORE = 'astrem.myshopify.com';
+const DEV_TEST_TOKEN = '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';
 
 const ShopifySettings: React.FC = () => {
   const { language } = useI18n();
   const { settings, updateSettings, resetSettings } = useShopifySettings();
+  
+  const [devMode, setDevMode] = React.useState(() => 
+    localStorage.getItem('shopify_dev_mode') === 'true'
+  );
 
   const handleFallbackModeChange = (checked: boolean) => {
     updateSettings({
@@ -33,6 +42,39 @@ const ShopifySettings: React.FC = () => {
   const handleResetSettings = () => {
     resetSettings();
   };
+  
+  // Development mode toggle handler
+  const handleDevModeChange = (checked: boolean) => {
+    setDevMode(checked);
+    
+    if (checked) {
+      // Enable development mode with test store
+      localStorage.setItem('shopify_dev_mode', 'true');
+      localStorage.setItem('shopify_store', DEV_TEST_STORE);
+      localStorage.setItem('shopify_connected', 'true');
+      
+      toast.success(
+        language === 'ar' 
+          ? `تم تفعيل وضع التطوير مع متجر الاختبار: ${DEV_TEST_STORE}` 
+          : `Development mode enabled with test store: ${DEV_TEST_STORE}`
+      );
+      
+      // Reload after a short delay
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      // Disable development mode
+      localStorage.removeItem('shopify_dev_mode');
+      
+      toast.info(
+        language === 'ar' 
+          ? 'تم تعطيل وضع التطوير' 
+          : 'Development mode disabled'
+      );
+      
+      // Reload after a short delay
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  };
 
   return (
     <Card className="w-full border border-gray-200 shadow-sm mb-4">
@@ -48,6 +90,42 @@ const ShopifySettings: React.FC = () => {
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
         <div className="space-y-6">
+          {/* Development Mode Section */}
+          <div className="border-b pb-4 bg-blue-50 p-4 rounded-md">
+            <h3 className="text-sm font-medium mb-2 flex items-center">
+              <Wrench className="h-4 w-4 mr-1 text-blue-600" />
+              {language === 'ar' ? 'وضع التطوير' : 'Development Mode'}
+            </h3>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium" htmlFor="dev-mode">
+                  {language === 'ar' ? 'تمكين وضع التطوير' : 'Enable Development Mode'}
+                </Label>
+                <p className="text-xs text-gray-700">
+                  {language === 'ar' 
+                    ? `استخدام متجر اختباري (${DEV_TEST_STORE}) للتطوير`
+                    : `Use test store (${DEV_TEST_STORE}) for development`}
+                </p>
+              </div>
+              <Switch
+                id="dev-mode"
+                checked={devMode}
+                onCheckedChange={handleDevModeChange}
+              />
+            </div>
+            
+            {devMode && (
+              <div className="mt-3 bg-blue-100 p-2 rounded text-xs text-blue-800">
+                <p className="font-medium mb-1">
+                  {language === 'ar' ? 'متجر الاختبار نشط' : 'Test store active'}
+                </p>
+                <p>{language === 'ar' ? 'المتجر:' : 'Store:'} {DEV_TEST_STORE}</p>
+                <p>{language === 'ar' ? 'الرمز:' : 'Token:'} {DEV_TEST_TOKEN.substring(0, 8)}...{DEV_TEST_TOKEN.substring(DEV_TEST_TOKEN.length - 4)}</p>
+              </div>
+            )}
+          </div>
+          
           <div className="border-b pb-4">
             <h3 className="text-sm font-medium mb-2">
               {language === 'ar' ? 'وضع الاتصال' : 'Connection Mode'}
@@ -116,7 +194,7 @@ const ShopifySettings: React.FC = () => {
             </div>
           </div>
 
-          {(settings.fallbackModeOnly || settings.ignoreMetaobjectErrors) && (
+          {(settings.fallbackModeOnly || settings.ignoreMetaobjectErrors || devMode) && (
             <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
               <div className="flex gap-2">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
