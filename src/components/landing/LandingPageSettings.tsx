@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -90,7 +89,10 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
       });
       
       setDialogOpen(false);
-      onClose();
+      // استخدم مهلة صغيرة قبل استدعاء onClose للسماح للحالة باستقرار أولاً
+      setTimeout(() => {
+        onClose();
+      }, 10);
     } catch (error) {
       console.error('Error saving page:', error);
     } finally {
@@ -98,10 +100,13 @@ const LandingPageSettings: React.FC<LandingPageSettingsProps> = ({ page, onSave,
     }
   };
 
-  // Handle dialog close
+  // Handle dialog close in a synchronized manner
   const handleDialogClose = () => {
     setDialogOpen(false);
-    onClose();
+    // استخدم مهلة صغيرة قبل استدعاء onClose للسماح للحالة باستقرار أولاً
+    setTimeout(() => {
+      onClose();
+    }, 10);
   };
 
   // Handle slug auto-generation when title changes

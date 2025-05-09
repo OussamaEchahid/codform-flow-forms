@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -52,6 +51,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setFormElements
   } = useFormEditor(id);
 
+  // دعنا نضيف مرجعًا لتتبع ما إذا كان هناك أي حوارات مفتوحة
+  const openDialogRef = useRef<boolean>(false);
+  
   // Debounced save function to prevent multiple rapid saves
   const debouncedSave = useCallback(() => {
     // Clear any existing timeout
@@ -113,9 +115,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
   }, [id, loadFormData, language]); 
 
-  // Safe save handler with debounce - returns a Promise<void> to match expected type
+  // تحديث دالة النقل الآمن مع وضع حالة الحوارات في الاعتبار
   const safeSave = useCallback(async (): Promise<void> => {
     return new Promise((resolve) => {
+      // إذا كان هناك حوار مفتوح، فلا تقم بعملية الحفظ
+      if (openDialogRef.current) {
+        console.log('Skipping save, dialog is open');
+        resolve();
+        return;
+      }
+      
       debouncedSave();
       // Resolve the promise immediately since the actual save is debounced
       resolve();
@@ -214,6 +223,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onSave={safeSave}
       onPublish={handlePublish}
       onShopifyIntegration={handleShopifyIntegration}
+      
+      // إضافة مرجع للحوارات المفتوحة
+      dialogRef={openDialogRef}
     />
   );
 };

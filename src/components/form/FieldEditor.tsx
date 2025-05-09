@@ -20,6 +20,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const [isOpen, setIsOpen] = useState(true);
   
   const handleClose = () => {
+    // تأكد من تغيير الحالة أولاً ثم استدعاء onClose
     setIsOpen(false);
     onClose();
   };
@@ -65,6 +66,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     ? `تعديل حقل ${field.label || field.type}` 
     : `Edit ${field.label || field.type} Field`;
 
+  // تأكد من أن الحوار يُغلق بشكل نظيف عندما تتغير قيمة isOpen
   return (
     <EditorContainer 
       title={editorTitle} 

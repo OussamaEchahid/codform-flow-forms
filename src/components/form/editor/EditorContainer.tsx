@@ -8,14 +8,19 @@ interface EditorContainerProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  open: boolean; // خاصية التحكم في العرض/الإخفاء
+  open: boolean;
 }
 
 const EditorContainer = ({ title, onClose, children, open }: EditorContainerProps) => {
-  // استخدام onOpenChange للتأكد من تفعيل onClose عند إغلاق الحوار
+  // تأكد من تنفيذ onClose فقط عندما يتم إغلاق الحوار بالفعل
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) onClose();
   };
+
+  // إذا لم يكن الحوار مفتوحاً، لا تقم بعرض أي شيء على الإطلاق
+  if (!open) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

@@ -1,5 +1,4 @@
-
-import React, { useState, memo, useCallback } from 'react';
+import React, { useState, memo, useCallback, MutableRefObject } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,6 +52,9 @@ interface FormEditorLayoutProps {
   onSave: () => Promise<void>;
   onPublish: () => Promise<void>;
   onShopifyIntegration: (settings: any) => Promise<void>;
+  
+  // مرجع اختياري لتتبع حالة الحوارات
+  dialogRef?: MutableRefObject<boolean>;
 }
 
 // Memoize the component to prevent unnecessary re-renders
@@ -81,6 +83,7 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
   onSave,
   onPublish,
   onShopifyIntegration,
+  dialogRef,
 }) => {
   const { language } = useI18n();
   
@@ -90,6 +93,13 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   const [activeTab, setActiveTab] = useState<string>("editor");
+
+  // تحديث حالة الحوار في المرجع عندما يفتح أو يغلق أي حوار
+  React.useEffect(() => {
+    if (dialogRef) {
+      dialogRef.current = isStyleDialogOpen || isTemplateDialogOpen || isFieldEditorOpen;
+    }
+  }, [isStyleDialogOpen, isTemplateDialogOpen, isFieldEditorOpen, dialogRef]);
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -209,22 +219,26 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
         </div>
       </div>
       
-      {/* Dialogs */}
-      <FormStyleEditor
-        isOpen={isStyleDialogOpen}
-        onOpenChange={setIsStyleDialogOpen}
-        formStyle={formStyle}
-        onStyleChange={onStyleChange}
-        onSave={handleSaveStyle}
-      />
-
-      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-        <FormTemplatesDialog 
-          open={isTemplateDialogOpen}
-          onSelect={handleSelectTemplate} 
-          onClose={() => setIsTemplateDialogOpen(false)}
+      {/* Dialogs - تأكد من عدم عرض محتوى الحوار إذا كان مغلقًا */}
+      {isStyleDialogOpen && (
+        <FormStyleEditor
+          isOpen={isStyleDialogOpen}
+          onOpenChange={setIsStyleDialogOpen}
+          formStyle={formStyle}
+          onStyleChange={onStyleChange}
+          onSave={handleSaveStyle}
         />
-      </Dialog>
+      )}
+
+      {isTemplateDialogOpen && (
+        <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+          <FormTemplatesDialog 
+            open={isTemplateDialogOpen}
+            onSelect={handleSelectTemplate} 
+            onClose={() => setIsTemplateDialogOpen(false)}
+          />
+        </Dialog>
+      )}
 
       {isFieldEditorOpen && currentEditingField && (
         <FieldEditor
