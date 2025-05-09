@@ -54,8 +54,8 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
     try {
       setIsCreating(true);
       
-      // توليد الرابط المختصر من اسم الصفحة
-      const slug = pageName
+      // Generate slug from page name
+      let slug = pageName
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^\w\-]+/g, '')
@@ -63,7 +63,11 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         .replace(/^-+/, '')
         .replace(/-+$/, '');
       
-      // استخدام معرّف المنتج كما هو (سواء كان GID من Shopify أو معرّف محلي)
+      // Add a random string to ensure uniqueness
+      const timestamp = new Date().getTime().toString().slice(-6);
+      slug = `${slug}-${timestamp}`;
+      
+      // Use the product ID as is (whether it's a Shopify GID or a local ID)
       const selectedProductId = productId || null;
       
       console.log('Creating landing page with:', { 
@@ -73,7 +77,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
         product_id: selectedProductId
       });
       
-      // إنشاء الصفحة
+      // Create the page
       const { data, error } = await supabase
         .from('landing_pages')
         .insert({
@@ -92,7 +96,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
       
       console.log('Created landing page:', data);
       
-      // الانتقال إلى المحرر
+      // Navigate to the editor
       toast.success(language === 'ar' ? 'تم إنشاء الصفحة بنجاح' : 'Page created successfully');
       navigate(`/landing-pages/editor/${data.id}`);
     } catch (error) {
@@ -103,7 +107,7 @@ const CreateLandingPageDialog: React.FC<CreateLandingPageDialogProps> = ({ open,
     }
   };
 
-  // تأكد من عدم عرض أي شيء إذا كان الحوار مغلقًا
+  // Don't render anything if dialog is closed
   if (!open && !dialogOpen) {
     return null;
   }

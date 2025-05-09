@@ -50,19 +50,51 @@ const LandingPages = () => {
   const fetchLandingPages = async () => {
     try {
       setIsLoading(true);
+      // Fetching landing pages without trying to join with products table
       const { data, error } = await supabase
         .from('landing_pages')
-        .select('*, products(name)')
+        .select('*')
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedPages = data.map(page => ({
-        ...page,
-        product_name: page.products?.name
+      // For pages with product_ids, try to get product names separately
+      const pagesWithProducts = await Promise.all(data.map(async (page) => {
+        let product_name = undefined;
+        
+        if (page.product_id) {
+          // Check if it's a Shopify product ID (starts with gid://)
+          if (page.product_id.startsWith('gid://shopify/Product/')) {
+            // For Shopify products, we could fetch the name separately if needed
+            // For now, just extract the ID part and use as placeholder
+            const productIdParts = page.product_id.split('/');
+            const shopifyId = productIdParts[productIdParts.length - 1];
+            product_name = `Shopify Product (${shopifyId})`;
+          } else {
+            // Try to get name for local product
+            try {
+              const { data: productData } = await supabase
+                .from('products')
+                .select('name')
+                .eq('id', page.product_id)
+                .maybeSingle();
+                
+              if (productData) {
+                product_name = productData.name;
+              }
+            } catch (err) {
+              console.log('Could not fetch product name', err);
+            }
+          }
+        }
+        
+        return {
+          ...page,
+          product_name
+        };
       }));
 
-      setPages(formattedPages);
+      setPages(pagesWithProducts);
     } catch (error) {
       console.error('Error fetching landing pages:', error);
       toast.error(language === 'ar' ? 'خطأ في تحميل الصفحات' : 'Error loading pages');
