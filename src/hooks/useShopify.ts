@@ -414,7 +414,7 @@ export const useShopify = () => {
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
     emergencyReset,
-    testConnection, // Added missing method
-    refreshConnection // Added missing method
+    testConnection, // Add missing method
+    refreshConnection // Add missing method
   };
 };

@@ -1,178 +1,114 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
-  // CORS handling - very important for browser clients
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
-  // Generate a unique request ID for tracing
-  const requestId = req.headers.get('x-request-id') || `req_test_${Math.random().toString(36).substring(2, 10)}`;
   
+  // Parse request body
+  let body;
   try {
-    // Parse the request body
-    const { shop, accessToken, forceRefresh, timestamp } = await req.json();
-    
-    console.log(`[${requestId}] Testing connection for shop: ${shop}`);
-    
-    if (!shop || !accessToken) {
-      throw new Error('Missing required parameters: shop or accessToken');
-    }
-    
-    // Normalize shop domain
-    let normalizedShopDomain = shop;
-    if (!normalizedShopDomain.includes('myshopify.com')) {
-      normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
-    }
-    
-    console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
-    
-    // Make a simple request to the Shopify API to test the connection
-    try {
-      console.log(`[${requestId}] Making request to Shopify API to test connection`);
-      
-      const shopName = normalizedShopDomain.split('.')[0];
-      
-      // Use GraphQL endpoint with a simple shop query to test the connection
-      const graphqlEndpoint = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json`;
-      
-      const query = `{
-        shop {
-          name
-          myshopifyDomain
-        }
-      }`;
-      
-      const response = await fetch(graphqlEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken
-        },
-        body: JSON.stringify({ query })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API responded with status ${response.status}: ${errorText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.errors) {
-        throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
-      }
-      
-      if (!data.data || !data.data.shop) {
-        throw new Error('Invalid API response structure');
-      }
-      
-      // Connection was successful
-      console.log(`[${requestId}] Successfully connected to shop: ${shopName}`);
-      
-      // Store or update the token in the database
-      try {
-        // Get Supabase client
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
-        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        
-        if (supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          
-          // Get existing store
-          const { data: existingStore } = await supabase
-            .from('shopify_stores')
-            .select()
-            .eq('shop', normalizedShopDomain)
-            .limit(1);
-          
-          if (!existingStore || existingStore.length === 0) {
-            // Create new store record
-            await supabase
-              .from('shopify_stores')
-              .insert({
-                shop: normalizedShopDomain,
-                access_token: accessToken,
-                is_active: true
-              });
-          } else {
-            // Update existing store record
-            await supabase
-              .from('shopify_stores')
-              .update({
-                access_token: accessToken,
-                is_active: true,
-                updated_at: new Date().toISOString()
-              })
-              .eq('shop', normalizedShopDomain);
-          }
-        }
-      } catch (dbError) {
-        console.error(`[${requestId}] Database error:`, dbError);
-        // Continue even if database update fails
-      }
-      
-      // Return success response
-      console.log(`[${requestId}] Connection test successful for shop: ${shopName}`);
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          shop: shopName,
-          shopDomain: normalizedShopDomain,
-          message: 'Connection successful'
-        }),
-        { 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          },
-          status: 200
-        }
-      );
-    } catch (apiError) {
-      console.error(`[${requestId}] Connection test failed:`, apiError);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          shop,
-          message: 'Connection test failed',
-          error: apiError instanceof Error ? apiError.message : String(apiError)
-        }),
-        { 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          },
-          status: 200  // We return 200 with error info in the body for better client handling
-        }
-      );
-    }
-  } catch (error) {
-    console.error(`[${requestId}] Error processing request:`, error);
-    
+    body = await req.json();
+  } catch (e) {
     return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Error processing request',
-        error: error instanceof Error ? error.message : String(error)
-      }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 400
-      }
+      JSON.stringify({ success: false, message: 'Invalid JSON body' }),
+      { status: 400, headers: corsHeaders }
     );
   }
-})
+  
+  const { shop, accessToken, requestId = `req_test_${Math.random().toString(36).substring(2, 10)}` } = body;
+  
+  if (!shop || !accessToken) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Missing required parameters: shop and accessToken' }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+  
+  // Normalize shop domain
+  const normalizedShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+  
+  console.log(`[${requestId}] Testing connection for shop: ${normalizedShopDomain}`);
+  console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
+  
+  try {
+    console.log(`[${requestId}] Making request to Shopify API to test connection`);
+    
+    const response = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`[${requestId}] API request failed with status ${response.status}`);
+      
+      // Get error details
+      let errorDetails;
+      try {
+        errorDetails = await response.text();
+      } catch (e) {
+        errorDetails = 'Could not read error response';
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `API request failed with status ${response.status}`,
+          details: errorDetails.substring(0, 200)
+        }),
+        { headers: corsHeaders }
+      );
+    }
+    
+    // Try to parse the response 
+    const shopData = await response.json();
+    
+    if (!shopData || !shopData.shop || !shopData.shop.id) {
+      console.error(`[${requestId}] Invalid response format from Shopify API`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Invalid response from Shopify API'
+        }),
+        { headers: corsHeaders }
+      );
+    }
+    
+    console.log(`[${requestId}] Successfully connected to shop: ${shop}`);
+    console.log(`[${requestId}] Connection test successful for shop: ${shop}`);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Connection successful',
+        shopId: shopData.shop.id,
+        shopName: shopData.shop.name,
+        timestamp: new Date().toISOString()
+      }),
+      { headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error(`[${requestId}] Error testing connection:`, error);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        timestamp: new Date().toISOString()
+      }),
+      { headers: corsHeaders }
+    );
+  }
+});

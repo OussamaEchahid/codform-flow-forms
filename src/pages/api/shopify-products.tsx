@@ -88,7 +88,7 @@ export async function GET(request: Request) {
                     node {
                       id
                       title
-                      price: priceV2 {
+                      price {
                         amount
                         currencyCode
                       }

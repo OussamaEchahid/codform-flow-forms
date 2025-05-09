@@ -15,7 +15,8 @@ const Forms = () => {
     shopDomain, 
     isLoading,
     isValidating, 
-    error
+    error,
+    syncState
   } = useShopifyConnection();
   
   // Check connection once on load
@@ -24,7 +25,10 @@ const Forms = () => {
       toast.error('لا يوجد اتصال بمتجر Shopify. الرجاء الاتصال بمتجرك أولاً.');
       navigate('/shopify');
     }
-  }, [isConnected, shopDomain, isLoading, navigate]);
+    
+    // Sync state to ensure we have the latest connection information
+    syncState();
+  }, [isConnected, shopDomain, isLoading, navigate, syncState]);
   
   // Show loading state
   if (isLoading || isValidating) {
