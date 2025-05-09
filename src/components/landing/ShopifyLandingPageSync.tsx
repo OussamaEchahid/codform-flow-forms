@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { Store, LoaderCircle, Eye, ExternalLink, RefreshCw, Info } from 'lucide-react';
+import { Store, LoaderCircle, Eye, ExternalLink, RefreshCw, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -21,13 +22,15 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
   isPublished 
 }) => {
   const { t, language } = useI18n();
-  const { isConnected, shop } = useShopify();
+  const { isConnected, shop, refreshConnection } = useShopify();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'not_synced' | 'syncing' | 'synced'>('not_synced');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [syncedUrl, setSyncedUrl] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
   const [productData, setProductData] = useState<any>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   useEffect(() => {
     if (pageId) {
@@ -88,17 +91,61 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       const { data, error } = await supabase.functions.invoke('shopify-products', {
         body: { 
           shop,
-          productId
+          accessToken: 'token_fetch_only' // Token will be fetched server-side for security
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error from shopify-products function:', error);
+        return;
+      }
       
-      if (data?.product) {
-        setProductData(data.product);
+      if (data?.products && Array.isArray(data.products)) {
+        // Find the product that matches our ID
+        const product = data.products.find(
+          (p: any) => p.id === productGid || p.id.endsWith(`/${productId}`)
+        );
+        
+        if (product) {
+          setProductData(product);
+        } else {
+          console.log('Product not found in fetched products');
+        }
+      } else {
+        console.log('No products returned from API');
       }
     } catch (error) {
       console.error('Error fetching product details:', error);
+    }
+  };
+  
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    setErrorDetails(null);
+    
+    try {
+      // Try to refresh the connection first
+      const refreshed = await refreshConnection();
+      
+      if (refreshed) {
+        toast.success(language === 'ar' 
+          ? 'تم تجديد الاتصال بشوبيفاي بنجاح' 
+          : 'Successfully reconnected to Shopify');
+        
+        // Re-fetch product details
+        if (productId) {
+          await fetchProductDetails(productId);
+        }
+      } else {
+        throw new Error('لم يتم تجديد الاتصال');
+      }
+    } catch (error) {
+      console.error('Error retrying connection:', error);
+      toast.error(language === 'ar' 
+        ? 'فشل في تجديد الاتصال، يرجى إعادة الاتصال يدويًا' 
+        : 'Failed to refresh connection, please reconnect manually');
+    } finally {
+      setIsRetrying(false);
     }
   };
   
@@ -119,6 +166,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     
     setIsSyncing(true);
     setSyncStatus('syncing');
+    setErrorDetails(null);
     
     try {
       // Call the API to publish the landing page to Shopify
@@ -131,7 +179,10 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error from shopify-publish-page function:', error);
+        throw error;
+      }
       
       if (data?.success) {
         toast.success(language === 'ar' 
@@ -154,6 +205,17 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
     } catch (error) {
       console.error('Error publishing to Shopify:', error);
       setSyncStatus('not_synced');
+      
+      // Extract error message to show to user
+      let errorMsg = 'Error connecting to Shopify';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'object' && error && 'message' in error) {
+        errorMsg = String(error.message);
+      }
+      
+      setErrorDetails(errorMsg);
+      
       toast.error(language === 'ar' 
         ? 'خطأ في نشر الصفحة على شوبيفاي' 
         : 'Error publishing to Shopify');
@@ -295,6 +357,42 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
         </Alert>
       )}
       
+      {/* Connection error message */}
+      {errorDetails && (
+        <Alert className="mb-4 bg-red-50 border-red-200">
+          <div className="flex gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <AlertTitle className="text-red-700">
+                {language === 'ar' ? 'خطأ في الاتصال' : 'Connection Error'}
+              </AlertTitle>
+              <AlertDescription className="text-red-600 text-sm">
+                {errorDetails}
+              </AlertDescription>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 border-red-200 hover:bg-red-100 text-red-700"
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <>
+                    <LoaderCircle className="h-3 w-3 ml-2 animate-spin" />
+                    {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 ml-2" />
+                    {language === 'ar' ? 'إعادة المحاولة' : 'Retry Connection'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Alert>
+      )}
+      
       {/* Preview buttons */}
       <div className="mb-4 border-b pb-4">
         <h4 className="text-sm font-medium mb-2">
@@ -307,7 +405,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
             onClick={viewLocalPage}
             className="flex items-center"
           >
-            <Eye className="h-4 w-4 mr-2" />
+            <Eye className="h-4 w-4 ml-2" />
             {language === 'ar' ? 'معاينة محلية' : 'Local Preview'}
           </Button>
           
@@ -320,7 +418,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
                   onClick={viewShopifyPage}
                   className="flex items-center"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <ExternalLink className="h-4 w-4 ml-2" />
                   {language === 'ar' ? 'معاينة الصفحة في شوبيفاي' : 'View Page in Shopify'}
                 </Button>
               )}
@@ -332,7 +430,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
                   onClick={viewProductPage}
                   className="flex items-center"
                 >
-                  <Store className="h-4 w-4 mr-2" />
+                  <Store className="h-4 w-4 ml-2" />
                   {language === 'ar' ? 'صفحة المنتج في شوبيفاي' : 'View Product Page in Shopify'}
                 </Button>
               )}
@@ -345,7 +443,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
       {syncStatus === 'synced' ? (
         <div className="space-y-2">
           <div className="flex items-center text-green-600 text-sm">
-            <Store className="h-4 w-4 mr-1" />
+            <CheckCircle2 className="h-4 w-4 ml-1" />
             {language === 'ar'
               ? 'تم النشر على شوبيفاي'
               : 'Published to Shopify'}
@@ -359,12 +457,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           >
             {isSyncing ? (
               <>
-                <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                <LoaderCircle className="h-4 w-4 ml-2 animate-spin" />
                 {language === 'ar' ? 'جاري التحديث...' : 'Updating...'}
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 ml-2" />
                 {language === 'ar' ? 'تحديث في شوبيفاي' : 'Update on Shopify'}
               </>
             )}
@@ -389,12 +487,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           >
             {isSyncing ? (
               <>
-                <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                <LoaderCircle className="h-4 w-4 ml-2 animate-spin" />
                 {language === 'ar' ? 'جاري النشر...' : 'Publishing...'}
               </>
             ) : (
               <>
-                <Store className="h-4 w-4 mr-2" />
+                <Store className="h-4 w-4 ml-2" />
                 {language === 'ar' ? 'نشر على شوبيفاي' : 'Publish to Shopify'}
               </>
             )}
@@ -407,6 +505,46 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           </p>
         </div>
       )}
+
+      {/* Help Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'مساعدة بخصوص مزامنة شوبيفاي' : 'Shopify Sync Help'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              {language === 'ar'
+                ? 'إذا كنت تواجه مشاكل في المزامنة، تأكد من:'
+                : 'If you\'re having issues with syncing, make sure:'}
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              <li>
+                {language === 'ar'
+                  ? 'أنك متصل بمتجر شوبيفاي الصحيح'
+                  : 'You\'re connected to the correct Shopify store'}
+              </li>
+              <li>
+                {language === 'ar'
+                  ? 'أن رمز الوصول الخاص بك ساري المفعول (قد تحتاج إلى إعادة الاتصال)'
+                  : 'Your access token is valid (you may need to reconnect)'}
+              </li>
+              <li>
+                {language === 'ar'
+                  ? 'أن صفحة الهبوط تم نشرها محلياً'
+                  : 'The landing page is published locally'}
+              </li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)}>
+              {language === 'ar' ? 'إغلاق' : 'Close'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
