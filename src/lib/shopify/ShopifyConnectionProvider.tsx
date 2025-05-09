@@ -128,7 +128,9 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       const tokenAge = tokenData.tokenAge || 0;
       
       // Test the token with Shopify API
-      const testResult = await shopifyStores.functions.invoke('shopify-test-connection', {
+      // Fix: Use the shopifySupabase instance for functions invocation instead of shopifyStores()
+      const { data: shopifySupabase } = await import('./supabase-client');
+      const testResult = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: {
           shop: shopDomain,
           accessToken: data.access_token,
@@ -266,6 +268,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       // If we have a shop, test the connection
       if (shopDomain) {
+        // Fix: Pass forceRefresh as a single argument
         await testConnection(true); // Force refresh on reload
       }
       
