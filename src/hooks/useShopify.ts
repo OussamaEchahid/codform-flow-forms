@@ -28,6 +28,7 @@ export const useShopify = () => {
   const [accessToken, setAccessToken] = useState<string>('');
   const [shopifyAPI, setShopifyAPI] = useState<any>(null);
   const [pendingSyncForms, setPendingSyncForms] = useState<string[]>([]);
+  const [isNetworkError, setIsNetworkError] = useState(false);
   
   // Recovery mode - for handling errors gracefully
   const [failSafeMode, setFailSafeMode] = useState(() => {
@@ -63,6 +64,7 @@ export const useShopify = () => {
           // Test connection immediately to verify token
           testConnection().catch(err => {
             console.log('Initial connection test failed:', err);
+            setIsNetworkError(true);
           });
           return;
         }
@@ -72,6 +74,7 @@ export const useShopify = () => {
         console.error('Error in checkConnection:', error);
         setIsConnected(false);
         setTokenError(true);
+        setIsNetworkError(true);
       }
     };
 
@@ -119,9 +122,11 @@ export const useShopify = () => {
         }
         
         console.log('Token validation successful, proceeding to fetch products');
+        setIsNetworkError(false);
       } catch (testError) {
         console.error('Token validation failed:', testError);
         setTokenError(true);
+        setIsNetworkError(true);
         setIsLoading(false);
         return [];
       }
@@ -137,6 +142,7 @@ export const useShopify = () => {
       });
 
       if (error) {
+        setIsNetworkError(true);
         throw error;
       }
 
@@ -145,6 +151,7 @@ export const useShopify = () => {
         throw new Error('No products data returned from Shopify API');
       }
       
+      setIsNetworkError(false);
       setProducts(data.products || []);
       setIsLoading(false);
       return data.products || [];
@@ -152,6 +159,7 @@ export const useShopify = () => {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
+      setIsNetworkError(true);
       return [];
     }
   }, [isConnected, shop]);
@@ -192,6 +200,7 @@ export const useShopify = () => {
       });
 
       if (error) {
+        setIsNetworkError(true);
         throw error;
       }
 
@@ -199,6 +208,7 @@ export const useShopify = () => {
         setIsConnected(true);
         setTokenError(false);
         setTokenExpired(false);
+        setIsNetworkError(false);
         return true;
       } else {
         throw new Error(data?.message || 'Connection test failed');
@@ -207,6 +217,7 @@ export const useShopify = () => {
       console.error('Connection test failed:', error);
       setIsConnected(false);
       setTokenError(true);
+      setIsNetworkError(true);
       return false;
     } finally {
       if (withRetry) {
@@ -275,12 +286,15 @@ export const useShopify = () => {
         });
         
         if (testError || !testData?.success) {
+          setIsNetworkError(true);
           throw new Error('Token validation failed before form sync');
         }
         
         console.log('Token validation successful, proceeding with form sync');
+        setIsNetworkError(false);
       } catch (testError) {
         console.error('Token validation failed:', testError);
+        setIsNetworkError(true);
         throw new Error('Could not verify Shopify connection before sync');
       }
       
@@ -301,14 +315,17 @@ export const useShopify = () => {
       });
 
       if (error) {
+        setIsNetworkError(true);
         throw error;
       }
 
       setIsSyncing(false);
+      setIsNetworkError(false);
       return data;
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
       setIsSyncing(false);
+      setIsNetworkError(true);
       
       // If sync fails, store pending sync
       const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
@@ -363,6 +380,7 @@ export const useShopify = () => {
     } catch (error) {
       console.error('Error in resyncPendingForms:', error);
       toast.error('Error resyncing pending forms');
+      setIsNetworkError(true);
     } finally {
       setIsSyncing(false);
     }
@@ -392,6 +410,7 @@ export const useShopify = () => {
     setTokenExpired(false);
     setFailSafeMode(false);
     setPendingSyncForms([]);
+    setIsNetworkError(false);
     
     // Clear Shopify connection manager
     shopifyConnectionManager.clearAllStores();
@@ -413,6 +432,7 @@ export const useShopify = () => {
     error: tokenError,
     failSafeMode,
     pendingSyncForms,
+    isNetworkError,
     toggleFailSafeMode,
     loadProducts,
     testConnection,

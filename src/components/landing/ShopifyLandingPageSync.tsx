@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -223,7 +222,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({
           localStorage.setItem(`page_sync_${pageId}`, JSON.stringify(syncInfo));
           
           // Update state
-          setSyncStatus(syncInfo.status);
+          setSyncStatus(syncInfo.status as 'success' | 'partial' | 'error');
           setLastSynced(currentTime);
           setSyncsCount(newSyncsCount);
           
