@@ -166,8 +166,8 @@ export const useShopify = () => {
             shop, 
             accessToken: token,
             requestId: reqId
-          },
-          signal: abortController.signal
+          }
+          // Remove the signal property as it's not supported in the type
         });
         
         if (error) {
@@ -177,6 +177,7 @@ export const useShopify = () => {
           console.log(`[${reqId}] Retrying with API route...`);
           setIsRetrying(true);
           
+          // Create a fetch request that we can abort if needed
           const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(shop)}&debug=true`, {
             signal: abortController.signal
           });
