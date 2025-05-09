@@ -20,7 +20,6 @@ interface RequestPayload {
   forceRefresh?: boolean;
   maxRetries?: number;
   checkPermissions?: boolean;
-  ignoreMetaobjectErrors?: boolean; // جديد: تجاهل أخطاء صلاحيات metaobject
 }
 
 // Required Shopify scopes for our application
@@ -34,16 +33,8 @@ const REQUIRED_SCOPES = [
   'write_themes',
   'read_content',
   'write_content',
-  // تمت إضافة الصلاحية المطلوبة للمتاجر الحديثة
-  'write_metaobject_definitions'
-];
-
-// صلاحيات أساسية مطلوبة لعمل التطبيق بأقل وظائف
-const ESSENTIAL_SCOPES = [
-  'write_products', 
-  'read_products',
-  'read_content',
-  'write_content'
+  // Metaobjects require this scope (not in our app yet)
+  // 'write_metaobject_definitions'
 ];
 
 // Helper to add retries for fetch requests
@@ -83,11 +74,10 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
 }
 
 // Check if the token has all required permissions
-async function checkTokenPermissions(shop: string, accessToken: string, requestId: string, ignoreMetaobjectErrors: boolean = false): Promise<{
+async function checkTokenPermissions(shop: string, accessToken: string, requestId: string): Promise<{
   valid: boolean;
   missingScopes: string[];
   currentScopes: string[];
-  hasBasicPermissions: boolean; // جديد: التحقق من وجود الصلاحيات الأساسية
 }> {
   try {
     console.log(`[${requestId}] Checking token permissions/scopes`);
@@ -103,12 +93,7 @@ async function checkTokenPermissions(shop: string, accessToken: string, requestI
 
     if (!response.ok) {
       console.error(`[${requestId}] Failed to get access scopes: ${response.status}`);
-      return { 
-        valid: false, 
-        missingScopes: REQUIRED_SCOPES, 
-        currentScopes: [],
-        hasBasicPermissions: false
-      };
+      return { valid: false, missingScopes: REQUIRED_SCOPES, currentScopes: [] };
     }
 
     const data = await response.json();
@@ -119,52 +104,15 @@ async function checkTokenPermissions(shop: string, accessToken: string, requestI
     // Check if all required scopes are present
     const missingScopes = REQUIRED_SCOPES.filter(scope => !currentScopes.includes(scope));
     
-    // التحقق من الصلاحيات الأساسية
-    const missingEssentialScopes = ESSENTIAL_SCOPES.filter(scope => !currentScopes.includes(scope));
-    const hasBasicPermissions = missingEssentialScopes.length === 0;
-    
-    // إذا تم طلب تجاهل أخطاء metaobject وكانت الصلاحيات الأساسية موجودة
-    if (ignoreMetaobjectErrors && hasBasicPermissions) {
-      // تجاهل أخطاء metaobject فقط ولكن التحقق من باقي الصلاحيات
-      const nonMetaobjectMissingScopes = missingScopes.filter(
-        scope => !scope.includes('metaobject')
-      );
-      
-      if (nonMetaobjectMissingScopes.length === 0) {
-        console.log(`[${requestId}] Ignoring metaobject permissions, basic permissions are valid`);
-        return { 
-          valid: true, 
-          missingScopes: missingScopes, // نعيد الصلاحيات المفقودة للإعلام فقط
-          currentScopes,
-          hasBasicPermissions: true
-        };
-      }
-    }
-    
     if (missingScopes.length > 0) {
       console.log(`[${requestId}] Missing scopes:`, missingScopes);
-      return { 
-        valid: false, 
-        missingScopes, 
-        currentScopes,
-        hasBasicPermissions
-      };
+      return { valid: false, missingScopes, currentScopes };
     }
     
-    return { 
-      valid: true, 
-      missingScopes: [], 
-      currentScopes,
-      hasBasicPermissions: true
-    };
+    return { valid: true, missingScopes: [], currentScopes };
   } catch (error) {
     console.error(`[${requestId}] Error checking permissions:`, error);
-    return { 
-      valid: false, 
-      missingScopes: REQUIRED_SCOPES, 
-      currentScopes: [],
-      hasBasicPermissions: false
-    };
+    return { valid: false, missingScopes: REQUIRED_SCOPES, currentScopes: [] };
   }
 }
 
@@ -181,7 +129,7 @@ serve(async (req) => {
   try {
     // Parse request body
     const payload: RequestPayload = await req.json();
-    let { shop, accessToken, forceRefresh, checkPermissions, ignoreMetaobjectErrors } = payload;
+    let { shop, accessToken, forceRefresh, checkPermissions } = payload;
     const requestId = payload.requestId || `req_test_${Math.random().toString(36).substring(2, 8)}`;
     const maxRetries = payload.maxRetries || 3;
 
@@ -239,35 +187,11 @@ serve(async (req) => {
       console.log(`[${requestId}] Successfully connected to shop: ${shopName}`);
       
       // Check permissions if requested
-      let permissionsResult = { 
-        valid: true, 
-        missingScopes: [], 
-        currentScopes: [],
-        hasBasicPermissions: true
-      };
+      let permissionsResult = { valid: true, missingScopes: [], currentScopes: [] };
       
       if (checkPermissions) {
-        permissionsResult = await checkTokenPermissions(
-          shopDomain, 
-          accessToken, 
-          requestId,
-          ignoreMetaobjectErrors
-        );
+        permissionsResult = await checkTokenPermissions(shopDomain, accessToken, requestId);
         console.log(`[${requestId}] Permissions check result:`, permissionsResult);
-        
-        // إذا كانت لدينا الصلاحيات الأساسية لكن تم تعيين تجاهل أخطاء metaobject
-        if (!permissionsResult.valid && ignoreMetaobjectErrors && permissionsResult.hasBasicPermissions) {
-          console.log(`[${requestId}] Using relaxed permission validation due to ignoreMetaobjectErrors flag`);
-          // تحقق مما إذا كانت جميع الصلاحيات المفقودة هي صلاحيات metaobject
-          const nonMetaobjectMissingScopes = permissionsResult.missingScopes.filter(
-            scope => !scope.includes('metaobject')
-          );
-          
-          if (nonMetaobjectMissingScopes.length === 0) {
-            // إذا كانت الصلاحيات المفقودة فقط هي metaobject، نعتبر الاتصال صالحًا
-            permissionsResult.valid = true;
-          }
-        }
       }
 
       // Update shop record in database to mark as active
@@ -300,9 +224,7 @@ serve(async (req) => {
             valid: permissionsResult.valid,
             missingScopes: permissionsResult.missingScopes,
             currentScopes: permissionsResult.currentScopes,
-            hasBasicPermissions: permissionsResult.hasBasicPermissions,
-            hasMetaobjectPermission: permissionsResult.currentScopes.includes('write_metaobject_definitions'),
-            metaobjectPermissionsIgnored: ignoreMetaobjectErrors
+            hasMetaobjectPermission: permissionsResult.currentScopes.includes('write_metaobject_definitions')
           } : undefined
         }),
         {
