@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { clearShopifyCache } from '@/hooks/useShopify';
 
 const Forms = () => {
   const navigate = useNavigate();
@@ -17,14 +18,15 @@ const Forms = () => {
     isValidating, 
     error,
     syncState,
-    testConnection
+    testConnection,
+    reload
   } = useShopifyConnection();
   
   const [isVerifying, setIsVerifying] = useState(false);
   const [retries, setRetries] = useState(0);
   const [hasRedirected, setHasRedirected] = useState(false); // Prevent infinite redirects
   const [manualRetryAttempted, setManualRetryAttempted] = useState(false);
-  const maxRetries = 3; // Increased max retries
+  const maxRetries = 3; // Max retries
   
   // Enhanced debug mode
   const [debugInfo, setDebugInfo] = useState<{
@@ -39,20 +41,78 @@ const Forms = () => {
     lastTestTime: null
   });
   
+  // Reset cached connection data
+  const resetConnectionCache = useCallback(() => {
+    // Clear all Shopify-related localStorage items
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_token');
+    localStorage.removeItem('shopify_failsafe');
+    
+    // Call our cache clearing function
+    clearShopifyCache();
+    
+    toast.success('تم مسح البيانات المخزنة مؤقتًا، جاري إعادة التحقق من الاتصال');
+    
+    // Reload the page to ensure fresh state
+    window.location.reload();
+  }, []);
+  
+  // Try API-based connection check first
+  const checkConnectionViaApi = useCallback(async (shopName: string): Promise<boolean> => {
+    try {
+      console.log(`Checking connection via API for shop: ${shopName}`);
+      const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopName)}&force=true`);
+      
+      if (!response.ok) {
+        console.error('API connection check failed:', await response.text());
+        return false;
+      }
+      
+      const result = await response.json();
+      console.log('API connection check result:', result);
+      return result.success === true;
+    } catch (error) {
+      console.error('Error in API connection check:', error);
+      return false;
+    }
+  }, []);
+  
   // Manual connection check - with retries and clear validation
   const manualConnectionCheck = useCallback(async () => {
     setManualRetryAttempted(true);
     setIsVerifying(true);
     
     try {
-      // Hard refresh the state first
+      // Clear cached data first
+      clearShopifyCache();
+      
+      // Hard refresh the state
       await syncState();
+      await reload();
       
       // Wait a moment
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Get the current time before test
-      const startTime = new Date().toISOString();
+      // Get the current shop domain
+      const currentShop = shopDomain || localStorage.getItem('shopify_store');
+      
+      if (!currentShop) {
+        toast.error('لم يتم العثور على معلومات المتجر. الرجاء الاتصال بمتجرك أولاً.');
+        navigate('/shopify');
+        return;
+      }
+      
+      // Try API check first
+      const apiCheckSuccessful = await checkConnectionViaApi(currentShop);
+      
+      if (apiCheckSuccessful) {
+        toast.success('تم التحقق من الاتصال بنجاح عبر API');
+        await reload();
+        return true;
+      }
+      
+      // If API check fails, fall back to direct check
+      console.log("API check failed, falling back to direct connection test");
       
       // Force refresh the connection test - try multiple times
       let isValid = false;
@@ -76,7 +136,7 @@ const Forms = () => {
             connectionState: 'connected',
             lastTestResult: true
           }));
-          break;
+          return true;
         }
         
         if (attempts < 3) {
@@ -95,14 +155,18 @@ const Forms = () => {
         
         // Navigate to settings if all attempts fail
         navigate('/settings');
+        return false;
       }
+      
+      return true;
     } catch (error) {
       console.error('Error during manual connection check:', error);
       toast.error('حدث خطأ أثناء التحقق من الاتصال');
+      return false;
     } finally {
       setIsVerifying(false);
     }
-  }, [navigate, syncState, testConnection]);
+  }, [navigate, syncState, testConnection, reload, shopDomain, checkConnectionViaApi]);
   
   // Advanced check connection function with better retry mechanism
   const checkConnection = useCallback(async () => {
@@ -136,8 +200,17 @@ const Forms = () => {
         return;
       }
       
-      // Sync connection state first to ensure we have latest data
-      console.log(`[${requestId}] Syncing connection state`);
+      // Try API-based check first
+      const apiCheckSuccessful = await checkConnectionViaApi(shopDomain);
+      
+      if (apiCheckSuccessful) {
+        console.log(`[${requestId}] API connection check successful`);
+        setRetries(0);
+        return;
+      }
+      
+      // If API check fails, sync connection state and try direct check
+      console.log(`[${requestId}] API check failed, syncing state`);
       await syncState();
       
       // If still not connected after syncState, redirect
@@ -197,7 +270,7 @@ const Forms = () => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected]);
+  }, [isConnected, shopDomain, isLoading, isValidating, navigate, syncState, testConnection, retries, hasRedirected, isVerifying, checkConnectionViaApi]);
   
   // Check connection once on load with improved reliability
   useEffect(() => {
@@ -220,8 +293,8 @@ const Forms = () => {
           <p className="text-xs text-gray-400 mt-2">محاولة {retries}/{maxRetries}</p>
         )}
         
-        {/* Manual retry option after 2 automatic retries */}
-        {retries >= 2 && !manualRetryAttempted && (
+        {/* Manual retry option after automatic retries */}
+        {retries >= 1 && !manualRetryAttempted && (
           <Button 
             variant="outline" 
             className="mt-4" 
@@ -230,6 +303,18 @@ const Forms = () => {
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             إعادة محاولة التحقق
+          </Button>
+        )}
+        
+        {/* Option to reset cached data */}
+        {retries >= 2 && (
+          <Button 
+            variant="outline" 
+            className="mt-2 border-red-300 text-red-600 hover:bg-red-50" 
+            onClick={resetConnectionCache}
+            disabled={isVerifying}
+          >
+            مسح بيانات الاتصال المخزنة
           </Button>
         )}
         
@@ -290,6 +375,14 @@ const Forms = () => {
             العودة للوحة التحكم
           </Button>
         </div>
+        
+        <Button 
+          variant="outline" 
+          className="mt-4 border-red-300 text-red-600 hover:bg-red-50" 
+          onClick={resetConnectionCache}
+        >
+          مسح بيانات الاتصال المخزنة
+        </Button>
       </div>
     );
   }

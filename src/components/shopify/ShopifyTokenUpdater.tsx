@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { tokenValidationCache } from '@/lib/shopify/ShopifyConnectionProvider'; // Import the exported cache
+import { toast } from 'sonner';
+import { clearShopifyCache } from '@/hooks/useShopify';
 
 export const ShopifyTokenUpdater = () => {
   const [shopDomain, setShopDomain] = useState<string>('');
@@ -18,7 +20,6 @@ export const ShopifyTokenUpdater = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasPlaceholderToken, setHasPlaceholderToken] = useState<boolean>(false);
   const [updateAttempt, setUpdateAttempt] = useState<number>(0); // Track update attempts
-  const { toast } = useToast();
   const { shopDomain: connectedShop, syncState, reload, testConnection } = useShopifyConnection();
   
   // Load the current shop when the component mounts
@@ -71,6 +72,31 @@ export const ShopifyTokenUpdater = () => {
     }
   };
 
+  // Emergency reset function
+  const performEmergencyReset = () => {
+    // Clear all Shopify-related localStorage items
+    localStorage.removeItem('shopify_connected');
+    localStorage.removeItem('shopify_store');
+    localStorage.removeItem('shopify_token');
+    localStorage.removeItem('shopify_failsafe');
+    localStorage.removeItem('pending_form_syncs');
+    localStorage.removeItem('shopify_recovery_mode');
+    localStorage.removeItem('shopify_last_url_shop');
+    
+    // Clear all caches
+    if (tokenValidationCache) {
+      tokenValidationCache.clear();
+    }
+    clearShopifyCache();
+    
+    // Reset state
+    setIsSuccess(false);
+    setError(null);
+    
+    toast.success("تم إعادة تعيين حالة الاتصال، سيتم إعادة تحميل الصفحة");
+    setTimeout(() => window.location.reload(), 1500);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -95,13 +121,12 @@ export const ShopifyTokenUpdater = () => {
         throw new Error('لا يمكن استخدام "placeholder_token" كرمز وصول حقيقي');
       }
       
-      // Clear token validation cache before update
+      // Clear all caches before update
       if (tokenValidationCache) {
         console.log(`[${requestId}] Clearing token validation cache before update`);
         tokenValidationCache.clear();
-      } else {
-        console.warn(`[${requestId}] Token validation cache not available`);
       }
+      clearShopifyCache();
       
       // Call the update-shopify-token Edge Function
       const { data, error } = await shopifySupabase.functions.invoke('update-shopify-token', {
@@ -124,16 +149,36 @@ export const ShopifyTokenUpdater = () => {
       
       console.log(`[${requestId}] Token updated successfully, syncing state`);
       
+      // Clear all caches again for fresh start
+      if (tokenValidationCache) {
+        console.log(`[${requestId}] Clearing token validation cache after update`);
+        tokenValidationCache.clear();
+      }
+      clearShopifyCache();
+      
+      // Reset localStorage values to trigger fresh state
+      localStorage.removeItem('shopify_connected');
+      
       // Sync the connection state to reflect the changes - with retry mechanism
       await syncState();
       
       // Wait a moment to allow state to update
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Clear token validation cache again after update to ensure fresh validation
-      if (tokenValidationCache) {
-        console.log(`[${requestId}] Clearing token validation cache after update`);
-        tokenValidationCache.clear();
+      // Try the API-based test connection first
+      try {
+        console.log(`[${requestId}] Testing connection via API route`);
+        const apiResponse = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopDomain)}&force=true`);
+        
+        if (!apiResponse.ok) {
+          console.error(`[${requestId}] API connection test failed:`, await apiResponse.text());
+        } else {
+          const apiResult = await apiResponse.json();
+          console.log(`[${requestId}] API connection test result:`, apiResult);
+        }
+      } catch (apiError) {
+        console.error(`[${requestId}] Error using API test:`, apiError);
+        // Continue even if API test fails - will try direct test next
       }
       
       // Reload the connection state
@@ -164,17 +209,13 @@ export const ShopifyTokenUpdater = () => {
       
       if (!isConnected) {
         console.error(`[${requestId}] All connection tests failed after token update`);
-        throw new Error('تم تحديث الرمز، لكن اختبار الاتصال فشل. يرجى التحقق من الرمز وإعادة المحاولة.');
+        throw new Error('تم تحديث الرمز، لكن اختبار الاتصال فشل. يرجى التحقق من الرمز وإعادة المحاولة أو استخدام زر إعادة تعيين الحالة أدناه.');
       }
       
       console.log(`[${requestId}] Connection verified successfully after token update`);
       setIsSuccess(true);
       setHasPlaceholderToken(false);
-      toast({
-        title: "تم التحديث بنجاح",
-        description: "تم تحديث رمز وصول Shopify بنجاح.",
-        variant: "success",
-      });
+      toast.success("تم تحديث رمز وصول Shopify بنجاح.");
       
       // Clear the token field
       setAccessToken('');
@@ -182,11 +223,7 @@ export const ShopifyTokenUpdater = () => {
       console.error('Error updating token:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
-      toast({
-        title: "فشل التحديث",
-        description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
-        variant: "destructive",
-      });
+      toast.error("فشل التحديث: " + (err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز'));
     } finally {
       setIsLoading(false);
     }
@@ -249,7 +286,7 @@ export const ShopifyTokenUpdater = () => {
           </p>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={isLoading || !shopDomain || !accessToken}>
             {isLoading ? (
               <>
@@ -262,6 +299,16 @@ export const ShopifyTokenUpdater = () => {
                 تحديث رمز الوصول
               </>
             )}
+          </Button>
+          
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="border-red-300 text-red-600 hover:bg-red-50"
+            onClick={performEmergencyReset}
+            disabled={isLoading}
+          >
+            إعادة تعيين حالة الاتصال
           </Button>
         </div>
       </form>

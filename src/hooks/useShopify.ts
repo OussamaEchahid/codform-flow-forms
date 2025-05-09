@@ -222,7 +222,7 @@ export const useShopify = () => {
         
         return data.products || [];
       } catch (error) {
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           console.log(`[${reqId}] Request was aborted`);
           return [];
         }
