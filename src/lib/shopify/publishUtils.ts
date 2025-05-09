@@ -76,24 +76,39 @@ export const getFormMetaobjectDefinition = async (form: Form, shop: string, acce
       }
     `;
 
-    const response = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken,
-      },
-      body: JSON.stringify({ query }),
-    });
+    // Add timeout to fetch operations
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const response = await fetch(`https://${shop}/admin/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+        },
+        body: JSON.stringify({ query }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      console.error('Failed to get metaobject definition:', response.status, response.statusText);
+      if (!response.ok) {
+        console.error('Failed to get metaobject definition:', response.status, response.statusText);
+        return null;
+      }
+
+      const { data } = await response.json();
+      const definition = data?.metaobjectDefinitions?.edges?.[0]?.node;
+
+      return definition;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Network error getting metaobject definition:', fetchError);
+      
+      // Return null but don't throw to allow fallback publishing to work
       return null;
     }
-
-    const { data } = await response.json();
-    const definition = data?.metaobjectDefinitions?.edges?.[0]?.node;
-
-    return definition;
   } catch (error) {
     console.error('Error getting metaobject definition:', error);
     return null;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,7 +14,8 @@ import {
   Settings,
   Share2,
   ShieldAlert,
-  ShoppingCart
+  ShoppingCart,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -41,6 +43,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useShopifySettings } from '@/lib/shopify/ShopifySettingsProvider';
+import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 interface ShopifyLandingPageSyncProps {
   pageId: string;
@@ -64,8 +67,16 @@ interface PublishResult {
 const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId, pageSlug, isPublished }) => {
   const { language } = useI18n();
   const navigate = useNavigate();
-  const { isConnected, shop, products, isLoading: isShopifyLoading, loadProducts, testConnection } = useShopify();
-  const { settings } = useShopifySettings(); // Import the shopify settings
+  const { 
+    isConnected, 
+    shop, 
+    products, 
+    isLoading: isShopifyLoading, 
+    loadProducts, 
+    testConnection 
+  } = useShopify();
+  const { settings } = useShopifySettings();
+  const { isNetworkError } = useShopifyConnection(); // Get network error state from context
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -85,6 +96,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
   const [permissionError, setPermissionError] = useState<boolean>(false);
   const [loadPermissions, setLoadPermissions] = useState<boolean>(false);
   const [missingPermissions, setMissingPermissions] = useState<string[]>([]);
+  const [bypassValidation, setBypassValidation] = useState<boolean>(false); // New state for bypassing validation
 
   // Sync local state with global settings
   useEffect(() => {
@@ -93,10 +105,23 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
     setIgnoreMetaobjectErrors(settings.ignoreMetaobjectErrors);
   }, [settings.debugMode, settings.fallbackModeOnly, settings.ignoreMetaobjectErrors]);
 
+  // Enable bypass validation if network error is detected
+  useEffect(() => {
+    if (isNetworkError) {
+      setBypassValidation(true);
+      // Auto-enable fallback mode with network errors
+      setFallbackMode(true);
+      console.log('Network error detected, enabling bypass validation and fallback mode');
+    }
+  }, [isNetworkError]);
+
   // Load products when connected
   useEffect(() => {
     if (isConnected && shop) {
-      loadProducts();
+      loadProducts().catch(err => {
+        console.error("Error loading products:", err);
+        // If products can't be loaded, we'll still show the UI with empty products
+      });
     }
   }, [isConnected, shop, loadProducts]);
 
@@ -139,29 +164,48 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
     try {
       setLoadPermissions(true);
       
-      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
-        body: { 
-          shop, 
-          accessToken: '', // Will be retrieved server-side
-          checkPermissions: true,
-          requestId: `perm_check_${Math.random().toString(36).substring(2, 8)}`
-        }
-      });
-      
-      if (error || !data.success) {
-        console.error('Error checking permissions:', error || data?.message);
-        toast.error(language === 'ar' ? 'خطأ في التحقق من الصلاحيات' : 'Error checking permissions');
+      // Skip permission check if we have network errors
+      if (isNetworkError || bypassValidation) {
+        console.log('Skipping permission check due to network issues');
+        // Auto-enable fallback mode and assume we need it
+        setFallbackMode(true);
+        setPermissionError(true);
+        setMissingPermissions(['Assuming permissions missing due to network issues']);
         return;
       }
       
-      if (data.permissions) {
-        setPermissionError(!data.permissions.valid);
-        setMissingPermissions(data.permissions.missingScopes || []);
+      try {
+        const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
+          body: { 
+            shop, 
+            accessToken: '', // Will be retrieved server-side
+            checkPermissions: true,
+            requestId: `perm_check_${Math.random().toString(36).substring(2, 8)}`
+          }
+        });
         
-        if (!data.permissions.hasMetaobjectPermission) {
-          console.log('Missing metaobject permission');
-          setFallbackMode(true); // Auto-enable fallback mode
+        if (error || !data?.success) {
+          console.error('Error checking permissions:', error || data?.message);
+          // If check fails, assume we need fallback mode
+          setFallbackMode(true);
+          setPermissionError(true);
+          return;
         }
+        
+        if (data.permissions) {
+          setPermissionError(!data.permissions.valid);
+          setMissingPermissions(data.permissions.missingScopes || []);
+          
+          if (!data.permissions.hasMetaobjectPermission) {
+            console.log('Missing metaobject permission');
+            setFallbackMode(true); // Auto-enable fallback mode
+          }
+        }
+      } catch (error) {
+        console.error('Network error checking permissions:', error);
+        // Auto-enable fallback mode on network errors
+        setFallbackMode(true);
+        setPermissionError(true);
       }
     } catch (error) {
       console.error('Error in handleCheckPermissions:', error);
@@ -174,7 +218,7 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
     if (isConnected && shop) {
       handleCheckPermissions();
     }
-  }, [isConnected, shop]);
+  }, [isConnected, shop, isNetworkError, bypassValidation]);
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true);
@@ -185,6 +229,12 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
   };
 
   const checkConnection = async (): Promise<boolean> => {
+    // Skip connection test if we're in network error mode or bypass validation
+    if (isNetworkError || bypassValidation || fallbackMode) {
+      console.log('Skipping connection test due to network issues or fallback mode');
+      return true; // Assume connection is valid
+    }
+    
     if (!isConnected) {
       toast.error(language === 'ar' ? 'يرجى الاتصال بـ Shopify أولاً' : 'Please connect to Shopify first');
       return false;
@@ -198,6 +248,13 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
       return result;
     } catch (error) {
       console.error('Connection test error:', error);
+      // If this is likely a network error, be permissive
+      if (error.message?.includes('Failed to fetch') || 
+          error.message?.includes('NetworkError')) {
+        console.log('Network error detected during connection test, proceeding anyway');
+        setBypassValidation(true);
+        return true;
+      }
       toast.error(language === 'ar' ? 'خطأ في اختبار الاتصال' : 'Connection test error');
       return false;
     }
@@ -219,9 +276,13 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
       setPublishResult(null);
       setSyncError(null);
       
-      // First test connection
-      const connectionValid = await checkConnection();
-      if (!connectionValid) {
+      // First test connection - but skip if we're in fallback mode or have network issues
+      let connectionValid = true;
+      if (!fallbackMode && !isNetworkError && !bypassValidation) {
+        connectionValid = await checkConnection();
+      }
+      
+      if (!connectionValid && !fallbackMode && !isNetworkError && !bypassValidation) {
         setIsPublishing(false);
         setIsErrorDialogOpen(true);
         setSyncError('connection_failed');
@@ -234,7 +295,9 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
         productId: selectedProductId,
         fallbackMode,
         debugMode,
-        ignoreMetaobjectErrors
+        ignoreMetaobjectErrors,
+        bypassValidation,
+        isNetworkError
       });
       
       // Show toast with progress
@@ -244,54 +307,107 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
           : 'Publishing to Shopify store...'
       );
       
-      const { data, error } = await supabase.functions.invoke('shopify-publish-page', {
-        body: {
-          pageId,
-          pageSlug,
-          productId: selectedProductId,
-          shop,
-          accessToken: '', // Will be retrieved server-side
-          requestId: `publish_${Math.random().toString(36).substring(2, 8)}`,
-          timestamp: Date.now(),
-          fallbackOnly: fallbackMode,
-          debugMode: debugMode,
-          ignoreMetaobjectErrors: ignoreMetaobjectErrors, // Pass the ignoreMetaobjectErrors setting
-        }
-      });
-      
-      if (error) {
-        console.error('Error from shopify-publish-page function:', error);
-        toast.error(language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify', { id: toastId });
-        setSyncError('function_error');
-        setIsErrorDialogOpen(true);
-        return;
-      }
-      
-      if (!data.success) {
-        console.error('Error from function:', data.message);
-        toast.error(data.message || (language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify'), { id: toastId });
-        setPublishResult(data);
-        setSyncError('api_error');
-        setIsErrorDialogOpen(true);
-        return;
-      }
-      
-      // Success
-      setPublishResult(data);
-      toast.success(language === 'ar' ? 'تم النشر بنجاح' : 'Published successfully', { id: toastId });
-      setSyncStatus('synced');
-      setIsDialogOpen(false);
-      setIsSuccessDialogOpen(true);
-      
-      // Update sync info
-      const { data: syncData } = await supabase
-        .from('shopify_page_syncs')
-        .select('*')
-        .eq('page_id', pageId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase.functions.invoke('shopify-publish-page', {
+          body: {
+            pageId,
+            pageSlug,
+            productId: selectedProductId,
+            shop,
+            accessToken: '', // Will be retrieved server-side
+            requestId: `publish_${Math.random().toString(36).substring(2, 8)}`,
+            timestamp: Date.now(),
+            fallbackOnly: fallbackMode || isNetworkError || bypassValidation, // Use fallback if network issues
+            debugMode: debugMode,
+            ignoreMetaobjectErrors: ignoreMetaobjectErrors || isNetworkError || bypassValidation, // Ignore errors with network issues
+          }
+        });
         
-      if (syncData) {
-        setSyncInfo(syncData);
+        if (error) {
+          console.error('Error from shopify-publish-page function:', error);
+          
+          // Check if this is a network error
+          if (error.message?.includes('Failed to fetch') || 
+              error.message?.includes('NetworkError') ||
+              error.message?.includes('Failed to send')) {
+            
+            // Enable bypass mode and try again with full fallback
+            if (!fallbackMode || !ignoreMetaobjectErrors) {
+              setBypassValidation(true);
+              setFallbackMode(true);
+              setIgnoreMetaobjectErrors(true);
+              
+              toast.error(language === 'ar' 
+                ? 'خطأ في الشبكة، جاري إعادة المحاولة بالوضع الاحتياطي...' 
+                : 'Network error, retrying with fallback mode...', 
+                { id: toastId }
+              );
+              
+              // Try again with fallback mode
+              setIsPublishing(false);
+              setTimeout(() => {
+                handlePublishToShopify();
+              }, 500);
+              return;
+            }
+            
+            // If already in fallback mode, show network error
+            toast.error(language === 'ar' ? 'خطأ في الشبكة' : 'Network error', { id: toastId });
+            setSyncError('network_error');
+            setIsErrorDialogOpen(true);
+            return;
+          }
+          
+          toast.error(language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify', { id: toastId });
+          setSyncError('function_error');
+          setIsErrorDialogOpen(true);
+          return;
+        }
+        
+        if (!data.success) {
+          console.error('Error from function:', data.message);
+          toast.error(data.message || (language === 'ar' ? 'فشل النشر في Shopify' : 'Failed to publish to Shopify'), { id: toastId });
+          setPublishResult(data);
+          setSyncError('api_error');
+          setIsErrorDialogOpen(true);
+          return;
+        }
+        
+        // Success
+        setPublishResult(data);
+        toast.success(language === 'ar' ? 'تم النشر بنجاح' : 'Published successfully', { id: toastId });
+        setSyncStatus('synced');
+        setIsDialogOpen(false);
+        setIsSuccessDialogOpen(true);
+        
+        // Update sync info
+        const { data: syncData } = await supabase
+          .from('shopify_page_syncs')
+          .select('*')
+          .eq('page_id', pageId)
+          .maybeSingle();
+          
+        if (syncData) {
+          setSyncInfo(syncData);
+        }
+      } catch (functionError) {
+        console.error('Error invoking function:', functionError);
+        
+        // Check if it's a network error
+        if (functionError.message?.includes('Failed to fetch') || 
+            functionError.message?.includes('NetworkError')) {
+          
+          // Set network error state
+          setBypassValidation(true);
+          setSyncError('network_error');
+          
+          toast.error(language === 'ar' ? 'خطأ في الشبكة' : 'Network error', { id: toastId });
+          setIsErrorDialogOpen(true);
+        } else {
+          toast.error(language === 'ar' ? 'حدث خطأ أثناء النشر' : 'Error during publishing', { id: toastId });
+          setSyncError('unknown_error');
+          setIsErrorDialogOpen(true);
+        }
       }
     } catch (error) {
       console.error('Error in handlePublishToShopify:', error);
@@ -327,6 +443,13 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
           description: language === 'ar'
             ? 'حدث خطأ في وظيفة النشر. يرجى المحاولة مرة أخرى لاحقًا.'
             : 'There was an error in the publishing function. Please try again later.'
+        };
+      case 'network_error':
+        return {
+          title: language === 'ar' ? 'خطأ في الشبكة' : 'Network Error',
+          description: language === 'ar'
+            ? 'حدث خطأ في الشبكة أثناء محاولة الاتصال بـ Shopify. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى، أو استخدام وضع النشر الاحتياطي.'
+            : 'A network error occurred while trying to connect to Shopify. Please check your internet connection and try again, or use fallback publishing mode.'
         };
       case 'api_error':
         return {
@@ -399,6 +522,20 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                     : 'Not connected to a Shopify store'}
                 </p>
               </div>
+            )}
+            
+            {(isNetworkError || bypassValidation) && (
+              <Alert variant="warning" className="mt-2 bg-amber-50">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>
+                  {language === 'ar' ? 'وضع الاتصال المحدود' : 'Limited Connection Mode'}
+                </AlertTitle>
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'تم اكتشاف مشكلات في الشبكة. سنستخدم وضع النشر الاحتياطي.' 
+                    : 'Network issues detected. Using fallback publishing mode.'}
+                </AlertDescription>
+              </Alert>
             )}
             
             {permissionError && (
@@ -565,7 +702,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Switch
                       id="fallback-mode"
-                      checked={fallbackMode}
+                      checked={fallbackMode || isNetworkError || bypassValidation}
+                      disabled={isNetworkError || bypassValidation} // Disable if we have network errors
                       onCheckedChange={setFallbackMode}
                     />
                     <Label htmlFor="fallback-mode" className="cursor-pointer">
@@ -601,7 +739,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                 <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
                   <Switch
                     id="ignore-metaobject-errors"
-                    checked={ignoreMetaobjectErrors}
+                    checked={ignoreMetaobjectErrors || isNetworkError || bypassValidation}
+                    disabled={isNetworkError || bypassValidation} // Disable if we have network errors
                     onCheckedChange={setIgnoreMetaobjectErrors}
                   />
                   <Label htmlFor="ignore-metaobject-errors" className="cursor-pointer">
@@ -620,6 +759,21 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                     </Tooltip>
                   </TooltipProvider>
                 </div>
+
+                {/* Network error mode indicator */}
+                {(isNetworkError || bypassValidation) && (
+                  <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                    <WifiOff className="h-4 w-4" />
+                    <AlertTitle>
+                      {language === 'ar' ? 'وضع الشبكة المحدود' : 'Limited Network Mode'}
+                    </AlertTitle>
+                    <AlertDescription>
+                      {language === 'ar' 
+                        ? 'تم اكتشاف مشكلات في الشبكة. سيتم تفعيل جميع خيارات الاحتياط تلقائيًا لضمان نجاح النشر.'
+                        : 'Network issues detected. All failsafe options have been automatically enabled to ensure publishing succeeds.'}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 
                 {permissionError && (
                   <Alert variant="warning" className="bg-amber-50">
@@ -635,8 +789,8 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
                         <div className="mt-2 text-xs">
                           {language === 'ar' ? 'الصلاحيات المفقودة:' : 'Missing permissions:'}
                           <ul className="list-disc ms-4 mt-1">
-                            {missingPermissions.map(scope => (
-                              <li key={scope}>{scope}</li>
+                            {missingPermissions.map((scope, idx) => (
+                              <li key={idx}>{scope}</li>
                             ))}
                           </ul>
                         </div>
@@ -777,6 +931,20 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
               <p className="mt-1 text-red-700">{renderErrorMessage().description}</p>
             </div>
             
+            {syncError === 'network_error' && (
+              <Alert variant="warning" className="bg-amber-50">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>
+                  {language === 'ar' ? 'مشكلة في الشبكة' : 'Network Issue'}
+                </AlertTitle>
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'تم اكتشاف مشكلات في الشبكة. حاول استخدام وضع النشر الاحتياطي لتجاوز هذه المشكلة.'
+                    : 'Network issues have been detected. Try using fallback publishing mode to bypass this issue.'}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {publishResult?.hasMetaobjectPermission === false && (
               <Alert variant="warning" className="bg-amber-50">
                 <ShieldAlert className="h-4 w-4" />
@@ -815,8 +983,25 @@ const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ pageId,
               {language === 'ar' ? 'إغلاق' : 'Close'}
             </Button>
             
+            {/* Enable fallback options for network issues */}
+            {(syncError === 'network_error' || syncError === 'connection_failed') && (
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setFallbackMode(true);
+                  setIgnoreMetaobjectErrors(true);
+                  setBypassValidation(true);
+                  handleRetry();
+                }}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'استخدام الوضع الاحتياطي' : 'Use Full Fallback Mode'}
+              </Button>
+            )}
+            
             {/* Auto-enable fallback mode on next attempt if permission issue detected */}
-            {publishResult?.hasMetaobjectPermission === false && (
+            {publishResult?.hasMetaobjectPermission === false && !fallbackMode && (
               <Button
                 variant="secondary"
                 className="flex-1"

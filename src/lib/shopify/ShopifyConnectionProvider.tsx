@@ -13,6 +13,7 @@ interface ShopifyConnectionContextType {
   isLoading: boolean;
   error: string | null;
   isValidating: boolean;
+  isNetworkError: boolean; // New flag to indicate network issues
   reload: () => Promise<void>;
   disconnect: () => Promise<void>;
   syncState: () => Promise<boolean>;
@@ -26,6 +27,7 @@ const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
   isLoading: true,
   error: null,
   isValidating: false,
+  isNetworkError: false, // Initialize the new flag
   reload: async () => {},
   disconnect: async () => {},
   syncState: async () => false,
@@ -46,6 +48,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [lastValidated, setLastValidated] = useState<number>(0);
+  const [isNetworkError, setIsNetworkError] = useState<boolean>(false); // New state for network issues
   
   // Add a validation counter to prevent infinite validation loops
   const validationAttempts = useRef<number>(0);
@@ -115,15 +118,54 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       
       // Test token with edge function
       const token = data[0].access_token;
-      const response = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { shop, accessToken: token },
-        headers: { 'Cache-Control': 'no-cache' }
-      });
+      let response;
+
+      try {
+        // Set a timeout for fetch operations to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        response = await shopifySupabase.functions.invoke('shopify-test-connection', {
+          body: { shop, accessToken: token },
+          headers: { 'Cache-Control': 'no-cache' },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        // Handle network errors gracefully
+        connectionLogger.error('Network error in token test:', fetchError);
+        setIsNetworkError(true);
+        
+        // Update cache with permissive validation
+        cachedValidation.current = {
+          shop,
+          isValid: true, // Be permissive with network errors
+          timestamp: now
+        };
+        
+        // In case of network error, assume connection is valid if we have the token
+        return true;
+      }
       
-      if (response.error) {
+      if (response?.error) {
         connectionLogger.error('Token test failed:', response.error);
-        // Despite error, we'll be more permissive if the token exists
-        // This helps with network errors during edge function calls
+        
+        // Check if it's likely a network error
+        if (response.error.message?.includes('Failed to fetch') || 
+            response.error.message?.includes('NetworkError') ||
+            response.error.message?.includes('Failed to send a request')) {
+          setIsNetworkError(true);
+          
+          // Update cache with permissive validation
+          cachedValidation.current = {
+            shop,
+            isValid: true, // Be more permissive with network errors
+            timestamp: now
+          };
+          
+          return true; // Be permissive - assume valid on network errors
+        }
         
         // Update cache with permissive validation
         cachedValidation.current = {
@@ -142,11 +184,20 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
         timestamp: now
       };
       
+      // Reset network error state on successful call
+      setIsNetworkError(false);
+      
       connectionLogger.info('Token test successful:', { shop, success: response.data?.success });
       return response.data?.success || false;
     } catch (error) {
       connectionLogger.error('Error testing connection:', error);
-      // Be lenient with network errors - if we have a token, consider it valid
+      // Check if this is a network error
+      if (error.message?.includes('Failed to fetch') || 
+          error.message?.includes('NetworkError') ||
+          error.name === 'AbortError') {
+        setIsNetworkError(true);
+      }
+      // Be lenient with errors - if we have a token, consider it valid
       return true;
     }
   }, []);
@@ -201,7 +252,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
         // Still try to validate in the background but don't wait for it
         testConnection(shop).then((isValid) => {
           // Only update if it's invalid, don't disrupt valid connections
-          if (!isValid) {
+          if (!isValid && !isNetworkError) {  // Ignore validation failures if network error
             connectionLogger.warn('Background validation failed for:', shop);
             // But don't disconnect - be more permissive
           }
@@ -216,9 +267,22 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       }
       
       // Test connection with Shopify
-      const isValid = await testConnection(shop);
+      let isValid;
+      try {
+        isValid = await testConnection(shop);
+      } catch (testError) {
+        // If test fails with network error, assume connection is valid
+        connectionLogger.error('Error testing connection:', testError);
+        if (testError.message?.includes('Failed to fetch') || 
+            testError.message?.includes('NetworkError')) {
+          setIsNetworkError(true);
+          isValid = true; // Be permissive with network errors
+        } else {
+          isValid = false;
+        }
+      }
       
-      if (!isValid) {
+      if (!isValid && !isNetworkError) { // Don't invalidate if it's a network error
         connectionLogger.warn('Connection test failed for shop:', shop);
         
         // Be more lenient - if the test failed but we have a shop in local storage,
@@ -249,6 +313,12 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       setLastValidated(Date.now());
     } catch (error) {
       connectionLogger.error('Error validating connection:', error);
+      // Check if this is a network error
+      if (error.message?.includes('Failed to fetch') || 
+          error.message?.includes('NetworkError')) {
+        setIsNetworkError(true);
+      }
+      
       // Be more permissive - don't disconnect on validation errors
       const shop = getShopDomain();
       if (shop) {
@@ -263,7 +333,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       setIsLoading(false);
       setIsValidating(false);
     }
-  }, [getShopDomain, testConnection]);
+  }, [getShopDomain, testConnection, isNetworkError]);
 
   // Initialize connection on mount
   useEffect(() => {
@@ -272,6 +342,8 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
 
   // Reload connection state
   const reload = useCallback(async () => {
+    // Reset network error state on reload
+    setIsNetworkError(false);
     await validateConnection(true); // Force validation
   }, [validateConnection]);
   
@@ -283,6 +355,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
       // Update local state
       setIsConnected(false);
       setShopDomain(null);
+      setIsNetworkError(false); // Reset network error state
       
       // Clear localStorage
       localStorage.removeItem('shopify_store');
@@ -364,6 +437,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
     setShopDomain(shop);
     setIsConnected(true);
     setError(null);
+    setIsNetworkError(false); // Reset network error state
     
     // Update localStorage with multiple approaches for redundancy
     try {
@@ -405,6 +479,7 @@ export const ShopifyConnectionProvider: React.FC<ShopifyConnectionProviderProps>
     isLoading,
     error,
     isValidating,
+    isNetworkError, // Include the new flag in the context value
     reload,
     disconnect,
     syncState,
