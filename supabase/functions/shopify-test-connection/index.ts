@@ -13,99 +13,110 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
-  // Parse request body
-  let body;
+
   try {
-    body = await req.json();
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ success: false, message: 'Invalid JSON body' }),
-      { status: 400, headers: corsHeaders }
-    );
-  }
-  
-  const { shop, accessToken, requestId = `req_test_${Math.random().toString(36).substring(2, 10)}` } = body;
-  
-  if (!shop || !accessToken) {
-    return new Response(
-      JSON.stringify({ success: false, message: 'Missing required parameters: shop and accessToken' }),
-      { status: 400, headers: corsHeaders }
-    );
-  }
-  
-  // Normalize shop domain
-  const normalizedShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
-  
-  console.log(`[${requestId}] Testing connection for shop: ${normalizedShopDomain}`);
-  console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
-  
-  try {
-    console.log(`[${requestId}] Making request to Shopify API to test connection`);
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Failed to parse request body:', e);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON body' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
     
-    const response = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken
-      }
-    });
+    // Extract parameters
+    const { shop, accessToken, timestamp, requestId = `req_test_${Math.random().toString(36).substring(2, 8)}` } = body;
     
-    if (!response.ok) {
-      console.error(`[${requestId}] API request failed with status ${response.status}`);
+    console.log(`[${requestId}] Testing connection for shop: ${shop}`);
+    
+    if (!shop || !accessToken) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing required parameters: shop and accessToken' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
+    // Normalize shop domain
+    const normalizedShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+    console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
+    
+    try {
+      // Test connection to Shopify API
+      console.log(`[${requestId}] Making request to Shopify API to test connection`);
+      const response = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[${requestId}] Shopify API returned error: ${response.status}`, errorText);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Shopify API returned error: ${response.status}`,
+            details: errorText,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: corsHeaders }
+        );
+      }
+
+      // Parse response
+      const data = await response.json();
       
-      // Get error details
-      let errorDetails;
-      try {
-        errorDetails = await response.text();
-      } catch (e) {
-        errorDetails = 'Could not read error response';
+      if (!data || !data.shop) {
+        console.error(`[${requestId}] Invalid response format from Shopify API`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid response format from Shopify API',
+            details: JSON.stringify(data),
+            timestamp: new Date().toISOString()
+          }),
+          { headers: corsHeaders }
+        );
       }
       
+      // Connection successful
+      console.log(`[${requestId}] Successfully connected to shop: ${normalizedShopDomain}`);
+      console.log(`[${requestId}] Connection test successful for shop: ${normalizedShopDomain}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Connection test successful',
+          shopName: data.shop.name,
+          shopId: data.shop.id,
+          shopDomain: normalizedShopDomain,
+          timestamp: new Date().toISOString()
+        }),
+        { headers: corsHeaders }
+      );
+    } catch (apiError) {
+      console.error(`[${requestId}] Error connecting to Shopify API:`, apiError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: `API request failed with status ${response.status}`,
-          details: errorDetails.substring(0, 200)
+          error: `Error connecting to Shopify API: ${apiError.message || 'Unknown error'}`,
+          timestamp: new Date().toISOString()
         }),
         { headers: corsHeaders }
       );
     }
-    
-    // Try to parse the response 
-    const shopData = await response.json();
-    
-    if (!shopData || !shopData.shop || !shopData.shop.id) {
-      console.error(`[${requestId}] Invalid response format from Shopify API`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid response from Shopify API'
-        }),
-        { headers: corsHeaders }
-      );
-    }
-    
-    console.log(`[${requestId}] Successfully connected to shop: ${normalizedShopDomain}`);
-    console.log(`[${requestId}] Connection test successful for shop: ${normalizedShopDomain}`);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Connection successful',
-        shopId: shopData.shop.id,
-        shopName: shopData.shop.name,
-        timestamp: new Date().toISOString()
-      }),
-      { headers: corsHeaders }
-    );
   } catch (error) {
-    console.error(`[${requestId}] Error testing connection:`, error);
-    
+    const errorId = `error_${Math.random().toString(36).substring(2, 8)}`;
+    console.error(`[${errorId}] Unexpected error:`, error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: `Unexpected error: ${error.message || 'Unknown error'}`,
+        errorId,
         timestamp: new Date().toISOString()
       }),
       { headers: corsHeaders }

@@ -1,9 +1,10 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
+import { tokenValidationCache } from '@/lib/shopify/ShopifyConnectionProvider';
 
 interface ShopifyFormSync {
   formId: string;
@@ -17,9 +18,8 @@ interface ShopifyFormSync {
 
 // Cache for API responses to reduce redundant calls
 const productCache = new Map<string, { products: ShopifyProduct[], timestamp: number }>();
-// Token validation cache to avoid excessive API calls
-const tokenValidationCache = new Map<string, { valid: boolean; timestamp: number; token: string }>();
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+// Cache expiry reduced to 2 minutes
+const CACHE_EXPIRY = 2 * 60 * 1000; 
 
 export const useShopify = () => {
   const { shopDomain: shop, isConnected, testConnection } = useShopifyConnection();
@@ -41,11 +41,16 @@ export const useShopify = () => {
 
   // Rate limiting for API calls
   const requestsInProgress = new Map<string, Promise<any>>();
+  const abortControllers = useRef<Map<string, AbortController>>(new Map());
   
   // Get access token for the current shop
   const getAccessToken = useCallback(async (shopDomain: string): Promise<string | null> => {
     try {
       if (!shopDomain) return null;
+      
+      // Generate unique request ID for logging
+      const requestId = `get_token_${Math.random().toString(36).substring(2, 8)}`;
+      console.log(`[${requestId}] Getting access token for shop: ${shopDomain}`);
       
       const { data, error } = await shopifyStores()
         .select('access_token')
@@ -53,11 +58,20 @@ export const useShopify = () => {
         .single();
         
       if (error || !data?.access_token) {
-        console.error('Error getting access token:', error);
+        console.error(`[${requestId}] Error getting access token:`, error);
         setTokenError(true);
         return null;
       }
       
+      // Check if token is placeholder
+      if (data.access_token === 'placeholder_token') {
+        console.warn(`[${requestId}] Detected placeholder token for shop: ${shopDomain}`);
+        setTokenError(true);
+        setTokenExpired(true);
+        return null;
+      }
+      
+      console.log(`[${requestId}] Successfully retrieved token for: ${shopDomain}`);
       return data.access_token;
     } catch (error) {
       console.error('Error getting access token:', error);
@@ -71,6 +85,18 @@ export const useShopify = () => {
     setTokenError(false);
     setTokenExpired(false);
     setIsNetworkError(false);
+  }, []);
+  
+  // Cancel ongoing requests when unmounting
+  useEffect(() => {
+    return () => {
+      // Abort any pending requests when component unmounts
+      abortControllers.current.forEach((controller, key) => {
+        console.log(`Aborting request ${key} due to unmount`);
+        controller.abort();
+      });
+      abortControllers.current.clear();
+    };
   }, []);
   
   // Load products when connected - use the connection provider for status
@@ -105,6 +131,11 @@ export const useShopify = () => {
 
     setIsLoading(true);
     
+    // Create a new AbortController for this request
+    const abortController = new AbortController();
+    const reqId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
+    abortControllers.current.set(reqId, abortController);
+    
     // Start a new request and track it
     const requestPromise = (async () => {
       try {
@@ -127,28 +158,28 @@ export const useShopify = () => {
         
         setAccessToken(token);
         
-        // Generate unique request ID
-        const requestId = `req_prod_${Math.random().toString(36).substring(2, 10)}`;
-        
-        console.log('Fetching products with request ID:', requestId);
+        console.log(`[${reqId}] Fetching products with request ID: ${reqId}`);
         
         // Call Shopify Products Edge Function
         const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
           body: { 
             shop, 
             accessToken: token,
-            requestId
-          }
+            requestId: reqId
+          },
+          signal: abortController.signal
         });
         
         if (error) {
-          console.error('Error invoking shopify-products function:', error);
+          console.error(`[${reqId}] Error invoking shopify-products function:`, error);
           
           // Retry with API route
-          console.log('Retrying with API route...');
+          console.log(`[${reqId}] Retrying with API route...`);
           setIsRetrying(true);
           
-          const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(shop)}&debug=true`);
+          const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(shop)}&debug=true`, {
+            signal: abortController.signal
+          });
           
           if (!apiResponse.ok) {
             throw new Error(`API route returned status: ${apiResponse.status}`);
@@ -171,7 +202,7 @@ export const useShopify = () => {
 
         if (!data || !data.success || !data.products) {
           if (data?.errors) {
-            console.error('GraphQL errors from Shopify:', data.errors);
+            console.error(`[${reqId}] GraphQL errors from Shopify:`, data.errors);
             throw new Error(data.errors[0]?.message || 'GraphQL error');
           }
           throw new Error('Invalid response from Shopify API');
@@ -183,11 +214,19 @@ export const useShopify = () => {
         // Set and cache products
         setProducts(data.products || []);
         productCache.set(cacheKey, { products: data.products || [], timestamp: now });
-        console.log(`Successfully fetched ${data.products.length} products`);
+        console.log(`[${reqId}] Successfully fetched ${data.products.length} products`);
+        
+        // Clean up abort controller reference
+        abortControllers.current.delete(reqId);
         
         return data.products || [];
       } catch (error) {
-        console.error('Error loading products:', error);
+        if (error.name === 'AbortError') {
+          console.log(`[${reqId}] Request was aborted`);
+          return [];
+        }
+        
+        console.error(`[${reqId}] Error loading products:`, error);
         
         // Handle different error types
         if (error instanceof Error) {
@@ -200,6 +239,9 @@ export const useShopify = () => {
         } else {
           setIsNetworkError(true);
         }
+        
+        // Clean up abort controller reference
+        abortControllers.current.delete(reqId);
         
         throw error;
       } finally {
@@ -221,6 +263,9 @@ export const useShopify = () => {
       throw new Error('Not connected to Shopify');
     }
 
+    const syncRequestId = `sync_${Math.random().toString(36).substring(2, 8)}`;
+    console.log(`[${syncRequestId}] Starting form sync`);
+    
     setIsSyncing(true);
     try {
       // Reset error states
@@ -242,48 +287,50 @@ export const useShopify = () => {
         setPendingSyncForms([...pendingSyncForms, formData.formId]);
         
         // Mock success
-        console.log('Form saved for future sync:', formData);
+        console.log(`[${syncRequestId}] Form saved for future sync:`, formData);
         return { success: true, message: 'Form saved for future sync' };
       }
       
       // Test connection first
-      const isConnectionValid = await testConnection(false);
+      console.log(`[${syncRequestId}] Testing connection before form sync`);
+      const isConnectionValid = await testConnection(true);
       
       if (!isConnectionValid) {
-        throw new Error('Shopify connection test failed. Please update your access token.');
+        throw new Error('فشل اختبار اتصال Shopify. يرجى تحديث رمز الوصول الخاص بك.');
       }
       
       // Get token
+      console.log(`[${syncRequestId}] Getting token for shop: ${shopDomain}`);
       const token = await getAccessToken(shopDomain);
       
       if (!token) {
-        throw new Error('Could not retrieve valid access token');
+        throw new Error('تعذر الحصول على رمز وصول صالح');
       }
       
-      // Add a unique request ID for debugging
-      const requestId = `req_sync_${Math.random().toString(36).substring(2, 10)}`;
-
       // Real sync with Shopify
+      console.log(`[${syncRequestId}] Invoking sync form function for formId: ${formData.formId}`);
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: {
           shop: shopDomain,
           formId: formData.formId,
           settings: formData.settings,
           accessToken: token,
-          requestId
+          requestId: syncRequestId
         }
       });
 
       if (error) {
+        console.error(`[${syncRequestId}] Sync form error:`, error);
         setIsNetworkError(true);
         throw error;
       }
 
+      console.log(`[${syncRequestId}] Form sync completed successfully`);
       setIsSyncing(false);
       setIsNetworkError(false);
       return data;
     } catch (error) {
-      console.error('Error syncing form with Shopify:', error);
+      console.error(`[${syncRequestId}] Error syncing form with Shopify:`, error);
       setIsSyncing(false);
       setIsNetworkError(true);
       
@@ -312,10 +359,13 @@ export const useShopify = () => {
   // Resync pending forms
   const resyncPendingForms = useCallback(async () => {
     if (!isConnected || !shop) {
-      toast.error('Cannot resync while disconnected');
+      toast.error('لا يمكن إعادة المزامنة أثناء قطع الاتصال');
       return;
     }
 
+    const resyncId = `resync_${Math.random().toString(36).substring(2, 8)}`;
+    console.log(`[${resyncId}] Starting resync of pending forms`);
+    
     setIsSyncing(true);
     let successCount = 0;
     let failCount = 0;
@@ -324,25 +374,27 @@ export const useShopify = () => {
       const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
       
       if (pendingSyncs.length === 0) {
-        toast.info('No pending forms to sync');
+        toast.info('لا توجد نماذج معلقة للمزامنة');
         setIsSyncing(false);
         return;
       }
 
       // Verify connection status before attempting resync
+      console.log(`[${resyncId}] Verifying connection status before resync`);
       const connectionValid = await testConnection(true);
       
       if (!connectionValid) {
-        toast.error('Connection validation failed. Please update your access token.');
-        throw new Error('Connection validation failed');
+        toast.error('فشل التحقق من الاتصال. يرجى تحديث رمز الوصول الخاص بك.');
+        throw new Error('فشل التحقق من الاتصال');
       }
 
       for (const formData of pendingSyncs) {
         try {
+          console.log(`[${resyncId}] Resyncing form ID: ${formData.formId}`);
           await syncForm(formData);
           successCount++;
         } catch (error) {
-          console.error('Error resyncing form:', error);
+          console.error(`[${resyncId}] Error resyncing form:`, error);
           failCount++;
         }
       }
@@ -351,10 +403,10 @@ export const useShopify = () => {
       localStorage.setItem('pending_form_syncs', '[]');
       setPendingSyncForms([]);
       
-      toast.success(`Resynced ${successCount} forms successfully${failCount > 0 ? `, ${failCount} failed` : ''}`);
+      toast.success(`تمت إعادة مزامنة ${successCount} نماذج بنجاح${failCount > 0 ? `، فشلت ${failCount} نماذج` : ''}`);
     } catch (error) {
-      console.error('Error in resyncPendingForms:', error);
-      toast.error('Error resyncing pending forms');
+      console.error(`[${resyncId}] Error in resyncPendingForms:`, error);
+      toast.error('خطأ في إعادة مزامنة النماذج المعلقة');
       setIsNetworkError(true);
     } finally {
       setIsSyncing(false);
@@ -370,25 +422,37 @@ export const useShopify = () => {
 
   // Force refresh products (clear cache and reload)
   const refreshProducts = useCallback(async () => {
+    // Generate unique request ID
+    const refreshId = `refresh_${Math.random().toString(36).substring(2, 8)}`;
+    console.log(`[${refreshId}] Starting product refresh`);
+    
     // Clear cache for the current shop
     const cacheKey = `products:${shop}`;
     productCache.delete(cacheKey);
+    
+    // Clear token validation cache to ensure fresh connection test
+    if (tokenValidationCache) {
+      console.log(`[${refreshId}] Clearing token validation cache`);
+      tokenValidationCache.clear();
+    }
     
     // Reset error states
     resetErrorStates();
     
     try {
       // Test connection first
+      console.log(`[${refreshId}] Testing connection before product refresh`);
       const isValid = await testConnection(true);
       
       if (!isValid) {
-        throw new Error('Connection test failed - please check your access token');
+        throw new Error('فشل اختبار الاتصال - يرجى التحقق من رمز الوصول الخاص بك');
       }
       
       // Load products
+      console.log(`[${refreshId}] Loading products after successful connection test`);
       return await loadProducts();
     } catch (error) {
-      console.error('Error refreshing products:', error);
+      console.error(`[${refreshId}] Error refreshing products:`, error);
       toast.error('فشل في تحديث المنتجات: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
       throw error;
     }
@@ -396,11 +460,21 @@ export const useShopify = () => {
 
   // Refresh the connection with better error handling
   const refreshConnection = useCallback(async (forceRefresh: boolean = false): Promise<boolean> => {
+    const refreshId = `conn_refresh_${Math.random().toString(36).substring(2, 8)}`;
+    console.log(`[${refreshId}] Starting connection refresh with forceRefresh=${forceRefresh}`);
+    
     try {
       setIsLoading(true);
       resetErrorStates();
       
+      // Clear the token validation cache if forcing refresh
+      if (forceRefresh && tokenValidationCache) {
+        console.log(`[${refreshId}] Clearing token validation cache`);
+        tokenValidationCache.clear();
+      }
+      
       // Test connection with the provided forceRefresh parameter
+      console.log(`[${refreshId}] Testing connection`);
       const isValid = await testConnection(forceRefresh);
       
       if (!isValid) {
@@ -413,21 +487,23 @@ export const useShopify = () => {
       // Clear product cache
       if (shop) {
         const cacheKey = `products:${shop}`;
+        console.log(`[${refreshId}] Clearing product cache for ${shop}`);
         productCache.delete(cacheKey);
       }
       
       // Load products to verify connection is working
       try {
+        console.log(`[${refreshId}] Loading products to verify connection`);
         await loadProducts();
         toast.success('تم تحديث الاتصال بنجاح');
         return true;
       } catch (loadError) {
-        console.error('Error loading products after connection refresh:', loadError);
+        console.error(`[${refreshId}] Error loading products after connection refresh:`, loadError);
         toast.error('نجح اختبار الاتصال ولكن فشل تحميل المنتجات');
         return false;
       }
     } catch (error) {
-      console.error('Error refreshing connection:', error);
+      console.error(`[${refreshId}] Error refreshing connection:`, error);
       setTokenError(true);
       setIsNetworkError(true);
       toast.error('خطأ في تحديث الاتصال: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
@@ -439,6 +515,8 @@ export const useShopify = () => {
 
   // Emergency reset for recovery
   const emergencyReset = useCallback(() => {
+    console.log('Performing emergency reset of all Shopify connection data');
+    
     // Clear all Shopify-related localStorage items
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_store');
@@ -449,7 +527,9 @@ export const useShopify = () => {
     localStorage.removeItem('shopify_last_url_shop');
     
     // Clear all token validation cache
-    tokenValidationCache.clear();
+    if (tokenValidationCache) {
+      tokenValidationCache.clear();
+    }
     
     // Reset state
     resetErrorStates();
@@ -494,4 +574,9 @@ export const useShopify = () => {
 // Share the productCache with the rest of the application
 export const clearShopifyCache = () => {
   productCache.clear();
+  
+  // Also clear token validation cache if imported
+  if (tokenValidationCache) {
+    tokenValidationCache.clear();
+  }
 };

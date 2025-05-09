@@ -17,23 +17,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const requestId = `update_token_${Math.random().toString(36).substring(2, 8)}`;
-  console.log(`[${requestId}] Token update request received`);
-
   try {
     // Parse request body
     let body;
     try {
       body = await req.json();
     } catch (e) {
-      console.error(`[${requestId}] Failed to parse request body:`, e);
+      console.error('Failed to parse request body:', e);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid JSON body' }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    const { shop, token } = body;
+    const { shop, token, requestId = `update_token_${Math.random().toString(36).substring(2, 8)}` } = body;
+
+    console.log(`[${requestId}] Token update request received`);
 
     if (!shop || !token) {
       console.error(`[${requestId}] Missing required parameters: shop=${!!shop}, token=${!!token}`);
@@ -68,8 +67,19 @@ serve(async (req) => {
 
       if (!testResponse.ok) {
         console.error(`[${requestId}] Token validation failed with status ${testResponse.status}`);
+        let responseText = '';
+        try {
+          responseText = await testResponse.text();
+        } catch (e) {
+          // Ignore errors when trying to read response text
+        }
+        
         return new Response(
-          JSON.stringify({ success: false, error: `Invalid token. Shopify API returned status ${testResponse.status}` }),
+          JSON.stringify({ 
+            success: false, 
+            error: `Invalid token. Shopify API returned status ${testResponse.status}`,
+            details: responseText || 'No response details available'
+          }),
           { headers: corsHeaders }
         );
       }
@@ -79,7 +89,11 @@ serve(async (req) => {
       if (!shopData || !shopData.shop) {
         console.error(`[${requestId}] Invalid response format from Shopify API during token test`);
         return new Response(
-          JSON.stringify({ success: false, error: 'Invalid response from Shopify API during token validation' }),
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid response from Shopify API during token validation',
+            details: JSON.stringify(shopData)
+          }),
           { headers: corsHeaders }
         );
       }
@@ -162,11 +176,33 @@ serve(async (req) => {
         // Non-fatal error, continue
       }
 
+      // Run a second test to verify token works
+      try {
+        console.log(`[${requestId}] Running final verification test`);
+        const verifyResponse = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': token
+          }
+        });
+        
+        if (verifyResponse.ok) {
+          console.log(`[${requestId}] Final verification test passed`);
+        } else {
+          console.warn(`[${requestId}] Final verification test failed with status ${verifyResponse.status}`);
+        }
+      } catch (verifyError) {
+        console.warn(`[${requestId}] Error during final verification test:`, verifyError);
+        // Non-fatal error, continue
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
           message: 'Token updated successfully',
-          shop: normalizedShopDomain
+          shop: normalizedShopDomain,
+          timestamp: new Date().toISOString(),
+          requestId
         }),
         { headers: corsHeaders }
       );
@@ -178,9 +214,10 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error(`[${requestId}] Unexpected error:`, error);
+    const errorId = `error_${Math.random().toString(36).substring(2, 8)}`;
+    console.error(`[${errorId}] Unexpected error:`, error);
     return new Response(
-      JSON.stringify({ success: false, error: `Unexpected error: ${error.message || 'Unknown error'}` }),
+      JSON.stringify({ success: false, error: `Unexpected error: ${error.message || 'Unknown error'}`, errorId }),
       { headers: corsHeaders }
     );
   }

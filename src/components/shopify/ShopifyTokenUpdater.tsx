@@ -8,6 +8,7 @@ import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
+import { tokenValidationCache } from '@/lib/shopify/ShopifyConnectionProvider'; // Import the exported cache
 
 export const ShopifyTokenUpdater = () => {
   const [shopDomain, setShopDomain] = useState<string>('');
@@ -16,6 +17,7 @@ export const ShopifyTokenUpdater = () => {
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPlaceholderToken, setHasPlaceholderToken] = useState<boolean>(false);
+  const [updateAttempt, setUpdateAttempt] = useState<number>(0); // Track update attempts
   const { toast } = useToast();
   const { shopDomain: connectedShop, syncState, reload, testConnection } = useShopifyConnection();
   
@@ -80,40 +82,92 @@ export const ShopifyTokenUpdater = () => {
     setError(null);
     setIsSuccess(false);
     setIsLoading(true);
+    setUpdateAttempt(prev => prev + 1); // Increment attempt counter
+    const currentAttempt = updateAttempt + 1;
     
     try {
+      // Generate a unique request ID for tracking
+      const requestId = `token_update_${Math.random().toString(36).substring(2, 8)}`;
+      console.log(`[${requestId}] Starting token update for ${shopDomain} (attempt ${currentAttempt})`);
+      
       // Check that token is not placeholder
       if (accessToken === 'placeholder_token') {
         throw new Error('لا يمكن استخدام "placeholder_token" كرمز وصول حقيقي');
+      }
+      
+      // Clear token validation cache before update
+      if (tokenValidationCache) {
+        console.log(`[${requestId}] Clearing token validation cache before update`);
+        tokenValidationCache.clear();
+      } else {
+        console.warn(`[${requestId}] Token validation cache not available`);
       }
       
       // Call the update-shopify-token Edge Function
       const { data, error } = await shopifySupabase.functions.invoke('update-shopify-token', {
         body: {
           shop: shopDomain,
-          token: accessToken
+          token: accessToken,
+          requestId
         }
       });
       
       if (error) {
+        console.error(`[${requestId}] Edge function error:`, error);
         throw new Error(`خطأ في استدعاء الدالة: ${error.message || "خطأ غير معروف"}`);
       }
       
       if (!data?.success) {
+        console.error(`[${requestId}] Update failed:`, data?.error);
         throw new Error(data?.error || 'فشل تحديث رمز الوصول');
       }
       
-      // Sync the connection state to reflect the changes
+      console.log(`[${requestId}] Token updated successfully, syncing state`);
+      
+      // Sync the connection state to reflect the changes - with retry mechanism
       await syncState();
+      
+      // Wait a moment to allow state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear token validation cache again after update to ensure fresh validation
+      if (tokenValidationCache) {
+        console.log(`[${requestId}] Clearing token validation cache after update`);
+        tokenValidationCache.clear();
+      }
+      
+      // Reload the connection state
+      console.log(`[${requestId}] Reloading connection state`);
       await reload();
       
-      // Test the connection after update
-      const isConnected = await testConnection();
+      // Wait a bit before testing connection
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Test the connection after update with multiple retries if needed
+      let isConnected = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!isConnected && retryCount < maxRetries) {
+        console.log(`[${requestId}] Testing connection (attempt ${retryCount + 1}/${maxRetries})`);
+        isConnected = await testConnection(true);
+        
+        if (!isConnected && retryCount < maxRetries - 1) {
+          console.log(`[${requestId}] Connection test failed, waiting before retry`);
+          // Wait between retries with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          retryCount++;
+        } else {
+          break;
+        }
+      }
       
       if (!isConnected) {
+        console.error(`[${requestId}] All connection tests failed after token update`);
         throw new Error('تم تحديث الرمز، لكن اختبار الاتصال فشل. يرجى التحقق من الرمز وإعادة المحاولة.');
       }
       
+      console.log(`[${requestId}] Connection verified successfully after token update`);
       setIsSuccess(true);
       setHasPlaceholderToken(false);
       toast({
