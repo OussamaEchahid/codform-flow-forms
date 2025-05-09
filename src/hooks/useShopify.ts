@@ -17,6 +17,8 @@ interface ShopifyFormSync {
 
 // Cache for API responses to reduce redundant calls
 const productCache = new Map<string, { products: ShopifyProduct[], timestamp: number }>();
+// Token validation cache to avoid excessive API calls
+const tokenValidationCache = new Map<string, { valid: boolean; timestamp: number; token: string }>();
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
 export const useShopify = () => {

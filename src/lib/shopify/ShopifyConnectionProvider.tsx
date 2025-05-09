@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { shopifyStores } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
@@ -251,7 +250,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       return false;
     }
   }, []);
-
+  
   // Schedule periodic token validation to ensure it stays valid
   const scheduleTokenRefresh = useCallback(() => {
     if (tokenRefreshTimer.current) {
@@ -494,7 +493,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   }, [shopDomain]);
   
   // Reload function - clears cache and re-syncs state
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (): Promise<void> => {
     // Clear token validation cache
     tokenValidationCache.clear();
     
@@ -504,8 +503,8 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     // Re-sync state
     await syncState();
     
-    // Test connection - explicitly passing false to avoid TypeScript error
-    const isValid = await testConnection(false);
+    // Test connection - explicitly passing true to force refresh
+    const isValid = await testConnection(true);
     
     if (isValid) {
       toast.success('تم تحديث الاتصال بنجاح');
@@ -515,7 +514,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     
     connectionLogger.info('Connection reloaded, validation result:', isValid);
     
-    return isValid;
+    // Return void to match the Promise<void> return type
   }, [syncState, testConnection]);
   
   // Cleanup function for token refresh timer
