@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { shopifyStores } from './supabase-client';
+import { shopifyStores, shopifySupabase } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
 
 // Define the context interface
@@ -128,8 +127,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       const tokenAge = tokenData.tokenAge || 0;
       
       // Test the token with Shopify API
-      // Fix: Use the shopifySupabase instance for functions invocation instead of shopifyStores()
-      const { data: shopifySupabase } = await import('./supabase-client');
+      // Fix: Use the imported shopifySupabase instance directly instead of importing it again
       const testResult = await shopifySupabase.functions.invoke('shopify-test-connection', {
         body: {
           shop: shopDomain,
@@ -268,8 +266,8 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       
       // If we have a shop, test the connection
       if (shopDomain) {
-        // Fix: Pass forceRefresh as a single argument
-        await testConnection(true); // Force refresh on reload
+        // Fix: Pass forceRefresh as a single boolean parameter
+        await testConnection(true);
       }
       
       connectionLogger.debug('Reload completed');
