@@ -16,7 +16,7 @@ interface ShopifyConnectionContextType {
   forceSetConnected: (shop: string) => void;
   disconnect: () => Promise<void>;
   reload: () => Promise<void>;
-  testConnection: (forceRefresh?: boolean) => Promise<boolean>;
+  testConnection: (forceRefresh: boolean) => Promise<boolean>;
 }
 
 // Create context with default values
@@ -63,10 +63,11 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
     connectionLogger.info(`Forced connection state to connected with shop: ${shop}`);
   }, []);
   
-  // Test connection function with improved token validation and error handling
-  // IMPORTANT: This function takes a SINGLE boolean parameter:
-  // @param forceRefresh - Whether to force a fresh test ignoring cache (default: false)
-  // @returns Promise<boolean> - Whether the connection is valid
+  /**
+   * Tests the connection to Shopify to verify the access token is valid
+   * @param forceRefresh - Whether to force a fresh test ignoring cache (default: false)
+   * @returns Promise<boolean> - Whether the connection is valid
+   */
   const testConnection = useCallback(async (forceRefresh: boolean = false): Promise<boolean> => {
     // No need to test if we don't have a shop
     if (!shopDomain) {
@@ -257,7 +258,6 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       syncState();
       
       // If we have a shop, test the connection
-      // IMPORTANT: Only pass a single boolean parameter to testConnection
       if (shopDomain) {
         await testConnection(true); // Pass only one argument - forceRefresh
       }
