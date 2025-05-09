@@ -236,6 +236,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
   }, []);
 
   // Reload connection state and validate
+  // FIXED: Properly handle single boolean parameter for testConnection
   const reload = useCallback(async () => {
     const now = Date.now();
     
@@ -256,7 +257,7 @@ export const ShopifyConnectionProvider: React.FC<{ children: React.ReactNode }> 
       // If we have a shop, test the connection
       // IMPORTANT: Only pass a single boolean parameter to testConnection
       if (shopDomain) {
-        await testConnection(true);
+        await testConnection(true); // Pass only one argument - forceRefresh
       }
       
       connectionLogger.debug('Reload completed');

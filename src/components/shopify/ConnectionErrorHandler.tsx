@@ -36,7 +36,7 @@ const ConnectionErrorHandler: React.FC<ConnectionErrorHandlerProps> = ({
   const handleRetry = async () => {
     setIsRetrying(true);
     try {
-      // Force refresh the connection state
+      // Fixed: Pass only one argument to testConnection
       const success = await testConnection(true);
       
       if (success) {

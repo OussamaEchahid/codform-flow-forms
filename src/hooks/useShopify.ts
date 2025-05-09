@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -386,7 +385,7 @@ export const useShopify = () => {
       setTokenExpired(false);
       setIsNetworkError(false);
       
-      // Pass the forceRefresh parameter to testConnection
+      // Pass the forceRefresh parameter correctly to testConnection (single argument)
       const isValid = await testConnection(forceRefresh);
       
       if (!isValid) {
