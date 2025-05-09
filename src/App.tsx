@@ -4,8 +4,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { ShopifyConnectionProvider } from '@/lib/shopify/ShopifyConnectionProvider';
-import { ShopifySettingsProvider } from '@/lib/shopify/ShopifySettingsProvider'; // أضفناه هنا
-import Layout from '@/layouts/RootLayout';
+import { ShopifySettingsProvider } from '@/lib/shopify/ShopifySettingsProvider';
+import RootLayout from '@/layouts/RootLayout';
 import Dashboard from '@/pages/Dashboard';
 import Forms from '@/pages/Forms';
 import FormSettings from '@/pages/FormSettings';
@@ -56,13 +56,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ShopifySettingsProvider> {/* أضفناه هنا */}
+      <ShopifySettingsProvider>
         <ShopifyConnectionProvider>
           <SonnerToaster position="top-right" />
           <Toaster />
           <Suspense fallback={<div>جاري التحميل...</div>}>
             <Routes>
-              <Route path="/" element={<Layout />}>
+              <Route path="/" element={<RootLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="forms" element={<Forms />} />
@@ -77,7 +77,7 @@ function App() {
             </Routes>
           </Suspense>
         </ShopifyConnectionProvider>
-      </ShopifySettingsProvider> {/* أضفناه هنا */}
+      </ShopifySettingsProvider>
     </BrowserRouter>
   );
 }
