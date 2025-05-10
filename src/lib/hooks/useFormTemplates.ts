@@ -11,12 +11,12 @@ export interface FormData {
   id: string;
   title: string;
   description?: string;
-  data: FormStep[];
+  data: any; // Make data type more flexible to handle different structures
   isPublished?: boolean;
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
-  submitButtonText?: string;
+  submitButtonText?: string; 
   submitbuttontext?: string; // Added lowercase version to match DB column
   // Add style properties
   primaryColor?: string;

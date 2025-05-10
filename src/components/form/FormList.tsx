@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -133,8 +134,12 @@ const FormList: React.FC<FormListProps> = ({
             created_at: form.created_at || new Date().toISOString(),
             // Add any other required fields with fallbacks
             shop_id: form.shop_id || '',
-            // CRITICAL FIX: Ensure data is always an array, not an empty object
-            data: Array.isArray(form.data) ? form.data : (form.data && typeof form.data === 'object' && 'steps' in form.data ? form.data.steps : [])
+            // CRITICAL FIX: Properly handle different data structures
+            data: Array.isArray(form.data) 
+              ? form.data 
+              : (form.data && typeof form.data === 'object' && form.data.steps && Array.isArray(form.data.steps)) 
+                ? form.data.steps 
+                : []
           };
           
           return formData;
