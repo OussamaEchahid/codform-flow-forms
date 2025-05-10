@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { testShopifyConnection, loadShopifyProducts, syncFormWithShopify } from '@/lib/shopify/api';
 import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
-import { ShopifyProduct } from '@/lib/shopify/types';
+import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { apiLogger } from '@/lib/shopify/debug-logger';
 
 /**
@@ -137,16 +137,14 @@ export function useShopify() {
   }, [shop, fetchProducts, isDevMode, toggleFailSafeMode]);
   
   // Sync form with Shopify
-  const syncForm = useCallback(async (formId: string | any) => {
-    const formIdStr = typeof formId === 'string' ? formId : formId?.formId || '';
-    
+  const syncForm = useCallback(async (formData: ShopifyFormData) => {
     if (!isConnected && !failSafeMode) {
       toast.error('غير متصل بمتجر Shopify');
       return { success: false };
     }
     
     try {
-      apiLogger.info(`Syncing form ${formIdStr} with shop ${shop}`);
+      apiLogger.info(`Syncing form ${formData.formId} with shop ${shop}`);
       
       // In fail-safe mode, simulate success in development
       if (failSafeMode && isDevMode) {
@@ -155,11 +153,13 @@ export function useShopify() {
         return { success: true };
       }
       
-      // Normal sync process
-      const result = await syncFormWithShopify({ 
-        formId: formIdStr,
-        shopDomain: shop
-      });
+      // Normal sync process - ensure shopDomain is set correctly if not provided
+      const dataToSync = {
+        ...formData,
+        shopDomain: formData.shopDomain || shop
+      };
+      
+      const result = await syncFormWithShopify(dataToSync);
       
       if (result.success) {
         toast.success('تم مزامنة النموذج مع Shopify بنجاح');
