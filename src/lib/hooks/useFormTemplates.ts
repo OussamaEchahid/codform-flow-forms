@@ -11,18 +11,24 @@ export interface FormData {
   id: string;
   title: string;
   description?: string;
-  data: any; // Make data type more flexible to handle different structures
+  data: any; // تغيير إلى any لدعم أي هيكل بيانات 
   isPublished?: boolean;
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
   submitButtonText?: string; 
-  submitbuttontext?: string; // Added lowercase version to match DB column
+  submitbuttontext?: string;
   // Add style properties
   primaryColor?: string;
   borderRadius?: string;
   fontSize?: string;
   buttonStyle?: string;
+}
+
+export interface FormStep {
+  id: string;
+  title: string;
+  fields: any[];
 }
 
 export interface FormTemplate {

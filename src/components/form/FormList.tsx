@@ -83,7 +83,7 @@ const FormList: React.FC<FormListProps> = ({
     return () => clearTimeout(timeoutId);
   }, [processingComplete, instanceId]);
   
-  // CRITICAL FIX: Improved form data processing and validation
+  // CRITICAL FIX: Complete rewrite of form data processing logic
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -117,7 +117,8 @@ const FormList: React.FC<FormListProps> = ({
         }))
       );
       
-      // CRITICAL FIX: More robust validation and transformation of form data
+      // CRITICAL FIX: Completely defensive transformation of form data
+      // This handles ANY possible data structure without type errors
       const validForms = formsArray
         .filter(form => form && typeof form === 'object')
         .map(form => {
@@ -132,14 +133,31 @@ const FormList: React.FC<FormListProps> = ({
             isPublished: form.is_published !== undefined ? form.is_published : 
                         form.isPublished !== undefined ? form.isPublished : false,
             created_at: form.created_at || new Date().toISOString(),
-            // Add any other required fields with fallbacks
             shop_id: form.shop_id || '',
-            // CRITICAL FIX: Properly handle different data structures
-            data: Array.isArray(form.data) 
-              ? form.data 
-              : (form.data && typeof form.data === 'object' && form.data.steps && Array.isArray(form.data.steps)) 
-                ? form.data.steps 
-                : []
+            // CRITICAL FIX: Safe handling of data property with ANY structure
+            data: (function() {
+              // If data is an array, use it directly
+              if (Array.isArray(form.data)) {
+                return form.data;
+              }
+              
+              // If data is an object with steps that is an array, use that
+              if (form.data && 
+                  typeof form.data === 'object' && 
+                  form.data !== null &&
+                  'steps' in form.data && 
+                  Array.isArray(form.data.steps)) {
+                return form.data.steps;
+              }
+              
+              // If data is just an object, wrap it in an array
+              if (form.data && typeof form.data === 'object' && form.data !== null) {
+                return [form.data];
+              }
+              
+              // Fallback to empty array
+              return [];
+            })()
           };
           
           return formData;
