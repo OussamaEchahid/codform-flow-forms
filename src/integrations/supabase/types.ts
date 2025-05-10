@@ -55,11 +55,15 @@ export type Database = {
       }
       forms: {
         Row: {
+          borderRadius: string | null
+          buttonStyle: string | null
           created_at: string
           data: Json
           description: string | null
+          fontSize: string | null
           id: string
           is_published: boolean
+          primaryColor: string | null
           shop_id: string | null
           submitbuttontext: string | null
           title: string
@@ -67,11 +71,15 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          borderRadius?: string | null
+          buttonStyle?: string | null
           created_at?: string
           data?: Json
           description?: string | null
+          fontSize?: string | null
           id?: string
           is_published?: boolean
+          primaryColor?: string | null
           shop_id?: string | null
           submitbuttontext?: string | null
           title: string
@@ -79,11 +87,15 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          borderRadius?: string | null
+          buttonStyle?: string | null
           created_at?: string
           data?: Json
           description?: string | null
+          fontSize?: string | null
           id?: string
           is_published?: boolean
+          primaryColor?: string | null
           shop_id?: string | null
           submitbuttontext?: string | null
           title?: string
