@@ -31,6 +31,7 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
 
 interface FormListProps {
   forms: FormData[];
@@ -82,7 +83,7 @@ const FormList: React.FC<FormListProps> = ({
     return () => clearTimeout(timeoutId);
   }, [processingComplete, instanceId]);
   
-  // CRITICAL FIX: Complete rewrite of form data processing logic
+  // IMPROVED: Simplified form data processing with better error handling
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -97,7 +98,7 @@ const FormList: React.FC<FormListProps> = ({
     setAttemptCount(prev => prev + 1);
     
     try {
-      // IMPROVED: Better handling of forms data
+      // Handle null/undefined forms data
       if (!forms) {
         console.log(`[${instanceId}] FormList: No forms data received`);
         setProcessedForms([]);
@@ -108,77 +109,41 @@ const FormList: React.FC<FormListProps> = ({
       // Convert to array if object was passed
       const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
       
-      console.log(`[${instanceId}] FormList: Processing forms data:`, 
-        formsArray.map(form => ({ 
-          id: form?.id, 
-          title: form?.title,
-          valid: Boolean(form && form.id)
-        }))
-      );
+      // IMPROVED: Simplified data transformation with explicit error handling
+      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
       
-      // CRITICAL FIX: Completely defensive transformation of form data
-      // This handles ANY possible data structure without type errors
       const validForms = formsArray
         .filter(form => form && typeof form === 'object')
         .map(form => {
-          // Ensure we have all required fields with fallbacks
-          const formData: FormData = {
-            id: form.id || '',
-            title: form.title || 'بدون عنوان',
-            description: form.description || '',
-            // Handle different property names for published status
-            is_published: form.is_published !== undefined ? form.is_published : 
-                         form.isPublished !== undefined ? form.isPublished : false,
-            isPublished: form.is_published !== undefined ? form.is_published : 
-                        form.isPublished !== undefined ? form.isPublished : false,
-            created_at: form.created_at || new Date().toISOString(),
-            shop_id: form.shop_id || '',
-            // CRITICAL FIX: Safe handling of data property with ANY structure
-            data: (function() {
-              // If data is an array, use it directly
-              if (Array.isArray(form.data)) {
-                return form.data;
-              }
-              
-              // If data is an object with steps that is an array, use that
-              if (form.data && 
-                  typeof form.data === 'object' && 
-                  form.data !== null &&
-                  'steps' in form.data && 
-                  Array.isArray(form.data.steps)) {
-                return form.data.steps;
-              }
-              
-              // If data is just an object, wrap it in an array
-              if (form.data && typeof form.data === 'object' && form.data !== null) {
-                return [form.data];
-              }
-              
-              // Fallback to empty array
-              return [];
-            })()
-          };
-          
-          return formData;
+          try {
+            // Normalize the data structure
+            const normalizedData = form.data ? normalizeFormData(form.data) : [];
+            
+            // Create a consistent FormData object
+            return {
+              id: form.id || '',
+              title: form.title || 'بدون عنوان',
+              description: form.description || '',
+              is_published: form.is_published || form.isPublished || false,
+              isPublished: form.is_published || form.isPublished || false,
+              created_at: form.created_at || new Date().toISOString(),
+              shop_id: form.shop_id || '',
+              data: normalizedData
+            };
+          } catch (err) {
+            console.error(`[${instanceId}] Error processing form:`, err, form);
+            return null;
+          }
         })
+        .filter(Boolean) // Remove null entries
         .filter(form => form.id); // Final filter to ensure we have an ID
       
-      if (validForms.length === 0 && attemptCount < maxAttempts - 1) {
-        console.log(`[${instanceId}] FormList: No valid forms found, will retry. Attempt ${attemptCount + 1} of ${maxAttempts}`);
-        
-        // Schedule an immediate retry with backoff
-        const retryDelay = Math.min(attemptCount * 300, 2000);
-        const retryTimeout = setTimeout(() => {
-          if (isMounted.current) {
-            console.log(`[${instanceId}] FormList: Retrying processing after ${retryDelay}ms`);
-            setProcessingComplete(false);
-          }
-        }, retryDelay);
-        
-        return () => clearTimeout(retryTimeout);
-      }
+      console.log(`[${instanceId}] FormList: Processed ${validForms.length} valid forms`);
       
-      console.log(`[${instanceId}] FormList: Found ${validForms.length} valid forms`);
+      if (validForms.length === 0 && attemptCount < maxAttempts - 1) {
+        // No valid forms, will retry
+        return;
+      }
       
       // Remove duplicates by ID
       const uniqueForms = Array.from(
@@ -188,6 +153,7 @@ const FormList: React.FC<FormListProps> = ({
       console.log(`[${instanceId}] FormList: Final processed forms: ${uniqueForms.length}`);
       setProcessedForms(uniqueForms);
       setProcessingComplete(true);
+      
     } catch (error) {
       console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
       if (isMounted.current) {

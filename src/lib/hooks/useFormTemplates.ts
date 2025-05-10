@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { FormField } from '@/lib/form-utils';
+import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,14 +12,13 @@ export interface FormData {
   id: string;
   title: string;
   description?: string;
-  data: any; // Changed to any to support different data structures 
+  data: any; // Using any to support different data structures
   isPublished?: boolean;
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
   submitButtonText?: string; 
   submitbuttontext?: string;
-  // Add style properties
   primaryColor?: string;
   borderRadius?: string;
   fontSize?: string;
@@ -30,7 +29,8 @@ export interface FormData {
 export interface FormStep {
   id: string;
   title: string;
-  fields: any[];
+  fields: FormField[];
+  metadata?: Record<string, any>;
 }
 
 export interface FormTemplate {
@@ -89,11 +89,19 @@ export const useFormTemplates = () => {
         return;
       }
       
-      // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
-        ...form,
-        isPublished: form.is_published
-      }));
+      // Transform and normalize data for consistency
+      const formattedData = data.map(form => {
+        // Normalize data structure to ensure consistency
+        const normalizedData = normalizeFormData(form.data);
+        
+        return {
+          ...form,
+          isPublished: form.is_published,
+          data: normalizedData,
+          // Ensure submitButtonText is available from either form.submitButtonText or form.submitbuttontext
+          submitButtonText: form.submitbuttontext || form.submitButtonText || 'إرسال الطلب'
+        };
+      });
       
       // Remove any duplicates by ID
       const uniqueForms = formattedData.reduce((acc: FormData[], current) => {
@@ -104,6 +112,7 @@ export const useFormTemplates = () => {
         return acc;
       }, []);
       
+      console.log('Fetched and normalized forms:', uniqueForms);
       setForms(uniqueForms);
       setIsLoading(false);
     } catch (error) {
@@ -144,13 +153,19 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // New form data
+      // New form data - standardize format to match our expected structure
       const newFormId = uuidv4();
+      
+      // Ensure template.data is in the right format (array with steps)
+      const standardizedData = { 
+        steps: normalizeFormData(template.data) 
+      };
+      
       const formData: FormData = {
         id: newFormId,
         title: template.title,
         description: template.description,
-        data: template.data,
+        data: standardizedData,
         isPublished: false,
         shop_id: shopId,
         primaryColor: template.primaryColor,
@@ -169,7 +184,7 @@ export const useFormTemplates = () => {
               id: newFormId,
               title: template.title,
               description: template.description,
-              data: template.data,
+              data: standardizedData,
               is_published: false,
               shop_id: shopId,
               user_id: user?.id,
@@ -237,12 +252,17 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Standardize the data structure
+      const standardizedData = { 
+        steps: normalizeFormData(defaultTemplate.data) 
+      };
+      
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
         description: 'نموذج جديد',
-        data: defaultTemplate.data,
+        data: standardizedData,
         isPublished: false,
         shop_id: shopId,
       };
@@ -260,7 +280,7 @@ export const useFormTemplates = () => {
               id: newFormId,
               title: 'نموذج جديد',
               description: 'نموذج جديد',
-              data: defaultTemplate.data,
+              data: standardizedData,
               is_published: false,
               shop_id: shopId,
               user_id: user?.id
@@ -317,8 +337,20 @@ export const useFormTemplates = () => {
       setIsLoading(true);
       console.log(`Attempting to save form (attempt ${retryCount + 1}/${maxRetries + 1})`, formId, formData);
       
-      // Convert isPublished to is_published for database
+      // Standardize data format before saving if data is present
       const dbData: any = { ...formData };
+      
+      // Convert and standardize data if present
+      if (dbData.data) {
+        // If data is not already in the { steps: [...] } format, standardize it
+        if (!dbData.data.steps) {
+          dbData.data = { 
+            steps: normalizeFormData(dbData.data) 
+          };
+        }
+      }
+      
+      // Convert isPublished to is_published for database
       if (dbData.isPublished !== undefined) {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
@@ -360,140 +392,6 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Publish or unpublish a form with retry logic
-  const publishForm = async (formId: string, publish: boolean, retryCount = 0, maxRetries = 3) => {
-    try {
-      setIsLoading(true);
-      
-      // Update form in Supabase
-      const { error } = await supabase
-        .from('forms')
-        .update({ is_published: publish })
-        .eq('id', formId);
-      
-      if (error) {
-        console.error(`Error publishing form (attempt ${retryCount + 1}):`, error);
-        
-        if (retryCount < maxRetries) {
-          // Exponential backoff for retry
-          const retryDelay = Math.pow(2, retryCount) * 1000;
-          console.log(`Retrying publish in ${retryDelay}ms...`);
-          
-          setIsLoading(false);
-          
-          // Retry after delay
-          return new Promise(resolve => {
-            setTimeout(async () => {
-              const result = await publishForm(formId, publish, retryCount + 1, maxRetries);
-              resolve(result);
-            }, retryDelay);
-          });
-        } else {
-          toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
-          setIsLoading(false);
-          return false;
-        }
-      }
-      
-      // Update local state
-      setForms(forms.map(form => 
-        form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-      ));
-      
-      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
-      setIsLoading(false);
-      return true;
-    } catch (error) {
-      console.error(`Error publishing form (attempt ${retryCount + 1}):`, error);
-      
-      if (retryCount < maxRetries) {
-        // Exponential backoff for retry
-        const retryDelay = Math.pow(2, retryCount) * 1000;
-        console.log(`Retrying publish in ${retryDelay}ms...`);
-        
-        setIsLoading(false);
-        
-        // Retry after delay
-        return new Promise(resolve => {
-          setTimeout(async () => {
-            const result = await publishForm(formId, publish, retryCount + 1, maxRetries);
-            resolve(result);
-          }, retryDelay);
-        });
-      }
-      
-      toast.error('خطأ في تغيير حالة نشر النموذج');
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  // Delete a form with retry logic
-  const deleteForm = async (formId: string, retryCount = 0, maxRetries = 3) => {
-    try {
-      setIsLoading(true);
-      
-      // Delete form from Supabase
-      const { error } = await supabase
-        .from('forms')
-        .delete()
-        .eq('id', formId);
-      
-      if (error) {
-        console.error(`Error deleting form (attempt ${retryCount + 1}):`, error);
-        
-        if (retryCount < maxRetries) {
-          // Exponential backoff for retry
-          const retryDelay = Math.pow(2, retryCount) * 1000;
-          console.log(`Retrying delete in ${retryDelay}ms...`);
-          
-          setIsLoading(false);
-          
-          // Retry after delay
-          return new Promise(resolve => {
-            setTimeout(async () => {
-              const result = await deleteForm(formId, retryCount + 1, maxRetries);
-              resolve(result);
-            }, retryDelay);
-          });
-        } else {
-          toast.error('خطأ في حذف النموذج');
-          setIsLoading(false);
-          return false;
-        }
-      }
-      
-      // Update local state
-      setForms(forms.filter(form => form.id !== formId));
-      
-      toast.success('تم حذف النموذج بنجاح');
-      setIsLoading(false);
-      return true;
-    } catch (error) {
-      console.error(`Error deleting form (attempt ${retryCount + 1}):`, error);
-      
-      if (retryCount < maxRetries) {
-        // Exponential backoff for retry
-        const retryDelay = Math.pow(2, retryCount) * 1000;
-        console.log(`Retrying delete in ${retryDelay}ms...`);
-        
-        setIsLoading(false);
-        
-        // Retry after delay
-        return new Promise(resolve => {
-          setTimeout(async () => {
-            const result = await deleteForm(formId, retryCount + 1, maxRetries);
-            resolve(result);
-          }, retryDelay);
-        });
-      }
-      
-      toast.error('خطأ في حذف النموذج');
-      setIsLoading(false);
-      return false;
-    }
-  };
-  
   // Load a specific form by ID with retry logic
   const loadForm = async (formId: string, retryCount = 0, maxRetries = 3) => {
     try {
@@ -553,10 +451,15 @@ export const useFormTemplates = () => {
         }
       }
       
+      // Normalize data for form state
+      const normalizedData = normalizeFormData(data.data);
+      
       // Format data for form state
       const formData: FormData = {
         ...data,
-        isPublished: data.is_published
+        isPublished: data.is_published,
+        data: normalizedData,
+        submitButtonText: data.submitbuttontext || data.submitButtonText || 'إرسال الطلب'
       };
       
       // Update form state

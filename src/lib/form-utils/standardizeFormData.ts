@@ -32,6 +32,48 @@ export function standardizeFormData(
 }
 
 /**
+ * Normalizes form data from any structure to a consistent format
+ * This helps bridge the gap between different data formats in the database
+ */
+export function normalizeFormData(data: any): FormStep[] {
+  // Case 1: data is already an array of steps
+  if (Array.isArray(data)) {
+    return data.map(step => ({
+      ...step,
+      id: step.id || String(Math.random()).slice(2, 8),
+      title: step.title || 'Unnamed Step',
+      fields: Array.isArray(step.fields) ? step.fields : []
+    }));
+  }
+  
+  // Case 2: data is an object with steps property
+  if (data && typeof data === 'object' && data.steps && Array.isArray(data.steps)) {
+    return data.steps.map(step => ({
+      ...step,
+      id: step.id || String(Math.random()).slice(2, 8),
+      title: step.title || 'Unnamed Step',
+      fields: Array.isArray(step.fields) ? step.fields : []
+    }));
+  }
+  
+  // Case 3: data is just one step with fields
+  if (data && typeof data === 'object' && data.fields && Array.isArray(data.fields)) {
+    return [{
+      id: data.id || '1',
+      title: data.title || 'Main Step',
+      fields: data.fields
+    }];
+  }
+  
+  // Case 4: no valid data structure, return empty step
+  return [{
+    id: '1',
+    title: 'Main Step',
+    fields: []
+  }];
+}
+
+/**
  * Transaction helper for form saves
  * Implements a retry mechanism with exponential backoff
  */

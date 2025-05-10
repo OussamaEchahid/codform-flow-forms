@@ -1,4 +1,3 @@
-
 // CODFORM Form Renderer Module
 function CODFORMFormRenderer() {
   const { 
@@ -236,25 +235,23 @@ function CODFORMFormRenderer() {
       form.appendChild(shopDomainField);
     }
     
-    // Extract fields from data structure with better error handling
+    // IMPROVED: Extract fields from data structure with more robust handling
     let fields = [];
     
     try {
-      // Check for different form data structures
-      if (formData.fields && Array.isArray(formData.fields) && formData.fields.length > 0) {
-        // Use fields directly if available
-        console.log('CODFORM: Using fields array directly:', formData.fields.length, 'fields');
-        fields = formData.fields;
+      // UNIFIED APPROACH: Normalize different data structures
+      if (!formData.data) {
+        console.warn('CODFORM: No data found in formData');
+        fields = [];
       }
-      else if (formData.data) {
-        // Try to extract fields from data property
-        if (Array.isArray(formData.data) && formData.data.length > 0) {
-          // Handle step structure
-          console.log('CODFORM: Using step format, data has', formData.data.length, 'items');
+      // Handle direct array of fields
+      else if (Array.isArray(formData.data) && formData.data.length > 0) {
+        if (formData.data[0].fields) {
+          // This is an array of steps
+          console.log('CODFORM: Using array of steps format');
           let extractedFields = [];
           
           formData.data.forEach((step, stepIndex) => {
-            // Add step marker
             extractedFields.push({
               id: step.id || `step-${stepIndex}`,
               type: 'step',
@@ -263,13 +260,11 @@ function CODFORMFormRenderer() {
               isStep: true
             });
             
-            // Add fields from this step
-            if (step.fields && Array.isArray(step.fields)) {
+            if (Array.isArray(step.fields)) {
               step.fields.forEach(field => {
                 extractedFields.push({
                   ...field,
                   stepId: step.id,
-                  stepTitle: step.title,
                   stepIndex: stepIndex
                 });
               });
@@ -277,39 +272,47 @@ function CODFORMFormRenderer() {
           });
           
           fields = extractedFields;
-          console.log('CODFORM: Extracted', fields.length, 'fields from data array');
+        } else {
+          // This is a direct array of fields (no steps)
+          fields = formData.data;
         }
-        else if (typeof formData.data === 'object' && formData.data.steps) {
-          // Handle nested steps structure
-          console.log('CODFORM: Using nested steps format');
-          let extractedFields = [];
+      }
+      // Handle steps object format
+      else if (formData.data.steps && Array.isArray(formData.data.steps)) {
+        console.log('CODFORM: Using steps object format');
+        let extractedFields = [];
+        
+        formData.data.steps.forEach((step, stepIndex) => {
+          extractedFields.push({
+            id: step.id || `step-${stepIndex}`,
+            type: 'step',
+            label: step.title || `Step ${stepIndex + 1}`,
+            stepIndex: stepIndex,
+            isStep: true
+          });
           
-          formData.data.steps.forEach((step, stepIndex) => {
-            // Add step marker
-            extractedFields.push({
-              id: step.id || `step-${stepIndex}`,
-              type: 'step',
-              label: step.title || `Step ${stepIndex + 1}`,
-              stepIndex: stepIndex,
-              isStep: true
+          if (Array.isArray(step.fields)) {
+            step.fields.forEach(field => {
+              extractedFields.push({
+                ...field,
+                stepId: step.id,
+                stepIndex: stepIndex
+              });
             });
-            
-            // Add fields from this step
-            if (step.fields && Array.isArray(step.fields)) {
-              step.fields.forEach(field => {
-                extractedFields.push({
-                  ...field,
-                  stepId: step.id,
-                  stepTitle: step.title,
-                  stepIndex: stepIndex
-                });
-              });
-            }
-          });
-          
-          fields = extractedFields;
-          console.log('CODFORM: Extracted', fields.length, 'fields from nested steps');
-        }
+          }
+        });
+        
+        fields = extractedFields;
+      }
+      // Handle object with fields array
+      else if (formData.data.fields && Array.isArray(formData.data.fields)) {
+        console.log('CODFORM: Using object with fields array format');
+        fields = formData.data.fields;
+      }
+      // Fallback - try to use data directly as fields
+      else if (typeof formData.data === 'object') {
+        console.log('CODFORM: Trying to use data object directly');
+        fields = [formData.data];
       }
     } catch (error) {
       console.error('CODFORM: Error extracting fields:', error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
 import { resetShopifyConnection } from '@/utils/diagnostics';
+import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
 
 // Adding interface for component props to fix type errors
 interface FormsPageProps {
@@ -172,8 +172,25 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
       }
       
       if (data) {
-        console.log(`[${instanceId.current}] FormsPage: Setting ${data.length} forms`);
-        setForms(data);
+        // Normalize the data structure in each form before setting
+        const normalizedForms = data.map(form => {
+          // Keep all properties but normalize the data structure
+          if (form.data) {
+            // Check if we need to normalize
+            if (!form.data.steps && !Array.isArray(form.data.steps)) {
+              // Normalize the data structure
+              const normalizedData = normalizeFormData(form.data);
+              return {
+                ...form,
+                data: { steps: normalizedData }
+              };
+            }
+          }
+          return form;
+        });
+        
+        console.log(`[${instanceId.current}] FormsPage: Setting ${normalizedForms.length} forms with normalized data`);
+        setForms(normalizedForms);
         setError(null);
       } else {
         console.log(`[${instanceId.current}] FormsPage: No forms found in any query`);
@@ -213,6 +230,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
         throw new Error(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
       }
 
+      // IMPROVED: Use consistent data structure format for new forms
       const formData = {
         title: newFormName,
         description: '',
@@ -223,14 +241,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
               title: language === 'ar' ? 'الخطوة الأولى' : 'First Step',
               fields: []
             }
-          ],
-          settings: {
-            direction: language === 'ar' ? 'rtl' : 'ltr',
-            theme: 'light',
-            primaryColor: '#4F46E5',
-            borderRadius: 'medium',
-            showStepIndicator: true
-          }
+          ]
         },
         shop_id: currentShopId,
         is_published: false

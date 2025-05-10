@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import FormsPage from './FormsPage';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
@@ -8,6 +7,7 @@ import { logShopifyDiagnostics, logFormDiagnostics, resetShopifyConnection } fro
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
 
 const Forms = () => {
   const { shopDomain, isConnected, isLoading, syncState, reload } = useShopifyConnection();
@@ -84,6 +84,70 @@ const Forms = () => {
     
     performSync();
   }, [syncState, isLoading, hasSynced, shopDomain]);
+
+  // Added new method to fix any existing forms in the database with incorrect structure
+  const fixExistingForms = async () => {
+    try {
+      const shopId = shopDomain || localStorage.getItem('shopify_store');
+      if (!shopId) return;
+      
+      // Get all forms for this shop
+      const { data: allForms, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', shopId);
+        
+      if (error || !allForms) {
+        console.error('Error fetching forms for fix:', error);
+        return;
+      }
+      
+      // Loop through forms and fix data structure if needed
+      for (const form of allForms) {
+        try {
+          // Check if the data structure needs fixing
+          let needsFix = false;
+          
+          if (!form.data || typeof form.data !== 'object') {
+            needsFix = true;
+          } else if (!form.data.steps && !Array.isArray(form.data)) {
+            needsFix = true;
+          }
+          
+          if (needsFix) {
+            console.log('Fixing form structure for form:', form.id);
+            // Normalize the data
+            const normalizedSteps = normalizeFormData(form.data);
+            
+            // Update the form with the new structure
+            await supabase
+              .from('forms')
+              .update({
+                data: { steps: normalizedSteps }
+              })
+              .eq('id', form.id);
+              
+            console.log('Fixed form structure for form:', form.id);
+          }
+        } catch (formErr) {
+          console.error('Error fixing form:', form.id, formErr);
+        }
+      }
+      
+      console.log('Completed form structure fix attempt');
+    } catch (e) {
+      console.error('Error in fixExistingForms:', e);
+    }
+  };
+
+  // Run form fix on initial load
+  useEffect(() => {
+    if (hasSynced && !isLoading && shopDomain) {
+      fixExistingForms().catch(err => {
+        console.error('Failed to fix forms:', err);
+      });
+    }
+  }, [hasSynced, isLoading, shopDomain]);
 
   // Store current shop ID in localStorage immediately when available
   useEffect(() => {
