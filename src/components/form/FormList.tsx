@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -32,22 +32,21 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
   maxAttempts?: number;
-  onRefresh?: () => void; // Added refresh callback prop
+  onRefresh?: () => Promise<void>;
 }
 
 const FormList: React.FC<FormListProps> = ({ 
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 1, // Default to just 1 attempt to avoid multiple retries
-  onRefresh  // Added refresh callback
+  maxAttempts = 1, 
+  onRefresh 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
@@ -56,6 +55,8 @@ const FormList: React.FC<FormListProps> = ({
   const [attemptCount, setAttemptCount] = useState<number>(0);
   const [processingComplete, setProcessingComplete] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  
+  console.log('FormList render with forms:', forms);
   
   // Timer to prevent infinite processing
   useEffect(() => {
@@ -132,6 +133,10 @@ const FormList: React.FC<FormListProps> = ({
       try {
         await deleteForm(formToDelete);
         setFormToDelete(null);
+        
+        // Remove the deleted form from the local state
+        setProcessedForms(prev => prev.filter(form => form.id !== formToDelete));
+        
       } catch (error) {
         console.error("Error deleting form:", error);
         toast.error("فشل في حذف النموذج");
@@ -267,6 +272,8 @@ const FormList: React.FC<FormListProps> = ({
       </Card>
     );
   }
+
+  console.log('Rendering form list with forms:', processedForms);
 
   // Show forms list
   return (

@@ -67,10 +67,13 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     }
 
     setIsSaving(true);
+    console.log('Creating new form with name:', newFormName);
     
     try {
       // Use the shopDomain from our central connection or fail gracefully
-      const currentShopId = shopDomain || localStorage.getItem('shopify_store');
+      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
+      
+      console.log('Current shop ID for form creation:', currentShopId);
       
       if (!currentShopId) {
         throw new Error(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
@@ -99,6 +102,8 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         is_published: false
       };
 
+      console.log('Sending form data to create:', formData);
+
       const { data, error: saveError } = await supabase
         .from('forms')
         .insert(formData)
@@ -106,13 +111,18 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         .single();
 
       if (saveError) {
+        console.error('Error creating form:', saveError);
         throw saveError;
       }
 
+      console.log('Form created successfully:', data);
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
       setForms(prev => [...prev, data]);
       setIsCreating(false);
       setNewFormName('');
+      
+      // Reload forms to ensure we see the new form
+      loadForms(true);
       
     } catch (err) {
       console.error('Error creating form:', err);
@@ -120,7 +130,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [newFormName, language, shopDomain]);
+  }, [newFormName, language, shopDomain, shopId, loadForms]);
 
   // Use the shopId prop in loadForms if provided
   const loadForms = useCallback(async (forceRefresh = false) => {
@@ -138,13 +148,15 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
       // Use the shopId prop, or fallback to shopDomain or localStorage
       const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
+      console.log('FormsPage: Loading forms for shop:', currentShopId);
+      
       if (!currentShopId) {
+        console.error('FormsPage: No shop ID found to load forms');
         setForms([]);
         setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
+        setIsLoading(false);
         return;
       }
-      
-      console.log('FormsPage: Loading forms for shop:', currentShopId);
       
       // Load forms for the current shop
       const { data, error: loadError } = await supabase
@@ -154,10 +166,11 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         .order('created_at', { ascending: false });
       
       if (loadError) {
+        console.error('FormsPage: Error loading forms:', loadError);
         throw loadError;
       }
       
-      console.log(`FormsPage: Loaded ${data?.length || 0} forms`);
+      console.log(`FormsPage: Loaded ${data?.length || 0} forms:`, data);
       setForms(data || []);
       setError(null);
       
@@ -179,9 +192,12 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   // Load forms once when component mounts or when shopDomain changes
   useEffect(() => {
     const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
-    if (shopIdToUse && !hasLoadAttempted) {
+    console.log('FormsPage initial load with shopId:', shopIdToUse);
+    
+    if (shopIdToUse) {
       loadForms();
     } else if (!hasLoadAttempted) {
+      console.log('No shop ID found, setting error state');
       setIsLoading(false);
       setHasLoadAttempted(true);
       setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
