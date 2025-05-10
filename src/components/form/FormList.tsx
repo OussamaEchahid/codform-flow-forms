@@ -110,51 +110,52 @@ const FormList: React.FC<FormListProps> = ({
 
   // Improved deletion handler to prevent page freezing
   const handleDelete = async () => {
-    if (formToDelete && !isDeleting) {
-      try {
-        // Set deleting state to prevent multiple delete attempts
-        setIsDeleting(true);
-        
-        // First update the UI optimistically - remove from local state immediately
-        if (isMounted.current) {
-          setLocalForms(prevForms => prevForms.filter(form => form.id !== formToDelete));
-        }
-        
-        // Show deletion in progress toast
-        const toastId = toast.loading('جاري حذف النموذج...');
-        
-        // Then actually delete from the database
-        await deleteForm(formToDelete);
-        
-        // Success handling
-        if (isMounted.current) {
-          setFormToDelete(null);
-          toast.dismiss(toastId);
-          toast.success('تم حذف النموذج بنجاح');
-        }
-        
-        // After a small delay, trigger the refresh callback if provided
-        // Using setTimeout to prevent UI thread blocking
-        setTimeout(async () => {
-          if (onRefresh && isMounted.current) {
-            await onRefresh();
-          }
-          // Reset deleting state
+    if (!formToDelete || isDeleting) return;
+    
+    try {
+      // Set deleting state to prevent multiple delete attempts
+      setIsDeleting(true);
+      
+      // First update the UI optimistically - remove from local state immediately
+      const formIdToDelete = formToDelete;
+      setLocalForms(prevForms => prevForms.filter(form => form.id !== formIdToDelete));
+      
+      // Clear form to delete ID
+      setFormToDelete(null);
+      
+      // Show deletion in progress toast
+      const toastId = toast.loading('جاري حذف النموذج...');
+      
+      // Then actually delete from the database
+      await deleteForm(formIdToDelete);
+      
+      // Success handling
+      toast.dismiss(toastId);
+      toast.success('تم حذف النموذج بنجاح');
+      
+      // After successful deletion, trigger the refresh callback if provided
+      // Using setTimeout to prevent UI thread blocking
+      if (onRefresh) {
+        setTimeout(() => {
           if (isMounted.current) {
-            setIsDeleting(false);
+            onRefresh().catch(err => {
+              console.error(`[${stableId.current}] Error refreshing after delete:`, err);
+            });
           }
         }, 100);
-        
-      } catch (error) {
-        console.error(`[${stableId.current}] Error deleting form:`, error);
-        toast.error("فشل في حذف النموذج");
-        
-        // Restore the deleted item if the server operation failed
-        if (isMounted.current) {
-          // We need to restore the form that was optimistically removed
-          onRefresh?.();
-          setIsDeleting(false);
-        }
+      }
+    } catch (error) {
+      console.error(`[${stableId.current}] Error deleting form:`, error);
+      toast.error("فشل في حذف النموذج");
+      
+      // Restore the deleted item if the server operation failed
+      if (onRefresh && isMounted.current) {
+        await onRefresh();
+      }
+    } finally {
+      // Always reset deleting state regardless of outcome
+      if (isMounted.current) {
+        setIsDeleting(false);
       }
     }
   };
