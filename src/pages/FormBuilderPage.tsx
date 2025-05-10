@@ -20,14 +20,14 @@ const FormBuilderPage = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
-  const { tokenError, failSafeMode, toggleFailSafeMode } = useShopify();
+  const { isConnected, failSafeMode } = useShopify();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [dbTriggerInitialized, setDbTriggerInitialized] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
-  const hasAccess = !!user || shopifyConnected;
+  const hasAccess = !!user || shopifyConnected || isConnected;
   
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
@@ -62,18 +62,12 @@ const FormBuilderPage = () => {
     initDbTrigger();
   }, []); // Empty dependency array ensures it runs once
   
-  // Handle connection issues automatically
+  // Always enable bypass access in development mode
   useEffect(() => {
-    if (tokenError) {
-      console.log("Token error detected, enabling bypass");
+    if (process.env.NODE_ENV === 'development') {
       setBypassEnabled(true);
-      
-      if (!failSafeMode) {
-        toggleFailSafeMode(true);
-        console.log("Enabling fail-safe mode automatically");
-      }
     }
-  }, [tokenError, failSafeMode, toggleFailSafeMode]);
+  }, []);
   
   useEffect(() => {
     if (formId) {
@@ -83,13 +77,6 @@ const FormBuilderPage = () => {
       setActiveTab('dashboard');
     }
   }, [formId, fetchForms]);
-
-  // Always enable bypass access in development mode
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      setBypassEnabled(true);
-    }
-  }, []);
   
   const enableBypass = () => {
     setBypassEnabled(true);
@@ -142,7 +129,7 @@ const FormBuilderPage = () => {
       <AppSidebar />
       
       {/* Simplified Connection Status Banner */}
-      {(tokenError || failSafeMode) && (
+      {failSafeMode && (
         <div className="absolute top-0 left-0 right-0 z-50">
           <Alert variant="warning" className="flex items-center py-1 px-4 bg-amber-50 border-amber-200 mb-0 rounded-none">
             <AlertCircle className="h-4 w-4 text-amber-600" />

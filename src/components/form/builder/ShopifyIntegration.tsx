@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { useI18n } from '@/lib/i18n';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Check, ShoppingCart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { ShopifyFormData } from '@/lib/shopify/types';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -18,24 +17,23 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   const { language } = useI18n();
   const { 
     syncForm, 
-    loadProducts, 
-    refreshConnection, 
     isConnected,
     shop,
+    products,
+    isLoading: shopifyLoading,
+    refreshConnection,
+    loadProducts,
     failSafeMode 
   } = useShopify();
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [formSettings, setFormSettings] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
-  const [productsCount, setProductsCount] = useState<number>(0);
+  const [productsCount, setProductsCount] = useState<number>(Array.isArray(products) ? products.length : 0);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // Add local loading state for refresh operations
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const mounted = useRef(true);
-  const retryCount = useRef(0);
-  const maxRetries = 3;
   
   // Cleanup on unmount
   useEffect(() => {
@@ -44,64 +42,19 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     };
   }, []);
   
-  // Check connection on mount or formId change
+  // Check connection and update UI
   useEffect(() => {
-    let isMounted = true;
+    setConnectionStatus(isConnected ? 'connected' : 'disconnected');
     
-    const checkConnection = async () => {
-      if (!formId) return;
-      
-      try {
-        setConnectionStatus('checking');
-        setIsLoading(true);
-        
-        // Attempt to check connection status
-        const isConnectedResult = await refreshConnection();
-        
-        if (isMounted) {
-          setConnectionStatus(isConnectedResult ? 'connected' : 'disconnected');
-          
-          // If connected, get products
-          if (isConnectedResult) {
-            try {
-              const products = await loadProducts();
-              
-              if (isMounted) {
-                if (Array.isArray(products)) {
-                  setProductsCount(products.length);
-                  setLastRefreshed(new Date());
-                  setErrorMessage(null);
-                }
-              }
-            } catch (productError) {
-              console.error('Error fetching products:', productError);
-              setErrorMessage(language === 'ar' 
-                ? 'فشل في جلب المنتجات' 
-                : 'Failed to fetch products');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Connection check error:', error);
-        if (isMounted) {
-          setConnectionStatus('disconnected');
-          setErrorMessage(language === 'ar' 
-            ? 'فشل الاتصال بـ Shopify' 
-            : 'Failed to connect to Shopify');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
+    // Update products count when products change
+    if (Array.isArray(products)) {
+      setProductsCount(products.length);
+      setLastRefreshed(new Date());
+    }
     
-    checkConnection();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [formId, language, loadProducts, refreshConnection]);
+    // After initial load, update loading state
+    setIsLoading(false);
+  }, [isConnected, products]);
   
   // Handle form sync
   const handleSync = async () => {
@@ -112,17 +65,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       // Reset error state
       setErrorMessage(null);
       
-      // Prepare data with the correct structure
-      const formData: ShopifyFormData = {
-        formId,
-        settings: {
-          position: 'product-page',
-          style: {}
-        }
-      };
-
-      // Attempt to sync with correct data structure
-      const result = await syncForm(formData);
+      // Attempt to sync
+      const result = await syncForm(formId);
       
       if (mounted.current) {
         if (result && result.success) {
@@ -156,9 +100,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     }
   };
   
+  // Handle retry connection
   const handleRetryConnection = async () => {
     setConnectionStatus('checking');
-    setIsRefreshing(true); // Use local state instead of setIsLoading
+    setIsRefreshing(true);
     
     try {
       const isConnectedResult = await refreshConnection(true);
@@ -173,17 +118,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
             : 'Successfully connected to Shopify');
           
           // Also refresh products
-          try {
-            const products = await loadProducts();
-            
-            if (mounted.current && Array.isArray(products)) {
-              setProductsCount(products.length);
-              setLastRefreshed(new Date());
-              setErrorMessage(null);
-            }
-          } catch (productError) {
-            console.error('Error fetching products after reconnection:', productError);
-          }
+          handleRefreshProducts();
         } else {
           toast.error(language === 'ar' 
             ? 'فشل في الاتصال بـ Shopify' 
@@ -201,46 +136,43 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       }
     } finally {
       if (mounted.current) {
-        setIsRefreshing(false); // Use local state instead of setIsLoading
+        setIsRefreshing(false);
       }
     }
   };
   
-  // Handle manual refresh of products
-  const handleRefreshProducts = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault(); // Prevent any form submission
-    setIsRefreshing(true); // Use local state instead of setIsLoading
+  // Handle refresh products
+  const handleRefreshProducts = async () => {
+    setIsRefreshing(true);
     
     try {
-      retryCount.current = 0; // Reset retry counter
-      const products = await loadProducts(true); // Force refresh
+      const refreshedProducts = await loadProducts(true);
       
-      if (mounted.current) {
-        if (Array.isArray(products)) {
-          setProductsCount(products.length);
-          setLastRefreshed(new Date());
-          setErrorMessage(null);
-          toast.success(language === 'ar' 
-            ? `تم تحديث ${products.length} منتج` 
-            : `Refreshed ${products.length} products`);
-        }
+      if (mounted.current && Array.isArray(refreshedProducts)) {
+        setProductsCount(refreshedProducts.length);
+        setLastRefreshed(new Date());
+        setErrorMessage(null);
+        toast.success(language === 'ar' 
+          ? `تم تحديث ${refreshedProducts.length} منتج` 
+          : `Refreshed ${refreshedProducts.length} products`);
       }
     } catch (error) {
       console.error('Error refreshing products:', error);
+      
       if (mounted.current) {
         setErrorMessage(language === 'ar' ? 'فشل تحديث المنتجات' : 'Failed to refresh products');
+        toast.error(language === 'ar' 
+          ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
+          : 'Failed to refresh products, please try again');
       }
-      toast.error(language === 'ar' 
-        ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
-        : 'Failed to refresh products, please try again');
     } finally {
       if (mounted.current) {
-        setIsRefreshing(false); // Use local state instead of setIsLoading
+        setIsRefreshing(false);
       }
     }
   };
   
-  // Show connection status
+  // Show connection status badge
   const statusBadge = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -342,7 +274,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                 {language === 'ar' ? 'عدد المنتجات:' : 'Products Count:'}
               </span>
               <span className="text-sm">
-                {isLoading || isRefreshing
+                {isLoading || isRefreshing || shopifyLoading
                  ? <Loader2 className="h-3 w-3 animate-spin inline ml-2" /> 
                  : productsCount}
               </span>
