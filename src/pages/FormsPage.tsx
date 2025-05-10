@@ -60,6 +60,57 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const { isConnected, shopDomain } = useShopifyConnection();
   const navigate = useNavigate();
 
+  // Define loadForms before it's used
+  const loadForms = useCallback(async (forceRefresh = false) => {
+    if (hasLoadAttempted && !forceRefresh) {
+      console.log('FormsPage: Already attempted to load forms, skipping');
+      return;
+    }
+    
+    setIsLoading(true);
+    if (!forceRefresh) {
+      setHasLoadAttempted(true);
+    }
+    
+    try {
+      // Use the shopId prop, or fallback to shopDomain or localStorage
+      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
+      
+      console.log('FormsPage: Loading forms for shop:', currentShopId);
+      
+      if (!currentShopId) {
+        console.error('FormsPage: No shop ID found to load forms');
+        setForms([]);
+        setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Load forms for the current shop
+      const { data, error: loadError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', currentShopId)
+        .order('created_at', { ascending: false });
+      
+      if (loadError) {
+        console.error('FormsPage: Error loading forms:', loadError);
+        throw loadError;
+      }
+      
+      console.log(`FormsPage: Loaded ${data?.length || 0} forms:`, data);
+      setForms(data || []);
+      setError(null);
+      
+    } catch (err) {
+      console.error('Error loading forms:', err);
+      setError(language === 'ar' ? 'حدث خطأ أثناء تحميل النماذج' : 'Error loading forms');
+      setForms([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [language, shopDomain, hasLoadAttempted, shopId]);
+
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال اسم للنموذج' : 'Please enter a form name');
@@ -131,57 +182,6 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
       setIsSaving(false);
     }
   }, [newFormName, language, shopDomain, shopId, loadForms]);
-
-  // Use the shopId prop in loadForms if provided
-  const loadForms = useCallback(async (forceRefresh = false) => {
-    if (hasLoadAttempted && !forceRefresh) {
-      console.log('FormsPage: Already attempted to load forms, skipping');
-      return;
-    }
-    
-    setIsLoading(true);
-    if (!forceRefresh) {
-      setHasLoadAttempted(true);
-    }
-    
-    try {
-      // Use the shopId prop, or fallback to shopDomain or localStorage
-      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
-      
-      console.log('FormsPage: Loading forms for shop:', currentShopId);
-      
-      if (!currentShopId) {
-        console.error('FormsPage: No shop ID found to load forms');
-        setForms([]);
-        setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Load forms for the current shop
-      const { data, error: loadError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', currentShopId)
-        .order('created_at', { ascending: false });
-      
-      if (loadError) {
-        console.error('FormsPage: Error loading forms:', loadError);
-        throw loadError;
-      }
-      
-      console.log(`FormsPage: Loaded ${data?.length || 0} forms:`, data);
-      setForms(data || []);
-      setError(null);
-      
-    } catch (err) {
-      console.error('Error loading forms:', err);
-      setError(language === 'ar' ? 'حدث خطأ أثناء تحميل النماذج' : 'Error loading forms');
-      setForms([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [language, shopDomain, hasLoadAttempted, shopId]);
 
   // Add refresh handler that resets load state and forces a refresh
   const handleRefresh = useCallback(() => {

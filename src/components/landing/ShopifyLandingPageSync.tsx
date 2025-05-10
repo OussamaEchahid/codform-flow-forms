@@ -12,8 +12,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
+// Define props interface for ShopifyLandingPageSync component
+interface ShopifyLandingPageSyncProps {
+  pageId?: string;
+  pageSlug?: string;
+  isPublished?: boolean;
+}
+
 // ShopifyLandingPageSync component to display and manage Shopify connection status
-const ShopifyLandingPageSync = () => {
+const ShopifyLandingPageSync: React.FC<ShopifyLandingPageSyncProps> = ({ 
+  pageId,
+  pageSlug,
+  isPublished 
+}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get Shopify connection state from our hook
