@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -122,14 +123,16 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   }, [newFormName, language, shopDomain]);
 
   // Use the shopId prop in loadForms if provided
-  const loadForms = useCallback(async () => {
-    if (hasLoadAttempted) {
+  const loadForms = useCallback(async (forceRefresh = false) => {
+    if (hasLoadAttempted && !forceRefresh) {
       console.log('FormsPage: Already attempted to load forms, skipping');
       return;
     }
     
     setIsLoading(true);
-    setHasLoadAttempted(true);
+    if (!forceRefresh) {
+      setHasLoadAttempted(true);
+    }
     
     try {
       // Use the shopId prop, or fallback to shopDomain or localStorage
@@ -167,17 +170,23 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     }
   }, [language, shopDomain, hasLoadAttempted, shopId]);
 
+  // Add refresh handler that resets load state and forces a refresh
+  const handleRefresh = useCallback(() => {
+    console.log('FormsPage: Manually refreshing forms list');
+    return loadForms(true);
+  }, [loadForms]);
+
   // Load forms once when component mounts or when shopDomain changes
   useEffect(() => {
-    const shopId = shopDomain || localStorage.getItem('shopify_store');
-    if (shopId && !hasLoadAttempted) {
+    const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
+    if (shopIdToUse && !hasLoadAttempted) {
       loadForms();
     } else if (!hasLoadAttempted) {
       setIsLoading(false);
       setHasLoadAttempted(true);
       setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
     }
-  }, [shopDomain, loadForms, hasLoadAttempted, language]);
+  }, [shopDomain, loadForms, hasLoadAttempted, language, shopId]);
 
   const handleEditForm = (formId: string) => {
     navigate(`/form-builder/${formId}`);
@@ -271,6 +280,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         forms={forms} 
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
+        onRefresh={handleRefresh}
       />
     </div>
   );

@@ -25,26 +25,29 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
   maxAttempts?: number;
+  onRefresh?: () => void; // Added refresh callback prop
 }
 
 const FormList: React.FC<FormListProps> = ({ 
   forms, 
   isLoading, 
-  onSelectForm, 
-  maxAttempts = 1 // Default to just 1 attempt to avoid multiple retries
+  onSelectForm,
+  maxAttempts = 1, // Default to just 1 attempt to avoid multiple retries
+  onRefresh  // Added refresh callback
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
@@ -52,6 +55,7 @@ const FormList: React.FC<FormListProps> = ({
   const [processedForms, setProcessedForms] = useState<FormData[]>([]);
   const [attemptCount, setAttemptCount] = useState<number>(0);
   const [processingComplete, setProcessingComplete] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   // Timer to prevent infinite processing
   useEffect(() => {
@@ -134,6 +138,18 @@ const FormList: React.FC<FormListProps> = ({
       }
     }
   };
+  
+  // Handle manual refresh when user clicks the refresh button
+  const handleRefresh = async () => {
+    if (onRefresh) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
 
   // Forced timeout - show error if isLoading has been true for too long
   const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
@@ -153,8 +169,27 @@ const FormList: React.FC<FormListProps> = ({
     return (
       <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          استغرق تحميل النماذج وقتًا طويلاً. يرجى تحديث الصفحة والمحاولة مرة أخرى.
+        <AlertDescription className="flex flex-col space-y-4">
+          <span>استغرق تحميل النماذج وقتًا طويلاً. يرجى تحديث الصفحة والمحاولة مرة أخرى.</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-fit self-start"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جارٍ التحديث...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                تحديث النماذج
+              </>
+            )}
+          </Button>
         </AlertDescription>
       </Alert>
     );
@@ -174,8 +209,27 @@ const FormList: React.FC<FormListProps> = ({
     return (
       <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          حدث خطأ أثناء تحميل النماذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.
+        <AlertDescription className="flex flex-col space-y-4">
+          <span>حدث خطأ أثناء تحميل النماذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-fit self-start"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جارٍ التحديث...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                إعادة المحاولة
+              </>
+            )}
+          </Button>
         </AlertDescription>
       </Alert>
     );
@@ -188,6 +242,27 @@ const FormList: React.FC<FormListProps> = ({
         <CardContent className="pt-6 text-center">
           <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
           <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
+          {!isLoading && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  جارٍ التحديث...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  تحديث القائمة
+                </>
+              )}
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -195,73 +270,96 @@ const FormList: React.FC<FormListProps> = ({
 
   // Show forms list
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {processedForms.map((form) => (
-        <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-          <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <CardTitle className="text-lg truncate">{form.title || "بدون عنوان"}</CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>تعديل</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published || false)}>
-                    {form.is_published ? (
-                      <>
-                        <EyeOff className="mr-2 h-4 w-4" />
-                        <span>إلغاء النشر</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>نشر</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setFormToDelete(form.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    <span>حذف</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-2">
-              <Badge variant={form.is_published ? "success" : "secondary"}>
-                {form.is_published ? 'منشور' : 'مسودة'}
-              </Badge>
-              <span className="text-xs text-gray-500 rtl:text-left">
-                {form.created_at ? 
-                  formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar }) : 
-                  'تاريخ غير محدد'
-                }
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
-          </CardContent>
-          <CardFooter className="border-t pt-4">
-            <Button 
-              variant="default" 
-              onClick={() => onSelectForm(form.id)}
-              className="w-full"
-            >
-              عرض وتعديل
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              جارٍ التحديث...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              تحديث القائمة
+            </>
+          )}
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {processedForms.map((form) => (
+          <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-lg truncate">{form.title || "بدون عنوان"}</CardTitle>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>تعديل</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published || false)}>
+                      {form.is_published ? (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          <span>إلغاء النشر</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>نشر</span>
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setFormToDelete(form.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      <span>حذف</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center mb-2">
+                <Badge variant={form.is_published ? "success" : "secondary"}>
+                  {form.is_published ? 'منشور' : 'مسودة'}
+                </Badge>
+                <span className="text-xs text-gray-500 rtl:text-left">
+                  {form.created_at ? 
+                    formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar }) : 
+                    'تاريخ غير محدد'
+                  }
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+            </CardContent>
+            <CardFooter className="border-t pt-4">
+              <Button 
+                variant="default" 
+                onClick={() => onSelectForm(form.id)}
+                className="w-full"
+              >
+                عرض وتعديل
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
 
       <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
         <AlertDialogContent>

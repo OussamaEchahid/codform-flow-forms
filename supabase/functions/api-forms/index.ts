@@ -59,65 +59,109 @@ serve(async (req) => {
 
     console.log(`[${requestId}] API-Forms: Fetching form with ID: ${formId}`)
 
-    // Get form from database
-    const { data: formData, error } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('id', formId)
-      .maybeSingle()
-
-    if (error) {
-      console.error(`[${requestId}] API-Forms: Database error:`, error)
-      return new Response(JSON.stringify({ 
-        error: error.message,
-        success: false 
-      }), {
-        headers: responseHeaders,
-        status: 400,
-      })
-    }
-
-    if (!formData) {
-      console.error(`[${requestId}] API-Forms: Form with ID ${formId} not found`)
-      return new Response(JSON.stringify({ 
-        error: `Form with ID ${formId} not found`,
-        success: false 
-      }), {
-        headers: responseHeaders,
-        status: 404,
-      })
-    }
-
-    // Always ensure the form is published for display
-    if (!formData.is_published) {
-      console.log(`[${requestId}] API-Forms: Form with ID ${formId} is not published, auto-publishing`)
+    // Get form from database with simplified error handling and retries
+    let attempts = 0;
+    const maxAttempts = 2;
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`[${requestId}] API-Forms: Attempt ${attempts} of ${maxAttempts}`)
       
-      // Force publish the form if it's not published
-      const { error: updateError } = await supabase
-        .from('forms')
-        .update({ is_published: true })
-        .eq('id', formId)
-      
-      if (updateError) {
-        console.error(`[${requestId}] API-Forms: Error publishing form:`, updateError)
-      } else {
-        console.log(`[${requestId}] API-Forms: Auto-published form ${formId} for display`)
-        formData.is_published = true
+      try {
+        const { data: formData, error } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('id', formId)
+          .maybeSingle()
+
+        if (error) {
+          console.error(`[${requestId}] API-Forms: Database error:`, error)
+          // On first attempt, retry once
+          if (attempts < maxAttempts) {
+            console.log(`[${requestId}] API-Forms: Retrying...`)
+            continue
+          }
+          
+          return new Response(JSON.stringify({ 
+            error: error.message,
+            success: false 
+          }), {
+            headers: responseHeaders,
+            status: 400,
+          })
+        }
+
+        if (!formData) {
+          console.error(`[${requestId}] API-Forms: Form with ID ${formId} not found`)
+          return new Response(JSON.stringify({ 
+            error: `Form with ID ${formId} not found`,
+            success: false 
+          }), {
+            headers: responseHeaders,
+            status: 404,
+          })
+        }
+
+        // Always ensure the form is published for display
+        if (!formData.is_published) {
+          console.log(`[${requestId}] API-Forms: Form with ID ${formId} is not published, auto-publishing`)
+          
+          // Force publish the form if it's not published
+          const { error: updateError } = await supabase
+            .from('forms')
+            .update({ is_published: true })
+            .eq('id', formId)
+          
+          if (updateError) {
+            console.error(`[${requestId}] API-Forms: Error publishing form:`, updateError)
+          } else {
+            console.log(`[${requestId}] API-Forms: Auto-published form ${formId} for display`)
+            formData.is_published = true
+          }
+        }
+
+        // Return a simplified response format
+        return new Response(JSON.stringify({
+          id: formData.id,
+          title: formData.title || 'Form',
+          description: formData.description || '',
+          submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
+          is_published: formData.is_published || false,
+          data: formData.data || {},
+          fields: formData.data?.fields || formData.data?.steps?.[0]?.fields || [],
+          success: true
+        }), {
+          headers: responseHeaders,
+          status: 200,
+        })
+      } catch (innerError) {
+        console.error(`[${requestId}] API-Forms: Error in attempt ${attempts}:`, innerError)
+        // Only continue to retry if we haven't reached max attempts
+        if (attempts < maxAttempts) {
+          console.log(`[${requestId}] API-Forms: Retrying after error...`)
+          await new Promise(r => setTimeout(r, 500)) // Small delay before retry
+          continue
+        }
+        
+        // If we've reached max attempts, return the error
+        console.error(`[${requestId}] API-Forms: Max attempts reached with errors`)
+        return new Response(JSON.stringify({ 
+          error: innerError.message || 'Error fetching form data',
+          success: false 
+        }), {
+          headers: responseHeaders,
+          status: 500,
+        })
       }
     }
-
-    // Just return the form data directly to minimize transformation errors
-    return new Response(JSON.stringify({
-      id: formData.id,
-      title: formData.title || 'Form',
-      description: formData.description || '',
-      submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
-      is_published: formData.is_published || false,
-      data: formData.data || {},
-      fields: formData.data?.fields || formData.data?.steps?.[0]?.fields || []
+    
+    // This should never be reached due to the return statements in the loop
+    return new Response(JSON.stringify({ 
+      error: 'Unexpected error in form fetching logic',
+      success: false 
     }), {
       headers: responseHeaders,
-      status: 200,
+      status: 500,
     })
     
   } catch (error) {
@@ -138,5 +182,3 @@ serve(async (req) => {
     })
   }
 })
-
-// Function to transform form data has been removed to simplify the response and prevent errors
