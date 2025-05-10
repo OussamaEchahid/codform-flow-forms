@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -45,7 +46,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     loadFormData,
     handleSave,
     handlePublish,
-    handleStyleChange,
+    handleStyleChange: updateFormStyle,
     addElement,
     deleteElement,
     duplicateElement,
@@ -233,13 +234,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     debouncedSave();
   }, [updateFormMeta, debouncedSave]);
 
-  // Adapt style change to match required signature
-  const handleStyleChange = useCallback((key: string, value: string) => {
+  // Adapter function for style changes
+  const adaptStyleChange = useCallback((key: string, value: string) => {
     const newStyle: Partial<FormStyle> = {};
     newStyle[key as keyof FormStyle] = value;
-    handleStyleChange(newStyle);
+    updateFormStyle(newStyle);
     debouncedSave();
-  }, [handleStyleChange, debouncedSave]);
+  }, [updateFormStyle, debouncedSave]);
 
   // Manual save handler that shows clear feedback and returns void
   const manualSaveHandler = useCallback(async () => {
@@ -294,7 +295,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onUpdateElement={handleUpdateElement}
       onDragEnd={handleDragEnd}
       onUpdateMeta={handleUpdateMeta}
-      onStyleChange={handleStyleChange}
+      onStyleChange={adaptStyleChange}
       onSave={manualSaveHandler}
       onPublish={handlePublishWrapper}
       onShopifyIntegration={shopifyIntegration.syncForm}
