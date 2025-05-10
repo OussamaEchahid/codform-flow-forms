@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { shopifyStores } from './supabase-client';
 import { shopifyConnectionManager } from './connection-manager';
@@ -63,6 +64,45 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   const tokenRefreshTimer = useRef<NodeJS.Timeout | null>(null);
   const autoRecoveryAttempts = useRef<number>(0);
   const maxAutoRecoveryAttempts = 3;
+  
+  // Schedule periodic token validation to ensure it stays valid
+  const scheduleTokenRefresh = useCallback(() => {
+    if (tokenRefreshTimer.current) {
+      clearTimeout(tokenRefreshTimer.current);
+    }
+    
+    // Schedule token refresh
+    tokenRefreshTimer.current = setTimeout(() => {
+      if (shopDomain && isConnected) {
+        connectionLogger.info('Performing scheduled token validation');
+        testConnection(true).catch(() => {
+          connectionLogger.error('Scheduled token validation failed');
+        });
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+  }, [testConnection, shopDomain, isConnected]);
+  
+  // Test token with Shopify API
+  const testShopifyToken = useCallback(async (shop: string, token: string): Promise<boolean> => {
+    if (!shop || !token) return false;
+    
+    try {
+      connectionLogger.debug(`Testing token for shop: ${shop}`);
+      
+      // Use our API endpoint to test connection
+      const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shop)}&force=true`);
+      if (!response.ok) {
+        connectionLogger.error('API response not ok while testing token');
+        return false;
+      }
+      
+      const result = await response.json();
+      return result.success === true;
+    } catch (error) {
+      connectionLogger.error('Error testing token:', error);
+      return false;
+    }
+  }, []);
   
   // Initialize dev mode with test store if enabled
   useEffect(() => {
@@ -338,25 +378,6 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     }
   }, [shopDomain, isDevMode, scheduleTokenRefresh]);
   
-  // ... keep existing code (testToken function and other unchanged methods)
-  
-  // Schedule periodic token validation to ensure it stays valid
-  const scheduleTokenRefresh = useCallback(() => {
-    if (tokenRefreshTimer.current) {
-      clearTimeout(tokenRefreshTimer.current);
-    }
-    
-    // Schedule token refresh
-    tokenRefreshTimer.current = setTimeout(() => {
-      if (shopDomain && isConnected) {
-        connectionLogger.info('Performing scheduled token validation');
-        testConnection(true).catch(() => {
-          connectionLogger.error('Scheduled token validation failed');
-        });
-      }
-    }, TOKEN_REFRESH_INTERVAL);
-  }, [testConnection, shopDomain, isConnected]);
-  
   // Auto-recovery mechanism
   const attemptAutoRecovery = useCallback(async () => {
     if (autoRecoveryAttempts.current >= maxAutoRecoveryAttempts || !shopDomain) {
@@ -490,7 +511,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
             // to prevent excessive API calls
             if (!inRecovery && data[0].access_token && syncAttempts <= 1) {
               try {
-                const isValid = await testToken(shopToUse, data[0].access_token);
+                const isValid = await testShopifyToken(shopToUse, data[0].access_token);
                 if (!isValid) {
                   setError('رمز الوصول غير صالح. يرجى إعادة الاتصال أو تحديث رمز الوصول.');
                 } else {
@@ -569,7 +590,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
         }, 60000); // Reset after 1 minute of stability
       }
     }
-  }, [shopDomain, isConnected, syncAttempts, testToken, scheduleTokenRefresh, attemptAutoRecovery, isDevMode]);
+  }, [shopDomain, isConnected, syncAttempts, testShopifyToken, scheduleTokenRefresh, attemptAutoRecovery, isDevMode]);
   
   // Disconnect function
   const disconnect = useCallback(async () => {
@@ -669,6 +690,9 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   // Initialize once on mount
   useEffect(() => {
     const initializeConnection = async () => {
+      // Generate a unique initialization ID
+      const initId = `init_${Math.random().toString(36).substring(2, 8)}`;
+      
       // Check if dev mode is enabled
       const devModeEnabled = localStorage.getItem('shopify_dev_mode') === 'true';
       setIsDevMode(devModeEnabled || ENABLE_DEV_MODE);

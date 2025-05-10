@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
@@ -242,6 +243,9 @@ const Forms = () => {
       });
       return;
     }
+    
+    // Generate a unique request ID for this connection check
+    const requestId = `check_${Math.random().toString(36).substring(2, 10)}`;
     
     try {
       console.log(`[${requestId}] Starting connection verification`);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -122,32 +123,42 @@ export const useShopify = () => {
           title: '[DEV] Test Product 1',
           handle: 'test-product-1',
           description: 'This is a test product for development mode',
-          images: [{
-            id: 'gid://shopify/ProductImage/1',
-            src: 'https://via.placeholder.com/800x600?text=Test+Product+1',
-            altText: 'Test Product 1'
-          }],
-          variants: [{
-            id: 'gid://shopify/ProductVariant/1',
-            title: 'Default',
-            price: '19.99'
-          }]
+          images: [
+            {
+              id: 'gid://shopify/ProductImage/1',
+              src: 'https://via.placeholder.com/800x600?text=Test+Product+1',
+              altText: 'Test Product 1'
+            }
+          ],
+          variants: [
+            {
+              id: 'gid://shopify/ProductVariant/1',
+              title: 'Default',
+              price: '19.99',
+              available: true
+            }
+          ]
         },
         {
           id: 'gid://shopify/Product/2',
           title: '[DEV] Test Product 2',
           handle: 'test-product-2',
           description: 'This is another test product for development mode',
-          images: [{
-            id: 'gid://shopify/ProductImage/2',
-            src: 'https://via.placeholder.com/800x600?text=Test+Product+2',
-            altText: 'Test Product 2'
-          }],
-          variants: [{
-            id: 'gid://shopify/ProductVariant/2',
-            title: 'Default',
-            price: '29.99'
-          }]
+          images: [
+            {
+              id: 'gid://shopify/ProductImage/2',
+              src: 'https://via.placeholder.com/800x600?text=Test+Product+2',
+              altText: 'Test Product 2'
+            }
+          ],
+          variants: [
+            {
+              id: 'gid://shopify/ProductVariant/2',
+              title: 'Default',
+              price: '29.99',
+              available: true
+            }
+          ]
         }
       ];
       
