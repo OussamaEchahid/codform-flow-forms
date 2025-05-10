@@ -25,13 +25,46 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
-  // Add max retries to prevent infinite loading
   const [loadAttempts, setLoadAttempts] = useState(0);
-  const maxRetries = 3;
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const maxRetries = 2; // Reduced max retries for faster fallback
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Safety mechanism: force loading state to complete after 6.5 seconds maximum
+  useEffect(() => {
+    // Initial boot timeout - guarantees we'll show something rather than infinite loading
+    const initialTimeout = setTimeout(() => {
+      if (!hasLoadedForms) {
+        console.warn("FormBuilderDashboard: Initial load timeout reached, forcing load completion");
+        setHasLoadedForms(true);
+        setLoadingTimedOut(true);
+        setLocalForms(initialForms || []);
+        
+        // Show toast only if we have no forms to show
+        if (!forms || forms.length === 0) {
+          toast.warning(language === 'ar' ? 
+            'استغرق تحميل النماذج وقتًا طويلاً. يرجى التحقق من اتصالك بالإنترنت.' : 
+            'Form loading is taking too long. Please check your internet connection.'
+          );
+        }
+      }
+    }, 6500); // 6.5 seconds maximum wait time for initial load
+    
+    initialLoadTimeoutRef.current = initialTimeout;
+    
+    // Clean up timeout
+    return () => {
+      if (initialLoadTimeoutRef.current) {
+        clearTimeout(initialLoadTimeoutRef.current);
+      }
+    };
+  }, [forms, hasLoadedForms, initialForms, language]);
 
   // Fetch forms on component mount with safety limits
   useEffect(() => {
+    console.log("FormBuilderDashboard: Starting form load, attempt", loadAttempts);
+    
     const loadForms = async () => {
       try {
         if (loadAttempts >= maxRetries) {
@@ -44,11 +77,20 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         const timeout = setTimeout(() => {
           console.warn("FormBuilderDashboard: Load timeout, using available forms");
           setHasLoadedForms(true);
-        }, 5000); // 5 second timeout
+          setLoadingTimedOut(true);
+          
+          // Show toast on timeout
+          toast.warning(language === 'ar' ? 
+            'استغرق تحميل النماذج وقتًا طويلاً. يرجى التحقق من اتصالك بالإنترنت.' : 
+            'Form loading is taking too long. Please check your internet connection.'
+          );
+        }, 3500); // Reduced to 3.5 second timeout for faster fallback
         
         loadingTimeoutRef.current = timeout;
         
+        console.log("FormBuilderDashboard: Fetching forms...");
         await fetchForms();
+        console.log("FormBuilderDashboard: Forms fetched successfully", forms);
         setLoadAttempts(prev => prev + 1);
         setHasLoadedForms(true);
         
@@ -63,6 +105,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         
         // Still set loaded to prevent infinite loading
         setHasLoadedForms(true);
+        setLoadingTimedOut(true);
       }
     };
 
@@ -74,28 +117,34 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
       }
+      if (initialLoadTimeoutRef.current) {
+        clearTimeout(initialLoadTimeoutRef.current);
+        initialLoadTimeoutRef.current = null;
+      }
     };
-  }, [forceRefresh]);
+  }, [forceRefresh, loadAttempts, fetchForms, language, forms]);
 
   // Update local forms when the forms from hook change, ensuring uniqueness by ID
   useEffect(() => {
-    if (forms && forms.length > 0) {
+    if (forms && Array.isArray(forms) && forms.length > 0) {
+      console.log("FormBuilderDashboard: Forms data received from hook, updating local forms", forms);
       // Remove duplicates by ID
       const uniqueForms = forms.reduce((acc: any[], current) => {
         const existingForm = acc.find(form => form.id === current.id);
-        if (!existingForm) {
+        if (!existingForm && current && current.id) {
           acc.push(current);
         }
         return acc;
       }, []);
       
       setLocalForms(uniqueForms);
-    } else if (hasLoadedForms && loadAttempts >= maxRetries) {
+    } else if (hasLoadedForms && (loadAttempts >= maxRetries || loadingTimedOut)) {
       // If we've tried multiple times but forms is empty, ensure we show empty state
       // rather than eternal loading
+      console.log("FormBuilderDashboard: No forms received, showing empty state");
       setLocalForms([]);
     }
-  }, [forms, hasLoadedForms, loadAttempts]);
+  }, [forms, hasLoadedForms, loadAttempts, loadingTimedOut]);
 
   const handleCreateForm = async () => {
     try {
@@ -133,8 +182,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   };
 
-  // Don't show loading forever if we have forms already
-  const shouldShowLoading = isLoading && !localForms.length && loadAttempts < maxRetries;
+  // Only show loading if we're actually still loading and haven't hit our timeouts
+  const shouldShowLoading = isLoading && !localForms.length && !hasLoadedForms && loadAttempts < maxRetries && !loadingTimedOut;
 
   return (
     <div className="container mx-auto py-8">

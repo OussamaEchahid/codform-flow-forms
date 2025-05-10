@@ -41,16 +41,29 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
   
-  // Remove duplicate forms by ID
-  const uniqueForms = Array.isArray(forms) ? forms.reduce((acc: FormData[], current) => {
+  // Enhanced validation to make sure we only work with valid form objects
+  const validForms = Array.isArray(forms) ? forms.filter(form => 
+    form && typeof form === 'object' && form.id && typeof form.id === 'string'
+  ) : [];
+  
+  // Remove duplicate forms by ID with additional safety checks
+  const uniqueForms = validForms.reduce((acc: FormData[], current) => {
+    // Skip invalid forms
+    if (!current || !current.id) return acc;
+    
     const existingForm = acc.find(form => form.id === current.id);
-    if (!existingForm && current.id) {
+    if (!existingForm) {
       acc.push(current);
     }
     return acc;
-  }, []) : [];
+  }, []);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
+    if (!formId) {
+      console.error("Cannot toggle publish: Invalid form ID");
+      return;
+    }
+    
     try {
       await publishForm(formId, !currentStatus);
     } catch (error) {
@@ -95,7 +108,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg truncate">{form.title}</CardTitle>
+              <CardTitle className="text-lg truncate">{form.title || "بدون عنوان"}</CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -137,7 +150,10 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                 {form.is_published ? 'منشور' : 'مسودة'}
               </Badge>
               <span className="text-xs text-gray-500 rtl:text-left">
-                {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+                {form.created_at ? 
+                  formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar }) : 
+                  'تاريخ غير محدد'
+                }
               </span>
             </div>
             <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>

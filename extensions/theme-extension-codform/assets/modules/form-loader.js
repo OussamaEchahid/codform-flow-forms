@@ -33,9 +33,27 @@ function CODFORMFormLoader(API_BASE_URL) {
     
     // Add retry mechanism
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 2;  // Reduced max retries for faster failover
+    
+    // Track fetch timeout
+    let timeoutId = null;
     
     function attemptFetch() {
+      // Set fetch timeout
+      timeoutId = setTimeout(() => {
+        console.error('CODFORM: Fetch timeout');
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`CODFORM: Retrying (${retryCount}/${maxRetries})...`);
+          showRetryMessage(container, retryCount, maxRetries);
+          
+          // Clear the old timeout and set a new one with exponential backoff
+          setTimeout(attemptFetch, 1000 * retryCount);
+        } else {
+          showError(container, 'Connection timeout. Please refresh the page and try again.');
+        }
+      }, 5000); // 5 second timeout
+      
       fetch(urlWithTimestamp, {
         method: 'GET',
         headers: {
@@ -47,6 +65,9 @@ function CODFORMFormLoader(API_BASE_URL) {
         cache: 'no-store'
       })
         .then(response => {
+          // Clear fetch timeout
+          clearTimeout(timeoutId);
+          
           console.log('CODFORM: API Response status:', response.status);
           
           // Check if we got HTML instead of JSON (common with CORS issues)
@@ -65,6 +86,9 @@ function CODFORMFormLoader(API_BASE_URL) {
         })
         .then(data => {
           console.log('CODFORM: Form data received:', data);
+          
+          // Clear fetch timeout
+          clearTimeout(timeoutId);
           
           // Enhanced validation of form data
           if (!data) {
@@ -102,6 +126,9 @@ function CODFORMFormLoader(API_BASE_URL) {
           showForm(container);
         })
         .catch(error => {
+          // Clear fetch timeout
+          clearTimeout(timeoutId);
+          
           console.error('CODFORM: Error loading form:', error);
           
           // Retry logic
@@ -110,18 +137,7 @@ function CODFORMFormLoader(API_BASE_URL) {
             console.log(`CODFORM: Retrying (${retryCount}/${maxRetries})...`);
             
             // Show retry message
-            const loaderEl = container.querySelector('.codform-loader');
-            if (loaderEl) {
-              const retryText = loaderEl.querySelector('.codform-retry-text');
-              if (retryText) {
-                retryText.textContent = `جاري إعادة المحاولة (${retryCount}/${maxRetries})...`;
-              } else {
-                const newRetryText = document.createElement('div');
-                newRetryText.className = 'codform-retry-text';
-                newRetryText.textContent = `جاري إعادة المحاولة (${retryCount}/${maxRetries})...`;
-                loaderEl.appendChild(newRetryText);
-              }
-            }
+            showRetryMessage(container, retryCount, maxRetries);
             
             // Exponential backoff
             setTimeout(attemptFetch, 1000 * retryCount);
@@ -142,6 +158,22 @@ function CODFORMFormLoader(API_BASE_URL) {
           hideLoader(container);
           showError(container, errorMessage);
         });
+    }
+    
+    // Helper function to show retry message
+    function showRetryMessage(container, currentRetry, maxRetries) {
+      const loaderEl = container.querySelector('.codform-loader');
+      if (loaderEl) {
+        const retryText = loaderEl.querySelector('.codform-retry-text');
+        if (retryText) {
+          retryText.textContent = `جاري إعادة المحاولة (${currentRetry}/${maxRetries})...`;
+        } else {
+          const newRetryText = document.createElement('div');
+          newRetryText.className = 'codform-retry-text';
+          newRetryText.textContent = `جاري إعادة المحاولة (${currentRetry}/${maxRetries})...`;
+          loaderEl.appendChild(newRetryText);
+        }
+      }
     }
     
     // Start first attempt
