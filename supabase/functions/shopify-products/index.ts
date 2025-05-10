@@ -1,13 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -31,13 +25,14 @@ serve(async (req) => {
       const url = new URL(req.url);
       params = {
         shop: url.searchParams.get('shop'),
-        accessToken: url.searchParams.get('accessToken')
+        accessToken: url.searchParams.get('accessToken'),
+        forceRefresh: url.searchParams.get('forceRefresh') === 'true'
       };
     }
     
-    const { shop, accessToken } = params;
+    const { shop, accessToken, forceRefresh } = params;
     
-    console.log(`[${requestId}] Processing request for shop: ${shop}`);
+    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}`);
 
     if (!shop) {
       console.error(`[${requestId}] Missing shop parameter`);
@@ -48,7 +43,10 @@ serve(async (req) => {
           requestId 
         }),
         { 
-          headers: corsHeaders,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          },
           status: 400 
         }
       );
@@ -91,7 +89,10 @@ serve(async (req) => {
             requestId
           }),
           { 
-            headers: corsHeaders,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            },
             status: 500 
           }
         );
@@ -107,7 +108,10 @@ serve(async (req) => {
             requestId
           }),
           { 
-            headers: corsHeaders,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            },
             status: 401 
           }
         );
@@ -140,6 +144,15 @@ serve(async (req) => {
               handle
               featuredImage {
                 url
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price
+                    availableForSale
+                  }
+                }
               }
             }
           }
@@ -175,7 +188,13 @@ serve(async (req) => {
             shop: normalizedShopDomain,
             requestId
           }),
-          { headers: corsHeaders, status: 200 }  // Return 200 with error details for better client handling
+          { 
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }, 
+            status: 200  // Return 200 with error details for better client handling
+          }
         );
       }
       
@@ -192,7 +211,13 @@ serve(async (req) => {
             shop: normalizedShopDomain,
             requestId
           }),
-          { headers: corsHeaders, status: 200 }
+          { 
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }, 
+            status: 200 
+          }
         );
       }
       
@@ -206,18 +231,33 @@ serve(async (req) => {
             shop: normalizedShopDomain,
             requestId
           }),
-          { headers: corsHeaders, status: 200 }
+          { 
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }, 
+            status: 200 
+          }
         );
       }
       
       // Transform products to a simpler format
       const products = responseData.data.products.edges.map((edge: any) => {
         const node = edge.node;
+        const variant = node.variants.edges[0]?.node;
+
         return {
           id: node.id,
           title: node.title,
           handle: node.handle,
-          images: node.featuredImage ? [node.featuredImage.url] : []
+          price: variant?.price || "0.00",
+          available: variant?.availableForSale || false,
+          images: node.featuredImage ? [node.featuredImage.url] : [],
+          variants: node.variants.edges.map((v: any) => ({
+            id: v.node.id,
+            price: v.node.price,
+            available: v.node.availableForSale
+          }))
         };
       });
       
@@ -229,9 +269,16 @@ serve(async (req) => {
           products,
           count: products.length,
           shop: normalizedShopDomain,
-          requestId
+          requestId,
+          timestamp: new Date().toISOString()
         }),
-        { headers: corsHeaders, status: 200 }
+        { 
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }, 
+          status: 200 
+        }
       );
     } catch (error) {
       console.error(`[${requestId}] Error in Shopify request:`, error);
@@ -243,7 +290,13 @@ serve(async (req) => {
           shop: normalizedShopDomain,
           requestId
         }),
-        { headers: corsHeaders, status: 200 }
+        { 
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }, 
+          status: 200 
+        }
       );
     }
   } catch (error) {
@@ -252,9 +305,16 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: error instanceof Error ? error.message : 'An unknown error occurred',
-        trace: error instanceof Error ? error.stack : null
+        trace: error instanceof Error ? error.stack : null,
+        requestId
       }),
-      { headers: corsHeaders, status: 500 }
+      { 
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }, 
+        status: 500 
+      }
     );
   }
 });

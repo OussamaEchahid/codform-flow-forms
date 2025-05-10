@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Check, ShoppingCart, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, Check, ShoppingCart, RefreshCw, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShopifyFormData } from '@/lib/shopify/types';
+import { Switch } from '@/components/ui/switch';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -24,7 +25,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     isLoading: shopifyLoading,
     refreshConnection,
     loadProducts,
-    failSafeMode 
+    failSafeMode,
+    toggleFailSafeMode,
+    forceRealData,
+    toggleRealDataMode 
   } = useShopify();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +38,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   const [productsCount, setProductsCount] = useState<number>(Array.isArray(products) ? products.length : 0);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState(false);
   const mounted = useRef(true);
   
   // Cleanup on unmount
@@ -66,7 +71,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       // Reset error state
       setErrorMessage(null);
       
-      // Create a proper ShopifyFormData object instead of passing formId string directly
+      // Create a proper ShopifyFormData object
       const formData: ShopifyFormData = {
         formId: formId,
         shopDomain: shop
@@ -179,6 +184,29 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     }
   };
   
+  // Handle toggle fail-safe mode
+  const handleToggleFailSafeMode = () => {
+    toggleFailSafeMode(!failSafeMode);
+    toast.info(
+      failSafeMode 
+        ? (language === 'ar' ? 'تم إيقاف وضع الطوارئ' : 'Fail-safe mode disabled') 
+        : (language === 'ar' ? 'تم تفعيل وضع الطوارئ' : 'Fail-safe mode enabled')
+    );
+  };
+  
+  // Handle toggle real data mode
+  const handleToggleRealDataMode = () => {
+    toggleRealDataMode(!forceRealData);
+    toast.info(
+      forceRealData 
+        ? (language === 'ar' ? 'تم الانتقال لوضع البيانات الافتراضية' : 'Switched to mock data mode') 
+        : (language === 'ar' ? 'تم الانتقال لوضع البيانات الحقيقية' : 'Switched to real data mode')
+    );
+    
+    // Refresh products with new settings
+    setTimeout(() => handleRefreshProducts(), 500);
+  };
+  
   // Show connection status badge
   const statusBadge = () => {
     switch (connectionStatus) {
@@ -280,10 +308,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
               <span className="text-gray-500 block">
                 {language === 'ar' ? 'عدد المنتجات:' : 'Products Count:'}
               </span>
-              <span className="text-sm">
+              <span className="text-sm flex items-center gap-1">
                 {isLoading || isRefreshing || shopifyLoading
                  ? <Loader2 className="h-3 w-3 animate-spin inline ml-2" /> 
                  : productsCount}
+                <Badge variant={productsCount > 0 ? "success" : "secondary"} className="text-[10px] h-5">
+                  {forceRealData ? (language === 'ar' ? 'بيانات حقيقية' : 'REAL DATA') : (language === 'ar' ? 'بيانات افتراضية' : 'MOCK DATA')}
+                </Badge>
               </span>
             </div>
             
@@ -295,6 +326,55 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                 <span className="text-xs text-gray-600">
                   {lastRefreshed.toLocaleString()}
                 </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Advanced settings toggle */}
+          <div className="mt-4 border-t pt-3">
+            <button 
+              onClick={() => setAdvancedMode(!advancedMode)}
+              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+            >
+              {language === 'ar' ? 'الإعدادات المتقدمة' : 'Advanced settings'}
+              <span className="text-xs">{advancedMode ? '▲' : '▼'}</span>
+            </button>
+            
+            {advancedMode && (
+              <div className="mt-3 space-y-3 bg-gray-50 p-3 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium">
+                      {language === 'ar' ? 'وضع الطوارئ' : 'Fail-safe Mode'}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      {language === 'ar' 
+                        ? 'يتيح المواصلة عند حدوث مشاكل في الاتصال' 
+                        : 'Allows operation even when connection issues occur'}
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={failSafeMode}
+                    onCheckedChange={handleToggleFailSafeMode}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium">
+                      {language === 'ar' ? 'استخدام البيانات الحقيقية' : 'Use Real Data'}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      {language === 'ar' 
+                        ? 'استخدام بيانات المتجر الحقيقية بدلاً من البيانات الافتراضية' 
+                        : 'Use real store data instead of mock data'}
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={forceRealData} 
+                    onCheckedChange={handleToggleRealDataMode}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -324,7 +404,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
             variant="outline"
             size="sm"
             onClick={handleRefreshProducts}
-            disabled={isLoading || isRefreshing || connectionStatus !== 'connected'}
+            disabled={isLoading || isRefreshing}
+            className="flex items-center"
           >
             {isLoading || isRefreshing ? (
               <>
@@ -333,7 +414,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <Database className="h-4 w-4 mr-2" />
                 {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
               </>
             )}
@@ -364,7 +445,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
         <CardFooter>
           <Button 
             onClick={handleSync} 
-            disabled={connectionStatus !== 'connected' || isSyncing}
+            disabled={connectionStatus !== 'connected' && !failSafeMode || isSyncing}
             className="w-full"
           >
             {isSyncing ? (

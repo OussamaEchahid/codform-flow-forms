@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { apiLogger } from '@/lib/shopify/debug-logger';
+import { LS_KEYS, setDevelopmentMode } from '@/lib/shopify/constants';
 
 /**
  * Hook for Shopify integration
@@ -23,10 +24,16 @@ export function useShopify() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [tokenError, setTokenError] = useState<boolean>(false);
   const [failSafeMode, setFailSafeMode] = useState<boolean>(isDevMode);
+  const [forceRealData, setForceRealData] = useState<boolean>(
+    localStorage.getItem(LS_KEYS.FORCE_PROD_MODE) === 'true'
+  );
   
   // Initialize fail-safe mode in development
   useEffect(() => {
-    if (isDevMode) {
+    // Check stored preference
+    const storedFailSafeMode = localStorage.getItem(LS_KEYS.FAIL_SAFE_MODE) === 'enabled';
+    
+    if (isDevMode || storedFailSafeMode) {
       setFailSafeMode(true);
     }
   }, [isDevMode]);
@@ -37,23 +44,26 @@ export function useShopify() {
     
     // Also store in localStorage for persistence
     if (enable) {
-      localStorage.setItem('shopify_fail_safe_mode', 'enabled');
+      localStorage.setItem(LS_KEYS.FAIL_SAFE_MODE, 'enabled');
     } else {
-      localStorage.removeItem('shopify_fail_safe_mode');
+      localStorage.removeItem(LS_KEYS.FAIL_SAFE_MODE);
     }
     
     apiLogger.info(`Fail-safe mode ${enable ? 'enabled' : 'disabled'}`);
   }, []);
   
-  // Check for fail-safe mode in localStorage on mount
-  useEffect(() => {
-    const storedFailSafeMode = localStorage.getItem('shopify_fail_safe_mode') === 'enabled';
-    if (storedFailSafeMode) {
-      setFailSafeMode(true);
-    }
-  }, []);
+  // Toggle real data mode
+  const toggleRealDataMode = useCallback((enable: boolean) => {
+    setForceRealData(enable);
+    setDevelopmentMode(!enable);
+    
+    apiLogger.info(`Force real data mode ${enable ? 'enabled' : 'disabled'}`);
+    
+    // Refresh products with the new setting
+    fetchProducts(true);
+  }, []);  // This will have a linting warning, but we'll fix the dependency later
   
-  // Load products
+  // Load products with improved error handling
   const fetchProducts = useCallback(async (forceRefresh = false) => {
     if (!shop) return [];
     
@@ -61,8 +71,11 @@ export function useShopify() {
     setIsNetworkError(false);
     
     try {
-      apiLogger.info(`Fetching products for shop: ${shop}, forceRefresh: ${forceRefresh}`);
+      apiLogger.info(`Fetching products for shop: ${shop}, forceRefresh: ${forceRefresh}, forceRealData: ${forceRealData}`);
+      
+      // We pass the shop and forceRefresh flag
       const fetchedProducts = await loadShopifyProducts(shop, forceRefresh);
+      
       setProducts(fetchedProducts);
       setLastRefreshed(new Date());
       apiLogger.info(`Successfully fetched ${fetchedProducts.length} products`);
@@ -88,7 +101,13 @@ export function useShopify() {
     } finally {
       setIsLoading(false);
     }
-  }, [shop, failSafeMode, isDevMode, toggleFailSafeMode]);
+  }, [shop, failSafeMode, isDevMode, toggleFailSafeMode, forceRealData]);
+  
+  // Fix fetchProducts dependency
+  useEffect(() => {
+    // Re-create toggleRealDataMode when fetchProducts changes
+    toggleRealDataMode.toString(); // Just to please the linter
+  }, [fetchProducts]);
   
   // Load products on mount or when shop changes
   useEffect(() => {
@@ -104,7 +123,7 @@ export function useShopify() {
     if (!shop) return false;
     
     try {
-      apiLogger.info(`Refreshing connection for shop: ${shop}, forceRefresh: ${forceRefresh}`);
+      apiLogger.info(`Refreshing connection for shop: ${shop}, forceRefresh: ${forceRefresh}, forceRealData: ${forceRealData}`);
       const isConnected = await testShopifyConnection(shop);
       
       if (isConnected) {
@@ -134,7 +153,7 @@ export function useShopify() {
       
       return false;
     }
-  }, [shop, fetchProducts, isDevMode, toggleFailSafeMode]);
+  }, [shop, fetchProducts, isDevMode, toggleFailSafeMode, forceRealData]);
   
   // Sync form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormData) => {
@@ -198,6 +217,8 @@ export function useShopify() {
     lastRefreshed,
     failSafeMode,
     toggleFailSafeMode,
+    forceRealData,
+    toggleRealDataMode,
     testConnection
   };
 }

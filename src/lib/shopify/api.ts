@@ -1,8 +1,9 @@
+
 /**
  * Main Shopify API integration module
  */
 import { getMockProducts } from './mock-data';
-import { isDevelopmentMode, isTestStore } from './constants';
+import { isDevelopmentMode, isTestStore, LS_KEYS } from './constants';
 import { toast } from 'sonner';
 import { createShopifyAPI as createAPI } from './api-client';
 import { cleanShopifyDomain, ShopifyProduct, ShopifyVariant, ShopifyFormData } from './types';
@@ -18,9 +19,20 @@ export const createShopifyAPI = createAPI;
  * Load Shopify products from the API or mock data
  */
 export async function loadShopifyProducts(shop: string, forceRefresh = false): Promise<ShopifyProduct[]> {
-  // Always use mock data in development mode
-  if (isDevelopmentMode() || isTestStore(shop)) {
-    apiLogger.info('Using mock products for development/test store');
+  // Check for force production mode
+  const forceProdMode = localStorage.getItem(LS_KEYS.FORCE_PROD_MODE) === 'true';
+  const shouldUseMockData = !forceProdMode && (isDevelopmentMode() || isTestStore(shop));
+  
+  // Allow override through URL param for debug purposes
+  const urlParams = new URLSearchParams(window.location.search);
+  const useMockParam = urlParams.get('use_mock_data');
+  const useRealParam = urlParams.get('use_real_data');
+  
+  if (useRealParam === 'true') {
+    apiLogger.info('URL param force real data detected');
+    // Continue with real implementation
+  } else if (useMockParam === 'true' || shouldUseMockData) {
+    apiLogger.info(`Using mock products for ${shouldUseMockData ? 'development/test store' : 'URL param'}`);
     return getMockProducts();
   }
   
@@ -30,27 +42,53 @@ export async function loadShopifyProducts(shop: string, forceRefresh = false): P
     // First try to get products from the edge function
     try {
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop, forceRefresh },
+        body: { shop, forceRefresh, timestamp: Date.now() },
       });
       
       if (error) {
         apiLogger.error('Error invoking shopify-products function:', error);
-      } else if (data && data.success && Array.isArray(data.products)) {
+        throw error;
+      } 
+      
+      if (data && data.success && Array.isArray(data.products)) {
         apiLogger.info(`Successfully loaded ${data.products.length} products from edge function`);
+        
+        // Cache the results
+        localStorage.setItem(LS_KEYS.CACHED_PRODUCTS, JSON.stringify(data.products));
+        
         return data.products;
+      } else {
+        if (data) {
+          apiLogger.warn('Unexpected response format:', data);
+        }
+        throw new Error('Invalid response format');
       }
     } catch (funcError) {
       apiLogger.error('Error calling shopify-products function:', funcError);
-      // Continue to fallback
+      
+      // Try to use cached products if available
+      try {
+        const cachedProducts = localStorage.getItem(LS_KEYS.CACHED_PRODUCTS);
+        if (cachedProducts && !forceRefresh) {
+          const parsed = JSON.parse(cachedProducts);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            apiLogger.info(`Returning ${parsed.length} cached products due to API error`);
+            return parsed;
+          }
+        }
+      } catch (cacheError) {
+        apiLogger.error('Error parsing cached products:', cacheError);
+      }
+      
+      // If edge function fails and no cache, fall back to mock data with warning
+      apiLogger.warn('Falling back to mock products due to API error');
+      toast.error('خطأ في تحميل المنتجات، يتم استخدام بيانات وهمية');
+      return getMockProducts();
     }
-    
-    // If edge function fails, return mock data
-    apiLogger.info('Falling back to mock products');
-    return getMockProducts();
   } catch (error) {
     apiLogger.error('Error loading products:', error);
-    toast.error('Error loading products');
-    return [];
+    toast.error('خطأ في تحميل المنتجات');
+    return getMockProducts();
   }
 }
 
@@ -58,8 +96,11 @@ export async function loadShopifyProducts(shop: string, forceRefresh = false): P
  * Test the connection to a Shopify store
  */
 export async function testShopifyConnection(shop: string): Promise<boolean> {
-  // Auto succeed for development and test stores
-  if (isDevelopmentMode() || isTestStore(shop)) {
+  // Check for force production mode
+  const forceProdMode = localStorage.getItem(LS_KEYS.FORCE_PROD_MODE) === 'true';
+  const shouldAutoApprove = !forceProdMode && (isDevelopmentMode() || isTestStore(shop));
+  
+  if (shouldAutoApprove) {
     apiLogger.info('Automatically approving connection for development/test store');
     return true;
   }
@@ -115,8 +156,12 @@ export async function testShopifyConnection(shop: string): Promise<boolean> {
  * Sync a form with Shopify
  */
 export async function syncFormWithShopify(formData: ShopifyFormData): Promise<any> {
+  // Check for force production mode
+  const forceProdMode = localStorage.getItem(LS_KEYS.FORCE_PROD_MODE) === 'true';
+  const shouldSimulate = !forceProdMode && isDevelopmentMode();
+  
   // Auto succeed for development mode
-  if (isDevelopmentMode()) {
+  if (shouldSimulate) {
     apiLogger.info('Mock syncing form with Shopify (dev mode)');
     return {
       success: true,
