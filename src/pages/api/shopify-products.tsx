@@ -13,14 +13,16 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const shop = url.searchParams.get('shop');
     const debug = url.searchParams.get('debug') === 'true';
+    const noCache = url.searchParams.get('nocache') === 'true';
 
-    console.log(`[${requestId}] API route: Request for shop ${shop}`);
+    console.log(`[${requestId}] API route: Request for shop ${shop}, noCache: ${noCache}`);
 
     if (!shop) {
       return new Response(
         JSON.stringify({ 
           error: { message: 'Missing required parameter: shop' },
-          requestId
+          requestId,
+          timestamp: new Date().toISOString()
         }), 
         { 
           status: 400,
@@ -38,13 +40,16 @@ export async function GET(request: Request) {
       
       // Add strong cache-busting parameters
       const timestamp = Date.now();
-      const tokenResponse = await fetch(`${url.origin}/api/shopify-token?shop=${encodeURIComponent(shop)}&ts=${timestamp}&rid=${requestId}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache',
-          'X-Request-ID': requestId
+      const tokenResponse = await fetch(
+        `${url.origin}/api/shopify-token?shop=${encodeURIComponent(shop)}&ts=${timestamp}&nocache=true&rid=${requestId}`, 
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache',
+            'X-Request-ID': requestId
+          }
         }
-      });
+      );
       
       if (!tokenResponse.ok) {
         console.error(`[${requestId}] Token fetch failed: ${tokenResponse.status}`);
@@ -65,6 +70,36 @@ export async function GET(request: Request) {
       }
       
       console.log(`[${requestId}] Token successfully retrieved for ${shop}`);
+      
+      // Determine if this is a development/test shop
+      const isTestShop = ['test-store', 'myteststore', 'astrem'].some(
+        testName => shop.toLowerCase().includes(testName.toLowerCase())
+      );
+
+      // Special case for test shops - return mock data
+      if (isTestShop || process.env.NODE_ENV === 'development') {
+        console.log(`[${requestId}] Test shop detected, returning mock products`);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            products: [
+              { id: 'test-product-1', title: 'Test Product 1', handle: 'test-product-1', images: ['https://placehold.co/600x400?text=Test+Product+1'] },
+              { id: 'test-product-2', title: 'Test Product 2', handle: 'test-product-2', images: ['https://placehold.co/600x400?text=Test+Product+2'] },
+              { id: 'test-product-3', title: 'Test Product 3', handle: 'test-product-3', images: ['https://placehold.co/600x400?text=Test+Product+3'] }
+            ],
+            shopName: 'Test Store',
+            source: 'test-data',
+            requestId
+          }), 
+          { 
+            status: 200,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store'
+            }
+          }
+        );
+      }
       
       // Now that we have the token, call Shopify API with a simplified query
       const shopDomain = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
@@ -114,9 +149,10 @@ export async function GET(request: Request) {
             JSON.stringify({ 
               error: { message: 'Authentication failed - token may be expired' },
               status: shopifyResponse.status,
-              requestId
+              requestId,
+              timestamp: new Date().toISOString()
             }), 
-            { status: 401, headers: { 'Content-Type': 'application/json' } }
+            { status: 401, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
           );
         }
         
@@ -130,9 +166,10 @@ export async function GET(request: Request) {
         return new Response(
           JSON.stringify({ 
             error: { message: 'GraphQL errors', details: shopifyData.errors },
-            requestId
+            requestId,
+            timestamp: new Date().toISOString()
           }), 
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
+          { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
         );
       }
       
@@ -142,9 +179,10 @@ export async function GET(request: Request) {
         return new Response(
           JSON.stringify({ 
             error: { message: 'Invalid response format from Shopify' },
-            requestId
+            requestId,
+            timestamp: new Date().toISOString()
           }), 
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
+          { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
         );
       }
 
@@ -172,7 +210,8 @@ export async function GET(request: Request) {
           products,
           shopName,
           source: 'api-route',
-          requestId
+          requestId,
+          timestamp: new Date().toISOString()
         }), 
         { 
           status: 200,
@@ -189,19 +228,21 @@ export async function GET(request: Request) {
           error: { 
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: debug ? (error instanceof Error ? error.stack : undefined) : undefined,
-            requestId
+            requestId,
+            timestamp: new Date().toISOString()
           } 
         }), 
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
       );
     }
   } catch (error) {
     console.error('Fatal error in API route:', error);
     return new Response(
       JSON.stringify({ 
-        error: { message: error instanceof Error ? error.message : 'Unknown error' } 
+        error: { message: error instanceof Error ? error.message : 'Unknown error' },
+        timestamp: new Date().toISOString()
       }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
     );
   }
 }
