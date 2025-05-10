@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -46,7 +47,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 5, // Reduced from 20 to improve performance
+  maxAttempts = 3, // Reduced from 5 to minimize repeated loading attempts
   onRefresh,
   instanceId = 'form-list' 
 }) => {
@@ -58,9 +59,13 @@ const FormList: React.FC<FormListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [processCompleted, setProcessCompleted] = useState(false);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
+  
+  // Generate a stable instance ID that doesn't change on re-renders
+  const stableId = useRef(`${instanceId}-${Math.random().toString(36).substring(2, 8)}`);
   
   // On unmount, set mounted ref to false
   useEffect(() => {
@@ -69,66 +74,42 @@ const FormList: React.FC<FormListProps> = ({
     };
   }, []);
   
-  console.log(`[${instanceId}] FormList render with ${forms?.length || 0} forms`);
+  console.log(`[${stableId.current}] FormList render with ${forms?.length || 0} forms`);
   
-  // IMPROVED: Process forms immediately without complex validation - main fix
+  // IMPROVED: More efficient data processing that prevents re-processing
   useEffect(() => {
-    if (!isMounted.current) return;
+    if (!isMounted.current || processCompleted) return;
+    
+    // Skip processing if already complete and forms are the same length
+    if (processCompleted && processedForms.length === forms?.length) {
+      return;
+    }
     
     try {
       // Skip processing if no forms data
       if (!forms || forms.length === 0) {
         setProcessedForms([]);
+        setProcessCompleted(true);
         return;
       }
       
-      // Convert to array if object was passed
-      const formsArray = Array.isArray(forms) ? forms : [forms];
-      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms directly`);
+      console.log(`[${stableId.current}] Processing ${forms.length} forms directly`);
       
-      // Simple validation - just ensure forms have IDs and handle edge cases
-      const validForms = formsArray.filter(form => {
-        if (!form) return false;
-        
-        // Fix forms missing ID by generating one if needed
-        if (!form.id) {
-          console.log(`[${instanceId}] FormList: Form missing ID, generating one`);
-          form.id = Math.random().toString(36).substring(2, 15);
-        }
-        
-        // Accept all forms that have basic structure
-        return true;
-      });
-      
-      // Set default properties for incomplete forms
-      const enhancedForms = validForms.map(form => ({
-        ...form,
-        title: form.title || 'نموذج بدون عنوان',
-        description: form.description || '',
-        isPublished: form.is_published || form.isPublished || false
-      }));
-      
-      // Remove duplicates by ID
-      const uniqueForms = Array.from(
-        new Map(enhancedForms.map(form => [form.id, form])).values()
-      );
-      
-      console.log(`[${instanceId}] FormList: Final processed forms: ${uniqueForms.length}`);
-      setProcessedForms(uniqueForms);
+      // Use forms directly without complex validation
+      setProcessedForms(forms);
+      setProcessCompleted(true);
       
     } catch (error) {
-      console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
-      // On error, still try to use the raw forms as fallback
-      if (forms && forms.length > 0) {
-        console.log(`[${instanceId}] FormList: Using raw forms as fallback`);
-        setProcessedForms(forms);
-      }
+      console.error(`[${stableId.current}] Error processing forms:`, error);
+      // On error, still use the raw forms as fallback
+      setProcessedForms(forms || []);
+      setProcessCompleted(true);
     }
-  }, [forms, instanceId]);
+  }, [forms, processedForms.length, processCompleted, stableId]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
-      console.error(`[${instanceId}] Cannot toggle publish: Invalid form ID`);
+      console.error(`[${stableId.current}] Cannot toggle publish: Invalid form ID`);
       return;
     }
     
@@ -149,7 +130,7 @@ const FormList: React.FC<FormListProps> = ({
         : 'تم نشر النموذج بنجاح'
       );
     } catch (error) {
-      console.error(`[${instanceId}] Error toggling form publish status:`, error);
+      console.error(`[${stableId.current}] Error toggling form publish status:`, error);
       toast.error("فشل في تغيير حالة النشر");
     }
   };
@@ -164,7 +145,7 @@ const FormList: React.FC<FormListProps> = ({
         }
         toast.success('تم حذف النموذج بنجاح');
       } catch (error) {
-        console.error(`[${instanceId}] Error deleting form:`, error);
+        console.error(`[${stableId.current}] Error deleting form:`, error);
         toast.error("فشل في حذف النموذج");
       }
     }
@@ -178,7 +159,7 @@ const FormList: React.FC<FormListProps> = ({
         await onRefresh();
         toast.success('تم تحديث قائمة النماذج');
       } catch (error) {
-        console.error(`[${instanceId}] Error refreshing forms:`, error);
+        console.error(`[${stableId.current}] Error refreshing forms:`, error);
         toast.error('فشل في تحديث النماذج');
       } finally {
         if (isMounted.current) {
@@ -188,7 +169,7 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
-  // Filter and sort forms
+  // Filter and sort forms - with optimizations to avoid errors
   const filteredAndSortedForms = processedForms
     .filter(form => {
       if (!searchTerm) return true;
@@ -212,9 +193,11 @@ const FormList: React.FC<FormListProps> = ({
           ? statusA - statusB
           : statusB - statusA;
       } else {
-        // Default: sort by date - Add null checks for updated_at
-        const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-        const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        // Default: sort by date - with null safety
+        const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 
+                      a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 
+                      b.created_at ? new Date(b.created_at).getTime() : 0;
         return sortDirection === 'asc'
           ? dateA - dateB
           : dateB - dateA;
@@ -328,7 +311,12 @@ const FormList: React.FC<FormListProps> = ({
                             addSuffix: true,
                             locale: ar
                           })}`
-                        : 'تاريخ غير معروف'
+                        : form.created_at
+                          ? `تم الإنشاء ${formatDistanceToNow(new Date(form.created_at), {
+                              addSuffix: true,
+                              locale: ar
+                            })}`
+                          : 'تاريخ غير معروف'
                       }
                     </p>
                   </div>

@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,12 +44,16 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [hasLoadAttempted, setHasLoadAttempted] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDbQueryRunning, setIsDbQueryRunning] = useState(false);
   const [loadTimestamp, setLoadTimestamp] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
-  const [isDbQueryRunning, setIsDbQueryRunning] = useState(false);
+  const initialLoadRef = useRef(false);
   
-  // Generate a unique instance ID for better debugging
-  const instanceId = React.useRef(`forms-page-${Math.random().toString(36).substr(2, 8)}`);
+  // Generate a unique STABLE instance ID for better debugging that won't change on render
+  const instanceId = useRef(`forms-page-${Math.random().toString(36).substr(2, 8)}`);
+  
+  // Cache key for local storage
+  const cacheKey = useRef(`forms_cache_${shopId || 'default'}`);
   
   console.log(`[${instanceId.current}] FormsPage initialized with shopId: ${shopId}, forceRefresh: ${forceRefresh}`);
   
@@ -75,6 +78,25 @@ const FormsPage: React.FC<FormsPageProps> = ({
   // Use the centralized Shopify connection
   const { isConnected, shopDomain, syncState } = useShopifyConnection();
   const navigate = useNavigate();
+
+  // Check for cached forms data
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      try {
+        const cachedForms = localStorage.getItem(cacheKey.current);
+        if (cachedForms) {
+          const parsedForms = JSON.parse(cachedForms);
+          console.log(`[${instanceId.current}] Using cached forms data (${parsedForms.length} forms)`);
+          setForms(parsedForms);
+          setIsLoading(false);
+          setError(null);
+        }
+      } catch (err) {
+        console.error(`[${instanceId.current}] Error reading from cache:`, err);
+      }
+      initialLoadRef.current = true;
+    }
+  }, []);
 
   // Direct query database for forms - now used for initial load AND as fallback
   const queryDatabaseDirectly = useCallback(async (silent = false) => {
@@ -118,6 +140,15 @@ const FormsPage: React.FC<FormsPageProps> = ({
         setForms(data);
         setIsLoading(false);
         setError(null);
+        
+        // Cache the results
+        try {
+          localStorage.setItem(cacheKey.current, JSON.stringify(data));
+          console.log(`[${instanceId.current}] Forms data cached (${data.length} forms)`);
+        } catch (cacheError) {
+          console.error(`[${instanceId.current}] Error caching forms data:`, cacheError);
+        }
+        
         return data;
       }
       
@@ -133,19 +164,19 @@ const FormsPage: React.FC<FormsPageProps> = ({
         setIsDbQueryRunning(false);
       }
     }
-  }, [shopId, shopDomain, language, instanceId]);
+  }, [shopId, shopDomain, language]);
 
-  // IMPROVED: Load forms with automatic fallback to direct query
+  // IMPROVED: Load forms with automatic caching and fallback
   const loadForms = useCallback(async (forceRefresh = false) => {
-    if (hasLoadAttempted && !forceRefresh) {
-      console.log(`[${instanceId.current}] FormsPage: Already attempted to load forms, skipping`);
+    // Skip if recently loaded (avoid hammering the DB)
+    if (!forceRefresh && hasLoadAttempted && Date.now() - loadTimestamp < 10000) {
+      console.log(`[${instanceId.current}] FormsPage: Skipping load, loaded recently`);
       return;
     }
     
     setIsLoading(true);
-    if (!forceRefresh) {
-      setHasLoadAttempted(true);
-    }
+    setHasLoadAttempted(true);
+    setLoadTimestamp(Date.now());
     
     try {
       // Get shop ID using multiple strategies
@@ -162,7 +193,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       }
       
       // IMPROVED: First try direct query as it's simplest and most reliable
-      console.log(`[${instanceId.current}] FormsPage: Attempting direct query first`);
+      console.log(`[${instanceId.current}] FormsPage: Attempting direct query`);
       const directForms = await queryDatabaseDirectly(true);
       
       if (directForms && directForms.length > 0) {
@@ -172,30 +203,10 @@ const FormsPage: React.FC<FormsPageProps> = ({
         return;
       }
       
-      // Fallback to traditional query method
-      console.log(`[${instanceId.current}] FormsPage: Direct query found no forms, trying traditional query`);
-      
-      const { data, error } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', currentShopId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error(`[${instanceId.current}] FormsPage: Error in traditional query:`, error);
-        setError(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
-        setIsLoading(false);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        console.log(`[${instanceId.current}] FormsPage: Traditional query found ${data.length} forms`);
-        setForms(data);
+      // Clear error if we have forms data
+      if (forms.length > 0) {
         setError(null);
       } else {
-        console.log(`[${instanceId.current}] FormsPage: No forms found in any query`);
-        setForms([]);
-        
         // Only set error if not first load (to avoid confusion when there are no forms yet)
         if (retryCount > 0) {
           setError(language === 'ar' ? 'لم يتم العثور على نماذج لهذا المتجر' : 'No forms found for this shop');
@@ -211,9 +222,9 @@ const FormsPage: React.FC<FormsPageProps> = ({
       setIsLoading(false);
       setRetryCount(prev => prev + 1);
     }
-  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, instanceId, queryDatabaseDirectly]);
+  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, queryDatabaseDirectly, forms.length]);
 
-  // IMPROVED: Create form with minimal processing to avoid data structure issues
+  // IMPROVED: Create form with minimal processing
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال اسم للنموذج' : 'Please enter a form name');
@@ -265,8 +276,6 @@ const FormsPage: React.FC<FormsPageProps> = ({
         buttonStyle: 'rounded'
       };
 
-      console.log(`[${instanceId.current}] Sending form data to create:`, formData);
-
       // Insert with error handling
       const { data, error: saveError } = await supabase
         .from('forms')
@@ -283,7 +292,15 @@ const FormsPage: React.FC<FormsPageProps> = ({
       
       if (data && data.length > 0) {
         // Update forms list with the new form at the beginning
-        setForms(prev => [data[0], ...prev]);
+        const updatedForms = [data[0], ...forms];
+        setForms(updatedForms);
+        
+        // Update cache
+        try {
+          localStorage.setItem(cacheKey.current, JSON.stringify(updatedForms));
+        } catch (cacheError) {
+          console.error(`[${instanceId.current}] Error updating cache:`, cacheError);
+        }
       }
       
       setIsCreating(false);
@@ -300,15 +317,14 @@ const FormsPage: React.FC<FormsPageProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [newFormName, language, shopDomain, shopId, loadForms, instanceId]);
+  }, [newFormName, language, shopDomain, shopId, loadForms, forms]);
 
   // Add refresh handler that resets load state and forces a refresh
   const handleRefresh = useCallback(() => {
     console.log(`[${instanceId.current}] FormsPage: Manually refreshing forms list`);
     toast.info(language === 'ar' ? 'جاري تحديث القائمة...' : 'Refreshing list...');
-    setLoadTimestamp(Date.now()); // Update timestamp to force reload
     return loadForms(true);
-  }, [loadForms, language, instanceId]);
+  }, [loadForms, language]);
 
   // Handle emergency connection reset
   const handleEmergencyReset = useCallback(async () => {
@@ -326,32 +342,31 @@ const FormsPage: React.FC<FormsPageProps> = ({
       toast.error(language === 'ar' ? 'فشل في إعادة تعيين الاتصال' : 'Failed to reset connection');
       setIsResetting(false);
     }
-  }, [language, instanceId]);
+  }, [language]);
 
-  // Load forms when component mounts or when shopDomain/forceRefresh changes
+  // Load forms when component mounts or when shopDomain changes - but only once unless forced
   useEffect(() => {
     const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
-    console.log(`[${instanceId.current}] FormsPage initial load with shopId:`, shopIdToUse, 'forceRefresh:', forceRefresh);
+    console.log(`[${instanceId.current}] FormsPage evaluating load with shopId:`, shopIdToUse, 'forceRefresh:', forceRefresh);
     
-    if (shopIdToUse) {
-      loadForms(!!forceRefresh); // Convert forceRefresh to boolean to ensure correct type
+    // If forceRefresh is true, always load
+    if (forceRefresh) {
+      console.log(`[${instanceId.current}] FormsPage: Force refreshing forms`);
+      loadForms(true);
+      return;
+    }
+    
+    // Otherwise, only load if we haven't loaded before
+    if (!hasLoadAttempted && shopIdToUse) {
+      console.log(`[${instanceId.current}] FormsPage: Initial forms load`);
+      loadForms(false);
     } else if (!hasLoadAttempted) {
       console.log(`[${instanceId.current}] No shop ID found, setting error state`);
       setIsLoading(false);
       setHasLoadAttempted(true);
       setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
     }
-  }, [shopDomain, loadForms, hasLoadAttempted, language, shopId, forceRefresh, instanceId]);
-
-  // Also re-sync the connection state whenever forceRefresh changes
-  useEffect(() => {
-    if (forceRefresh && syncState) {
-      console.log(`[${instanceId.current}] FormsPage: Force syncing connection state due to forceRefresh`);
-      syncState().catch(err => {
-        console.error(`[${instanceId.current}] Error during forced connection sync:`, err);
-      });
-    }
-  }, [forceRefresh, syncState, instanceId]);
+  }, [shopDomain, loadForms, hasLoadAttempted, language, shopId, forceRefresh]);
 
   const handleEditForm = (formId: string) => {
     navigate(`/form-builder/${formId}`);
@@ -502,7 +517,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={5} // Reduced from 20 for performance
+        maxAttempts={3} // Reduced to 3 for performance
         instanceId={instanceId.current}
       />
     </div>

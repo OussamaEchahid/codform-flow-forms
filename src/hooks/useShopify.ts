@@ -1,17 +1,22 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { createClient } from '@supabase/supabase-js';
 import { ShopifyStore, ShopifyProduct, ShopifyFormData } from '@/lib/shopify/types';
 import { useI18n } from '@/lib/i18n';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
-// We don't import tokenValidationCache anymore since we access it through the provider
-// import { tokenValidationCache } from '@/lib/shopify/ShopifyConnectionProvider';
 
 // Test store configuration for development
 const DEV_TEST_STORE = 'astrem.myshopify.com';
 const DEV_TEST_TOKEN = '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';
+
+// Cache durations
+const CACHE_DURATIONS = {
+  STORE: 30 * 60 * 1000, // 30 minutes
+  PRODUCTS: 15 * 60 * 1000, // 15 minutes
+  CONNECTION: 5 * 60 * 1000 // 5 minutes
+};
 
 export const useShopify = () => {
   const [shopifyStore, setShopifyStore] = useState<ShopifyStore | null>(null);
@@ -25,6 +30,23 @@ export const useShopify = () => {
   const [isNetworkError, setIsNetworkError] = useState(false);
   const { language } = useI18n();
   const { isDevMode, testConnection } = useShopifyConnection();
+  
+  // Use refs for tracking the last refresh time
+  const lastStoreRefresh = useRef<number>(0);
+  const lastProductsRefresh = useRef<number>(0);
+  const lastConnectionTest = useRef<number>(0);
+  
+  // Generate stable instance ID
+  const instanceId = useRef(`shopify-${Math.random().toString(36).substr(2, 6)}`);
+  
+  // Track if component is mounted
+  const isMounted = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Get the store ID from localStorage or provide a default test value
   const getStoreId = useCallback(() => {
@@ -40,13 +62,44 @@ export const useShopify = () => {
   // Check if connected to Shopify
   const isConnected = !!shopifyStore || !!localStorage.getItem('shopify_store');
 
-  const loadShopifyStore = useCallback(async () => {
+  // Optimized loadShopifyStore with caching
+  const loadShopifyStore = useCallback(async (force = false) => {
+    // Skip reloading if recently loaded
+    const now = Date.now();
+    if (!force && now - lastStoreRefresh.current < CACHE_DURATIONS.STORE) {
+      console.log(`[${instanceId.current}] Using cached store data, skipping reload`);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const storeId = getStoreId();
       if (!storeId) {
         setError(language === 'ar' ? 'لم يتم العثور على متجر' : 'No store found');
         setIsLoading(false);
+        return;
+      }
+
+      console.log(`[${instanceId.current}] Loading Shopify store data for: ${storeId}`);
+
+      // Try to get from dev mode first
+      if (isDevMode && storeId === DEV_TEST_STORE) {
+        console.log(`[${instanceId.current}] Using dev mode store data`);
+        const mockStore: ShopifyStore = {
+          id: 'test-id',
+          shop: DEV_TEST_STORE,
+          access_token: DEV_TEST_TOKEN,
+          token_type: 'offline',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        if (isMounted.current) {
+          setShopifyStore(mockStore);
+          setIsLoading(false);
+          lastStoreRefresh.current = now;
+        }
         return;
       }
 
@@ -57,6 +110,30 @@ export const useShopify = () => {
         .single();
 
       if (storeError) {
+        console.error(`[${instanceId.current}] Error fetching store:`, storeError);
+        
+        // Try fallback for test store
+        if (storeId === DEV_TEST_STORE) {
+          console.log(`[${instanceId.current}] Using fallback for test store after error`);
+          const mockStore: ShopifyStore = {
+            id: 'test-id',
+            shop: DEV_TEST_STORE,
+            access_token: DEV_TEST_TOKEN,
+            token_type: 'offline',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          if (isMounted.current) {
+            setShopifyStore(mockStore);
+            setError(null);
+            setIsLoading(false);
+            lastStoreRefresh.current = now;
+          }
+          return;
+        }
+        
         throw new Error(storeError.message);
       }
 
@@ -66,91 +143,208 @@ export const useShopify = () => {
         return;
       }
 
-      setShopifyStore(store);
-      setIsLoading(false);
+      if (isMounted.current) {
+        setShopifyStore(store);
+        setError(null);
+        setIsLoading(false);
+        lastStoreRefresh.current = now;
+      }
     } catch (e: any) {
-      setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المتجر' : 'Error loading store'));
-      toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المتجر' : 'Error loading store'));
-      setIsLoading(false);
+      console.error(`[${instanceId.current}] Error loading store:`, e);
+      
+      if (isMounted.current) {
+        setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المتجر' : 'Error loading store'));
+        toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المتجر' : 'Error loading store'));
+        setIsLoading(false);
+      }
     }
-  }, [getStoreId, language]);
+  }, [getStoreId, language, isDevMode]);
 
-  // Add loadProducts function
-  const loadProducts = useCallback(async () => {
+  // Optimized loadProducts function
+  const loadProducts = useCallback(async (force = false) => {
+    // Skip reloading if recently loaded
+    const now = Date.now();
+    if (!force && now - lastProductsRefresh.current < CACHE_DURATIONS.PRODUCTS && products.length > 0) {
+      console.log(`[${instanceId.current}] Using cached products data, skipping reload`);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const storeId = getStoreId();
       if (!storeId) {
-        setError(language === 'ar' ? 'لم يتم العثور على متجر' : 'No store found');
-        setIsLoading(false);
+        if (isMounted.current) {
+          setError(language === 'ar' ? 'لم يتم العثور على متجر' : 'No store found');
+          setIsLoading(false);
+        }
         return;
       }
 
       // Try to get cached products first
       const cachedProducts = localStorage.getItem('shopify_products');
-      if (cachedProducts) {
+      if (cachedProducts && !force) {
         try {
           const parsed = JSON.parse(cachedProducts);
-          setProducts(parsed);
+          if (parsed && parsed.length > 0) {
+            console.log(`[${instanceId.current}] Using ${parsed.length} cached products`);
+            if (isMounted.current) {
+              setProducts(parsed);
+              // Still continue loading fresh data in the background
+            }
+          }
         } catch (e) {
-          console.error('Error parsing cached products:', e);
+          console.error(`[${instanceId.current}] Error parsing cached products:`, e);
         }
+      }
+      
+      // For test store in dev mode, return mock data immediately
+      if (isDevMode && storeId === DEV_TEST_STORE) {
+        const mockProducts: ShopifyProduct[] = [
+          { 
+            id: 'gid://shopify/Product/1', 
+            title: 'Test Product 1', 
+            handle: 'test-product-1',
+            variants: [{ id: 'gid://shopify/ProductVariant/1', price: '99.99' }]
+          },
+          { 
+            id: 'gid://shopify/Product/2', 
+            title: 'Test Product 2', 
+            handle: 'test-product-2',
+            variants: [{ id: 'gid://shopify/ProductVariant/2', price: '149.99' }]
+          }
+        ];
+        
+        if (isMounted.current) {
+          setProducts(mockProducts);
+          setIsLoading(false);
+          lastProductsRefresh.current = now;
+          
+          // Cache products
+          localStorage.setItem('shopify_products', JSON.stringify(mockProducts));
+        }
+        return;
       }
 
       // Fetch fresh products from Supabase edge function
+      console.log(`[${instanceId.current}] Fetching fresh products for shop:`, storeId);
       const { data, error } = await shopifySupabase.functions.invoke('shopify-get-products', {
         body: { shop: storeId }
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error(`[${instanceId.current}] Error fetching products:`, error);
+        
+        // If we already have products from cache, don't show the error
+        if (products.length === 0) {
+          throw new Error(error.message);
+        }
       }
 
-      if (data?.products) {
+      if (data?.products && isMounted.current) {
         setProducts(data.products);
+        console.log(`[${instanceId.current}] Loaded ${data.products.length} fresh products`);
+        
         // Cache products
         localStorage.setItem('shopify_products', JSON.stringify(data.products));
+        lastProductsRefresh.current = now;
       }
 
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     } catch (e: any) {
-      setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
-      toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
-      setIsLoading(false);
+      console.error(`[${instanceId.current}] Error loading products:`, e);
+      
+      if (isMounted.current && products.length === 0) {
+        setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
+        toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
+      }
+      
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
-  }, [getStoreId, language]);
+  }, [getStoreId, language, isDevMode, products.length]);
 
-  // Add syncForm function
+  // Optimized syncForm function
   const syncForm = useCallback(async (formData: ShopifyFormData) => {
+    if (isSyncing) {
+      console.log(`[${instanceId.current}] Sync already in progress, skipping`);
+      return { success: false, error: 'Sync already in progress' };
+    }
+    
     setIsSyncing(true);
     try {
+      // For dev mode, mock the sync
+      if (isDevMode && formData.shop === DEV_TEST_STORE) {
+        console.log(`[${instanceId.current}] DEV MODE: Mocking form sync`);
+        // Wait a bit to simulate network request
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (isMounted.current) {
+          setIsSyncing(false);
+        }
+        
+        return { 
+          success: true, 
+          message: 'Form synced successfully (dev mode)',
+          synced_at: new Date().toISOString(),
+          form_id: formData.formId || 'mock-form-id'
+        };
+      }
+      
       // Implementation for form sync
+      console.log(`[${instanceId.current}] Syncing form:`, formData.formId);
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: formData
       });
 
       if (error) {
+        console.error(`[${instanceId.current}] Error syncing form:`, error);
         throw new Error(error.message);
       }
 
-      setIsSyncing(false);
+      if (isMounted.current) {
+        setIsSyncing(false);
+      }
       return data;
     } catch (e: any) {
-      setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form'));
-      toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form'));
-      setIsSyncing(false);
+      console.error(`[${instanceId.current}] Error syncing form:`, e);
+      
+      if (isMounted.current) {
+        setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form'));
+        toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form'));
+        setIsSyncing(false);
+      }
       throw e;
     }
-  }, [language]);
+  }, [language, isDevMode, isSyncing]);
 
-  // Add refreshConnection function
+  // Optimized refreshConnection function with caching
   const refreshConnection = useCallback(async (forceRefresh = false) => {
+    // Skip if recently checked, unless forced
+    const now = Date.now();
+    if (!forceRefresh && now - lastConnectionTest.current < CACHE_DURATIONS.CONNECTION) {
+      console.log(`[${instanceId.current}] Connection tested recently, skipping`);
+      return true;
+    }
+    
     try {
+      console.log(`[${instanceId.current}] Testing Shopify connection`);
       const result = await testConnection(forceRefresh);
+      
+      if (isMounted.current) {
+        setIsNetworkError(!result);
+        lastConnectionTest.current = now;
+      }
+      
       return result;
     } catch (e) {
-      console.error('Error refreshing connection:', e);
-      setIsNetworkError(true);
+      console.error(`[${instanceId.current}] Error refreshing connection:`, e);
+      
+      if (isMounted.current) {
+        setIsNetworkError(true);
+      }
       return false;
     }
   }, [testConnection]);
@@ -178,16 +372,21 @@ export const useShopify = () => {
     toast.success(language === 'ar' ? 'تم إعادة تعيين بيانات Shopify' : 'Shopify data has been reset');
   }, [language]);
 
+  // Initial load of shop data
   useEffect(() => {
     loadShopifyStore();
   }, [loadShopifyStore]);
+  
+  // Check connection on mount
+  useEffect(() => {
+    refreshConnection();
+  }, [refreshConnection]);
 
   return {
     shopifyStore,
     isLoading,
     error,
     loadShopifyStore,
-    // Add all the missing properties
     shop,
     isConnected,
     products,
@@ -211,6 +410,12 @@ export const createSupabaseClient = (supabaseUrl: string, supabaseKey: string) =
 };
 
 export const getShopifyAccessToken = async (shop: string) => {
+  // Handle dev mode test store
+  if (shop === DEV_TEST_STORE) {
+    console.log(`Using dev mode token for ${DEV_TEST_STORE}`);
+    return DEV_TEST_TOKEN;
+  }
+  
   const { data, error } = await shopifySupabase
     .from('shopify_stores')
     .select('access_token')

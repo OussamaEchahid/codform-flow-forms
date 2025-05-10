@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useRef } from 'react';
 import FormsPage from './FormsPage';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
@@ -17,66 +18,50 @@ const Forms = () => {
   const [forceRender, setForceRender] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
-  console.log("Forms component rendering. Shop domain:", shopDomain, "isConnected:", isConnected);
+  // Stable instance ID to avoid infinite rerenders
+  const instanceId = useRef(`forms-${Math.random().toString(36).substr(2, 8)}`);
   
-  // Run diagnostics on component mount
+  console.log(`[${instanceId.current}] Forms component rendering. Shop domain:`, shopDomain, "isConnected:", isConnected);
+  
+  // Run diagnostics on component mount only once
   useEffect(() => {
-    // Force remove recovery mode - CRITICAL FIX
+    // Only run once
+    if (initialLoadComplete) return;
+    
+    // Force remove recovery mode
     localStorage.removeItem('shopify_recovery_mode');
     
-    // Log diagnostics data for debugging
-    console.log('Forms page mounted. Running diagnostics...');
+    console.log(`[${instanceId.current}] Forms page mounted for first time. Running diagnostics...`);
     logShopifyDiagnostics();
     logFormDiagnostics(supabase, shopDomain);
     
-    // Force all caches to be cleared and re-initialized
+    // Force all caches to be cleared only on first load
     localStorage.removeItem('forms_cache');
     localStorage.removeItem('shopify_forms');
     localStorage.setItem('forms_last_reload', Date.now().toString());
     
-    // Set initial load complete after a short delay
-    const timer = setTimeout(() => {
+    // Set initial load complete
+    setTimeout(() => {
       setInitialLoadComplete(true);
     }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [shopDomain]);
+  }, []); // Empty dependency array means this runs once
   
-  // Force a sync before rendering forms
+  // Force a sync ONCE
   useEffect(() => {
     const performSync = async () => {
       if (!hasSynced && !isLoading) {
-        console.log('Forms page: Forcing connection sync to ensure fresh data');
+        console.log(`[${instanceId.current}] Forms page: Forcing connection sync once`);
         try {
           await syncState();
           setHasSynced(true);
           
-          // Double check if we have a shop domain after sync
-          if (!shopDomain) {
-            const fallbackShopId = localStorage.getItem('shopify_store');
-            if (fallbackShopId) {
-              console.log('Forms page: Using fallback shop ID from localStorage:', fallbackShopId);
-              
-              // Double verify this shop exists in the database - but no blocking
-              try {
-                const { data: shopExists } = await supabase
-                  .from('forms')
-                  .select('id')
-                  .eq('shop_id', fallbackShopId)
-                  .limit(1);
-                  
-                if (shopExists && shopExists.length > 0) {
-                  console.log('Forms page: Confirmed shop has forms in database');
-                  // Force a re-render after verification to ensure FormsPage uses the correct shop ID
-                  setForceRender(prev => prev + 1);
-                }
-              } catch (verifyErr) {
-                console.log('Forms page: Error verifying shop forms:', verifyErr);
-              }
-            }
+          // Store current shop ID in localStorage immediately when available
+          if (shopDomain) {
+            localStorage.setItem('shopify_store', shopDomain);
+            console.log(`[${instanceId.current}] Stored shopDomain in localStorage:`, shopDomain);
           }
         } catch (error) {
-          console.error('Error syncing connection state:', error);
+          console.error(`[${instanceId.current}] Error syncing connection state:`, error);
           setSyncError('فشل في مزامنة حالة الاتصال، يرجى إعادة تحميل الصفحة');
         }
       }
@@ -85,13 +70,38 @@ const Forms = () => {
     performSync();
   }, [syncState, isLoading, hasSynced, shopDomain]);
 
-  // IMPROVED: Updated method to fix existing forms in the database with incorrect structure
+  // Form structure fix - run only once and with a much longer delay
+  useEffect(() => {
+    if (hasSynced && !isLoading && shopDomain && initialLoadComplete) {
+      // Only run once ever per session
+      const hasFixedForms = sessionStorage.getItem('forms_fixed');
+      if (hasFixedForms) {
+        console.log(`[${instanceId.current}] Forms already fixed this session, skipping`);
+        return;
+      }
+      
+      // Add much longer delay (5 seconds) to avoid conflicts
+      const fixTimer = setTimeout(() => {
+        console.log(`[${instanceId.current}] Running form structure fix after delay...`);
+        fixExistingForms().then(() => {
+          // Mark as fixed in this session
+          sessionStorage.setItem('forms_fixed', 'true');
+        }).catch(err => {
+          console.error(`[${instanceId.current}] Failed to fix forms:`, err);
+        });
+      }, 5000);
+      
+      return () => clearTimeout(fixTimer);
+    }
+  }, [hasSynced, isLoading, shopDomain, initialLoadComplete]);
+
+  // IMPROVED: Optimized method to fix forms without causing unnecessary refreshes
   const fixExistingForms = async () => {
     try {
-      console.log("Starting comprehensive form structure fix");
+      console.log(`[${instanceId.current}] Starting form structure fix`);
       const shopId = shopDomain || localStorage.getItem('shopify_store');
       if (!shopId) {
-        console.error("No shop ID found for fixing forms");
+        console.error(`[${instanceId.current}] No shop ID found for fixing forms`);
         return;
       }
       
@@ -102,11 +112,14 @@ const Forms = () => {
         .eq('shop_id', shopId);
         
       if (error || !allForms) {
-        console.error('Error fetching forms for fix:', error);
+        console.error(`[${instanceId.current}] Error fetching forms for fix:`, error);
         return;
       }
       
-      console.log(`Found ${allForms.length} forms to check for structure issues`);
+      console.log(`[${instanceId.current}] Found ${allForms.length} forms to check for structure issues`);
+      
+      // Count how many forms need fixing
+      let fixedCount = 0;
       
       // Loop through forms and fix data structure consistently
       for (const form of allForms) {
@@ -116,14 +129,12 @@ const Forms = () => {
           
           if (!form.data || typeof form.data !== 'object') {
             needsFix = true;
-            console.log(`Form ${form.id} has invalid data:`, form.data);
           } else if (!form.data.settings || !form.data.steps) {
             needsFix = true;
-            console.log(`Form ${form.id} missing settings or steps:`, form.data);
           }
           
           if (needsFix) {
-            console.log('Fixing form structure for form:', form.id);
+            console.log(`[${instanceId.current}] Fixing form structure for form:`, form.id);
             
             // Extract style properties from existing data
             const formStyle = {
@@ -142,13 +153,10 @@ const Forms = () => {
             if (form.data) {
               // Extract fields based on data structure
               if (Array.isArray(form.data)) {
-                // Data is directly an array of steps
                 fields = form.data.flatMap(step => step.fields || []);
               } else if (form.data.steps && Array.isArray(form.data.steps)) {
-                // Data has steps property that is an array
                 fields = form.data.steps.flatMap(step => step.fields || []);
               } else if (typeof form.data === 'object') {
-                // Maybe data is a single step itself
                 if (form.data.fields && Array.isArray(form.data.fields)) {
                   fields = form.data.fields;
                 }
@@ -157,8 +165,6 @@ const Forms = () => {
             
             // Create standardized form structure
             const standardizedData = standardizeFormData(fields, formStyle, submitButtonText);
-            
-            console.log(`Form ${form.id} - Standardized data structure:`, standardizedData);
             
             // Update the form with the new structure
             const { error: updateError } = await supabase
@@ -175,61 +181,28 @@ const Forms = () => {
               .eq('id', form.id);
               
             if (updateError) {
-              console.error(`Error updating form ${form.id}:`, updateError);
+              console.error(`[${instanceId.current}] Error updating form ${form.id}:`, updateError);
             } else {
-              console.log(`Fixed form structure for form: ${form.id}`);
+              console.log(`[${instanceId.current}] Fixed form structure for form: ${form.id}`);
+              fixedCount++;
             }
-          } else {
-            console.log(`Form ${form.id} structure is already valid`);
           }
         } catch (formErr) {
-          console.error(`Error fixing form ${form.id}:`, formErr);
+          console.error(`[${instanceId.current}] Error fixing form ${form.id}:`, formErr);
         }
       }
       
-      console.log('Completed comprehensive form structure fix');
+      console.log(`[${instanceId.current}] Completed form structure fix. Fixed ${fixedCount} forms`);
       
-      // Force a refresh of the form list to show the fixed forms
-      setForceRender(prev => prev + 1);
+      // Only force a refresh if forms were actually fixed
+      if (fixedCount > 0) {
+        setForceRender(prev => prev + 1);
+      }
       
     } catch (e) {
-      console.error('Error in fixExistingForms:', e);
+      console.error(`[${instanceId.current}] Error in fixExistingForms:`, e);
     }
   };
-
-  // Run form fix on initial load with longer delay to ensure shop is ready
-  useEffect(() => {
-    if (hasSynced && !isLoading && shopDomain) {
-      // Add delay to ensure database connections are ready
-      const fixTimer = setTimeout(() => {
-        console.log("Running comprehensive form structure fix...");
-        fixExistingForms().catch(err => {
-          console.error('Failed to fix forms:', err);
-        });
-      }, 2000); // 2 second delay
-      
-      return () => clearTimeout(fixTimer);
-    }
-  }, [hasSynced, isLoading, shopDomain]);
-
-  // Store current shop ID in localStorage immediately when available
-  useEffect(() => {
-    // Log the connection status for debugging
-    console.log('Forms page updated. Shopify connection status:', { 
-      isConnected, 
-      shopDomain,
-      isLoading,
-      localStorageShopId: localStorage.getItem('shopify_store'),
-      connectionMatch: shopDomain === localStorage.getItem('shopify_store'),
-      forceRender
-    });
-    
-    // Store current shop ID in localStorage as a fallback immediately when available
-    if (shopDomain) {
-      localStorage.setItem('shopify_store', shopDomain);
-      console.log('Stored shopDomain in localStorage:', shopDomain);
-    }
-  }, [isConnected, shopDomain, isLoading, forceRender]);
 
   const handleReload = async () => {
     try {
@@ -242,7 +215,7 @@ const Forms = () => {
       
       toast.success('تم إعادة تهيئة الاتصال بنجاح');
     } catch (error) {
-      console.error('Error reloading connection:', error);
+      console.error(`[${instanceId.current}] Error reloading connection:`, error);
       toast.error('فشل في إعادة تهيئة الاتصال');
     }
   };
@@ -263,7 +236,7 @@ const Forms = () => {
         window.location.href = '/shopify-connect';
       }, 500);
     } catch (error) {
-      console.error('Error during emergency reset:', error);
+      console.error(`[${instanceId.current}] Error during emergency reset:`, error);
       setEmergencyReset(false);
       toast.error('حدث خطأ أثناء إعادة التعيين');
     }
@@ -281,7 +254,7 @@ const Forms = () => {
         window.location.href = '/';
       }, 500);
     } catch (error) {
-      console.error('Error during full reset:', error);
+      console.error(`[${instanceId.current}] Error during full reset:`, error);
       toast.error('حدث خطأ أثناء إعادة التعيين الكامل');
     }
   };
@@ -318,7 +291,7 @@ const Forms = () => {
     );
   }
 
-  // Show loading while we sync
+  // Show loading while we sync - only very briefly
   if ((isLoading || !hasSynced) && !initialLoadComplete) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -332,7 +305,7 @@ const Forms = () => {
   return (
     <FormsPage 
       shopId={shopDomain} 
-      key={`forms-${forceRender}`} 
+      key={`forms-${instanceId.current}`} 
       forceRefresh={forceRender > 0}
       onReset={handleFullReset}
     />
