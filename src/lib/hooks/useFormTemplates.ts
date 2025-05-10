@@ -492,6 +492,72 @@ export const useFormTemplates = () => {
       return null;
     }
   };
+
+  // Publish or unpublish a form
+  const publishForm = async (formId: string, publish: boolean) => {
+    try {
+      setIsLoading(true);
+      
+      // Update form in Supabase
+      const { error } = await supabase
+        .from('forms')
+        .update({ is_published: publish })
+        .eq('id', formId);
+      
+      if (error) {
+        console.error('Error publishing form:', error);
+        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Update local state
+      setForms(forms.map(form => 
+        form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+      ));
+      
+      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error publishing form', error);
+      toast.error('خطأ في تغيير حالة نشر النموذج');
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Delete a form
+  const deleteForm = async (formId: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Delete form from Supabase
+      const { error } = await supabase
+        .from('forms')
+        .delete()
+        .eq('id', formId);
+      
+      if (error) {
+        console.error('Error deleting form:', error);
+        toast.error('خطأ في حذف النموذج');
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Update local state
+      setForms(forms.filter(form => form.id !== formId));
+      
+      toast.success('تم حذف النموذج بنجاح');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Error deleting form', error);
+      toast.error('خطأ في حذف النموذج');
+      setIsLoading(false);
+      return false;
+    }
+  };
   
   return {
     forms,
