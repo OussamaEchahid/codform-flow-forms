@@ -202,9 +202,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     try {
       console.log(`Loading form data via edge function for ID: ${formId}`);
       
-      // Fix: Use the correct parameter name for invoking edge functions
+      // Fix: Use the correct property name 'body' instead of 'params' for Supabase function invoke options
       const { data, error } = await supabase.functions.invoke('get-form', {
-        params: { id: formId }
+        body: { id: formId }
       });
       
       if (error) {

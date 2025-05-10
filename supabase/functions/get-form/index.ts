@@ -16,9 +16,9 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Get form ID from query string
-    const url = new URL(req.url);
-    const formId = url.searchParams.get('id');
+    // Get form ID from request body
+    const body = await req.json();
+    const formId = body?.id;
     
     if (!formId) {
       throw new Error('Form ID is required');
