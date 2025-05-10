@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
@@ -61,7 +62,7 @@ export const useFormEditor = (formId?: string) => {
       
       if (data) {
         // Fix: Add type check before accessing properties
-        const formData = data as any; // Temporary cast to any to access properties
+        const formData = data as Record<string, any>; // Type as record instead of any
         const formFields = formData.data?.steps?.[0]?.fields || [];
         console.log(`Form loaded successfully with ${formFields.length} fields`);
         

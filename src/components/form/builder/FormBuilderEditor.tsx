@@ -49,7 +49,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     loadFormData,
     handleSave,
     handlePublish,
-    updateFormStyle, // Make sure this is imported from useFormEditor
+    updateFormStyle,
     addElement,
     deleteElement,
     duplicateElement,
@@ -318,6 +318,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [handlePublish, handleSave, language]);
 
+  // Shopify integration handler
+  const handleShopifyIntegration = useCallback(async (settings: any) => {
+    try {
+      await shopifyIntegration.syncForm({ formId: currentFormId, ...settings });
+    } catch (error) {
+      console.error("Error during Shopify integration:", error);
+    }
+  }, [currentFormId, shopifyIntegration]);
+
   return (
     <FormEditorLayout
       formId={currentFormId}
@@ -347,7 +356,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onStyleChange={handleStyleChange}
       onSave={manualSaveHandler}
       onPublish={handlePublishWrapper}
-      onShopifyIntegration={shopifyIntegration.syncForm}
+      onShopifyIntegration={handleShopifyIntegration}
       
       // Add reference for open dialogs
       dialogRef={openDialogRef}
