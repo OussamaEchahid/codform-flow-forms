@@ -9,7 +9,30 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Export the Supabase client
 export const shopifySupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Add the missing shopifyStores function
+// Add the missing shopifyStores function with caching for better performance
+let storesCache: ReturnType<typeof shopifySupabase.from> | null = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 60000; // 60 seconds cache
+
+// Export the shopifyStores function with caching
 export const shopifyStores = () => {
-  return shopifySupabase.from('shopify_stores');
+  const now = Date.now();
+  
+  // Return the cached instance if it's still valid
+  if (storesCache && (now - lastCacheTime) < CACHE_TTL) {
+    return storesCache;
+  }
+  
+  // Create a new instance and update the cache
+  storesCache = shopifySupabase.from('shopify_stores');
+  lastCacheTime = now;
+  
+  return storesCache;
+};
+
+// Helper function to clear cache when needed (eg. after updates)
+export const clearStoresCache = () => {
+  storesCache = null;
+  lastCacheTime = 0;
+  console.log('Shopify stores cache cleared');
 };

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,6 +11,8 @@ import FormEditorLayout from './FormEditorLayout';
 import { dataCache } from '@/lib/data-cache';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+import { validateFormElements } from '@/lib/form-data-utils';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -29,6 +32,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [recoverMode, setRecoverMode] = useState<boolean>(false);
   const maxLoadAttempts = 3;
   const maxSaveRetries = 5;
+  const lastServerLoadTimeRef = useRef<number>(0);
   
   // Use our custom hook for form state and operations
   const {
@@ -62,7 +66,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Add reference to track if there are any open dialogs
   const openDialogRef = useRef<boolean>(false);
   
-  // IMPROVED: Try to restore form from cache if loading fails
+  // IMPROVED: Try to restore form from cache if loading fails with better logging
   const attemptFormRestore = useCallback(() => {
     if (!id) return false;
     
@@ -73,14 +77,33 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         formElements?: FormField[];
         formStyle?: FormStyle;
         submitButtonText?: string;
+        timestamp?: string;
       }>(`form:${id}`);
       
       if (cachedForm) {
         console.log('Restoring form data from cache:', cachedForm);
         
+        // Check cache timestamp to ensure we don't use very old data
+        if (cachedForm.timestamp) {
+          const cacheTimestamp = new Date(cachedForm.timestamp).getTime();
+          const now = Date.now();
+          const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
+          
+          if (now - cacheTimestamp > maxCacheAge) {
+            console.warn('Cache data is too old, not restoring');
+            return false;
+          }
+        }
+        
+        // Restore cached data with validation
         if (cachedForm.formTitle) updateFormMeta({ title: cachedForm.formTitle });
         if (cachedForm.formDescription) updateFormMeta({ description: cachedForm.formDescription });
-        if (cachedForm.formElements) setFormElements(cachedForm.formElements);
+        
+        if (cachedForm.formElements && Array.isArray(cachedForm.formElements)) {
+          const validatedElements = validateFormElements(cachedForm.formElements);
+          setFormElements(validatedElements);
+        }
+        
         if (cachedForm.formStyle) updateFormStyle(cachedForm.formStyle);
         if (cachedForm.submitButtonText) updateFormMeta({ submitButtonText: cachedForm.submitButtonText });
         
@@ -99,7 +122,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [id, setFormElements, updateFormStyle, updateFormMeta, language]);
 
-  // IMPROVED: Better debounced save function with cancellation and caching
+  // IMPROVED: Better debounced save function with cancellation, caching, and optimized save logic
   const debouncedSave = useCallback(() => {
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
@@ -124,7 +147,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         formDescription,
         formElements,
         formStyle,
-        submitButtonText
+        submitButtonText,
+        timestamp: new Date().toISOString()
       });
     }
     
@@ -171,8 +195,89 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       }
       saveTimeoutRef.current = null;
-    }, 2000); // Increased to 2 seconds debounce for better reliability
+    }, 2000); // 2 seconds debounce for better reliability
   }, [handleSave, language, saveRetryCount, maxSaveRetries, id, formTitle, formDescription, formElements, formStyle, submitButtonText, recoverMode]);
+
+  // IMPROVED: Optimized form loading with edge function
+  const loadFormWithEdgeFunction = useCallback(async (formId: string) => {
+    try {
+      console.log(`Loading form data via edge function for ID: ${formId}`);
+      
+      const { data, error } = await supabase.functions.invoke('get-form', {
+        query: { id: formId }
+      });
+      
+      if (error) {
+        console.error('Edge function error:', error);
+        return null;
+      }
+      
+      if (!data.success) {
+        console.error('Form load unsuccessful:', data.error);
+        return null;
+      }
+      
+      const formData = data.data;
+      console.log('Form loaded successfully via edge function:', formData);
+      
+      // Update all form state at once
+      updateFormMeta({ 
+        title: formData.title || 'Untitled Form',
+        description: formData.description || '',
+        submitButtonText: formData.submitbuttontext || 'Submit'
+      });
+      
+      // Extract form elements with improved safety
+      let elements: FormField[] = [];
+      try {
+        if (formData.data?.fields && Array.isArray(formData.data.fields)) {
+          elements = validateFormElements(formData.data.fields);
+        } else if (formData.data?.steps && Array.isArray(formData.data.steps)) {
+          const allFields = formData.data.steps.flatMap(step => step.fields || []);
+          elements = validateFormElements(allFields);
+        } else if (Array.isArray(formData.data)) {
+          elements = validateFormElements(formData.data);
+        }
+      } catch (parseError) {
+        console.error('Error parsing form elements:', parseError);
+        elements = [];
+      }
+      
+      setFormElements(elements);
+      
+      // Update style
+      updateFormStyle({
+        primaryColor: formData.primaryColor || '#9b87f5',
+        fontSize: formData.fontSize || '1rem',
+        borderRadius: formData.borderRadius || '0.5rem',
+        buttonStyle: formData.buttonStyle || 'rounded'
+      });
+      
+      // Update published state
+      const isPublishedState = !!formData.is_published;
+      
+      // Cache the loaded data
+      dataCache.set(`form:${formId}`, {
+        formTitle: formData.title || 'Untitled Form',
+        formDescription: formData.description || '',
+        formElements: elements,
+        formStyle: {
+          primaryColor: formData.primaryColor || '#9b87f5',
+          fontSize: formData.fontSize || '1rem',
+          borderRadius: formData.borderRadius || '0.5rem',
+          buttonStyle: formData.buttonStyle || 'rounded'
+        },
+        submitButtonText: formData.submitbuttontext || 'Submit',
+        isPublished: isPublishedState,
+        timestamp: new Date().toISOString()
+      });
+      
+      return formId;
+    } catch (error) {
+      console.error('Error loading form via edge function:', error);
+      return null;
+    }
+  }, [updateFormMeta, setFormElements, updateFormStyle]);
 
   // Cleanup function for timeouts
   useEffect(() => {
@@ -184,7 +289,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
   }, []);
 
-  // Load form data on component mount or when formId changes
+  // IMPROVED: Enhanced form loading with edge function and multiple fallback strategies
   useEffect(() => {
     if (!id) {
       console.log("No form ID provided");
@@ -207,7 +312,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         loadAttemptRef.current += 1;
         console.log(`Starting form data load for: ${id} (attempt ${loadAttemptRef.current}/${maxLoadAttempts})`);
         
-        const loadedId = await loadFormData(id);
+        // First try to load using the edge function (faster)
+        const now = Date.now();
+        const shouldUseEdgeFunction = now - lastServerLoadTimeRef.current > 30000; // Only use edge function if >30s since last attempt
+        
+        let loadedId = null;
+        if (shouldUseEdgeFunction && loadAttemptRef.current === 1) {
+          console.log('Attempting to load form via edge function');
+          loadedId = await loadFormWithEdgeFunction(id);
+          lastServerLoadTimeRef.current = Date.now();
+        }
+        
+        // If edge function fails, fall back to direct loading
+        if (!loadedId) {
+          console.log('Edge function load failed or skipped, trying direct load');
+          loadedId = await loadFormData(id);
+        }
+        
         console.log('Form data load result:', loadedId);
         
         if (loadedId) {
@@ -253,7 +374,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     return () => {
       controller.abort();
     };
-  }, [id, loadFormData, language, maxLoadAttempts, attemptFormRestore]); 
+  }, [id, loadFormData, language, maxLoadAttempts, attemptFormRestore, loadFormWithEdgeFunction]); 
 
   // Add error message for save issues
   useEffect(() => {
@@ -268,7 +389,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [saveError, language, saveRetryCount, maxSaveRetries]);
 
-  // Handle form drag-and-drop reordering with improved error handling
+  // IMPROVED: Handle form drag-and-drop reordering with better error handling
   const handleDragEnd = useCallback((event: any) => {
     try {
       const { active, over } = event;
@@ -337,10 +458,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     debouncedSave();
   }, [updateFormMeta, debouncedSave]);
 
-  // Manual save handler that shows clear feedback and returns void
+  // IMPROVED: Manual save handler with better feedback and verification
   const manualSaveHandler = useCallback(async () => {
     try {
       toast.loading(language === 'ar' ? 'جاري حفظ النموذج...' : 'Saving form...');
+      console.log('Starting manual form save...');
+      
       const success = await handleSave();
       
       if (success) {
@@ -353,6 +476,26 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         if (recoverMode) {
           setRecoverMode(false);
         }
+        
+        // Verify save by attempting to reload the form
+        setTimeout(async () => {
+          try {
+            // Quick verification check to ensure data was saved
+            const { data, error } = await supabase
+              .from('forms')
+              .select('updated_at')
+              .eq('id', currentFormId)
+              .single();
+              
+            if (error) {
+              console.warn('Verification check failed:', error);
+            } else {
+              console.log('Save verified, last updated:', data.updated_at);
+            }
+          } catch (e) {
+            console.error('Error during save verification:', e);
+          }
+        }, 1000);
       } else {
         // If save fails, try one more time
         setTimeout(async () => {
@@ -379,7 +522,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       setSaveError('manual-save-error');
     }
-  }, [handleSave, language, recoverMode]);
+  }, [handleSave, language, recoverMode, currentFormId]);
 
   // Publish handler wrapper to return void
   const handlePublishWrapper = useCallback(async () => {
@@ -400,7 +543,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [handlePublish, handleSave, language]);
 
-  // Shopify integration handler with improved error handling
+  // IMPROVED: Better Shopify integration with error handling and verification
   const handleShopifyIntegration = useCallback(async (settings: any) => {
     try {
       if (!currentFormId) {
@@ -409,12 +552,36 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
       
       // Try to save form first to ensure we have the latest data
-      await handleSave();
+      await manualSaveHandler();
       
-      // Make sure we're passing correctly structured data
+      // Ensure the form is published before sync
+      const { data: formData, error: formError } = await supabase
+        .from('forms')
+        .select('is_published')
+        .eq('id', currentFormId)
+        .single();
+        
+      if (formError) {
+        throw new Error(`Error checking form publication status: ${formError.message}`);
+      }
+      
+      if (!formData.is_published) {
+        // Auto-publish the form before syncing
+        console.log('Form is not published. Auto-publishing before sync');
+        await handlePublish();
+      }
+      
+      // Make sure shop is defined
+      if (!shopifyIntegration.shop) {
+        throw new Error(language === 'ar' ? 'لم يتم تحديد متجر Shopify' : 'Shopify store not defined');
+      }
+      
+      console.log('Syncing form with Shopify...');
       const result = await shopifyIntegration.syncForm({
         formId: currentFormId,
         shopDomain: shopifyIntegration.shop,
+        productId: settings?.productId, // Add missing properties
+        blockId: settings?.blockId,
         settings: {
           position: settings?.position || 'product-page',
           style: {
@@ -427,6 +594,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       if (result.success) {
         toast.success(language === 'ar' ? 'تم مزامنة النموذج مع Shopify بنجاح' : 'Form synchronized with Shopify successfully');
+        return result;
       } else {
         throw new Error(result.error || 'Unknown error');
       }
@@ -437,8 +605,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           ? 'فشل في مزامنة النموذج مع Shopify'
           : 'Failed to synchronize form with Shopify'
       );
+      return { success: false, error: error.message };
     }
-  }, [currentFormId, shopifyIntegration, formStyle, handleSave, language]);
+  }, [currentFormId, shopifyIntegration, formStyle, manualSaveHandler, handlePublish, language]);
 
   return (
     <>

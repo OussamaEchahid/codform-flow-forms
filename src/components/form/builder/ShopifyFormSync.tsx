@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,38 +25,44 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
   const [isFormPublished, setIsFormPublished] = useState<boolean>(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<number>(0);
 
+  // IMPROVED: Better form status checking with memory caching
+  const checkFormStatus = useCallback(async () => {
+    if (!formId) return false;
+    
+    try {
+      console.log('Checking form status for ID:', formId);
+      // Use a more efficient query with only the needed fields
+      const { data, error } = await supabase
+        .from('forms')
+        .select('is_published, shop_id')
+        .eq('id', formId)
+        .single();
+        
+      if (error) {
+        console.error('Error checking form publication status:', error);
+        return false;
+      }
+      
+      const isPublished = data?.is_published || false;
+      setIsFormPublished(isPublished);
+      console.log('Form publication status:', isPublished, 'Shop ID:', data?.shop_id);
+      
+      // Return the publication status
+      return isPublished;
+    } catch (e) {
+      console.error('Error checking form status:', e);
+      return false;
+    }
+  }, [formId]);
+
+  // Load initial data and sync status on component mount
   useEffect(() => {
     // Check form publication status
-    const checkFormStatus = async () => {
-      if (!formId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('forms')
-          .select('is_published')
-          .eq('id', formId)
-          .single();
-          
-        if (error) {
-          console.error('Error checking form publication status:', error);
-          return;
-        }
-        
-        setIsFormPublished(data?.is_published || false);
-        console.log('Form publication status:', data?.is_published);
-        
-        // If form is not published, auto-publish it
-        if (data && !data.is_published && shop) {
-          console.log('Auto-publishing form for Shopify compatibility');
-          handleSync();
-        }
-      } catch (e) {
-        console.error('Error checking form status:', e);
-      }
-    };
+    checkFormStatus();
 
-    // Check for last sync information in localStorage
+    // Check for last sync information
     const storedSyncInfo = localStorage.getItem(`form_sync_${formId}`);
     if (storedSyncInfo) {
       try {
@@ -71,10 +76,9 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         console.error('Error parsing sync info:', e);
       }
     }
-    
-    checkFormStatus();
-  }, [formId, shop]);
+  }, [formId, checkFormStatus]);
 
+  // IMPROVED: Enhanced form synchronization with better error handling and performance
   const handleSync = async () => {
     if (!formId || !shop) {
       toast.error(language === 'ar' ? 'يجب حفظ النموذج أولاً' : 'Please save the form first');
@@ -86,8 +90,19 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     setErrorMessage(null);
 
     try {
-      // First verify connection explicitly passing true to force fresh check
-      const connectionValid = await testConnection(true);
+      // First verify connection with cache to prevent excessive checks
+      const now = Date.now();
+      const shouldRefreshConnection = now - lastConnectionCheck > 60000; // Check if more than 1 minute since last check
+      
+      let connectionValid = false;
+      if (shouldRefreshConnection) {
+        console.log('Testing Shopify connection (forced refresh)');
+        connectionValid = await testConnection(true);
+        setLastConnectionCheck(now);
+      } else {
+        console.log('Testing Shopify connection (cached check)');
+        connectionValid = await testConnection(false);
+      }
       
       if (!connectionValid) {
         const errorMsg = language === 'ar' 
@@ -100,12 +115,12 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         return;
       }
 
-      // First ensure the form is published
+      // First ensure the form is published and linked to the shop
       const { error: publishError } = await supabase
         .from('forms')
         .update({ 
           is_published: true,
-          shop_id: shop  // Make sure shop_id is also updated
+          shop_id: shop
         })
         .eq('id', formId);
         
@@ -113,8 +128,12 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         console.error('Error publishing form:', publishError);
         toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing the form');
         setIsSyncing(false);
+        setSyncStatus('error');
         return;
       }
+      
+      // Update the form status after successful publication
+      setIsFormPublished(true);
 
       // Get access token for the current shop
       const { data: tokenData, error: tokenError } = await supabase
@@ -132,43 +151,62 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         return;
       }
 
-      // Call the Supabase edge function to sync the form with Shopify
-      const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
-        body: {
-          formId: formId,
-          shop: shop,
-          accessToken: tokenData.access_token,
-          // Add timestamp and unique ID to avoid caching issues
-          timestamp: Date.now(),
-          requestId: `sync_${Math.random().toString(36).substring(2, 10)}`
-        },
-        headers: {
-          'Cache-Control': 'no-store, no-cache'
+      // IMPROVED: Add retry mechanism and better caching control
+      const maxRetries = 2;
+      let currentRetry = 0;
+      let syncSuccess = false;
+      let syncResponse = null;
+      
+      while (currentRetry <= maxRetries && !syncSuccess) {
+        try {
+          // Call the Supabase edge function with better retry/cache control
+          const { data, error } = await supabase.functions.invoke('shopify-sync-form', {
+            body: {
+              formId: formId,
+              shop: shop,
+              accessToken: tokenData.access_token,
+              // Add timestamp and unique ID to avoid caching issues
+              timestamp: Date.now(),
+              requestId: `sync_${Math.random().toString(36).substring(2, 10)}`,
+              retryNumber: currentRetry
+            },
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (error) throw error;
+          syncResponse = data;
+          
+          // If we got a successful response, break out of the retry loop
+          if (data?.success) {
+            syncSuccess = true;
+            break;
+          } else {
+            // If the response was not successful but we didn't get an error, still consider it failed
+            throw new Error(data?.message || 'Sync failed without specific error');
+          }
+        } catch (retryError) {
+          currentRetry++;
+          console.error(`Sync attempt ${currentRetry}/${maxRetries} failed:`, retryError);
+          
+          // If we haven't exhausted our retries, wait before trying again
+          if (currentRetry <= maxRetries && !syncSuccess) {
+            const delay = Math.pow(2, currentRetry) * 1000; // Exponential backoff
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
-      });
-
-      if (error) {
-        console.error('Error syncing form with Shopify:', error);
-        setErrorMessage(error.message);
-        toast.error(language === 'ar' ? 'حدث خطأ أثناء مزامنة النموذج' : 'Error syncing form');
-        setSyncStatus('error');
-        setIsSyncing(false);
-        
-        // Save error status
-        localStorage.setItem(`form_sync_${formId}`, JSON.stringify({
-          lastSynced: lastSynced,
-          count: syncsCount,
-          status: 'error'
-        }));
-        return;
       }
 
-      if (data?.success) {
+      if (syncSuccess) {
         const newSyncsCount = syncsCount + 1;
         const currentTime = new Date().toLocaleString();
         
         // Check returned publication status
-        setIsFormPublished(data.published_status || true);
+        setIsFormPublished(syncResponse.published_status || true);
         
         // Save sync info to localStorage
         const syncInfo = {
@@ -184,17 +222,13 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         toast.success(language === 'ar' ? 'تم مزامنة النموذج بنجاح' : 'Form synced successfully');
         
         // Force refresh form status
-        const { data: formData } = await supabase
-          .from('forms')
-          .select('is_published')
-          .eq('id', formId)
-          .single();
-          
-        if (formData) {
-          setIsFormPublished(formData.is_published);
-        }
+        await checkFormStatus();
       } else {
-        const errorMsg = data?.message || (language === 'ar' ? 'حدث خطأ أثناء المزامنة' : 'Error during sync');
+        // All retries failed
+        const errorMsg = syncResponse?.message || 
+          (language === 'ar' ? 'فشلت جميع محاولات المزامنة. يرجى المحاولة مرة أخرى لاحقًا.' : 
+          'All sync attempts failed. Please try again later.');
+          
         setErrorMessage(errorMsg);
         toast.error(errorMsg);
         setSyncStatus('error');
@@ -217,14 +251,20 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     }
   };
 
+  // IMPROVED: Better reconnection handling with feedback
   const handleReconnect = async () => {
     setIsReconnecting(true);
     setErrorMessage(null);
     try {
+      console.log('Attempting to reconnect to Shopify...');
+      
       // Call refreshConnection with true to force refresh
       const success = await refreshConnection(true);
+      
       if (success) {
         toast.success(language === 'ar' ? 'تم إعادة الاتصال بنجاح' : 'Successfully reconnected');
+        setLastConnectionCheck(Date.now());
+        
         // Try sync again after reconnection
         await handleSync();
       } else {
@@ -242,12 +282,17 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
     }
   };
 
+  // IMPROVED: Smarter connection verification
   const handleRetryConnection = async () => {
     setIsReconnecting(true);
     setErrorMessage(null);
     try {
+      console.log('Testing Shopify connection with forced refresh...');
+      
       // Use testConnection with explicit true to force refresh
       const success = await testConnection(true);
+      setLastConnectionCheck(Date.now());
+      
       if (success) {
         toast.success(language === 'ar' ? 'تم تجديد الاتصال بنجاح' : 'Connection refreshed successfully');
         // Clear error if successful
@@ -273,7 +318,7 @@ const ShopifyFormSync: React.FC<ShopifyFormSyncProps> = ({ formId }) => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg font-semibold">
-              {language === 'ar' ? 'مزامنة Shopify' : 'Shopify Synchronization'}
+              {language === 'ar' ? 'م��امنة Shopify' : 'Shopify Synchronization'}
             </CardTitle>
             <CardDescription>
               {language === 'ar'

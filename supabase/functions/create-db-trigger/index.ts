@@ -1,94 +1,74 @@
 
-import { corsHeaders } from '../_shared/cors.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.18.0";
 
-Deno.serve(async (req) => {
+// Configure CORS headers for browser access
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
+};
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
-    // Create a Supabase client with the admin key
+    // Create Supabase admin client with service role credentials
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    // Check if submitbuttontext column exists in forms table
-    const { data: columnExists, error: columnCheckError } = await supabaseAdmin
-      .rpc('check_column_exists', { p_table: 'forms', p_column: 'submitbuttontext' });
+    // Check if triggers already exist before creating them
+    const { data: triggerExists, error: checkError } = await supabaseAdmin.rpc('check_trigger_exists', {
+      trigger_name: 'update_forms_updated_at'
+    });
 
-    if (columnCheckError) {
-      console.error('Error checking if column exists:', columnCheckError);
-      throw columnCheckError;
+    if (checkError) {
+      throw new Error(`Error checking trigger: ${checkError.message}`);
     }
 
-    if (!columnExists) {
-      // Add submitbuttontext column if it doesn't exist
-      const { error: addColumnError } = await supabaseAdmin
-        .rpc('add_column_if_not_exists', {
-          p_table: 'forms', 
-          p_column: 'submitbuttontext', 
-          p_type: 'text', 
-          p_default: "'إرسال الطلب'"
-        });
+    // Create helper function for product settings if it doesn't exist
+    const { error: functionError } = await supabaseAdmin.rpc(
+      'create_transaction_function_if_not_exists'
+    );
 
-      if (addColumnError) {
-        console.error('Error adding column:', addColumnError);
-        throw addColumnError;
-      }
-
-      console.log('Added submitbuttontext column to forms table');
+    if (functionError) {
+      throw new Error(`Error creating function: ${functionError.message}`);
     }
 
-    // Check if the trigger already exists
-    const { data: triggerExists, error: triggerCheckError } = await supabaseAdmin
-      .rpc('check_trigger_exists', { trigger_name: 'update_forms_updated_at' });
+    // Create timestamps trigger for all relevant tables if they don't exist
+    const tables = ['forms', 'shopify_stores', 'shopify_product_settings'];
+    const results = [];
 
-    if (triggerCheckError) {
-      console.error('Error checking if trigger exists:', triggerCheckError);
-      throw triggerCheckError;
-    }
+    for (const table of tables) {
+      const { data, error } = await supabaseAdmin.rpc('create_timestamp_trigger', {
+        table_name: table
+      });
 
-    let message = '';
-
-    if (!triggerExists) {
-      // Create the timestamp trigger for the forms table
-      const { error: createTriggerError } = await supabaseAdmin
-        .rpc('create_timestamp_trigger', { table_name: 'forms' });
-
-      if (createTriggerError) {
-        console.error('Error creating trigger:', createTriggerError);
-        throw createTriggerError;
-      }
-      
-      message = 'Database trigger created successfully';
-      console.log('Created update_forms_updated_at trigger');
-    } else {
-      message = 'Trigger already exists, no action taken';
-      console.log('Trigger already exists, no action taken');
+      results.push({
+        table,
+        success: !error,
+        error: error?.message
+      });
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message
+      JSON.stringify({ 
+        success: true, 
+        message: 'Database triggers created successfully', 
+        results 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders } }
     );
   } catch (error) {
-    console.error('Error executing create-db-trigger function:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 400, headers: { ...corsHeaders } }
     );
   }
 });

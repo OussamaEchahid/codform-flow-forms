@@ -3,6 +3,7 @@ import { FormField } from '@/lib/form-utils';
 import { useFormStore } from './useFormStore';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
+import { dataCache } from '@/lib/data-cache';
 
 // Export the FormStyle interface
 export interface FormStyle {
@@ -31,21 +32,28 @@ export function useFormEditor(initialFormId?: string) {
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [currentFormId, setCurrentFormId] = useState<string | null>(initialFormId || null);
   const [currentPreviewStep, setCurrentPreviewStep] = useState<number>(0);
+  const lastSavedDataRef = useRef<string>(''); // Track last saved data to prevent unnecessary saves
 
+  // IMPROVED: Enhanced form data loading with better error handling
   const loadFormData = useCallback(async (formId: string) => {
     try {
       setIsLoading(true);
-      console.log('Loading form data directly from Supabase for ID:', formId);
+      console.log('Loading form data for ID:', formId);
       
-      // Use direct Supabase query instead of the failing API route
+      // OPTIMIZATION: Use a more efficient query with direct selection of needed fields
       const { data: formData, error } = await supabase
         .from('forms')
-        .select('*')
+        .select('id, title, description, data, is_published, submitbuttontext, primaryColor, fontSize, borderRadius, buttonStyle')
         .eq('id', formId)
         .maybeSingle();
       
       if (error) {
         console.error('Error loading form from Supabase:', error);
+        // Cache the error to help with debugging
+        dataCache.set(`form_error:${formId}`, { 
+          timestamp: new Date().toISOString(),
+          error: error.message
+        });
         throw new Error(error.message || 'Error fetching form');
       }
       
@@ -62,19 +70,25 @@ export function useFormEditor(initialFormId?: string) {
       setFormDescription(formData.description || '');
       setSubmitButtonText(formData.submitbuttontext || 'Submit');
       
-      // Extract form elements
+      // Extract form elements with improved safety checks
       let elements: FormField[] = [];
-      if (formData.data?.fields && Array.isArray(formData.data.fields)) {
-        elements = formData.data.fields;
-      } else if (formData.data?.steps && Array.isArray(formData.data.steps)) {
-        elements = formData.data.steps.flatMap(step => step.fields || []);
-      } else if (Array.isArray(formData.data)) {
-        elements = formData.data;
+      try {
+        if (formData.data?.fields && Array.isArray(formData.data.fields)) {
+          elements = formData.data.fields;
+        } else if (formData.data?.steps && Array.isArray(formData.data.steps)) {
+          elements = formData.data.steps.flatMap(step => step.fields || []);
+        } else if (Array.isArray(formData.data)) {
+          elements = formData.data;
+        }
+      } catch (parseError) {
+        console.error('Error parsing form data:', parseError);
+        elements = [];
       }
       
+      // Store validated elements
       setFormElements(elements || []);
       
-      // Set form style
+      // Set form style with safe defaults
       setFormStyle({
         primaryColor: formData.primaryColor || '#9b87f5',
         fontSize: formData.fontSize || '1rem',
@@ -83,7 +97,35 @@ export function useFormEditor(initialFormId?: string) {
       });
       
       setIsPublished(!!formData.is_published);
-      setIsLoading(false);
+      
+      // Cache successfully loaded data for recovery
+      dataCache.set(`form:${formId}`, {
+        formTitle: formData.title || 'Untitled Form',
+        formDescription: formData.description || '',
+        formElements: elements || [],
+        formStyle: {
+          primaryColor: formData.primaryColor || '#9b87f5',
+          fontSize: formData.fontSize || '1rem',
+          borderRadius: formData.borderRadius || '0.5rem',
+          buttonStyle: formData.buttonStyle || 'rounded'
+        },
+        submitButtonText: formData.submitbuttontext || 'Submit',
+        isPublished: !!formData.is_published,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Save a snapshot of the data for change detection
+      lastSavedDataRef.current = JSON.stringify({
+        title: formData.title,
+        description: formData.description,
+        data: elements,
+        submitbuttontext: formData.submitbuttontext,
+        primaryColor: formData.primaryColor,
+        fontSize: formData.fontSize,
+        borderRadius: formData.borderRadius,
+        buttonStyle: formData.buttonStyle,
+        is_published: formData.is_published
+      });
       
       // Update the form store as well
       useFormStore.getState().setFormState({
@@ -107,6 +149,7 @@ export function useFormEditor(initialFormId?: string) {
       
       // Force a refresh to ensure UI updates
       setRefreshKey(prev => prev + 1);
+      setIsLoading(false);
       
       return formId;
     } catch (error) {
@@ -117,69 +160,116 @@ export function useFormEditor(initialFormId?: string) {
     }
   }, []);
 
+  // IMPROVED: Optimized save function with change detection and performance improvements
   const handleSave = useCallback(async () => {
-    setIsSaving(true);
     try {
       if (!currentFormId) {
         throw new Error('Form ID is missing');
       }
 
-      const formData = {
-        id: currentFormId,
+      // Skip saving if the form is currently being saved to avoid overlap
+      if (isSaving) {
+        console.log('Save operation already in progress, skipping');
+        return false;
+      }
+      
+      setIsSaving(true);
+      console.log('Starting form save operation...');
+
+      // Prepare form data
+      const formDataToSave = {
         title: formTitle,
         description: formDescription,
         data: {
           fields: formElements
         },
         is_published: isPublished,
-        submitButtonText: submitButtonText,
+        submitbuttontext: submitButtonText,
         primaryColor: formStyle.primaryColor,
         fontSize: formStyle.fontSize,
         borderRadius: formStyle.borderRadius,
         buttonStyle: formStyle.buttonStyle
       };
+      
+      // Create a string representation for comparison
+      const currentDataString = JSON.stringify(formDataToSave);
+      
+      // Check if data has actually changed before saving
+      if (currentDataString === lastSavedDataRef.current) {
+        console.log('No changes detected since last save, skipping database update');
+        setIsSaving(false);
+        return true; // Return success without actual DB operation
+      }
+      
+      // Log the data being saved for debugging
+      console.log('Saving form data:', formDataToSave);
 
-      // Use direct Supabase update instead of API route
+      // OPTIMIZATION: Use upsert with defined primary key to allow both insert and update
       const { error } = await supabase
         .from('forms')
-        .update({
-          title: formTitle,
-          description: formDescription,
-          data: {
-            fields: formElements
-          },
-          is_published: isPublished,
-          submitbuttontext: submitButtonText,
-          primaryColor: formStyle.primaryColor,
-          fontSize: formStyle.fontSize,
-          borderRadius: formStyle.borderRadius,
-          buttonStyle: formStyle.buttonStyle
-        })
-        .eq('id', currentFormId);
+        .upsert({
+          id: currentFormId,
+          ...formDataToSave
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false
+        });
 
       if (error) {
         console.error('Error saving form to Supabase:', error);
+        
+        // Cache the error for debugging
+        dataCache.set(`form_save_error:${currentFormId}`, { 
+          timestamp: new Date().toISOString(),
+          error: error.message,
+          data: formDataToSave
+        });
+        
         setIsSaving(false);
+        toast.error('Error saving form: ' + error.message);
         return false;
       }
 
+      // Update the last saved data reference
+      lastSavedDataRef.current = currentDataString;
+      
+      // Cache the successfully saved data for recovery
+      dataCache.set(`form:${currentFormId}`, {
+        formTitle,
+        formDescription,
+        formElements,
+        formStyle,
+        submitButtonText,
+        isPublished,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log('Form saved successfully');
       setIsSaving(false);
       return true;
     } catch (error) {
       console.error('Error saving form:', error);
       setIsSaving(false);
+      toast.error('Failed to save form: ' + (error instanceof Error ? error.message : 'Unknown error'));
       return false;
     }
-  }, [currentFormId, formTitle, formDescription, formElements, isPublished, submitButtonText, formStyle]);
+  }, [currentFormId, formTitle, formDescription, formElements, isPublished, submitButtonText, formStyle, isSaving]);
 
+  // IMPROVED: Optimized publish function with better error handling
   const handlePublish = useCallback(async () => {
-    setIsPublishing(true);
-    try {
-      if (!currentFormId) {
-        throw new Error('Form ID is missing');
-      }
+    if (!currentFormId) {
+      toast.error('Form ID is missing');
+      return false;
+    }
 
-      // Use direct Supabase update instead of API route
+    setIsPublishing(true);
+    console.log(`Publishing form ${currentFormId}, current status: ${isPublished ? 'published' : 'unpublished'}`);
+
+    try {
+      // First try to save any pending changes
+      await handleSave();
+      
+      // Then update the publication status
       const { error } = await supabase
         .from('forms')
         .update({ 
@@ -189,19 +279,30 @@ export function useFormEditor(initialFormId?: string) {
 
       if (error) {
         console.error('Error publishing form:', error);
+        toast.error('Failed to publish form: ' + error.message);
         setIsPublishing(false);
         return false;
       }
 
-      setIsPublished(!isPublished);
+      const newPublishedState = !isPublished;
+      setIsPublished(newPublishedState);
+      
+      // Update the store state
+      useFormStore.getState().updateFormPublishedState(currentFormId, newPublishedState);
+      
+      // Log and notify success
+      console.log(`Form ${newPublishedState ? 'published' : 'unpublished'} successfully`);
+      toast.success(newPublishedState ? 'Form published successfully' : 'Form unpublished successfully');
+      
       setIsPublishing(false);
       return true;
     } catch (error) {
       console.error('Error publishing form:', error);
+      toast.error('Failed to update publication status');
       setIsPublishing(false);
       return false;
     }
-  }, [currentFormId, isPublished]);
+  }, [currentFormId, isPublished, handleSave]);
 
   const updateFormStyle = useCallback((newStyle: Partial<FormStyle>) => {
     setFormStyle(prev => ({ ...prev, ...newStyle }));

@@ -1,160 +1,74 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.18.0";
 
+// Configure CORS headers for browser access
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
 };
 
-serve(async (req) => {
-  // Handle CORS
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
-  // Using a try/catch to guarantee we always respond with JSON
   try {
-    const requestId = `req_${Math.random().toString(36).substring(2, 8)}`;
-    
-    // Get form ID from URL or request body
+    // Get form ID from query string
     const url = new URL(req.url);
-    const pathSegments = url.pathname.split('/');
-    let formId = pathSegments[pathSegments.length - 1];
-    
-    // If formId not in path, try to get it from the request body or query params
-    if (!formId || formId === 'get-form') {
-      formId = url.searchParams.get('id') || '';
-      
-      // If still no formId, try to get from request body
-      if (!formId && req.headers.get('content-type')?.includes('application/json')) {
-        try {
-          const body = await req.json();
-          formId = body.id || '';
-        } catch (e) {
-          console.error(`[${requestId}] Error parsing JSON body:`, e);
-        }
-      }
-    }
-    
-    console.log(`[${requestId}] Get-Form: Request received for form ID: ${formId}`);
+    const formId = url.searchParams.get('id');
     
     if (!formId) {
-      console.error(`[${requestId}] Get-Form: No form ID provided`);
-      return new Response(
-        JSON.stringify({ 
-          error: 'No form ID provided',
-          success: false 
-        }),
-        {
-          headers: { ...corsHeaders },
-          status: 400
-        }
-      );
+      throw new Error('Form ID is required');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // Create Supabase client using the request's auth header
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error(`[${requestId}] Get-Form: Missing Supabase credentials`);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing Supabase credentials',
-          success: false 
-        }),
-        {
-          headers: { ...corsHeaders },
-          status: 400
-        }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get form from database
-    const { data: formData, error } = await supabase
+    // Get form data with optimized query
+    const { data: formData, error } = await supabaseClient
       .from('forms')
-      .select('*')
+      .select('id, title, description, data, is_published, submitbuttontext, primaryColor, fontSize, borderRadius, buttonStyle, shop_id')
       .eq('id', formId)
       .maybeSingle();
-
+      
     if (error) {
-      console.error(`[${requestId}] Get-Form: Database error:`, error);
-      return new Response(
-        JSON.stringify({ 
-          error: error.message,
-          success: false 
-        }),
-        {
-          headers: { ...corsHeaders },
-          status: 400
-        }
-      );
+      throw new Error(`Error fetching form: ${error.message}`);
     }
-
+    
     if (!formData) {
-      console.error(`[${requestId}] Get-Form: Form with ID ${formId} not found`);
       return new Response(
-        JSON.stringify({ 
-          error: `Form with ID ${formId} not found`,
-          success: false 
-        }),
-        {
-          headers: { ...corsHeaders },
-          status: 404
-        }
+        JSON.stringify({ success: false, error: 'Form not found' }),
+        { status: 404, headers: { ...corsHeaders } }
       );
     }
-
-    // Auto-publish the form if it's not already published
-    if (!formData.is_published) {
-      console.log(`[${requestId}] Get-Form: Form with ID ${formId} is not published, auto-publishing`);
-      
-      const { error: updateError } = await supabase
-        .from('forms')
-        .update({ is_published: true })
-        .eq('id', formId);
-      
-      if (updateError) {
-        console.error(`[${requestId}] Get-Form: Error publishing form:`, updateError);
-      } else {
-        console.log(`[${requestId}] Get-Form: Auto-published form ${formId} for display`);
-        formData.is_published = true;
-      }
+    
+    // Normalize the form data structure
+    let normalizedData = formData;
+    
+    // Ensure data.fields exists and is an array
+    if (!normalizedData.data) {
+      normalizedData.data = { fields: [] };
+    } else if (Array.isArray(normalizedData.data)) {
+      normalizedData.data = { fields: normalizedData.data };
+    } else if (!normalizedData.data.fields && !normalizedData.data.steps) {
+      normalizedData.data.fields = [];
     }
 
-    // Return the form data in the expected format
     return new Response(
-      JSON.stringify({
-        id: formData.id,
-        title: formData.title || 'Form',
-        description: formData.description || '',
-        submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
-        is_published: formData.is_published || false,
-        data: formData.data || {},
-        fields: formData.data?.fields || formData.data?.steps?.[0]?.fields || [],
-        success: true
-      }),
-      {
-        headers: { ...corsHeaders },
-        status: 200
-      }
+      JSON.stringify({ success: true, data: normalizedData }),
+      { headers: { ...corsHeaders } }
     );
   } catch (error) {
-    console.error('Get-Form: Critical error:', error);
-    
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        success: false
-      }),
-      {
-        headers: { ...corsHeaders },
-        status: 500
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 400, headers: { ...corsHeaders } }
     );
   }
-})
+});
