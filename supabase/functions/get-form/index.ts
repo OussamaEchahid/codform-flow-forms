@@ -45,11 +45,16 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Retrieving form data for ID: ${formId}`);
 
-    // Create Supabase client using the request's auth header
+    // Create Supabase client using the request's auth header or anon key
+    const authHeader = req.headers.get('Authorization');
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      authHeader ? '' : (Deno.env.get('SUPABASE_ANON_KEY') ?? ''),
+      { 
+        global: { 
+          headers: authHeader ? { Authorization: authHeader } : {} 
+        } 
+      }
     );
 
     // Get form data with optimized query

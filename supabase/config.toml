@@ -159,3 +159,6 @@ verify_jwt = false
 
 [functions.check-shopify-connection]
 verify_jwt = false
+
+[functions.shopify-products]
+verify_jwt = false

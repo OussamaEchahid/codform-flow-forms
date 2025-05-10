@@ -60,7 +60,7 @@ serve(async (req) => {
 
     console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
 
-    // Call Shopify GraphQL API to get products - FIXED QUERY to use price instead of priceV2
+    // Call Shopify GraphQL API to get products - FIXED QUERY 
     const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json`;
     const query = `
       {
@@ -100,7 +100,7 @@ serve(async (req) => {
     `;
 
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 3;
     let shopifyResponse;
     let lastError;
     
@@ -156,24 +156,15 @@ serve(async (req) => {
       const errorText = await shopifyResponse.text();
       console.error(`[${requestId}] Error fetching products. Status: ${shopifyResponse.status}, Response: ${errorText}`);
       
-      // Special handling for common errors
-      if (shopifyResponse.status === 401) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: 'Authentication failed - token may be expired or invalid',
-            status: shopifyResponse.status
-          }),
-          { headers: corsHeaders, status: 200 }
-        );
-      }
-      
+      // Return detailed error for debugging
       return new Response(
         JSON.stringify({ 
           success: false, 
           message: `Error fetching products from Shopify: ${shopifyResponse.status}`, 
           status: shopifyResponse.status,
-          error: errorText.substring(0, 200)
+          errorDetails: errorText.substring(0, 500),
+          shop: normalizedShopDomain,
+          requestId
         }),
         { 
           headers: corsHeaders,
@@ -192,7 +183,10 @@ serve(async (req) => {
           JSON.stringify({ 
             success: false, 
             message: 'GraphQL errors', 
-            errors: shopifyData.errors
+            errors: shopifyData.errors,
+            query,
+            shop: normalizedShopDomain,
+            requestId
           }),
           { headers: corsHeaders, status: 200 }
         )
@@ -203,7 +197,10 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            message: 'Invalid response format from Shopify'
+            message: 'Invalid response format from Shopify',
+            responseData: shopifyData,
+            shop: normalizedShopDomain,
+            requestId
           }),
           { headers: corsHeaders, status: 200 }
         )
@@ -304,7 +301,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        trace: error instanceof Error ? error.stack : null
       }),
       { 
         headers: corsHeaders,
