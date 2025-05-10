@@ -10,6 +10,14 @@ const Forms = () => {
   const [hasSynced, setHasSynced] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const instanceId = useRef(`forms-${Math.random().toString(36).substr(2, 8)}`);
+  const isMounted = useRef(true);
+  
+  // Track component mount state
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   // Force a sync ONCE on component load and then render immediately
   useEffect(() => {
@@ -31,27 +39,42 @@ const Forms = () => {
           // Don't wait for sync to complete before showing forms
           // This prevents page freezing while syncing
           setTimeout(() => {
-            setIsLoading(false);
-            setHasSynced(true);
+            if (isMounted.current) {
+              setIsLoading(false);
+              setHasSynced(true);
+            }
           }, 500);
           
           // Handle sync completion in background
           syncPromise
-            .then(() => console.log(`[${instanceId.current}] Sync completed successfully`))
+            .then(() => {
+              if (isMounted.current) {
+                console.log(`[${instanceId.current}] Sync completed successfully`);
+              }
+            })
             .catch(error => {
-              console.error(`[${instanceId.current}] Error syncing connection state:`, error);
-              // Don't show error toast as we're already showing forms
+              if (isMounted.current) {
+                console.error(`[${instanceId.current}] Error syncing connection state:`, error);
+                // Don't show error toast as we're already showing forms
+              }
             });
         } catch (error) {
           console.error(`[${instanceId.current}] Error in sync process:`, error);
           // Even if sync fails, still show forms
-          setIsLoading(false);
-          setHasSynced(true);
+          if (isMounted.current) {
+            setIsLoading(false);
+            setHasSynced(true);
+          }
         }
       }
     };
     
     performSync();
+    
+    return () => {
+      // Cleanup function to avoid state updates after unmount
+      isMounted.current = false;
+    };
   }, [syncState, hasSynced, shopDomain]);
 
   // Show brief loading indicator

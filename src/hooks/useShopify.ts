@@ -159,7 +159,7 @@ export const useShopify = () => {
     }
   }, [getStoreId, language, isDevMode]);
 
-  // Optimized loadProducts function
+  // Optimized loadProducts function with better error handling
   const loadProducts = useCallback(async (force = false) => {
     // Skip reloading if recently loaded
     const now = Date.now();
@@ -238,24 +238,63 @@ export const useShopify = () => {
         return;
       }
 
-      // Fetch fresh products from Supabase edge function
-      console.log(`[${instanceId.current}] Fetching fresh products for shop:`, storeId);
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-get-products', {
-        body: { shop: storeId }
-      });
+      // Try first edge function method
+      console.log(`[${instanceId.current}] Fetching products for shop:`, storeId);
+      let data, error;
+      try {
+        const response = await shopifySupabase.functions.invoke('shopify-products', {
+          body: { shop: storeId }
+        });
+        data = response.data;
+        error = response.error;
+      } catch (invokeError) {
+        console.error(`[${instanceId.current}] Error invoking edge function:`, invokeError);
+        error = invokeError;
+      }
+      
+      // If edge function failed, try backup API route
+      if (error || !data?.products || data.products.length === 0) {
+        console.log(`[${instanceId.current}] Edge function failed, trying backup API route`);
+        try {
+          const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(storeId)}&t=${Date.now()}`, {
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          
+          if (!apiResponse.ok) {
+            throw new Error(`API route returned status ${apiResponse.status}`);
+          }
+          
+          const apiData = await apiResponse.json();
+          if (apiData.error) {
+            throw new Error(apiData.error.message || 'Unknown error from API route');
+          }
+          
+          if (apiData.products) {
+            data = { products: apiData.products };
+            console.log(`[${instanceId.current}] Successfully loaded ${apiData.products.length} products from backup API`);
+            error = null;
+          }
+        } catch (apiError) {
+          console.error(`[${instanceId.current}] Backup API route also failed:`, apiError);
+          // Keep the original error if the backup also fails
+        }
+      }
 
       if (error) {
         console.error(`[${instanceId.current}] Error fetching products:`, error);
         
-        // If we already have products from cache, don't show the error
+        // If we already have products from cache, don't show the error to the user
         if (products.length === 0) {
-          throw new Error(error.message);
+          if (isMounted.current) {
+            setError(error.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
+            toast.error(language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products');
+          }
         }
       }
 
       if (data?.products && isMounted.current) {
         setProducts(data.products);
-        console.log(`[${instanceId.current}] Loaded ${data.products.length} fresh products`);
+        console.log(`[${instanceId.current}] Loaded ${data.products.length} products successfully`);
         
         // Cache products
         localStorage.setItem('shopify_products', JSON.stringify(data.products));
@@ -268,13 +307,14 @@ export const useShopify = () => {
     } catch (e: any) {
       console.error(`[${instanceId.current}] Error loading products:`, e);
       
-      if (isMounted.current && products.length === 0) {
-        setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
-        toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
-      }
-      
       if (isMounted.current) {
         setIsLoading(false);
+        
+        // Only show error toast if we don't have any products already
+        if (products.length === 0) {
+          setError(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
+          toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
+        }
       }
     }
   }, [getStoreId, language, isDevMode, products.length]);

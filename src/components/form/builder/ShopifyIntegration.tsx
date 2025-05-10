@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -127,6 +126,19 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Refs for tracking component state and retries
+  const retryCount = useRef(0);
+  const maxRetries = useRef(3);
+  const mounted = useRef(true);
+  
+  // Use effect to track mounted state
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   // Load existing settings when component mounts
   useEffect(() => {
     if (actualFormId) {
@@ -163,11 +175,34 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
-  // Load products when component mounts if connected
+  // Load products when component mounts if connected, with retry logic
   useEffect(() => {
     if (isConnected && shop) {
-      loadProducts();
-      setConnectionStatus('connected');
+      const loadProductsWithRetry = async () => {
+        try {
+          setConnectionStatus('connected');
+          await loadProducts(retryCount.current > 0); // Force refresh on retry
+          
+          // Reset retry count on success
+          retryCount.current = 0;
+        } catch (error) {
+          console.error('Error loading products:', error);
+          
+          // Implement retry logic
+          if (retryCount.current < maxRetries.current && mounted.current) {
+            retryCount.current += 1;
+            console.log(`Retrying product load, attempt ${retryCount.current} of ${maxRetries.current}`);
+            
+            // Exponential backoff for retries
+            const delay = Math.min(500 * Math.pow(2, retryCount.current), 5000);
+            setTimeout(loadProductsWithRetry, delay);
+          } else if (mounted.current) {
+            setConnectionStatus('error');
+          }
+        }
+      };
+      
+      loadProductsWithRetry();
     } else {
       setConnectionStatus('error');
     }
@@ -316,9 +351,30 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
-  // Create a wrapper function to handle onClick event properly
-  const handleLoadProductsClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    loadProducts(true);
+  // Create a wrapper function to handle onClick event properly with better error handling
+  const handleLoadProductsClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault(); // Prevent any form submission
+    
+    try {
+      setIsLoading(true);
+      retryCount.current = 0; // Reset retry counter
+      
+      await loadProducts(true); // Force refresh
+      
+      toast.success(language === 'ar' 
+        ? 'تم تحديث المنتجات بنجاح' 
+        : 'Products refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing products:', error);
+      
+      toast.error(language === 'ar' 
+        ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
+        : 'Failed to refresh products, please try again');
+    } finally {
+      if (mounted.current) {
+        setIsLoading(false);
+      }
+    }
   };
 
   // Render different content based on connection status

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -77,37 +76,6 @@ const FormList: React.FC<FormListProps> = ({
     };
   }, []);
 
-  const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    if (!formId) {
-      console.error(`[${stableId.current}] Cannot toggle publish: Invalid form ID`);
-      return;
-    }
-    
-    try {
-      await publishForm(formId, !currentStatus);
-      
-      // Update local state to reflect the change
-      if (isMounted.current) {
-        setFormToDelete(null); // Clear any pending delete
-        setLocalForms(prevForms => 
-          prevForms.map(form => 
-            form.id === formId 
-              ? { ...form, is_published: !currentStatus, isPublished: !currentStatus } 
-              : form
-          )
-        );
-      }
-      
-      toast.success(currentStatus 
-        ? 'تم إلغاء نشر النموذج بنجاح' 
-        : 'تم نشر النموذج بنجاح'
-      );
-    } catch (error) {
-      console.error(`[${stableId.current}] Error toggling form publish status:`, error);
-      toast.error("فشل في تغيير حالة النشر");
-    }
-  };
-
   // Improved deletion handler to prevent page freezing
   const handleDelete = async () => {
     if (!formToDelete || isDeleting) return;
@@ -118,6 +86,7 @@ const FormList: React.FC<FormListProps> = ({
       
       // First update the UI optimistically - remove from local state immediately
       const formIdToDelete = formToDelete;
+      const formToRemove = localForms.find(form => form.id === formIdToDelete);
       setLocalForms(prevForms => prevForms.filter(form => form.id !== formIdToDelete));
       
       // Clear form to delete ID
@@ -126,36 +95,56 @@ const FormList: React.FC<FormListProps> = ({
       // Show deletion in progress toast
       const toastId = toast.loading('جاري حذف النموذج...');
       
-      // Then actually delete from the database
-      await deleteForm(formIdToDelete);
-      
-      // Success handling
-      toast.dismiss(toastId);
-      toast.success('تم حذف النموذج بنجاح');
-      
-      // After successful deletion, trigger the refresh callback if provided
-      // Using setTimeout to prevent UI thread blocking
-      if (onRefresh) {
-        setTimeout(() => {
+      // Then actually delete from the database with a timeout to prevent UI freeze
+      setTimeout(async () => {
+        try {
+          await deleteForm(formIdToDelete);
+          
+          // Success handling
           if (isMounted.current) {
-            onRefresh().catch(err => {
-              console.error(`[${stableId.current}] Error refreshing after delete:`, err);
-            });
+            toast.dismiss(toastId);
+            toast.success('تم حذف النموذج بنجاح');
+          
+            // After successful deletion, trigger the refresh callback if provided
+            if (onRefresh) {
+              onRefresh().catch(err => {
+                console.error(`[${stableId.current}] Error refreshing after delete:`, err);
+              });
+            }
           }
-        }, 100);
-      }
-    } catch (error) {
-      console.error(`[${stableId.current}] Error deleting form:`, error);
-      toast.error("فشل في حذف النموذج");
+        } catch (error) {
+          console.error(`[${stableId.current}] Error deleting form:`, error);
+          
+          if (isMounted.current) {
+            toast.dismiss(toastId);
+            toast.error("فشل في حذف النموذج");
+            
+            // Restore the deleted item if the server operation failed
+            if (formToRemove) {
+              setLocalForms(prev => [...prev, formToRemove]);
+            }
+            
+            // Try to refresh if available
+            if (onRefresh) {
+              onRefresh().catch(err => {
+                console.error(`[${stableId.current}] Error refreshing after delete failure:`, err);
+              });
+            }
+          }
+        } finally {
+          // Always reset deleting state regardless of outcome
+          if (isMounted.current) {
+            setIsDeleting(false);
+          }
+        }
+      }, 100); // Small timeout to allow UI to update first
       
-      // Restore the deleted item if the server operation failed
-      if (onRefresh && isMounted.current) {
-        await onRefresh();
-      }
-    } finally {
-      // Always reset deleting state regardless of outcome
+    } catch (error) {
+      console.error(`[${stableId.current}] Error in delete handler:`, error);
+      
       if (isMounted.current) {
         setIsDeleting(false);
+        toast.error("فشل في حذف النموذج");
       }
     }
   };
