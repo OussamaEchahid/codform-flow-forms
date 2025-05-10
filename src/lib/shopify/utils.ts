@@ -1,5 +1,5 @@
 
-import { shopifyStores } from './supabase-client';
+import { shopifySupabase } from './supabase-client';
 
 /**
  * Validate a Shopify shop domain
@@ -58,7 +58,8 @@ export async function testShopifyToken(shop: string, token: string): Promise<boo
  */
 export async function getActiveStore(): Promise<{ shop: string; token: string } | null> {
   try {
-    const { data, error } = await shopifyStores()
+    const { data, error } = await shopifySupabase
+      .from('shopify_stores')
       .select('shop, access_token')
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
@@ -90,7 +91,8 @@ export async function saveShopifyToken(shop: string, token: string): Promise<boo
     if (!normalizedShop) return false;
     
     // Check if store already exists
-    const { data, error } = await shopifyStores()
+    const { data, error } = await shopifySupabase
+      .from('shopify_stores')
       .select('id')
       .eq('shop', normalizedShop)
       .limit(1);
@@ -102,7 +104,8 @@ export async function saveShopifyToken(shop: string, token: string): Promise<boo
     
     if (data && data.length > 0) {
       // Update existing store
-      const { error: updateError } = await shopifyStores()
+      const { error: updateError } = await shopifySupabase
+        .from('shopify_stores')
         .update({ 
           access_token: token,
           is_active: true,
@@ -116,7 +119,8 @@ export async function saveShopifyToken(shop: string, token: string): Promise<boo
       }
     } else {
       // Create new store
-      const { error: insertError } = await shopifyStores()
+      const { error: insertError } = await shopifySupabase
+        .from('shopify_stores')
         .insert({
           shop: normalizedShop,
           access_token: token,

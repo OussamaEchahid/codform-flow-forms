@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
@@ -25,7 +24,7 @@ export const ShopifyDebugPanel = () => {
       }
       
       // جلب معلومات المتجر من قاعدة البيانات
-      const { data, error } = await shopifyStores()
+      const { data, error } = await shopifySupabase.from('shopify_stores')
         .select('*')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })

@@ -1,4 +1,3 @@
-
 /**
  * Shopify Connection Manager
  * Handles connection state management and persistence
@@ -236,6 +235,81 @@ class ShopifyConnectionManager {
       localStorage.removeItem('shopify_temp_store');
     } catch (error) {
       connectionLogger.error('Error in clearAllStores:', error);
+    }
+  }
+  
+  /**
+   * Save the last URL shop
+   */
+  public saveLastUrlShop(shop: string): void {
+    try {
+      if (!shop) return;
+      localStorage.setItem(this.URL_SHOP_KEY, shop);
+    } catch (error) {
+      connectionLogger.error('Error in saveLastUrlShop:', error);
+    }
+  }
+  
+  /**
+   * Get the last URL shop
+   */
+  public getLastUrlShop(): string | null {
+    try {
+      return localStorage.getItem(this.URL_SHOP_KEY);
+    } catch (error) {
+      connectionLogger.error('Error in getLastUrlShop:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Check if we're in a connection loop
+   */
+  public isInConnectionLoop(): boolean {
+    try {
+      const now = Date.now();
+      let loopData = localStorage.getItem(this.LOOP_DETECTION_KEY);
+      
+      if (!loopData) {
+        // Initialize loop detection data
+        const initialData = JSON.stringify({
+          attempts: 1,
+          timestamps: [now],
+          firstAttempt: now
+        });
+        localStorage.setItem(this.LOOP_DETECTION_KEY, initialData);
+        return false;
+      }
+      
+      const data = JSON.parse(loopData);
+      
+      // Add current timestamp
+      data.attempts += 1;
+      data.timestamps.push(now);
+      
+      // Only keep timestamps within the timeframe
+      const timeframeStart = now - this.LOOP_TIMEFRAME;
+      data.timestamps = data.timestamps.filter((t: number) => t >= timeframeStart);
+      
+      // Update the data
+      localStorage.setItem(this.LOOP_DETECTION_KEY, JSON.stringify(data));
+      
+      // Check if we've had too many attempts within the timeframe
+      return data.timestamps.length >= this.LOOP_THRESHOLD;
+    } catch (error) {
+      connectionLogger.error('Error in isInConnectionLoop:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Reset loop detection
+   */
+  public resetLoopDetection(): void {
+    try {
+      localStorage.removeItem(this.LOOP_DETECTION_KEY);
+    } catch (error) {
+      connectionLogger.error('Error in resetLoopDetection:', error);
     }
   }
   

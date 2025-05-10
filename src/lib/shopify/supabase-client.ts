@@ -15,3 +15,8 @@ export const shopifySupabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: false // Disable auto-refresh to minimize client instances
   }
 });
+
+// Helper function to access the shopify_stores table
+export const shopifyStores = () => {
+  return shopifySupabase.from('shopify_stores');
+};

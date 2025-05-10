@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,8 @@ export const ShopifyStoresManager: React.FC = () => {
       
       // Update diagnostic information
       const { shopDomain } = parseShopifyParams();
-      const lastUrlShop = shopifyConnectionManager.getLastUrlShop();
+      // Use localStorage directly instead of connection manager method
+      const lastUrlShop = localStorage.getItem('shopify_last_url_shop');
       
       setDiagnosticInfo({
         activeShopFromContext: activeShop,

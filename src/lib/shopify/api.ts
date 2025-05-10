@@ -1,18 +1,18 @@
-
 /**
  * Main Shopify API integration module
  */
 import { getMockProducts } from './mock-data';
 import { isDevelopmentMode, isTestStore } from './constants';
 import { toast } from 'sonner';
-import { createShopifyAPI } from './api-client';
+import { createShopifyAPI as createAPI } from './api-client';
 import { cleanShopifyDomain, ShopifyProduct, ShopifyVariant, ShopifyFormData } from './types';
 import { apiLogger } from './debug-logger';
 import { shopifySupabase } from './supabase-client';
 
 // Re-export types and functions
 export type { ShopifyProduct, ShopifyVariant, ShopifyFormData };
-export { cleanShopifyDomain, createShopifyAPI };
+export { cleanShopifyDomain };
+export const createShopifyAPI = createAPI;
 
 /**
  * Load Shopify products from the API or mock data

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
 import { toast } from 'sonner';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
@@ -158,7 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Load shops from database
   const loadShopsFromDatabase = async () => {
     try {
-      const { data, error } = await shopifyStores()
+      const { data, error } = await shopifySupabase()
         .select('shop, is_active, updated_at')
         .order('is_active', { ascending: false })
         .order('updated_at', { ascending: false });

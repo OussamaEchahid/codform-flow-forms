@@ -1,168 +1,182 @@
 
 /**
- * Shopify API Client implementation
+ * Shopify API client factory
  */
-import { REQUEST_TIMEOUT, RETRY_DELAY, MAX_RETRIES, isTestStore } from './constants';
-import { ShopifyProduct } from './types';
-import { getMockProducts } from './mock-data';
 import { apiLogger } from './debug-logger';
 
-/**
- * ShopifyAPI class for interacting with the Shopify Admin API
- */
+export interface ShopifyAPIConfig {
+  shop: string;
+  accessToken?: string;
+  apiVersion?: string;
+  retries?: number;
+  timeout?: number;
+}
+
 export class ShopifyAPI {
-  private accessToken: string;
-  private shop: string;
-  private requestId: string;
+  private readonly shop: string;
+  private readonly accessToken: string | null;
+  private readonly apiVersion: string;
+  private readonly maxRetries: number;
+  private readonly timeout: number;
   
-  constructor(accessToken: string, shop: string) {
-    this.accessToken = accessToken;
-    this.shop = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
-    this.requestId = `api_${Math.random().toString(36).substring(2, 8)}`;
+  constructor(config: ShopifyAPIConfig) {
+    this.shop = config.shop;
+    this.accessToken = config.accessToken || null;
+    this.apiVersion = config.apiVersion || '2023-10';
+    this.maxRetries = config.retries || 3;
+    this.timeout = config.timeout || 10000;
   }
   
   /**
-   * Verify connection to the Shopify store
+   * Make a GraphQL request to the Shopify API
    */
-  async verifyConnection(): Promise<boolean> {
-    try {
-      apiLogger.info(`Verifying connection to ${this.shop}`);
-      
-      // For test stores, always return true to avoid API calls
-      if (isTestStore(this.shop)) {
-        apiLogger.log(`Test store detected, skipping real verification`);
-        return true;
-      }
-      
-      // Always return true in development mode
-      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
-        apiLogger.log('Development mode detected, auto-approving connection');
-        return true;
-      }
-      
-      const endpoint = `https://${this.shop}/admin/api/2023-10/shop.json`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-      
-      const response = await fetch(endpoint, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': this.accessToken
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        apiLogger.error(`Connection verification failed: ${response.status}`, errorText);
-        return false;
-      }
-      
-      const data = await response.json();
-      apiLogger.log(`Connection verified successfully for shop: ${data?.shop?.name || this.shop}`);
-      return true;
-    } catch (error) {
-      apiLogger.error(`Connection verification error:`, error);
-      
-      // Auto succeed in development mode
-      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
-        apiLogger.log('Auto-succeeding connection verification in development mode');
-        return true;
-      }
-      
-      return false;
-    }
-  }
-  
-  /**
-   * Get products from the Shopify store using REST API
-   */
-  async getProducts(): Promise<ShopifyProduct[]> {
-    apiLogger.log(`Getting products for ${this.shop}`);
-    
-    // Always use mock data for development and test stores
-    if (isTestStore(this.shop) || process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
-      apiLogger.log(`Development/test mode detected, returning mock products`);
-      return getMockProducts();
+  async graphql<T>(query: string, variables?: Record<string, any>, customHeaders?: Record<string, string>): Promise<T> {
+    if (!this.accessToken) {
+      throw new Error('Access token is required for GraphQL queries');
     }
     
-    // Try to get products with retry logic
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': this.accessToken,
+      ...(customHeaders || {})
+    };
+    
+    const endpoint = `https://${this.shop}/admin/api/${this.apiVersion}/graphql.json`;
+    
+    // Try up to maxRetries times
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        apiLogger.log(`Product fetch attempt ${attempt} of ${MAX_RETRIES}`);
-        
-        // Use REST API instead of GraphQL for better reliability
-        const endpoint = `https://${this.shop}/admin/api/2023-10/products.json?limit=50`;
+        apiLogger.info(`GraphQL attempt ${attempt}: ${endpoint}`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
         
         const response = await fetch(endpoint, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': this.accessToken
-          },
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            query,
+            variables
+          }),
           signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          const errorText = await response.text();
-          apiLogger.error(`Product fetch failed: ${response.status}`, errorText);
-          
-          if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
-            continue;
-          }
-          throw new Error(`API Error: ${response.status} - ${errorText}`);
+          const error = await response.text();
+          throw new Error(`GraphQL error (${response.status}): ${error}`);
         }
         
-        const data = await response.json();
+        const result = await response.json();
         
-        if (!data || !data.products || !Array.isArray(data.products)) {
-          throw new Error('Invalid API response format');
+        if (result.errors) {
+          throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
         }
         
-        const products: ShopifyProduct[] = data.products.map((product: any) => ({
-          id: product.id.toString(),
-          title: product.title,
-          handle: product.handle,
-          images: product.images?.map((img: any) => img.src) || [],
-          price: product.variants[0]?.price || '0',
-          variants: product.variants?.map((v: any) => ({
-            id: v.id.toString(),
-            title: v.title,
-            price: v.price,
-            available: v.inventory_quantity > 0
-          })) || []
-        }));
-        
-        apiLogger.log(`Successfully fetched ${products.length} products`);
-        return products;
+        return result.data as T;
       } catch (error) {
-        apiLogger.error(`Error in product fetch attempt ${attempt}:`, error);
+        apiLogger.error(`Error in GraphQL attempt ${attempt}:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
         
-        if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
-        } else {
-          apiLogger.error(`All attempts failed, falling back to mock data`);
-          return getMockProducts();
+        // If this is the last attempt, rethrow
+        if (attempt === this.maxRetries) {
+          throw lastError;
         }
+        
+        // Wait before trying again (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
       }
     }
     
-    // Fallback to mock data if all attempts fail
-    return getMockProducts();
+    // This should never happen due to the throw in the loop
+    throw lastError || new Error('Unknown error in GraphQL request');
+  }
+  
+  /**
+   * Make a REST request to the Shopify API
+   */
+  async rest<T>(
+    method: string,
+    path: string,
+    data?: any,
+    customHeaders?: Record<string, string>
+  ): Promise<T> {
+    if (!this.accessToken) {
+      throw new Error('Access token is required for REST requests');
+    }
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': this.accessToken,
+      ...(customHeaders || {})
+    };
+    
+    // Ensure path starts with a slash
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const endpoint = `https://${this.shop}/admin/api/${this.apiVersion}${cleanPath}`;
+    
+    // Try up to maxRetries times
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        apiLogger.info(`REST ${method} attempt ${attempt}: ${endpoint}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        
+        const options: RequestInit = {
+          method,
+          headers,
+          signal: controller.signal
+        };
+        
+        if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+          options.body = JSON.stringify(data);
+        }
+        
+        const response = await fetch(endpoint, options);
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`REST error (${response.status}): ${error}`);
+        }
+        
+        // Check if response is empty
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const result = await response.json();
+          return result as T;
+        } else {
+          return {} as T;
+        }
+      } catch (error) {
+        apiLogger.error(`Error in REST attempt ${attempt}:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // If this is the last attempt, rethrow
+        if (attempt === this.maxRetries) {
+          throw lastError;
+        }
+        
+        // Wait before trying again (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      }
+    }
+    
+    // This should never happen due to the throw in the loop
+    throw lastError || new Error('Unknown error in REST request');
   }
 }
 
 /**
- * Factory function to create ShopifyAPI instances
+ * Create a new Shopify API client
  */
-export const createShopifyAPI = (accessToken: string, shop: string): ShopifyAPI => {
-  return new ShopifyAPI(accessToken, shop);
-};
+export function createShopifyAPI(config: ShopifyAPIConfig): ShopifyAPI {
+  return new ShopifyAPI(config);
+}
