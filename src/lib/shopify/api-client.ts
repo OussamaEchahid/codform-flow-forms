@@ -1,4 +1,3 @@
-
 /**
  * Shopify API client factory
  */
@@ -171,6 +170,86 @@ export class ShopifyAPI {
     
     // This should never happen due to the throw in the loop
     throw lastError || new Error('Unknown error in REST request');
+  }
+
+  /**
+   * Verify the connection to the Shopify API
+   */
+  async verifyConnection(): Promise<boolean> {
+    try {
+      // Make a simple request to the Shopify API to verify the connection
+      const shopData = await this.rest<any>('GET', '/shop.json');
+      return !!shopData && !!shopData.shop;
+    } catch (error) {
+      apiLogger.error('Error verifying connection:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get products from the Shopify API
+   */
+  async getProducts(limit = 50): Promise<any[]> {
+    try {
+      // Fetch products using GraphQL for more efficient data retrieval
+      const query = `
+        query {
+          products(first: ${limit}) {
+            edges {
+              node {
+                id
+                title
+                handle
+                variants(first: 10) {
+                  edges {
+                    node {
+                      id
+                      title
+                      price
+                      availableForSale
+                    }
+                  }
+                }
+                images(first: 1) {
+                  edges {
+                    node {
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const result = await this.graphql<any>(query);
+      
+      if (!result || !result.products || !result.products.edges) {
+        return [];
+      }
+      
+      // Transform the GraphQL response to a simpler format
+      return result.products.edges.map((edge: any) => {
+        const node = edge.node;
+        return {
+          id: node.id,
+          title: node.title,
+          handle: node.handle,
+          price: node.variants.edges[0]?.node.price || "0",
+          images: node.images.edges.map((img: any) => img.node.url),
+          variants: node.variants.edges.map((v: any) => ({
+            id: v.node.id,
+            title: v.node.title,
+            price: v.node.price,
+            available: v.node.availableForSale
+          }))
+        };
+      });
+    } catch (error) {
+      apiLogger.error('Error fetching products:', error);
+      return [];
+    }
   }
 }
 

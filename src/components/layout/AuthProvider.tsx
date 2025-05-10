@@ -168,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       if (data && data.length > 0) {
-        console.log("Loaded shops from database:", data);
+        console.log("Loading shops from database:", data);
         
         // First check URL parameters (highest priority)
         const { shopDomain } = parseShopifyParams();
