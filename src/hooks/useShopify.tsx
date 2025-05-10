@@ -1,8 +1,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { loadShopifyProducts, testShopifyConnection, ShopifyProduct, syncFormWithShopify } from '@/lib/shopify/api';
+import { loadShopifyProducts, testShopifyConnection, syncFormWithShopify } from '@/lib/shopify/api';
 import { toast } from 'sonner';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
+import { ShopifyProduct } from '@/lib/shopify/types';
+import { apiLogger } from '@/lib/shopify/debug-logger';
 
 /**
  * Hook for Shopify integration
@@ -28,11 +30,13 @@ export function useShopify() {
     setIsNetworkError(false);
     
     try {
+      apiLogger.info(`Fetching products for shop: ${shop}, forceRefresh: ${forceRefresh}`);
       const fetchedProducts = await loadShopifyProducts(shop, forceRefresh);
       setProducts(fetchedProducts);
       setLastRefreshed(new Date());
+      apiLogger.info(`Successfully fetched ${fetchedProducts.length} products`);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      apiLogger.error('Error fetching products:', error);
       setIsNetworkError(true);
       toast.error('فشل في تحميل المنتجات');
     } finally {
@@ -52,18 +56,31 @@ export function useShopify() {
     if (!shop) return false;
     
     try {
+      apiLogger.info(`Refreshing connection for shop: ${shop}, forceRefresh: ${forceRefresh}`);
       const isConnected = await testShopifyConnection(shop);
+      
       if (isConnected) {
+        apiLogger.info('Connection successful, fetching products');
+        fetchProducts(true);
+        return true;
+      } else {
+        apiLogger.warn('Connection test failed');
+        return false;
+      }
+    } catch (error) {
+      apiLogger.error('Error refreshing connection:', error);
+      setIsNetworkError(true);
+      
+      // Auto succeed in dev mode
+      if (isDevMode) {
+        apiLogger.info('Development mode detected, auto-succeeding despite error');
         fetchProducts(true);
         return true;
       }
+      
       return false;
-    } catch (error) {
-      console.error('Error refreshing connection:', error);
-      setIsNetworkError(true);
-      return isDevMode; // Auto succeed in dev mode
     }
-  }, [shop, fetchProducts, isDevMode]);
+  }, [shop, fetchProducts, isDevMode, testShopifyConnection]);
   
   // Sync form with Shopify
   const syncForm = useCallback(async (formId: string) => {
@@ -73,17 +90,20 @@ export function useShopify() {
     }
     
     try {
-      const result = await syncFormWithShopify({ formId });
+      apiLogger.info(`Syncing form ${formId} with shop ${shop}`);
+      const result = await syncFormWithShopify({ formId, shopDomain: shop });
       
       if (result.success) {
         toast.success('تم مزامنة النموذج مع Shopify بنجاح');
+        apiLogger.info('Form sync successful');
       } else {
-        toast.error(`فشل المزامنة: ${result.message}`);
+        toast.error(`فشل المزامنة: ${result.error || result.message || 'خطأ غير معروف'}`);
+        apiLogger.error('Form sync failed:', result);
       }
       
       return result;
     } catch (error) {
-      console.error('Error syncing form:', error);
+      apiLogger.error('Error syncing form:', error);
       toast.error('حدث خطأ أثناء مزامنة النموذج');
       return { success: false, error };
     }

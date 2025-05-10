@@ -1,4 +1,8 @@
 
+/**
+ * Shopify Connection Manager
+ * Handles connection state management and persistence
+ */
 import { cleanShopifyDomain } from './types';
 import type { ShopifyStoreConnection } from './types';
 import { connectionLogger } from './debug-logger';
@@ -13,9 +17,6 @@ class ShopifyConnectionManager {
   
   /**
    * Adds or updates a store in the connection manager
-   * @param domain The store domain
-   * @param isActive Whether the store is active
-   * @param forceUpdate Whether to clear all other stores
    */
   public addOrUpdateStore(domain: string, isActive = false, forceUpdate = false): void {
     try {
@@ -95,7 +96,6 @@ class ShopifyConnectionManager {
   
   /**
    * Gets the active store domain
-   * @returns The active store domain or null if none
    */
   public getActiveStore(): string | null {
     try {
@@ -129,6 +129,13 @@ class ShopifyConnectionManager {
         return legacyStore;
       }
       
+      // Development mode default
+      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
+        const devStore = 'astrem.myshopify.com';
+        this.addOrUpdateStore(devStore, true);
+        return devStore;
+      }
+      
       return null;
     } catch (error) {
       connectionLogger.error('Error in getActiveStore:', error);
@@ -138,7 +145,6 @@ class ShopifyConnectionManager {
   
   /**
    * Sets the active store
-   * @param domain The store domain to set active
    */
   public setActiveStore(domain: string): void {
     try {
@@ -153,7 +159,6 @@ class ShopifyConnectionManager {
   
   /**
    * Gets all stored stores
-   * @returns Array of store objects
    */
   public getAllStores(): ShopifyStoreConnection[] {
     try {
@@ -185,7 +190,6 @@ class ShopifyConnectionManager {
   
   /**
    * Removes a store from the connection manager
-   * @param domain The store domain to remove
    */
   public removeStore(domain: string): void {
     try {
@@ -218,41 +222,6 @@ class ShopifyConnectionManager {
   }
   
   /**
-   * Clears all stores except the one specified
-   * @param exceptDomain The domain to keep
-   */
-  public clearAllStoresExcept(exceptDomain: string): void {
-    try {
-      const cleanedDomain = cleanShopifyDomain(exceptDomain);
-      
-      if (!cleanedDomain) {
-        this.clearAllStores();
-        return;
-      }
-      
-      // Get existing stores
-      const existingStores = this.getAllStores();
-      
-      // Find the store to keep
-      const storeToKeep = existingStores.find(s => s.domain === cleanedDomain);
-      
-      if (storeToKeep) {
-        // Keep only this store and make it active
-        storeToKeep.isActive = true;
-        localStorage.setItem(this.STORES_KEY, JSON.stringify([storeToKeep]));
-        localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
-        localStorage.setItem('shopify_store', cleanedDomain);
-        localStorage.setItem('shopify_connected', 'true');
-      } else {
-        // If the store to keep doesn't exist, just clear all stores
-        this.clearAllStores();
-      }
-    } catch (error) {
-      connectionLogger.error('Error in clearAllStoresExcept:', error);
-    }
-  }
-  
-  /**
    * Clears all stores
    */
   public clearAllStores(): void {
@@ -271,42 +240,20 @@ class ShopifyConnectionManager {
   }
   
   /**
-   * Saves the last shop from URL params
-   * @param shopDomain The shop domain from URL
-   */
-  public saveLastUrlShop(shopDomain: string): void {
-    try {
-      if (!shopDomain) return;
-      
-      const cleanedDomain = cleanShopifyDomain(shopDomain);
-      
-      if (cleanedDomain) {
-        localStorage.setItem(this.URL_SHOP_KEY, cleanedDomain);
-      }
-    } catch (error) {
-      connectionLogger.error('Error in saveLastUrlShop:', error);
-    }
-  }
-  
-  /**
-   * Gets the last shop from URL params
-   * @returns The last shop domain from URL or null
-   */
-  public getLastUrlShop(): string | null {
-    try {
-      return localStorage.getItem(this.URL_SHOP_KEY);
-    } catch (error) {
-      connectionLogger.error('Error in getLastUrlShop:', error);
-      return null;
-    }
-  }
-  
-  /**
    * Validates connection state consistency
-   * @returns True if state is consistent
    */
   public validateConnectionState(): boolean {
     try {
+      // Default to true in development mode
+      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
+        connectionLogger.info('Development mode detected, auto-validating connection state');
+        
+        // Set test store as active
+        const testStore = 'astrem.myshopify.com';
+        this.setActiveStore(testStore);
+        return true;
+      }
+      
       const activeStore = this.getActiveStore();
       const legacyStore = localStorage.getItem('shopify_store');
       const isConnected = localStorage.getItem('shopify_connected') === 'true';
@@ -337,45 +284,10 @@ class ShopifyConnectionManager {
   }
   
   /**
-   * Detects if we're in a connection loop
-   * @returns True if a loop is detected
+   * Get development mode default store
    */
-  public isInConnectionLoop(): boolean {
-    try {
-      const now = Date.now();
-      let loopData = localStorage.getItem(this.LOOP_DETECTION_KEY);
-      let attempts: number[] = [];
-      
-      if (loopData) {
-        attempts = JSON.parse(loopData);
-      }
-      
-      // Add the current timestamp
-      attempts.push(now);
-      
-      // Keep only attempts within the timeframe
-      attempts = attempts.filter(timestamp => (now - timestamp) < this.LOOP_TIMEFRAME);
-      
-      // Save updated attempts
-      localStorage.setItem(this.LOOP_DETECTION_KEY, JSON.stringify(attempts));
-      
-      // Check if we've exceeded the threshold
-      return attempts.length >= this.LOOP_THRESHOLD;
-    } catch (error) {
-      connectionLogger.error('Error in isInConnectionLoop:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Resets loop detection
-   */
-  public resetLoopDetection(): void {
-    try {
-      localStorage.removeItem(this.LOOP_DETECTION_KEY);
-    } catch (error) {
-      connectionLogger.error('Error in resetLoopDetection:', error);
-    }
+  public getDevModeStore(): string {
+    return 'astrem.myshopify.com';
   }
 }
 

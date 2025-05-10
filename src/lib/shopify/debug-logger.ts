@@ -1,67 +1,46 @@
 
 /**
- * Simple logger utility for connection debugging
+ * Debug logger for Shopify integration
+ * Provides consistent logging with identifiers
  */
-export class ConnectionLogger {
-  private readonly LOG_LEVEL: string;
-  private readonly LEVELS: Record<string, number>;
+
+// Create an instance ID for this browser session
+const instanceId = `shopify-${Math.random().toString(36).substring(2, 8)}`;
+
+// Define custom logger
+export const connectionLogger = {
+  log: (message: string, ...args: any[]) => {
+    console.log(`[SHOPIFY:${instanceId}] ${message}`, ...args);
+  },
   
-  constructor(prefix: string = 'Shopify Connection') {
-    this.LOG_LEVEL = process.env.NODE_ENV === 'development' ? 'debug' : 'info';
-    this.LEVELS = {
-      debug: 0,
-      info: 1,
-      warn: 2,
-      error: 3
-    };
-    this.prefix = prefix;
+  info: (message: string, ...args: any[]) => {
+    console.info(`[SHOPIFY:${instanceId}] ${message}`, ...args);
+  },
+  
+  warn: (message: string, ...args: any[]) => {
+    console.warn(`[SHOPIFY:${instanceId}] ${message}`, ...args);
+  },
+  
+  error: (message: string, ...args: any[]) => {
+    console.error(`[SHOPIFY:${instanceId}] ${message}`, ...args);
   }
+};
 
-  private prefix: string;
-
-  /**
-   * Log a debug message
-   */
-  debug(message: string, ...args: any[]): void {
-    if (this.shouldLog('debug')) {
-      console.debug(`[${this.prefix}][DEBUG] ${message}`, ...args);
-    }
+// Export specialized loggers for different components
+export const apiLogger = {
+  log: (message: string, ...args: any[]) => {
+    console.log(`[SHOPIFY-API:${instanceId}] ${message}`, ...args);
+  },
+  
+  info: (message: string, ...args: any[]) => {
+    console.info(`[SHOPIFY-API:${instanceId}] ${message}`, ...args);
+  },
+  
+  warn: (message: string, ...args: any[]) => {
+    console.warn(`[SHOPIFY-API:${instanceId}] ${message}`, ...args);
+  },
+  
+  error: (message: string, ...args: any[]) => {
+    console.error(`[SHOPIFY-API:${instanceId}] ${message}`, ...args);
   }
-
-  /**
-   * Log an info message
-   */
-  info(message: string, ...args: any[]): void {
-    if (this.shouldLog('info')) {
-      console.info(`[${this.prefix}][INFO] ${message}`, ...args);
-    }
-  }
-
-  /**
-   * Log a warning message
-   */
-  warn(message: string, ...args: any[]): void {
-    if (this.shouldLog('warn')) {
-      console.warn(`[${this.prefix}][WARN] ${message}`, ...args);
-    }
-  }
-
-  /**
-   * Log an error message
-   */
-  error(message: string, ...args: any[]): void {
-    if (this.shouldLog('error')) {
-      console.error(`[${this.prefix}][ERROR] ${message}`, ...args);
-    }
-  }
-
-  /**
-   * Check if we should log at this level
-   */
-  private shouldLog(level: string): boolean {
-    return this.LEVELS[level] >= this.LEVELS[this.LOG_LEVEL];
-  }
-}
-
-// Create and export a default instance for convenience
-export const connectionLogger = new ConnectionLogger();
+};

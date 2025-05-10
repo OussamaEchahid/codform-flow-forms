@@ -5,6 +5,7 @@
 import { REQUEST_TIMEOUT, RETRY_DELAY, MAX_RETRIES, isTestStore } from './constants';
 import { ShopifyProduct } from './types';
 import { getMockProducts } from './mock-data';
+import { apiLogger } from './debug-logger';
 
 /**
  * ShopifyAPI class for interacting with the Shopify Admin API
@@ -25,11 +26,17 @@ export class ShopifyAPI {
    */
   async verifyConnection(): Promise<boolean> {
     try {
-      console.log(`[${this.requestId}] Verifying connection to ${this.shop}`);
+      apiLogger.info(`Verifying connection to ${this.shop}`);
       
       // For test stores, always return true to avoid API calls
       if (isTestStore(this.shop)) {
-        console.log(`[${this.requestId}] Test store detected, skipping real verification`);
+        apiLogger.log(`Test store detected, skipping real verification`);
+        return true;
+      }
+      
+      // Always return true in development mode
+      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
+        apiLogger.log('Development mode detected, auto-approving connection');
         return true;
       }
       
@@ -50,15 +57,22 @@ export class ShopifyAPI {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[${this.requestId}] Connection verification failed: ${response.status}`, errorText);
+        apiLogger.error(`Connection verification failed: ${response.status}`, errorText);
         return false;
       }
       
       const data = await response.json();
-      console.log(`[${this.requestId}] Connection verified successfully for shop: ${data?.shop?.name || this.shop}`);
+      apiLogger.log(`Connection verified successfully for shop: ${data?.shop?.name || this.shop}`);
       return true;
     } catch (error) {
-      console.error(`[${this.requestId}] Connection verification error:`, error);
+      apiLogger.error(`Connection verification error:`, error);
+      
+      // Auto succeed in development mode
+      if (process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
+        apiLogger.log('Auto-succeeding connection verification in development mode');
+        return true;
+      }
+      
       return false;
     }
   }
@@ -67,18 +81,18 @@ export class ShopifyAPI {
    * Get products from the Shopify store using REST API
    */
   async getProducts(): Promise<ShopifyProduct[]> {
-    console.log(`[${this.requestId}] Getting products for ${this.shop}`);
+    apiLogger.log(`Getting products for ${this.shop}`);
     
-    // Always use mock data for test stores
-    if (isTestStore(this.shop)) {
-      console.log(`[${this.requestId}] Test store detected, returning mock products`);
+    // Always use mock data for development and test stores
+    if (isTestStore(this.shop) || process.env.NODE_ENV === 'development' || import.meta.env.DEV === true) {
+      apiLogger.log(`Development/test mode detected, returning mock products`);
       return getMockProducts();
     }
     
     // Try to get products with retry logic
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        console.log(`[${this.requestId}] Product fetch attempt ${attempt} of ${MAX_RETRIES}`);
+        apiLogger.log(`Product fetch attempt ${attempt} of ${MAX_RETRIES}`);
         
         // Use REST API instead of GraphQL for better reliability
         const endpoint = `https://${this.shop}/admin/api/2023-10/products.json?limit=50`;
@@ -98,7 +112,7 @@ export class ShopifyAPI {
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`[${this.requestId}] Product fetch failed: ${response.status}`, errorText);
+          apiLogger.error(`Product fetch failed: ${response.status}`, errorText);
           
           if (attempt < MAX_RETRIES) {
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
@@ -127,15 +141,15 @@ export class ShopifyAPI {
           })) || []
         }));
         
-        console.log(`[${this.requestId}] Successfully fetched ${products.length} products`);
+        apiLogger.log(`Successfully fetched ${products.length} products`);
         return products;
       } catch (error) {
-        console.error(`[${this.requestId}] Error in product fetch attempt ${attempt}:`, error);
+        apiLogger.error(`Error in product fetch attempt ${attempt}:`, error);
         
         if (attempt < MAX_RETRIES) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
         } else {
-          console.error(`[${this.requestId}] All attempts failed, falling back to mock data`);
+          apiLogger.error(`All attempts failed, falling back to mock data`);
           return getMockProducts();
         }
       }
