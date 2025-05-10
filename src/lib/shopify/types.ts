@@ -1,3 +1,4 @@
+
 // نوع لتمثيل اتصال متجر Shopify
 export type ShopifyStoreConnection = {
   domain: string;          // نطاق المتجر مثل store.myshopify.com

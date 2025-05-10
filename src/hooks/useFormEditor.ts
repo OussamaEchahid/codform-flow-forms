@@ -1,305 +1,241 @@
+import { useState, useCallback, useRef } from 'react';
+import { FormField } from '@/lib/form-utils';
+import { FormStyle } from '@/lib/form-utils';
+import { useFormStore } from './useFormStore';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { FormField, FormStep } from '@/lib/form-utils';
-import { useFormStore } from '@/hooks/useFormStore';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { toast } from 'sonner';
-import { useI18n } from '@/lib/i18n';
-
-export interface FormStyle {
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-}
-
-export const useFormEditor = (formId?: string) => {
-  const { formState, setFormState, resetFormState } = useFormStore();
-  const { loadForm, saveForm, publishForm } = useFormTemplates();
+export function useFormEditor(initialFormId?: string) {
+  const [formTitle, setFormTitle] = useState<string>('Untitled Form');
+  const [formDescription, setFormDescription] = useState<string>('');
+  const [formElements, setFormElements] = useState<FormField[]>([]);
+  const [formStyle, setFormStyle] = useState<FormStyle>({
+    primaryColor: '#9b87f5',
+    fontSize: '1rem',
+    borderRadius: '0.5rem',
+    buttonStyle: 'rounded'
+  });
+  const [submitButtonText, setSubmitButtonText] = useState<string>('Submit');
+  const [refreshKey, setRefreshKey] = useState<number>(0);
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [currentPreviewStep, setCurrentPreviewStep] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0); // For force refreshing components
-  const { language } = useI18n();
-  
-  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
-  const retryCount = useRef(0);
-  const maxRetries = 3;
-  const isMounted = useRef(true);
-  
-  // Form data from store
-  const formTitle = formState.title || '';
-  const formDescription = formState.description || '';
-  const formElements: FormField[] = formState.data?.steps?.[0]?.fields || [];
-  
-  const formStyle: FormStyle = {
-    primaryColor: formState.primaryColor || '#9b87f5',
-    borderRadius: formState.borderRadius || '0.5rem',
-    fontSize: formState.fontSize || '1rem',
-    buttonStyle: formState.buttonStyle || 'rounded'
-  };
-  
-  const submitButtonText = formState.submitButtonText || 'إرسال الطلب';
-  const isPublished = formState.isPublished || formState.is_published || false;
-  const currentFormId = formState.id;
-  
-  // Ensure cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-      if (saveTimeout.current) {
-        clearTimeout(saveTimeout.current);
-      }
-    };
-  }, []);
-  
-  // Load form data
-  const loadFormData = useCallback(async (id: string) => {
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isPublished, setIsPublished] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [currentFormId, setCurrentFormId] = useState<string | null>(initialFormId || null);
+  const [currentPreviewStep, setCurrentPreviewStep] = useState<number>(0);
+
+  const loadFormData = useCallback(async (formId: string) => {
     try {
-      console.log(`Loading form data for ID: ${id}`);
-      const data = await loadForm(id);
+      setIsLoading(true);
+
+      // Fetch the form data
+      const response = await fetch(`/api/forms/${formId}`);
+      const jsonResponse = await response.json();
       
-      if (data) {
-        // Fix: Add type check before accessing properties
-        const formData = data as Record<string, any>; // Type as record instead of any
-        const formFields = formData.data?.steps?.[0]?.fields || [];
-        console.log(`Form loaded successfully with ${formFields.length} fields`);
-        
-        // Force refresh components
-        setRefreshKey(prev => prev + 1);
-        return formData.id;
-      } else {
-        console.error('Form data could not be loaded');
-        return null;
+      // Check if response has data property and necessary fields
+      if (!jsonResponse || typeof jsonResponse !== 'object') {
+        throw new Error('Invalid response format');
       }
+      
+      const data = jsonResponse.data || jsonResponse;
+      
+      // Ensure id exists
+      const id = data?.id || formId;
+      if (!id) {
+        throw new Error('No form ID found in response');
+      }
+      
+      // Type checking and default values for required fields
+      const formTitle = data?.title || 'Untitled Form';
+      const formDescription = data?.description || '';
+      const isPublished = !!data?.is_published;
+      
+      let formElements = [];
+      // Check and extract form elements from various possible structures
+      if (data?.data?.steps && Array.isArray(data.data.steps)) {
+        // Extract from steps
+        formElements = data.data.steps.flatMap(step => step.fields || []);
+      } else if (data?.data?.fields && Array.isArray(data.data.fields)) {
+        // Direct fields array
+        formElements = data.data.fields;
+      } else if (Array.isArray(data?.data)) {
+        // Data is directly an array
+        formElements = data.data;
+      }
+      
+      // Handle form style
+      const formStyle = {
+        primaryColor: data?.primaryColor || '#9b87f5',
+        fontSize: data?.fontSize || '1rem',
+        borderRadius: data?.borderRadius || '0.5rem',
+        buttonStyle: data?.buttonStyle || 'rounded'
+      };
+
+      // Set the extracted data to state
+      setCurrentFormId(id);
+      setFormTitle(formTitle);
+      setFormDescription(formDescription);
+      setSubmitButtonText(data?.submitButtonText || 'Submit');
+      setFormElements(formElements || []);
+      setFormStyle(formStyle);
+      setIsPublished(isPublished);
+      setIsLoading(false);
+      
+      // Update the form store as well
+      useFormStore.getState().setFormState({
+        id,
+        title: formTitle,
+        description: formDescription,
+        data: data?.data || {},
+        isPublished,
+        submitButtonText: data?.submitButtonText || 'Submit',
+        // Copy style properties
+        primaryColor: formStyle.primaryColor,
+        fontSize: formStyle.fontSize,
+        borderRadius: formStyle.borderRadius,
+        buttonStyle: formStyle.buttonStyle
+      });
+      
+      console.log(`Form loaded successfully: ${id}`, { 
+        title: formTitle, 
+        elements: formElements?.length || 0 
+      });
+      
+      // Force a refresh to ensure UI updates
+      setRefreshKey(prev => prev + 1);
+      
+      return id;
     } catch (error) {
-      console.error('Error loading form:', error);
+      console.error('Error loading form data:', error);
+      setIsLoading(false);
       return null;
     }
-  }, [loadForm]);
-  
-  // Enhanced save function with retries and better error handling
+  }, []);
+
   const handleSave = useCallback(async () => {
-    if (isSaving) {
-      console.log('Save already in progress, skipping');
-      return false;
-    }
-    
-    if (!currentFormId) {
-      console.error('No form ID available for saving');
-      return false;
-    }
-    
     setIsSaving(true);
-    console.log(`Saving form ${currentFormId}...`);
-    
     try {
-      // Prepare save data
+      if (!currentFormId) {
+        throw new Error('Form ID is missing');
+      }
+
       const formData = {
+        id: currentFormId,
         title: formTitle,
         description: formDescription,
         data: {
-          steps: [
-            {
-              id: 'step-1',
-              title: 'Step 1',
-              fields: formElements
-            }
-          ],
-          settings: {
-            formStyle
-          }
+          fields: formElements
         },
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        submitButtonText: submitButtonText,
         is_published: isPublished,
-        isPublished: isPublished
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        fontSize: formStyle.fontSize,
+        borderRadius: formStyle.borderRadius,
+        buttonStyle: formStyle.buttonStyle
       };
-      
-      // Try saving with retry logic
-      const success = await saveForm(currentFormId, formData, retryCount.current, maxRetries);
-      
-      if (success) {
-        console.log('Form saved successfully');
-        retryCount.current = 0;
-        
-        // Force refresh components to reflect saved changes
-        setRefreshKey(prev => prev + 1);
-        
-        if (isMounted.current) {
-          setIsSaving(false);
-        }
-        return true;
-      } else {
-        // Retry logic
-        if (retryCount.current < maxRetries) {
-          retryCount.current += 1;
-          console.log(`Save failed, retry attempt ${retryCount.current}/${maxRetries}`);
-          
-          // Retry after a delay
-          if (saveTimeout.current) {
-            clearTimeout(saveTimeout.current);
-          }
-          
-          saveTimeout.current = setTimeout(() => {
-            handleSave();
-          }, 1000 * retryCount.current); // Exponential backoff
-          
-          return false;
-        } else {
-          console.error('Max retries reached, save failed');
-          retryCount.current = 0;
-          
-          if (isMounted.current) {
-            setIsSaving(false);
-          }
-          return false;
-        }
+
+      const response = await fetch(`/api/forms/${currentFormId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: formData }),
+      });
+
+      if (!response.ok) {
+        console.error('Error saving form:', response.statusText);
+        setIsSaving(false);
+        return false;
       }
+
+      setIsSaving(false);
+      return true;
     } catch (error) {
       console.error('Error saving form:', error);
-      
-      // Reset saving state
-      if (isMounted.current) {
-        setIsSaving(false);
-      }
+      setIsSaving(false);
       return false;
     }
-  }, [
-    currentFormId, 
-    formTitle, 
-    formDescription, 
-    formElements, 
-    formStyle, 
-    submitButtonText, 
-    isPublished, 
-    saveForm, 
-    isSaving
-  ]);
-  
-  // Update form elements
-  const setFormElements = useCallback((elements: FormField[]) => {
-    const updatedData = {
-      ...formState.data,
-      steps: [
-        {
-          id: formState.data?.steps?.[0]?.id || 'step-1',
-          title: formState.data?.steps?.[0]?.title || 'Step 1',
-          fields: elements
-        }
-      ]
-    };
-    
-    setFormState({ 
-      data: updatedData 
-    });
-  }, [formState.data, setFormState]);
-  
-  // Update a single element
-  const updateElement = useCallback((index: number, field: FormField) => {
-    if (formElements[index]) {
-      const updatedElements = [...formElements];
-      updatedElements[index] = { ...field };
-      setFormElements(updatedElements);
-    }
-  }, [formElements, setFormElements]);
-  
-  // Add a new element
-  const addElement = useCallback((field: FormField) => {
-    setFormElements([...formElements, field]);
-  }, [formElements, setFormElements]);
-  
-  // Delete an element
-  const deleteElement = useCallback((index: number) => {
-    const updatedElements = formElements.filter((_, i) => i !== index);
-    setFormElements(updatedElements);
-    
-    // Reset selected element if it was deleted
-    if (selectedElementIndex === index) {
-      setSelectedElementIndex(null);
-    } else if (selectedElementIndex !== null && selectedElementIndex > index) {
-      setSelectedElementIndex(selectedElementIndex - 1);
-    }
-  }, [formElements, selectedElementIndex, setFormElements]);
-  
-  // Duplicate an element
-  const duplicateElement = useCallback((index: number) => {
-    if (formElements[index]) {
-      const element = formElements[index];
-      const newElement = {
-        ...element,
-        id: `${element.id}-copy-${Date.now()}` // Ensure unique ID
-      };
-      
-      const updatedElements = [...formElements];
-      updatedElements.splice(index + 1, 0, newElement);
-      setFormElements(updatedElements);
-      
-      // Select the newly duplicated element
-      setSelectedElementIndex(index + 1);
-    }
-  }, [formElements, setFormElements]);
-  
-  // Update form metadata
-  const updateFormMeta = useCallback((data: {[key: string]: string}) => {
-    setFormState({
-      ...data
-    });
-  }, [setFormState]);
-  
-  // Update form style
-  const updateFormStyle = useCallback((style: Partial<FormStyle>) => {
-    setFormState({
-      ...style
-    });
-  }, [setFormState]);
-  
-  // Publish or unpublish form
+  }, [currentFormId, formTitle, formDescription, formElements, isPublished, submitButtonText, formStyle]);
+
   const handlePublish = useCallback(async () => {
-    if (isPublishing || !currentFormId) return false;
-    
     setIsPublishing(true);
     try {
-      // First save the form
-      await handleSave();
-      
-      // Then publish/unpublish
-      const result = await publishForm(currentFormId, !isPublished);
-      
-      if (result) {
-        setFormState({
-          isPublished: !isPublished,
-          is_published: !isPublished
-        });
-        
-        toast.success(
-          !isPublished 
-            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully') 
-            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished successfully')
-        );
-      } else {
-        toast.error(language === 'ar' ? 'فشل في تغيير حالة النشر' : 'Failed to change publish state');
+      if (!currentFormId) {
+        throw new Error('Form ID is missing');
       }
-      
-      if (isMounted.current) {
+
+      const response = await fetch(`/api/forms/${currentFormId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPublished: !isPublished }),
+      });
+
+      if (!response.ok) {
+        console.error('Error publishing form:', response.statusText);
         setIsPublishing(false);
+        return false;
       }
-      return result;
+
+      setIsPublished(!isPublished);
+      setIsPublishing(false);
+      return true;
     } catch (error) {
       console.error('Error publishing form:', error);
-      toast.error(language === 'ar' ? 'خطأ في تغيير حالة النشر' : 'Error changing publish state');
-      
-      if (isMounted.current) {
-        setIsPublishing(false);
-      }
+      setIsPublishing(false);
       return false;
     }
-  }, [currentFormId, handleSave, isPublished, isPublishing, language, publishForm, setFormState]);
-  
+  }, [currentFormId, isPublished]);
+
+  const updateFormStyle = useCallback((newStyle: Partial<FormStyle>) => {
+    setFormStyle(prev => ({ ...prev, ...newStyle }));
+  }, []);
+
+  const addElement = useCallback((element: FormField) => {
+    setFormElements(prev => [...prev, element]);
+  }, []);
+
+  const deleteElement = useCallback((index: number) => {
+    setFormElements(prev => {
+      const newElements = [...prev];
+      newElements.splice(index, 1);
+      return newElements;
+    });
+    setSelectedElementIndex(null);
+  }, []);
+
+  const duplicateElement = useCallback((index: number) => {
+    const element = formElements[index];
+    if (element) {
+      const newElement = { ...element, id: Math.random().toString(36).substring(2, 9) };
+      setFormElements(prev => {
+        const newElements = [...prev];
+        newElements.splice(index + 1, 0, newElement);
+        return newElements;
+      });
+    }
+  }, [formElements]);
+
+  const updateElement = useCallback((index: number, newElement: FormField) => {
+    setFormElements(prev => {
+      const newElements = [...prev];
+      newElements[index] = newElement;
+      return newElements;
+    });
+  }, []);
+
+  const updateFormMeta = useCallback((metadata: { title?: string; description?: string; submitButtonText?: string }) => {
+    if (metadata.title !== undefined) {
+      setFormTitle(metadata.title);
+    }
+    if (metadata.description !== undefined) {
+      setFormDescription(metadata.description);
+    }
+    if (metadata.submitButtonText !== undefined) {
+      setSubmitButtonText(metadata.submitButtonText);
+    }
+  }, []);
+
   return {
     formTitle,
     formDescription,
@@ -311,9 +247,10 @@ export const useFormEditor = (formId?: string) => {
     isSaving,
     isPublished,
     isPublishing,
+    isLoading,
     currentFormId,
     currentPreviewStep,
-    
+    setCurrentPreviewStep,
     setSelectedElementIndex,
     loadFormData,
     handleSave,
@@ -326,4 +263,4 @@ export const useFormEditor = (formId?: string) => {
     updateFormMeta,
     setFormElements
   };
-};
+}

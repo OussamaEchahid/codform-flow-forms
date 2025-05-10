@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -319,13 +318,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   }, [handlePublish, handleSave, language]);
 
   // Shopify integration handler
-  const handleShopifyIntegration = useCallback(async (settings: any) => {
+  const handleShopifyIntegration = useCallback(async () => {
     try {
-      await shopifyIntegration.syncForm({ formId: currentFormId, ...settings });
+      // Make sure we're passing correctly structured data
+      await shopifyIntegration.syncForm({
+        formId: currentFormId,
+        settings: {
+          position: 'product-page',
+          style: {
+            primaryColor: formStyle.primaryColor,
+            fontSize: formStyle.fontSize,
+            borderRadius: formStyle.borderRadius
+          }
+        }
+      });
     } catch (error) {
       console.error("Error during Shopify integration:", error);
     }
-  }, [currentFormId, shopifyIntegration]);
+  }, [currentFormId, shopifyIntegration, formStyle]);
 
   return (
     <FormEditorLayout

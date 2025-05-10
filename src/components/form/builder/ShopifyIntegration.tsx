@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Check, ShoppingCart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShopifyFormData } from '@/lib/shopify/types';
 
 export interface ShopifyIntegrationProps {
   formId: string;
@@ -111,14 +112,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       // Reset error state
       setErrorMessage(null);
       
-      // Attempt to sync with correct data structure
-      const result = await syncForm({
+      // Prepare data with the correct structure
+      const formData: ShopifyFormData = {
         formId,
         settings: {
           position: 'product-page',
           style: {}
         }
-      });
+      };
+
+      // Attempt to sync with correct data structure
+      const result = await syncForm(formData);
       
       if (mounted.current) {
         if (result && result.success) {

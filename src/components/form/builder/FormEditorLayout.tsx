@@ -1,4 +1,3 @@
-
 import React, { useState, memo, useCallback, MutableRefObject } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -59,7 +58,7 @@ interface FormEditorLayoutProps {
 }
 
 // Memoize the component to prevent unnecessary re-renders
-const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
+export default function FormEditorLayout({
   formId,
   formTitle,
   formDescription,
@@ -85,7 +84,7 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
   onPublish,
   onShopifyIntegration,
   dialogRef,
-}) => {
+}) {
   // Local UI state
   const { language } = useI18n();
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
@@ -161,6 +160,15 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
       console.error("Error during save:", error);
     }
   }, [onSave]);
+
+  // Define Shopify tab content with corrected props
+  const shopifyTabContent = (
+    <div className="p-2">
+      <ShopifyIntegration
+        formId={formId}
+      />
+    </div>
+  );
 
   return (
     <main className="flex-1 overflow-auto">
@@ -261,16 +269,14 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
             </TabsList>
             
             <TabsContent value="shopify" className="py-4">
-              <ShopifyIntegration
-                formId={formId}
-              />
+              {shopifyTabContent}
             </TabsContent>
           </Tabs>
         </div>
       )}
     </main>
   );
-});
+}
 
 FormEditorLayout.displayName = 'FormEditorLayout';
 
