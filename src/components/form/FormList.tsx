@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -31,7 +32,6 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { normalizeFormData, enhanceFormData } from '@/lib/form-utils/standardizeFormData';
 import { Input } from '@/components/ui/input';
 
 interface FormListProps {
@@ -47,19 +47,14 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 20,
+  maxAttempts = 5, // Reduced from 20 to improve performance
   onRefresh,
   instanceId = 'form-list' 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [hasError, setHasError] = useState<boolean>(false);
   const [processedForms, setProcessedForms] = useState<FormData[]>([]);
-  const [attemptCount, setAttemptCount] = useState<number>(0);
-  const [processingComplete, setProcessingComplete] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [showRawData, setShowRawData] = useState<boolean>(false);
-  const [rejectedForms, setRejectedForms] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
@@ -75,109 +70,44 @@ const FormList: React.FC<FormListProps> = ({
     };
   }, []);
   
-  console.log(`[${instanceId}] FormList render with ${forms?.length || 0} forms:`, forms);
+  console.log(`[${instanceId}] FormList render with ${forms?.length || 0} forms`);
   
-  // Timer to prevent infinite processing - 3 seconds for faster fallback
+  // IMPROVED: Process forms immediately without complex validation - main fix
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (!processingComplete && isMounted.current) {
-        console.log(`[${instanceId}] FormList: Forcing processing completion after timeout`);
-        
-        // Always show something - if we have raw forms but processing is timing out, just show them
-        if (forms && forms.length > 0) {
-          console.log(`[${instanceId}] FormList: Using raw form data as fallback`);
-          setProcessedForms(forms);
-        }
-        
-        setProcessingComplete(true);
-      }
-    }, 3000); // 3 second timeout
-    
-    return () => clearTimeout(timeoutId);
-  }, [processingComplete, instanceId, forms]);
-  
-  // Process form data with simplified approach - IMPROVED to work without raw data mode
-  useEffect(() => {
-    // Don't process if we've reached max attempts or already completed processing
-    if (attemptCount >= maxAttempts || processingComplete) {
-      return;
-    }
-    
-    console.log(`[${instanceId}] FormList: Processing attempt ${attemptCount + 1} of ${maxAttempts}`);
-    
-    // Simple guard against state updates on unmounted component
     if (!isMounted.current) return;
     
-    setAttemptCount(prev => prev + 1);
-    
     try {
-      // Handle null/undefined forms data with clear logging
-      if (!forms) {
-        console.log(`[${instanceId}] FormList: No forms data received`);
+      // Skip processing if no forms data
+      if (!forms || forms.length === 0) {
         setProcessedForms([]);
-        setProcessingComplete(true);
         return;
       }
       
       // Convert to array if object was passed
-      const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
-      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
+      const formsArray = Array.isArray(forms) ? forms : [forms];
+      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms directly`);
       
-      // Track rejected forms for better debugging
-      const rejected: any[] = [];
-      
-      // IMPROVED: More lenient validation with better ID handling
+      // Simple validation - just ensure forms have IDs and handle edge cases
       const validForms = formsArray.filter(form => {
-        if (!form) {
-          rejected.push({ form, reason: 'Form is null or undefined' });
-          return false;
-        }
+        if (!form) return false;
         
-        // Fix forms missing ID - with safer property access pattern
+        // Fix forms missing ID by generating one if needed
         if (!form.id) {
-          console.log(`[${instanceId}] FormList: Form missing ID, trying to fix:`, form);
-          
-          // If the form has a custom ID property that could be used as a fallback
-          // Using hasOwnProperty and safe type assertion for better TypeScript compatibility
-          if (Object.prototype.hasOwnProperty.call(form, '_id')) {
-            try {
-              // Use type assertion with safety check
-              const formWithCustomId = form as any;
-              if (typeof formWithCustomId._id === 'string' || typeof formWithCustomId._id === 'number') {
-                form.id = String(formWithCustomId._id);
-                return true;
-              }
-            } catch (err) {
-              console.error("Error accessing _id property:", err);
-            }
-          }
-          
-          console.log(`[${instanceId}] FormList: Rejecting form due to missing ID`);
-          rejected.push({ form, reason: 'Missing ID' });
-          return false;
+          console.log(`[${instanceId}] FormList: Form missing ID, generating one`);
+          form.id = Math.random().toString(36).substring(2, 15);
         }
         
-        // Accept all forms that have an ID
+        // Accept all forms that have basic structure
         return true;
       });
       
-      // Store rejected forms for debugging
-      setRejectedForms(rejected);
-      
-      console.log(`[${instanceId}] FormList: Processed ${validForms.length} valid forms out of ${formsArray.length}`);
-      
-      // If no valid forms found after multiple attempts but we have raw forms,
-      // show the raw forms as a fallback
-      if (validForms.length === 0 && attemptCount >= maxAttempts / 2 && formsArray.length > 0) {
-        console.log(`[${instanceId}] FormList: No valid forms processed after ${attemptCount} attempts. Using enhanced raw forms as fallback.`);
-        const enhancedForms = formsArray.map(form => enhanceFormData(form));
-        setProcessedForms(enhancedForms);
-        setProcessingComplete(true);
-        return;
-      }
-      
-      // Enhance valid forms with any missing data
-      const enhancedForms = validForms.map(form => enhanceFormData(form));
+      // Set default properties for incomplete forms
+      const enhancedForms = validForms.map(form => ({
+        ...form,
+        title: form.title || 'نموذج بدون عنوان',
+        description: form.description || '',
+        isPublished: form.is_published || form.isPublished || false
+      }));
       
       // Remove duplicates by ID
       const uniqueForms = Array.from(
@@ -186,30 +116,16 @@ const FormList: React.FC<FormListProps> = ({
       
       console.log(`[${instanceId}] FormList: Final processed forms: ${uniqueForms.length}`);
       setProcessedForms(uniqueForms);
-      setProcessingComplete(true);
       
     } catch (error) {
       console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
-      if (isMounted.current) {
-        // IMPROVED: Better fallback - if processing fails but we have raw forms data, use that
-        if (forms && forms.length > 0) {
-          console.log(`[${instanceId}] FormList: Processing failed but using enhanced raw forms as fallback`);
-          try {
-            const enhancedForms = forms.map(form => enhanceFormData(form));
-            setProcessedForms(enhancedForms);
-          } catch (enhanceError) {
-            console.error(`[${instanceId}] FormList: Error enhancing forms:`, enhanceError);
-            setProcessedForms(forms);
-          }
-          setProcessingComplete(true);
-        } else {
-          setHasError(true);
-          setProcessingComplete(true);
-          toast.error('حدث خطأ في معالجة بيانات النماذج');
-        }
+      // On error, still try to use the raw forms as fallback
+      if (forms && forms.length > 0) {
+        console.log(`[${instanceId}] FormList: Using raw forms as fallback`);
+        setProcessedForms(forms);
       }
     }
-  }, [forms, attemptCount, maxAttempts, processingComplete, instanceId, showRawData]);
+  }, [forms, instanceId]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -255,17 +171,6 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
   
-  // Toggle showing raw data - with clearer messaging
-  const toggleRawData = () => {
-    const newState = !showRawData;
-    setShowRawData(newState);
-    toast.info(newState ? 'عرض البيانات الخام' : 'عرض البيانات المعالجة');
-    
-    // Reset processing to force forms to be processed again
-    setProcessingComplete(false);
-    setAttemptCount(0);
-  };
-  
   // Handle manual refresh when user clicks the refresh button
   const handleRefresh = async () => {
     if (onRefresh) {
@@ -284,31 +189,6 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
-  // Debug function to show rejected forms information
-  const showRejectedFormsInfo = () => {
-    if (rejectedForms.length > 0) {
-      console.log(`[${instanceId}] Rejected forms (${rejectedForms.length}):`, rejectedForms);
-      toast.info(`${rejectedForms.length} نماذج مرفوضة. تفاصيل في وحدة التحكم.`);
-    } else {
-      toast.info('لا توجد نماذج مرفوضة');
-    }
-  };
-
-  // Forced timeout - show error if isLoading has been true for too long
-  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
-  
-  useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        if (isMounted.current) {
-          setLoadingTimeout(true);
-        }
-      }, 10000); // 10 second timeout
-      return () => clearTimeout(timeout);
-    }
-    return undefined;
-  }, [isLoading]);
-  
   // Filter and sort forms
   const filteredAndSortedForms = processedForms
     .filter(form => {
@@ -332,407 +212,194 @@ const FormList: React.FC<FormListProps> = ({
         return sortDirection === 'asc'
           ? statusA - statusB
           : statusB - statusA;
-      } else { // date
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
+      } else {
+        // Default: sort by date
+        const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
         return sortDirection === 'asc'
           ? dateA - dateB
           : dateB - dateA;
       }
     });
-  
-  // Toggle sort direction
-  const toggleSort = (sorter: 'date' | 'title' | 'status') => {
-    if (sortBy === sorter) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(sorter);
-      setSortDirection('desc');
-    }
-  };
-  
-  // Show loading timeout error
-  if (loadingTimeout) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="flex flex-col space-y-4">
-          <span>استغرق تحميل النماذج وقتًا طويلاً. يرجى تحديث الصفحة والمحاولة مرة أخرى.</span>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-fit self-start"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                جارٍ التحديث...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                تحديث النماذج
-              </>
-            )}
-          </Button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
 
-  // Show loading state
-  if (isLoading && !processingComplete) {
+  // Display loading state
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-12">
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-lg font-medium">جاري تحميل النماذج...</p>
       </div>
     );
   }
 
-  // Show error state
-  if (hasError) {
+  // Display empty state
+  if (filteredAndSortedForms.length === 0) {
     return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="flex flex-col space-y-4">
-          <span>حدث خطأ أثناء تحميل النماذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.</span>
+      <div className="border rounded-lg p-8 text-center">
+        <div className="flex flex-col items-center gap-2">
+          <AlertCircle className="h-10 w-10 text-gray-400" />
+          <h3 className="text-lg font-medium mt-2">لا توجد نماذج</h3>
+          <p className="text-gray-500">
+            لم يتم العثور على أي نماذج. يمكنك إنشاء نموذج جديد لبدء الاستخدام.
+          </p>
           <Button 
+            className="mt-4" 
             variant="outline" 
-            size="sm" 
-            className="w-fit self-start"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            {isRefreshing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                جارٍ التحديث...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                إعادة المحاولة
-              </>
-            )}
+            {isRefreshing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            تحديث
           </Button>
-        </AlertDescription>
-      </Alert>
+        </div>
+      </div>
     );
   }
 
-  // Show empty state - either no forms array or empty array
-  if (!processedForms.length) {
-    return (
-      <Card className="bg-gray-50 border-dashed">
-        <CardContent className="pt-6 text-center">
-          <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
-          <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
-          <div className="flex justify-center space-x-2 rtl:space-x-reverse mt-4">
-            {!isLoading && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
-                {isRefreshing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    جارٍ التحديث...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    تحديث القائمة
-                  </>
-                )}
-              </Button>
-            )}
-            
-            {/* Show raw data even when no processed forms */}
-            {forms && forms.length > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={toggleRawData}
-              >
-                <Search className="mr-2 h-4 w-4" />
-                {showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام'}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Show forms list with improved UI
   return (
-    <div className="space-y-4">
-      {/* Search and filters bar */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border mb-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search input */}
-          <div className="flex-1">
-            <Input
-              placeholder="بحث عن نموذج..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-              dir="rtl"
-            />
-          </div>
-          
-          {/* View mode toggles */}
-          <div className="flex gap-2">
-            <Button 
-              variant={viewMode === 'grid' ? "default" : "outline"} 
-              size="icon"
-              onClick={() => setViewMode('grid')}
-              title="عرض شبكي"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant={viewMode === 'list' ? "default" : "outline"} 
-              size="icon"
-              onClick={() => setViewMode('list')}
-              title="عرض قائمة"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* Sorting options */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggleSort('date')}
-              className={sortBy === 'date' ? 'bg-gray-100' : ''}
-            >
-              التاريخ {sortBy === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggleSort('title')}
-              className={sortBy === 'title' ? 'bg-gray-100' : ''}
-            >
-              العنوان {sortBy === 'title' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggleSort('status')}
-              className={sortBy === 'status' ? 'bg-gray-100' : ''}
-            >
-              الحالة {sortBy === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </Button>
-          </div>
+    <>
+      {/* Search and filter bar */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            type="search"
+            placeholder="بحث في النماذج..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         
-        {/* Additional controls */}
-        <div className="flex flex-wrap justify-between items-center mt-4">
-          <p className="text-sm text-gray-500">
-            عدد النماذج: {filteredAndSortedForms.length}
-            {rejectedForms.length > 0 && (
-              <span className="text-amber-600 mr-2 rtl:ml-2">
-                ({rejectedForms.length} نماذج مرفوضة)
-              </span>
-            )}
-          </p>
-          <div className="flex flex-wrap space-x-2 rtl:space-x-reverse">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={toggleRawData}
-              className={showRawData ? "bg-blue-50" : ""}
-            >
-              <Search className="mr-2 h-4 w-4" />
-              {showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام'}
-            </Button>
-            {rejectedForms.length > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={showRejectedFormsInfo}
-                className="bg-amber-50"
-              >
-                <AlertCircle className="mr-2 h-4 w-4" />
-                عرض النماذج المرفوضة
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <Filter className="h-4 w-4" />
+                فرز
               </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortBy('date')}>
+                حسب التاريخ {sortBy === 'date' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('title')}>
+                حسب العنوان {sortBy === 'title' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('status')}>
+                حسب الحالة {sortBy === 'status' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}>
+                {sortDirection === 'asc' ? 'تنازلي ↓' : 'تصاعدي ↑'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+          >
+            {viewMode === 'grid' ? (
+              <List className="h-4 w-4" />
+            ) : (
+              <Grid className="h-4 w-4" />
             )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جارٍ التحديث...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  تحديث القائمة
-                </>
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
       </div>
-      
-      {/* Grid or list display based on viewMode */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSortedForms.map((form) => (
-            <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className={`h-2 ${(form.is_published || form.isPublished) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-              <CardHeader className="pb-2">
+
+      {/* Forms Grid/List */}
+      <div className={viewMode === 'grid' 
+        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" 
+        : "space-y-4"
+      }>
+        {filteredAndSortedForms.map((form) => (
+          <Card key={form.id} className={viewMode === 'list' ? "flex flex-row" : ""}>
+            <div className={viewMode === 'list' ? "flex-grow" : ""}>
+              <CardHeader>
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg truncate">{form.title || "بدون عنوان"}</CardTitle>
+                  <div>
+                    <CardTitle className="text-lg break-words line-clamp-1">
+                      {form.title || 'نموذج بدون عنوان'}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {form.updated_at
+                        ? `تم التحديث ${formatDistanceToNow(new Date(form.updated_at), {
+                            addSuffix: true,
+                            locale: ar
+                          })}`
+                        : 'تاريخ غير معروف'
+                      }
+                    </p>
+                  </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button variant="ghost" size="sm">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>تع��يل</span>
+                        <Edit className="h-4 w-4 mr-2" />
+                        تعديل
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => 
-                        handlePublishToggle(form.id, form.is_published || form.isPublished || false)
-                      }>
+                      <DropdownMenuItem onClick={() => handlePublishToggle(
+                        form.id, 
+                        !!(form.is_published || form.isPublished)
+                      )}>
                         {(form.is_published || form.isPublished) ? (
                           <>
-                            <EyeOff className="mr-2 h-4 w-4" />
-                            <span>إلغاء النشر</span>
+                            <EyeOff className="h-4 w-4 mr-2" />
+                            إلغاء النشر
                           </>
                         ) : (
                           <>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>نشر</span>
+                            <Eye className="h-4 w-4 mr-2" />
+                            نشر
                           </>
                         )}
                       </DropdownMenuItem>
                       <DropdownMenuItem 
+                        className="text-red-600" 
                         onClick={() => setFormToDelete(form.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash className="mr-2 h-4 w-4" />
-                        <span>حذف</span>
+                        <Trash className="h-4 w-4 mr-2" />
+                        حذف
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-between items-center mb-2">
-                  <Badge variant={(form.is_published || form.isPublished) ? "success" : "secondary"}>
-                    {(form.is_published || form.isPublished) ? 'منشور' : 'مسودة'}
-                  </Badge>
-                  <span className="text-xs text-gray-500 rtl:text-left">
-                    {form.created_at ? 
-                      formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar }) : 
-                      'تاريخ غير محدد'
-                    }
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+                <p className="text-sm line-clamp-2">
+                  {form.description || 'لا يوجد وصف'}
+                </p>
               </CardContent>
-              <CardFooter className="border-t pt-4">
-                <Button 
-                  variant="default" 
-                  onClick={() => onSelectForm(form.id)}
-                  className="w-full"
-                >
-                  عرض وتعديل
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredAndSortedForms.map((form) => (
-            <div key={form.id} className="bg-white rounded-lg border shadow-sm overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                <div className={`w-2 md:w-auto md:h-auto ${(form.is_published || form.isPublished) ? 'bg-green-500' : 'bg-gray-300'} md:w-1.5`}></div>
-                <div className="flex-1 p-4">
-                  <div className="flex justify-between">
-                    <div>
-                      <h3 className="font-medium text-lg">{form.title || "بدون عنوان"}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-1 max-w-lg">{form.description || 'لا يوجد وصف'}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant={(form.is_published || form.isPublished) ? "success" : "secondary"}>
-                        {(form.is_published || form.isPublished) ? 'منشور' : 'مسودة'}
-                      </Badge>
-                      <span className="text-xs text-gray-500">
-                        {form.created_at ? 
-                          formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar }) : 
-                          'تاريخ غير محدد'
-                        }
-                      </span>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => 
-                            handlePublishToggle(form.id, form.is_published || form.isPublished || false)
-                          }
-                        >
-                          {(form.is_published || form.isPublished) ? (
-                            <>
-                              <EyeOff className="mr-2 h-4 w-4" />
-                              <span>إلغاء النشر</span>
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="mr-2 h-4 w-4" />
-                              <span>نشر</span>
-                            </>
-                          )}
-                        </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          onClick={() => onSelectForm(form.id)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          تعديل
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => setFormToDelete(form.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          حذف
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+            
+            <CardFooter className={`${viewMode === 'list' ? "flex-shrink-0 my-auto ml-2" : ""} flex justify-between`}>
+              <Badge variant={(form.is_published || form.isPublished) ? "default" : "outline"}>
+                {(form.is_published || form.isPublished) ? 'منشور' : 'غير منشور'}
+              </Badge>
+              <Button 
+                size="sm" 
+                onClick={() => onSelectForm(form.id)}
+              >
+                تعديل
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
 
+      {/* Delete confirmation dialog */}
       <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد من حذف النموذج؟</AlertDialogTitle>
+            <AlertDialogTitle>هل أنت متأكد من حذف هذا النموذج؟</AlertDialogTitle>
             <AlertDialogDescription>
-              لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم وإزالة جميع البيانات المرتبطة به.
+              هذا الإجراء لا يمكن التراجع عنه. سيؤدي إلى حذف النموذج بشكل دائم وجميع البيانات المرتبطة به.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -743,7 +410,7 @@ const FormList: React.FC<FormListProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 };
 

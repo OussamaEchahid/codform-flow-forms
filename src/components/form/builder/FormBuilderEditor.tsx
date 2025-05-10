@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -24,7 +24,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const saveTimeoutRef = useRef<number | null>(null);
   const initialLoadCompleted = useRef<boolean>(false);
   const loadAttemptRef = useRef<number>(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveRetryCount, setSaveRetryCount] = useState<number>(0);
   const maxLoadAttempts = 3;
+  const maxSaveRetries = 5;
   
   // Use our custom hook for form state and operations
   const {
@@ -46,7 +49,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     loadFormData,
     handleSave,
     handlePublish,
-    handleStyleChange: updateFormStyle,
+    updateFormStyle,
     addElement,
     deleteElement,
     duplicateElement,
@@ -58,39 +61,53 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Add reference to track if there are any open dialogs
   const openDialogRef = useRef<boolean>(false);
   
-  // Debounced save function to prevent multiple rapid saves
+  // IMPROVED: Better debounced save function with cancellation
   const debouncedSave = useCallback(() => {
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
       window.clearTimeout(saveTimeoutRef.current);
     }
     
-    // Set a new timeout
+    // Clear any previous save error
+    setSaveError(null);
+    
+    // Set a new timeout with longer delay
     saveTimeoutRef.current = window.setTimeout(async () => {
       try {
         console.log('Executing debounced save...');
         const success = await handleSave();
-        if (!success) {
+        
+        if (!success && saveRetryCount < maxSaveRetries) {
           console.error("Auto-save failed, will retry...");
-          // Try one more time after a short delay
+          setSaveRetryCount(prev => prev + 1);
+          
+          // Try one more time after a longer delay
           setTimeout(async () => {
             try {
               const retrySuccess = await handleSave();
               if (!retrySuccess) {
+                setSaveError('auto-save-failed');
                 toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
+              } else {
+                setSaveRetryCount(0);
               }
             } catch (retryError) {
               console.error("Error in retry save:", retryError);
+              setSaveError('auto-save-error');
             }
-          }, 1500);
+          }, 2000); // 2 second delay before retry
+        } else if (success) {
+          // Reset retry counter on success
+          setSaveRetryCount(0);
         }
       } catch (error) {
         console.error("Error in debounced save:", error);
+        setSaveError('auto-save-error');
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       }
       saveTimeoutRef.current = null;
-    }, 1500); // Increased to 1.5 seconds debounce for better reliability
-  }, [handleSave, language]);
+    }, 2000); // Increased to 2 seconds debounce for better reliability
+  }, [handleSave, language, saveRetryCount, maxSaveRetries]);
 
   // Cleanup function for timeouts
   useEffect(() => {
@@ -162,25 +179,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
   }, [id, loadFormData, language, maxLoadAttempts]); 
 
-  // Update safe save function to check dialog state
-  const safeSave = useCallback(async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      // Skip save if dialog is open
-      if (openDialogRef.current) {
-        console.log('Skipping save, dialog is open');
-        resolve(false);
-        return;
-      }
+  // Add error message for save issues
+  useEffect(() => {
+    if (saveError) {
+      const errorMessage = language === 'ar' 
+        ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' 
+        : 'Auto-save failed, please try again';
       
-      // Force immediate save instead of debounced to ensure we get a response
-      handleSave().then(success => {
-        resolve(success);
-      }).catch(error => {
-        console.error("Error during save:", error);
-        resolve(false);
-      });
-    });
-  }, [handleSave]);
+      if (saveRetryCount >= maxSaveRetries) {
+        toast.error(errorMessage);
+      }
+    }
+  }, [saveError, language, saveRetryCount, maxSaveRetries]);
 
   // Handle form drag-and-drop reordering with improved error handling
   const handleDragEnd = useCallback((event: any) => {
@@ -212,7 +222,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [formElements, setFormElements, debouncedSave]);
 
-  // Custom wrapper functions to adapt between different function signatures
+  // Adapter function for style changes
+  const handleStyleChange = useCallback((key: string, value: string) => {
+    const newStyle: Partial<FormStyle> = {};
+    newStyle[key as keyof FormStyle] = value;
+    updateFormStyle(newStyle);
+    debouncedSave();
+  }, [updateFormStyle, debouncedSave]);
 
   // Adapt addElement to accept string type and create a basic element
   const handleAddElement = useCallback((type: string) => {
@@ -245,14 +261,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     debouncedSave();
   }, [updateFormMeta, debouncedSave]);
 
-  // Adapter function for style changes
-  const adaptStyleChange = useCallback((key: string, value: string) => {
-    const newStyle: Partial<FormStyle> = {};
-    newStyle[key as keyof FormStyle] = value;
-    updateFormStyle(newStyle);
-    debouncedSave();
-  }, [updateFormStyle, debouncedSave]);
-
   // Manual save handler that shows clear feedback and returns void
   const manualSaveHandler = useCallback(async () => {
     try {
@@ -261,6 +269,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        // Clear any save error on successful save
+        setSaveError(null);
+        setSaveRetryCount(0);
       } else {
         // If save fails, try one more time
         setTimeout(async () => {
@@ -268,18 +279,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             const retrySuccess = await handleSave();
             if (retrySuccess) {
               toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (محاولة ثانية)' : 'Form saved successfully (retry)');
+              setSaveError(null);
+              setSaveRetryCount(0);
             } else {
               toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
+              setSaveError('manual-save-failed');
             }
           } catch (retryError) {
             console.error("Error during retry save:", retryError);
             toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+            setSaveError('manual-save-error');
           }
         }, 1000);
       }
     } catch (error) {
       console.error("Error during manual save:", error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      setSaveError('manual-save-error');
     }
   }, [handleSave, language]);
 
@@ -328,7 +344,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onUpdateElement={handleUpdateElement}
       onDragEnd={handleDragEnd}
       onUpdateMeta={handleUpdateMeta}
-      onStyleChange={adaptStyleChange}
+      onStyleChange={handleStyleChange}
       onSave={manualSaveHandler}
       onPublish={handlePublishWrapper}
       onShopifyIntegration={shopifyIntegration.syncForm}

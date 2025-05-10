@@ -23,7 +23,6 @@ import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
 import { resetShopifyConnection } from '@/utils/diagnostics';
-import { normalizeFormData, standardizeFormData, debugFormData } from '@/lib/form-utils/standardizeFormData';
 
 // Adding interface for component props to fix type errors
 interface FormsPageProps {
@@ -48,8 +47,6 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const [isResetting, setIsResetting] = useState(false);
   const [loadTimestamp, setLoadTimestamp] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
-  const [debugMode, setDebugMode] = useState(false);
-  const [directDbForms, setDirectDbForms] = useState<any[]>([]);
   const [isDbQueryRunning, setIsDbQueryRunning] = useState(false);
   
   // Generate a unique instance ID for better debugging
@@ -57,7 +54,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
   
   console.log(`[${instanceId.current}] FormsPage initialized with shopId: ${shopId}, forceRefresh: ${forceRefresh}`);
   
-  // Set a timeout to cancel loading state after 10 seconds
+  // Set a timeout to cancel loading state after 5 seconds
   useEffect(() => {
     if (isLoading) {
       const timeoutId = setTimeout(() => {
@@ -79,15 +76,20 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const { isConnected, shopDomain, syncState } = useShopifyConnection();
   const navigate = useNavigate();
 
-  // NEW: Directly query database for verification
-  const queryDatabaseDirectly = async () => {
+  // Direct query database for forms - now used for initial load AND as fallback
+  const queryDatabaseDirectly = useCallback(async (silent = false) => {
     try {
-      setIsDbQueryRunning(true);
+      if (!silent) {
+        setIsDbQueryRunning(true);
+      }
+      
       const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       if (!shopIdToUse) {
-        toast.error('لم يتم العثور على متجر متصل');
-        return;
+        if (!silent) {
+          toast.error(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
+        }
+        return null;
       }
       
       // Direct basic query without processing
@@ -98,48 +100,42 @@ const FormsPage: React.FC<FormsPageProps> = ({
       
       if (error) {
         console.error(`[${instanceId.current}] Direct DB query error:`, error);
-        toast.error('خطأ في الاستعلام المباشر من قاعدة البيانات');
-        return;
+        if (!silent) {
+          toast.error(language === 'ar' ? 'خطأ في الاستعلام المباشر من قاعدة البيانات' : 'Error in direct database query');
+        }
+        return null;
       }
       
       // Log raw data from database
-      console.log(`[${instanceId.current}] Direct DB query found ${data?.length || 0} forms:`, data);
+      console.log(`[${instanceId.current}] Direct DB query found ${data?.length || 0} forms`);
       
-      // Check for forms with ID issues
-      const formsWithIdIssues = data?.filter(form => !form.id) || [];
-      if (formsWithIdIssues.length > 0) {
-        console.warn(`[${instanceId.current}] Found ${formsWithIdIssues.length} forms without IDs:`, formsWithIdIssues);
+      if (!silent && data && data.length > 0) {
+        toast.success(language === 'ar' ? `تم العثور على ${data.length} نموذج` : `Found ${data.length} forms`);
       }
       
-      // Validate all forms and log issues
-      const validationResults = data?.map(form => ({ 
-        form,
-        validation: debugFormData(form)
-      })) || [];
-      
-      const formsWithIssues = validationResults.filter(result => !result.validation.isValid);
-      if (formsWithIssues.length > 0) {
-        console.warn(`[${instanceId.current}] Found ${formsWithIssues.length} forms with validation issues:`, formsWithIssues);
-      }
-      
-      setDirectDbForms(data || []);
-      
-      // Update the main forms list if it's empty but we found forms in the database
-      if ((!forms || forms.length === 0) && data && data.length > 0) {
-        console.log(`[${instanceId.current}] Updating main forms list with direct DB results`);
+      if (data && data.length > 0) {
+        // Update forms list directly
         setForms(data);
+        setIsLoading(false);
+        setError(null);
+        return data;
       }
       
-      toast.success(`تم العثور على ${data?.length || 0} نموذج في قاعدة البيانات`);
+      return null;
     } catch (err) {
       console.error(`[${instanceId.current}] Error in direct DB query:`, err);
-      toast.error('خطأ في الاستعلام المباشر');
+      if (!silent) {
+        toast.error(language === 'ar' ? 'خطأ في الاستعلام المباشر' : 'Error in direct query');
+      }
+      return null;
     } finally {
-      setIsDbQueryRunning(false);
+      if (!silent) {
+        setIsDbQueryRunning(false);
+      }
     }
-  };
+  }, [shopId, shopDomain, language, instanceId]);
 
-  // IMPROVED: Load forms with multiple strategies and better error handling
+  // IMPROVED: Load forms with automatic fallback to direct query
   const loadForms = useCallback(async (forceRefresh = false) => {
     if (hasLoadAttempted && !forceRefresh) {
       console.log(`[${instanceId.current}] FormsPage: Already attempted to load forms, skipping`);
@@ -152,8 +148,8 @@ const FormsPage: React.FC<FormsPageProps> = ({
     }
     
     try {
-      // IMPROVED: Use multiple strategies to find the shop ID
-      let currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
+      // Get shop ID using multiple strategies
+      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       console.log(`[${instanceId.current}] FormsPage: Loading forms for shop:`, currentShopId);
       
@@ -165,128 +161,42 @@ const FormsPage: React.FC<FormsPageProps> = ({
         return;
       }
       
-      // CRITICAL FIX: Log detailed diagnostic information
-      console.log(`[${instanceId.current}] FormsPage: Load attempt with details:`, {
-        shopId,
-        shopDomain,
-        localStorage: localStorage.getItem('shopify_store'),
-        useShopId: currentShopId,
-        timestamp: loadTimestamp,
-        retryCount
-      });
+      // IMPROVED: First try direct query as it's simplest and most reliable
+      console.log(`[${instanceId.current}] FormsPage: Attempting direct query first`);
+      const directForms = await queryDatabaseDirectly(true);
       
-      // NEW: Use a simpler query approach first
-      console.log(`[${instanceId.current}] FormsPage: Attempting direct query without filters`);
-      
-      const { data: simpleFetch, error: simpleError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', currentShopId);
-      
-      if (simpleError) {
-        console.error(`[${instanceId.current}] FormsPage: Simple query error:`, simpleError);
-      } else if (simpleFetch && simpleFetch.length > 0) {
-        console.log(`[${instanceId.current}] FormsPage: Simple query found ${simpleFetch.length} forms`);
-        
-        // CRITICAL: Log each form's structure for debugging
-        simpleFetch.forEach((form, index) => {
-          console.log(`[${instanceId.current}] Form #${index+1} (ID: ${form.id || 'undefined'}):`);
-          console.log(`  - Title: ${form.title || 'undefined'}`);
-          console.log(`  - Published: ${form.is_published}`);
-          console.log(`  - Data structure type: ${typeof form.data}`);
-        });
-        
-        // Return forms directly without complex transformations
-        setForms(simpleFetch);
-        setError(null);
+      if (directForms && directForms.length > 0) {
+        // Direct query successful, no need to continue
+        console.log(`[${instanceId.current}] FormsPage: Direct query found ${directForms.length} forms`);
         setIsLoading(false);
         return;
       }
       
-      // If the simple query returned no results, try alternative approaches
-      // This is our fallback section...
+      // Fallback to traditional query method
+      console.log(`[${instanceId.current}] FormsPage: Direct query found no forms, trying traditional query`);
       
-      // IMPROVED: Try different query approaches for maximum reliability
-      let data = null;
-      let loadError = null;
-      
-      // First attempt - direct query without any column filter
-      const { data: formsData, error: formsError } = await supabase
+      const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('shop_id', currentShopId)
         .order('created_at', { ascending: false });
       
-      if (formsError) {
-        console.error(`[${instanceId.current}] FormsPage: Error in first query:`, formsError);
-        loadError = formsError;
-      } else if (formsData && formsData.length > 0) {
-        console.log(`[${instanceId.current}] FormsPage: First query found ${formsData.length} forms`, formsData);
-        data = formsData;
-      } else {
-        // Second attempt - more flexible matching
-        console.log(`[${instanceId.current}] FormsPage: First query returned no results, trying alternative query`);
-        
-        const { data: alternateData, error: alternateError } = await supabase
-          .from('forms')
-          .select('*')
-          .ilike('shop_id', `%${currentShopId}%`) // More flexible matching
-          .order('created_at', { ascending: false });
-        
-        if (alternateError) {
-          console.error(`[${instanceId.current}] FormsPage: Error in second query:`, alternateError);
-          loadError = alternateError;
-        } else if (alternateData && alternateData.length > 0) {
-          console.log(`[${instanceId.current}] FormsPage: Second query found ${alternateData.length} forms`, alternateData);
-          data = alternateData;
-        } else {
-          // Third attempt - fetch recent forms and filter client-side
-          console.log(`[${instanceId.current}] FormsPage: Second query returned no results, fetching recent forms`);
-          
-          // Try to get any forms regardless of shop_id
-          const { data: recentForms, error: recentError } = await supabase
-            .from('forms')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          
-          if (recentError) {
-            console.error(`[${instanceId.current}] FormsPage: Error fetching recent forms:`, recentError);
-            loadError = recentError;
-          } else if (recentForms && recentForms.length > 0) {
-            console.log(`[${instanceId.current}] FormsPage: Found ${recentForms.length} recent forms, filtering`, recentForms);
-            
-            // Look for forms matching this shop or with no shop_id
-            const matchingForms = recentForms.filter(form => 
-              !form.shop_id || 
-              form.shop_id === currentShopId ||
-              (typeof form.shop_id === 'string' && form.shop_id.includes(currentShopId))
-            );
-            
-            if (matchingForms.length > 0) {
-              console.log(`[${instanceId.current}] FormsPage: Found ${matchingForms.length} matching forms`);
-              data = matchingForms;
-            } else {
-              console.log(`[${instanceId.current}] FormsPage: No matching forms found, showing all recent forms for debug`);
-              if (debugMode) {
-                data = recentForms; // In debug mode, show all forms
-              }
-            }
-          }
-        }
+      if (error) {
+        console.error(`[${instanceId.current}] FormsPage: Error in traditional query:`, error);
+        setError(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
+        setIsLoading(false);
+        return;
       }
       
-      if (data) {
-        // IMPROVED: Set forms directly without complex standardization
-        // This preserves the original structure and avoids potential data loss
-        console.log(`[${instanceId.current}] FormsPage: Setting ${data.length} forms without complex standardization`);
+      if (data && data.length > 0) {
+        console.log(`[${instanceId.current}] FormsPage: Traditional query found ${data.length} forms`);
         setForms(data);
         setError(null);
       } else {
         console.log(`[${instanceId.current}] FormsPage: No forms found in any query`);
         setForms([]);
         
-        // Only set error if this isn't the first load (to avoid confusion when there are no forms yet)
+        // Only set error if not first load (to avoid confusion when there are no forms yet)
         if (retryCount > 0) {
           setError(language === 'ar' ? 'لم يتم العثور على نماذج لهذا المتجر' : 'No forms found for this shop');
         }
@@ -294,12 +204,14 @@ const FormsPage: React.FC<FormsPageProps> = ({
     } catch (err) {
       console.error(`[${instanceId.current}] Error loading forms:`, err);
       setError(language === 'ar' ? 'حدث خطأ أثناء تحميل النماذج' : 'Error loading forms');
-      setForms([]);
+      
+      // Try direct query as last resort if normal query fails
+      await queryDatabaseDirectly(true);
     } finally {
       setIsLoading(false);
       setRetryCount(prev => prev + 1);
     }
-  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, debugMode]);
+  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, instanceId, queryDatabaseDirectly]);
 
   // IMPROVED: Create form with minimal processing to avoid data structure issues
   const handleCreateForm = useCallback(async () => {
@@ -388,7 +300,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [newFormName, language, shopDomain, shopId, loadForms]);
+  }, [newFormName, language, shopDomain, shopId, loadForms, instanceId]);
 
   // Add refresh handler that resets load state and forces a refresh
   const handleRefresh = useCallback(() => {
@@ -396,7 +308,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
     toast.info(language === 'ar' ? 'جاري تحديث القائمة...' : 'Refreshing list...');
     setLoadTimestamp(Date.now()); // Update timestamp to force reload
     return loadForms(true);
-  }, [loadForms, language]);
+  }, [loadForms, language, instanceId]);
 
   // Handle emergency connection reset
   const handleEmergencyReset = useCallback(async () => {
@@ -414,20 +326,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       toast.error(language === 'ar' ? 'فشل في إعادة تعيين الاتصال' : 'Failed to reset connection');
       setIsResetting(false);
     }
-  }, [language]);
-
-  // Toggle debug mode
-  const toggleDebugMode = useCallback(() => {
-    setDebugMode(prev => !prev);
-    toast.info(debugMode 
-      ? 'Debug mode disabled'
-      : 'Debug mode enabled - showing all forms');
-    
-    // Force reload with new mode
-    setTimeout(() => {
-      loadForms(true);
-    }, 100);
-  }, [debugMode, loadForms]);
+  }, [language, instanceId]);
 
   // Load forms when component mounts or when shopDomain/forceRefresh changes
   useEffect(() => {
@@ -442,7 +341,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       setHasLoadAttempted(true);
       setError(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
     }
-  }, [shopDomain, loadForms, hasLoadAttempted, language, shopId, forceRefresh]);
+  }, [shopDomain, loadForms, hasLoadAttempted, language, shopId, forceRefresh, instanceId]);
 
   // Also re-sync the connection state whenever forceRefresh changes
   useEffect(() => {
@@ -452,7 +351,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         console.error(`[${instanceId.current}] Error during forced connection sync:`, err);
       });
     }
-  }, [forceRefresh, syncState]);
+  }, [forceRefresh, syncState, instanceId]);
 
   const handleEditForm = (formId: string) => {
     navigate(`/form-builder/${formId}`);
@@ -483,20 +382,8 @@ const FormsPage: React.FC<FormsPageProps> = ({
             </Button>
             <Button 
               variant="outline" 
-              size="sm" 
-              onClick={toggleDebugMode}
-              className={debugMode ? "bg-yellow-100" : ""}
-            >
-              {debugMode ? (
-                language === 'ar' ? 'إيقاف وضع التصحيح' : 'Disable Debug'
-              ) : (
-                language === 'ar' ? 'تفعيل وضع التصحيح' : 'Enable Debug'
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
               size="sm"
-              onClick={queryDatabaseDirectly}
+              onClick={() => queryDatabaseDirectly(false)}
               className="bg-blue-50"
               disabled={isDbQueryRunning}
             >
@@ -531,38 +418,6 @@ const FormsPage: React.FC<FormsPageProps> = ({
           </div>
         </div>
       </div>
-
-      {/* NEW: Show direct database query results when available */}
-      {directDbForms.length > 0 && (
-        <Alert className="mb-6 bg-blue-50">
-          <div className="flex justify-between items-center">
-            <div>
-              <AlertTitle className="mb-2">
-                {language === 'ar' ? 'نتائج الاستعلام المباشر' : 'Direct Database Query Results'}
-              </AlertTitle>
-              <AlertDescription>
-                {language === 'ar' 
-                  ? `تم العثور على ${directDbForms.length} نموذج في قاعدة البيانات مباشرة.`
-                  : `Found ${directDbForms.length} forms directly in the database.`
-                }
-              </AlertDescription>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setForms(directDbForms);
-                toast.success(language === 'ar' 
-                  ? 'تم تحميل النماذج من نتائج الاستعلام المباشر'
-                  : 'Loaded forms from direct query results'
-                );
-              }}
-            >
-              {language === 'ar' ? 'استخدام هذه النماذج' : 'Use These Forms'}
-            </Button>
-          </div>
-        </Alert>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
@@ -647,7 +502,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={20} // Increased max attempts for processing
+        maxAttempts={5} // Reduced from 20 for performance
         instanceId={instanceId.current}
       />
     </div>

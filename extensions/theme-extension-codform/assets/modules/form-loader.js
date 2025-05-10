@@ -4,29 +4,49 @@ function CODFORMFormLoader(API_BASE_URL) {
   const { renderForm } = CODFORMFormRenderer();
   const { submitForm } = CODFORMFormSubmitter(API_BASE_URL);
   
-  // Circuit breaker state with extreme settings to stop retry loops
+  // Circuit breaker state with improved settings - not too extreme
   const circuitBreaker = {
     failureCount: 0,
     lastFailureTime: null,
     isOpen: false,
-    threshold: 1,  // Only 1 failure before opening circuit
-    resetTimeout: 60000 // 60 seconds reset timeout - No retries for a full minute
+    threshold: 3,  // Allow 3 failures before opening circuit
+    resetTimeout: 30000 // 30 seconds reset timeout
   };
   
-  // Global state to track if we've already tried to load this form
-  let hasAttemptedLoad = false;
+  // Global state to track forms we've already tried to load
+  const attemptedForms = new Map();
+  
+  // Helper to reset circuit breaker after timeout
+  function checkAndResetCircuitBreaker() {
+    if (circuitBreaker.isOpen && circuitBreaker.lastFailureTime) {
+      const timeElapsed = Date.now() - circuitBreaker.lastFailureTime;
+      if (timeElapsed > circuitBreaker.resetTimeout) {
+        console.log('CODFORM: Circuit breaker reset after timeout');
+        circuitBreaker.isOpen = false;
+        circuitBreaker.failureCount = 0;
+      }
+    }
+  }
   
   function loadForm(container, formId, productId) {
     console.log('CODFORM: Loading form', formId);
     
-    // CRITICAL FIX: Only try loading once
-    if (hasAttemptedLoad) {
-      console.log('CODFORM: Already attempted to load this form, not trying again');
-      showError(container, 'تعذر تحميل النموذج. يرجى تحديث الصفحة للمحاولة مرة أخرى.');
-      return;
+    // Check if we've already tried to load this exact form
+    const formKey = `${formId}-${productId || 'noproduct'}`;
+    if (attemptedForms.has(formKey)) {
+      const attemptCount = attemptedForms.get(formKey);
+      if (attemptCount >= 2) { // Allow 2 attempts before showing permanent error
+        console.log('CODFORM: Already attempted to load this form multiple times, showing error');
+        showError(container, 'تعذر تحميل النموذج. يرجى تحديث الصفحة للمحاولة مرة أخرى.');
+        return;
+      }
+      attemptedForms.set(formKey, attemptCount + 1);
+    } else {
+      attemptedForms.set(formKey, 1);
     }
     
-    hasAttemptedLoad = true;
+    // Check and potentially reset circuit breaker
+    checkAndResetCircuitBreaker();
     
     // Check if circuit breaker is open
     if (circuitBreaker.isOpen) {
@@ -59,32 +79,34 @@ function CODFORMFormLoader(API_BASE_URL) {
     const timestamp = new Date().getTime();
     const urlWithTimestamp = `${apiUrl}?t=${timestamp}&nocache=true`;
     
-    // Hard global timeout - Hard-abort after 5 seconds
-    let globalTimeoutId = setTimeout(() => {
-      console.error('CODFORM: Global timeout reached - cancelling all operations');
-      showError(container, 'انتهت مهلة تحميل النموذج. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
-    }, 5000); // 5 second global timeout
+    // Timeouts & IDs management
+    let timeouts = {
+      global: null,
+      fetch: null
+    };
     
-    // Store all timeout IDs so we can clear them
-    const timeoutIds = [];
-    
-    function cleanupAllTimeouts() {
-      timeoutIds.forEach(id => clearTimeout(id));
-      timeoutIds.length = 0; // Clear the array
-      clearTimeout(globalTimeoutId);
+    function clearAllTimeouts() {
+      Object.values(timeouts).forEach(id => {
+        if (id) clearTimeout(id);
+      });
     }
     
-    // Generate request ID for tracing this specific request through logs
+    // Set global timeout - 10 seconds (increased from 5)
+    timeouts.global = setTimeout(() => {
+      console.error('CODFORM: Global timeout reached - cancelling all operations');
+      clearAllTimeouts();
+      showError(container, 'انتهت مهلة تحميل النموذج. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+    }, 10000);
+    
+    // Generate request ID for tracing
     const requestId = `form_${formId}_req_${Math.random().toString(36).substring(2, 8)}`;
     console.log(`CODFORM [${requestId}]: Starting fetch request`);
     
-    // Set fetch timeout (for this specific attempt) - 3 seconds
-    const fetchTimeoutId = setTimeout(() => {
+    // Set fetch timeout - 5 seconds (increased from 3)
+    timeouts.fetch = setTimeout(() => {
       console.error(`CODFORM [${requestId}]: Fetch timeout`);
       showError(container, 'انتهت مهلة الاتصال. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
-    }, 3000); // 3 second timeout per attempt
-    
-    timeoutIds.push(fetchTimeoutId);
+    }, 5000);
     
     fetch(urlWithTimestamp, {
       method: 'GET',
@@ -99,8 +121,8 @@ function CODFORMFormLoader(API_BASE_URL) {
       cache: 'no-store'
     })
       .then(response => {
-        // Clear fetch timeout for this attempt
-        clearTimeout(fetchTimeoutId);
+        // Clear fetch timeout
+        clearTimeout(timeouts.fetch);
         
         console.log(`CODFORM [${requestId}]: API Response status:`, response.status);
         
@@ -108,13 +130,13 @@ function CODFORMFormLoader(API_BASE_URL) {
         const contentType = response.headers.get('Content-Type');
         console.log(`CODFORM [${requestId}]: Content-Type:`, contentType);
         
+        if (!response.ok) {
+          throw new Error(`فشل تحميل النموذج: ${response.status} - ${response.statusText}`);
+        }
+        
         if (contentType && contentType.includes('text/html')) {
           console.error(`CODFORM [${requestId}]: Received HTML instead of JSON`);
           throw new Error(`تم استلام HTML بدلاً من JSON. هذا يشير عادة إلى مشكلة في الخادم أو في إعدادات CORS.`);
-        }
-        
-        if (!response.ok) {
-          throw new Error(`فشل تحميل النموذج: ${response.status} - ${response.statusText}`);
         }
         
         if (!contentType || !contentType.includes('application/json')) {
@@ -132,9 +154,10 @@ function CODFORMFormLoader(API_BASE_URL) {
         
         // Reset circuit breaker on successful fetch
         circuitBreaker.failureCount = 0;
+        circuitBreaker.isOpen = false;
         
         // Clear all timeouts since we got a successful response
-        cleanupAllTimeouts();
+        clearAllTimeouts();
         
         // Enhanced validation of form data
         if (!data) {
@@ -153,16 +176,19 @@ function CODFORMFormLoader(API_BASE_URL) {
         hideLoader(container);
         renderForm(container, data, productId, submitForm);
         showForm(container);
+        
+        // Reset attempt counter on success
+        attemptedForms.delete(formKey);
       })
       .catch(error => {
         console.error(`CODFORM [${requestId}]: Error loading form:`, error);
         
-        // Clear all timeouts since we're showing an error
-        cleanupAllTimeouts();
+        // Clear all timeouts
+        clearAllTimeouts();
         
         // Update circuit breaker state
         circuitBreaker.failureCount++;
-        circuitBreaker.lastFailureTime = new Date().getTime();
+        circuitBreaker.lastFailureTime = Date.now();
         
         if (circuitBreaker.failureCount >= circuitBreaker.threshold) {
           circuitBreaker.isOpen = true;
