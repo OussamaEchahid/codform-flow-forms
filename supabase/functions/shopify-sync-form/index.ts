@@ -3,11 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from "../_shared/cors.ts"
 
 interface SyncFormRequest {
   formId: string;
@@ -64,10 +60,15 @@ serve(async (req: Request) => {
       });
     }
 
-    // Update form with shop_id if needed
+    console.log(`Form found: "${formData.title}", current published status: ${formData.is_published}`);
+
+    // Always ensure form is published when synced with Shopify
     const { error: formUpdateError } = await supabase
       .from('forms')
-      .update({ shop_id: shop })
+      .update({ 
+        shop_id: shop,
+        is_published: true // Make sure the form is published when synced
+      })
       .eq('id', formId);
     
     if (formUpdateError) {
@@ -80,7 +81,7 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } else {
-      console.log(`Form ${formId} updated with shop_id ${shop}`);
+      console.log(`Form ${formId} updated with shop_id ${shop} and published successfully`);
     }
 
     // If we have product settings
@@ -121,12 +122,27 @@ serve(async (req: Request) => {
       
       console.log(`Synced ${productSettings.length} products with form ${formId}`);
     }
+
+    // Verify the form is now published
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('forms')
+      .select('is_published')
+      .eq('id', formId)
+      .single();
+      
+    if (verifyError) {
+      console.error("Error verifying form published status:", verifyError);
+    } else {
+      console.log(`Form published status after sync: ${verifyData.is_published}`);
+    }
     
     return new Response(JSON.stringify({
       success: true,
       message: 'Form synced with Shopify successfully',
       form_id: formId,
-      shop: shop
+      shop: shop,
+      is_published: true,
+      published_status: verifyData?.is_published
     }), { 
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

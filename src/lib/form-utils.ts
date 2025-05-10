@@ -8,27 +8,48 @@ export interface FieldStyle {
   borderWidth?: string;
   borderColor?: string;
   padding?: string;
+  titleSize?: 'small' | 'medium' | 'large';
+  alignment?: 'left' | 'center' | 'right';
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
 }
 
 export interface FormField {
   id: string;
   type: string;
-  label: string;
+  name?: string;
+  label?: string;
   placeholder?: string;
-  required?: boolean; // Made this optional to match the other interface
-  options?: string[];
+  helpText?: string;
+  required?: boolean;
+  options?: Array<{ value: string; label: string; } | string>; // Support both formats
+  defaultValue?: string;
+  minLength?: number;
+  maxLength?: number;
+  imagePosition?: string;
   style?: FieldStyle;
   content?: string; // Add the content property to support text/html fields
-  helpText?: string;
   disabled?: boolean;
   whatsappNumber?: string;
   message?: string;
+  direction?: 'rtl' | 'ltr';
+  description?: string;
 }
 
 export interface FormStep {
   id: string;
   title: string;
   fields: FormField[];
+  metadata?: {
+    formStyle?: {
+      primaryColor?: string;
+      borderRadius?: string;
+      fontSize?: string;
+      buttonStyle?: string;
+      submitButtonText?: string;
+    }
+  };
 }
 
 export interface FormTemplate {
@@ -282,7 +303,10 @@ export const formTemplates: FormTemplate[] = [
             id: 'delivery',
             type: 'radio',
             label: 'نوع التوصيل',
-            options: ['توصيل مجاني', 'توصيل سريع'],
+            options: [
+              { value: 'free', label: 'توصيل مجاني' }, 
+              { value: 'express', label: 'توصيل سريع' }
+            ],
             required: true,
             style: {
               backgroundColor: '#ffffff',

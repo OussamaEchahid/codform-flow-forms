@@ -8,10 +8,11 @@ import { useI18n } from '@/lib/i18n';
 import { useShopify } from '@/hooks/useShopify';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -23,6 +24,7 @@ const FormBuilderPage = () => {
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [dbTriggerInitialized, setDbTriggerInitialized] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -30,6 +32,35 @@ const FormBuilderPage = () => {
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected || bypassEnabled;
+
+  // Initialize database trigger for automatic timestamp updates
+  useEffect(() => {
+    const initDbTrigger = async () => {
+      if (dbTriggerInitialized) {
+        console.log('Database trigger already initialized, skipping');
+        return;
+      }
+      
+      try {
+        console.log('Initializing database trigger...');
+        // Call edge function to initialize database trigger
+        const { data, error } = await supabase.functions.invoke('create-db-trigger', {});
+        
+        if (error) {
+          console.error('Error initializing database trigger:', error);
+          toast.error('خطأ في تهيئة قاعدة البيانات');
+        } else {
+          console.log('Database trigger initialization result:', data);
+          setDbTriggerInitialized(true);
+        }
+      } catch (err) {
+        console.error('Failed to initialize database trigger:', err);
+      }
+    };
+
+    // Only run on initial page load
+    initDbTrigger();
+  }, []); // Empty dependency array ensures it runs once
   
   // Handle connection issues automatically
   useEffect(() => {
@@ -110,19 +141,16 @@ const FormBuilderPage = () => {
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
-      {/* Connection issue warning banner */}
+      {/* Simplified Connection Status Banner */}
       {(tokenError || failSafeMode) && (
-        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+        <div className="absolute top-0 left-0 right-0 z-50">
+          <Alert variant="warning" className="flex items-center py-1 px-4 bg-amber-50 border-amber-200 mb-0 rounded-none">
             <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">
-              {language === 'ar' ? 'تحذير اتصال' : 'Connection Warning'}
-            </AlertTitle>
-            <AlertDescription className="text-amber-700">
+            <span className="ml-2 text-amber-700 text-sm">
               {language === 'ar' 
-                ? 'هناك مشكلة في اتصال Shopify، تم تفعيل وضع الدعم الاحتياطي. يمكنك الاستمرار في إدارة النماذج ولكن بعض الوظائف قد لا تعمل بشكل صحيح.' 
-                : 'There is an issue with the Shopify connection. Fail-safe mode has been activated. You can continue managing forms but some features may not work properly.'}
-            </AlertDescription>
+                ? 'مشكلة في اتصال Shopify، تم تفعيل وضع الدعم الاحتياطي' 
+                : 'Shopify connection issue. Fail-safe mode activated'}
+            </span>
           </Alert>
         </div>
       )}
@@ -135,16 +163,11 @@ const FormBuilderPage = () => {
         )}
       </div>
       
-      {/* Debug info */}
+      {/* Debug info - only in development */}
       {process.env.NODE_ENV !== 'production' && !formId && (
         <div className="fixed bottom-2 right-2 p-2 bg-gray-100 text-xs rounded opacity-70 hover:opacity-100">
-          <div>User: {user?.id || 'None'}</div>
-          <div>Shop: {shop || localStorage.getItem('shopify_store') || 'None'}</div>
-          <div>AuthContext Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
-          <div>localStorage Connected: {localStorageConnected ? 'Yes' : 'No'}</div>
-          <div>Bypass Enabled: {bypassEnabled ? 'Yes' : 'No'}</div>
-          <div>Token Error: {tokenError ? 'Yes' : 'No'}</div>
-          <div>Fail-Safe Mode: {failSafeMode ? 'Yes' : 'No'}</div>
+          <div>Debug: {shopifyConnected ? 'Connected' : 'Not connected'}</div>
+          <div>DB Trigger: {dbTriggerInitialized ? 'Initialized' : 'Not initialized'}</div>
         </div>
       )}
     </div>

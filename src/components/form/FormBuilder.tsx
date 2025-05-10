@@ -509,6 +509,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             totalSteps={formSteps.length}
             formStyle={formStyle}
             fields={formSteps[currentPreviewStep - 1]?.fields || []}
+            submitButtonText="إرسال الطلب"
           >
             <div></div>
           </FormPreview>

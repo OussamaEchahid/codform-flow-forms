@@ -1,11 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
   // Handle CORS
@@ -13,171 +9,176 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Using a try/catch to guarantee we always respond with JSON
   try {
+    // Get important data from request for debugging
+    const url = new URL(req.url)
+    const formId = url.pathname.split('/').pop()
+    const requestId = req.headers.get('X-Request-ID') || 'unknown'
+    const noCache = url.searchParams.get('nocache') === 'true'
+    
+    console.log(`[${requestId}] API-Forms: Request received for form ID: ${formId}, noCache: ${noCache}`)
+    
+    // Explicitly set content type to JSON in all responses
+    const responseHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'X-Request-ID': requestId
+    }
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase credentials')
+      console.error(`[${requestId}] API-Forms: Missing Supabase credentials`)
+      return new Response(JSON.stringify({ 
+        error: 'Missing Supabase credentials',
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 400,
+      })
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get form ID from URL
-    const url = new URL(req.url)
-    const formId = url.pathname.split('/').pop()
-
     if (!formId) {
-      throw new Error('No form ID provided')
+      console.error(`[${requestId}] API-Forms: No form ID provided in URL`)
+      return new Response(JSON.stringify({ 
+        error: 'No form ID provided',
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 400,
+      })
     }
 
-    console.log('Fetching form with ID:', formId)
+    console.log(`[${requestId}] API-Forms: Fetching form with ID: ${formId}`)
 
-    // Get form from database
-    const { data: formData, error } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('id', formId)
-      .single()
-
-    if (error) {
-      throw error
-    }
-
-    if (!formData) {
-      throw new Error(`Form with ID ${formId} not found`)
-    }
-
-    console.log('Successfully fetched form:', formData.title, 'ID:', formId)
-
-    // Transform form data to the expected format
-    const transformedData = transformFormData(formData)
+    // Get form from database with simplified error handling and retries
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    // Return the form data
-    return new Response(JSON.stringify(transformedData), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      status: 200,
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`[${requestId}] API-Forms: Attempt ${attempts} of ${maxAttempts}`)
+      
+      try {
+        const { data: formData, error } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('id', formId)
+          .maybeSingle()
+
+        if (error) {
+          console.error(`[${requestId}] API-Forms: Database error:`, error)
+          // On first attempt, retry once
+          if (attempts < maxAttempts) {
+            console.log(`[${requestId}] API-Forms: Retrying...`)
+            continue
+          }
+          
+          return new Response(JSON.stringify({ 
+            error: error.message,
+            success: false 
+          }), {
+            headers: responseHeaders,
+            status: 400,
+          })
+        }
+
+        if (!formData) {
+          console.error(`[${requestId}] API-Forms: Form with ID ${formId} not found`)
+          return new Response(JSON.stringify({ 
+            error: `Form with ID ${formId} not found`,
+            success: false 
+          }), {
+            headers: responseHeaders,
+            status: 404,
+          })
+        }
+
+        // Always ensure the form is published for display
+        if (!formData.is_published) {
+          console.log(`[${requestId}] API-Forms: Form with ID ${formId} is not published, auto-publishing`)
+          
+          // Force publish the form if it's not published
+          const { error: updateError } = await supabase
+            .from('forms')
+            .update({ is_published: true })
+            .eq('id', formId)
+          
+          if (updateError) {
+            console.error(`[${requestId}] API-Forms: Error publishing form:`, updateError)
+          } else {
+            console.log(`[${requestId}] API-Forms: Auto-published form ${formId} for display`)
+            formData.is_published = true
+          }
+        }
+
+        // Return a simplified response format
+        return new Response(JSON.stringify({
+          id: formData.id,
+          title: formData.title || 'Form',
+          description: formData.description || '',
+          submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
+          is_published: formData.is_published || false,
+          data: formData.data || {},
+          fields: formData.data?.fields || formData.data?.steps?.[0]?.fields || [],
+          success: true
+        }), {
+          headers: responseHeaders,
+          status: 200,
+        })
+      } catch (innerError) {
+        console.error(`[${requestId}] API-Forms: Error in attempt ${attempts}:`, innerError)
+        // Only continue to retry if we haven't reached max attempts
+        if (attempts < maxAttempts) {
+          console.log(`[${requestId}] API-Forms: Retrying after error...`)
+          await new Promise(r => setTimeout(r, 500)) // Small delay before retry
+          continue
+        }
+        
+        // If we've reached max attempts, return the error
+        console.error(`[${requestId}] API-Forms: Max attempts reached with errors`)
+        return new Response(JSON.stringify({ 
+          error: innerError.message || 'Error fetching form data',
+          success: false 
+        }), {
+          headers: responseHeaders,
+          status: 500,
+        })
+      }
+    }
+    
+    // This should never be reached due to the return statements in the loop
+    return new Response(JSON.stringify({ 
+      error: 'Unexpected error in form fetching logic',
+      success: false 
+    }), {
+      headers: responseHeaders,
+      status: 500,
     })
-  } catch (error) {
-    console.error('Error getting form:', error.message)
     
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error) {
+    const requestId = req.headers.get('X-Request-ID') || 'unknown'
+    console.error(`[${requestId}] API-Forms: Critical error:`, error.message)
+    
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Unknown error occurred',
+      success: false
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'X-Request-ID': requestId
       },
-      status: 400,
+      status: 500,
     })
   }
 })
-
-// Function to transform form data into a structure that's easier to use in the frontend
-function transformFormData(formData) {
-  console.log('Transform function received data type:', typeof formData)
-  
-  if (!formData || !formData.data) {
-    return {
-      id: formData.id,
-      title: formData.title,
-      description: formData.description,
-      primaryColor: formData.primary_color || '#9b87f5',
-      fields: []
-    }
-  }
-
-  const data = formData.data
-  
-  console.log('Form data array length:', Array.isArray(data) ? data.length : 'not an array')
-  
-  // Log a portion of the raw form data structure
-  console.log('Raw form data structure:', JSON.stringify(data).substring(0, 500) + '...')
-  
-  // Check if form has steps
-  const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields))
-  console.log('Form has steps:', hasSteps)
-  
-  let transformedFields = []
-  
-  if (hasSteps) {
-    // Process multi-step form
-    console.log('Processing as multi-step form')
-    data.forEach((step, stepIndex) => {
-      // Add a step marker field
-      transformedFields.push({
-        id: step.id || `step-${stepIndex}`,
-        type: 'step',
-        label: step.title || `Step ${stepIndex + 1}`,
-        stepIndex: stepIndex,
-        isStep: true
-      })
-      
-      // Process fields in this step
-      if (step.fields && Array.isArray(step.fields)) {
-        step.fields.forEach(field => {
-          transformedFields.push({
-            ...field,
-            stepId: step.id,
-            stepTitle: step.title,
-            stepIndex: stepIndex
-          })
-        })
-      }
-    })
-  } else {
-    // Process single-step form with nested fields structure
-    console.log('Processing as single-step form with nested fields structure')
-    let totalFields = 0
-    
-    if (Array.isArray(data) && data.length > 0) {
-      data.forEach((step, stepIndex) => {
-        // Add a step marker field
-        transformedFields.push({
-          id: step.id || `${stepIndex + 1}`,
-          type: 'step',
-          label: step.title || `Step ${stepIndex + 1}`,
-          stepIndex: stepIndex,
-          isStep: true
-        })
-        
-        // Process fields in this step
-        if (step.fields && Array.isArray(step.fields)) {
-          step.fields.forEach(field => {
-            transformedFields.push({
-              ...field,
-              stepId: step.id || `${stepIndex + 1}`,
-              stepTitle: step.title || `Step ${stepIndex + 1}`,
-              stepIndex: stepIndex
-            })
-            totalFields++
-          })
-        }
-      })
-    }
-    
-    console.log('Transformed', totalFields, 'total fields')
-    
-    // Log the first and second fields for debugging
-    if (transformedFields.length > 0) {
-      console.log('First field:', JSON.stringify(transformedFields[0]))
-    }
-    if (transformedFields.length > 1) {
-      console.log('Second field:', JSON.stringify(transformedFields[1]))
-    }
-  }
-  
-  console.log('Transformed', transformedFields.length, 'fields for the form')
-  
-  return {
-    id: formData.id,
-    title: formData.title,
-    description: formData.description,
-    primaryColor: formData.primary_color || '#9b87f5',
-    borderRadius: formData.border_radius || '0.5rem',
-    fontSize: formData.font_size || '1rem',
-    buttonStyle: formData.button_style || 'rounded',
-    fields: transformedFields
-  }
-}

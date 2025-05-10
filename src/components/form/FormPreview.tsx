@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -11,13 +11,14 @@ interface FormPreviewProps {
   currentStep: number;
   totalSteps: number;
   children: React.ReactNode;
-  formStyle?: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
+  formStyle: {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
   };
   fields?: FormField[];
+  submitButtonText: string;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -26,24 +27,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   currentStep,
   totalSteps,
   children,
-  formStyle = {
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  },
+  formStyle,
   fields = [],
+  submitButtonText = 'إرسال الطلب',
 }) => {
   const { language } = useI18n();
-  const [key, setKey] = useState(0);
-  
-  useEffect(() => {
-    setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields]);
+  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const textAlign = language === 'ar' ? 'right' : 'left';
   
   return (
     <div 
-      key={key}
       className="rounded-lg border shadow-sm overflow-hidden bg-white"
       style={{
         fontSize: formStyle.fontSize,
@@ -57,10 +50,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: 'white',
           borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
+          direction: direction,
+          textAlign: textAlign as any,
         }}
       >
-        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
+        <h2 className="text-xl font-medium">{formTitle}</h2>
+        {formDescription && <p className="text-sm opacity-90 mt-1">{formDescription}</p>}
       </div>
       
       {totalSteps > 1 && (
@@ -106,7 +101,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="p-4" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: direction,
         }}
       >
         {fields && fields.length > 0 ? (
@@ -118,6 +113,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 formStyle={formStyle}
               />
             ))}
+            
+            <button
+              className="w-full py-2 px-4 text-white font-medium"
+              style={{
+                backgroundColor: formStyle.primaryColor || '#9b87f5',
+                borderRadius: formStyle.buttonStyle === 'rounded' ? '9999px' : 
+                              formStyle.buttonStyle === 'pill' ? '9999px' : '0.375rem',
+              }}
+            >
+              {submitButtonText}
+            </button>
           </div>
         ) : (
           children

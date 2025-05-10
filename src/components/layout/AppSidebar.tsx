@@ -12,7 +12,8 @@ import {
   Globe,
   LogOut,
   RefreshCcw,
-  ShoppingBag
+  ShoppingBag,
+  Layout
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -44,8 +45,8 @@ const AppSidebar = () => {
   const navItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
+    { title: t('landingPages'), path: '/landing-pages', icon: Layout },
     { title: t('orders'), path: '/orders', icon: ShoppingCart },
-    { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
     { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
     { title: t('settings'), path: '/settings', icon: Settings },

@@ -3,90 +3,72 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
-import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import { Loader2, AlertTriangle, RefreshCcw, Store } from 'lucide-react';
 import { toast } from 'sonner';
+import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 const ShopifyConnect = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isLoading, error, syncState, isConnected, shopDomain } = useShopifyConnection();
   const [isResetting, setIsResetting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  // تحقق من المعلمات في عنوان URL والتخزين المحلي
+  // Check for URL parameters
   useEffect(() => {
-    console.log("ShopifyConnect component mounted");
-    
-    const checkParams = async () => {
+    const checkUrlParams = async () => {
       try {
-        setIsLoading(true);
-        
-        // تحقق من وجود معلمات في URL
         const urlParams = new URLSearchParams(window.location.search);
         const shopParam = urlParams.get('shop');
         
-        console.log("URL params check:", { shopParam, fullUrl: window.location.href });
-        
-        // حفظ معلمات المتجر في التخزين المحلي إذا كانت موجودة
         if (shopParam) {
-          localStorage.setItem('shopify_last_url_shop', shopParam);
           console.log('Shop parameter detected in URL:', shopParam);
+          localStorage.setItem('shopify_last_url_shop', shopParam);
           
-          // تحقق من صحة المتجر المخزن
-          try {
-            await shopifyConnectionService.syncStoreToDatabase(shopParam, undefined, false);
-            console.log("Store synced to database:", shopParam);
-          } catch (syncError) {
-            console.error("Error syncing store:", syncError);
-          }
+          // Force sync state with the new shop
+          await syncState();
         }
-        
-        // تنظيف رموز placeholder من قاعدة البيانات
-        try {
-          await shopifyConnectionService.cleanupPlaceholderTokens();
-          console.log('Placeholder tokens cleaned on page load');
-        } catch (cleanupError) {
-          console.error("Error cleaning placeholder tokens:", cleanupError);
-        }
-        
-        setError(null);
       } catch (error) {
-        console.error('Error in checkParams:', error);
-        setError('حدث خطأ أثناء التحقق من المعلمات');
-      } finally {
-        setIsLoading(false);
+        console.error('Error checking URL params:', error);
+        setLocalError('Error checking URL parameters');
       }
     };
-
-    checkParams();
     
-    // التأكد من أن الصفحة مرئية بالفعل - إصلاح محتمل للمشكلة
-    document.title = "الاتصال بمتجر Shopify";
-    
-  }, [location.search]);
+    checkUrlParams();
+  }, [location.search, syncState]);
   
-  // Reset connection state
+  // Redirect to dashboard if already connected
+  useEffect(() => {
+    if (isConnected && shopDomain && !isLoading) {
+      const redirectTimer = setTimeout(() => {
+        toast.success(`تم الاتصال بمتجر ${shopDomain}، جاري التوجيه إلى لوحة التحكم`);
+        navigate('/dashboard', { replace: true });
+      }, 1500);
+      
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [isConnected, shopDomain, isLoading, navigate]);
+  
+  // Reset connection
   const handleReset = async () => {
     try {
       setIsResetting(true);
-      await shopifyConnectionService.forceResetConnection();
-      toast.success('تم إعادة تعيين حالة الاتصال بنجاح');
       
-      // إعادة تحميل الصفحة بعد إعادة التعيين
+      // Clear localStorage
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_temp_store');
+      
+      // Reload page to reset all state
       window.location.reload();
     } catch (error) {
       console.error('Error resetting connection:', error);
-      toast.error('فشل في إعادة تعيين حالة الاتصال');
+      toast.error('Failed to reset connection state');
       setIsResetting(false);
     }
   };
 
-  const handleExternalOpen = () => {
-    window.open("https://codform-flow-forms.lovable.app/shopify-connect", "_blank");
-  };
-
-  // إذا كان التحميل جاريًا، عرض حالة التحميل
+  // Show loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
@@ -104,11 +86,11 @@ const ShopifyConnect = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
       <div className="w-full max-w-md px-4">
-        {error && (
+        {(error || localError) && (
           <div className="mb-4 p-4 border border-red-200 bg-red-50 rounded-md">
             <div className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-red-500 ml-2" />
-              <p className="text-red-700">{error}</p>
+              <p className="text-red-700">{error || localError}</p>
             </div>
             <div className="mt-2">
               <Button 
@@ -140,25 +122,14 @@ const ShopifyConnect = () => {
             <p className="text-blue-700 font-medium">صفحة الاتصال بمتجر Shopify</p>
           </div>
           <p className="mt-2 text-sm text-blue-600">
-            أنت الآن على صفحة الاتصال بمتجر Shopify. إذا كنت تواجه مشكلة في الاتصال، جرب إعادة تعيين حالة الاتصال أدناه.
+            قم بربط متجر Shopify الخاص بك لتتمكن من استخدام المنصة. إذا كنت تواجه مشكلة في الاتصال، جرب إعادة تعيين حالة الاتصال.
           </p>
-          <div className="mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-300 hover:bg-blue-100"
-              onClick={handleExternalOpen}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              فتح في نافذة جديدة
-            </Button>
-          </div>
         </div>
         
         <ShopifyConnection />
       </div>
     </div>
   );
-};
+}
 
 export default ShopifyConnect;

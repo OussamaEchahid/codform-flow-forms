@@ -26,7 +26,8 @@ export const ShopifyStoresManager: React.FC = () => {
       
       // Update diagnostic information
       const { shopDomain } = parseShopifyParams();
-      const lastUrlShop = shopifyConnectionManager.getLastUrlShop();
+      // Use localStorage directly instead of connection manager method
+      const lastUrlShop = localStorage.getItem('shopify_last_url_shop');
       
       setDiagnosticInfo({
         activeShopFromContext: activeShop,
@@ -120,9 +121,14 @@ export const ShopifyStoresManager: React.FC = () => {
     if (window.confirm('هل أنت متأكد من رغبتك في مسح جميع المتاجر غير النشطة؟')) {
       try {
         if (activeShop) {
-          shopifyConnectionManager.clearAllStoresExcept(activeShop);
-          refreshStores();
-          toast.success('تم مسح جميع المتاجر غير النشطة');
+          // Keep the active store and remove all others
+          const activeStoreObj = stores.find(s => s.domain === activeShop);
+          if (activeStoreObj) {
+            shopifyConnectionManager.clearAllStores();
+            shopifyConnectionManager.addOrUpdateStore(activeShop, true, true);
+            refreshStores();
+            toast.success('تم مسح جميع المتاجر غير النشطة');
+          }
         }
       } catch (error) {
         toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
