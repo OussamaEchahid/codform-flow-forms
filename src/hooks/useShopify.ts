@@ -22,6 +22,7 @@ export const useShopify = () => {
   const [tokenError, setTokenError] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
   const [failSafeMode, setFailSafeMode] = useState(false);
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const { language } = useI18n();
   const { isDevMode, testConnection } = useShopifyConnection();
 
@@ -149,6 +150,7 @@ export const useShopify = () => {
       return result;
     } catch (e) {
       console.error('Error refreshing connection:', e);
+      setIsNetworkError(true);
       return false;
     }
   }, [testConnection]);
@@ -197,7 +199,9 @@ export const useShopify = () => {
     isSyncing,
     failSafeMode,
     toggleFailSafeMode,
-    emergencyReset
+    emergencyReset,
+    isNetworkError,
+    testConnection
   };
 };
 
