@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -12,7 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -22,14 +23,13 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle 
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle, RefreshCw, Search, Filter, List, Grid } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle, Search, Filter, List, Grid } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 
@@ -37,7 +37,6 @@ interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
-  maxAttempts?: number;
   onRefresh?: () => Promise<void>;
   instanceId?: string;
 }
@@ -46,13 +45,11 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 1, // Reduced from 3 to 1 to minimize attempts
   onRefresh,
   instanceId = 'form-list' 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
@@ -70,8 +67,6 @@ const FormList: React.FC<FormListProps> = ({
       isMounted.current = false;
     };
   }, []);
-  
-  console.log(`[${stableId.current}] FormList render with ${forms?.length || 0} forms`);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -111,26 +106,8 @@ const FormList: React.FC<FormListProps> = ({
       }
     }
   };
-  
-  // Handle manual refresh when user clicks the refresh button
-  const handleRefresh = async () => {
-    if (onRefresh) {
-      setIsRefreshing(true);
-      try {
-        await onRefresh();
-        toast.success('تم تحديث قائمة النماذج');
-      } catch (error) {
-        console.error(`[${stableId.current}] Error refreshing forms:`, error);
-        toast.error('فشل في تحديث النماذج');
-      } finally {
-        if (isMounted.current) {
-          setIsRefreshing(false);
-        }
-      }
-    }
-  };
 
-  // Filter and sort forms - with optimizations to avoid errors
+  // Filter and sort forms
   const filteredAndSortedForms = forms
     .filter(form => {
       if (!searchTerm) return true;
@@ -154,7 +131,7 @@ const FormList: React.FC<FormListProps> = ({
           ? statusA - statusB
           : statusB - statusA;
       } else {
-        // Default: sort by date - with null safety
+        // Default: sort by date
         const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 
                       a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 
@@ -185,15 +162,6 @@ const FormList: React.FC<FormListProps> = ({
           <p className="text-gray-500">
             لم يتم العثور على أي نماذج. يمكنك إنشاء نموذج جديد لبدء الاستخدام.
           </p>
-          <Button 
-            className="mt-4" 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            {isRefreshing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            تحديث
-          </Button>
         </div>
       </div>
     );
