@@ -31,88 +31,121 @@ function CODFORMFormLoader(API_BASE_URL) {
     const timestamp = new Date().getTime();
     const urlWithTimestamp = `${apiUrl}?t=${timestamp}`;
     
-    fetch(urlWithTimestamp, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
-      },
-      mode: 'cors',
-      cache: 'no-store'
-    })
-      .then(response => {
-        console.log('CODFORM: API Response status:', response.status);
-        
-        // Check if we got HTML instead of JSON (common with CORS issues)
-        const contentType = response.headers.get('Content-Type');
-        console.log('CODFORM: Content-Type:', contentType);
-        
-        if (contentType && contentType.includes('text/html')) {
-          throw new Error(`Received HTML instead of JSON (status ${response.status}). This usually indicates a CORS issue or incorrect API URL.`);
-        }
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load form: ${response.status} - ${response.statusText}`);
-        }
-        
-        return response.json();
+    // Add retry mechanism
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    function attemptFetch() {
+      fetch(urlWithTimestamp, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        mode: 'cors',
+        cache: 'no-store'
       })
-      .then(data => {
-        console.log('CODFORM: Form data received:', data);
-        
-        // Enhanced validation of form data
-        if (!data) {
-          throw new Error('Invalid form data: Empty response');
-        }
-        
-        if (data.error) {
-          throw new Error(`API error: ${data.error}`);
-        }
-        
-        // Check if form is published
-        if (data.is_published === false) {
-          throw new Error('This form is not published. Please publish the form before embedding it.');
-        }
-        
-        // More flexible data structure validation
-        let hasValidContent = false;
-        
-        // Check different possible data structures
-        if (data.fields && Array.isArray(data.fields) && data.fields.length > 0) {
-          hasValidContent = true;
-        } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-          hasValidContent = true;
-        } else if (data.data && typeof data.data === 'object' && data.data.steps) {
-          hasValidContent = true;
-        }
-        
-        if (!hasValidContent) {
-          console.error('CODFORM: Form has no valid content:', data);
-          throw new Error('Invalid form data: No valid content found. The form may be empty or misconfigured.');
-        }
-        
-        hideLoader(container);
-        renderForm(container, data, productId, submitForm);
-        showForm(container);
-      })
-      .catch(error => {
-        console.error('CODFORM: Error loading form:', error);
-        
-        // Provide more specific error messages for common problems
-        let errorMessage = error.message;
-        
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          errorMessage = 'Network error: Unable to connect to the form server. Please check your internet connection.';
-        } else if (error.message.includes('CORS')) {
-          errorMessage = 'CORS error: The form server is not allowing connections from this domain.';
-        } else if (error.message.includes('JSON')) {
-          errorMessage = 'Format error: The server response was not in the expected format.';
-        }
-        
-        hideLoader(container);
-        showError(container, errorMessage);
-      });
+        .then(response => {
+          console.log('CODFORM: API Response status:', response.status);
+          
+          // Check if we got HTML instead of JSON (common with CORS issues)
+          const contentType = response.headers.get('Content-Type');
+          console.log('CODFORM: Content-Type:', contentType);
+          
+          if (contentType && contentType.includes('text/html')) {
+            throw new Error(`Received HTML instead of JSON (status ${response.status}). This usually indicates a CORS issue or incorrect API URL.`);
+          }
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load form: ${response.status} - ${response.statusText}`);
+          }
+          
+          return response.json();
+        })
+        .then(data => {
+          console.log('CODFORM: Form data received:', data);
+          
+          // Enhanced validation of form data
+          if (!data) {
+            throw new Error('Invalid form data: Empty response');
+          }
+          
+          if (data.error) {
+            throw new Error(`API error: ${data.error}`);
+          }
+          
+          // Check if form is published
+          if (data.is_published === false) {
+            throw new Error('This form is not published. Please publish the form before embedding it.');
+          }
+          
+          // More flexible data structure validation
+          let hasValidContent = false;
+          
+          // Check different possible data structures
+          if (data.fields && Array.isArray(data.fields) && data.fields.length > 0) {
+            hasValidContent = true;
+          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            hasValidContent = true;
+          } else if (data.data && typeof data.data === 'object' && data.data.steps) {
+            hasValidContent = true;
+          }
+          
+          if (!hasValidContent) {
+            console.error('CODFORM: Form has no valid content:', data);
+            throw new Error('Invalid form data: No valid content found. The form may be empty or misconfigured.');
+          }
+          
+          hideLoader(container);
+          renderForm(container, data, productId, submitForm);
+          showForm(container);
+        })
+        .catch(error => {
+          console.error('CODFORM: Error loading form:', error);
+          
+          // Retry logic
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`CODFORM: Retrying (${retryCount}/${maxRetries})...`);
+            
+            // Show retry message
+            const loaderEl = container.querySelector('.codform-loader');
+            if (loaderEl) {
+              const retryText = loaderEl.querySelector('.codform-retry-text');
+              if (retryText) {
+                retryText.textContent = `جاري إعادة المحاولة (${retryCount}/${maxRetries})...`;
+              } else {
+                const newRetryText = document.createElement('div');
+                newRetryText.className = 'codform-retry-text';
+                newRetryText.textContent = `جاري إعادة المحاولة (${retryCount}/${maxRetries})...`;
+                loaderEl.appendChild(newRetryText);
+              }
+            }
+            
+            // Exponential backoff
+            setTimeout(attemptFetch, 1000 * retryCount);
+            return;
+          }
+          
+          // Provide more specific error messages for common problems
+          let errorMessage = error.message;
+          
+          if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Network error: Unable to connect to the form server. Please check your internet connection.';
+          } else if (error.message.includes('CORS')) {
+            errorMessage = 'CORS error: The form server is not allowing connections from this domain.';
+          } else if (error.message.includes('JSON')) {
+            errorMessage = 'Format error: The server response was not in the expected format.';
+          }
+          
+          hideLoader(container);
+          showError(container, errorMessage);
+        });
+    }
+    
+    // Start first attempt
+    attemptFetch();
   }
   
   // Helper functions for showing/hiding elements

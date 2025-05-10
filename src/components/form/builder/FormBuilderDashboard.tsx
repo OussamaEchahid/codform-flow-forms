@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -25,25 +25,61 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
+  // Add max retries to prevent infinite loading
+  const [loadAttempts, setLoadAttempts] = useState(0);
+  const maxRetries = 3;
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch forms on component mount
+  // Fetch forms on component mount with safety limits
   useEffect(() => {
     const loadForms = async () => {
       try {
+        if (loadAttempts >= maxRetries) {
+          console.warn("FormBuilderDashboard: Max load attempts reached, using available forms");
+          setHasLoadedForms(true);
+          return;
+        }
+        
+        // Set a timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+          console.warn("FormBuilderDashboard: Load timeout, using available forms");
+          setHasLoadedForms(true);
+        }, 5000); // 5 second timeout
+        
+        loadingTimeoutRef.current = timeout;
+        
         await fetchForms();
+        setLoadAttempts(prev => prev + 1);
         setHasLoadedForms(true);
+        
+        // Clear timeout on successful load
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
       } catch (error) {
         console.error("Error loading forms:", error);
         toast.error(language === 'ar' ? 'خطأ في تحميل النماذج' : 'Error loading forms');
+        
+        // Still set loaded to prevent infinite loading
+        setHasLoadedForms(true);
       }
     };
 
     loadForms();
+    
+    // Clear timeout on unmount
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
   }, [forceRefresh]);
 
   // Update local forms when the forms from hook change, ensuring uniqueness by ID
   useEffect(() => {
-    if (hasLoadedForms && forms && forms.length > 0) {
+    if (forms && forms.length > 0) {
       // Remove duplicates by ID
       const uniqueForms = forms.reduce((acc: any[], current) => {
         const existingForm = acc.find(form => form.id === current.id);
@@ -54,8 +90,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }, []);
       
       setLocalForms(uniqueForms);
+    } else if (hasLoadedForms && loadAttempts >= maxRetries) {
+      // If we've tried multiple times but forms is empty, ensure we show empty state
+      // rather than eternal loading
+      setLocalForms([]);
     }
-  }, [forms, hasLoadedForms]);
+  }, [forms, hasLoadedForms, loadAttempts]);
 
   const handleCreateForm = async () => {
     try {
@@ -93,6 +133,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   };
 
+  // Don't show loading forever if we have forms already
+  const shouldShowLoading = isLoading && !localForms.length && loadAttempts < maxRetries;
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
@@ -122,7 +165,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       <FormList 
         forms={localForms} 
-        isLoading={isLoading && !localForms.length} 
+        isLoading={shouldShowLoading} 
         onSelectForm={handleSelectForm}
       />
       

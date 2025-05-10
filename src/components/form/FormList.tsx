@@ -42,22 +42,30 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
   const { publishForm, deleteForm } = useFormTemplates();
   
   // Remove duplicate forms by ID
-  const uniqueForms = forms.reduce((acc: FormData[], current) => {
+  const uniqueForms = Array.isArray(forms) ? forms.reduce((acc: FormData[], current) => {
     const existingForm = acc.find(form => form.id === current.id);
-    if (!existingForm) {
+    if (!existingForm && current.id) {
       acc.push(current);
     }
     return acc;
-  }, []);
+  }, []) : [];
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    await publishForm(formId, !currentStatus);
+    try {
+      await publishForm(formId, !currentStatus);
+    } catch (error) {
+      console.error("Error toggling form publish status:", error);
+    }
   };
 
   const handleDelete = async () => {
     if (formToDelete) {
-      await deleteForm(formToDelete);
-      setFormToDelete(null);
+      try {
+        await deleteForm(formToDelete);
+        setFormToDelete(null);
+      } catch (error) {
+        console.error("Error deleting form:", error);
+      }
     }
   };
 
@@ -69,7 +77,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
-  if (uniqueForms.length === 0) {
+  if (!Array.isArray(forms) || uniqueForms.length === 0) {
     return (
       <Card className="bg-gray-50 border-dashed">
         <CardContent className="pt-6 text-center">
