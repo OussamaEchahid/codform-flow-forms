@@ -103,7 +103,7 @@ export const useFormEditor = (formId?: string) => {
   }, []);
   
   // Method to update form style
-  const updateFormStyle = (styleUpdates: Partial<FormStyle>) => {
+  const updateFormStyle = useCallback((styleUpdates: Partial<FormStyle>) => {
     setState(prev => ({
       ...prev,
       formStyle: {
@@ -111,7 +111,7 @@ export const useFormEditor = (formId?: string) => {
         ...styleUpdates
       }
     }));
-  };
+  }, []);
 
   // Method to add an element
   const addElement = useCallback((element: FormField) => {

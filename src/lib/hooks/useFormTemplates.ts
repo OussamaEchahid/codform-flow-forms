@@ -18,6 +18,7 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
+  updated_at?: string; // Added missing updated_at property
   submitButtonText?: string; 
   submitbuttontext?: string;
   primaryColor?: string;

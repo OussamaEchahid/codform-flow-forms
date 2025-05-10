@@ -212,7 +212,7 @@ const FormList: React.FC<FormListProps> = ({
           ? statusA - statusB
           : statusB - statusA;
       } else {
-        // Default: sort by date
+        // Default: sort by date - Add null checks for updated_at
         const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
         const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
         return sortDirection === 'asc'
