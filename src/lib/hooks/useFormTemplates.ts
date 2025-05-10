@@ -12,7 +12,7 @@ export interface FormData {
   id: string;
   title: string;
   description?: string;
-  data: any; // تغيير إلى any لدعم أي هيكل بيانات 
+  data: any; // Changed to any to support different data structures 
   isPublished?: boolean;
   is_published?: boolean;
   shop_id?: string;
