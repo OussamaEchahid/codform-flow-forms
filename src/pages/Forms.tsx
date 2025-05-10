@@ -50,11 +50,12 @@ const Forms = () => {
     );
   }
 
-  // Pass forceRender to FormsPage to trigger refreshes when needed
+  // Pass key with instanceId to ensure proper re-rendering when needed
   return (
     <FormsPage 
       shopId={shopDomain} 
       key={`forms-${instanceId.current}`}
+      forceRefresh={hasSynced} // Trigger initial load when sync completes
     />
   );
 };

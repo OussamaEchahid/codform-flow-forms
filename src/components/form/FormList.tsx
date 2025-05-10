@@ -54,12 +54,20 @@ const FormList: React.FC<FormListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [localForms, setLocalForms] = useState<FormData[]>(forms);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
   
   // Generate a stable instance ID that doesn't change on re-renders
   const stableId = useRef(`${instanceId}-${Math.random().toString(36).substring(2, 8)}`);
+  
+  // Update local forms when props change
+  useEffect(() => {
+    if (isMounted.current) {
+      setLocalForms(forms);
+    }
+  }, [forms]);
   
   // On unmount, set mounted ref to false
   useEffect(() => {
@@ -80,6 +88,13 @@ const FormList: React.FC<FormListProps> = ({
       // Update local state to reflect the change
       if (isMounted.current) {
         setFormToDelete(null); // Clear any pending delete
+        setLocalForms(prevForms => 
+          prevForms.map(form => 
+            form.id === formId 
+              ? { ...form, is_published: !currentStatus, isPublished: !currentStatus } 
+              : form
+          )
+        );
       }
       
       toast.success(currentStatus 
@@ -96,10 +111,19 @@ const FormList: React.FC<FormListProps> = ({
     if (formToDelete) {
       try {
         await deleteForm(formToDelete);
+        
         if (isMounted.current) {
+          // Update local state immediately after successful deletion
+          setLocalForms(prevForms => prevForms.filter(form => form.id !== formToDelete));
           setFormToDelete(null);
         }
+        
         toast.success('تم حذف النموذج بنجاح');
+        
+        // Call the refresh callback if provided
+        if (onRefresh) {
+          await onRefresh();
+        }
       } catch (error) {
         console.error(`[${stableId.current}] Error deleting form:`, error);
         toast.error("فشل في حذف النموذج");
@@ -108,7 +132,7 @@ const FormList: React.FC<FormListProps> = ({
   };
 
   // Filter and sort forms
-  const filteredAndSortedForms = forms
+  const filteredAndSortedForms = localForms
     .filter(form => {
       if (!searchTerm) return true;
       const searchLower = searchTerm.toLowerCase();

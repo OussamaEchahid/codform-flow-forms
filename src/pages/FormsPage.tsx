@@ -228,6 +228,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
   }, [loadForms, language]);
 
   const handleEditForm = (formId: string) => {
+    // Navigate to form-builder route within the same window
     navigate(`/form-builder/${formId}`);
   };
 
@@ -249,6 +250,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
             size="sm" 
             onClick={handleRefresh}
             className="ml-auto"
+            title={language === 'ar' ? 'تحديث القائمة' : 'Refresh list'}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             {language === 'ar' ? 'تحديث' : 'Refresh'}
