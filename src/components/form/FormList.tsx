@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -148,9 +147,10 @@ const FormList: React.FC<FormListProps> = ({
         if (!form.id) {
           console.log(`[${instanceId}] FormList: Form missing ID, trying to fix:`, form);
           
-          // If the form has another unique identifier, use that
-          if (form._id) {
-            form.id = form._id;
+          // If the form has a custom ID property that could be used as a fallback
+          if (form.hasOwnProperty('_id')) {
+            // TypeScript type assertion to access potential custom property
+            form.id = (form as any)._id;
             return true;
           }
           
@@ -607,7 +607,7 @@ const FormList: React.FC<FormListProps> = ({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
                         <Edit className="mr-2 h-4 w-4" />
-                        <span>تعديل</span>
+                        <span>تع��يل</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => 
                         handlePublishToggle(form.id, form.is_published || form.isPublished || false)

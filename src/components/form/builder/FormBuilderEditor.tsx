@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -9,6 +8,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { useFormEditor } from '@/hooks/useFormEditor';
 import { useShopify } from '@/hooks/useShopify';
 import FormEditorLayout from './FormEditorLayout';
+import { FormStyle } from '@/hooks/useFormEditor';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -200,39 +200,48 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [formElements, setFormElements, debouncedSave]);
 
-  // Handle Shopify integration with improved error handling
-  const handleShopifyIntegration = useCallback(async (settings: any) => {
-    if (!currentFormId) {
-      toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
-      return;
-    }
-    
-    try {
-      await shopifyIntegration.syncForm({ 
-        formId: currentFormId,
-        shopDomain: shopifyIntegration.shop,
-        settings
-      });
-      
-      toast.success(
-        language === 'ar' 
-          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
-          : 'Shopify settings saved successfully'
-      );
-      
-      // Save form after Shopify integration
-      await handleSave();
-    } catch (error) {
-      console.error("Error saving Shopify settings:", error);
-      toast.error(
-        language === 'ar'
-          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
-          : 'Error saving Shopify settings'
-      );
-    }
-  }, [currentFormId, language, shopifyIntegration, handleSave]);
+  // Custom wrapper functions to adapt between different function signatures
 
-  // Manual save handler that shows clear feedback
+  // Adapt addElement to accept string type and create a basic element
+  const handleAddElement = useCallback((type: string) => {
+    // Create a basic FormField from the type
+    const newElement: FormField = {
+      id: Math.random().toString(36).substring(2, 9),
+      type: type,
+      label: `New ${type}`,
+      required: false
+    };
+    
+    addElement(newElement);
+    debouncedSave();
+  }, [addElement, debouncedSave]);
+
+  // Adapt updateElement to match interface requirements
+  const handleUpdateElement = useCallback((field: FormField) => {
+    const index = formElements.findIndex(el => el.id === field.id);
+    if (index !== -1) {
+      updateElement(index, field);
+      debouncedSave();
+    }
+  }, [formElements, updateElement, debouncedSave]);
+
+  // Adapt updateFormMeta to match required signature
+  const handleUpdateMeta = useCallback((field: 'title' | 'description' | 'submitButtonText', value: string) => {
+    const metadata: {[key: string]: string} = {};
+    metadata[field] = value;
+    updateFormMeta(metadata);
+    debouncedSave();
+  }, [updateFormMeta, debouncedSave]);
+
+  // Adapt style change to match required signature
+  const handleStyleChange = useCallback((key: string, value: string) => {
+    const newStyle: Partial<FormStyle> = {};
+    newStyle[key as keyof FormStyle] = value;
+    handleStyleChange(newStyle);
+    debouncedSave();
+  }, [handleStyleChange, debouncedSave]);
+
+  // Manual save handler that shows clear feedback and returns void
   const manualSaveHandler = useCallback(async () => {
     try {
       toast.loading(language === 'ar' ? 'جاري حفظ النموذج...' : 'Saving form...');
@@ -240,17 +249,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        return true;
       } else {
         toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
-        return false;
       }
     } catch (error) {
       console.error("Error during manual save:", error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-      return false;
     }
   }, [handleSave, language]);
+
+  // Publish handler wrapper to return void
+  const handlePublishWrapper = useCallback(async () => {
+    try {
+      await handlePublish();
+    } catch (error) {
+      console.error("Error publishing form:", error);
+      toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
+    }
+  }, [handlePublish, language]);
 
   return (
     <FormEditorLayout
@@ -267,21 +283,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       isPublishing={isPublishing}
       currentPreviewStep={currentPreviewStep}
       
-      // Handlers - using the manual save handler for direct save operations
+      // Use the adapted handlers to match the required signatures
       onSelectElement={setSelectedElementIndex}
-      onAddElement={addElement}
+      onAddElement={handleAddElement}
       onEditElement={(index: number) => {
         setSelectedElementIndex(index);
       }}
       onDeleteElement={deleteElement}
       onDuplicateElement={duplicateElement}
-      onUpdateElement={updateElement}
+      onUpdateElement={handleUpdateElement}
       onDragEnd={handleDragEnd}
-      onUpdateMeta={updateFormMeta}
+      onUpdateMeta={handleUpdateMeta}
       onStyleChange={handleStyleChange}
-      onSave={manualSaveHandler} // Use the manual save handler instead of safeSave
-      onPublish={handlePublish}
-      onShopifyIntegration={handleShopifyIntegration}
+      onSave={manualSaveHandler}
+      onPublish={handlePublishWrapper}
+      onShopifyIntegration={shopifyIntegration.syncForm}
       
       // Add reference for open dialogs
       dialogRef={openDialogRef}
