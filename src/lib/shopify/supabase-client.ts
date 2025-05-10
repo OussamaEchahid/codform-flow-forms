@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from './database-types';
+import { Database } from '@/integrations/supabase/database.types';
 
 // Use import.meta.env instead of process.env for client-side code
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://mtyfuwdsshlzqwjujavp.supabase.co";

@@ -1,3 +1,4 @@
+
 import React, { 
   createContext, 
   useState, 
@@ -7,13 +8,15 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { 
-  shopifyAuth, 
-  ShopifyAuthParams, 
-  ShopifyAuthRedirectResult 
-} from '@shopify/shopify-app-remix/server';
+// Remove Shopify Remix import that's not available
+// import { 
+//   shopifyAuth, 
+//   ShopifyAuthParams, 
+//   ShopifyAuthRedirectResult 
+// } from '@shopify/shopify-app-remix/server';
 import { clearShopifyCache } from '@/hooks/useShopify';
-import { shopifyStores } from './supabase/supabase-client';
+// Fix the import path for supabase client
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 
 // Test store configuration for development
 const DEV_TEST_STORE = 'astrem.myshopify.com';
@@ -29,6 +32,9 @@ interface ShopifyConnectionContextType {
   reload: () => Promise<void>;
   testConnection: (forceRefresh?: boolean) => Promise<boolean>;
   isDevMode: boolean;
+  // Add missing properties to fix the type errors
+  disconnect: () => Promise<void>;
+  forceSetConnected: (shopDomain: string) => void;
 }
 
 export const ShopifyConnectionContext = createContext<ShopifyConnectionContextType>({
@@ -41,6 +47,9 @@ export const ShopifyConnectionContext = createContext<ShopifyConnectionContextTy
   reload: async () => {},
   testConnection: async () => false,
   isDevMode: false,
+  // Add missing methods to match the interface
+  disconnect: async () => {},
+  forceSetConnected: () => {}
 });
 
 // Create a cache for token validation results to prevent redundant API calls
@@ -70,6 +79,48 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     
     setIsConnected(storedConnected);
     setIsLoading(false);
+  }, []);
+  
+  // Force set connected state - needed for the redirect page
+  const forceSetConnected = useCallback((shop: string) => {
+    setShopDomain(shop);
+    setIsConnected(true);
+    localStorage.setItem('shopify_store', shop);
+    localStorage.setItem('shopify_connected', 'true');
+    console.log(`Force set connection state to connected for shop: ${shop}`);
+  }, []);
+  
+  // Disconnect from Shopify store
+  const disconnect = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // Clear local storage items
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_token');
+      
+      // Clear token validation cache
+      tokenValidationCache.clear();
+      
+      // Update state
+      setIsConnected(false);
+      setShopDomain('');
+      setError(null);
+      
+      // Clear cache
+      clearShopifyCache();
+      
+      toast.success('تم قطع الاتصال بمتجر Shopify بنجاح');
+      
+      return true;
+    } catch (error) {
+      console.error('Error disconnecting store:', error);
+      toast.error('حدث خطأ أثناء محاولة قطع الاتصال');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
   
   // Sync connection state with localStorage
@@ -190,7 +241,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     } finally {
       setIsLoading(false);
     }
-  }, [shopDomain, syncState]);
+  }, [shopDomain, isDevMode]);
   
   // Schedule token refresh checks
   const scheduleTokenRefresh = useCallback(() => {
@@ -208,7 +259,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     const intervalId = setInterval(checkToken, 12 * 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
-  }, [shopDomain]);
+  }, [shopDomain, testConnection]);
   
   // Run scheduled token refresh on mount and when shopDomain changes
   useEffect(() => {
@@ -231,6 +282,9 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         reload,
         testConnection,
         isDevMode,
+        // Add the missing methods
+        disconnect,
+        forceSetConnected
       }}
     >
       {children}

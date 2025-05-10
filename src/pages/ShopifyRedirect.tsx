@@ -14,6 +14,7 @@ const ShopifyRedirect = () => {
   const [shop, setShop] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  // Context now includes forceSetConnected
   const { forceSetConnected, syncState } = useShopifyConnection();
 
   useEffect(() => {

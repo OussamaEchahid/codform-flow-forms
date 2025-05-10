@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 
 const ShopifyConnection = () => {
+  // Context now has the disconnect method included
   const { isConnected, shopDomain, isLoading, error, reload, disconnect } = useShopifyConnection();
   const [shopInput, setShopInput] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);

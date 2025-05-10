@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
@@ -18,7 +17,7 @@ const Shopify = () => {
     isConnected, 
     shopDomain,
     reload,
-    disconnect
+    disconnect 
   } = useShopifyConnection();
   
   const [isResetting, setIsResetting] = useState(false);
