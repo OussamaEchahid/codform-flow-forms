@@ -22,12 +22,13 @@ export async function saveProductSettings(
     // التحقق من وجود البيانات المطلوبة
     if (!shopId || shopId.trim() === '') {
       console.error('معرف المتجر غير موجود');
-      return { error: 'معرف المتجر غير موجود' };
+      return { success: false, error: 'معرف المتجر غير موجود' };
     }
     
     if (!requestBody.productId || !requestBody.formId) {
       console.error('البيانات المطلوبة غير موجودة: productId أو formId');
       return { 
+        success: false,
         error: 'البيانات المطلوبة غير موجودة: productId أو formId'
       };
     }
@@ -48,6 +49,7 @@ export async function saveProductSettings(
       if (transactionResult.error) {
         console.error('Transaction error:', transactionResult.error);
         return {
+          success: false,
           error: `Error handling product settings: ${transactionResult.error.message}`
         };
       }
@@ -85,6 +87,7 @@ export async function saveProductSettings(
         if (result.error) {
           console.error('Database error during direct upsert:', result.error);
           return { 
+            success: false,
             error: `خطأ في قاعدة البيانات: ${result.error.message || 'خطأ غير معروف'}`
           };
         }
@@ -97,19 +100,20 @@ export async function saveProductSettings(
       console.log('Product settings saved successfully');
       return { 
         success: true,
-        productId: requestBody.productId,
-        formId: requestBody.formId,
+        message: 'Product settings saved successfully',
         blockId: requestBody.blockId || transactionResult.data?.block_id
       };
     } catch (dbError: any) {
       console.error('Database error:', dbError);
       return { 
+        success: false,
         error: `خطأ في قاعدة البيانات: ${dbError.message || 'خطأ غير معروف'}`
       };
     }
   } catch (error: any) {
     console.error('Settings error:', error);
     return { 
+      success: false,
       error: error.message || 'خطأ في حفظ إعدادات المنتج'
     };
   }

@@ -2,6 +2,7 @@
 import { getMockProducts } from './mock-data';
 import { isDevelopmentMode, isTestStore } from './constants';
 import { toast } from 'sonner';
+import { createShopifyAPI } from './api-client'; // Add this import
 
 // Use type import to fix the isolatedModules error
 export type { 
@@ -12,6 +13,9 @@ export type {
 
 // Re-export the cleanShopifyDomain function
 export { cleanShopifyDomain } from './types';
+
+// Re-export the createShopifyAPI function
+export { createShopifyAPI }; // Add this export statement
 
 /**
  * Load Shopify products from the API or mock data

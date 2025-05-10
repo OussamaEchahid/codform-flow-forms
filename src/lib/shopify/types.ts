@@ -73,6 +73,7 @@ export interface ProductSettingsResponse {
   message?: string;
   data?: any;
   error?: string;
+  blockId?: string;
 }
 
 /**
