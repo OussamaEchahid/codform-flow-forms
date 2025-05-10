@@ -63,10 +63,18 @@ serve(async (req: Request) => {
       );
     }
     
+    // Get Supabase credentials from environment
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Required Supabase credentials are missing');
+    }
+    
     // For real stores, check the database for credentials
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl,
+      supabaseServiceRoleKey
     );
     
     console.log(`[${requestId}] Checking database for shop credentials`);
@@ -77,16 +85,28 @@ serve(async (req: Request) => {
       .eq('shop', shop)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
       
-    if (storeError || !storeData) {
+    if (storeError) {
+      console.log(`[${requestId}] Error finding store in database: ${storeError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          connected: false, 
+          error: "Database error when looking up store",
+          details: storeError.message
+        }),
+        { headers: corsHeaders }
+      );
+    }
+      
+    if (!storeData) {
       console.log(`[${requestId}] Store not found in database`);
       return new Response(
         JSON.stringify({ 
           success: false, 
           connected: false, 
-          error: "Store not found in database",
-          storeError: storeError?.message
+          error: "Store not found in database"
         }),
         { headers: corsHeaders }
       );

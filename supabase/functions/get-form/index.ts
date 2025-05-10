@@ -45,16 +45,18 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Retrieving form data for ID: ${formId}`);
 
-    // Create Supabase client using the request's auth header or anon key
-    const authHeader = req.headers.get('Authorization');
+    // Get Supabase credentials from environment
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Required Supabase credentials are missing');
+    }
+
+    // Create Supabase client with anon key
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      authHeader ? '' : (Deno.env.get('SUPABASE_ANON_KEY') ?? ''),
-      { 
-        global: { 
-          headers: authHeader ? { Authorization: authHeader } : {} 
-        } 
-      }
+      supabaseUrl,
+      supabaseAnonKey
     );
 
     // Get form data with optimized query

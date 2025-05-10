@@ -1,10 +1,8 @@
 
 /**
- * API route for fetching Shopify access token
- * This provides a method for the client to get the token without exposing it in the frontend
+ * API route to securely fetch Shopify access tokens
+ * This acts as a middleware to securely retrieve tokens from the database
  */
-import { shopifyStores } from '@/lib/shopify/supabase-client';
-
 export async function GET(request: Request) {
   try {
     // Extract shop from URL parameters
@@ -12,90 +10,105 @@ export async function GET(request: Request) {
     const shop = url.searchParams.get('shop');
     const debug = url.searchParams.get('debug') === 'true';
 
-    console.log(`[shopify-token] Request received for shop: ${shop}`);
-
     if (!shop) {
-      console.error('[shopify-token] Missing shop parameter');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter: shop' }), 
+        JSON.stringify({ 
+          error: 'Missing required parameter: shop' 
+        }), 
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
-
-    // Get token from database
-    try {
-      const { data, error } = await shopifyStores()
-        .select('access_token, updated_at')
-        .eq('shop', shop)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error('[shopify-token] Database error fetching token:', error);
-        return new Response(
-          JSON.stringify({ error: 'Database error fetching token', details: error.message }), 
-          { 
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      if (!data || data.length === 0 || !data[0].access_token) {
-        console.error(`[shopify-token] No token found for shop: ${shop}`);
-        return new Response(
-          JSON.stringify({ error: 'No token found for this shop' }), 
-          { 
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      const tokenAge = new Date().getTime() - new Date(data[0].updated_at).getTime();
-      const tokenAgeHours = Math.floor(tokenAge / (1000 * 60 * 60));
-      
-      if (debug) {
-        console.log(`[shopify-token] Token found for ${shop}. Token age: ${tokenAgeHours} hours`);
-      }
-      
-      // Check if token is a placeholder for debugging
-      if (data[0].access_token === 'placeholder_token') {
-        console.warn(`[shopify-token] Warning: Placeholder token detected for shop: ${shop}`);
-      }
-
-      // Return access token
+    
+    // Normalize shop domain if needed
+    const normalizedShop = shop.includes('myshopify.com') ? shop : `${shop}.myshopify.com`;
+    
+    // Handle dev mode special cases
+    const isDevStore = ['test-store', 'myteststore', 'astrem'].some(
+      testName => normalizedShop.toLowerCase().includes(testName.toLowerCase())
+    );
+    
+    if (isDevStore || process.env.NODE_ENV === 'development') {
+      console.log('Development mode detected, using test token');
       return new Response(
         JSON.stringify({ 
-          accessToken: data[0].access_token,
-          shop,
-          tokenAge: tokenAgeHours
+          accessToken: 'shpat_test_token_for_dev_environment',
+          shop: normalizedShop,
+          isDev: true
         }), 
         { 
           status: 200,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-          }
-        }
-      );
-    } catch (dbError) {
-      console.error('[shopify-token] Error querying database:', dbError);
-      return new Response(
-        JSON.stringify({ error: 'Database query error', details: dbError instanceof Error ? dbError.message : 'Unknown error' }), 
-        { 
-          status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
-  } catch (error) {
-    console.error('[shopify-token] Unexpected error:', error);
+    
+    // For production, fetch the real token from Supabase
+    const SUPABASE_URL = 'https://mtyfuwdsshlzqwjujavp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
+    
+    // Create a minimal fetch-based client since we don't want to import the full Supabase client here
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/shopify_stores?shop=eq.${encodeURIComponent(normalizedShop)}&select=access_token,is_active&limit=1`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Database error: ${response.status} - ${errorText}`);
+    }
+    
+    const stores = await response.json();
+    
+    if (!stores || stores.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Store not found in database' 
+        }), 
+        { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    const store = stores[0];
+    
+    if (!store.access_token || store.access_token === 'placeholder_token') {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No valid access token available' 
+        }), 
+        { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), 
+      JSON.stringify({ 
+        accessToken: store.access_token,
+        isActive: store.is_active,
+        shop: normalizedShop
+      }), 
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  } catch (error) {
+    console.error('Error fetching Shopify token:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      }), 
       { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }

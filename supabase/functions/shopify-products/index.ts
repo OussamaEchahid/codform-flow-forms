@@ -1,6 +1,6 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +12,7 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   const requestId = `edge_${Math.random().toString(36).substring(2, 8)}`;
@@ -38,18 +38,64 @@ serve(async (req) => {
     
     console.log(`[${requestId}] Processing request for shop: ${shop}`);
 
-    if (!shop || !accessToken) {
-      console.error(`[${requestId}] Missing required parameters: shop=${!!shop}, accessToken=${!!accessToken}`);
+    if (!shop) {
+      console.error(`[${requestId}] Missing shop parameter`);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Missing required parameters: shop or accessToken' 
+          error: 'Missing required parameter: shop' 
         }),
         { 
-          headers: { ...corsHeaders },
+          headers: corsHeaders,
           status: 400 
         }
-      )
+      );
+    }
+
+    // Debugging: Check access token
+    if (!accessToken) {
+      console.log(`[${requestId}] No access token provided, retrieving from database`);
+      
+      // Get supabase credentials
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase credentials are missing');
+      }
+      
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      // Normalize shop domain
+      let normalizedShopDomain = shop;
+      if (!normalizedShopDomain.includes('myshopify.com')) {
+        normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
+      }
+      
+      // Get token from database
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', normalizedShopDomain)
+        .maybeSingle();
+        
+      if (storeError || !storeData || !storeData.access_token) {
+        console.error(`[${requestId}] Error retrieving token from database:`, storeError || 'No token found');
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'No valid access token available for this shop' 
+          }),
+          { 
+            headers: corsHeaders,
+            status: 401 
+          }
+        );
+      }
+      
+      // Use token from database
+      params.accessToken = storeData.access_token;
+      console.log(`[${requestId}] Retrieved token from database for shop ${normalizedShopDomain}`);
     }
 
     // Normalize shop domain
@@ -60,11 +106,11 @@ serve(async (req) => {
 
     console.log(`[${requestId}] Using normalized shop domain: ${normalizedShopDomain}`);
 
-    // Call Shopify GraphQL API to get products - FIXED QUERY 
+    // Call Shopify GraphQL API to get products - SIMPLER QUERY
     const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json`;
     const query = `
-      {
-        products(first: 50) {
+      query {
+        products(first: 20) {
           edges {
             node {
               id
@@ -76,22 +122,8 @@ serve(async (req) => {
                   currencyCode
                 }
               }
-              images(first: 1) {
-                edges {
-                  node {
-                    url
-                  }
-                }
-              }
-              variants(first: 5) {
-                edges {
-                  node {
-                    id
-                    title
-                    price
-                    availableForSale
-                  }
-                }
+              featuredImage {
+                url
               }
             }
           }
@@ -110,7 +142,7 @@ serve(async (req) => {
         shopifyResponse = await fetch(graphqlUrl, {
           method: 'POST',
           headers: {
-            'X-Shopify-Access-Token': accessToken,
+            'X-Shopify-Access-Token': params.accessToken,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
@@ -148,7 +180,7 @@ serve(async (req) => {
           headers: corsHeaders,
           status: 200 // We return 200 with error info in the body for better client handling
         }
-      )
+      );
     }
 
     // Handle HTTP error responses
@@ -170,7 +202,7 @@ serve(async (req) => {
           headers: corsHeaders,
           status: 200 // We return 200 with error info in the body
         }
-      )
+      );
     }
 
     // Process the successful response
@@ -189,7 +221,7 @@ serve(async (req) => {
             requestId
           }),
           { headers: corsHeaders, status: 200 }
-        )
+        );
       }
       
       if (!shopifyData.data || !shopifyData.data.products || !shopifyData.data.products.edges) {
@@ -203,76 +235,22 @@ serve(async (req) => {
             requestId
           }),
           { headers: corsHeaders, status: 200 }
-        )
+        );
       }
       
       // Transform the product data to a simpler format
       const products = shopifyData.data.products.edges.map(edge => {
         const node = edge.node;
-        const product = {
+        return {
           id: node.id,
           title: node.title,
           handle: node.handle,
           price: node?.priceRangeV2?.minVariantPrice?.amount,
-          images: node.images?.edges?.map(img => img.node.url) || [],
-          variants: (node.variants?.edges || []).map(variant => ({
-            id: variant.node.id,
-            title: variant.node.title,
-            price: variant.node.price,
-            available: variant.node.availableForSale,
-          }))
-        }
-        return product;
+          images: node.featuredImage ? [node.featuredImage.url] : []
+        };
       });
       
       console.log(`[${requestId}] Successfully fetched ${products.length} products`);
-      
-      // Store the shop in database if it doesn't exist
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://mtyfuwdsshlzqwjujavp.supabase.co'
-        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-        
-        if (supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey)
-          
-          // Check if the store exists in the database
-          const { data: existingStore } = await supabase
-            .from('shopify_stores')
-            .select()
-            .eq('shop', normalizedShopDomain)
-            .limit(1)
-          
-          if (!existingStore || existingStore.length === 0) {
-            // Store doesn't exist, let's create it
-            await supabase
-              .from('shopify_stores')
-              .insert({
-                shop: normalizedShopDomain,
-                access_token: accessToken,
-                token_type: 'offline',
-                is_active: true
-              })
-            
-            console.log(`[${requestId}] Added shop ${normalizedShopDomain} to database`);
-          } else {
-            // Store exists, update the token and set as active
-            await supabase
-              .from('shopify_stores')
-              .update({
-                access_token: accessToken,
-                token_type: 'offline',
-                is_active: true,
-                updated_at: new Date().toISOString()
-              })
-              .eq('shop', normalizedShopDomain)
-            
-            console.log(`[${requestId}] Updated shop ${normalizedShopDomain} in database`);
-          }
-        }
-      } catch (dbError) {
-        console.error(`[${requestId}] Error updating database:`, dbError);
-        // We don't fail the request if database update fails
-      }
       
       return new Response(
         JSON.stringify({ 
@@ -284,7 +262,7 @@ serve(async (req) => {
           headers: corsHeaders,
           status: 200 
         }
-      )
+      );
     } catch (parseError) {
       console.error(`[${requestId}] Error parsing Shopify response:`, parseError);
       return new Response(
@@ -308,6 +286,6 @@ serve(async (req) => {
         headers: corsHeaders,
         status: 500 
       }
-    )
+    );
   }
-})
+});
