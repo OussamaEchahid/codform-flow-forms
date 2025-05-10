@@ -204,13 +204,27 @@ export const useShopify = () => {
             id: 'gid://shopify/Product/1', 
             title: 'Test Product 1', 
             handle: 'test-product-1',
-            variants: [{ id: 'gid://shopify/ProductVariant/1', price: '99.99' }]
+            price: '99.99',
+            images: [],
+            variants: [{ 
+              id: 'gid://shopify/ProductVariant/1', 
+              title: 'Default Variant',
+              price: '99.99',
+              available: true 
+            }]
           },
           { 
             id: 'gid://shopify/Product/2', 
             title: 'Test Product 2', 
             handle: 'test-product-2',
-            variants: [{ id: 'gid://shopify/ProductVariant/2', price: '149.99' }]
+            price: '149.99',
+            images: [],
+            variants: [{ 
+              id: 'gid://shopify/ProductVariant/2', 
+              title: 'Default Variant',
+              price: '149.99',
+              available: true 
+            }]
           }
         ];
         
@@ -276,7 +290,7 @@ export const useShopify = () => {
     setIsSyncing(true);
     try {
       // For dev mode, mock the sync
-      if (isDevMode && formData.shop === DEV_TEST_STORE) {
+      if (isDevMode && formData.shopDomain === DEV_TEST_STORE) {
         console.log(`[${instanceId.current}] DEV MODE: Mocking form sync`);
         // Wait a bit to simulate network request
         await new Promise(resolve => setTimeout(resolve, 1000));

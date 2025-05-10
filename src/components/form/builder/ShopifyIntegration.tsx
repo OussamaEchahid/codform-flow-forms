@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -202,7 +203,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (actualFormId) {
           await syncForm({ 
             formId: actualFormId,
-            shopDomain: shop, // Changed from shopifyIntegration.shop to shop
+            shopDomain: shop, 
             settings: {
               products: selectedProducts,
               blockId: blockId
@@ -269,6 +270,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         window.open(shopifyUrl, '_blank');
       }
     }
+  };
+
+  // Create a wrapper function to handle onClick event properly
+  const handleLoadProductsClick = () => {
+    loadProducts(true);
   };
 
   // Render different content based on connection status
@@ -374,7 +380,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={loadProducts}
+            onClick={handleLoadProductsClick}
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

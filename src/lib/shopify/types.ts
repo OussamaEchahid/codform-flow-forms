@@ -97,8 +97,8 @@ export interface ShopifyProduct {
   id: string;
   title: string;
   handle: string;
-  price: string;
-  images: string[];
+  price?: string;
+  images?: string[];
   variants: Array<{
     id: string;
     title: string;
