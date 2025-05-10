@@ -85,9 +85,8 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
   onShopifyIntegration,
   dialogRef,
 }) => {
-  const { language } = useI18n();
-  
   // Local UI state
+  const { language } = useI18n();
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
@@ -263,8 +262,6 @@ const FormEditorLayout: React.FC<FormEditorLayoutProps> = memo(({
             <TabsContent value="shopify" className="py-4">
               <ShopifyIntegration
                 formId={formId}
-                onSave={onShopifyIntegration}
-                isSyncing={false}
               />
             </TabsContent>
           </Tabs>

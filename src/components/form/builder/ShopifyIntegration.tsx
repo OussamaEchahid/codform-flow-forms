@@ -29,6 +29,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const [productsCount, setProductsCount] = useState<number>(0);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false); // Add local loading state for refresh operations
   const mounted = useRef(true);
   const retryCount = useRef(0);
   const maxRetries = 3;
@@ -128,6 +129,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   
   const handleRetryConnection = async () => {
     setConnectionStatus('checking');
+    setIsRefreshing(true); // Use local state instead of setIsLoading
     
     try {
       const isConnected = await refreshConnection(true);
@@ -154,12 +156,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           ? 'خطأ في إعادة الاتصال' 
           : 'Error refreshing connection');
       }
+    } finally {
+      if (mounted.current) {
+        setIsRefreshing(false); // Use local state instead of setIsLoading
+      }
     }
   };
   
   // Handle manual refresh of products
   const handleRefreshProducts = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault(); // Prevent any form submission
+    setIsRefreshing(true); // Use local state instead of setIsLoading
     
     try {
       retryCount.current = 0; // Reset retry counter
@@ -177,6 +184,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       toast.error(language === 'ar' 
         ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
         : 'Failed to refresh products, please try again');
+    } finally {
+      if (mounted.current) {
+        setIsRefreshing(false); // Use local state instead of setIsLoading
+      }
     }
   };
   
@@ -228,7 +239,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
               {language === 'ar' ? 'عدد المنتجات:' : 'Products Count:'}
             </span>
             <span className="text-sm">
-              {isLoading 
+              {isLoading || isRefreshing
                 ? <Loader2 className="h-3 w-3 animate-spin inline ml-2" /> 
                 : productsCount}
             </span>
@@ -251,9 +262,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           variant="outline"
           size="sm"
           onClick={handleRetryConnection}
-          disabled={connectionStatus === 'checking'}
+          disabled={connectionStatus === 'checking' || isRefreshing}
         >
-          {connectionStatus === 'checking' ? (
+          {connectionStatus === 'checking' || isRefreshing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               {language === 'ar' ? 'جاري الفحص...' : 'Checking...'}
@@ -270,9 +281,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           variant="outline"
           size="sm"
           onClick={handleRefreshProducts}
-          disabled={isLoading || connectionStatus !== 'connected'}
+          disabled={isLoading || isRefreshing || connectionStatus !== 'connected'}
         >
-          {isLoading ? (
+          {isLoading || isRefreshing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               {language === 'ar' ? 'جاري التحديث...' : 'Refreshing...'}
