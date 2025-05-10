@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -122,7 +121,7 @@ const FormList: React.FC<FormListProps> = ({
         .filter(form => form && typeof form === 'object')
         .map(form => {
           // Ensure we have all required fields with fallbacks
-          return {
+          const formData: FormData = {
             id: form.id || '',
             title: form.title || 'بدون عنوان',
             description: form.description || '',
@@ -134,8 +133,11 @@ const FormList: React.FC<FormListProps> = ({
             created_at: form.created_at || new Date().toISOString(),
             // Add any other required fields with fallbacks
             shop_id: form.shop_id || '',
-            data: form.data || {}
+            // CRITICAL FIX: Ensure data is always an array, not an empty object
+            data: Array.isArray(form.data) ? form.data : (form.data && typeof form.data === 'object' && 'steps' in form.data ? form.data.steps : [])
           };
+          
+          return formData;
         })
         .filter(form => form.id); // Final filter to ensure we have an ID
       
