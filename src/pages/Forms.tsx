@@ -73,7 +73,7 @@ const Forms = () => {
     window.location.reload();
   }, []);
   
-  // Try API-based connection check first
+  // Check API-based connection check first
   const checkConnectionViaApi = useCallback(async (shopName: string): Promise<boolean> => {
     // Dev mode bypass for test store
     if (isDevMode && shopName === DEV_TEST_STORE) {
@@ -86,13 +86,14 @@ const Forms = () => {
       
       // Try POST first
       try {
+        const requestId = `api_check_${Math.random().toString(36).substring(2, 8)}`;
         const postResponse = await fetch(`/api/shopify-test-connection`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop: shopName, 
             force: true,
-            requestId: `api_check_${Math.random().toString(36).substring(2, 8)}`
+            requestId: requestId
           })
         });
         

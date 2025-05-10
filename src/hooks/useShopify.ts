@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -121,7 +122,7 @@ export const useShopify = () => {
           id: 'gid://shopify/Product/1',
           title: '[DEV] Test Product 1',
           handle: 'test-product-1',
-          description: 'This is a test product for development mode',
+          price: '19.99',
           images: [
             'https://via.placeholder.com/800x600?text=Test+Product+1'
           ],
@@ -138,7 +139,7 @@ export const useShopify = () => {
           id: 'gid://shopify/Product/2',
           title: '[DEV] Test Product 2',
           handle: 'test-product-2',
-          description: 'This is another test product for development mode',
+          price: '29.99',
           images: [
             'https://via.placeholder.com/800x600?text=Test+Product+2'
           ],
@@ -654,3 +655,4 @@ export const clearShopifyCache = () => {
     tokenValidationCache.clear();
   }
 };
+
