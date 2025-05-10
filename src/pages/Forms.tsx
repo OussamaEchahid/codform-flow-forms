@@ -15,9 +15,15 @@ const Forms = () => {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [emergencyReset, setEmergencyReset] = useState(false);
   const [forceRender, setForceRender] = useState(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
+  console.log("Forms component rendering. Shop domain:", shopDomain, "isConnected:", isConnected);
   
   // Run diagnostics on component mount
   useEffect(() => {
+    // Force remove recovery mode - CRITICAL FIX
+    localStorage.removeItem('shopify_recovery_mode');
+    
     // Log diagnostics data for debugging
     console.log('Forms page mounted. Running diagnostics...');
     logShopifyDiagnostics();
@@ -27,6 +33,13 @@ const Forms = () => {
     localStorage.removeItem('forms_cache');
     localStorage.removeItem('shopify_forms');
     localStorage.setItem('forms_last_reload', Date.now().toString());
+    
+    // Set initial load complete after a short delay
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, [shopDomain]);
   
   // Force a sync before rendering forms
@@ -44,7 +57,7 @@ const Forms = () => {
             if (fallbackShopId) {
               console.log('Forms page: Using fallback shop ID from localStorage:', fallbackShopId);
               
-              // Double verify this shop exists in the database
+              // Double verify this shop exists in the database - but no blocking
               try {
                 const { data: shopExists } = await supabase
                   .from('forms')
@@ -114,6 +127,10 @@ const Forms = () => {
       resetShopifyConnection();
       toast.success('تم إعادة تعيين حالة الاتصال، سيتم إعادة تحميل الصفحة');
       
+      // Clear all localStorage items that might affect connection
+      localStorage.removeItem('shopify_recovery_mode');
+      localStorage.setItem('shopify_sync_attempts', '0');
+      
       // Short delay to ensure localStorage changes are saved
       setTimeout(() => {
         window.location.href = '/shopify-connect';
@@ -122,6 +139,23 @@ const Forms = () => {
       console.error('Error during emergency reset:', error);
       setEmergencyReset(false);
       toast.error('حدث خطأ أثناء إعادة التعيين');
+    }
+  };
+
+  const handleFullReset = () => {
+    // Perform a complete reset of all connection and form data
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      toast.success('تم مسح جميع البيانات المحلية، سيتم إعادة تحميل الصفحة');
+      
+      // Short delay to ensure changes are saved
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    } catch (error) {
+      console.error('Error during full reset:', error);
+      toast.error('حدث خطأ أثناء إعادة التعيين الكامل');
     }
   };
 
@@ -147,6 +181,9 @@ const Forms = () => {
                 )}
                 إعادة تعيين اتصال Shopify
               </Button>
+              <Button onClick={handleFullReset} variant="destructive" className="bg-red-700">
+                إعادة تعيين كاملة للتطبيق
+              </Button>
             </div>
           </AlertDescription>
         </Alert>
@@ -155,7 +192,7 @@ const Forms = () => {
   }
 
   // Show loading while we sync
-  if (isLoading || !hasSynced) {
+  if ((isLoading || !hasSynced) && !initialLoadComplete) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary ml-2" />
@@ -166,7 +203,12 @@ const Forms = () => {
 
   // Pass forceRender to FormsPage to trigger refreshes when needed
   return (
-    <FormsPage shopId={shopDomain} key={`forms-${forceRender}`} forceRefresh={forceRender > 0} />
+    <FormsPage 
+      shopId={shopDomain} 
+      key={`forms-${forceRender}`} 
+      forceRefresh={forceRender > 0}
+      onReset={handleFullReset}
+    />
   );
 };
 

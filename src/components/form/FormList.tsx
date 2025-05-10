@@ -46,7 +46,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 7, // Increased from 5 to 7
+  maxAttempts = 10, // Increased from 7 to 10
   onRefresh,
   instanceId = 'form-list' 
 }) => {
@@ -83,7 +83,7 @@ const FormList: React.FC<FormListProps> = ({
     return () => clearTimeout(timeoutId);
   }, [processingComplete, instanceId]);
   
-  // Process and validate forms data whenever it changes, with improved safety
+  // CRITICAL FIX: Improved form data processing and validation
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -117,10 +117,27 @@ const FormList: React.FC<FormListProps> = ({
         }))
       );
       
-      // Basic validation of forms data - objects with an id property
-      const validForms = formsArray.filter(form => 
-        form && typeof form === 'object' && form.id && typeof form.id === 'string'
-      );
+      // CRITICAL FIX: More robust validation and transformation of form data
+      const validForms = formsArray
+        .filter(form => form && typeof form === 'object')
+        .map(form => {
+          // Ensure we have all required fields with fallbacks
+          return {
+            id: form.id || '',
+            title: form.title || 'بدون عنوان',
+            description: form.description || '',
+            // Handle different property names for published status
+            is_published: form.is_published !== undefined ? form.is_published : 
+                         form.isPublished !== undefined ? form.isPublished : false,
+            isPublished: form.is_published !== undefined ? form.is_published : 
+                        form.isPublished !== undefined ? form.isPublished : false,
+            created_at: form.created_at || new Date().toISOString(),
+            // Add any other required fields with fallbacks
+            shop_id: form.shop_id || '',
+            data: form.data || {}
+          };
+        })
+        .filter(form => form.id); // Final filter to ensure we have an ID
       
       if (validForms.length === 0 && attemptCount < maxAttempts - 1) {
         console.log(`[${instanceId}] FormList: No valid forms found, will retry. Attempt ${attemptCount + 1} of ${maxAttempts}`);

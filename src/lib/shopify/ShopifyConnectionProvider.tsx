@@ -48,7 +48,7 @@ export const tokenValidationCache = new Map<string, { isValid: boolean, timestam
 
 // Limit connection check attempts
 let connectionCheckCount = 0;
-const MAX_CONNECTION_CHECKS = 3; // Increased from 2 to 3
+const MAX_CONNECTION_CHECKS = 3;
 
 export const useShopifyConnection = () => useContext(ShopifyConnectionContext);
 
@@ -58,7 +58,6 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recoveryMode, setRecoveryMode] = useState<boolean>(false);
   
   // Check if the app is running in development mode
   const isDevMode = process.env.NODE_ENV === 'development' || import.meta.env.DEV === true;
@@ -141,27 +140,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     loadWithRetry();
   }, [isDevMode]);
   
-  // Monitor for connection state issues and enter recovery mode if needed
-  useEffect(() => {
-    const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts');
-    const syncAttempts = syncAttemptsStr ? parseInt(syncAttemptsStr, 10) : 0;
-    
-    if (syncAttempts > 5) {
-      console.log('Too many sync attempts (' + syncAttempts + '), entering recovery mode');
-      setRecoveryMode(true);
-      localStorage.setItem('shopify_recovery_mode', 'true');
-    }
-    
-    // Check every 30 seconds if we should exit recovery mode
-    const recoveryInterval = setInterval(() => {
-      const inRecovery = localStorage.getItem('shopify_recovery_mode') === 'true';
-      if (inRecovery) {
-        console.log('In recovery mode, skipping connection sync');
-      }
-    }, 30000);
-    
-    return () => clearInterval(recoveryInterval);
-  }, []);
+  // CRITICAL FIX: Removed recovery mode monitoring that was preventing form loading
   
   // Force set connected state
   const forceSetConnected = useCallback((shop: string) => {
@@ -195,7 +174,6 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       setIsConnected(false);
       setShopDomain('');
       setError(null);
-      setRecoveryMode(false);
       
       // Clear cache
       clearShopifyCache();
@@ -284,13 +262,9 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   
   // Simplified state sync without API calls
   const syncState = useCallback(async (): Promise<void> => {
-    // Check if we're in recovery mode
-    if (localStorage.getItem('shopify_recovery_mode') === 'true') {
-      console.log('[CONNECTION PROVIDER] In recovery mode, skipping connection sync');
-      return;
-    }
+    // CRITICAL FIX: Removed recovery mode check that was blocking connection sync
     
-    // Track sync attempts
+    // Track sync attempts - but don't block syncing
     const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts') || '0';
     const syncAttempts = parseInt(syncAttemptsStr, 10) + 1;
     localStorage.setItem('shopify_sync_attempts', syncAttempts.toString());
@@ -310,7 +284,6 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         shopifyConnected: isConnected
       },
       syncAttempts,
-      inRecovery: recoveryMode,
       timestamp: Date.now()
     });
     
@@ -381,16 +354,6 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         localStorage.setItem('shopify_store', DEV_TEST_STORE);
         localStorage.setItem('shopify_connected', 'true');
       }
-      
-      // Check if we need to enter recovery mode
-      const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts') || '0';
-      const syncAttempts = parseInt(syncAttemptsStr, 10);
-      
-      if (syncAttempts > 5) {
-        console.log('Too many sync attempts (' + syncAttempts + '), entering recovery mode');
-        setRecoveryMode(true);
-        localStorage.setItem('shopify_recovery_mode', 'true');
-      }
     } finally {
       setIsLoading(false);
       setIsValidating(false);
@@ -402,11 +365,8 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     // Reset the sync attempts counter
     localStorage.setItem('shopify_sync_attempts', '0');
     
-    // Exit recovery mode if enabled
-    if (recoveryMode) {
-      setRecoveryMode(false);
-      localStorage.removeItem('shopify_recovery_mode');
-    }
+    // CRITICAL FIX: Remove recovery mode completely
+    localStorage.removeItem('shopify_recovery_mode');
     
     if ((isDevMode || process.env.NODE_ENV === 'development') && 
         (shopDomain === DEV_TEST_STORE || !shopDomain)) {
@@ -416,7 +376,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     
     // Force a state refresh without reload
     syncState();
-  }, [isDevMode, shopDomain, syncState, recoveryMode]);
+  }, [isDevMode, shopDomain, syncState]);
   
   return (
     <ShopifyConnectionContext.Provider

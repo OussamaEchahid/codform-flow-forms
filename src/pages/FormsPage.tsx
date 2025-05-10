@@ -17,7 +17,7 @@ import { useI18n } from '@/lib/i18n';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,9 +28,10 @@ import { resetShopifyConnection } from '@/utils/diagnostics';
 interface FormsPageProps {
   shopId?: string;
   forceRefresh?: boolean;
+  onReset?: () => void;
 }
 
-const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
+const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) => {
   const { language } = useI18n();
   const [forms, setForms] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,6 +42,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
   const [hasLoadAttempted, setHasLoadAttempted] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [loadTimestamp, setLoadTimestamp] = useState(Date.now());
+  const [retryCount, setRetryCount] = useState(0);
   
   // Generate a unique instance ID for better debugging
   const instanceId = React.useRef(`forms-page-${Math.random().toString(36).substr(2, 9)}`);
@@ -82,8 +84,8 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
     }
     
     try {
-      // Use the shopId prop, or fallback to shopDomain or localStorage
-      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
+      // IMPROVED: Use multiple strategies to find the shop ID
+      let currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       console.log(`[${instanceId.current}] FormsPage: Loading forms for shop:`, currentShopId);
       
@@ -95,90 +97,102 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
         return;
       }
       
-      // Log detailed diagnostic information
+      // CRITICAL FIX: Log detailed diagnostic information
       console.log(`[${instanceId.current}] FormsPage: Load attempt with details:`, {
         shopId,
         shopDomain,
         localStorage: localStorage.getItem('shopify_store'),
         useShopId: currentShopId,
-        timestamp: loadTimestamp
+        timestamp: loadTimestamp,
+        retryCount
       });
       
-      // IMPROVED: Use a more direct query to get forms specifically for this shop
-      const { data, error: loadError } = await supabase
+      // IMPROVED: Try different query approaches for maximum reliability
+      let data = null;
+      let loadError = null;
+      
+      // First attempt - simple query
+      const { data: formsData, error: formsError } = await supabase
         .from('forms')
         .select('*')
         .eq('shop_id', currentShopId)
         .order('created_at', { ascending: false });
       
-      if (loadError) {
-        console.error(`[${instanceId.current}] FormsPage: Error loading forms:`, loadError);
-        throw loadError;
-      }
-      
-      console.log(`[${instanceId.current}] FormsPage: Loaded ${data?.length || 0} forms for shop ${currentShopId}:`, data);
-
-      // If no forms are returned, try a different approach
-      if (!data || data.length === 0) {
-        console.log(`[${instanceId.current}] FormsPage: No forms found for shop, trying alternate query`);
+      if (formsError) {
+        console.error(`[${instanceId.current}] FormsPage: Error in first query:`, formsError);
+        loadError = formsError;
+      } else if (formsData && formsData.length > 0) {
+        console.log(`[${instanceId.current}] FormsPage: First query found ${formsData.length} forms`);
+        data = formsData;
+      } else {
+        // Second attempt - more flexible matching
+        console.log(`[${instanceId.current}] FormsPage: First query returned no results, trying alternative query`);
         
-        // Try again with exact match on shop_id
         const { data: alternateData, error: alternateError } = await supabase
           .from('forms')
           .select('*')
-          .filter('shop_id', 'eq', currentShopId) // Try explicit filter instead of eq
+          .ilike('shop_id', `%${currentShopId}%`) // More flexible matching
           .order('created_at', { ascending: false });
         
         if (alternateError) {
-          console.error(`[${instanceId.current}] FormsPage: Error in alternate query:`, alternateError);
+          console.error(`[${instanceId.current}] FormsPage: Error in second query:`, alternateError);
+          loadError = alternateError;
         } else if (alternateData && alternateData.length > 0) {
-          console.log(`[${instanceId.current}] FormsPage: Alternate query found ${alternateData.length} forms`);
-          setForms(alternateData);
-          setError(null);
-          setIsLoading(false);
-          return;
+          console.log(`[${instanceId.current}] FormsPage: Second query found ${alternateData.length} forms`);
+          data = alternateData;
         } else {
-          // Last resort - fetch all forms and filter client-side
-          console.log(`[${instanceId.current}] FormsPage: No forms found with alternate query, trying global scan`);
+          // Third attempt - fetch recent forms and filter client-side
+          console.log(`[${instanceId.current}] FormsPage: Second query returned no results, fetching recent forms`);
           
-          const { data: allForms, error: allFormsError } = await supabase
+          const { data: recentForms, error: recentError } = await supabase
             .from('forms')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(50);
+          
+          if (recentError) {
+            console.error(`[${instanceId.current}] FormsPage: Error fetching recent forms:`, recentError);
+            loadError = recentError;
+          } else if (recentForms && recentForms.length > 0) {
+            console.log(`[${instanceId.current}] FormsPage: Found ${recentForms.length} recent forms, filtering`);
             
-          if (allFormsError) {
-            console.error(`[${instanceId.current}] FormsPage: Error fetching all forms:`, allFormsError);
-          } else if (allForms && allForms.length > 0) {
-            // Filter forms for this shop manually
-            const filteredForms = allForms.filter(form => 
-              form.shop_id === currentShopId || 
-              form.shop_id?.trim() === currentShopId.trim()
+            // Look for forms matching this shop or with no shop_id
+            const matchingForms = recentForms.filter(form => 
+              !form.shop_id || 
+              form.shop_id === currentShopId ||
+              (typeof form.shop_id === 'string' && form.shop_id.includes(currentShopId))
             );
             
-            console.log(`[${instanceId.current}] FormsPage: Global scan found ${allForms.length} forms, ${filteredForms.length} match current shop`);
-            
-            if (filteredForms.length > 0) {
-              setForms(filteredForms);
-              setError(null);
-              setIsLoading(false);
-              return;
+            if (matchingForms.length > 0) {
+              console.log(`[${instanceId.current}] FormsPage: Found ${matchingForms.length} matching forms`);
+              data = matchingForms;
             }
           }
         }
       }
       
-      setForms(data || []);
-      setError(null);
-      
+      if (data) {
+        console.log(`[${instanceId.current}] FormsPage: Setting ${data.length} forms`);
+        setForms(data);
+        setError(null);
+      } else {
+        console.log(`[${instanceId.current}] FormsPage: No forms found in any query`);
+        setForms([]);
+        
+        // Only set error if this isn't the first load (to avoid confusion when there are no forms yet)
+        if (retryCount > 0) {
+          setError(language === 'ar' ? 'لم يتم العثور على نماذج لهذا المتجر' : 'No forms found for this shop');
+        }
+      }
     } catch (err) {
       console.error(`[${instanceId.current}] Error loading forms:`, err);
       setError(language === 'ar' ? 'حدث خطأ أثناء تحميل النماذج' : 'Error loading forms');
       setForms([]);
     } finally {
       setIsLoading(false);
+      setRetryCount(prev => prev + 1);
     }
-  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp]);
+  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount]);
 
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
@@ -190,7 +204,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
     console.log(`[${instanceId.current}] Creating new form with name:`, newFormName);
     
     try {
-      // Use the shopDomain from our central connection or fail gracefully
+      // CRITICAL FIX: Use multiple strategies to find shop ID
       const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       console.log(`[${instanceId.current}] Current shop ID for form creation:`, currentShopId);
@@ -224,6 +238,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
 
       console.log(`[${instanceId.current}] Sending form data to create:`, formData);
 
+      // IMPROVED: Insert with more reliable error handling
       const { data, error: saveError } = await supabase
         .from('forms')
         .insert(formData)
@@ -241,7 +256,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
       setIsCreating(false);
       setNewFormName('');
       
-      // Force reload forms to ensure we see the new form
+      // Force reload forms with delay to ensure we see the new form
       setTimeout(() => {
         loadForms(true);
       }, 500);
@@ -295,7 +310,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
     }
   }, [shopDomain, loadForms, hasLoadAttempted, language, shopId, forceRefresh]);
 
-  // NEW: Also re-sync the connection state whenever forceRefresh changes
+  // Also re-sync the connection state whenever forceRefresh changes
   useEffect(() => {
     if (forceRefresh && syncState) {
       console.log(`[${instanceId.current}] FormsPage: Force syncing connection state due to forceRefresh`);
@@ -338,8 +353,21 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
               onClick={handleEmergencyReset}
               disabled={isResetting}
             >
+              {isResetting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
               {language === 'ar' ? 'إعادة تهيئة الاتصال' : 'Reset Connection'}
             </Button>
+            {onReset && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={onReset}
+                className="bg-red-700 hover:bg-red-800"
+              >
+                {language === 'ar' ? 'إعادة تعيين كاملة' : 'Full Reset'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -407,7 +435,18 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
           <AlertTitle>
             {language === 'ar' ? 'خطأ' : 'Error'}
           </AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error}
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+              >
+                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+              </Button>
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -416,7 +455,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={7} // Increased max attempts for processing
+        maxAttempts={10} // Increased max attempts for processing
         instanceId={instanceId.current}
       />
     </div>
