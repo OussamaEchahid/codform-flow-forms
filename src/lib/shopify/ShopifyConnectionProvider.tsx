@@ -43,8 +43,8 @@ export const ShopifyConnectionContext = createContext<ShopifyConnectionContextTy
   forceSetConnected: () => {}
 });
 
-// Create a simplified cache for token validation
-const tokenValidationCache = new Map<string, { isValid: boolean, timestamp: number }>();
+// Create a simplified cache for token validation - NOW EXPORTED
+export const tokenValidationCache = new Map<string, { isValid: boolean, timestamp: number }>();
 
 // Limit connection check attempts
 let connectionCheckCount = 0;
@@ -291,3 +291,4 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     </ShopifyConnectionContext.Provider>
   );
 };
+

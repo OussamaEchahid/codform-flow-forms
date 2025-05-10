@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,12 @@ import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
 
-const FormsPage: React.FC = () => {
+// Adding interface for component props to fix type errors
+interface FormsPageProps {
+  shopId?: string;
+}
+
+const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const { language } = useI18n();
   const [forms, setForms] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,6 +121,7 @@ const FormsPage: React.FC = () => {
     }
   }, [newFormName, language, shopDomain]);
 
+  // Use the shopId prop in loadForms if provided
   const loadForms = useCallback(async () => {
     if (hasLoadAttempted) {
       console.log('FormsPage: Already attempted to load forms, skipping');
@@ -127,8 +132,8 @@ const FormsPage: React.FC = () => {
     setHasLoadAttempted(true);
     
     try {
-      // Use the shopDomain or fallback to localStorage
-      const currentShopId = shopDomain || localStorage.getItem('shopify_store');
+      // Use the shopId prop, or fallback to shopDomain or localStorage
+      const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       if (!currentShopId) {
         setForms([]);
@@ -160,7 +165,7 @@ const FormsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [language, shopDomain, hasLoadAttempted]);
+  }, [language, shopDomain, hasLoadAttempted, shopId]);
 
   // Load forms once when component mounts or when shopDomain changes
   useEffect(() => {
