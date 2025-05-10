@@ -62,7 +62,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Add reference to track if there are any open dialogs
   const openDialogRef = useRef<boolean>(false);
   
-  // Try to restore form from cache if loading fails
+  // IMPROVED: Try to restore form from cache if loading fails
   const attemptFormRestore = useCallback(() => {
     if (!id) return false;
     
@@ -111,6 +111,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     // Cache current form state in case saving fails
     if (id) {
+      console.log('Caching current form state before saving:', {
+        formTitle,
+        formDescription,
+        formElements,
+        formStyle,
+        submitButtonText
+      });
+      
       dataCache.set(`form:${id}`, {
         formTitle,
         formDescription,
@@ -125,6 +133,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       try {
         console.log('Executing debounced save...');
         const success = await handleSave();
+        console.log('Save result:', success);
         
         if (!success && saveRetryCount < maxSaveRetries) {
           console.error("Auto-save failed, will retry...");
@@ -134,6 +143,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           setTimeout(async () => {
             try {
               const retrySuccess = await handleSave();
+              console.log('Retry save result:', retrySuccess);
+              
               if (!retrySuccess) {
                 setSaveError('auto-save-failed');
                 toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
@@ -197,6 +208,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.log(`Starting form data load for: ${id} (attempt ${loadAttemptRef.current}/${maxLoadAttempts})`);
         
         const loadedId = await loadFormData(id);
+        console.log('Form data load result:', loadedId);
         
         if (loadedId) {
           initialLoadCompleted.current = true;
@@ -216,6 +228,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             }, retryDelay);
           } else {
             // All attempts failed, try to restore from cache
+            console.log('All load attempts failed, trying to restore from cache');
             const restored = attemptFormRestore();
             if (!restored) {
               toast.error(language === 'ar' ? 'فشل تحميل النموذج بعد عدة محاولات' : 'Failed to load form after multiple attempts');
@@ -226,6 +239,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.error("Error loading form data:", err);
         if (!controller.signal.aborted) {
           // Try to restore from cache after error
+          console.log('Error during load, trying to restore from cache');
           const restored = attemptFormRestore();
           if (!restored) {
             toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');

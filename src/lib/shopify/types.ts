@@ -129,6 +129,8 @@ export interface ShopifyOrder {
 export interface ShopifyFormData {
   formId: string;
   shopDomain?: string;
+  productId?: string; // Added missing property
+  blockId?: string;   // Added missing property
   settings: {
     position?: 'product-page' | 'cart-page' | 'checkout';
     style?: {
