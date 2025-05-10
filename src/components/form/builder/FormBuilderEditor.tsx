@@ -49,7 +49,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     loadFormData,
     handleSave,
     handlePublish,
-    updateFormStyle,
+    updateFormStyle, // Make sure this is imported from useFormEditor
     addElement,
     deleteElement,
     duplicateElement,

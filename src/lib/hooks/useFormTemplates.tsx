@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -16,6 +17,7 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
+  updated_at?: string; // Added updated_at property to fix TypeScript errors
   submitButtonText?: string; 
   submitbuttontext?: string; // Added lowercase version to match DB column
   // Add style properties
