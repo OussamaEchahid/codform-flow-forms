@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { createClient } from '@supabase/supabase-js';
@@ -280,7 +279,7 @@ export const useShopify = () => {
     }
   }, [getStoreId, language, isDevMode, products.length]);
 
-  // Optimized syncForm function
+  // Optimized syncForm function - fixed TypeScript error
   const syncForm = useCallback(async (formData: ShopifyFormData) => {
     if (isSyncing) {
       console.log(`[${instanceId.current}] Sync already in progress, skipping`);

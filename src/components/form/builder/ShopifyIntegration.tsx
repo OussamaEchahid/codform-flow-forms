@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,34 +8,27 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useShopify } from '@/hooks/useShopify';
-import { toast } from 'sonner';
-import { useFormStore } from '@/hooks/useFormStore';
-import {
+import { 
+  CheckCircle, 
+  Store, 
+  ShoppingBag, 
+  Loader2, 
   AlertCircle,
-  ShoppingBag,
-  RefreshCcw,
-  Loader2,
-  CheckCircle,
-  XCircle,
-  Settings,
-  Copy,
-  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
-import { useI18n } from '@/lib/i18n';
+import { useShopify } from '@/hooks/useShopify';
 import { ShopifyProduct } from '@/lib/shopify/types';
-import { shopifyProductSettings } from '@/lib/shopify/supabase-client';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button as ShadcnButton } from '@/components/ui/button';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -273,7 +265,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   };
 
   // Create a wrapper function to handle onClick event properly
-  const handleLoadProductsClick = () => {
+  const handleLoadProductsClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     loadProducts(true);
   };
 
@@ -313,7 +305,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           
           <div className="flex space-x-3 space-y-0">
             <Button onClick={handleRetryWithFallback} variant="secondary">
-              <RefreshCcw className="mr-2 h-4 w-4" />
+              <RefreshCw className="mr-2 h-4 w-4" />
               {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
             </Button>
             
@@ -384,7 +376,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
+            {t('Refresh Products')}
           </Button>
         </div>
 

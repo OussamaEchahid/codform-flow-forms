@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -47,19 +46,17 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 3, // Reduced from 5 to minimize repeated loading attempts
+  maxAttempts = 1, // Reduced from 3 to 1 to minimize attempts
   onRefresh,
   instanceId = 'form-list' 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [processedForms, setProcessedForms] = useState<FormData[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [processCompleted, setProcessCompleted] = useState(false);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
@@ -75,37 +72,6 @@ const FormList: React.FC<FormListProps> = ({
   }, []);
   
   console.log(`[${stableId.current}] FormList render with ${forms?.length || 0} forms`);
-  
-  // IMPROVED: More efficient data processing that prevents re-processing
-  useEffect(() => {
-    if (!isMounted.current || processCompleted) return;
-    
-    // Skip processing if already complete and forms are the same length
-    if (processCompleted && processedForms.length === forms?.length) {
-      return;
-    }
-    
-    try {
-      // Skip processing if no forms data
-      if (!forms || forms.length === 0) {
-        setProcessedForms([]);
-        setProcessCompleted(true);
-        return;
-      }
-      
-      console.log(`[${stableId.current}] Processing ${forms.length} forms directly`);
-      
-      // Use forms directly without complex validation
-      setProcessedForms(forms);
-      setProcessCompleted(true);
-      
-    } catch (error) {
-      console.error(`[${stableId.current}] Error processing forms:`, error);
-      // On error, still use the raw forms as fallback
-      setProcessedForms(forms || []);
-      setProcessCompleted(true);
-    }
-  }, [forms, processedForms.length, processCompleted, stableId]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -118,11 +84,7 @@ const FormList: React.FC<FormListProps> = ({
       
       // Update local state to reflect the change
       if (isMounted.current) {
-        setProcessedForms(prev => prev.map(form => 
-          form.id === formId 
-            ? { ...form, isPublished: !currentStatus, is_published: !currentStatus } 
-            : form
-        ));
+        setFormToDelete(null); // Clear any pending delete
       }
       
       toast.success(currentStatus 
@@ -141,7 +103,6 @@ const FormList: React.FC<FormListProps> = ({
         await deleteForm(formToDelete);
         if (isMounted.current) {
           setFormToDelete(null);
-          setProcessedForms(prev => prev.filter(form => form.id !== formToDelete));
         }
         toast.success('تم حذف النموذج بنجاح');
       } catch (error) {
@@ -170,7 +131,7 @@ const FormList: React.FC<FormListProps> = ({
   };
 
   // Filter and sort forms - with optimizations to avoid errors
-  const filteredAndSortedForms = processedForms
+  const filteredAndSortedForms = forms
     .filter(form => {
       if (!searchTerm) return true;
       const searchLower = searchTerm.toLowerCase();
