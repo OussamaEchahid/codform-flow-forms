@@ -47,6 +47,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const [isResetting, setIsResetting] = useState(false);
   const [loadTimestamp, setLoadTimestamp] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
   
   // Generate a unique instance ID for better debugging
   const instanceId = React.useRef(`forms-page-${Math.random().toString(36).substr(2, 9)}`);
@@ -75,7 +76,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const { isConnected, shopDomain, syncState } = useShopifyConnection();
   const navigate = useNavigate();
 
-  // Define loadForms before it's used
+  // Define loadForms before it's used with improved error handling and logging
   const loadForms = useCallback(async (forceRefresh = false) => {
     if (hasLoadAttempted && !forceRefresh) {
       console.log(`[${instanceId.current}] FormsPage: Already attempted to load forms, skipping`);
@@ -115,7 +116,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       let data = null;
       let loadError = null;
       
-      // First attempt - simple query
+      // First attempt - direct query without any column filter
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
         .select('*')
@@ -126,7 +127,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         console.error(`[${instanceId.current}] FormsPage: Error in first query:`, formsError);
         loadError = formsError;
       } else if (formsData && formsData.length > 0) {
-        console.log(`[${instanceId.current}] FormsPage: First query found ${formsData.length} forms`);
+        console.log(`[${instanceId.current}] FormsPage: First query found ${formsData.length} forms`, formsData);
         data = formsData;
       } else {
         // Second attempt - more flexible matching
@@ -142,12 +143,13 @@ const FormsPage: React.FC<FormsPageProps> = ({
           console.error(`[${instanceId.current}] FormsPage: Error in second query:`, alternateError);
           loadError = alternateError;
         } else if (alternateData && alternateData.length > 0) {
-          console.log(`[${instanceId.current}] FormsPage: Second query found ${alternateData.length} forms`);
+          console.log(`[${instanceId.current}] FormsPage: Second query found ${alternateData.length} forms`, alternateData);
           data = alternateData;
         } else {
           // Third attempt - fetch recent forms and filter client-side
           console.log(`[${instanceId.current}] FormsPage: Second query returned no results, fetching recent forms`);
           
+          // Try to get any forms regardless of shop_id
           const { data: recentForms, error: recentError } = await supabase
             .from('forms')
             .select('*')
@@ -158,7 +160,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
             console.error(`[${instanceId.current}] FormsPage: Error fetching recent forms:`, recentError);
             loadError = recentError;
           } else if (recentForms && recentForms.length > 0) {
-            console.log(`[${instanceId.current}] FormsPage: Found ${recentForms.length} recent forms, filtering`);
+            console.log(`[${instanceId.current}] FormsPage: Found ${recentForms.length} recent forms, filtering`, recentForms);
             
             // Look for forms matching this shop or with no shop_id
             const matchingForms = recentForms.filter(form => 
@@ -170,6 +172,11 @@ const FormsPage: React.FC<FormsPageProps> = ({
             if (matchingForms.length > 0) {
               console.log(`[${instanceId.current}] FormsPage: Found ${matchingForms.length} matching forms`);
               data = matchingForms;
+            } else {
+              console.log(`[${instanceId.current}] FormsPage: No matching forms found, showing all recent forms for debug`);
+              if (debugMode) {
+                data = recentForms; // In debug mode, show all forms
+              }
             }
           }
         }
@@ -178,32 +185,37 @@ const FormsPage: React.FC<FormsPageProps> = ({
       if (data) {
         // Normalize the data structure in each form before setting
         const normalizedForms = data.map(form => {
-          // Keep all properties but standardize the data structure
-          if (form.data) {
-            // Check if we need to standardize
-            if (!form.data.settings || !form.data.steps) {
-              // Extract style properties
-              const formStyle = {
-                primaryColor: form.primaryColor || '#9b87f5',
-                borderRadius: form.borderRadius || '0.5rem',
-                fontSize: form.fontSize || '1rem',
-                buttonStyle: form.buttonStyle || 'rounded'
-              };
-              
-              // Extract submit button text
-              const submitButtonText = form.submitbuttontext || form.submitButtonText || 'إرسال الطلب';
-              
-              // Get fields from existing form data
-              const fields = normalizeFormData(form.data);
-              
-              // Standardize the data structure
-              return {
-                ...form,
-                data: standardizeFormData(fields, formStyle, submitButtonText)
-              };
+          try {
+            // Keep all properties but standardize the data structure
+            if (form.data) {
+              // Check if we need to standardize
+              if (!form.data.settings || !form.data.steps) {
+                // Extract style properties
+                const formStyle = {
+                  primaryColor: form.primaryColor || '#9b87f5',
+                  borderRadius: form.borderRadius || '0.5rem',
+                  fontSize: form.fontSize || '1rem',
+                  buttonStyle: form.buttonStyle || 'rounded'
+                };
+                
+                // Extract submit button text
+                const submitButtonText = form.submitbuttontext || form.submitButtonText || 'إرسال الطلب';
+                
+                // Get fields from existing form data
+                const fields = normalizeFormData(form.data);
+                
+                // Standardize the data structure
+                return {
+                  ...form,
+                  data: standardizeFormData(fields, formStyle, submitButtonText)
+                };
+              }
             }
+            return form;
+          } catch (error) {
+            console.error(`[${instanceId.current}] Error normalizing form:`, error, form);
+            return form;
           }
-          return form;
         });
         
         console.log(`[${instanceId.current}] FormsPage: Setting ${normalizedForms.length} forms with standardized data`);
@@ -226,7 +238,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       setIsLoading(false);
       setRetryCount(prev => prev + 1);
     }
-  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount]);
+  }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, debugMode]);
 
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
@@ -255,7 +267,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         buttonStyle: 'rounded'
       }, 'إرسال الطلب');
       
-      // Form data to insert
+      // Form data to insert with specific column names that match the database
       const formData = {
         title: newFormName,
         description: '',
@@ -275,8 +287,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       const { data, error: saveError } = await supabase
         .from('forms')
         .insert(formData)
-        .select()
-        .single();
+        .select();
 
       if (saveError) {
         console.error(`[${instanceId.current}] Error creating form:`, saveError);
@@ -285,7 +296,11 @@ const FormsPage: React.FC<FormsPageProps> = ({
 
       console.log(`[${instanceId.current}] Form created successfully:`, data);
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
-      setForms(prev => [data, ...prev]);
+      
+      if (data && data.length > 0) {
+        setForms(prev => [data[0], ...prev]);
+      }
+      
       setIsCreating(false);
       setNewFormName('');
       
@@ -327,6 +342,19 @@ const FormsPage: React.FC<FormsPageProps> = ({
       setIsResetting(false);
     }
   }, [language]);
+
+  // Toggle debug mode
+  const toggleDebugMode = useCallback(() => {
+    setDebugMode(prev => !prev);
+    toast.info(debugMode 
+      ? 'Debug mode disabled'
+      : 'Debug mode enabled - showing all forms');
+    
+    // Force reload with new mode
+    setTimeout(() => {
+      loadForms(true);
+    }, 100);
+  }, [debugMode, loadForms]);
 
   // Load forms when component mounts or when shopDomain/forceRefresh changes
   useEffect(() => {
@@ -379,6 +407,18 @@ const FormsPage: React.FC<FormsPageProps> = ({
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               {language === 'ar' ? 'تحديث' : 'Refresh'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleDebugMode}
+              className={debugMode ? "bg-yellow-100" : ""}
+            >
+              {debugMode ? (
+                language === 'ar' ? 'إيقاف وضع التصحيح' : 'Disable Debug'
+              ) : (
+                language === 'ar' ? 'تفعيل وضع التصحيح' : 'Enable Debug'
+              )}
             </Button>
             <Button 
               variant="destructive" 
@@ -488,7 +528,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={10} // Increased max attempts for processing
+        maxAttempts={15} // Increased max attempts for processing
         instanceId={instanceId.current}
       />
     </div>

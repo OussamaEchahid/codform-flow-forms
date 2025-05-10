@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -24,7 +25,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle, RefreshCw } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle, RefreshCw, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
@@ -46,7 +47,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 10, // Increased from 7 to 10
+  maxAttempts = 15, // Increased from 10 to 15
   onRefresh,
   instanceId = 'form-list' 
 }) => {
@@ -57,6 +58,7 @@ const FormList: React.FC<FormListProps> = ({
   const [attemptCount, setAttemptCount] = useState<number>(0);
   const [processingComplete, setProcessingComplete] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [showRawData, setShowRawData] = useState<boolean>(false);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
@@ -109,7 +111,16 @@ const FormList: React.FC<FormListProps> = ({
       // Convert to array if object was passed
       const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
       
-      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
+      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`, formsArray);
+      
+      // Debug check - if we have raw data but aren't showing processed, just show the raw data
+      if (formsArray.length > 0 && showRawData) {
+        console.log(`[${instanceId}] FormList: Showing raw forms data, skipping processing`);
+        setProcessedForms(formsArray);
+        setProcessingComplete(true);
+        setHasError(false);
+        return;
+      }
       
       const validForms = formsArray
         .filter(form => form && typeof form === 'object')
@@ -175,8 +186,15 @@ const FormList: React.FC<FormListProps> = ({
       
       console.log(`[${instanceId}] FormList: Processed ${validForms.length} valid forms`);
       
-      if (validForms.length === 0 && attemptCount < maxAttempts - 1) {
-        // No valid forms, will retry
+      if (validForms.length === 0 && attemptCount < maxAttempts - 1 && formsArray.length > 0) {
+        console.log(`[${instanceId}] FormList: No valid forms processed, but raw forms exist:`, formsArray);
+        // Show raw forms data if processing is failing but we have raw data
+        if (attemptCount >= maxAttempts / 2) {
+          console.log(`[${instanceId}] FormList: Showing raw forms as fallback after multiple processing attempts`);
+          setProcessedForms(formsArray);
+          setProcessingComplete(true);
+          return;
+        }
         return;
       }
       
@@ -192,12 +210,19 @@ const FormList: React.FC<FormListProps> = ({
     } catch (error) {
       console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
       if (isMounted.current) {
-        setHasError(true);
-        setProcessingComplete(true);
-        toast.error('حدث خطأ في معالجة بيانات النماذج');
+        // If processing fails but we have raw forms data, use that as fallback
+        if (forms && forms.length > 0) {
+          console.log(`[${instanceId}] FormList: Processing failed but raw forms exist, using as fallback`);
+          setProcessedForms(forms);
+          setProcessingComplete(true);
+        } else {
+          setHasError(true);
+          setProcessingComplete(true);
+          toast.error('حدث خطأ في معالجة بيانات النماذج');
+        }
       }
     }
-  }, [forms, attemptCount, maxAttempts, processingComplete, instanceId]);
+  }, [forms, attemptCount, maxAttempts, processingComplete, instanceId, showRawData]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -241,6 +266,16 @@ const FormList: React.FC<FormListProps> = ({
         toast.error("فشل في حذف النموذج");
       }
     }
+  };
+  
+  // Toggle showing raw data
+  const toggleRawData = () => {
+    setShowRawData(prev => !prev);
+    toast.info(showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام');
+    
+    // Reset processing to force forms to be processed again
+    setProcessingComplete(false);
+    setAttemptCount(0);
   };
   
   // Handle manual refresh when user clicks the refresh button
@@ -387,24 +422,35 @@ const FormList: React.FC<FormListProps> = ({
         <p className="text-sm text-gray-500">
           عدد النماذج: {processedForms.length}
         </p>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              جارٍ التحديث...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              تحديث القائمة
-            </>
-          )}
-        </Button>
+        <div className="flex space-x-2 rtl:space-x-reverse">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={toggleRawData}
+            className={showRawData ? "bg-blue-50" : ""}
+          >
+            <Search className="mr-2 h-4 w-4" />
+            {showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام'}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جارٍ التحديث...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                تحديث القائمة
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
