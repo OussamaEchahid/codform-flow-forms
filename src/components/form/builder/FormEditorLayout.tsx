@@ -57,8 +57,8 @@ interface FormEditorLayoutProps {
   dialogRef?: MutableRefObject<boolean>;
 }
 
-// Memoize the component to prevent unnecessary re-renders
-export default function FormEditorLayout({
+// Removed the memo wrapper and export default here
+function FormEditorLayout({
   formId,
   formTitle,
   formDescription,
@@ -84,7 +84,7 @@ export default function FormEditorLayout({
   onPublish,
   onShopifyIntegration,
   dialogRef,
-}) {
+}: FormEditorLayoutProps) {
   // Local UI state
   const { language } = useI18n();
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
@@ -278,6 +278,8 @@ export default function FormEditorLayout({
   );
 }
 
+// Add display name
 FormEditorLayout.displayName = 'FormEditorLayout';
 
+// Export only once
 export default FormEditorLayout;

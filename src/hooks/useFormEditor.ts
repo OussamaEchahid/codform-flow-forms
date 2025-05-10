@@ -3,6 +3,14 @@ import { FormField } from '@/lib/form-utils';
 import { FormStyle } from '@/lib/form-utils';
 import { useFormStore } from './useFormStore';
 
+// Export the FormStyle interface
+export interface FormStyle {
+  primaryColor: string;
+  fontSize: string;
+  borderRadius: string;
+  buttonStyle: string;
+}
+
 export function useFormEditor(initialFormId?: string) {
   const [formTitle, setFormTitle] = useState<string>('Untitled Form');
   const [formDescription, setFormDescription] = useState<string>('');

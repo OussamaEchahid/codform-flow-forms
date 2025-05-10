@@ -5,10 +5,9 @@ import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
 import { formTemplates } from '@/lib/hooks/useFormTemplates';
 import { arrayMove } from '@dnd-kit/sortable';
-import { useFormEditor } from '@/hooks/useFormEditor';
+import { useFormEditor, FormStyle } from '@/hooks/useFormEditor';
 import { useShopify } from '@/hooks/useShopify';
 import FormEditorLayout from './FormEditorLayout';
-import { FormStyle } from '@/hooks/useFormEditor';
 
 interface FormBuilderEditorProps {
   formId?: string;
