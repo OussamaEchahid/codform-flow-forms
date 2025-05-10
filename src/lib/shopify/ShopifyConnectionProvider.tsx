@@ -32,7 +32,7 @@ interface ShopifyConnectionContextType {
   reload: () => Promise<void>;
   testConnection: (forceRefresh?: boolean) => Promise<boolean>;
   isDevMode: boolean;
-  // Add missing properties to fix the type errors
+  // Add these properties to fix the type errors
   disconnect: () => Promise<void>;
   forceSetConnected: (shopDomain: string) => void;
 }
@@ -91,7 +91,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   }, []);
   
   // Disconnect from Shopify store
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       
@@ -113,68 +113,13 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       
       toast.success('تم قطع الاتصال بمتجر Shopify بنجاح');
       
-      return true;
+      // Don't return any value (void)
     } catch (error) {
       console.error('Error disconnecting store:', error);
       toast.error('حدث خطأ أثناء محاولة قطع الاتصال');
-      return false;
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
-  // Sync connection state with localStorage
-  const syncState = useCallback(async () => {
-    setIsLoading(true);
-    setIsValidating(true);
-    
-    try {
-      // Get the current shop domain
-      const currentShop = localStorage.getItem('shopify_store');
-      
-      if (!currentShop) {
-        console.log('No shop domain found in localStorage');
-        setIsConnected(false);
-        setShopDomain('');
-        localStorage.removeItem('shopify_connected');
-        return;
-      }
-      
-      // Check if the shop is connected
-      const { data, error } = await shopifyStores()
-        .select('shop')
-        .eq('shop', currentShop)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching shop data:', error);
-        setIsConnected(false);
-        setShopDomain('');
-        localStorage.removeItem('shopify_connected');
-        return;
-      }
-      
-      // If shop exists, set connected state
-      const isCurrentlyConnected = !!data?.shop;
-      setIsConnected(isCurrentlyConnected);
-      setShopDomain(currentShop);
-      localStorage.setItem('shopify_connected', String(isCurrentlyConnected));
-      
-      console.log(`Shop ${currentShop} is ${isCurrentlyConnected ? 'connected' : 'disconnected'}`);
-    } catch (err) {
-      console.error('Error syncing state:', err);
-      setIsConnected(false);
-      setShopDomain('');
-      localStorage.removeItem('shopify_connected');
-    } finally {
-      setIsLoading(false);
-      setIsValidating(false);
-    }
-  }, []);
-  
-  // Reload the page
-  const reload = useCallback(async () => {
-    window.location.reload();
   }, []);
   
   // Enhanced test connection function with cache implementation
@@ -242,6 +187,60 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       setIsLoading(false);
     }
   }, [shopDomain, isDevMode]);
+  
+  // Sync connection state with localStorage
+  const syncState = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    setIsValidating(true);
+    
+    try {
+      // Get the current shop domain
+      const currentShop = localStorage.getItem('shopify_store');
+      
+      if (!currentShop) {
+        console.log('No shop domain found in localStorage');
+        setIsConnected(false);
+        setShopDomain('');
+        localStorage.removeItem('shopify_connected');
+        return;
+      }
+      
+      // Check if the shop is connected
+      const { data, error } = await shopifyStores()
+        .select('shop')
+        .eq('shop', currentShop)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching shop data:', error);
+        setIsConnected(false);
+        setShopDomain('');
+        localStorage.removeItem('shopify_connected');
+        return;
+      }
+      
+      // If shop exists, set connected state
+      const isCurrentlyConnected = !!data?.shop;
+      setIsConnected(isCurrentlyConnected);
+      setShopDomain(currentShop);
+      localStorage.setItem('shopify_connected', String(isCurrentlyConnected));
+      
+      console.log(`Shop ${currentShop} is ${isCurrentlyConnected ? 'connected' : 'disconnected'}`);
+    } catch (err) {
+      console.error('Error syncing state:', err);
+      setIsConnected(false);
+      setShopDomain('');
+      localStorage.removeItem('shopify_connected');
+    } finally {
+      setIsLoading(false);
+      setIsValidating(false);
+    }
+  }, []);
+  
+  // Reload the page
+  const reload = useCallback(async (): Promise<void> => {
+    window.location.reload();
+  }, []);
   
   // Schedule token refresh checks
   const scheduleTokenRefresh = useCallback(() => {
