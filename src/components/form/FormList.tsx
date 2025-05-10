@@ -45,7 +45,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 1, 
+  maxAttempts = 3, // Increased from 1 to 3
   onRefresh 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
@@ -90,6 +90,16 @@ const FormList: React.FC<FormListProps> = ({
     }
     
     try {
+      // Enhanced data processing
+      console.log('FormList: Processing forms data structure:', 
+        forms.map(form => ({ 
+          id: form?.id, 
+          title: form?.title,
+          has_data: !!form?.data,
+          has_shop_id: !!form?.shop_id
+        }))
+      );
+      
       // Filter out invalid forms and deduplicate
       const validForms = forms.filter(form => 
         form && typeof form === 'object' && form.id && typeof form.id === 'string'
@@ -98,7 +108,7 @@ const FormList: React.FC<FormListProps> = ({
       // Remove duplicates
       const uniqueFormIds = new Set();
       const uniqueForms = validForms.filter(form => {
-        if (uniqueFormIds.has(form.id)) return false;
+        if (!form.id || uniqueFormIds.has(form.id)) return false;
         uniqueFormIds.add(form.id);
         return true;
       });
@@ -106,6 +116,18 @@ const FormList: React.FC<FormListProps> = ({
       console.log(`FormList: Processed ${uniqueForms.length} unique, valid forms`);
       setProcessedForms(uniqueForms);
       setProcessingComplete(true);
+      
+      // If no valid forms and we still have attempts left, try again later
+      if (uniqueForms.length === 0 && attemptCount < maxAttempts) {
+        console.log(`FormList: No valid forms found, will retry. Attempt ${attemptCount} of ${maxAttempts}`);
+        
+        // Schedule another attempt
+        const retryTimeout = setTimeout(() => {
+          setProcessingComplete(false);
+        }, 1000); // 1 second before retry
+        
+        return () => clearTimeout(retryTimeout);
+      }
     } catch (error) {
       console.error('FormList: Error processing forms data:', error);
       setHasError(true);
@@ -122,6 +144,18 @@ const FormList: React.FC<FormListProps> = ({
     
     try {
       await publishForm(formId, !currentStatus);
+      
+      // Update local state to reflect the change
+      setProcessedForms(prev => prev.map(form => 
+        form.id === formId 
+          ? { ...form, is_published: !currentStatus, isPublished: !currentStatus } 
+          : form
+      ));
+      
+      toast.success(currentStatus 
+        ? 'تم إلغاء نشر النموذج بنجاح' 
+        : 'تم نشر النموذج بنجاح'
+      );
     } catch (error) {
       console.error("Error toggling form publish status:", error);
       toast.error("فشل في تغيير حالة النشر");
@@ -136,7 +170,7 @@ const FormList: React.FC<FormListProps> = ({
         
         // Remove the deleted form from the local state
         setProcessedForms(prev => prev.filter(form => form.id !== formToDelete));
-        
+        toast.success('تم حذف النموذج بنجاح');
       } catch (error) {
         console.error("Error deleting form:", error);
         toast.error("فشل في حذف النموذج");
@@ -150,6 +184,10 @@ const FormList: React.FC<FormListProps> = ({
       setIsRefreshing(true);
       try {
         await onRefresh();
+        toast.success('تم تحديث قائمة النماذج');
+      } catch (error) {
+        console.error('Error refreshing forms:', error);
+        toast.error('فشل في تحديث النماذج');
       } finally {
         setIsRefreshing(false);
       }
@@ -302,7 +340,7 @@ const FormList: React.FC<FormListProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {processedForms.map((form) => (
           <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <div className={`h-2 ${(form.is_published || form.isPublished) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <CardTitle className="text-lg truncate">{form.title || "بدون عنوان"}</CardTitle>
@@ -317,8 +355,10 @@ const FormList: React.FC<FormListProps> = ({
                       <Edit className="mr-2 h-4 w-4" />
                       <span>تعديل</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published || false)}>
-                      {form.is_published ? (
+                    <DropdownMenuItem onClick={() => 
+                      handlePublishToggle(form.id, form.is_published || form.isPublished || false)
+                    }>
+                      {(form.is_published || form.isPublished) ? (
                         <>
                           <EyeOff className="mr-2 h-4 w-4" />
                           <span>إلغاء النشر</span>
@@ -343,8 +383,8 @@ const FormList: React.FC<FormListProps> = ({
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-center mb-2">
-                <Badge variant={form.is_published ? "success" : "secondary"}>
-                  {form.is_published ? 'منشور' : 'مسودة'}
+                <Badge variant={(form.is_published || form.isPublished) ? "success" : "secondary"}>
+                  {(form.is_published || form.isPublished) ? 'منشور' : 'مسودة'}
                 </Badge>
                 <span className="text-xs text-gray-500 rtl:text-left">
                   {form.created_at ? 

@@ -17,7 +17,7 @@ import { useI18n } from '@/lib/i18n';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,6 +86,14 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         return;
       }
       
+      // Log detailed diagnostic information
+      console.log('FormsPage: Load attempt with details:', {
+        shopId,
+        shopDomain,
+        localStorage: localStorage.getItem('shopify_store'),
+        useShopId: currentShopId
+      });
+      
       // Load forms for the current shop
       const { data, error: loadError } = await supabase
         .from('forms')
@@ -99,6 +107,29 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
       }
       
       console.log(`FormsPage: Loaded ${data?.length || 0} forms:`, data);
+
+      // If no forms are returned, try again without shop_id filter as a fallback
+      if (!data || data.length === 0) {
+        console.log('FormsPage: No forms found for shop, trying fallback query');
+        
+        // Fallback query without shop_id filter
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('forms')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50); // Limit to prevent loading too many forms
+        
+        if (fallbackError) {
+          console.error('FormsPage: Error in fallback query:', fallbackError);
+        } else if (fallbackData && fallbackData.length > 0) {
+          console.log(`FormsPage: Fallback found ${fallbackData.length} forms`);
+          setForms(fallbackData);
+          setError(null);
+          setIsLoading(false);
+          return;
+        }
+      }
+      
       setForms(data || []);
       setError(null);
       
@@ -168,12 +199,14 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
 
       console.log('Form created successfully:', data);
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
-      setForms(prev => [...prev, data]);
+      setForms(prev => [data, ...prev]);
       setIsCreating(false);
       setNewFormName('');
       
-      // Reload forms to ensure we see the new form
-      loadForms(true);
+      // Force reload forms to ensure we see the new form
+      setTimeout(() => {
+        loadForms(true);
+      }, 500);
       
     } catch (err) {
       console.error('Error creating form:', err);
@@ -186,8 +219,9 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   // Add refresh handler that resets load state and forces a refresh
   const handleRefresh = useCallback(() => {
     console.log('FormsPage: Manually refreshing forms list');
+    toast.info(language === 'ar' ? 'جاري تحديث القائمة...' : 'Refreshing list...');
     return loadForms(true);
-  }, [loadForms]);
+  }, [loadForms, language]);
 
   // Load forms once when component mounts or when shopDomain changes
   useEffect(() => {
@@ -220,8 +254,17 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
           </p>
         </div>
         
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0 flex flex-col md:flex-row md:items-center gap-2">
           <ShopifyConnectionStatus />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            className="mt-2 md:mt-0"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {language === 'ar' ? 'تحديث' : 'Refresh'}
+          </Button>
         </div>
       </div>
 
@@ -297,6 +340,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
+        maxAttempts={3} // Increase max attempts for processing
       />
     </div>
   );

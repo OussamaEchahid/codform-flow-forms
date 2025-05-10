@@ -1,3 +1,4 @@
+
 import React, { 
   createContext, 
   useState, 
@@ -42,12 +43,12 @@ export const ShopifyConnectionContext = createContext<ShopifyConnectionContextTy
   forceSetConnected: () => {}
 });
 
-// Create a simplified cache for token validation - NOW EXPORTED
+// Create a simplified cache for token validation
 export const tokenValidationCache = new Map<string, { isValid: boolean, timestamp: number }>();
 
 // Limit connection check attempts
 let connectionCheckCount = 0;
-const MAX_CONNECTION_CHECKS = 2;
+const MAX_CONNECTION_CHECKS = 3; // Increased from 2 to 3
 
 export const useShopifyConnection = () => useContext(ShopifyConnectionContext);
 
@@ -57,43 +58,110 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState<boolean>(false);
   
   // Check if the app is running in development mode
   const isDevMode = process.env.NODE_ENV === 'development' || import.meta.env.DEV === true;
   
-  // Load initial state from localStorage
+  // Load initial state from localStorage with retry
   useEffect(() => {
-    // Critical fix: Limit the number of connection checks
-    if (connectionCheckCount > MAX_CONNECTION_CHECKS) {
-      console.log('[CONNECTION PROVIDER] Maximum connection checks reached, using cached values');
-      const storedShop = localStorage.getItem('shopify_store');
-      setShopDomain(storedShop || '');
-      setIsConnected(localStorage.getItem('shopify_connected') === 'true');
-      setIsLoading(false);
-      return;
-    }
-    connectionCheckCount++;
+    const loadWithRetry = (attempt = 0) => {
+      try {
+        // Critical fix: Limit the number of connection checks
+        if (connectionCheckCount > MAX_CONNECTION_CHECKS) {
+          console.log('[CONNECTION PROVIDER] Maximum connection checks reached, using cached values');
+          const storedShop = localStorage.getItem('shopify_store');
+          setShopDomain(storedShop || '');
+          setIsConnected(localStorage.getItem('shopify_connected') === 'true');
+          setIsLoading(false);
+          return;
+        }
+        connectionCheckCount++;
+        
+        const storedShop = localStorage.getItem('shopify_store');
+        const storedConnected = localStorage.getItem('shopify_connected') === 'true';
+        
+        console.log('[CONNECTION PROVIDER] Loading connection state:', {
+          storedShop,
+          storedConnected,
+          attempt,
+          isDevMode
+        });
+        
+        // Safe test store handling
+        if ((isDevMode || process.env.NODE_ENV === 'development') && 
+            (storedShop === DEV_TEST_STORE || !storedShop)) {
+          console.log('[CONNECTION PROVIDER] Using test store in dev mode');
+          
+          // Force the test store settings
+          setIsConnected(true);
+          setShopDomain(DEV_TEST_STORE);
+          localStorage.setItem('shopify_store', DEV_TEST_STORE);
+          localStorage.setItem('shopify_connected', 'true');
+        } else if (storedShop) {
+          setShopDomain(storedShop);
+          setIsConnected(storedConnected);
+          
+          // Log successful connection data loaded
+          console.log('[CONNECTION PROVIDER] Set connection state from localStorage:', {
+            shop: storedShop,
+            connected: storedConnected
+          });
+        } else {
+          // Log no connection data found
+          console.log('[CONNECTION PROVIDER] No connection data found in localStorage');
+          
+          // Try to recover from last URL shop if available
+          const lastUrlShop = localStorage.getItem('shopify_last_url_shop');
+          if (lastUrlShop) {
+            console.log('[CONNECTION PROVIDER] Found last URL shop, using as fallback:', lastUrlShop);
+            setShopDomain(lastUrlShop);
+            localStorage.setItem('shopify_store', lastUrlShop);
+            localStorage.setItem('shopify_connected', 'true');
+            setIsConnected(true);
+          }
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('[CONNECTION PROVIDER] Error loading connection state:', error);
+        
+        // Retry up to 3 times with exponential backoff
+        if (attempt < 3) {
+          const delay = Math.pow(2, attempt) * 500;
+          console.log(`[CONNECTION PROVIDER] Retrying in ${delay}ms (attempt ${attempt + 1})`);
+          setTimeout(() => loadWithRetry(attempt + 1), delay);
+        } else {
+          setIsLoading(false);
+          setError('Failed to load connection state');
+        }
+      }
+    };
     
-    const storedShop = localStorage.getItem('shopify_store');
-    const storedConnected = localStorage.getItem('shopify_connected') === 'true';
-    
-    // Safe test store handling
-    if ((isDevMode || process.env.NODE_ENV === 'development') && 
-        (storedShop === DEV_TEST_STORE || !storedShop)) {
-      console.log('[CONNECTION PROVIDER] Using test store in dev mode');
-      
-      // Force the test store settings
-      setIsConnected(true);
-      setShopDomain(DEV_TEST_STORE);
-      localStorage.setItem('shopify_store', DEV_TEST_STORE);
-      localStorage.setItem('shopify_connected', 'true');
-    } else if (storedShop) {
-      setShopDomain(storedShop);
-      setIsConnected(storedConnected);
-    }
-    
-    setIsLoading(false);
+    loadWithRetry();
   }, [isDevMode]);
+  
+  // Monitor for connection state issues and enter recovery mode if needed
+  useEffect(() => {
+    const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts');
+    const syncAttempts = syncAttemptsStr ? parseInt(syncAttemptsStr, 10) : 0;
+    
+    if (syncAttempts > 5) {
+      console.log('Too many sync attempts (' + syncAttempts + '), entering recovery mode');
+      setRecoveryMode(true);
+      localStorage.setItem('shopify_recovery_mode', 'true');
+    }
+    
+    // Check every 30 seconds if we should exit recovery mode
+    const recoveryInterval = setInterval(() => {
+      const inRecovery = localStorage.getItem('shopify_recovery_mode') === 'true';
+      if (inRecovery) {
+        console.log('In recovery mode, skipping connection sync');
+      }
+    }, 30000);
+    
+    return () => clearInterval(recoveryInterval);
+  }, []);
   
   // Force set connected state
   const forceSetConnected = useCallback((shop: string) => {
@@ -114,14 +182,20 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_token');
       localStorage.removeItem('shopify_failsafe');
+      localStorage.removeItem('shopify_sync_attempts');
+      localStorage.removeItem('shopify_recovery_mode');
       
       // Clear token validation cache
       tokenValidationCache.clear();
+      
+      // Reset connection check count
+      connectionCheckCount = 0;
       
       // Update state
       setIsConnected(false);
       setShopDomain('');
       setError(null);
+      setRecoveryMode(false);
       
       // Clear cache
       clearShopifyCache();
@@ -150,11 +224,23 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     
     if (!shopDomain) {
       console.warn('[CONNECTION PROVIDER] No shop domain to test connection');
+      
+      // Try to recover from last URL shop if available
+      const lastUrlShop = localStorage.getItem('shopify_last_url_shop');
+      if (lastUrlShop) {
+        console.log('[CONNECTION PROVIDER] Found last URL shop, using as fallback:', lastUrlShop);
+        setShopDomain(lastUrlShop);
+        localStorage.setItem('shopify_store', lastUrlShop);
+        localStorage.setItem('shopify_connected', 'true');
+        setIsConnected(true);
+        return true;
+      }
+      
       return false;
     }
     
     // Hard limit on connection checks
-    if (connectionCheckCount > MAX_CONNECTION_CHECKS) {
+    if (connectionCheckCount > MAX_CONNECTION_CHECKS && !forceRefresh) {
       console.log('[CONNECTION PROVIDER] Maximum connection checks reached, using cached values');
       return localStorage.getItem('shopify_connected') === 'true';
     }
@@ -198,6 +284,36 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   
   // Simplified state sync without API calls
   const syncState = useCallback(async (): Promise<void> => {
+    // Check if we're in recovery mode
+    if (localStorage.getItem('shopify_recovery_mode') === 'true') {
+      console.log('[CONNECTION PROVIDER] In recovery mode, skipping connection sync');
+      return;
+    }
+    
+    // Track sync attempts
+    const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts') || '0';
+    const syncAttempts = parseInt(syncAttemptsStr, 10) + 1;
+    localStorage.setItem('shopify_sync_attempts', syncAttempts.toString());
+    
+    // Log sync attempt
+    console.log('Synchronizing connection state:', {
+      localStorage: {
+        storedShop: localStorage.getItem('shopify_store'),
+        isConnected: localStorage.getItem('shopify_connected') === 'true'
+      },
+      connectionManager: {
+        activeStore: shopDomain,
+        storeCount: connectionCheckCount
+      },
+      currentState: {
+        shop: shopDomain,
+        shopifyConnected: isConnected
+      },
+      syncAttempts,
+      inRecovery: recoveryMode,
+      timestamp: Date.now()
+    });
+    
     // Critical fix: Limit the number of connection checks
     if (connectionCheckCount > MAX_CONNECTION_CHECKS) {
       console.log('[CONNECTION PROVIDER] Maximum connection checks reached, using stored values');
@@ -229,6 +345,18 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       
       if (!currentShop) {
         console.log('[CONNECTION PROVIDER] No shop domain found in localStorage');
+        
+        // Try to recover from last URL shop
+        const lastUrlShop = localStorage.getItem('shopify_last_url_shop');
+        if (lastUrlShop) {
+          console.log('[CONNECTION PROVIDER] Found last URL shop:', lastUrlShop);
+          setIsConnected(true);
+          setShopDomain(lastUrlShop);
+          localStorage.setItem('shopify_store', lastUrlShop);
+          localStorage.setItem('shopify_connected', 'true');
+          return;
+        }
+        
         setIsConnected(false);
         setShopDomain('');
         return;
@@ -239,6 +367,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       setIsConnected(true);
       setShopDomain(currentShop);
       localStorage.setItem('shopify_connected', 'true');
+      console.log('Connection state synchronized to connected with shop:', currentShop);
       
     } catch (err) {
       console.error('[CONNECTION PROVIDER] Error syncing state:', err);
@@ -252,6 +381,16 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         localStorage.setItem('shopify_store', DEV_TEST_STORE);
         localStorage.setItem('shopify_connected', 'true');
       }
+      
+      // Check if we need to enter recovery mode
+      const syncAttemptsStr = localStorage.getItem('shopify_sync_attempts') || '0';
+      const syncAttempts = parseInt(syncAttemptsStr, 10);
+      
+      if (syncAttempts > 5) {
+        console.log('Too many sync attempts (' + syncAttempts + '), entering recovery mode');
+        setRecoveryMode(true);
+        localStorage.setItem('shopify_recovery_mode', 'true');
+      }
     } finally {
       setIsLoading(false);
       setIsValidating(false);
@@ -260,6 +399,15 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   
   // Simple reload that preserves test store setup
   const reload = useCallback(async (): Promise<void> => {
+    // Reset the sync attempts counter
+    localStorage.setItem('shopify_sync_attempts', '0');
+    
+    // Exit recovery mode if enabled
+    if (recoveryMode) {
+      setRecoveryMode(false);
+      localStorage.removeItem('shopify_recovery_mode');
+    }
+    
     if ((isDevMode || process.env.NODE_ENV === 'development') && 
         (shopDomain === DEV_TEST_STORE || !shopDomain)) {
       localStorage.setItem('shopify_store', DEV_TEST_STORE);
@@ -268,7 +416,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     
     // Force a state refresh without reload
     syncState();
-  }, [isDevMode, shopDomain, syncState]);
+  }, [isDevMode, shopDomain, syncState, recoveryMode]);
   
   return (
     <ShopifyConnectionContext.Provider
