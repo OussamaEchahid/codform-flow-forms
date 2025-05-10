@@ -37,70 +37,77 @@ interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
+  maxAttempts?: number;
 }
 
-const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
+const FormList: React.FC<FormListProps> = ({ 
+  forms, 
+  isLoading, 
+  onSelectForm, 
+  maxAttempts = 1 // Default to just 1 attempt to avoid multiple retries
+}) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
   const [hasError, setHasError] = useState<boolean>(false);
   const [processedForms, setProcessedForms] = useState<FormData[]>([]);
-  const [hasInitialized, setHasInitialized] = useState<boolean>(false);
+  const [attemptCount, setAttemptCount] = useState<number>(0);
+  const [processingComplete, setProcessingComplete] = useState<boolean>(false);
+  
+  // Timer to prevent infinite processing
+  useEffect(() => {
+    // Set a timeout to force complete processing after 5 seconds
+    const timeoutId = setTimeout(() => {
+      if (!processingComplete) {
+        console.log('FormList: Forcing processing completion after timeout');
+        setProcessingComplete(true);
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [processingComplete]);
   
   // Process and validate forms data whenever it changes, with improved safety
   useEffect(() => {
-    // Generate a unique processing ID for logging
-    const processId = `process_${Math.random().toString(36).substring(2, 8)}`;
-    console.log(`[${processId}] FormList: Starting data processing`);
+    // Don't process if we've reached max attempts or already completed processing
+    if (attemptCount >= maxAttempts || processingComplete) {
+      return;
+    }
+    
+    console.log(`FormList: Processing attempt ${attemptCount + 1} of ${maxAttempts}`);
+    setAttemptCount(prev => prev + 1);
+    
+    // Only process if we have forms data to process
+    if (!forms || !Array.isArray(forms)) {
+      console.log('FormList: No valid forms data received');
+      setProcessedForms([]);
+      setProcessingComplete(true);
+      return;
+    }
     
     try {
-      console.log(`[${processId}] FormList: Processing forms data`, { 
-        received: forms, 
-        isArray: Array.isArray(forms),
-        length: Array.isArray(forms) ? forms.length : 0
-      });
-      
-      // Reset error state
-      setHasError(false);
-      
-      // Check if we received null forms data
-      if (!forms) {
-        console.log(`[${processId}] FormList: Received null forms data`);
-        setProcessedForms([]);
-        setHasInitialized(true);
-        return;
-      }
-      
-      // Enhanced validation to make sure we only work with valid form objects
-      const validForms = Array.isArray(forms) ? forms.filter(form => 
+      // Filter out invalid forms and deduplicate
+      const validForms = forms.filter(form => 
         form && typeof form === 'object' && form.id && typeof form.id === 'string'
-      ) : [];
+      );
       
-      // Remove duplicate forms by ID with additional safety checks
-      const uniqueForms = validForms.reduce((acc: FormData[], current) => {
-        // Skip invalid forms
-        if (!current || !current.id) return acc;
-        
-        const existingForm = acc.find(form => form.id === current.id);
-        if (!existingForm) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-      
-      console.log(`[${processId}] FormList: Processed forms`, { 
-        valid: validForms.length, 
-        unique: uniqueForms.length 
+      // Remove duplicates
+      const uniqueFormIds = new Set();
+      const uniqueForms = validForms.filter(form => {
+        if (uniqueFormIds.has(form.id)) return false;
+        uniqueFormIds.add(form.id);
+        return true;
       });
       
+      console.log(`FormList: Processed ${uniqueForms.length} unique, valid forms`);
       setProcessedForms(uniqueForms);
-      setHasInitialized(true);
+      setProcessingComplete(true);
     } catch (error) {
-      console.error(`[${processId}] Error processing forms data:`, error);
+      console.error('FormList: Error processing forms data:', error);
       setHasError(true);
-      setHasInitialized(true);
+      setProcessingComplete(true);
       toast.error('حدث خطأ في معالجة بيانات النماذج');
     }
-  }, [forms]);
+  }, [forms, attemptCount, maxAttempts, processingComplete]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -128,8 +135,33 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     }
   };
 
+  // Forced timeout - show error if isLoading has been true for too long
+  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
+  
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 10000); // 10 second timeout
+      return () => clearTimeout(timeout);
+    }
+    return undefined;
+  }, [isLoading]);
+  
+  // Show loading timeout error
+  if (loadingTimeout) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          استغرق تحميل النماذج وقتًا طويلاً. يرجى تحديث الصفحة والمحاولة مرة أخرى.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   // Show loading state
-  if (isLoading) {
+  if (isLoading && !processingComplete) {
     return (
       <div className="flex justify-center items-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

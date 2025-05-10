@@ -9,13 +9,15 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Using a try/catch to guarantee we always respond with JSON
   try {
     // Get important data from request for debugging
     const url = new URL(req.url)
     const formId = url.pathname.split('/').pop()
     const requestId = req.headers.get('X-Request-ID') || 'unknown'
+    const noCache = url.searchParams.get('nocache') === 'true'
     
-    console.log(`[${requestId}] API-Forms: Request received for form ID: ${formId}`)
+    console.log(`[${requestId}] API-Forms: Request received for form ID: ${formId}, noCache: ${noCache}`)
     
     // Explicitly set content type to JSON in all responses
     const responseHeaders = {
@@ -86,9 +88,9 @@ serve(async (req) => {
       })
     }
 
-    // Ensure form is published before returning
+    // Always ensure the form is published for display
     if (!formData.is_published) {
-      console.error(`[${requestId}] API-Forms: Form with ID ${formId} is not published`)
+      console.log(`[${requestId}] API-Forms: Form with ID ${formId} is not published, auto-publishing`)
       
       // Force publish the form if it's not published
       const { error: updateError } = await supabase
@@ -99,40 +101,31 @@ serve(async (req) => {
       if (updateError) {
         console.error(`[${requestId}] API-Forms: Error publishing form:`, updateError)
       } else {
-        console.log(`[${requestId}] API-Forms: Auto-published form ${formId} for Shopify display`)
+        console.log(`[${requestId}] API-Forms: Auto-published form ${formId} for display`)
         formData.is_published = true
       }
     }
 
-    console.log(`[${requestId}] API-Forms: Successfully fetched form: ${formData.title}, ID: ${formId}`)
-
-    // Ensure formData is not null or undefined before transforming
-    if (!formData) {
-      return new Response(JSON.stringify({ 
-        error: `Form with ID ${formId} returned null data`,
-        success: false 
-      }), {
-        headers: responseHeaders,
-        status: 404,
-      })
-    }
-    
-    // Transform form data to the expected format
-    const transformedData = transformFormData(formData, requestId)
-    
-    console.log(`[${requestId}] API-Forms: Transformation complete, returning data`)
-    
-    // Return the form data with proper CORS headers and explicit JSON content type
-    return new Response(JSON.stringify(transformedData), {
+    // Just return the form data directly to minimize transformation errors
+    return new Response(JSON.stringify({
+      id: formData.id,
+      title: formData.title || 'Form',
+      description: formData.description || '',
+      submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
+      is_published: formData.is_published || false,
+      data: formData.data || {},
+      fields: formData.data?.fields || formData.data?.steps?.[0]?.fields || []
+    }), {
       headers: responseHeaders,
       status: 200,
     })
+    
   } catch (error) {
     const requestId = req.headers.get('X-Request-ID') || 'unknown'
-    console.error(`[${requestId}] API-Forms: Error getting form:`, error.message)
+    console.error(`[${requestId}] API-Forms: Critical error:`, error.message)
     
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error.message || 'Unknown error occurred',
       success: false
     }), {
       headers: {
@@ -141,167 +134,9 @@ serve(async (req) => {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'X-Request-ID': requestId
       },
-      status: 400,
+      status: 500,
     })
   }
 })
 
-// Function to transform form data into a structure that's easier to use in the frontend
-function transformFormData(formData: any, requestId = 'unknown') {
-  console.log(`[${requestId}] Transform function received data type:`, typeof formData)
-  
-  // Fail early with explicit error if no data
-  if (!formData) {
-    console.error(`[${requestId}] No form data provided to transform`);
-    throw new Error('No form data provided to transform');
-  }
-  
-  // Initialize result with default values
-  const result: any = {
-    id: formData.id || 'unknown',
-    title: formData.title || 'Form',
-    description: formData.description || '',
-    primaryColor: formData.primary_color || formData.primaryColor || '#9b87f5',
-    // Include both versions of submit button text for compatibility
-    submitbuttontext: formData.submitbuttontext || 'إرسال الطلب',
-    submitButtonText: formData.submitbuttontext || 'إرسال الطلب',
-    is_published: formData.is_published || false,
-    fields: []
-  }
-  
-  console.log(`[${requestId}] Basic form info: ${result.title}, ID: ${result.id}, published: ${result.is_published}`)
-  
-  // Check for data property in formData
-  const dataField = formData.data
-  
-  if (!dataField) {
-    console.error(`[${requestId}] Form data missing data property`)
-    // Return basic form structure rather than throwing an error
-    // This makes the function more resilient
-    return result
-  }
-  
-  // Safe JSON stringify with clipping for large objects
-  const safeStringify = (obj: any, maxLength = 500) => {
-    try {
-      const json = JSON.stringify(obj);
-      return json.length > maxLength ? json.substring(0, maxLength) + '...' : json;
-    } catch (e) {
-      return '[Cannot stringify object]';
-    }
-  };
-  
-  // Log raw data for debugging
-  console.log(`[${requestId}] Raw form data structure:`, safeStringify(dataField))
-  
-  let transformedFields = []
-  
-  // Handle different data structures
-  if (Array.isArray(dataField)) {
-    // This is likely a multi-step form
-    console.log(`[${requestId}] Processing as multi-step form with ${dataField.length} steps`)
-    
-    dataField.forEach((step: any, stepIndex: number) => {
-      if (!step) {
-        console.warn(`[${requestId}] Step ${stepIndex} is undefined or null`);
-        return;
-      }
-      
-      // Add a step marker field
-      transformedFields.push({
-        id: step.id || `step-${stepIndex}`,
-        type: 'step',
-        label: step.title || `Step ${stepIndex + 1}`,
-        stepIndex: stepIndex,
-        isStep: true
-      })
-      
-      // Process fields in this step
-      if (step.fields && Array.isArray(step.fields)) {
-        console.log(`[${requestId}] Processing ${step.fields.length} fields in step ${stepIndex}`)
-        step.fields.forEach((field: any) => {
-          if (field) {
-            transformedFields.push({
-              ...field,
-              stepId: step.id,
-              stepTitle: step.title,
-              stepIndex: stepIndex
-            })
-          }
-        })
-      } else {
-        console.log(`[${requestId}] No fields array found in step ${stepIndex}`)
-      }
-    })
-  } else if (typeof dataField === 'object' && dataField.steps && Array.isArray(dataField.steps)) {
-    // Handle nested steps format
-    console.log(`[${requestId}] Processing nested steps format with ${dataField.steps.length} steps`)
-    dataField.steps.forEach((step: any, stepIndex: number) => {
-      if (!step) {
-        console.warn(`[${requestId}] Step ${stepIndex} is undefined or null`);
-        return;
-      }
-      
-      transformedFields.push({
-        id: step.id || `step-${stepIndex}`,
-        type: 'step',
-        label: step.title || `Step ${stepIndex + 1}`,
-        stepIndex: stepIndex,
-        isStep: true
-      })
-      
-      if (step.fields && Array.isArray(step.fields)) {
-        step.fields.forEach((field: any) => {
-          if (field) {
-            transformedFields.push({
-              ...field,
-              stepId: step.id,
-              stepTitle: step.title,
-              stepIndex: stepIndex
-            })
-          }
-        })
-      }
-    })
-  } else if (typeof dataField === 'object') {
-    // Handle flat object format
-    console.log(`[${requestId}] Processing flat object format`)
-    
-    // Try to extract fields from where they might be located
-    const fieldsArray = dataField.fields || dataField.elements || [];
-    
-    if (Array.isArray(fieldsArray) && fieldsArray.length > 0) {
-      transformedFields = fieldsArray.map((field: any) => {
-        if (!field) return null;
-        
-        return {
-          ...field,
-          stepIndex: 0,
-          stepTitle: 'Default Step'
-        };
-      }).filter((field: any) => field !== null);
-    } else {
-      console.error(`[${requestId}] Could not find fields array in form data structure`)
-    }
-  }
-  
-  console.log(`[${requestId}] Transform complete, found ${transformedFields.length} fields`)
-  
-  result.fields = transformedFields
-  // Keep original data for advanced processing if needed, but only if it's not too large
-  try {
-    const dataStr = JSON.stringify(dataField);
-    // Only keep original data if it's not too large (avoid response size issues)
-    if (dataStr.length < 100000) {
-      result.data = dataField;
-    } else {
-      console.warn(`[${requestId}] Original data too large (${dataStr.length} chars), not including in response`);
-      result.data = { note: "Original data too large, not included" };
-    }
-  } catch (e) {
-    console.error(`[${requestId}] Error stringifying original data:`, e);
-    result.data = { error: "Could not stringify original data" };
-  }
-  
-  return result
-}
+// Function to transform form data has been removed to simplify the response and prevent errors
