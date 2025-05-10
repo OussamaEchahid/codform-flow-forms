@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,13 +17,13 @@ import { useI18n } from '@/lib/i18n';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, Loader2, Database } from 'lucide-react';
 import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnectionStatus';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
 import { resetShopifyConnection } from '@/utils/diagnostics';
-import { normalizeFormData, standardizeFormData } from '@/lib/form-utils/standardizeFormData';
+import { normalizeFormData, standardizeFormData, debugFormData } from '@/lib/form-utils/standardizeFormData';
 
 // Adding interface for component props to fix type errors
 interface FormsPageProps {
@@ -48,9 +49,11 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const [loadTimestamp, setLoadTimestamp] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
   const [debugMode, setDebugMode] = useState(false);
+  const [directDbForms, setDirectDbForms] = useState<any[]>([]);
+  const [isDbQueryRunning, setIsDbQueryRunning] = useState(false);
   
   // Generate a unique instance ID for better debugging
-  const instanceId = React.useRef(`forms-page-${Math.random().toString(36).substr(2, 9)}`);
+  const instanceId = React.useRef(`forms-page-${Math.random().toString(36).substr(2, 8)}`);
   
   console.log(`[${instanceId.current}] FormsPage initialized with shopId: ${shopId}, forceRefresh: ${forceRefresh}`);
   
@@ -76,7 +79,67 @@ const FormsPage: React.FC<FormsPageProps> = ({
   const { isConnected, shopDomain, syncState } = useShopifyConnection();
   const navigate = useNavigate();
 
-  // Define loadForms before it's used with improved error handling and logging
+  // NEW: Directly query database for verification
+  const queryDatabaseDirectly = async () => {
+    try {
+      setIsDbQueryRunning(true);
+      const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
+      
+      if (!shopIdToUse) {
+        toast.error('لم يتم العثور على متجر متصل');
+        return;
+      }
+      
+      // Direct basic query without processing
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', shopIdToUse);
+      
+      if (error) {
+        console.error(`[${instanceId.current}] Direct DB query error:`, error);
+        toast.error('خطأ في الاستعلام المباشر من قاعدة البيانات');
+        return;
+      }
+      
+      // Log raw data from database
+      console.log(`[${instanceId.current}] Direct DB query found ${data?.length || 0} forms:`, data);
+      
+      // Check for forms with ID issues
+      const formsWithIdIssues = data?.filter(form => !form.id) || [];
+      if (formsWithIdIssues.length > 0) {
+        console.warn(`[${instanceId.current}] Found ${formsWithIdIssues.length} forms without IDs:`, formsWithIdIssues);
+      }
+      
+      // Validate all forms and log issues
+      const validationResults = data?.map(form => ({ 
+        form,
+        validation: debugFormData(form)
+      })) || [];
+      
+      const formsWithIssues = validationResults.filter(result => !result.validation.isValid);
+      if (formsWithIssues.length > 0) {
+        console.warn(`[${instanceId.current}] Found ${formsWithIssues.length} forms with validation issues:`, formsWithIssues);
+      }
+      
+      setDirectDbForms(data || []);
+      
+      // Update the main forms list if it's empty but we found forms in the database
+      if ((!forms || forms.length === 0) && data && data.length > 0) {
+        console.log(`[${instanceId.current}] Updating main forms list with direct DB results`);
+        setForms(data);
+      }
+      
+      toast.success(`تم العثور على ${data?.length || 0} نموذج في قاعدة البيانات`);
+    } catch (err) {
+      console.error(`[${instanceId.current}] Error in direct DB query:`, err);
+      toast.error('خطأ في الاستعلام المباشر');
+    } finally {
+      setIsDbQueryRunning(false);
+    }
+  };
+
+  // IMPROVED: Load forms with multiple strategies and better error handling
   const loadForms = useCallback(async (forceRefresh = false) => {
     if (hasLoadAttempted && !forceRefresh) {
       console.log(`[${instanceId.current}] FormsPage: Already attempted to load forms, skipping`);
@@ -111,6 +174,37 @@ const FormsPage: React.FC<FormsPageProps> = ({
         timestamp: loadTimestamp,
         retryCount
       });
+      
+      // NEW: Use a simpler query approach first
+      console.log(`[${instanceId.current}] FormsPage: Attempting direct query without filters`);
+      
+      const { data: simpleFetch, error: simpleError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', currentShopId);
+      
+      if (simpleError) {
+        console.error(`[${instanceId.current}] FormsPage: Simple query error:`, simpleError);
+      } else if (simpleFetch && simpleFetch.length > 0) {
+        console.log(`[${instanceId.current}] FormsPage: Simple query found ${simpleFetch.length} forms`);
+        
+        // CRITICAL: Log each form's structure for debugging
+        simpleFetch.forEach((form, index) => {
+          console.log(`[${instanceId.current}] Form #${index+1} (ID: ${form.id || 'undefined'}):`);
+          console.log(`  - Title: ${form.title || 'undefined'}`);
+          console.log(`  - Published: ${form.is_published}`);
+          console.log(`  - Data structure type: ${typeof form.data}`);
+        });
+        
+        // Return forms directly without complex transformations
+        setForms(simpleFetch);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If the simple query returned no results, try alternative approaches
+      // This is our fallback section...
       
       // IMPROVED: Try different query approaches for maximum reliability
       let data = null;
@@ -183,43 +277,10 @@ const FormsPage: React.FC<FormsPageProps> = ({
       }
       
       if (data) {
-        // Normalize the data structure in each form before setting
-        const normalizedForms = data.map(form => {
-          try {
-            // Keep all properties but standardize the data structure
-            if (form.data) {
-              // Check if we need to standardize
-              if (!form.data.settings || !form.data.steps) {
-                // Extract style properties
-                const formStyle = {
-                  primaryColor: form.primaryColor || '#9b87f5',
-                  borderRadius: form.borderRadius || '0.5rem',
-                  fontSize: form.fontSize || '1rem',
-                  buttonStyle: form.buttonStyle || 'rounded'
-                };
-                
-                // Extract submit button text
-                const submitButtonText = form.submitbuttontext || form.submitButtonText || 'إرسال الطلب';
-                
-                // Get fields from existing form data
-                const fields = normalizeFormData(form.data);
-                
-                // Standardize the data structure
-                return {
-                  ...form,
-                  data: standardizeFormData(fields, formStyle, submitButtonText)
-                };
-              }
-            }
-            return form;
-          } catch (error) {
-            console.error(`[${instanceId.current}] Error normalizing form:`, error, form);
-            return form;
-          }
-        });
-        
-        console.log(`[${instanceId.current}] FormsPage: Setting ${normalizedForms.length} forms with standardized data`);
-        setForms(normalizedForms);
+        // IMPROVED: Set forms directly without complex standardization
+        // This preserves the original structure and avoids potential data loss
+        console.log(`[${instanceId.current}] FormsPage: Setting ${data.length} forms without complex standardization`);
+        setForms(data);
         setError(null);
       } else {
         console.log(`[${instanceId.current}] FormsPage: No forms found in any query`);
@@ -240,6 +301,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
     }
   }, [language, shopDomain, hasLoadAttempted, shopId, loadTimestamp, retryCount, debugMode]);
 
+  // IMPROVED: Create form with minimal processing to avoid data structure issues
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال اسم للنموذج' : 'Please enter a form name');
@@ -259,19 +321,29 @@ const FormsPage: React.FC<FormsPageProps> = ({
         throw new Error(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
       }
 
-      // Create standardized form data structure
-      const standardizedData = standardizeFormData([], {
-        primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded'
-      }, 'إرسال الطلب');
-      
-      // Form data to insert with specific column names that match the database
+      // Create minimal but valid form structure
       const formData = {
+        id: uuidv4(), // Explicitly set ID to avoid any issues
         title: newFormName,
         description: '',
-        data: standardizedData,
+        data: {
+          settings: {
+            formStyle: {
+              primaryColor: '#9b87f5',
+              borderRadius: '0.5rem',
+              fontSize: '1rem',
+              buttonStyle: 'rounded',
+              submitButtonText: 'إرسال الطلب'
+            }
+          },
+          steps: [
+            {
+              id: '1',
+              title: 'خطوة 1',
+              fields: []
+            }
+          ]
+        },
         shop_id: currentShopId,
         is_published: false,
         submitbuttontext: 'إرسال الطلب',
@@ -298,6 +370,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
       
       if (data && data.length > 0) {
+        // Update forms list with the new form at the beginning
         setForms(prev => [data[0], ...prev]);
       }
       
@@ -399,7 +472,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         
         <div className="mt-4 md:mt-0 flex flex-col md:flex-row md:items-center gap-2">
           <ShopifyConnectionStatus />
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline" 
               size="sm" 
@@ -419,6 +492,20 @@ const FormsPage: React.FC<FormsPageProps> = ({
               ) : (
                 language === 'ar' ? 'تفعيل وضع التصحيح' : 'Enable Debug'
               )}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={queryDatabaseDirectly}
+              className="bg-blue-50"
+              disabled={isDbQueryRunning}
+            >
+              {isDbQueryRunning ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4 mr-2" />
+              )}
+              {language === 'ar' ? 'استعلام مباشر من القاعدة' : 'Direct DB Query'}
             </Button>
             <Button 
               variant="destructive" 
@@ -444,6 +531,38 @@ const FormsPage: React.FC<FormsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* NEW: Show direct database query results when available */}
+      {directDbForms.length > 0 && (
+        <Alert className="mb-6 bg-blue-50">
+          <div className="flex justify-between items-center">
+            <div>
+              <AlertTitle className="mb-2">
+                {language === 'ar' ? 'نتائج الاستعلام المباشر' : 'Direct Database Query Results'}
+              </AlertTitle>
+              <AlertDescription>
+                {language === 'ar' 
+                  ? `تم العثور على ${directDbForms.length} نموذج في قاعدة البيانات مباشرة.`
+                  : `Found ${directDbForms.length} forms directly in the database.`
+                }
+              </AlertDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setForms(directDbForms);
+                toast.success(language === 'ar' 
+                  ? 'تم تحميل النماذج من نتائج الاستعلام المباشر'
+                  : 'Loaded forms from direct query results'
+                );
+              }}
+            >
+              {language === 'ar' ? 'استخدام هذه النماذج' : 'Use These Forms'}
+            </Button>
+          </div>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
@@ -528,7 +647,7 @@ const FormsPage: React.FC<FormsPageProps> = ({
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={15} // Increased max attempts for processing
+        maxAttempts={20} // Increased max attempts for processing
         instanceId={instanceId.current}
       />
     </div>

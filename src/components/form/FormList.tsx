@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -47,7 +46,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 15, // Increased from 10 to 15
+  maxAttempts = 20, // Increased from 15 to 20
   onRefresh,
   instanceId = 'form-list' 
 }) => {
@@ -59,6 +58,7 @@ const FormList: React.FC<FormListProps> = ({
   const [processingComplete, setProcessingComplete] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showRawData, setShowRawData] = useState<boolean>(false);
+  const [rejectedForms, setRejectedForms] = useState<any[]>([]);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
@@ -70,22 +70,29 @@ const FormList: React.FC<FormListProps> = ({
     };
   }, []);
   
-  console.log(`[${instanceId}] FormList render with forms:`, forms);
+  // SIMPLIFIED: Logging with more details for better debugging
+  console.log(`[${instanceId}] FormList render with ${forms?.length || 0} forms:`, forms);
   
-  // Timer to prevent infinite processing
+  // IMPROVED: Timer to prevent infinite processing - reduced from 5s to 3s for faster fallback
   useEffect(() => {
-    // Set a timeout to force complete processing after 5 seconds
     const timeoutId = setTimeout(() => {
       if (!processingComplete && isMounted.current) {
         console.log(`[${instanceId}] FormList: Forcing processing completion after timeout`);
+        
+        // Always show something - if we have raw forms but processing is timing out, just show them
+        if (forms && forms.length > 0) {
+          console.log(`[${instanceId}] FormList: Using raw form data as fallback`);
+          setProcessedForms(forms);
+        }
+        
         setProcessingComplete(true);
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // 3 second timeout (reduced from 5s)
     
     return () => clearTimeout(timeoutId);
-  }, [processingComplete, instanceId]);
+  }, [processingComplete, instanceId, forms]);
   
-  // IMPROVED: Enhanced form data processing with better error handling
+  // SIMPLIFIED: Form data processing with more direct approach
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -100,7 +107,7 @@ const FormList: React.FC<FormListProps> = ({
     setAttemptCount(prev => prev + 1);
     
     try {
-      // Handle null/undefined forms data
+      // Handle null/undefined forms data with clear logging
       if (!forms) {
         console.log(`[${instanceId}] FormList: No forms data received`);
         setProcessedForms([]);
@@ -110,91 +117,44 @@ const FormList: React.FC<FormListProps> = ({
       
       // Convert to array if object was passed
       const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
+      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
       
-      console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`, formsArray);
-      
-      // Debug check - if we have raw data but aren't showing processed, just show the raw data
-      if (formsArray.length > 0 && showRawData) {
-        console.log(`[${instanceId}] FormList: Showing raw forms data, skipping processing`);
+      // SIMPLIFIED: If showing raw data, just use the forms directly
+      if (showRawData) {
+        console.log(`[${instanceId}] FormList: Showing raw forms data (${formsArray.length} forms)`);
         setProcessedForms(formsArray);
         setProcessingComplete(true);
         setHasError(false);
         return;
       }
       
-      const validForms = formsArray
-        .filter(form => form && typeof form === 'object')
-        .map(form => {
-          try {
-            // Extract data from the standardized structure
-            let steps = [];
-            let formStyle = {
-              primaryColor: form.primaryColor || '#9b87f5',
-              borderRadius: form.borderRadius || '0.5rem',
-              fontSize: form.fontSize || '1rem',
-              buttonStyle: form.buttonStyle || 'rounded'
-            };
-            let submitButtonText = form.submitbuttontext || 'إرسال الطلب';
-            
-            // Extract form data from standardized structure
-            if (form.data) {
-              if (form.data.settings && form.data.steps) {
-                // Already in standardized format
-                steps = form.data.steps;
-                formStyle = { ...formStyle, ...form.data.settings.formStyle };
-                submitButtonText = form.data.settings.formStyle?.submitButtonText || submitButtonText;
-              } else if (Array.isArray(form.data)) {
-                // Data is directly an array of steps
-                steps = form.data;
-              } else if (form.data.steps && Array.isArray(form.data.steps)) {
-                // Data has steps property that is an array
-                steps = form.data.steps;
-              }
-            }
-            
-            // Create a consistent FormData object
-            return {
-              id: form.id || '',
-              title: form.title || 'بدون عنوان',
-              description: form.description || '',
-              is_published: form.is_published || form.isPublished || false,
-              isPublished: form.is_published || form.isPublished || false,
-              created_at: form.created_at || new Date().toISOString(),
-              shop_id: form.shop_id || '',
-              data: {
-                settings: {
-                  formStyle: {
-                    ...formStyle,
-                    submitButtonText
-                  }
-                },
-                steps: steps
-              },
-              primaryColor: formStyle.primaryColor,
-              borderRadius: formStyle.borderRadius,
-              fontSize: formStyle.fontSize,
-              buttonStyle: formStyle.buttonStyle,
-              submitButtonText: submitButtonText
-            };
-          } catch (err) {
-            console.error(`[${instanceId}] Error processing form:`, err, form);
-            return null;
-          }
-        })
-        .filter(Boolean) // Remove null entries
-        .filter(form => form.id); // Final filter to ensure we have an ID
+      // Track rejected forms for better debugging
+      const rejected: any[] = [];
       
-      console.log(`[${instanceId}] FormList: Processed ${validForms.length} valid forms`);
-      
-      if (validForms.length === 0 && attemptCount < maxAttempts - 1 && formsArray.length > 0) {
-        console.log(`[${instanceId}] FormList: No valid forms processed, but raw forms exist:`, formsArray);
-        // Show raw forms data if processing is failing but we have raw data
-        if (attemptCount >= maxAttempts / 2) {
-          console.log(`[${instanceId}] FormList: Showing raw forms as fallback after multiple processing attempts`);
-          setProcessedForms(formsArray);
-          setProcessingComplete(true);
-          return;
+      // SIMPLIFIED: More lenient validation - only reject forms without any ID
+      const validForms = formsArray.filter(form => {
+        // Track forms that might be rejected
+        if (!form || !form.id) {
+          console.log(`[${instanceId}] FormList: Rejecting form due to missing ID:`, form);
+          rejected.push({ form, reason: 'Missing ID' });
+          return false;
         }
+        
+        // Accept all forms that have an ID
+        return true;
+      });
+      
+      // Store rejected forms for debugging
+      setRejectedForms(rejected);
+      
+      console.log(`[${instanceId}] FormList: Processed ${validForms.length} valid forms out of ${formsArray.length}`);
+      
+      // If no valid forms found after multiple attempts but we have raw forms,
+      // show the raw forms as a fallback
+      if (validForms.length === 0 && attemptCount >= maxAttempts / 2 && formsArray.length > 0) {
+        console.log(`[${instanceId}] FormList: No valid forms processed after ${attemptCount} attempts. Using raw forms as fallback.`);
+        setProcessedForms(formsArray);
+        setProcessingComplete(true);
         return;
       }
       
@@ -210,9 +170,9 @@ const FormList: React.FC<FormListProps> = ({
     } catch (error) {
       console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
       if (isMounted.current) {
-        // If processing fails but we have raw forms data, use that as fallback
+        // IMPROVED: Better fallback - if processing fails but we have raw forms data, use that
         if (forms && forms.length > 0) {
-          console.log(`[${instanceId}] FormList: Processing failed but raw forms exist, using as fallback`);
+          console.log(`[${instanceId}] FormList: Processing failed but using raw forms as fallback`);
           setProcessedForms(forms);
           setProcessingComplete(true);
         } else {
@@ -268,10 +228,11 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
   
-  // Toggle showing raw data
+  // Toggle showing raw data - IMPROVED with clearer messaging
   const toggleRawData = () => {
-    setShowRawData(prev => !prev);
-    toast.info(showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام');
+    const newState = !showRawData;
+    setShowRawData(newState);
+    toast.info(newState ? 'عرض البيانات الخام' : 'عرض البيانات المعالجة');
     
     // Reset processing to force forms to be processed again
     setProcessingComplete(false);
@@ -293,6 +254,16 @@ const FormList: React.FC<FormListProps> = ({
           setIsRefreshing(false);
         }
       }
+    }
+  };
+
+  // NEW: Debug function to show rejected forms information
+  const showRejectedFormsInfo = () => {
+    if (rejectedForms.length > 0) {
+      console.log(`[${instanceId}] Rejected forms (${rejectedForms.length}):`, rejectedForms);
+      toast.info(`${rejectedForms.length} نماذج مرفوضة. تفاصيل في وحدة التحكم.`);
+    } else {
+      toast.info('لا توجد نماذج مرفوضة');
     }
   };
 
@@ -389,27 +360,40 @@ const FormList: React.FC<FormListProps> = ({
         <CardContent className="pt-6 text-center">
           <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
           <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
-          {!isLoading && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-4"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جارٍ التحديث...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  تحديث القائمة
-                </>
-              )}
-            </Button>
-          )}
+          <div className="flex justify-center space-x-2 rtl:space-x-reverse mt-4">
+            {!isLoading && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    جارٍ التحديث...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    تحديث القائمة
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {/* NEW: Show raw data even when no processed forms */}
+            {forms && forms.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={toggleRawData}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام'}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -421,6 +405,11 @@ const FormList: React.FC<FormListProps> = ({
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">
           عدد النماذج: {processedForms.length}
+          {rejectedForms.length > 0 && (
+            <span className="text-amber-600 mr-2 rtl:ml-2">
+              ({rejectedForms.length} نماذج مرفوضة)
+            </span>
+          )}
         </p>
         <div className="flex space-x-2 rtl:space-x-reverse">
           <Button 
@@ -432,6 +421,17 @@ const FormList: React.FC<FormListProps> = ({
             <Search className="mr-2 h-4 w-4" />
             {showRawData ? 'عرض البيانات المعالجة' : 'عرض البيانات الخام'}
           </Button>
+          {rejectedForms.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={showRejectedFormsInfo}
+              className="bg-amber-50"
+            >
+              <AlertCircle className="mr-2 h-4 w-4" />
+              عرض النماذج المرفوضة
+            </Button>
+          )}
           <Button 
             variant="outline" 
             size="sm"
