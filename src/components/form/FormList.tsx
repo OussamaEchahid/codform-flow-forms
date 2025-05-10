@@ -96,7 +96,7 @@ const FormList: React.FC<FormListProps> = ({
     return () => clearTimeout(timeoutId);
   }, [processingComplete, instanceId, forms]);
   
-  // Process form data with simplified approach
+  // Process form data with simplified approach - IMPROVED to work without raw data mode
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -123,35 +123,33 @@ const FormList: React.FC<FormListProps> = ({
       const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
       console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
       
-      // SIMPLIFIED: If showing raw data, just enhance forms and return them
-      if (showRawData) {
-        console.log(`[${instanceId}] FormList: Showing raw forms data (${formsArray.length} forms)`);
-        const enhancedForms = formsArray.map(form => enhanceFormData(form));
-        setProcessedForms(enhancedForms);
-        setProcessingComplete(true);
-        setHasError(false);
-        return;
-      }
-      
       // Track rejected forms for better debugging
       const rejected: any[] = [];
       
-      // SIMPLIFIED: More lenient validation - only reject forms without any ID
+      // IMPROVED: More lenient validation with better ID handling
       const validForms = formsArray.filter(form => {
         if (!form) {
           rejected.push({ form, reason: 'Form is null or undefined' });
           return false;
         }
         
-        // Fix forms missing ID
+        // Fix forms missing ID - with safer property access pattern
         if (!form.id) {
           console.log(`[${instanceId}] FormList: Form missing ID, trying to fix:`, form);
           
           // If the form has a custom ID property that could be used as a fallback
-          if (form.hasOwnProperty('_id')) {
-            // TypeScript type assertion to access potential custom property
-            form.id = (form as any)._id;
-            return true;
+          // Using hasOwnProperty and safe type assertion for better TypeScript compatibility
+          if (Object.prototype.hasOwnProperty.call(form, '_id')) {
+            try {
+              // Use type assertion with safety check
+              const formWithCustomId = form as any;
+              if (typeof formWithCustomId._id === 'string' || typeof formWithCustomId._id === 'number') {
+                form.id = String(formWithCustomId._id);
+                return true;
+              }
+            } catch (err) {
+              console.error("Error accessing _id property:", err);
+            }
           }
           
           console.log(`[${instanceId}] FormList: Rejecting form due to missing ID`);

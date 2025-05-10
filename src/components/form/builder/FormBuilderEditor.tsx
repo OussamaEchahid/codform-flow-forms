@@ -71,14 +71,25 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.log('Executing debounced save...');
         const success = await handleSave();
         if (!success) {
-          toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
+          console.error("Auto-save failed, will retry...");
+          // Try one more time after a short delay
+          setTimeout(async () => {
+            try {
+              const retrySuccess = await handleSave();
+              if (!retrySuccess) {
+                toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
+              }
+            } catch (retryError) {
+              console.error("Error in retry save:", retryError);
+            }
+          }, 1500);
         }
       } catch (error) {
         console.error("Error in debounced save:", error);
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       }
       saveTimeoutRef.current = null;
-    }, 1000); // 1 second debounce
+    }, 1500); // Increased to 1.5 seconds debounce for better reliability
   }, [handleSave, language]);
 
   // Cleanup function for timeouts
@@ -251,7 +262,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
       } else {
-        toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
+        // If save fails, try one more time
+        setTimeout(async () => {
+          try {
+            const retrySuccess = await handleSave();
+            if (retrySuccess) {
+              toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (محاولة ثانية)' : 'Form saved successfully (retry)');
+            } else {
+              toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
+            }
+          } catch (retryError) {
+            console.error("Error during retry save:", retryError);
+            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+          }
+        }, 1000);
       }
     } catch (error) {
       console.error("Error during manual save:", error);
@@ -262,12 +286,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Publish handler wrapper to return void
   const handlePublishWrapper = useCallback(async () => {
     try {
-      await handlePublish();
+      // First try to save before publishing
+      const saveSuccess = await handleSave();
+      if (!saveSuccess) {
+        toast.warning(language === 'ar' ? 'تم حفظ النموذج قبل النشر' : 'Form saved before publishing');
+      }
+      
+      const publishSuccess = await handlePublish();
+      if (!publishSuccess) {
+        toast.error(language === 'ar' ? 'فشل في نشر النموذج' : 'Failed to publish form');
+      }
     } catch (error) {
       console.error("Error publishing form:", error);
       toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
     }
-  }, [handlePublish, language]);
+  }, [handlePublish, handleSave, language]);
 
   return (
     <FormEditorLayout

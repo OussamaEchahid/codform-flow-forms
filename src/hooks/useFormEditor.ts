@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
@@ -304,8 +303,22 @@ export const useFormEditor = (formId?: string) => {
   // Handle saving form data with improved retry mechanism and error handling
   const handleSave = useCallback(async () => {
     if (isSaving) {
-      console.log("Save operation already in progress, skipping duplicate save");
-      return false; // Return false to indicate save was not performed
+      console.log("Save operation already in progress, waiting for it to complete");
+      // Wait for current save operation to finish, then try again
+      return new Promise<boolean>(resolve => {
+        const checkInterval = setInterval(() => {
+          if (!isSaving) {
+            clearInterval(checkInterval);
+            handleSave().then(resolve).catch(() => resolve(false));
+          }
+        }, 500);
+        
+        // Safety timeout after 5 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve(false);
+        }, 5000);
+      });
     }
     
     // Generate a unique ID for this save request
@@ -349,18 +362,30 @@ export const useFormEditor = (formId?: string) => {
       
       console.log("Saving form with data:", dbData);
       
-      // Try direct update with multiple retries if needed
+      // Try direct update with multiple retries and longer timeouts
       let success = false;
       let retries = 0;
-      const maxRetries = 3;
+      const maxRetries = 5; // Increased number of retries
       
       while (!success && retries < maxRetries) {
         try {
           console.log(`Database update attempt ${retries + 1}/${maxRetries}`);
-          const { error } = await supabase
+          
+          // Use a timeout promise to handle cases where supabase is slow to respond
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database update timeout')), 10000)
+          );
+          
+          const updatePromise = supabase
             .from('forms')
             .update(dbData)
             .eq('id', currentFormId);
+            
+          // Race between timeout and update
+          const { error } = await Promise.race([
+            updatePromise,
+            timeoutPromise.then(() => ({ error: new Error('Database update timeout') }))
+          ]) as { error: any };
             
           if (error) {
             console.error(`Update attempt ${retries + 1} failed:`, error);
@@ -370,8 +395,8 @@ export const useFormEditor = (formId?: string) => {
               throw error;
             }
             
-            // Wait with exponential backoff
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+            // Wait with exponential backoff (longer delays)
+            await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retries - 1)));
           } else {
             console.log("Form saved successfully to database");
             success = true;
@@ -384,8 +409,8 @@ export const useFormEditor = (formId?: string) => {
             throw error;
           }
           
-          // Wait with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+          // Wait with exponential backoff (longer delays)
+          await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, retries - 1)));
         }
       }
       
@@ -410,7 +435,6 @@ export const useFormEditor = (formId?: string) => {
             buttonStyle: formStyle.buttonStyle
           });
           
-          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
           setRefreshKey(prev => prev + 1);
           setIsSaving(false); // Make sure to set saving to false on success
           return true; // Return true to indicate successful save
