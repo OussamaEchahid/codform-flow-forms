@@ -44,11 +44,16 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
   const { publishForm, deleteForm } = useFormTemplates();
   const [hasError, setHasError] = useState<boolean>(false);
   const [processedForms, setProcessedForms] = useState<FormData[]>([]);
+  const [hasInitialized, setHasInitialized] = useState<boolean>(false);
   
-  // Process and validate forms data whenever it changes
+  // Process and validate forms data whenever it changes, with improved safety
   useEffect(() => {
+    // Generate a unique processing ID for logging
+    const processId = `process_${Math.random().toString(36).substring(2, 8)}`;
+    console.log(`[${processId}] FormList: Starting data processing`);
+    
     try {
-      console.log('FormList: Processing forms data', { 
+      console.log(`[${processId}] FormList: Processing forms data`, { 
         received: forms, 
         isArray: Array.isArray(forms),
         length: Array.isArray(forms) ? forms.length : 0
@@ -56,6 +61,14 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       
       // Reset error state
       setHasError(false);
+      
+      // Check if we received null forms data
+      if (!forms) {
+        console.log(`[${processId}] FormList: Received null forms data`);
+        setProcessedForms([]);
+        setHasInitialized(true);
+        return;
+      }
       
       // Enhanced validation to make sure we only work with valid form objects
       const validForms = Array.isArray(forms) ? forms.filter(form => 
@@ -74,15 +87,17 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
         return acc;
       }, []);
       
-      console.log('FormList: Processed forms', { 
+      console.log(`[${processId}] FormList: Processed forms`, { 
         valid: validForms.length, 
         unique: uniqueForms.length 
       });
       
       setProcessedForms(uniqueForms);
+      setHasInitialized(true);
     } catch (error) {
-      console.error('Error processing forms data:', error);
+      console.error(`[${processId}] Error processing forms data:`, error);
       setHasError(true);
+      setHasInitialized(true);
       toast.error('حدث خطأ في معالجة بيانات النماذج');
     }
   }, [forms]);

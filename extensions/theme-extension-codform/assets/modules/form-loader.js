@@ -4,13 +4,13 @@ function CODFORMFormLoader(API_BASE_URL) {
   const { renderForm } = CODFORMFormRenderer();
   const { submitForm } = CODFORMFormSubmitter(API_BASE_URL);
   
-  // Circuit breaker state
+  // Circuit breaker state with reduced threshold and quicker reset
   const circuitBreaker = {
     failureCount: 0,
     lastFailureTime: null,
     isOpen: false,
-    threshold: 3,
-    resetTimeout: 60000 // 1 minute
+    threshold: 2,  // Reduced threshold to prevent excessive attempts
+    resetTimeout: 30000 // 30 seconds reset timeout
   };
   
   function loadForm(container, formId, productId) {
@@ -55,18 +55,18 @@ function CODFORMFormLoader(API_BASE_URL) {
     const timestamp = new Date().getTime();
     const urlWithTimestamp = `${apiUrl}?t=${timestamp}`;
     
-    // Add retry mechanism with absolute maximum (hard circuit breaker)
+    // Hard limit the number of retries and set strict timeouts
     let retryCount = 0;
-    const maxRetries = 1;  // Reduced max retries to minimize user waiting
-    const absoluteMaxRetries = 2; // Global maximum retries regardless of other conditions
-    let globalRetryCount = 0;
+    const maxRetries = 0;  // No automatic retries - manual retry only
+    const globalRetryCount = 0; // Track all attempts
+    const absoluteMaxRetries = 1; // Only allow one retry max
     
-    // Track fetch timeout - global timeout for entire operation
+    // Track fetch timeout - global timeout for entire operation (4 seconds)
     let globalTimeoutId = setTimeout(() => {
       console.error('CODFORM: Global timeout reached - cancelling all operations');
       cleanupAllTimeouts();
       showError(container, 'انتهت مهلة تحميل النموذج. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
-    }, 10000); // 10 second global timeout
+    }, 4000); // 4 second global timeout
     
     // Store all timeout IDs so we can clear them
     const timeoutIds = [];
@@ -78,53 +78,17 @@ function CODFORMFormLoader(API_BASE_URL) {
     }
     
     function attemptFetch() {
-      // If we've hit the absolute maximum retries, stop immediately
-      if (globalRetryCount >= absoluteMaxRetries) {
-        cleanupAllTimeouts();
-        
-        console.error(`CODFORM: Hit absolute maximum retries (${absoluteMaxRetries}). Stopping.`);
-        circuitBreaker.failureCount++;
-        circuitBreaker.lastFailureTime = new Date().getTime();
-        
-        if (circuitBreaker.failureCount >= circuitBreaker.threshold) {
-          circuitBreaker.isOpen = true;
-        }
-        
-        showError(container, 'لم نتمكن من تحميل النموذج بعد عدة محاولات. يرجى التحقق من اتصالك بالإنترنت.');
-        return;
-      }
-      
-      globalRetryCount++;
-      
-      // Set fetch timeout (for this specific attempt)
-      const fetchTimeoutId = setTimeout(() => {
-        console.error('CODFORM: Fetch timeout');
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`CODFORM: Retrying (${retryCount}/${maxRetries})...`);
-          showRetryMessage(container, retryCount, maxRetries);
-          
-          // Start a new attempt with exponential backoff
-          const backoffTimeoutId = setTimeout(attemptFetch, 1000 * retryCount);
-          timeoutIds.push(backoffTimeoutId);
-        } else {
-          console.error('CODFORM: All retries failed');
-          circuitBreaker.failureCount++;
-          circuitBreaker.lastFailureTime = new Date().getTime();
-          
-          if (circuitBreaker.failureCount >= circuitBreaker.threshold) {
-            circuitBreaker.isOpen = true;
-          }
-          
-          showError(container, 'انتهت مهلة الاتصال. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
-        }
-      }, 5000); // 5 second timeout per attempt
-      
-      timeoutIds.push(fetchTimeoutId);
-      
       // Generate request ID for tracing this specific request through logs
       const requestId = `form_${formId}_req_${Math.random().toString(36).substring(2, 8)}`;
       console.log(`CODFORM [${requestId}]: Starting fetch request`);
+      
+      // Set fetch timeout (for this specific attempt) - 3 seconds
+      const fetchTimeoutId = setTimeout(() => {
+        console.error(`CODFORM [${requestId}]: Fetch timeout`);
+        showError(container, 'انتهت مهلة الاتصال. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+      }, 3000); // 3 second timeout per attempt
+      
+      timeoutIds.push(fetchTimeoutId);
       
       fetch(urlWithTimestamp, {
         method: 'GET',
@@ -149,21 +113,21 @@ function CODFORMFormLoader(API_BASE_URL) {
           
           if (contentType && contentType.includes('text/html')) {
             console.error(`CODFORM [${requestId}]: Received HTML instead of JSON`);
-            throw new Error(`Received HTML instead of JSON (status ${response.status}). This usually indicates a CORS issue or incorrect API URL.`);
+            throw new Error(`تم استلام HTML بدلاً من JSON. هذا يشير عادة إلى مشكلة في الخادم أو في إعدادات CORS.`);
           }
           
           if (!response.ok) {
-            throw new Error(`Failed to load form: ${response.status} - ${response.statusText}`);
+            throw new Error(`فشل تحميل النموذج: ${response.status} - ${response.statusText}`);
           }
           
           if (!contentType || !contentType.includes('application/json')) {
             console.error(`CODFORM [${requestId}]: Invalid content type: ${contentType}`);
-            throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
+            throw new Error(`كان من المتوقع استجابة JSON ولكن تم الحصول على ${contentType || 'نوع محتوى غير معروف'}`);
           }
           
           return response.json().catch(err => {
             console.error(`CODFORM [${requestId}]: Error parsing JSON:`, err);
-            throw new Error('Could not parse JSON response');
+            throw new Error('لا يمكن تحليل استجابة JSON');
           });
         })
         .then(data => {
@@ -177,16 +141,16 @@ function CODFORMFormLoader(API_BASE_URL) {
           
           // Enhanced validation of form data
           if (!data) {
-            throw new Error('Invalid form data: Empty response');
+            throw new Error('بيانات النموذج غير صالحة: استجابة فارغة');
           }
           
           if (data.error) {
-            throw new Error(`API error: ${data.error}`);
+            throw new Error(`خطأ في API: ${data.error}`);
           }
           
           // Check if form is published
           if (data.is_published === false) {
-            throw new Error('This form is not published. Please publish the form before embedding it.');
+            throw new Error('هذا النموذج غير منشور. الرجاء نشر النموذج قبل تضمينه.');
           }
           
           // More robust data structure validation
@@ -197,7 +161,7 @@ function CODFORMFormLoader(API_BASE_URL) {
           
           if (!hasValidContent) {
             console.error(`CODFORM [${requestId}]: Form has no valid content:`, data);
-            throw new Error('Invalid form data: No valid content found. The form may be empty or misconfigured.');
+            throw new Error('بيانات النموذج غير صالحة: لم يتم العثور على محتوى صالح. قد يكون النموذج فارغًا أو تمت تهيئته بشكل غير صحيح.');
           }
           
           hideLoader(container);
@@ -206,20 +170,6 @@ function CODFORMFormLoader(API_BASE_URL) {
         })
         .catch(error => {
           console.error(`CODFORM [${requestId}]: Error loading form:`, error);
-          
-          // Retry logic
-          if (retryCount < maxRetries && globalRetryCount < absoluteMaxRetries) {
-            retryCount++;
-            console.log(`CODFORM [${requestId}]: Retrying (${retryCount}/${maxRetries})...`);
-            
-            // Show retry message
-            showRetryMessage(container, retryCount, maxRetries);
-            
-            // Exponential backoff
-            const retryTimeoutId = setTimeout(attemptFetch, 1000 * retryCount);
-            timeoutIds.push(retryTimeoutId);
-            return;
-          }
           
           // Clear all timeouts since we're showing an error
           cleanupAllTimeouts();
@@ -241,29 +191,13 @@ function CODFORMFormLoader(API_BASE_URL) {
             errorMessage = 'خطأ CORS: خادم النماذج لا يسمح بالاتصالات من هذا النطاق.';
           } else if (error.message.includes('JSON')) {
             errorMessage = 'خطأ في التنسيق: استجابة الخادم لم تكن بالتنسيق المتوقع.';
-          } else if (error.message.includes('HTML instead of JSON')) {
+          } else if (error.message.includes('HTML')) {
             errorMessage = 'خطأ في استجابة الخادم: تم استلام HTML بدلاً من JSON. يرجى التحقق من تكوين الخادم.';
           }
           
           hideLoader(container);
           showError(container, errorMessage);
         });
-    }
-    
-    // Helper function to show retry message
-    function showRetryMessage(container, currentRetry, maxRetries) {
-      const loaderEl = container.querySelector('.codform-loader');
-      if (loaderEl) {
-        const retryText = loaderEl.querySelector('.codform-retry-text');
-        if (retryText) {
-          retryText.textContent = `جاري إعادة المحاولة (${currentRetry}/${maxRetries})...`;
-        } else {
-          const newRetryText = document.createElement('div');
-          newRetryText.className = 'codform-retry-text';
-          newRetryText.textContent = `جاري إعادة المحاولة (${currentRetry}/${maxRetries})...`;
-          loaderEl.appendChild(newRetryText);
-        }
-      }
     }
     
     // Start first attempt

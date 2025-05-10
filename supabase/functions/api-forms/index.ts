@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -16,12 +17,28 @@ serve(async (req) => {
     
     console.log(`[${requestId}] API-Forms: Request received for form ID: ${formId}`)
     
+    // Explicitly set content type to JSON in all responses
+    const responseHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'X-Request-ID': requestId
+    }
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error(`[${requestId}] API-Forms: Missing Supabase credentials`)
-      throw new Error('Missing Supabase credentials')
+      return new Response(JSON.stringify({ 
+        error: 'Missing Supabase credentials',
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 400,
+      })
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -29,7 +46,13 @@ serve(async (req) => {
     // Get form ID from URL
     if (!formId) {
       console.error(`[${requestId}] API-Forms: No form ID provided in URL`)
-      throw new Error('No form ID provided')
+      return new Response(JSON.stringify({ 
+        error: 'No form ID provided',
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 400,
+      })
     }
 
     console.log(`[${requestId}] API-Forms: Fetching form with ID: ${formId}`)
@@ -43,12 +66,24 @@ serve(async (req) => {
 
     if (error) {
       console.error(`[${requestId}] API-Forms: Database error:`, error)
-      throw error
+      return new Response(JSON.stringify({ 
+        error: error.message,
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 400,
+      })
     }
 
     if (!formData) {
       console.error(`[${requestId}] API-Forms: Form with ID ${formId} not found`)
-      throw new Error(`Form with ID ${formId} not found`)
+      return new Response(JSON.stringify({ 
+        error: `Form with ID ${formId} not found`,
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 404,
+      })
     }
 
     // Ensure form is published before returning
@@ -73,7 +108,13 @@ serve(async (req) => {
 
     // Ensure formData is not null or undefined before transforming
     if (!formData) {
-      throw new Error(`Form with ID ${formId} returned null data`)
+      return new Response(JSON.stringify({ 
+        error: `Form with ID ${formId} returned null data`,
+        success: false 
+      }), {
+        headers: responseHeaders,
+        status: 404,
+      })
     }
     
     // Transform form data to the expected format
@@ -83,14 +124,7 @@ serve(async (req) => {
     
     // Return the form data with proper CORS headers and explicit JSON content type
     return new Response(JSON.stringify(transformedData), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Request-ID': requestId
-      },
+      headers: responseHeaders,
       status: 200,
     })
   } catch (error) {
