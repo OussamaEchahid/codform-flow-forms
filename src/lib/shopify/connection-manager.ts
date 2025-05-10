@@ -1,4 +1,6 @@
-import { cleanShopifyDomain, ShopifyStoreConnection } from './types';
+
+import { cleanShopifyDomain } from './types';
+import type { ShopifyStoreConnection } from './types';
 import { connectionLogger } from './debug-logger';
 
 class ShopifyConnectionManager {
