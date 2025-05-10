@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -124,11 +123,7 @@ export const useShopify = () => {
           handle: 'test-product-1',
           description: 'This is a test product for development mode',
           images: [
-            {
-              id: 'gid://shopify/ProductImage/1',
-              src: 'https://via.placeholder.com/800x600?text=Test+Product+1',
-              altText: 'Test Product 1'
-            }
+            'https://via.placeholder.com/800x600?text=Test+Product+1'
           ],
           variants: [
             {
@@ -145,11 +140,7 @@ export const useShopify = () => {
           handle: 'test-product-2',
           description: 'This is another test product for development mode',
           images: [
-            {
-              id: 'gid://shopify/ProductImage/2',
-              src: 'https://via.placeholder.com/800x600?text=Test+Product+2',
-              altText: 'Test Product 2'
-            }
+            'https://via.placeholder.com/800x600?text=Test+Product+2'
           ],
           variants: [
             {

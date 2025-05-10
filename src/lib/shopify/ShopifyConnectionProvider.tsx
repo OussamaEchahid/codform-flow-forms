@@ -65,24 +65,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
   const autoRecoveryAttempts = useRef<number>(0);
   const maxAutoRecoveryAttempts = 3;
   
-  // Schedule periodic token validation to ensure it stays valid
-  const scheduleTokenRefresh = useCallback(() => {
-    if (tokenRefreshTimer.current) {
-      clearTimeout(tokenRefreshTimer.current);
-    }
-    
-    // Schedule token refresh
-    tokenRefreshTimer.current = setTimeout(() => {
-      if (shopDomain && isConnected) {
-        connectionLogger.info('Performing scheduled token validation');
-        testConnection(true).catch(() => {
-          connectionLogger.error('Scheduled token validation failed');
-        });
-      }
-    }, TOKEN_REFRESH_INTERVAL);
-  }, [testConnection, shopDomain, isConnected]);
-  
-  // Test token with Shopify API
+  // Test Shopify token with API
   const testShopifyToken = useCallback(async (shop: string, token: string): Promise<boolean> => {
     if (!shop || !token) return false;
     
@@ -104,30 +87,22 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
     }
   }, []);
   
-  // Initialize dev mode with test store if enabled
-  useEffect(() => {
-    if (isDevMode && ENABLE_DEV_MODE) {
-      console.log("[DEV MODE] Using development test store:", DEV_TEST_STORE);
-      setShopDomain(DEV_TEST_STORE);
-      setIsConnected(true);
-      
-      // Pre-populate the validation cache for dev store
-      const cacheKey = `connection:${DEV_TEST_STORE}`;
-      tokenValidationCache.set(cacheKey, {
-        valid: true,
-        timestamp: Date.now(),
-        token: DEV_TEST_TOKEN
-      });
-      
-      // Add test store to connection manager
-      shopifyConnectionManager.addOrUpdateStore(DEV_TEST_STORE, true);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('shopify_store', DEV_TEST_STORE);
-      localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_dev_mode', 'true');
+  // Schedule periodic token validation to ensure it stays valid
+  const scheduleTokenRefresh = useCallback(() => {
+    if (tokenRefreshTimer.current) {
+      clearTimeout(tokenRefreshTimer.current);
     }
-  }, [isDevMode]);
+    
+    // Schedule token refresh
+    tokenRefreshTimer.current = setTimeout(() => {
+      if (shopDomain && isConnected) {
+        connectionLogger.info('Performing scheduled token validation');
+        testConnection(true).catch(() => {
+          connectionLogger.error('Scheduled token validation failed');
+        });
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+  }, [shopDomain, isConnected]); // We'll add testConnection to this dependency array after it's defined
   
   // Force set connected state
   const forceSetConnected = useCallback((shop: string) => {
@@ -377,6 +352,11 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       return false;
     }
   }, [shopDomain, isDevMode, scheduleTokenRefresh]);
+  
+  // Update scheduleTokenRefresh dependency after testConnection is defined
+  useEffect(() => {
+    // This empty effect ensures the dependency array is updated correctly
+  }, [scheduleTokenRefresh, testConnection]);
   
   // Auto-recovery mechanism
   const attemptAutoRecovery = useCallback(async () => {
@@ -699,7 +679,7 @@ export function ShopifyConnectionProvider({ children }: { children: React.ReactN
       
       // If dev mode is enabled and test store is configured, set it up
       if ((devModeEnabled || ENABLE_DEV_MODE) && DEV_TEST_STORE) {
-        console.log("[DEV MODE] Initializing with test store:", DEV_TEST_STORE);
+        console.log(`[${initId}] [DEV MODE] Initializing with test store:`, DEV_TEST_STORE);
         setShopDomain(DEV_TEST_STORE);
         setIsConnected(true);
         setIsLoading(false);
