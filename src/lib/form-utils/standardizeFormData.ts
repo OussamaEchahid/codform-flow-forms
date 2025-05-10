@@ -50,3 +50,50 @@ export const normalizeFormData = (data: any): any[] => {
     }];
   }
 };
+
+// Export an alias of normalizeFormData as standardizeFormData
+export const standardizeFormData = (
+  elements: any[],
+  formStyle: any = {},
+  submitButtonText: string = 'إرسال الطلب'
+): any => {
+  // Create a standardized form structure with steps
+  const formattedStep = {
+    id: '1',
+    title: 'خطوة 1',
+    fields: elements,
+    metadata: {
+      formStyle: {
+        ...formStyle,
+        submitButtonText
+      }
+    }
+  };
+  
+  return [formattedStep];
+};
+
+// Add the withRetry utility function for retrying operations
+export const withRetry = async (
+  operation: () => Promise<any>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<any> => {
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      return await operation();
+    } catch (error) {
+      retries++;
+      console.error(`Operation failed (attempt ${retries}/${maxRetries}):`, error);
+      
+      if (retries >= maxRetries) {
+        throw error;
+      }
+      
+      // Wait with exponential backoff
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, retries - 1)));
+    }
+  }
+};
