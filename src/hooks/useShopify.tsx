@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { testShopifyConnection, loadShopifyProducts, syncFormWithShopify } from '@/lib/shopify/api';
 import { toast } from 'sonner';
