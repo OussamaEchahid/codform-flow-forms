@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import FormsPage from './FormsPage';
 import { useNavigate } from 'react-router-dom';
@@ -73,18 +74,21 @@ const Forms = () => {
     window.location.reload();
   }, []);
   
-  // Check API-based connection check first
+  // Check API-based connection check with improved dev mode handling
   const checkConnectionViaApi = useCallback(async (shopName: string): Promise<boolean> => {
-    // Dev mode bypass for test store
+    // Dev mode handling - ENHANCED to ensure test store always passes
     if (isDevMode && shopName === DEV_TEST_STORE) {
-      console.log(`[DEV MODE] Bypassing API connection check for test store: ${shopName}`);
+      console.log(`[DEV MODE] Automatic API connection success for test store: ${shopName}`);
+      // Force the test store to be considered connected
+      localStorage.setItem('shopify_store', DEV_TEST_STORE);
+      localStorage.setItem('shopify_connected', 'true');
       return true;
     }
     
     try {
       console.log(`Checking connection via API for shop: ${shopName}`);
       
-      // Try POST first
+      // Try POST first with dev mode flag
       try {
         const requestId = `api_check_${Math.random().toString(36).substring(2, 8)}`;
         const postResponse = await fetch(`/api/shopify-test-connection`, {
@@ -93,13 +97,20 @@ const Forms = () => {
           body: JSON.stringify({ 
             shop: shopName, 
             force: true,
-            requestId: requestId
+            requestId: requestId,
+            dev: isDevMode // Pass dev mode flag to API
           })
         });
         
         if (postResponse.ok) {
           const result = await postResponse.json();
           console.log('API POST connection check result:', result);
+          
+          // Special handling for dev mode test store
+          if (isDevMode && shopName === DEV_TEST_STORE) {
+            return true;
+          }
+          
           return result.success === true;
         }
         
@@ -107,29 +118,68 @@ const Forms = () => {
         throw new Error('POST request failed');
       } catch (postError) {
         console.log('Falling back to GET request:', postError);
-        const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopName)}&force=true`);
+        
+        // Special handling for dev mode test store if POST fails
+        if (isDevMode && shopName === DEV_TEST_STORE) {
+          console.log('[DEV MODE] API POST failed but using test store bypass');
+          return true;
+        }
+        
+        const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopName)}&force=true&dev=${isDevMode}`);
         
         if (!response.ok) {
+          // Special handling for dev mode test store if GET fails
+          if (isDevMode && shopName === DEV_TEST_STORE) {
+            console.log('[DEV MODE] API GET failed but using test store bypass');
+            return true;
+          }
+          
           console.error('API connection check failed:', await response.text());
           return false;
         }
         
         const result = await response.json();
         console.log('API GET connection check result:', result);
+        
+        // Special handling for dev mode test store
+        if (isDevMode && shopName === DEV_TEST_STORE) {
+          return true;
+        }
+        
         return result.success === true;
       }
     } catch (error) {
       console.error('Error in API connection check:', error);
+      
+      // Failsafe for test store in dev mode - even if everything fails
+      if (isDevMode && shopName === DEV_TEST_STORE) {
+        console.log('[DEV MODE] API error but using test store failsafe');
+        return true;
+      }
+      
       return false;
     }
   }, [isDevMode]);
   
   // Manual connection check - with retries and clear validation
   const manualConnectionCheck = useCallback(async () => {
-    // Dev mode bypass for test store
+    // Dev mode bypass for test store - ENHANCED
     if (isDevMode && shopDomain === DEV_TEST_STORE) {
       console.log('[DEV MODE] Bypassing manual connection check for test store');
       toast.success('متجر الاختبار متصل في وضع التطوير');
+      
+      // Force test store to be considered connected
+      localStorage.setItem('shopify_store', DEV_TEST_STORE);
+      localStorage.setItem('shopify_connected', 'true');
+      
+      // Update state
+      setDebugInfo(prev => ({
+        ...prev,
+        connectionState: 'dev_mode_connected',
+        lastTestResult: true,
+        lastTestTime: new Date().toISOString()
+      }));
+      
       return true;
     }
     
@@ -154,6 +204,14 @@ const Forms = () => {
         toast.error('لم يتم العثور على معلومات المتجر. الرجاء الاتصال بمتجرك أولاً.');
         navigate('/shopify');
         return;
+      }
+      
+      // Special dev mode handling
+      if (isDevMode && currentShop === DEV_TEST_STORE) {
+        console.log('[DEV MODE] Forcing test store connection');
+        localStorage.setItem('shopify_connected', 'true');
+        toast.success('تم التحقق من الاتصال بمتجر الاختبار بنجاح');
+        return true;
       }
       
       // Try API check first
@@ -193,13 +251,21 @@ const Forms = () => {
           return true;
         }
         
+        // Special handling for test store in dev mode
+        if (isDevMode && currentShop === DEV_TEST_STORE) {
+          console.log('[DEV MODE] Using test store failsafe after failed direct test');
+          localStorage.setItem('shopify_connected', 'true');
+          toast.success('تم تفعيل متجر الاختبار في وضع التطوير');
+          return true;
+        }
+        
         if (attempts < 3) {
           // Wait with exponential backoff
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
         }
       }
       
-      if (!isValid) {
+      if (!isValid && !(isDevMode && currentShop === DEV_TEST_STORE)) {
         toast.error('فشل اختبار الاتصال بعد عدة محاولات. يرجى تحديث رمز الوصول.');
         setDebugInfo(prev => ({
           ...prev,
@@ -215,24 +281,37 @@ const Forms = () => {
       return true;
     } catch (error) {
       console.error('Error during manual connection check:', error);
+      
+      // Failsafe for test store
+      if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log('[DEV MODE] Error in manual check but using test store failsafe');
+        localStorage.setItem('shopify_connected', 'true');
+        return true;
+      }
+      
       toast.error('حدث خطأ أثناء التحقق من الاتصال');
       return false;
     } finally {
       setIsVerifying(false);
     }
-  }, [navigate, syncState, testConnection, reload, shopDomain, checkConnectionViaApi, isDevMode]);
+  }, [navigate, syncState, testConnection, reload, shopDomain, checkConnectionViaApi, isDevMode, clearShopifyCache]);
   
-  // Advanced check connection function with better retry mechanism
+  // Advanced check connection function with better retry mechanism and dev mode
   const checkConnection = useCallback(async () => {
     // Dev mode bypass - don't check connection for test store
     if (isDevMode && shopDomain === DEV_TEST_STORE) {
-      console.log('[DEV MODE] Skipping connection check for test store');
+      console.log('[DEV MODE] Skipping connection check for test store - automatic pass');
       setDebugInfo(prev => ({
         ...prev,
         connectionState: 'dev_mode_bypass',
         lastTestResult: true,
         lastTestTime: new Date().toISOString()
       }));
+      
+      // Make sure test store is marked as connected
+      localStorage.setItem('shopify_store', DEV_TEST_STORE);
+      localStorage.setItem('shopify_connected', 'true');
+      
       return;
     }
     
@@ -258,12 +337,28 @@ const Forms = () => {
         retryAttempts: retries
       }));
       
+      // If there's no shop domain but dev mode is active, use test store
+      if (!shopDomain && isDevMode) {
+        console.log(`[${requestId}] No shop domain but dev mode active, using test store`);
+        localStorage.setItem('shopify_store', DEV_TEST_STORE);
+        localStorage.setItem('shopify_connected', 'true');
+        return;
+      }
+      
       // If there's no shop domain, redirect to connection page
       if (!shopDomain) {
         console.log(`[${requestId}] No shop domain found, redirecting to shopify connection page`);
         toast.error('لا يوجد اتصال بمتجر Shopify. الرجاء الاتصال بمتجرك أولاً.');
         setHasRedirected(true);
         navigate('/shopify');
+        return;
+      }
+      
+      // Special handling for test store in dev mode
+      if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log(`[${requestId}] Test store detected in dev mode, bypassing checks`);
+        localStorage.setItem('shopify_connected', 'true');
+        setRetries(0);
         return;
       }
       
@@ -333,6 +428,14 @@ const Forms = () => {
       }
     } catch (error) {
       console.error(`[${requestId}] Error verifying connection:`, error);
+      
+      // Failsafe for test store
+      if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log(`[${requestId}] Error but using test store failsafe`);
+        localStorage.setItem('shopify_connected', 'true');
+        return;
+      }
+      
       toast.error('حدث خطأ أثناء التحقق من الاتصال');
     } finally {
       setIsVerifying(false);
@@ -341,10 +444,17 @@ const Forms = () => {
   
   // Check connection once on load with improved reliability
   useEffect(() => {
-    // Skip connection check in dev mode for test store
-    if (isDevMode && shopDomain === DEV_TEST_STORE) {
-      console.log('[DEV MODE] Using test store in dev mode, skipping connection check');
-      return;
+    // Enhanced dev mode test store handling
+    if (isDevMode) {
+      console.log('[DEV MODE] Development mode detected');
+      
+      // If using test store, set it up properly
+      if (shopDomain === DEV_TEST_STORE || !shopDomain) {
+        console.log('[DEV MODE] Enabling test store:', DEV_TEST_STORE);
+        localStorage.setItem('shopify_store', DEV_TEST_STORE);
+        localStorage.setItem('shopify_connected', 'true');
+        return;
+      }
     }
     
     const timerRef = setTimeout(() => {
@@ -405,6 +515,7 @@ const Forms = () => {
                 isVerifying,
                 error,
                 hasRedirected,
+                isDevMode
               }, null, 2)}
             </pre>
           </div>
@@ -458,6 +569,13 @@ const Forms = () => {
         </Button>
       </div>
     );
+  }
+
+  // Dev mode test store - skip verification and show forms directly
+  if (isDevMode && shopDomain === DEV_TEST_STORE) {
+    console.log('[DEV MODE] Using test store, bypassing connection checks');
+    localStorage.setItem('shopify_connected', 'true');
+    return <FormsPage shopId={shopDomain || ''} />;
   }
 
   // All good - show the forms page with the shop domain

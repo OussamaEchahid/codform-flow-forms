@@ -8,14 +8,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-// Remove Shopify Remix import that's not available
-// import { 
-//   shopifyAuth, 
-//   ShopifyAuthParams, 
-//   ShopifyAuthRedirectResult 
-// } from '@shopify/shopify-app-remix/server';
 import { clearShopifyCache } from '@/hooks/useShopify';
-// Fix the import path for supabase client
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 
 // Test store configuration for development
@@ -66,20 +59,25 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   const navigate = useNavigate();
   
   // Check if the app is running in development mode
-  const isDevMode = process.env.NODE_ENV === 'development';
+  const isDevMode = process.env.NODE_ENV === 'development' || import.meta.env.DEV === true;
   
   // Load initial state from localStorage
   useEffect(() => {
     const storedShop = localStorage.getItem('shopify_store');
     const storedConnected = localStorage.getItem('shopify_connected') === 'true';
     
-    if (storedShop) {
+    // Check if this is the test store in dev mode
+    if (isDevMode && storedShop === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Using test store:', DEV_TEST_STORE);
+      setIsConnected(true);
+      localStorage.setItem('shopify_connected', 'true');
+    } else if (storedShop) {
       setShopDomain(storedShop);
+      setIsConnected(storedConnected);
     }
     
-    setIsConnected(storedConnected);
     setIsLoading(false);
-  }, []);
+  }, [isDevMode]);
   
   // Force set connected state - needed for the redirect page
   const forceSetConnected = useCallback((shop: string) => {
@@ -122,16 +120,19 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     }
   }, []);
   
-  // Enhanced test connection function with cache implementation
+  // Enhanced test connection function with cache implementation and improved dev mode handling
   const testConnection = useCallback(async (forceRefresh: boolean = false): Promise<boolean> => {
     if (!shopDomain) {
       console.warn('No shop domain to test connection');
       return false;
     }
     
-    // Development mode bypass for test store
+    // Development mode bypass for test store - ENHANCED
     if (isDevMode && shopDomain === DEV_TEST_STORE) {
       console.log('[DEV MODE] Bypassing connection test for test store');
+      // Set connection state for dev mode
+      setIsConnected(true);
+      localStorage.setItem('shopify_connected', 'true');
       return true;
     }
     
@@ -150,7 +151,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     
     try {
       // Call the test connection API route
-      const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopDomain)}&force=${forceRefresh}`);
+      const response = await fetch(`/api/shopify-test-connection?shop=${encodeURIComponent(shopDomain)}&force=${forceRefresh}&dev=${isDevMode}`);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -162,7 +163,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       
       const result = await response.json();
       
-      if (result.success === true) {
+      if (result.success === true || (isDevMode && shopDomain === DEV_TEST_STORE && result.devMode)) {
         console.log('Connection test successful');
         setIsConnected(true);
         localStorage.setItem('shopify_connected', 'true');
@@ -178,6 +179,15 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       }
     } catch (e: any) {
       console.error('Error testing connection:', e);
+      
+      // Special handling for dev mode test store when API fails
+      if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log('[DEV MODE] API failed but using test store failsafe');
+        setIsConnected(true);
+        localStorage.setItem('shopify_connected', 'true');
+        return true;
+      }
+      
       setError(e.message || 'Error testing connection');
       setIsConnected(false);
       localStorage.removeItem('shopify_connected');
@@ -197,6 +207,15 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       // Get the current shop domain
       const currentShop = localStorage.getItem('shopify_store');
       
+      // Special handling for dev mode test store
+      if (isDevMode && currentShop === DEV_TEST_STORE) {
+        console.log('[DEV MODE] Syncing state for test store');
+        setIsConnected(true);
+        setShopDomain(DEV_TEST_STORE);
+        localStorage.setItem('shopify_connected', 'true');
+        return;
+      }
+      
       if (!currentShop) {
         console.log('No shop domain found in localStorage');
         setIsConnected(false);
@@ -211,7 +230,7 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         .eq('shop', currentShop)
         .single();
       
-      if (error) {
+      if (error && currentShop !== DEV_TEST_STORE) {
         console.error('Error fetching shop data:', error);
         setIsConnected(false);
         setShopDomain('');
@@ -219,8 +238,8 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
         return;
       }
       
-      // If shop exists, set connected state
-      const isCurrentlyConnected = !!data?.shop;
+      // If shop exists or is test store, set connected state
+      const isCurrentlyConnected = !!data?.shop || (isDevMode && currentShop === DEV_TEST_STORE);
       setIsConnected(isCurrentlyConnected);
       setShopDomain(currentShop);
       localStorage.setItem('shopify_connected', String(isCurrentlyConnected));
@@ -228,14 +247,23 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
       console.log(`Shop ${currentShop} is ${isCurrentlyConnected ? 'connected' : 'disconnected'}`);
     } catch (err) {
       console.error('Error syncing state:', err);
-      setIsConnected(false);
-      setShopDomain('');
-      localStorage.removeItem('shopify_connected');
+      
+      // Failsafe for test store in dev mode
+      const currentShop = localStorage.getItem('shopify_store');
+      if (isDevMode && currentShop === DEV_TEST_STORE) {
+        setIsConnected(true);
+        setShopDomain(DEV_TEST_STORE);
+        localStorage.setItem('shopify_connected', 'true');
+      } else {
+        setIsConnected(false);
+        setShopDomain('');
+        localStorage.removeItem('shopify_connected');
+      }
     } finally {
       setIsLoading(false);
       setIsValidating(false);
     }
-  }, []);
+  }, [isDevMode]);
   
   // Reload the page
   const reload = useCallback(async (): Promise<void> => {
@@ -245,9 +273,11 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
   // Schedule token refresh checks
   const scheduleTokenRefresh = useCallback(() => {
     const checkToken = async () => {
-      if (shopDomain) {
+      if (shopDomain && shopDomain !== DEV_TEST_STORE) {
         console.log('Scheduled token refresh check...');
         await testConnection(true); // Force refresh the token
+      } else if (isDevMode && shopDomain === DEV_TEST_STORE) {
+        console.log('[DEV MODE] Skipping scheduled token refresh for test store');
       }
     };
     
@@ -258,16 +288,22 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     const intervalId = setInterval(checkToken, 12 * 60 * 60 * 1000);
     
     return () => clearInterval(intervalId);
-  }, [shopDomain, testConnection]);
+  }, [shopDomain, testConnection, isDevMode]);
   
   // Run scheduled token refresh on mount and when shopDomain changes
   useEffect(() => {
+    // Skip token refresh for test store in dev mode
+    if (isDevMode && shopDomain === DEV_TEST_STORE) {
+      console.log('[DEV MODE] Using test store, skipping token refresh');
+      return;
+    }
+    
     const cleanup = scheduleTokenRefresh();
     
     return () => {
       cleanup?.();
     };
-  }, [shopDomain, scheduleTokenRefresh]);
+  }, [shopDomain, scheduleTokenRefresh, isDevMode]);
   
   return (
     <ShopifyConnectionContext.Provider
