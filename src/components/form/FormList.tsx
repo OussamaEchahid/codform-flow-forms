@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
@@ -55,6 +56,7 @@ const FormList: React.FC<FormListProps> = ({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [localForms, setLocalForms] = useState<FormData[]>(forms);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState<string | null>(null);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
@@ -75,6 +77,84 @@ const FormList: React.FC<FormListProps> = ({
       isMounted.current = false;
     };
   }, []);
+
+  // Add the missing handlePublishToggle function
+  const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
+    if (isPublishing) return;
+
+    try {
+      // Set the current form as publishing
+      setIsPublishing(formId);
+      
+      // Update UI optimistically
+      setLocalForms(prevForms => 
+        prevForms.map(form => 
+          form.id === formId 
+            ? {...form, is_published: !currentStatus, isPublished: !currentStatus} 
+            : form
+        )
+      );
+      
+      // Show toast
+      const actionText = currentStatus ? 'إلغاء نشر' : 'نشر';
+      const toastId = toast.loading(`جاري ${actionText} النموذج...`);
+      
+      // Perform the actual publishing/unpublishing with a small timeout to prevent UI freeze
+      setTimeout(async () => {
+        try {
+          await publishForm(formId, !currentStatus);
+          
+          if (isMounted.current) {
+            toast.dismiss(toastId);
+            toast.success(`تم ${actionText} النموذج بنجاح`);
+            
+            // After successful publish/unpublish, trigger the refresh callback if provided
+            if (onRefresh) {
+              onRefresh().catch(err => {
+                console.error(`[${stableId.current}] Error refreshing after publish:`, err);
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`[${stableId.current}] Error publishing form:`, error);
+          
+          if (isMounted.current) {
+            toast.dismiss(toastId);
+            toast.error(`فشل ${actionText} النموذج`);
+            
+            // Revert the optimistic update
+            setLocalForms(prevForms => 
+              prevForms.map(form => 
+                form.id === formId 
+                  ? {...form, is_published: currentStatus, isPublished: currentStatus} 
+                  : form
+              )
+            );
+            
+            // Try to refresh if available
+            if (onRefresh) {
+              onRefresh().catch(err => {
+                console.error(`[${stableId.current}] Error refreshing after publish failure:`, err);
+              });
+            }
+          }
+        } finally {
+          // Always reset publishing state
+          if (isMounted.current) {
+            setIsPublishing(null);
+          }
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error(`[${stableId.current}] Error in publish handler:`, error);
+      
+      if (isMounted.current) {
+        setIsPublishing(null);
+        toast.error("فشل في تحديث حالة النشر");
+      }
+    }
+  };
 
   // Improved deletion handler to prevent page freezing
   const handleDelete = async () => {
@@ -305,7 +385,8 @@ const FormList: React.FC<FormListProps> = ({
                       <DropdownMenuItem onClick={() => handlePublishToggle(
                         form.id, 
                         !!(form.is_published || form.isPublished)
-                      )}>
+                      )}
+                      disabled={isPublishing === form.id}>
                         {(form.is_published || form.isPublished) ? (
                           <>
                             <EyeOff className="h-4 w-4 mr-2" />

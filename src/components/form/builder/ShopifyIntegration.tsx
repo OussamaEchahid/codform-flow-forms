@@ -356,7 +356,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     event.preventDefault(); // Prevent any form submission
     
     try {
-      setIsLoading(true);
+      // Use isLoading from useShopify instead of a non-existent setIsLoading
+      // No need to update isLoading state as it's managed by the hook
       retryCount.current = 0; // Reset retry counter
       
       await loadProducts(true); // Force refresh
@@ -370,10 +371,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       toast.error(language === 'ar' 
         ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
         : 'Failed to refresh products, please try again');
-    } finally {
-      if (mounted.current) {
-        setIsLoading(false);
-      }
     }
   };
 
