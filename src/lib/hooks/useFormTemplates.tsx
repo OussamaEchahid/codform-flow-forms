@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -234,6 +233,9 @@ export const useFormTemplates = () => {
         delete dbData.submitButtonText;
       }
       
+      // Add timestamp to ensure update is detected
+      dbData.updated_at = new Date().toISOString();
+      
       // Update form in Supabase
       const { error } = await supabase
         .from('forms')
@@ -244,6 +246,15 @@ export const useFormTemplates = () => {
         console.error('Error updating form:', error);
         toast.error('خطأ في تحديث النموذج');
         setIsLoading(false);
+        
+        // Handle retry logic
+        if (retryCount < maxRetries) {
+          console.log(`Will retry save operation (${retryCount + 1}/${maxRetries})`);
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return saveForm(formId, formData, retryCount + 1, maxRetries);
+        }
+        
         return false;
       }
       
@@ -260,6 +271,15 @@ export const useFormTemplates = () => {
       console.error('Error saving form', error);
       toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
+      
+      // Handle retry logic for exceptions
+      if (retryCount < maxRetries) {
+        console.log(`Will retry save operation after exception (${retryCount + 1}/${maxRetries})`);
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return saveForm(formId, formData, retryCount + 1, maxRetries);
+      }
+      
       return false;
     }
   };

@@ -165,7 +165,7 @@ export const useShopify = () => {
     const now = Date.now();
     if (!force && now - lastProductsRefresh.current < CACHE_DURATIONS.PRODUCTS && products.length > 0) {
       console.log(`[${instanceId.current}] Using cached products data, skipping reload`);
-      return;
+      return products;
     }
     
     setIsLoading(true);
@@ -176,7 +176,7 @@ export const useShopify = () => {
           setError(language === 'ar' ? 'لم يتم العثور على متجر' : 'No store found');
           setIsLoading(false);
         }
-        return;
+        return [];
       }
 
       // Try to get cached products first
@@ -235,29 +235,49 @@ export const useShopify = () => {
           // Cache products
           localStorage.setItem('shopify_products', JSON.stringify(mockProducts));
         }
-        return;
+        return mockProducts;
       }
 
-      // Try first edge function method
+      // Try multiple approaches to fetch products
       console.log(`[${instanceId.current}] Fetching products for shop:`, storeId);
+      
+      // Add a unique timestamp to prevent caching
+      const cacheBuster = new Date().getTime();
+      
+      // First try: edge function
       let data, error;
       try {
+        console.log(`[${instanceId.current}] Attempting to fetch products using edge function...`);
         const response = await shopifySupabase.functions.invoke('shopify-products', {
-          body: { shop: storeId }
+          body: { 
+            shop: storeId,
+            timestamp: cacheBuster 
+          }
         });
         data = response.data;
         error = response.error;
-      } catch (invokeError) {
-        console.error(`[${instanceId.current}] Error invoking edge function:`, invokeError);
-        error = invokeError;
-      }
-      
-      // If edge function failed, try backup API route
-      if (error || !data?.products || data.products.length === 0) {
-        console.log(`[${instanceId.current}] Edge function failed, trying backup API route`);
+        
+        if (error) {
+          throw new Error(`Edge function error: ${error.message || "Unknown error"}`);
+        }
+        
+        if (!data?.products || data.products.length === 0) {
+          throw new Error("No products returned from edge function");
+        }
+      } catch (edgeFuncError) {
+        console.error(`[${instanceId.current}] Edge function error:`, edgeFuncError);
+        error = edgeFuncError;
+        
+        // Second try: API route
         try {
-          const apiResponse = await fetch(`/api/shopify-products?shop=${encodeURIComponent(storeId)}&t=${Date.now()}`, {
-            headers: { 'Cache-Control': 'no-cache' }
+          console.log(`[${instanceId.current}] Edge function failed, trying backup API route`);
+          const apiUrl = `/api/shopify-products?shop=${encodeURIComponent(storeId)}&t=${cacheBuster}`;
+          
+          const apiResponse = await fetch(apiUrl, {
+            headers: { 
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
           });
           
           if (!apiResponse.ok) {
@@ -276,18 +296,108 @@ export const useShopify = () => {
           }
         } catch (apiError) {
           console.error(`[${instanceId.current}] Backup API route also failed:`, apiError);
-          // Keep the original error if the backup also fails
+          
+          // Third try: Direct GraphQL (only if we have a token)
+          try {
+            console.log(`[${instanceId.current}] Trying direct GraphQL approach`);
+            
+            // Get token either from store data or from localStorage
+            const token = shopifyStore?.access_token || localStorage.getItem('shopify_access_token');
+            
+            if (!token) {
+              throw new Error("No access token available for direct GraphQL");
+            }
+            
+            const graphqlEndpoint = `https://${storeId}/admin/api/2023-10/graphql.json`;
+            const query = `
+              query {
+                products(first: 50) {
+                  edges {
+                    node {
+                      id
+                      title
+                      handle
+                      variants(first: 10) {
+                        edges {
+                          node {
+                            id
+                            title
+                            price
+                            availableForSale
+                          }
+                        }
+                      }
+                      images(first: 1) {
+                        edges {
+                          node {
+                            url
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            
+            const graphqlResponse = await fetch(graphqlEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': token
+              },
+              body: JSON.stringify({ query })
+            });
+            
+            if (!graphqlResponse.ok) {
+              throw new Error(`GraphQL request failed with status ${graphqlResponse.status}`);
+            }
+            
+            const graphqlData = await graphqlResponse.json();
+            if (graphqlData.errors) {
+              throw new Error(graphqlData.errors[0]?.message || "GraphQL error");
+            }
+            
+            // Transform GraphQL response to match our format
+            const transformedProducts = graphqlData.data.products.edges.map(edge => {
+              const node = edge.node;
+              return {
+                id: node.id,
+                title: node.title,
+                handle: node.handle,
+                price: node.variants.edges[0]?.node.price || "0",
+                images: node.images.edges.map(img => img.node.url),
+                variants: node.variants.edges.map(v => ({
+                  id: v.node.id,
+                  title: v.node.title,
+                  price: v.node.price,
+                  available: v.node.availableForSale
+                }))
+              };
+            });
+            
+            data = { products: transformedProducts };
+            console.log(`[${instanceId.current}] Successfully loaded ${transformedProducts.length} products via direct GraphQL`);
+            error = null;
+          } catch (graphqlError) {
+            console.error(`[${instanceId.current}] Direct GraphQL attempt also failed:`, graphqlError);
+            // Keep the previous errors
+          }
         }
       }
 
+      // Process results
       if (error) {
-        console.error(`[${instanceId.current}] Error fetching products:`, error);
+        console.error(`[${instanceId.current}] Error fetching products after all attempts:`, error);
         
         // If we already have products from cache, don't show the error to the user
         if (products.length === 0) {
           if (isMounted.current) {
             setError(error.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
-            toast.error(language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products');
+            // Toast only on initial load
+            if (force) {
+              toast.error(language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products');
+            }
           }
         }
       }
@@ -299,13 +409,20 @@ export const useShopify = () => {
         // Cache products
         localStorage.setItem('shopify_products', JSON.stringify(data.products));
         lastProductsRefresh.current = now;
+        
+        // Also set token in localStorage for potential direct access
+        if (shopifyStore?.access_token) {
+          localStorage.setItem('shopify_access_token', shopifyStore.access_token);
+        }
       }
 
       if (isMounted.current) {
         setIsLoading(false);
       }
+      
+      return data?.products || [];
     } catch (e: any) {
-      console.error(`[${instanceId.current}] Error loading products:`, e);
+      console.error(`[${instanceId.current}] Unhandled error loading products:`, e);
       
       if (isMounted.current) {
         setIsLoading(false);
@@ -316,8 +433,10 @@ export const useShopify = () => {
           toast.error(e.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'Error loading products'));
         }
       }
+      
+      return [];
     }
-  }, [getStoreId, language, isDevMode, products.length]);
+  }, [getStoreId, language, isDevMode, products.length, shopifyStore]);
 
   // Optimized syncForm function - fixed TypeScript error
   const syncForm = useCallback(async (formData: ShopifyFormData) => {
