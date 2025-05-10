@@ -22,7 +22,7 @@ import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
 import { resetShopifyConnection } from '@/utils/diagnostics';
-import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
+import { normalizeFormData, standardizeFormData } from '@/lib/form-utils/standardizeFormData';
 
 // Adding interface for component props to fix type errors
 interface FormsPageProps {
@@ -31,7 +31,11 @@ interface FormsPageProps {
   onReset?: () => void;
 }
 
-const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) => {
+const FormsPage: React.FC<FormsPageProps> = ({ 
+  shopId, 
+  forceRefresh, 
+  onReset 
+}) => {
   const { language } = useI18n();
   const [forms, setForms] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -174,22 +178,35 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
       if (data) {
         // Normalize the data structure in each form before setting
         const normalizedForms = data.map(form => {
-          // Keep all properties but normalize the data structure
+          // Keep all properties but standardize the data structure
           if (form.data) {
-            // Check if we need to normalize
-            if (!form.data.steps && !Array.isArray(form.data.steps)) {
-              // Normalize the data structure
-              const normalizedData = normalizeFormData(form.data);
+            // Check if we need to standardize
+            if (!form.data.settings || !form.data.steps) {
+              // Extract style properties
+              const formStyle = {
+                primaryColor: form.primaryColor || '#9b87f5',
+                borderRadius: form.borderRadius || '0.5rem',
+                fontSize: form.fontSize || '1rem',
+                buttonStyle: form.buttonStyle || 'rounded'
+              };
+              
+              // Extract submit button text
+              const submitButtonText = form.submitbuttontext || form.submitButtonText || 'إرسال الطلب';
+              
+              // Get fields from existing form data
+              const fields = normalizeFormData(form.data);
+              
+              // Standardize the data structure
               return {
                 ...form,
-                data: { steps: normalizedData }
+                data: standardizeFormData(fields, formStyle, submitButtonText)
               };
             }
           }
           return form;
         });
         
-        console.log(`[${instanceId.current}] FormsPage: Setting ${normalizedForms.length} forms with normalized data`);
+        console.log(`[${instanceId.current}] FormsPage: Setting ${normalizedForms.length} forms with standardized data`);
         setForms(normalizedForms);
         setError(null);
       } else {
@@ -221,7 +238,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
     console.log(`[${instanceId.current}] Creating new form with name:`, newFormName);
     
     try {
-      // CRITICAL FIX: Use multiple strategies to find shop ID
+      // Get shop ID using multiple strategies
       const currentShopId = shopId || shopDomain || localStorage.getItem('shopify_store');
       
       console.log(`[${instanceId.current}] Current shop ID for form creation:`, currentShopId);
@@ -230,26 +247,31 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh, onReset }) 
         throw new Error(language === 'ar' ? 'لم يتم العثور على متجر متصل' : 'No connected shop found');
       }
 
-      // IMPROVED: Use consistent data structure format for new forms
+      // Create standardized form data structure
+      const standardizedData = standardizeFormData([], {
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded'
+      }, 'إرسال الطلب');
+      
+      // Form data to insert
       const formData = {
         title: newFormName,
         description: '',
-        data: {
-          steps: [
-            {
-              id: uuidv4(),
-              title: language === 'ar' ? 'الخطوة الأولى' : 'First Step',
-              fields: []
-            }
-          ]
-        },
+        data: standardizedData,
         shop_id: currentShopId,
-        is_published: false
+        is_published: false,
+        submitbuttontext: 'إرسال الطلب',
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded'
       };
 
       console.log(`[${instanceId.current}] Sending form data to create:`, formData);
 
-      // IMPROVED: Insert with more reliable error handling
+      // Insert with error handling
       const { data, error: saveError } = await supabase
         .from('forms')
         .insert(formData)

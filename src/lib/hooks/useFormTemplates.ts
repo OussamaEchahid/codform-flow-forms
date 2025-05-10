@@ -4,7 +4,7 @@ import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { FormField } from '@/lib/form-utils';
-import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
+import { normalizeFormData, standardizeFormData } from '@/lib/form-utils/standardizeFormData';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -53,7 +53,7 @@ export const useFormTemplates = () => {
     return shop || localStorage.getItem('shopify_store') || sessionStorage.getItem('shopify_store');
   };
 
-  // Fetch all forms with retry logic
+  // Fetch all forms with proper data structure handling
   const fetchForms = async (retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
@@ -92,15 +92,31 @@ export const useFormTemplates = () => {
       
       // Transform and normalize data for consistency
       const formattedData = data.map(form => {
-        // Normalize data structure to ensure consistency
-        const normalizedData = normalizeFormData(form.data);
+        // Extract style properties
+        const formStyle = {
+          primaryColor: form.primaryColor || '#9b87f5',
+          borderRadius: form.borderRadius || '0.5rem',
+          fontSize: form.fontSize || '1rem',
+          buttonStyle: form.buttonStyle || 'rounded'
+        };
+        
+        // Extract submit button text
+        const submitButtonText = form.submitbuttontext || form.submitButtonText || 'إرسال الطلب';
+        
+        // Standardize data structure
+        let standardizedData = form.data;
+        
+        // Only standardize if not already in the right format
+        if (!form.data?.settings || !form.data?.steps) {
+          const fields = normalizeFormData(form.data);
+          standardizedData = standardizeFormData(fields, formStyle, submitButtonText);
+        }
         
         return {
           ...form,
           isPublished: form.is_published,
-          data: normalizedData,
-          // Ensure submitButtonText is available from either form.submitButtonText or form.submitbuttontext
-          submitButtonText: form.submitbuttontext || form.submitButtonText || 'إرسال الطلب'
+          data: standardizedData,
+          submitButtonText: submitButtonText
         };
       });
       
@@ -132,7 +148,7 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Create a form from template
+  // Create a form from template with standardized data
   const createFormFromTemplate = async (templateId: number) => {
     try {
       setIsLoading(true);
@@ -154,14 +170,20 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // New form data - standardize format to match our expected structure
-      const newFormId = uuidv4();
-      
-      // Ensure template.data is in the right format (array with steps)
-      const standardizedData = { 
-        steps: normalizeFormData(template.data) 
+      // Create standardized form data
+      const formStyle = {
+        primaryColor: template.primaryColor || '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded'
       };
       
+      const submitButtonText = 'إرسال الطلب';
+      
+      // Standardize template data format
+      const standardizedData = standardizeFormData(template.data, formStyle, submitButtonText);
+      
+      const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
         title: template.title,
@@ -170,6 +192,7 @@ export const useFormTemplates = () => {
         isPublished: false,
         shop_id: shopId,
         primaryColor: template.primaryColor,
+        submitButtonText: submitButtonText
       };
 
       // Insert into Supabase with retry logic
@@ -189,7 +212,8 @@ export const useFormTemplates = () => {
               is_published: false,
               shop_id: shopId,
               user_id: user?.id,
-              primaryColor: template.primaryColor
+              primaryColor: template.primaryColor,
+              submitbuttontext: submitButtonText
             });
 
           if (error) {
@@ -237,7 +261,7 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Create a default form
+  // Create a default form with standardized structure
   const createDefaultForm = async () => {
     try {
       setIsLoading(true);
@@ -253,10 +277,18 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // Standardize the data structure
-      const standardizedData = { 
-        steps: normalizeFormData(defaultTemplate.data) 
+      // Create standardized data
+      const formStyle = {
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded'
       };
+      
+      const submitButtonText = 'إرسال الطلب';
+      
+      // Use standardizeFormData to ensure consistent format
+      const standardizedData = standardizeFormData(defaultTemplate.data, formStyle, submitButtonText);
       
       const newFormId = uuidv4();
       const formData: FormData = {
@@ -266,6 +298,7 @@ export const useFormTemplates = () => {
         data: standardizedData,
         isPublished: false,
         shop_id: shopId,
+        submitButtonText: submitButtonText
       };
 
       // Insert into Supabase with retry logic
@@ -284,7 +317,12 @@ export const useFormTemplates = () => {
               data: standardizedData,
               is_published: false,
               shop_id: shopId,
-              user_id: user?.id
+              user_id: user?.id,
+              submitbuttontext: submitButtonText,
+              primaryColor: formStyle.primaryColor,
+              borderRadius: formStyle.borderRadius,
+              fontSize: formStyle.fontSize,
+              buttonStyle: formStyle.buttonStyle
             });
 
           if (error) {
@@ -332,22 +370,35 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Save form changes with retry logic
+  // Save form with standardized data structure
   const saveForm = async (formId: string, formData: Partial<FormData>, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
       console.log(`Attempting to save form (attempt ${retryCount + 1}/${maxRetries + 1})`, formId, formData);
       
-      // Standardize data format before saving if data is present
+      // Make a copy to avoid mutating the input
       const dbData: any = { ...formData };
       
-      // Convert and standardize data if present
+      // Standardize data format if needed
       if (dbData.data) {
-        // If data is not already in the { steps: [...] } format, standardize it
-        if (!dbData.data.steps) {
-          dbData.data = { 
-            steps: normalizeFormData(dbData.data) 
+        // If data doesn't have settings and steps, standardize it
+        if (!dbData.data.settings || !dbData.data.steps) {
+          // Extract style properties
+          const formStyle = {
+            primaryColor: dbData.primaryColor || formData.primaryColor || '#9b87f5',
+            borderRadius: dbData.borderRadius || formData.borderRadius || '0.5rem',
+            fontSize: dbData.fontSize || formData.fontSize || '1rem',
+            buttonStyle: dbData.buttonStyle || formData.buttonStyle || 'rounded'
           };
+          
+          // Extract submit button text
+          const submitButtonText = dbData.submitbuttontext || dbData.submitButtonText || formData.submitButtonText || 'إرسال الطلب';
+          
+          // Get fields from existing form data
+          const fields = normalizeFormData(dbData.data);
+          
+          // Standardize the data structure
+          dbData.data = standardizeFormData(fields, formStyle, submitButtonText);
         }
       }
       
@@ -393,7 +444,7 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Load a specific form by ID with retry logic
+  // Load form with standardized data structure
   const loadForm = async (formId: string, retryCount = 0, maxRetries = 3) => {
     try {
       setIsLoading(true);
@@ -452,15 +503,34 @@ export const useFormTemplates = () => {
         }
       }
       
-      // Normalize data for form state
-      const normalizedData = normalizeFormData(data.data);
+      // Extract style properties
+      const formStyle = {
+        primaryColor: data.primaryColor || '#9b87f5',
+        borderRadius: data.borderRadius || '0.5rem',
+        fontSize: data.fontSize || '1rem',
+        buttonStyle: data.buttonStyle || 'rounded'
+      };
+      
+      // Extract submit button text
+      const submitButtonText = data.submitbuttontext || data.submitButtonText || 'إرسال الطلب';
+      
+      // Standardize data structure if needed
+      let standardizedData = data.data;
+      if (!data.data?.settings || !data.data?.steps) {
+        const fields = normalizeFormData(data.data);
+        standardizedData = standardizeFormData(fields, formStyle, submitButtonText);
+      }
       
       // Format data for form state
       const formData: FormData = {
         ...data,
         isPublished: data.is_published,
-        data: normalizedData,
-        submitButtonText: data.submitbuttontext || data.submitButtonText || 'إرسال الطلب'
+        data: standardizedData,
+        submitButtonText: submitButtonText,
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       };
       
       // Update form state

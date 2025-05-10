@@ -51,29 +51,38 @@ export const normalizeFormData = (data: any): any[] => {
   }
 };
 
-// Export an alias of normalizeFormData as standardizeFormData
+/**
+ * Standardize form data format for consistency across the application
+ * Creates a unified format with settings and steps
+ */
 export const standardizeFormData = (
-  elements: any[],
+  elements: any[] = [],
   formStyle: any = {},
   submitButtonText: string = 'إرسال الطلب'
 ): any => {
-  // Create a standardized form structure with steps
-  const formattedStep = {
+  // First normalize any elements to ensure they're in the right format
+  const normalizedSteps = elements.length > 0 ? normalizeFormData(elements) : [{
     id: '1',
     title: 'خطوة 1',
-    fields: elements,
-    metadata: {
+    fields: []
+  }];
+  
+  // Create a standardized form structure that matches our expected format
+  // This structure should be used consistently across the application
+  return {
+    settings: {
       formStyle: {
         ...formStyle,
         submitButtonText
       }
-    }
+    },
+    steps: normalizedSteps
   };
-  
-  return [formattedStep];
 };
 
-// Add the withRetry utility function for retrying operations
+/**
+ * Utility function for retrying failed operations with exponential backoff
+ */
 export const withRetry = async (
   operation: () => Promise<any>,
   maxRetries: number = 3,

@@ -83,7 +83,7 @@ const FormList: React.FC<FormListProps> = ({
     return () => clearTimeout(timeoutId);
   }, [processingComplete, instanceId]);
   
-  // IMPROVED: Simplified form data processing with better error handling
+  // IMPROVED: Enhanced form data processing with better error handling
   useEffect(() => {
     // Don't process if we've reached max attempts or already completed processing
     if (attemptCount >= maxAttempts || processingComplete) {
@@ -109,15 +109,37 @@ const FormList: React.FC<FormListProps> = ({
       // Convert to array if object was passed
       const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
       
-      // IMPROVED: Simplified data transformation with explicit error handling
       console.log(`[${instanceId}] FormList: Processing ${formsArray.length} forms`);
       
       const validForms = formsArray
         .filter(form => form && typeof form === 'object')
         .map(form => {
           try {
-            // Normalize the data structure
-            const normalizedData = form.data ? normalizeFormData(form.data) : [];
+            // Extract data from the standardized structure
+            let steps = [];
+            let formStyle = {
+              primaryColor: form.primaryColor || '#9b87f5',
+              borderRadius: form.borderRadius || '0.5rem',
+              fontSize: form.fontSize || '1rem',
+              buttonStyle: form.buttonStyle || 'rounded'
+            };
+            let submitButtonText = form.submitbuttontext || 'إرسال الطلب';
+            
+            // Extract form data from standardized structure
+            if (form.data) {
+              if (form.data.settings && form.data.steps) {
+                // Already in standardized format
+                steps = form.data.steps;
+                formStyle = { ...formStyle, ...form.data.settings.formStyle };
+                submitButtonText = form.data.settings.formStyle?.submitButtonText || submitButtonText;
+              } else if (Array.isArray(form.data)) {
+                // Data is directly an array of steps
+                steps = form.data;
+              } else if (form.data.steps && Array.isArray(form.data.steps)) {
+                // Data has steps property that is an array
+                steps = form.data.steps;
+              }
+            }
             
             // Create a consistent FormData object
             return {
@@ -128,7 +150,20 @@ const FormList: React.FC<FormListProps> = ({
               isPublished: form.is_published || form.isPublished || false,
               created_at: form.created_at || new Date().toISOString(),
               shop_id: form.shop_id || '',
-              data: normalizedData
+              data: {
+                settings: {
+                  formStyle: {
+                    ...formStyle,
+                    submitButtonText
+                  }
+                },
+                steps: steps
+              },
+              primaryColor: formStyle.primaryColor,
+              borderRadius: formStyle.borderRadius,
+              fontSize: formStyle.fontSize,
+              buttonStyle: formStyle.buttonStyle,
+              submitButtonText: submitButtonText
             };
           } catch (err) {
             console.error(`[${instanceId}] Error processing form:`, err, form);

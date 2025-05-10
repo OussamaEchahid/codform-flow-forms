@@ -8,7 +8,7 @@ import { logShopifyDiagnostics, logFormDiagnostics, resetShopifyConnection } fro
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { normalizeFormData } from '@/lib/form-utils/standardizeFormData';
+import { normalizeFormData, standardizeFormData } from '@/lib/form-utils/standardizeFormData';
 
 const Forms = () => {
   const { shopDomain, isConnected, isLoading, syncState, reload } = useShopifyConnection();
@@ -86,11 +86,15 @@ const Forms = () => {
     performSync();
   }, [syncState, isLoading, hasSynced, shopDomain]);
 
-  // Added new method to fix any existing forms in the database with incorrect structure
+  // IMPROVED: Updated method to fix existing forms in the database with incorrect structure
   const fixExistingForms = async () => {
     try {
+      console.log("Starting comprehensive form structure fix");
       const shopId = shopDomain || localStorage.getItem('shopify_store');
-      if (!shopId) return;
+      if (!shopId) {
+        console.error("No shop ID found for fixing forms");
+        return;
+      }
       
       // Get all forms for this shop
       const { data: allForms, error } = await supabase
@@ -103,7 +107,9 @@ const Forms = () => {
         return;
       }
       
-      // Loop through forms and fix data structure if needed
+      console.log(`Found ${allForms.length} forms to check for structure issues`);
+      
+      // Loop through forms and fix data structure consistently
       for (const form of allForms) {
         try {
           // Check if the data structure needs fixing
@@ -111,42 +117,99 @@ const Forms = () => {
           
           if (!form.data || typeof form.data !== 'object') {
             needsFix = true;
-          } else if (!form.data.steps && !Array.isArray(form.data)) {
+            console.log(`Form ${form.id} has invalid data:`, form.data);
+          } else if (!form.data.settings || !form.data.steps) {
             needsFix = true;
+            console.log(`Form ${form.id} missing settings or steps:`, form.data);
           }
           
           if (needsFix) {
             console.log('Fixing form structure for form:', form.id);
-            // Normalize the data
-            const normalizedSteps = normalizeFormData(form.data);
+            
+            // Extract style properties from existing data
+            const formStyle = {
+              primaryColor: form.primaryColor || '#9b87f5',
+              borderRadius: form.borderRadius || '0.5rem',
+              fontSize: form.fontSize || '1rem',
+              buttonStyle: form.buttonStyle || 'rounded'
+            };
+            
+            // Extract submit button text
+            const submitButtonText = form.submitbuttontext || 'إرسال الطلب';
+            
+            // Get fields from existing form data
+            let fields = [];
+            
+            if (form.data) {
+              // Extract fields based on data structure
+              if (Array.isArray(form.data)) {
+                // Data is directly an array of steps
+                fields = form.data.flatMap(step => step.fields || []);
+              } else if (form.data.steps && Array.isArray(form.data.steps)) {
+                // Data has steps property that is an array
+                fields = form.data.steps.flatMap(step => step.fields || []);
+              } else if (typeof form.data === 'object') {
+                // Maybe data is a single step itself
+                if (form.data.fields && Array.isArray(form.data.fields)) {
+                  fields = form.data.fields;
+                }
+              }
+            }
+            
+            // Create standardized form structure
+            const standardizedData = standardizeFormData(fields, formStyle, submitButtonText);
+            
+            console.log(`Form ${form.id} - Standardized data structure:`, standardizedData);
             
             // Update the form with the new structure
-            await supabase
+            const { error: updateError } = await supabase
               .from('forms')
               .update({
-                data: { steps: normalizedSteps }
+                data: standardizedData,
+                // Also update these fields to match the style properties
+                primaryColor: formStyle.primaryColor,
+                borderRadius: formStyle.borderRadius,
+                fontSize: formStyle.fontSize,
+                buttonStyle: formStyle.buttonStyle,
+                submitbuttontext: submitButtonText
               })
               .eq('id', form.id);
               
-            console.log('Fixed form structure for form:', form.id);
+            if (updateError) {
+              console.error(`Error updating form ${form.id}:`, updateError);
+            } else {
+              console.log(`Fixed form structure for form: ${form.id}`);
+            }
+          } else {
+            console.log(`Form ${form.id} structure is already valid`);
           }
         } catch (formErr) {
-          console.error('Error fixing form:', form.id, formErr);
+          console.error(`Error fixing form ${form.id}:`, formErr);
         }
       }
       
-      console.log('Completed form structure fix attempt');
+      console.log('Completed comprehensive form structure fix');
+      
+      // Force a refresh of the form list to show the fixed forms
+      setForceRender(prev => prev + 1);
+      
     } catch (e) {
       console.error('Error in fixExistingForms:', e);
     }
   };
 
-  // Run form fix on initial load
+  // Run form fix on initial load with longer delay to ensure shop is ready
   useEffect(() => {
     if (hasSynced && !isLoading && shopDomain) {
-      fixExistingForms().catch(err => {
-        console.error('Failed to fix forms:', err);
-      });
+      // Add delay to ensure database connections are ready
+      const fixTimer = setTimeout(() => {
+        console.log("Running comprehensive form structure fix...");
+        fixExistingForms().catch(err => {
+          console.error('Failed to fix forms:', err);
+        });
+      }, 2000); // 2 second delay
+      
+      return () => clearTimeout(fixTimer);
     }
   }, [hasSynced, isLoading, shopDomain]);
 
