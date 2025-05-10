@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,6 +22,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const id = formId || params.formId;
   const saveTimeoutRef = useRef<number | null>(null);
   const initialLoadCompleted = useRef<boolean>(false);
+  const loadAttemptRef = useRef<number>(0);
+  const maxLoadAttempts = 3;
   
   // Use our custom hook for form state and operations
   const {
@@ -51,7 +54,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setFormElements
   } = useFormEditor(id);
 
-  // دعنا نضيف مرجعًا لتتبع ما إذا كان هناك أي حوارات مفتوحة
+  // Add reference to track if there are any open dialogs
   const openDialogRef = useRef<boolean>(false);
   
   // Debounced save function to prevent multiple rapid saves
@@ -65,7 +68,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     saveTimeoutRef.current = window.setTimeout(async () => {
       try {
         console.log('Executing debounced save...');
-        await handleSave();
+        const success = await handleSave();
+        if (!success) {
+          toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
+        }
       } catch (error) {
         console.error("Error in debounced save:", error);
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
@@ -86,7 +92,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Load form data on component mount or when formId changes
   useEffect(() => {
-    if (!id || initialLoadCompleted.current) return;
+    if (!id) {
+      console.log("No form ID provided");
+      return;
+    }
+    
+    if (initialLoadCompleted.current) {
+      console.log("Initial load already completed, skipping");
+      return;
+    }
     
     console.log('FormBuilderEditor: Loading form data for ID:', id);
     
@@ -96,10 +110,31 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     // Use a cleanup function to prevent state updates after unmount
     const loadData = async () => {
       try {
-        console.log('Starting form data load for:', id);
-        await loadFormData(id);
-        initialLoadCompleted.current = true;
-        console.log('Form data loaded successfully for:', id);
+        loadAttemptRef.current += 1;
+        console.log(`Starting form data load for: ${id} (attempt ${loadAttemptRef.current}/${maxLoadAttempts})`);
+        
+        const loadedId = await loadFormData(id);
+        
+        if (loadedId) {
+          initialLoadCompleted.current = true;
+          console.log('Form data loaded successfully for:', loadedId);
+        } else {
+          console.error(`Form load failed for ID: ${id}`);
+          
+          if (loadAttemptRef.current < maxLoadAttempts) {
+            console.log(`Retrying form load (attempt ${loadAttemptRef.current + 1}/${maxLoadAttempts})...`);
+            
+            // Retry with exponential backoff
+            const retryDelay = 1000 * Math.pow(2, loadAttemptRef.current - 1);
+            setTimeout(() => {
+              if (!controller.signal.aborted) {
+                loadData();
+              }
+            }, retryDelay);
+          } else {
+            toast.error(language === 'ar' ? 'فشل تحميل النموذج بعد عدة محاولات' : 'Failed to load form after multiple attempts');
+          }
+        }
       } catch (err) {
         console.error("Error loading form data:", err);
         if (!controller.signal.aborted) {
@@ -113,23 +148,27 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     return () => {
       controller.abort();
     };
-  }, [id, loadFormData, language]); 
+  }, [id, loadFormData, language, maxLoadAttempts]); 
 
-  // تحديث دالة النقل الآمن مع وضع حالة الحوارات في الاعتبار
-  const safeSave = useCallback(async (): Promise<void> => {
+  // Update safe save function to check dialog state
+  const safeSave = useCallback(async (): Promise<boolean> => {
     return new Promise((resolve) => {
-      // إذا كان هناك حوار مفتوح، فلا تقم بعملية الحفظ
+      // Skip save if dialog is open
       if (openDialogRef.current) {
         console.log('Skipping save, dialog is open');
-        resolve();
+        resolve(false);
         return;
       }
       
-      debouncedSave();
-      // Resolve the promise immediately since the actual save is debounced
-      resolve();
+      // Force immediate save instead of debounced to ensure we get a response
+      handleSave().then(success => {
+        resolve(success);
+      }).catch(error => {
+        console.error("Error during save:", error);
+        resolve(false);
+      });
     });
-  }, [debouncedSave]);
+  }, [handleSave]);
 
   // Handle form drag-and-drop reordering with improved error handling
   const handleDragEnd = useCallback((event: any) => {
@@ -193,6 +232,26 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [currentFormId, language, shopifyIntegration, handleSave]);
 
+  // Manual save handler that shows clear feedback
+  const manualSaveHandler = useCallback(async () => {
+    try {
+      toast.loading(language === 'ar' ? 'جاري حفظ النموذج...' : 'Saving form...');
+      const success = await handleSave();
+      
+      if (success) {
+        toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        return true;
+      } else {
+        toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
+        return false;
+      }
+    } catch (error) {
+      console.error("Error during manual save:", error);
+      toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+      return false;
+    }
+  }, [handleSave, language]);
+
   return (
     <FormEditorLayout
       formId={currentFormId}
@@ -208,7 +267,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       isPublishing={isPublishing}
       currentPreviewStep={currentPreviewStep}
       
-      // Handlers - using the safe save wrapper for any direct save operations
+      // Handlers - using the manual save handler for direct save operations
       onSelectElement={setSelectedElementIndex}
       onAddElement={addElement}
       onEditElement={(index: number) => {
@@ -220,11 +279,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       onDragEnd={handleDragEnd}
       onUpdateMeta={updateFormMeta}
       onStyleChange={handleStyleChange}
-      onSave={safeSave}
+      onSave={manualSaveHandler} // Use the manual save handler instead of safeSave
       onPublish={handlePublish}
       onShopifyIntegration={handleShopifyIntegration}
       
-      // إضافة مرجع للحوارات المفتوحة
+      // Add reference for open dialogs
       dialogRef={openDialogRef}
     />
   );

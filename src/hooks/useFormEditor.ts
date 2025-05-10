@@ -52,6 +52,7 @@ export const useFormEditor = (formId?: string) => {
   // Initialize a new form if no form ID is provided - memoized
   const initializeNewForm = useCallback(async () => {
     try {
+      console.log('Initializing new form...');
       const shopId = getActiveShopId();
       if (!shopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
@@ -64,6 +65,7 @@ export const useFormEditor = (formId?: string) => {
 
       // Prepare initial standardized form data
       const initialFormSteps = standardizeFormData([], formStyle, submitButtonText);
+      console.log('Created standardized form structure:', initialFormSteps);
 
       // Create new form in database with retry logic
       let retryCount = 0;
@@ -72,6 +74,7 @@ export const useFormEditor = (formId?: string) => {
 
       while (!success && retryCount < maxRetries) {
         try {
+          console.log(`Creating new form in database (attempt ${retryCount + 1})`);
           const { data, error } = await supabase.from('forms').insert({
             id: newId,
             title: formTitle,
@@ -79,7 +82,12 @@ export const useFormEditor = (formId?: string) => {
             data: initialFormSteps,
             shop_id: shopId,
             is_published: false,
-            submitbuttontext: submitButtonText
+            submitbuttontext: submitButtonText,
+            // Explicitly set style properties
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle
           }).select();
 
           if (error) {
@@ -93,6 +101,7 @@ export const useFormEditor = (formId?: string) => {
             // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
           } else {
+            console.log('Form created successfully:', data);
             success = true;
           }
         } catch (err) {
@@ -120,27 +129,36 @@ export const useFormEditor = (formId?: string) => {
         data: initialFormSteps,
         isPublished: false,
         shop_id: shopId,
-        submitButtonText: submitButtonText
+        submitButtonText: submitButtonText,
+        // Explicitly set style properties in state too
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
+      return newId;
     } catch (error) {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
+      return null;
     }
   }, [formTitle, formDescription, submitButtonText, formStyle, getActiveShopId, language, resetFormState, setFormState]);
 
   // Load form data - memoized with useCallback to prevent it from changing on each render
   const loadFormData = useCallback(async (id?: string) => {
+    console.log("loadFormData called with id:", id);
     if (!id) {
-      await initializeNewForm();
-      return;
+      console.log("No form ID provided, initializing new form");
+      const newId = await initializeNewForm();
+      return newId;
     }
 
     // Set loading flag to prevent duplicate loads
     if (hasLoaded && id === currentFormId) {
       console.log("Skipping duplicate form load for ID:", id);
-      return;
+      return id;
     }
     
     console.log("Loading form data for ID:", id);
@@ -157,6 +175,7 @@ export const useFormEditor = (formId?: string) => {
       
       while (!formData && retryCount < maxRetries) {
         try {
+          console.log(`Fetching form data (attempt ${retryCount + 1})...`);
           const { data, error } = await supabase
             .from('forms')
             .select('*')
@@ -173,14 +192,16 @@ export const useFormEditor = (formId?: string) => {
             
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
           } else if (!data) {
+            console.warn(`Form not found on attempt ${retryCount + 1}`);
             if (retryCount >= maxRetries - 1) {
               toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-              return;
+              return null;
             }
             retryCount++;
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
           } else {
             formData = data;
+            console.log("Form data retrieved successfully:", formData);
           }
         } catch (err) {
           console.error(`Error on attempt ${retryCount + 1} to load form:`, err);
@@ -196,66 +217,78 @@ export const useFormEditor = (formId?: string) => {
       
       if (!formData) {
         toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-        return;
+        return null;
       }
       
       // Extract form data
       setFormTitle(formData.title || 'نموذج جديد');
       setFormDescription(formData.description || '');
-      
-      // Extract fields from steps
-      if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
-        const formFields = formData.data.flatMap(step => step.fields || []);
-        setFormElements(formFields);
-        
-        // Extract style properties from metadata if available
-        let formMetadata = undefined;
-        if (formData.data && Array.isArray(formData.data) && formData.data.length > 0) {
-          // Check if metadata exists, if not create it
-          if (formData.data[0] && formData.data[0].metadata && formData.data[0].metadata.formStyle) {
-            formMetadata = formData.data[0].metadata.formStyle;
-          }
-        }
-        
-        if (formMetadata) {
-          setFormStyle({
-            primaryColor: formMetadata.primaryColor || '#9b87f5',
-            borderRadius: formMetadata.borderRadius || '0.5rem',
-            fontSize: formMetadata.fontSize || '1rem',
-            buttonStyle: formMetadata.buttonStyle || 'rounded'
-          });
-          
-          if (formMetadata.submitButtonText) {
-            setSubmitButtonText(formMetadata.submitButtonText);
-          }
-        }
-        
-        // Check for submit button text in main data - handle both cases
-        if (formData.submitbuttontext) {
-          setSubmitButtonText(formData.submitbuttontext);
-        }
-      }
-      
       setIsPublished(!!formData.isPublished || !!formData.is_published);
+      
+      // Get style properties directly from the form data
+      const formStyleData = {
+        primaryColor: formData.primaryColor || '#9b87f5',
+        borderRadius: formData.borderRadius || '0.5rem',
+        fontSize: formData.fontSize || '1rem',
+        buttonStyle: formData.buttonStyle || 'rounded'
+      };
+      setFormStyle(formStyleData);
+      
+      // Get submit button text - check both versions
+      const buttonText = formData.submitbuttontext || submitButtonText;
+      setSubmitButtonText(buttonText);
+      
+      // Process form elements based on data structure
+      let formFields: FormField[] = [];
+      
+      try {
+        // Use standardized data handling
+        console.log("Processing form data structure:", formData.data);
+        if (formData.data) {
+          // If data is a valid structure with steps
+          if (formData.data.steps && Array.isArray(formData.data.steps)) {
+            console.log("Found steps array in data:", formData.data.steps);
+            formFields = formData.data.steps.flatMap(step => step.fields || []);
+          } 
+          // If data is directly an array of steps
+          else if (Array.isArray(formData.data) && formData.data.length > 0) {
+            console.log("Data is an array, processing as steps");
+            formFields = formData.data.flatMap(step => step.fields || []);
+          }
+          // If data has fields directly
+          else if (formData.data.fields && Array.isArray(formData.data.fields)) {
+            console.log("Found direct fields array in data");
+            formFields = formData.data.fields;
+          }
+        }
+        
+        console.log(`Processed ${formFields.length} form fields:`, formFields);
+        setFormElements(formFields);
+      } catch (err) {
+        console.error("Error processing form fields:", err);
+        // Default to empty fields if processing fails
+        setFormElements([]);
+      }
       
       // Update form state in store
       setFormState({
         ...formData,
         isPublished: formData.is_published,
         // Ensure style properties are set
-        primaryColor: formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-        fontSize: formStyle.fontSize,
-        buttonStyle: formStyle.buttonStyle,
-        submitButtonText: formData.submitbuttontext || submitButtonText
+        primaryColor: formStyleData.primaryColor,
+        borderRadius: formStyleData.borderRadius,
+        fontSize: formStyleData.fontSize,
+        buttonStyle: formStyleData.buttonStyle,
+        submitButtonText: buttonText
       });
       
-      console.log("Loaded form data:", formData);
       // Mark as loaded to prevent redundant loads
       setHasLoaded(true);
+      return id;
     } catch (error) {
       console.error("Error loading form:", error);
       toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+      return null;
     }
   }, [
     currentFormId, 
@@ -268,26 +301,29 @@ export const useFormEditor = (formId?: string) => {
     submitButtonText
   ]);
 
-  // Handle saving form data with retry mechanism
+  // Handle saving form data with improved retry mechanism and error handling
   const handleSave = useCallback(async () => {
     if (isSaving) {
       console.log("Save operation already in progress, skipping duplicate save");
-      return;
+      return false; // Return false to indicate save was not performed
     }
     
     // Generate a unique ID for this save request
     const requestId = uuidv4();
     setCurrentSaveRequestId(requestId);
     setIsSaving(true);
+    console.log(`Starting save operation (${requestId})...`);
     
     try {
       if (!currentFormId) {
+        console.error("No form ID available for save operation");
         toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
         setIsSaving(false);
-        return;
+        return false;
       }
       
       // Create standardized form steps from elements
+      console.log(`Creating standardized form data for ${formElements.length} elements`);
       const formSteps = standardizeFormData(formElements, formStyle, submitButtonText);
       
       const shopId = getActiveShopId();
@@ -303,24 +339,58 @@ export const useFormEditor = (formId?: string) => {
         data: formSteps,
         shop_id: shopId,
         updated_at: new Date().toISOString(),
-        submitbuttontext: submitButtonText // Using lowercase to match database column name
+        submitbuttontext: submitButtonText, // Using lowercase to match database column name
+        // Include style properties explicitly
+        primaryColor: formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+        fontSize: formStyle.fontSize,
+        buttonStyle: formStyle.buttonStyle
       };
       
       console.log("Saving form with data:", dbData);
-      console.log("RequestID:", requestId);
       
-      // Try direct update
-      try {
-        const { error } = await supabase
-          .from('forms')
-          .update(dbData)
-          .eq('id', currentFormId);
+      // Try direct update with multiple retries if needed
+      let success = false;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (!success && retries < maxRetries) {
+        try {
+          console.log(`Database update attempt ${retries + 1}/${maxRetries}`);
+          const { error } = await supabase
+            .from('forms')
+            .update(dbData)
+            .eq('id', currentFormId);
+            
+          if (error) {
+            console.error(`Update attempt ${retries + 1} failed:`, error);
+            retries++;
+            
+            if (retries >= maxRetries) {
+              throw error;
+            }
+            
+            // Wait with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+          } else {
+            console.log("Form saved successfully to database");
+            success = true;
+          }
+        } catch (error) {
+          console.error(`Error in update attempt ${retries + 1}:`, error);
+          retries++;
           
-        if (error) {
-          console.error("Update error:", error);
-          throw error;
+          if (retries >= maxRetries) {
+            throw error;
+          }
+          
+          // Wait with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
         }
-        
+      }
+      
+      // If direct update succeeds
+      if (success) {
         // Only process if this is still the current save request
         if (requestId === currentSaveRequestId) {
           // Reset save retries on successful save
@@ -343,53 +413,61 @@ export const useFormEditor = (formId?: string) => {
           toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
           setRefreshKey(prev => prev + 1);
           setIsSaving(false); // Make sure to set saving to false on success
+          return true; // Return true to indicate successful save
         } else {
           console.log("Save request superseded by a newer request");
-          setIsSaving(false); // Also set saving to false if request was superseded
-        }
-      } catch (error) {
-        // If direct update fails, try alternate saving method
-        console.error("Direct database update failed:", error);
-        
-        if (requestId === currentSaveRequestId) {
-          try {
-            // Try using the saveForm method from useFormTemplates as fallback
-            const alternateSuccess = await saveForm(currentFormId, {
-              title: formTitle,
-              description: formDescription,
-              data: formSteps,
-              submitbuttontext: submitButtonText, // Using lowercase to match database column name
-              // Include other necessary fields
-              primaryColor: formStyle.primaryColor,
-              borderRadius: formStyle.borderRadius,
-              fontSize: formStyle.fontSize,
-              buttonStyle: formStyle.buttonStyle
-            });
-            
-            if (alternateSuccess) {
-              toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
-              setRefreshKey(prev => prev + 1);
-              setSaveRetries(0);
-            } else {
-              throw new Error('Both save methods failed');
-            }
-          } catch (innerError) {
-            console.error("Error in alternate save method:", innerError);
-            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-          } finally {
-            setIsSaving(false); // Important: Always set isSaving to false in finally block
-          }
-        } else {
-          console.log("Failed save request superseded");
           setIsSaving(false);
+          return false;
         }
+      }
+      
+      // If direct update fails, try alternate saving method
+      console.error("All direct database update attempts failed, trying alternative method");
+      
+      if (requestId === currentSaveRequestId) {
+        try {
+          // Try using the saveForm method from useFormTemplates as fallback
+          const alternateSuccess = await saveForm(currentFormId, {
+            title: formTitle,
+            description: formDescription,
+            data: formSteps,
+            submitbuttontext: submitButtonText, // Using lowercase to match database column name
+            // Include other necessary fields
+            primaryColor: formStyle.primaryColor,
+            borderRadius: formStyle.borderRadius,
+            fontSize: formStyle.fontSize,
+            buttonStyle: formStyle.buttonStyle
+          });
+          
+          if (alternateSuccess) {
+            console.log("Form saved successfully using alternative method");
+            toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (بديل)' : 'Form saved successfully (alternate)');
+            setRefreshKey(prev => prev + 1);
+            setSaveRetries(0);
+            setIsSaving(false);
+            return true;
+          } else {
+            throw new Error('Both save methods failed');
+          }
+        } catch (innerError) {
+          console.error("Error in alternate save method:", innerError);
+          toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
+          setIsSaving(false);
+          return false;
+        }
+      } else {
+        console.log("Failed save request superseded");
+        setIsSaving(false);
+        return false;
       }
     } catch (error) {
       if (requestId === currentSaveRequestId) {
         console.error("Error saving form:", error);
         toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-        setIsSaving(false); // Important: Set isSaving to false on error
+        setIsSaving(false);
+        return false;
       }
+      return false;
     } finally {
       if (requestId === currentSaveRequestId) {
         setIsSaving(false); // Ensure isSaving is always set to false
@@ -411,164 +489,162 @@ export const useFormEditor = (formId?: string) => {
     currentSaveRequestId
   ]);
 
-  // Handle publishing form
+  // Handle publishing form with improved error handling
   const handlePublish = useCallback(async () => {
     if (!currentFormId) {
       toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
-      return;
+      return false;
     }
     
     setIsPublishing(true);
+    console.log("Starting form publish/unpublish operation...");
     
     try {
       // Save form before publishing to ensure latest changes are included
-      await handleSave();
+      const saveSuccess = await handleSave();
+      
+      if (!saveSuccess) {
+        console.warn("Form save before publish was unsuccessful, continuing with publish anyway");
+      }
       
       // Toggle publish status
       const newPublishState = !isPublished;
+      console.log(`Changing publish state to: ${newPublishState}`);
       
-      // Try direct database update for publishing
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          is_published: newPublishState,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentFormId);
+      // Try direct database update for publishing with retries
+      let success = false;
+      let retries = 0;
+      const maxRetries = 3;
       
-      if (error) {
-        console.error("Direct database update for publishing failed:", error);
-        
-        // If direct update fails, try using the publishForm method
-        const success = await publishForm(currentFormId, newPublishState);
-        
-        if (success) {
-          setIsPublished(newPublishState);
-          toast.success(
-            newPublishState 
-              ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
-              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
-          );
-        } else {
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+      while (!success && retries < maxRetries) {
+        try {
+          console.log(`Publishing attempt ${retries + 1}/${maxRetries}`);
+          const { error } = await supabase
+            .from('forms')
+            .update({
+              is_published: newPublishState,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', currentFormId);
+          
+          if (error) {
+            console.error(`Publishing attempt ${retries + 1} failed:`, error);
+            retries++;
+            
+            if (retries >= maxRetries) {
+              throw error;
+            }
+            
+            // Wait with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+          } else {
+            console.log("Publish status updated successfully");
+            success = true;
+          }
+        } catch (error) {
+          console.error(`Error in publishing attempt ${retries + 1}:`, error);
+          retries++;
+          
+          if (retries >= maxRetries) {
+            throw error;
+          }
+          
+          // Wait with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
         }
-      } else {
+      }
+      
+      // If direct update succeeds
+      if (success) {
         setIsPublished(newPublishState);
         toast.success(
           newPublishState 
             ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
             : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
         );
-        
-        // Update form state in memory
-        setFormState({
-          ...formState,
-          isPublished: newPublishState
-        });
+        setIsPublishing(false);
+        return true;
+      }
+      
+      // If direct update fails, try alternate method
+      console.log("All direct publishing attempts failed, trying alternative method");
+      const alternateSuccess = await publishForm(currentFormId, newPublishState);
+      
+      if (alternateSuccess) {
+        setIsPublished(newPublishState);
+        toast.success(
+          newPublishState 
+            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+        );
+        setIsPublishing(false);
+        return true;
+      } else {
+        toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+        setIsPublishing(false);
+        return false;
       }
     } catch (error) {
       console.error("Error publishing form:", error);
-      toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
-    } finally {
+      toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
       setIsPublishing(false);
+      return false;
     }
-  }, [currentFormId, formState, handleSave, isPublished, language, publishForm, setFormState]);
+  }, [currentFormId, handleSave, isPublished, language, publishForm]);
 
-  // Update form field operations with useCallback
-  const addElement = useCallback((type: string) => {
-    const newElement = {
-      type,
-      id: `${type}-${Date.now()}`,
-      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
-      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
-      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
-    };
-    
-    const updatedElements = [...formElements, newElement];
-    setFormElements(updatedElements);
-    setTimeout(() => {
-      setSelectedElementIndex(updatedElements.length - 1);
-      setRefreshKey(prev => prev + 1);
-    }, 100);
-  }, [formElements, language]);
+  // Update form metadata (title, description, etc.)
+  const updateFormMeta = useCallback((metadata: { title?: string; description?: string; submitButtonText?: string }) => {
+    if (metadata.title !== undefined) setFormTitle(metadata.title);
+    if (metadata.description !== undefined) setFormDescription(metadata.description);
+    if (metadata.submitButtonText !== undefined) setSubmitButtonText(metadata.submitButtonText);
+  }, []);
 
-  // Delete element with auto-save
-  const deleteElement = useCallback((index: number) => {
-    const updatedElements = [...formElements];
-    updatedElements.splice(index, 1);
-    setFormElements(updatedElements);
-    setSelectedElementIndex(null);
-    setRefreshKey(prev => prev + 1);
-    
-    // Save after deleting element
-    setTimeout(() => handleSave(), 300);
-  }, [formElements, handleSave]);
-
-  // Duplicate element with auto-save
-  const duplicateElement = useCallback((index: number) => {
-    const element = formElements[index];
-    const newElement = {
-      ...element,
-      id: `${element.id}-copy-${Date.now()}`
-    };
-    
-    const updatedElements = [...formElements];
-    updatedElements.splice(index + 1, 0, newElement);
-    setFormElements(updatedElements);
-    
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-      handleSave();
-    }, 100);
-    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
-  }, [formElements, handleSave, language]);
-
-  // Update element with auto-save
-  const updateElement = useCallback((updatedField: FormField) => {
-    const newElements = [...formElements];
-    const index = newElements.findIndex(el => el.id === updatedField.id);
-    if (index !== -1) {
-      newElements[index] = updatedField;
-      setFormElements(newElements);
-    }
-    
-    setTimeout(() => {
-      setSelectedElementIndex(null);
-      setRefreshKey(prev => prev + 1);
-      handleSave();
-    }, 100);
-  }, [formElements, handleSave]);
-
-  // Handle style changes with auto-save
-  const handleStyleChange = useCallback((key: string, value: string) => {
-    setFormStyle(prev => ({
-      ...prev,
-      [key]: value
+  // Update form style properties
+  const handleStyleChange = useCallback((newStyle: Partial<FormStyle>) => {
+    setFormStyle(prevStyle => ({
+      ...prevStyle,
+      ...newStyle
     }));
-    
-    setTimeout(() => handleSave(), 300);
-  }, [handleSave]);
+  }, []);
 
-  // Update form meta information with auto-save
-  const updateFormMeta = useCallback((field: 'title' | 'description' | 'submitButtonText', value: string) => {
-    if (field === 'title') {
-      setFormTitle(value);
-    } else if (field === 'description') {
-      setFormDescription(value);
-    } else if (field === 'submitButtonText') {
-      setSubmitButtonText(value);
-    }
-    
-    setTimeout(() => handleSave(), 500);
-  }, [handleSave]);
+  // Update a specific form element
+  const updateElement = useCallback((index: number, updatedElement: FormField) => {
+    setFormElements(prev => {
+      const updated = [...prev];
+      updated[index] = updatedElement;
+      return updated;
+    });
+  }, []);
 
-  // Initial load effect - uses the memoized callback and has proper dependency array
-  useEffect(() => {
-    if (!hasLoaded && formId) {
-      loadFormData(formId);
-    }
-  }, [formId, hasLoaded, loadFormData]);
+  // Add a new element to the form
+  const addElement = useCallback((element: FormField) => {
+    setFormElements(prev => [...prev, element]);
+  }, []);
 
+  // Delete an element from the form
+  const deleteElement = useCallback((index: number) => {
+    setFormElements(prev => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+    // Reset selected element if it was the deleted one
+    setSelectedElementIndex(prev => prev === index ? null : prev);
+  }, []);
+
+  // Duplicate an element
+  const duplicateElement = useCallback((index: number) => {
+    setFormElements(prev => {
+      const updated = [...prev];
+      const elementToDuplicate = { ...updated[index] };
+      // Generate a new ID for the duplicated element
+      elementToDuplicate.id = uuidv4();
+      updated.splice(index + 1, 0, elementToDuplicate);
+      return updated;
+    });
+  }, []);
+
+  // Return all hooks and functions
   return {
     formTitle,
     formDescription,
@@ -584,15 +660,7 @@ export const useFormEditor = (formId?: string) => {
     currentPreviewStep,
     
     // Methods
-    setFormTitle,
-    setFormDescription,
-    setSubmitButtonText,
-    setFormElements,
-    setFormStyle,
     setSelectedElementIndex,
-    setCurrentPreviewStep,
-    setRefreshKey,
-    
     loadFormData,
     handleSave,
     handlePublish,
@@ -601,6 +669,7 @@ export const useFormEditor = (formId?: string) => {
     deleteElement,
     duplicateElement,
     updateElement,
-    updateFormMeta
+    updateFormMeta,
+    setFormElements
   };
 };
