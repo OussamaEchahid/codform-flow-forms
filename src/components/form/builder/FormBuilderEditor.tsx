@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -68,15 +67,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     if (!id) return false;
     
     try {
-      const cachedForm = dataCache.get(`form:${id}`);
+      const cachedForm = dataCache.get<{
+        formTitle?: string;
+        formDescription?: string;
+        formElements?: FormField[];
+        formStyle?: FormStyle;
+        submitButtonText?: string;
+      }>(`form:${id}`);
+      
       if (cachedForm) {
         console.log('Restoring form data from cache:', cachedForm);
         
-        if (cachedForm.formTitle) setFormTitle(cachedForm.formTitle);
-        if (cachedForm.formDescription) setFormDescription(cachedForm.formDescription);
+        if (cachedForm.formTitle) updateFormMeta({ title: cachedForm.formTitle });
+        if (cachedForm.formDescription) updateFormMeta({ description: cachedForm.formDescription });
         if (cachedForm.formElements) setFormElements(cachedForm.formElements);
         if (cachedForm.formStyle) updateFormStyle(cachedForm.formStyle);
-        if (cachedForm.submitButtonText) setSubmitButtonText(cachedForm.submitButtonText);
+        if (cachedForm.submitButtonText) updateFormMeta({ submitButtonText: cachedForm.submitButtonText });
         
         setRecoverMode(true);
         toast.warning(
@@ -91,8 +97,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       console.error('Error restoring form from cache:', error);
       return false;
     }
-  }, [id, setFormElements, updateFormStyle]);
-  
+  }, [id, setFormElements, updateFormStyle, updateFormMeta, language]);
+
   // IMPROVED: Better debounced save function with cancellation and caching
   const debouncedSave = useCallback(() => {
     // Clear any existing timeout

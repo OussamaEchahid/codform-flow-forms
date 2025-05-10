@@ -8,3 +8,8 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Export the Supabase client
 export const shopifySupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Add the missing shopifyStores function
+export const shopifyStores = () => {
+  return shopifySupabase.from('shopify_stores');
+};

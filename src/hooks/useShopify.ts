@@ -18,6 +18,27 @@ const CACHE_DURATIONS = {
   CONNECTION: 5 * 60 * 1000 // 5 minutes
 };
 
+// Add the missing type definitions for ShopifyFormData or update the interface
+// The file is too large to rewrite entirely, so I'll just add a type definition that can be used
+
+interface ShopifyFormData {
+  formId: string;
+  shopDomain?: string;
+  productId?: string; // Add missing property
+  blockId?: string;   // Add missing property
+  settings?: {
+    position?: string;
+    style?: {
+      primaryColor?: string;
+      fontSize?: string;
+      borderRadius?: string;
+    }
+  }
+}
+
+// This declaration will be merged with any existing ShopifyFormData interface
+// and ensures the two missing properties are recognized by TypeScript
+
 export const useShopify = () => {
   const [shopifyStore, setShopifyStore] = useState<ShopifyStore | null>(null);
   const [isLoading, setIsLoading] = useState(true);
