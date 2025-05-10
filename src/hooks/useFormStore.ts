@@ -21,6 +21,7 @@ interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
+  updateFormPublishedState: (formId: string, isPublished: boolean) => void;
 }
 
 const defaultFormState: FormState = {
@@ -56,5 +57,18 @@ export const useFormStore = create<FormStore>((set) => ({
       ...form 
     } 
   })),
-  resetFormState: () => set({ formState: {...defaultFormState} })
+  resetFormState: () => set({ formState: {...defaultFormState} }),
+  updateFormPublishedState: (formId, isPublished) => set((state) => {
+    // Only update if the IDs match
+    if (state.formState.id === formId) {
+      return {
+        formState: {
+          ...state.formState,
+          isPublished,
+          is_published: isPublished
+        }
+      };
+    }
+    return state;
+  })
 }));

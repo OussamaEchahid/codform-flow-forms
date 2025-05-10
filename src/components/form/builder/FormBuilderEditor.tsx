@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -203,8 +202,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     try {
       console.log(`Loading form data via edge function for ID: ${formId}`);
       
+      // Fix: Use the correct parameter name for invoking edge functions
       const { data, error } = await supabase.functions.invoke('get-form', {
-        query: { id: formId }
+        params: { id: formId }
       });
       
       if (error) {
@@ -580,7 +580,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const result = await shopifyIntegration.syncForm({
         formId: currentFormId,
         shopDomain: shopifyIntegration.shop,
-        productId: settings?.productId, // Add missing properties
+        productId: settings?.productId, 
         blockId: settings?.blockId,
         settings: {
           position: settings?.position || 'product-page',
@@ -594,10 +594,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       if (result.success) {
         toast.success(language === 'ar' ? 'تم مزامنة النموذج مع Shopify بنجاح' : 'Form synchronized with Shopify successfully');
-        return result;
       } else {
         throw new Error(result.error || 'Unknown error');
       }
+      
+      // Return void to match the expected return type
     } catch (error) {
       console.error("Error during Shopify integration:", error);
       toast.error(
@@ -605,7 +606,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           ? 'فشل في مزامنة النموذج مع Shopify'
           : 'Failed to synchronize form with Shopify'
       );
-      return { success: false, error: error.message };
     }
   }, [currentFormId, shopifyIntegration, formStyle, manualSaveHandler, handlePublish, language]);
 
