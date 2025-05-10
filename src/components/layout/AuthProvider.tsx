@@ -158,7 +158,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Load shops from database
   const loadShopsFromDatabase = async () => {
     try {
-      const { data, error } = await shopifySupabase()
+      const { data, error } = await shopifySupabase
+        .from('shopify_stores')
         .select('shop, is_active, updated_at')
         .order('is_active', { ascending: false })
         .order('updated_at', { ascending: false });
