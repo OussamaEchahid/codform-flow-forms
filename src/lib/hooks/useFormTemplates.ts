@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-import { FormField, FormStep } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,6 +26,7 @@ export interface FormData {
   buttonStyle?: string;
 }
 
+// Define FormStep interface locally - renamed from previous conflict
 export interface FormStep {
   id: string;
   title: string;
