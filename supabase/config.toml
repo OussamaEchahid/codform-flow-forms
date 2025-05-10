@@ -1,7 +1,10 @@
 
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
 project_id = "mtyfuwdsshlzqwjujavp"
 
 [api]
+enabled = true
 # Port to use for the API URL.
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
@@ -9,18 +12,34 @@ port = 54321
 schemas = ["public", "storage", "graphql_public"]
 # Extra schemas to add to the search_path of every request. public is always included.
 extra_search_path = ["public", "extensions"]
-# The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
-# for accidental or malicious requests.
+# Maximum rows returns in a single REST request.
 max_rows = 1000
 
 [db]
 # Port to use for the local database URL.
 port = 54322
-# Port used by psql, the Postgres CLI, to connect to the database.
+# Port used by db diff command to initialize the shadow database.
 shadow_port = 54320
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
 major_version = 15
+
+[db.pooler]
+enabled = false
+# Port to use for the local connection pooler.
+port = 54329
+# Specifies when a server connection can be reused by other clients.
+# Configure one of the supported pooler modes: `transaction`, `session`.
+pool_mode = "transaction"
+# How many server connections to allow per user/database pair.
+default_pool_size = 20
+# Maximum number of client connections allowed.
+max_client_conn = 100
+
+[realtime]
+enabled = true
+# Bind realtime via either IPv4 or IPv6. (default: IPv6)
+# ip_version = "IPv6"
 
 [studio]
 enabled = true
@@ -29,18 +48,23 @@ port = 54323
 # External URL of the API server that frontend connects to.
 api_url = "http://localhost"
 
+# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
+# are monitored, and you can view the emails that would have been sent from the web interface.
 [inbucket]
+enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing.
+# Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326
 
 [storage]
+enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
 [auth]
+enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 site_url = "http://localhost:3000"
@@ -65,255 +89,73 @@ double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
 
+# Uncomment to customize email template
+# [auth.email.template.invite]
+# subject = "You have been invited"
+# content_path = "./supabase/templates/invite.html"
+
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
 enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 
-[auth.external.apple]
-enabled = false
-client_id = ""
-# Required for when using iOS or macOS.
-bundle_id = ""
-# Required for when using Android, Web, or other platforms.
-key_id = ""
-team_id = ""
-scope = ""
-# Generate a new P8 key in the Apple Developer portal.
-private_key = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Apple auth.
-url = ""
-
-[auth.external.azure]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Azure auth.
-url = ""
-
-[auth.external.bitbucket]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Bitbucket auth.
-url = ""
-
-[auth.external.discord]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Discord auth.
-url = ""
-
-[auth.external.facebook]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Facebook auth.
-url = ""
-
-[auth.external.figma]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Figma auth.
-url = ""
-
-[auth.external.github]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized GitHub auth.
-url = ""
-
-[auth.external.gitlab]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized GitLab auth.
-url = ""
-
-[auth.external.google]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Google auth.
-url = ""
-
-[auth.external.kakao]
-enabled = false
-client_id = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Kakao auth.
-url = ""
-
-[auth.external.keycloak]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Keycloak auth.
-url = ""
-
-[auth.external.linkedin]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized LinkedIn auth.
-url = ""
-
-[auth.external.notion]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Notion auth.
-url = ""
-
-[auth.external.osm]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized OpenStreetMap auth.
-url = ""
-
-[auth.external.spotify]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Spotify auth.
-url = ""
-
-[auth.external.slack]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Slack auth.
-url = ""
-
-[auth.external.twitch]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Twitch auth.
-url = ""
-
-[auth.external.twitter]
-enabled = false
-client_id = ""
-secret = ""
-scope = ""
-# Overrides the default auth redirectUrl.
-redirect_url = ""
-# Overrides the default auth provider URL. Used to support self-hosted regionalized Twitter auth.
-url = ""
-
-[auth.external.twilio]
+# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+[auth.sms.twilio]
 enabled = false
 account_sid = ""
 message_service_sid = ""
-# Format: https://www.twilio.com/docs/iam/access-tokens
-auth_token = ""
+# DO NOT ADD YOUR TWILIO AUTH TOKEN
+# auth_token = ""
 
-[auth.external.messagebird]
+# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
+# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `twitch`,
+# `twitter`, `slack`, `spotify`, `workos`, `zoom`.
+[auth.external.apple]
 enabled = false
-access_key = ""
-originator = ""
-# Optional
-channel = ""
-# Optional
-template = ""
+client_id = ""
+# DO NOT ADD YOUR APPLE SECRET KEY
+# secret = ""
+# Overrides the default auth redirectUrl.
+# redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+# url = ""
 
-[auth.external.vonage]
+[analytics]
 enabled = false
-api_key = ""
-api_secret = ""
-# Optional
-from = ""
-# Optional
-template = ""
+port = 54327
+vector_port = 54328
+# Configure one of the supported backends: `postgres`, `bigquery`, `azure_synapse`.
+backend = "postgres"
 
-[auth.external.textlocal]
-enabled = false
-api_key = ""
-sender = ""
-# Optional
-template = ""
-
-[auth.external.turno]
-enabled = false
-api_token = ""
-api_key = ""
-# Optional
-from = ""
-
-[auth.external.sendinblue]
-enabled = false
-api_key = ""
-sender = ""
-# Optional
-template = ""
+# Experimental features may be deprecated any time
+[experimental]
+# Configures Postgres storage engine to use OrioleDB (S3)
+orioledb_version = ""
+# Configures S3 endpoint URL and bucket for backend storage (OrioleDB)
+s3_host = ""
+s3_bucket = ""
+s3_force_path_style = true
+s3_root = ""
+# DO NOT ADD YOUR S3 SECRET ACCESS KEY
+# s3_access_key = ""
+# s3_secret_access_key = ""
 
 [functions]
-# Port to use for Functions.
-port = 54321
-
-[functions.create-db-trigger]
 enabled = true
-verify_jwt = true
-
-[functions.create-db-transaction-function]
-enabled = true
-verify_jwt = true
 
 [functions.get-form]
-enabled = true
-verify_jwt = true
+verify_jwt = false
+
+[functions.create-db-trigger]
+verify_jwt = false
+
+[functions.create-db-transaction-function]
+verify_jwt = false
+
+[functions.update-schema]
+verify_jwt = false
+
+[functions.check-shopify-connection]
+verify_jwt = false

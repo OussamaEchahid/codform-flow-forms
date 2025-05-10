@@ -69,18 +69,20 @@ BEGIN
 END;
 $function$;
 
--- Helper function to check if this function already exists
+-- Create helper function to check if the transaction function already exists
 CREATE OR REPLACE FUNCTION public.create_transaction_function_if_not_exists()
 RETURNS void
 LANGUAGE plpgsql
 AS $function$
 BEGIN
+  -- First check if the function already exists to avoid errors
   IF NOT EXISTS (
     SELECT 1 FROM pg_proc 
     JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid 
     WHERE pg_proc.proname = 'handle_product_settings_transaction' 
     AND pg_namespace.nspname = 'public'
   ) THEN
+    -- If it doesn't exist, create it
     EXECUTE $SQL$
       ${createFunctionSQL}
     $SQL$;
@@ -103,13 +105,49 @@ serve(async (req: Request) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    // Execute the SQL to create the function
+    // First create the create_transaction_function_if_not_exists function
+    console.log("Creating transaction function helper...");
+    const { error: helperFunctionError } = await supabaseAdmin.rpc(
+      'exec_sql',
+      { sql: `
+        -- Create helper function to check if the transaction function already exists
+        CREATE OR REPLACE FUNCTION public.create_transaction_function_if_not_exists()
+        RETURNS void
+        LANGUAGE plpgsql
+        AS $function$
+        BEGIN
+          -- First check if the function already exists to avoid errors
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_proc 
+            JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid 
+            WHERE pg_proc.proname = 'handle_product_settings_transaction' 
+            AND pg_namespace.nspname = 'public'
+          ) THEN
+            -- If it doesn't exist, create it
+            EXECUTE $SQL$
+              ${createFunctionSQL}
+            $SQL$;
+          END IF;
+        END;
+        $function$;
+      ` }
+    );
+
+    if (helperFunctionError) {
+      console.error("Error creating helper function:", helperFunctionError);
+      throw new Error(`Error creating helper function: ${helperFunctionError.message}`);
+    }
+
+    // Now execute the function to install the transaction function
+    console.log("Executing transaction function helper...");
     const { error } = await supabaseAdmin.rpc('create_transaction_function_if_not_exists');
 
     if (error) {
+      console.error("Error creating transaction function:", error);
       throw new Error(`Error creating function: ${error.message}`);
     }
 
+    console.log("Transaction function created successfully");
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -118,8 +156,13 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders } }
     );
   } catch (error) {
+    console.error("Creation error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Unknown error occurred",
+        details: JSON.stringify(error)
+      }),
       { status: 400, headers: { ...corsHeaders } }
     );
   }

@@ -10,19 +10,40 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  // Generate request ID for tracking
+  const requestId = crypto.randomUUID().substring(0, 8);
+  console.log(`[${requestId}] Processing get-form request`);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
-    // Get form ID from request body
-    const body = await req.json();
-    const formId = body?.id;
+    let formId;
+    
+    // Try to get form ID from various sources for better compatibility
+    try {
+      // First try from request body as JSON
+      const body = await req.json();
+      formId = body?.id;
+      console.log(`[${requestId}] Got form ID from JSON body: ${formId}`);
+    } catch (jsonError) {
+      // If JSON parsing fails, try from URL query parameters
+      try {
+        const url = new URL(req.url);
+        formId = url.searchParams.get('id');
+        console.log(`[${requestId}] Got form ID from URL params: ${formId}`);
+      } catch (urlError) {
+        console.error(`[${requestId}] Error parsing URL:`, urlError);
+      }
+    }
     
     if (!formId) {
       throw new Error('Form ID is required');
     }
+
+    console.log(`[${requestId}] Retrieving form data for ID: ${formId}`);
 
     // Create Supabase client using the request's auth header
     const supabaseClient = createClient(
@@ -39,12 +60,14 @@ serve(async (req: Request) => {
       .maybeSingle();
       
     if (error) {
+      console.error(`[${requestId}] Database error:`, error);
       throw new Error(`Error fetching form: ${error.message}`);
     }
     
     if (!formData) {
+      console.warn(`[${requestId}] Form not found: ${formId}`);
       return new Response(
-        JSON.stringify({ success: false, error: 'Form not found' }),
+        JSON.stringify({ success: false, error: 'Form not found', formId }),
         { status: 404, headers: { ...corsHeaders } }
       );
     }
@@ -61,13 +84,21 @@ serve(async (req: Request) => {
       normalizedData.data.fields = [];
     }
 
+    console.log(`[${requestId}] Successfully retrieved form data`);
+    
     return new Response(
-      JSON.stringify({ success: true, data: normalizedData }),
+      JSON.stringify({ success: true, data: normalizedData, requestId }),
       { headers: { ...corsHeaders } }
     );
   } catch (error) {
+    console.error(`[${requestId}] Error:`, error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Unknown error", 
+        requestId,
+        timestamp: new Date().toISOString()
+      }),
       { status: 400, headers: { ...corsHeaders } }
     );
   }
