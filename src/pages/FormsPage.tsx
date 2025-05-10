@@ -22,6 +22,7 @@ import ShopifyConnectionStatus from '@/components/form/builder/ShopifyConnection
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import FormList from '@/components/form/FormList';
+import { resetShopifyConnection } from '@/utils/diagnostics';
 
 // Adding interface for component props to fix type errors
 interface FormsPageProps {
@@ -37,6 +38,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoadAttempted, setHasLoadAttempted] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   
   // Set a timeout to cancel loading state after 10 seconds
   useEffect(() => {
@@ -94,6 +96,20 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         useShopId: currentShopId
       });
       
+      // Load forms with no shop filter first - this is for debugging
+      const { data: allForms, error: allFormsError } = await supabase
+        .from('forms')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      console.log(`FormsPage: All available forms in database:`, 
+        allForms?.map(f => ({ id: f.id, title: f.title, shop_id: f.shop_id })) || 'none');
+      
+      if (allFormsError) {
+        console.error('Error fetching all forms:', allFormsError);
+      }
+      
       // Load forms for the current shop
       const { data, error: loadError } = await supabase
         .from('forms')
@@ -106,7 +122,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         throw loadError;
       }
       
-      console.log(`FormsPage: Loaded ${data?.length || 0} forms:`, data);
+      console.log(`FormsPage: Loaded ${data?.length || 0} forms for shop ${currentShopId}:`, data);
 
       // If no forms are returned, try again without shop_id filter as a fallback
       if (!data || data.length === 0) {
@@ -223,6 +239,24 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
     return loadForms(true);
   }, [loadForms, language]);
 
+  // Handle emergency connection reset
+  const handleEmergencyReset = useCallback(async () => {
+    setIsResetting(true);
+    try {
+      resetShopifyConnection();
+      toast.success(language === 'ar' ? 'تم إعادة تعيين حالة الاتصال' : 'Connection state reset');
+      
+      // Short delay to ensure localStorage changes are saved
+      setTimeout(() => {
+        window.location.href = '/shopify-connect';
+      }, 500);
+    } catch (err) {
+      console.error('Error during reset:', err);
+      toast.error(language === 'ar' ? 'فشل في إعادة تعيين الاتصال' : 'Failed to reset connection');
+      setIsResetting(false);
+    }
+  }, [language]);
+
   // Load forms once when component mounts or when shopDomain changes
   useEffect(() => {
     const shopIdToUse = shopId || shopDomain || localStorage.getItem('shopify_store');
@@ -256,15 +290,24 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         
         <div className="mt-4 md:mt-0 flex flex-col md:flex-row md:items-center gap-2">
           <ShopifyConnectionStatus />
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            className="mt-2 md:mt-0"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {language === 'ar' ? 'تحديث' : 'Refresh'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'تحديث' : 'Refresh'}
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleEmergencyReset}
+              disabled={isResetting}
+            >
+              {language === 'ar' ? 'إعادة تهيئة الاتصال' : 'Reset Connection'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -340,7 +383,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId }) => {
         isLoading={isLoading} 
         onSelectForm={handleEditForm} 
         onRefresh={handleRefresh}
-        maxAttempts={3} // Increase max attempts for processing
+        maxAttempts={5} // Increase max attempts for processing
       />
     </div>
   );

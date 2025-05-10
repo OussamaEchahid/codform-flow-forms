@@ -69,6 +69,19 @@ export const logFormDiagnostics = async (supabase: any, shopId?: string) => {
           console.log(`Total forms in database: ${totalCount}`);
         }
         
+        // Get a sample of forms to analyze
+        const { data: sampleForms, error: sampleError } = await supabase
+          .from('forms')
+          .select('id, title, shop_id, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10);
+          
+        if (sampleError) {
+          console.error('Error fetching sample forms:', sampleError);
+        } else {
+          console.log(`Recent forms sample:`, sampleForms);
+        }
+        
         // Query for specific shop if we have an ID
         if (shopIdFromProps || shopIdFromLocalStorage) {
           const shopToQuery = shopIdFromProps || shopIdFromLocalStorage;
@@ -114,6 +127,7 @@ export const logFormDiagnostics = async (supabase: any, shopId?: string) => {
 
 /**
  * Reset all Shopify connection state
+ * @returns boolean indicating if reset was successful
  */
 export const resetShopifyConnection = () => {
   try {
@@ -129,11 +143,44 @@ export const resetShopifyConnection = () => {
     localStorage.removeItem('shopify_last_url_shop');
     localStorage.removeItem('shopify_temp_store');
     
+    // Also clear any cached data
+    localStorage.removeItem('shopify_products');
+    localStorage.removeItem('shopify_collections');
+    localStorage.removeItem('shopify_shop');
+    
     console.log('Shopify connection state reset complete');
     
     return true;
   } catch (error) {
     console.error('Error resetting Shopify connection state:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if a form exists for given shop ID
+ * @param supabase Supabase client
+ * @param shopId Shop ID to check
+ * @returns Promise resolving to boolean
+ */
+export const checkFormExistsForShop = async (supabase: any, shopId: string): Promise<boolean> => {
+  if (!shopId || !supabase) return false;
+  
+  try {
+    const { data, error, count } = await supabase
+      .from('forms')
+      .select('id', { count: 'exact' })
+      .eq('shop_id', shopId)
+      .limit(1);
+      
+    if (error) {
+      console.error('Error checking for forms:', error);
+      return false;
+    }
+    
+    return (count && count > 0) || (data && data.length > 0);
+  } catch (error) {
+    console.error('Exception checking for forms:', error);
     return false;
   }
 };

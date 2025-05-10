@@ -45,7 +45,7 @@ const FormList: React.FC<FormListProps> = ({
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 3, // Increased from 1 to 3
+  maxAttempts = 5, // Increased from 3 to 5
   onRefresh 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
@@ -82,7 +82,7 @@ const FormList: React.FC<FormListProps> = ({
     setAttemptCount(prev => prev + 1);
     
     // Only process if we have forms data to process
-    if (!forms || !Array.isArray(forms)) {
+    if (!forms) {
       console.log('FormList: No valid forms data received');
       setProcessedForms([]);
       setProcessingComplete(true);
@@ -90,7 +90,26 @@ const FormList: React.FC<FormListProps> = ({
     }
     
     try {
-      // Enhanced data processing
+      // Enhanced data validation
+      if (!Array.isArray(forms)) {
+        console.log('FormList: Forms data is not an array:', forms);
+        
+        // Try to convert to array if possible
+        const formsArray = forms && typeof forms === 'object' ? [forms] : [];
+        console.log('FormList: Converted to array:', formsArray);
+        
+        if (formsArray.length > 0) {
+          setProcessedForms(formsArray);
+          setProcessingComplete(true);
+          return;
+        } else {
+          setProcessedForms([]);
+          setProcessingComplete(true);
+          return;
+        }
+      }
+      
+      // Enhanced data processing with detailed logging
       console.log('FormList: Processing forms data structure:', 
         forms.map(form => ({ 
           id: form?.id, 
@@ -100,15 +119,33 @@ const FormList: React.FC<FormListProps> = ({
         }))
       );
       
-      // Filter out invalid forms and deduplicate
-      const validForms = forms.filter(form => 
-        form && typeof form === 'object' && form.id && typeof form.id === 'string'
-      );
+      // Filter out invalid forms with detailed logging on what's being filtered
+      const validForms = forms.filter(form => {
+        if (!form) {
+          console.log('FormList: Filtering out null/undefined form');
+          return false;
+        }
+        
+        if (typeof form !== 'object') {
+          console.log(`FormList: Filtering out non-object form: ${typeof form}`);
+          return false;
+        }
+        
+        if (!form.id || typeof form.id !== 'string') {
+          console.log(`FormList: Filtering out form with invalid ID: ${form.id}`);
+          return false;
+        }
+        
+        return true;
+      });
       
-      // Remove duplicates
+      // Remove duplicates with detailed logging
       const uniqueFormIds = new Set();
       const uniqueForms = validForms.filter(form => {
-        if (!form.id || uniqueFormIds.has(form.id)) return false;
+        if (!form.id || uniqueFormIds.has(form.id)) {
+          console.log(`FormList: Filtering out duplicate form ID: ${form.id}`);
+          return false;
+        }
         uniqueFormIds.add(form.id);
         return true;
       });
@@ -121,10 +158,10 @@ const FormList: React.FC<FormListProps> = ({
       if (uniqueForms.length === 0 && attemptCount < maxAttempts) {
         console.log(`FormList: No valid forms found, will retry. Attempt ${attemptCount} of ${maxAttempts}`);
         
-        // Schedule another attempt
+        // Schedule another attempt with longer timeout for each retry
         const retryTimeout = setTimeout(() => {
           setProcessingComplete(false);
-        }, 1000); // 1 second before retry
+        }, attemptCount * 1000); // Increase timeout with each attempt
         
         return () => clearTimeout(retryTimeout);
       }
