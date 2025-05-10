@@ -55,6 +55,7 @@ const FormList: React.FC<FormListProps> = ({
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [localForms, setLocalForms] = useState<FormData[]>(forms);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Track if component is mounted to prevent state updates after unmounting
   const isMounted = useRef(true);
@@ -107,26 +108,53 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
+  // Improved deletion handler to prevent page freezing
   const handleDelete = async () => {
-    if (formToDelete) {
+    if (formToDelete && !isDeleting) {
       try {
+        // Set deleting state to prevent multiple delete attempts
+        setIsDeleting(true);
+        
+        // First update the UI optimistically - remove from local state immediately
+        if (isMounted.current) {
+          setLocalForms(prevForms => prevForms.filter(form => form.id !== formToDelete));
+        }
+        
+        // Show deletion in progress toast
+        const toastId = toast.loading('جاري حذف النموذج...');
+        
+        // Then actually delete from the database
         await deleteForm(formToDelete);
         
+        // Success handling
         if (isMounted.current) {
-          // Update local state immediately after successful deletion
-          setLocalForms(prevForms => prevForms.filter(form => form.id !== formToDelete));
           setFormToDelete(null);
+          toast.dismiss(toastId);
+          toast.success('تم حذف النموذج بنجاح');
         }
         
-        toast.success('تم حذف النموذج بنجاح');
+        // After a small delay, trigger the refresh callback if provided
+        // Using setTimeout to prevent UI thread blocking
+        setTimeout(async () => {
+          if (onRefresh && isMounted.current) {
+            await onRefresh();
+          }
+          // Reset deleting state
+          if (isMounted.current) {
+            setIsDeleting(false);
+          }
+        }, 100);
         
-        // Call the refresh callback if provided
-        if (onRefresh) {
-          await onRefresh();
-        }
       } catch (error) {
         console.error(`[${stableId.current}] Error deleting form:`, error);
         toast.error("فشل في حذف النموذج");
+        
+        // Restore the deleted item if the server operation failed
+        if (isMounted.current) {
+          // We need to restore the form that was optimistically removed
+          onRefresh?.();
+          setIsDeleting(false);
+        }
       }
     }
   };
@@ -303,6 +331,7 @@ const FormList: React.FC<FormListProps> = ({
                       <DropdownMenuItem 
                         className="text-red-600" 
                         onClick={() => setFormToDelete(form.id)}
+                        disabled={isDeleting}
                       >
                         <Trash className="h-4 w-4 mr-2" />
                         حذف
@@ -334,7 +363,10 @@ const FormList: React.FC<FormListProps> = ({
       </div>
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
+      <AlertDialog 
+        open={!!formToDelete} 
+        onOpenChange={(open) => !isDeleting && !open && setFormToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>هل أنت متأكد من حذف هذا النموذج؟</AlertDialogTitle>
@@ -343,9 +375,18 @@ const FormList: React.FC<FormListProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              حذف
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  جاري الحذف...
+                </>
+              ) : 'حذف'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

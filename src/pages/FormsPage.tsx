@@ -36,6 +36,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
   const [newFormName, setNewFormName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Generate a unique STABLE instance ID for better debugging
   const instanceId = useRef(`forms-page-${Math.random().toString(36).substr(2, 8)}`);
@@ -47,13 +48,13 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
   const { shopDomain } = useShopifyConnection();
   const navigate = useNavigate();
 
-  // Query database for forms
+  // Query database for forms with improved error handling
   const loadForms = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     
     try {
       // First try to get cached forms if not forcing refresh
-      if (!forceRefresh) {
+      if (!forceRefresh && !forceRefresh) {
         try {
           const cachedForms = localStorage.getItem(cacheKey.current);
           if (cachedForms) {
@@ -117,20 +118,12 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
     }
   }, [language, shopDomain, shopId]);
 
-  // Load forms when component mounts
+  // Load forms when component mounts or refresh is triggered
   useEffect(() => {
-    loadForms(false);
-  }, [loadForms]);
+    loadForms(Boolean(forceRefresh || refreshTrigger > 0));
+  }, [loadForms, forceRefresh, refreshTrigger]);
   
-  // React to forceRefresh prop changes
-  useEffect(() => {
-    if (forceRefresh) {
-      console.log(`[${instanceId.current}] Force refreshing forms due to prop change`);
-      loadForms(true);
-    }
-  }, [forceRefresh, loadForms]);
-
-  // Create form with minimal processing
+  // Create form with minimal processing and better error handling
   const handleCreateForm = useCallback(async () => {
     if (!newFormName.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال اسم للنموذج' : 'Please enter a form name');
@@ -208,10 +201,8 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
       setIsCreating(false);
       setNewFormName('');
       
-      // Force reload forms with delay
-      setTimeout(() => {
-        loadForms(true);
-      }, 500);
+      // Trigger a refresh to ensure UI is up to date
+      setRefreshTrigger(prev => prev + 1);
       
     } catch (err) {
       console.error(`[${instanceId.current}] Error creating form:`, err);
@@ -219,11 +210,12 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [newFormName, language, shopDomain, shopId, loadForms, forms]);
+  }, [newFormName, language, shopDomain, shopId, forms]);
 
   // Add refresh handler that resets load state and forces a refresh
   const handleRefresh = useCallback(() => {
     toast.info(language === 'ar' ? 'جاري تحديث القائمة...' : 'Refreshing list...');
+    setRefreshTrigger(prev => prev + 1);
     return loadForms(true);
   }, [loadForms, language]);
 
@@ -339,7 +331,7 @@ const FormsPage: React.FC<FormsPageProps> = ({ shopId, forceRefresh }) => {
       <FormList 
         forms={forms} 
         isLoading={isLoading} 
-        onSelectForm={handleEditForm} 
+        onSelectForm={handleEditForm}
         onRefresh={handleRefresh}
         instanceId={instanceId.current}
       />
