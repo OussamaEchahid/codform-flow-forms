@@ -159,7 +159,7 @@ export const useShopify = () => {
     }
   }, [getStoreId, language, isDevMode]);
 
-  // Optimized loadProducts function with better error handling
+  // Renamed function to loadProducts for consistency with ShopifyIntegration component
   const loadProducts = useCallback(async (force = false) => {
     // Skip reloading if recently loaded
     const now = Date.now();
@@ -562,7 +562,7 @@ export const useShopify = () => {
     shop,
     isConnected,
     products,
-    loadProducts,
+    loadProducts, // Renamed from getProducts to match the component usage
     syncForm,
     tokenError,
     tokenExpired,

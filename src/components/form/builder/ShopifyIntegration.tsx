@@ -17,9 +17,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   const { language } = useI18n();
   const { 
     syncForm, 
-    getProducts, 
+    loadProducts, 
     refreshConnection, 
-    isShopifyConnected,
+    isConnected,
     shop,
     failSafeMode 
   } = useShopify();
@@ -55,15 +55,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
         setIsLoading(true);
         
         // Attempt to check connection status
-        const isConnected = await refreshConnection();
+        const isConnectedResult = await refreshConnection();
         
         if (isMounted) {
-          setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+          setConnectionStatus(isConnectedResult ? 'connected' : 'disconnected');
           
           // If connected, get products
-          if (isConnected) {
+          if (isConnectedResult) {
             try {
-              const products = await getProducts();
+              const products = await loadProducts();
               
               if (isMounted) {
                 if (Array.isArray(products)) {
@@ -100,7 +100,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     return () => {
       isMounted = false;
     };
-  }, [formId, language, getProducts, refreshConnection]);
+  }, [formId, language, loadProducts, refreshConnection]);
   
   // Handle form sync
   const handleSync = async () => {
@@ -111,8 +111,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       // Reset error state
       setErrorMessage(null);
       
-      // Attempt to sync
-      const result = await syncForm({ formId });
+      // Attempt to sync with correct data structure
+      const result = await syncForm({
+        formId,
+        settings: {
+          position: 'product-page',
+          style: {}
+        }
+      });
       
       if (mounted.current) {
         if (result && result.success) {
@@ -151,20 +157,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     setIsRefreshing(true); // Use local state instead of setIsLoading
     
     try {
-      const isConnected = await refreshConnection(true);
+      const isConnectedResult = await refreshConnection(true);
       
       if (mounted.current) {
-        setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+        setConnectionStatus(isConnectedResult ? 'connected' : 'disconnected');
         
         // If connection was successful but we were previously disconnected
-        if (isConnected) {
+        if (isConnectedResult) {
           toast.success(language === 'ar' 
             ? 'تم الاتصال بـ Shopify بنجاح' 
             : 'Successfully connected to Shopify');
           
           // Also refresh products
           try {
-            const products = await getProducts();
+            const products = await loadProducts();
             
             if (mounted.current && Array.isArray(products)) {
               setProductsCount(products.length);
@@ -203,7 +209,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     
     try {
       retryCount.current = 0; // Reset retry counter
-      const products = await getProducts(true); // Force refresh
+      const products = await loadProducts(true); // Force refresh
       
       if (mounted.current) {
         if (Array.isArray(products)) {
