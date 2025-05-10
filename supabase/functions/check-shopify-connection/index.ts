@@ -1,186 +1,258 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.18.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
-// Configure CORS headers for browser access
+// Configure CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Content-Type": "application/json",
 };
 
 serve(async (req: Request) => {
+  // Generate a unique request ID for tracking
+  const requestId = crypto.randomUUID().substring(0, 8);
+  console.log(`[${requestId}] Connection check request received`);
+
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
-  // Generate a unique request ID
-  const requestId = `req_${Math.random().toString(36).substring(2, 8)}_${Date.now()}`;
-  
   try {
-    // Parse request body
-    let body;
+    // Parse request data
+    let data;
     try {
-      body = await req.json();
-      console.log(`[${requestId}] Parsed request body:`, body);
+      data = await req.json();
     } catch (e) {
       const url = new URL(req.url);
-      console.log(`[${requestId}] Failed to parse JSON body, using URL params`);
-      body = {
-        shop: url.searchParams.get("shop") || "",
-        devMode: url.searchParams.get("dev_mode") === "true"
+      data = {
+        shop: url.searchParams.get("shop"),
+        token: url.searchParams.get("token")
       };
     }
+
+    const { shop, token } = data;
     
-    const { shop, devMode } = body;
-    
+    console.log(`[${requestId}] Checking connection for shop: ${shop}`);
+
     if (!shop) {
       return new Response(
-        JSON.stringify({ success: false, error: "Shop parameter is required" }),
-        { headers: corsHeaders, status: 400 }
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing required parameter: shop",
+          requestId 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
       );
     }
+
+    // Normalize shop domain
+    const shopDomain = shop.includes("myshopify.com") ? shop : `${shop}.myshopify.com`;
+
+    // Get access token if not provided
+    let accessToken = token;
     
-    console.log(`[${requestId}] Testing connection for shop: ${shop}, devMode: ${devMode}`);
-    
-    // Use test shop detection as a shortcut for dev/test environments
-    const testStores = ["test-store", "myteststore", "astrem"];
-    const isTestStore = testStores.some(testName => 
-      shop.toLowerCase().includes(testName.toLowerCase()));
+    if (!accessToken) {
+      console.log(`[${requestId}] No token provided, fetching from database`);
       
-    if (isTestStore || devMode) {
-      console.log(`[${requestId}] TEST STORE DETECTED: Guaranteed success`);
+      // Get Supabase credentials from environment
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error("Database credentials not available");
+      }
+      
+      // Connect to Supabase
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Get token from shopify_stores table
+      const { data: storeData, error: dbError } = await supabase
+        .from("shopify_stores")
+        .select("access_token")
+        .eq("shop", shopDomain)
+        .maybeSingle();
+      
+      if (dbError) {
+        console.error(`[${requestId}] Database error:`, dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+      
+      if (!storeData || !storeData.access_token) {
+        console.log(`[${requestId}] No token found for shop: ${shopDomain}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            connected: false,
+            error: "No access token available for this shop",
+            requestId
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200  // We use 200 with error in body for better client handling
+          }
+        );
+      }
+      
+      if (storeData.access_token === 'placeholder_token') {
+        console.log(`[${requestId}] Placeholder token found for ${shopDomain}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            connected: false,
+            error: "Placeholder token detected",
+            isPlaceholder: true,
+            shop: shopDomain,
+            requestId
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
+          }
+        );
+      }
+      
+      accessToken = storeData.access_token;
+      console.log(`[${requestId}] Token retrieved from database`);
+    }
+
+    // We'll use a very simple GraphQL query to verify connection
+    const simpleQuery = `
+      {
+        shop {
+          name
+        }
+      }
+    `;
+
+    // Make GraphQL request to Shopify
+    console.log(`[${requestId}] Testing connection to Shopify Admin API for ${shopDomain}`);
+    
+    try {
+      const graphqlResponse = await fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken
+        },
+        body: JSON.stringify({ query: simpleQuery })
+      });
+
+      if (!graphqlResponse.ok) {
+        const errorText = await graphqlResponse.text();
+        console.error(`[${requestId}] Shopify API error: ${graphqlResponse.status}, ${errorText.substring(0, 200)}`);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            connected: false,
+            error: `Shopify API error: ${graphqlResponse.status}`,
+            details: errorText.substring(0, 200),
+            shop: shopDomain,
+            requestId
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200  // We use 200 with error details for better client handling
+          }
+        );
+      }
+
+      const responseData = await graphqlResponse.json();
+      
+      // Check for GraphQL errors
+      if (responseData.errors) {
+        console.error(`[${requestId}] GraphQL errors:`, responseData.errors);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            connected: false,
+            error: "GraphQL errors",
+            errors: responseData.errors,
+            shop: shopDomain,
+            requestId
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
+          }
+        );
+      }
+
+      // Check if data exists and contains shop name
+      if (!responseData.data || !responseData.data.shop) {
+        console.error(`[${requestId}] Invalid response format:`, responseData);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            connected: false,
+            error: "Invalid response format from Shopify",
+            shop: shopDomain,
+            requestId
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
+          }
+        );
+      }
+
+      // Connection successful
+      const shopName = responseData.data.shop.name || shopDomain;
+      console.log(`[${requestId}] Connection successful to shop: ${shopName}`);
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
           connected: true,
-          shop,
-          test: true,
-          message: "Test store connection - automatically verified"
+          shop: shopDomain,
+          shopName,
+          requestId
         }),
-        { headers: corsHeaders }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
       );
-    }
-    
-    // Get Supabase credentials from environment
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('Required Supabase credentials are missing');
-    }
-    
-    // For real stores, check the database for credentials
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      supabaseServiceRoleKey
-    );
-    
-    console.log(`[${requestId}] Checking database for shop credentials`);
-    
-    const { data: storeData, error: storeError } = await supabaseAdmin
-      .from('shopify_stores')
-      .select('access_token, is_active, updated_at')
-      .eq('shop', shop)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    } catch (graphqlError) {
+      console.error(`[${requestId}] GraphQL request error:`, graphqlError);
       
-    if (storeError) {
-      console.log(`[${requestId}] Error finding store in database: ${storeError.message}`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          connected: false, 
-          error: "Database error when looking up store",
-          details: storeError.message
-        }),
-        { headers: corsHeaders }
-      );
-    }
-      
-    if (!storeData) {
-      console.log(`[${requestId}] Store not found in database`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          connected: false, 
-          error: "Store not found in database"
-        }),
-        { headers: corsHeaders }
-      );
-    }
-    
-    if (!storeData.access_token) {
-      console.log(`[${requestId}] Store found but missing access token`);
       return new Response(
         JSON.stringify({ 
           success: false, 
           connected: false,
-          error: "Store exists but has no access token"
+          error: "Error connecting to Shopify API",
+          details: graphqlError instanceof Error ? graphqlError.message : String(graphqlError),
+          shop: shopDomain,
+          requestId
         }),
-        { headers: corsHeaders }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
       );
     }
-    
-    const accessToken = storeData.access_token;
-    const validToken = accessToken && accessToken !== 'placeholder_token';
-    
-    // For security, we don't actually check with Shopify API here to avoid exposing tokens
-    // If we found a non-placeholder token, we'll assume connection is valid
-    
-    console.log(`[${requestId}] Connection check complete. Token valid: ${validToken}, active: ${storeData.is_active}`);
-    
-    // If token is valid and store is active, return success
-    if (validToken && storeData.is_active) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          connected: true,
-          shop, 
-          active: storeData.is_active,
-          test: false,
-          timestampCheck: new Date().toISOString()
-        }),
-        { headers: corsHeaders }
-      );
-    } 
-    // If token is valid but store is inactive, return partial success
-    else if (validToken) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          connected: true,
-          active: false,
-          shop,
-          message: "Store exists with valid token but is marked inactive"
-        }),
-        { headers: corsHeaders }
-      );
-    } 
-    // If token is invalid, return failed
-    else {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          connected: false,
-          shop,
-          error: "Invalid or placeholder token found"
-        }),
-        { headers: corsHeaders }
-      );
-    }
-    
   } catch (error) {
-    console.error(`[${requestId}] Error in check-shopify-connection:`, error);
+    console.error(`[${requestId}] Unhandled error:`, error);
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Unknown error occurred",
+        connected: false,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
         requestId
       }),
-      { status: 500, headers: corsHeaders }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500
+      }
     );
   }
 });

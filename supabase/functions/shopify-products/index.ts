@@ -15,6 +15,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Generate a unique request ID for tracking
   const requestId = `edge_${Math.random().toString(36).substring(2, 8)}`;
   console.log(`[${requestId}] Request received`);
 
@@ -43,7 +44,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Missing required parameter: shop' 
+          error: 'Missing required parameter: shop',
+          requestId 
         }),
         { 
           headers: corsHeaders,
@@ -79,12 +81,30 @@ serve(async (req) => {
         .eq('shop', normalizedShopDomain)
         .maybeSingle();
         
-      if (storeError || !storeData || !storeData.access_token) {
-        console.error(`[${requestId}] Error retrieving token from database:`, storeError || 'No token found');
+      if (storeError) {
+        console.error(`[${requestId}] Error retrieving token from database:`, storeError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'No valid access token available for this shop' 
+            error: 'Database error when retrieving token',
+            details: storeError.message,
+            requestId
+          }),
+          { 
+            headers: corsHeaders,
+            status: 500 
+          }
+        );
+      }
+      
+      if (!storeData || !storeData.access_token || storeData.access_token === 'placeholder_token') {
+        console.error(`[${requestId}] No valid token found for shop: ${normalizedShopDomain}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'No valid access token available for this shop',
+            isPlaceholder: storeData?.access_token === 'placeholder_token',
+            requestId
           }),
           { 
             headers: corsHeaders,
@@ -108,20 +128,16 @@ serve(async (req) => {
 
     // Call Shopify GraphQL API to get products - SIMPLER QUERY
     const graphqlUrl = `https://${normalizedShopDomain}/admin/api/2023-10/graphql.json`;
+    
+    // We'll use a very simple and reliable query format
     const query = `
-      query {
-        products(first: 20) {
+      {
+        products(first: 10) {
           edges {
             node {
               id
               title
               handle
-              priceRangeV2 {
-                minVariantPrice {
-                  amount
-                  currencyCode
-                }
-              }
               featuredImage {
                 url
               }
@@ -131,92 +147,48 @@ serve(async (req) => {
       }
     `;
 
-    let retryCount = 0;
-    const maxRetries = 3;
-    let shopifyResponse;
-    let lastError;
-    
-    while (retryCount <= maxRetries) {
-      try {
-        console.log(`[${requestId}] Making GraphQL request to Shopify - attempt ${retryCount + 1}/${maxRetries + 1}`);
-        shopifyResponse = await fetch(graphqlUrl, {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': params.accessToken,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ query })
-        });
-        
-        // Break on any response (even error responses)
-        break;
-      } catch (error) {
-        lastError = error;
-        retryCount++;
-        
-        if (retryCount > maxRetries) {
-          console.error(`[${requestId}] All retry attempts failed:`, error);
-          break;
-        }
-        
-        // Add exponential backoff
-        const delay = Math.min(100 * Math.pow(2, retryCount), 1000);
-        console.log(`[${requestId}] Retry attempt ${retryCount}/${maxRetries}, waiting ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
+    console.log(`[${requestId}] Making GraphQL request to Shopify`);
 
-    // If all retries failed with network errors
-    if (!shopifyResponse) {
-      console.error(`[${requestId}] Failed to connect to Shopify API after ${maxRetries + 1} attempts`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Failed to connect to Shopify API after multiple attempts', 
-          error: lastError instanceof Error ? lastError.message : String(lastError)
-        }),
-        { 
-          headers: corsHeaders,
-          status: 200 // We return 200 with error info in the body for better client handling
-        }
-      );
-    }
-
-    // Handle HTTP error responses
-    if (!shopifyResponse.ok) {
-      const errorText = await shopifyResponse.text();
-      console.error(`[${requestId}] Error fetching products. Status: ${shopifyResponse.status}, Response: ${errorText}`);
-      
-      // Return detailed error for debugging
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: `Error fetching products from Shopify: ${shopifyResponse.status}`, 
-          status: shopifyResponse.status,
-          errorDetails: errorText.substring(0, 500),
-          shop: normalizedShopDomain,
-          requestId
-        }),
-        { 
-          headers: corsHeaders,
-          status: 200 // We return 200 with error info in the body
-        }
-      );
-    }
-
-    // Process the successful response
     try {
-      const shopifyData = await shopifyResponse.json();
+      // Make request with proper headers and a simplified query
+      const shopifyResponse = await fetch(graphqlUrl, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': params.accessToken,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
       
-      if (shopifyData.errors) {
-        console.error(`[${requestId}] GraphQL errors:`, shopifyData.errors);
+      // Handle response error status
+      if (!shopifyResponse.ok) {
+        const errorText = await shopifyResponse.text();
+        console.error(`[${requestId}] Shopify API error: ${shopifyResponse.status}, ${errorText.substring(0, 200)}`);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: `Error from Shopify API (${shopifyResponse.status})`, 
+            statusCode: shopifyResponse.status,
+            error: errorText.substring(0, 300),
+            shop: normalizedShopDomain,
+            requestId
+          }),
+          { headers: corsHeaders, status: 200 }  // Return 200 with error details for better client handling
+        );
+      }
+      
+      // Parse and validate response data
+      const responseData = await shopifyResponse.json();
+      
+      if (responseData.errors) {
+        console.error(`[${requestId}] GraphQL errors:`, responseData.errors);
         return new Response(
           JSON.stringify({ 
             success: false, 
             message: 'GraphQL errors', 
-            errors: shopifyData.errors,
-            query,
+            errors: responseData.errors,
             shop: normalizedShopDomain,
             requestId
           }),
@@ -224,13 +196,13 @@ serve(async (req) => {
         );
       }
       
-      if (!shopifyData.data || !shopifyData.data.products || !shopifyData.data.products.edges) {
-        console.error(`[${requestId}] Invalid response format from Shopify:`, shopifyData);
+      if (!responseData.data || !responseData.data.products || !responseData.data.products.edges) {
+        console.error(`[${requestId}] Invalid response format:`, responseData);
         return new Response(
           JSON.stringify({ 
             success: false, 
             message: 'Invalid response format from Shopify',
-            responseData: shopifyData,
+            responseData,
             shop: normalizedShopDomain,
             requestId
           }),
@@ -238,14 +210,13 @@ serve(async (req) => {
         );
       }
       
-      // Transform the product data to a simpler format
-      const products = shopifyData.data.products.edges.map(edge => {
+      // Transform products to a simpler format
+      const products = responseData.data.products.edges.map((edge: any) => {
         const node = edge.node;
         return {
           id: node.id,
           title: node.title,
           handle: node.handle,
-          price: node?.priceRangeV2?.minVariantPrice?.amount,
           images: node.featuredImage ? [node.featuredImage.url] : []
         };
       });
@@ -255,37 +226,35 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          products: products,
-          count: products.length
+          products,
+          count: products.length,
+          shop: normalizedShopDomain,
+          requestId
         }),
-        { 
-          headers: corsHeaders,
-          status: 200 
-        }
+        { headers: corsHeaders, status: 200 }
       );
-    } catch (parseError) {
-      console.error(`[${requestId}] Error parsing Shopify response:`, parseError);
+    } catch (error) {
+      console.error(`[${requestId}] Error in Shopify request:`, error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'Error parsing Shopify response',
-          error: parseError instanceof Error ? parseError.message : String(parseError)
+          message: 'Error making request to Shopify API',
+          error: error instanceof Error ? error.message : String(error),
+          shop: normalizedShopDomain,
+          requestId
         }),
         { headers: corsHeaders, status: 200 }
       );
     }
   } catch (error) {
-    console.error(`[${requestId}] Error processing request:`, error);
+    console.error(`[${requestId}] Unhandled error:`, error);
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error instanceof Error ? error.message : 'An unknown error occurred',
         trace: error instanceof Error ? error.stack : null
       }),
-      { 
-        headers: corsHeaders,
-        status: 500 
-      }
+      { headers: corsHeaders, status: 500 }
     );
   }
 });
