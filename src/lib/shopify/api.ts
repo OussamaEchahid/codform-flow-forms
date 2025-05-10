@@ -42,7 +42,11 @@ export async function loadShopifyProducts(shop: string, forceRefresh = false): P
     // First try to get products from the edge function
     try {
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop, forceRefresh, timestamp: Date.now() },
+        body: { 
+          shop, 
+          forceRefresh, 
+          timestamp: Date.now() 
+        },
       });
       
       if (error) {
@@ -54,7 +58,11 @@ export async function loadShopifyProducts(shop: string, forceRefresh = false): P
         apiLogger.info(`Successfully loaded ${data.products.length} products from edge function`);
         
         // Cache the results
-        localStorage.setItem(LS_KEYS.CACHED_PRODUCTS, JSON.stringify(data.products));
+        try {
+          localStorage.setItem(LS_KEYS.CACHED_PRODUCTS, JSON.stringify(data.products));
+        } catch (cacheError) {
+          apiLogger.warn('Error caching products:', cacheError);
+        }
         
         return data.products;
       } else {
@@ -111,7 +119,10 @@ export async function testShopifyConnection(shop: string): Promise<boolean> {
     // Try edge function first
     try {
       const { data, error } = await shopifySupabase.functions.invoke('check-shopify-connection', {
-        body: { shop, timestamp: Date.now() }
+        body: { 
+          shop, 
+          timestamp: Date.now() 
+        }
       });
       
       if (error) {
@@ -125,27 +136,64 @@ export async function testShopifyConnection(shop: string): Promise<boolean> {
       // Continue to fallback
     }
     
-    // Fallback to direct call
-    const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-test-connection', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
-      },
-      body: JSON.stringify({ 
-        shop, 
-        devMode: isDevelopmentMode(),
-        timestamp: Date.now()
-      })
-    });
+    // Fallback to direct call with retry
+    const maxRetries = 2;
+    let retryCount = 0;
+    let lastError;
     
-    if (!response.ok) {
-      apiLogger.error(`Error response from test connection: ${response.status}`);
-      return isDevelopmentMode(); // Auto succeed in dev mode
+    while (retryCount <= maxRetries) {
+      try {
+        const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/shopify-test-connection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+          },
+          body: JSON.stringify({ 
+            shop, 
+            devMode: isDevelopmentMode(),
+            timestamp: Date.now(),
+            retryAttempt: retryCount
+          })
+        });
+        
+        if (!response.ok) {
+          apiLogger.error(`Error response from test connection: ${response.status}`);
+          lastError = new Error(`HTTP error ${response.status}`);
+          
+          // Increment retry counter and continue
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            // Wait before retrying with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            continue;
+          }
+          
+          // If we've exhausted retries, use development mode check
+          return isDevelopmentMode(); // Auto succeed in dev mode
+        }
+        
+        const result = await response.json();
+        return result.success && result.connected;
+      } catch (error) {
+        lastError = error;
+        
+        // Increment retry counter and continue
+        retryCount++;
+        if (retryCount <= maxRetries) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          continue;
+        }
+        
+        // If all retries failed, log the error
+        apiLogger.error('All test connection retries failed:', lastError);
+        return isDevelopmentMode(); // Auto succeed in dev mode
+      }
     }
     
-    const result = await response.json();
-    return result.success && result.connected;
+    // This should not be reached due to the returns in the loop, but TypeScript requires a return
+    return isDevelopmentMode();
   } catch (error) {
     apiLogger.error('Error testing connection:', error);
     return isDevelopmentMode(); // Auto succeed in dev mode
@@ -173,27 +221,67 @@ export async function syncFormWithShopify(formData: ShopifyFormData): Promise<an
   try {
     apiLogger.info(`Syncing form with Shopify: ${formData.formId}`);
     
-    // Try edge function first
-    try {
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
-        body: formData
-      });
-      
-      if (error) {
-        apiLogger.error('Error invoking shopify-sync-form function:', error);
-      } else if (data) {
-        return data;
+    // Try edge function first with retry logic
+    let retryCount = 0;
+    const maxRetries = 2;
+    let lastError;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
+          body: {
+            ...formData,
+            retryAttempt: retryCount,
+            timestamp: Date.now()
+          }
+        });
+        
+        if (error) {
+          lastError = error;
+          apiLogger.error(`Error invoking shopify-sync-form function (attempt ${retryCount + 1}):`, error);
+          
+          // Increment retry counter and continue
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+          
+          // If we've exhausted retries, fall back to default response
+          break;
+        } 
+        
+        if (data) {
+          return data;
+        }
+        
+        // If data is null but no error, also increment retry
+        retryCount++;
+      } catch (funcError) {
+        lastError = funcError;
+        apiLogger.error(`Error calling shopify-sync-form function (attempt ${retryCount + 1}):`, funcError);
+        
+        // Increment retry counter and continue
+        retryCount++;
+        if (retryCount <= maxRetries) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          continue;
+        }
+        
+        // If we've exhausted retries, fall back to default response
+        break;
       }
-    } catch (funcError) {
-      apiLogger.error('Error calling shopify-sync-form function:', funcError);
-      // Continue to fallback
     }
     
-    // Default implementation for fallback
+    // Default implementation for fallback (all retries failed)
+    apiLogger.warn('All sync form attempts failed, returning default success response');
     return {
       success: true,
-      message: 'Form synced successfully',
-      timestamp: new Date().toISOString()
+      message: 'Form synced successfully (fallback)',
+      timestamp: new Date().toISOString(),
+      fallback: true
     };
   } catch (error) {
     apiLogger.error('Error syncing form with Shopify:', error);

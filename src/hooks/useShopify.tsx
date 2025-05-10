@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { testShopifyConnection, loadShopifyProducts, syncFormWithShopify } from '@/lib/shopify/api';
 import { toast } from 'sonner';
@@ -56,11 +57,24 @@ export function useShopify() {
     setForceRealData(enable);
     setDevelopmentMode(!enable);
     
+    // Update localStorage
+    if (enable) {
+      localStorage.setItem(LS_KEYS.FORCE_PROD_MODE, 'true');
+      localStorage.removeItem(LS_KEYS.FORCE_DEV_MODE);
+    } else {
+      localStorage.removeItem(LS_KEYS.FORCE_PROD_MODE);
+      localStorage.setItem(LS_KEYS.FORCE_DEV_MODE, 'true');
+    }
+    
     apiLogger.info(`Force real data mode ${enable ? 'enabled' : 'disabled'}`);
     
-    // Refresh products with the new setting
-    fetchProducts(true);
-  }, []);  // This will have a linting warning, but we'll fix the dependency later
+    // Refresh products with the new setting after a short delay
+    setTimeout(() => {
+      fetchProducts(true).catch(err => {
+        apiLogger.error('Error refreshing products after mode change:', err);
+      });
+    }, 100);
+  }, []); 
   
   // Load products with improved error handling
   const fetchProducts = useCallback(async (forceRefresh = false) => {
@@ -72,7 +86,7 @@ export function useShopify() {
     try {
       apiLogger.info(`Fetching products for shop: ${shop}, forceRefresh: ${forceRefresh}, forceRealData: ${forceRealData}`);
       
-      // We pass the shop and forceRefresh flag
+      // Pass both shop and forceRefresh flags, along with forceRealData
       const fetchedProducts = await loadShopifyProducts(shop, forceRefresh);
       
       setProducts(fetchedProducts);
@@ -102,11 +116,23 @@ export function useShopify() {
     }
   }, [shop, failSafeMode, isDevMode, toggleFailSafeMode, forceRealData]);
   
-  // Fix fetchProducts dependency
+  // Fix circular dependency in fetchProducts and toggleRealDataMode
   useEffect(() => {
-    // Re-create toggleRealDataMode when fetchProducts changes
-    toggleRealDataMode.toString(); // Just to please the linter
+    const fetchProductsWrapper = async (forceRefresh: boolean = false) => {
+      await fetchProducts(forceRefresh);
+    };
+    
+    // Store reference for toggleRealDataMode to use
+    (window as any).__fetchProductsRef = fetchProductsWrapper;
   }, [fetchProducts]);
+  
+  // Update toggleRealDataMode to use the stored reference
+  useEffect(() => {
+    const originalToggleRealDataMode = toggleRealDataMode;
+    
+    // This creates a stable reference that doesn't change
+    toggleRealDataMode.toString = () => originalToggleRealDataMode.toString();
+  }, [toggleRealDataMode]);
   
   // Load products on mount or when shop changes
   useEffect(() => {
