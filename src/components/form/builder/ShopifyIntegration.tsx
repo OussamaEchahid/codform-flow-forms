@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,11 +25,62 @@ import {
   ShoppingBag, 
   Loader2, 
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Settings,
+  ExternalLink,
+  XCircle
 } from 'lucide-react';
 import { useShopify } from '@/hooks/useShopify';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { Button as ShadcnButton } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n';
+import { useFormStore } from '@/hooks/useFormStore';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Alert,
+  AlertDescription
+} from '@/components/ui/alert';
+
+// Helper function for Shopify product settings
+const shopifyProductSettings = () => {
+  // This would normally connect to your database
+  // For now, we'll just return a mock API with the necessary methods
+  return {
+    select: (fields: string) => {
+      return {
+        eq: (field: string, value: string) => {
+          return {
+            data: [],
+            error: null
+          };
+        }
+      };
+    },
+    delete: () => {
+      return {
+        eq: (field: string, value: string) => {
+          return {
+            error: null
+          };
+        }
+      };
+    },
+    insert: (settings: any[]) => {
+      return {
+        error: null
+      };
+    }
+  };
+};
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
