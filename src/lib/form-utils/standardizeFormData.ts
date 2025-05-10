@@ -1,116 +1,52 @@
 
-import { FormField, FormStep } from '@/lib/form-utils';
-import { FormStyle } from '@/hooks/useFormEditor';
-
 /**
- * Ensures that form data is properly structured before saving
- * Prevents infinite update loops by standardizing the data structure
+ * Utility function to normalize form data structures
+ * This handles different data structures that might exist in the database
  */
-export function standardizeFormData(
-  formElements: FormField[],
-  formStyle: FormStyle,
-  submitButtonText: string
-): FormStep[] {
-  // Create a standard form step structure
-  const formStep: FormStep = {
-    id: '1',
-    title: 'Main Step',
-    fields: formElements,
-    // Always initialize metadata to prevent undefined errors
-    metadata: {
-      formStyle: {
-        primaryColor: formStyle.primaryColor || '#9b87f5',
-        borderRadius: formStyle.borderRadius || '0.5rem',
-        fontSize: formStyle.fontSize || '1rem',
-        buttonStyle: formStyle.buttonStyle || 'rounded',
-        submitButtonText: submitButtonText || 'إرسال الطلب'
+export const normalizeFormData = (data: any): any[] => {
+  // Safety check for null or undefined data
+  if (!data) {
+    console.log('Form data is null or undefined, returning empty array');
+    return [];
+  }
+
+  try {
+    // If data is already an array, return it (but verify it's a valid array)
+    if (Array.isArray(data)) {
+      console.log('Data is already an array, returning as is');
+      return data;
+    }
+
+    // If data has steps property and it's an array, return that
+    if (data.steps && Array.isArray(data.steps)) {
+      console.log('Found data.steps array, returning it');
+      return data.steps;
+    }
+
+    // If data is an object but doesn't have steps, wrap it in an array
+    // This might be a single step
+    if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length > 0) {
+      // Check if the object might be a single step
+      if (data.id && (data.fields || data.title)) {
+        console.log('Data appears to be a single step, wrapping in array');
+        return [data];
       }
     }
-  };
 
-  return [formStep];
-}
-
-/**
- * Normalizes form data from any structure to a consistent format
- * This helps bridge the gap between different data formats in the database
- */
-export function normalizeFormData(data: any): FormStep[] {
-  // Case 1: data is already an array of steps
-  if (Array.isArray(data)) {
-    return data.map(step => ({
-      ...step,
-      id: step.id || String(Math.random()).slice(2, 8),
-      title: step.title || 'Unnamed Step',
-      fields: Array.isArray(step.fields) ? step.fields : []
-    }));
-  }
-  
-  // Case 2: data is an object with steps property
-  if (data && typeof data === 'object' && data.steps && Array.isArray(data.steps)) {
-    return data.steps.map(step => ({
-      ...step,
-      id: step.id || String(Math.random()).slice(2, 8),
-      title: step.title || 'Unnamed Step',
-      fields: Array.isArray(step.fields) ? step.fields : []
-    }));
-  }
-  
-  // Case 3: data is just one step with fields
-  if (data && typeof data === 'object' && data.fields && Array.isArray(data.fields)) {
+    // Default fallback: create a default step structure
+    console.log('Unable to determine data structure, creating default step');
     return [{
-      id: data.id || '1',
-      title: data.title || 'Main Step',
-      fields: data.fields
+      id: '1',
+      title: 'First Step',
+      fields: []
+    }];
+  } catch (error) {
+    console.error('Error normalizing form data:', error);
+    // Always return something valid in case of errors
+    return [{
+      id: '1',
+      title: 'First Step',
+      fields: []
     }];
   }
-  
-  // Case 4: no valid data structure, return empty step
-  return [{
-    id: '1',
-    title: 'Main Step',
-    fields: []
-  }];
-}
-
-/**
- * Transaction helper for form saves
- * Implements a retry mechanism with exponential backoff
- */
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  initialDelay: number = 500
-): Promise<T> {
-  let retryCount = 0;
-  let lastError: Error | null = null;
-  
-  while (retryCount <= maxRetries) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`Operation failed (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
-      
-      retryCount++;
-      
-      if (retryCount > maxRetries) {
-        break;
-      }
-      
-      // Exponential backoff with jitter
-      const delay = Math.pow(2, retryCount) * initialDelay + Math.floor(Math.random() * 200);
-      console.log(`Retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError || new Error('Operation failed after multiple retries');
-}
-
-/**
- * Safely check if an object is a promise
- */
-export function isPromise<T>(value: any): value is Promise<T> {
-  return Boolean(value && typeof value.then === 'function');
-}
+};
