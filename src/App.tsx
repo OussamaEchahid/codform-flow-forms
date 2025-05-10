@@ -6,8 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/components/layout/AuthProvider";
 import { useAuth } from "@/lib/auth";
-import { ShopifyConnectionProvider } from '@/lib/shopify/ShopifyConnectionProvider';
-import { toast, Toaster as SonnerToaster } from "sonner";
 
 // Pages 
 import Dashboard from "@/pages/Dashboard";
@@ -18,16 +16,19 @@ import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
+import ShopifyConnect from "@/pages/ShopifyConnect";
 import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/api/shopify-callback";
+import ShopifyStores from "@/pages/ShopifyStores";
+import ShopifyTest from "@/pages/ShopifyTest";
 import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 
-// Landing Pages
-import LandingPages from "@/pages/LandingPages";
-import LandingPageEditor from "@/pages/LandingPageEditor";
-import LandingPageView from "@/pages/LandingPageView";
+// Components
+import { Toaster } from "@/components/ui/toaster"; 
+import { toast } from "sonner"; 
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
+import { shopifyConnectionService } from "@/services/ShopifyConnectionService"; 
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -40,40 +41,54 @@ const queryClient = new QueryClient({
   },
 });
 
-// Modified ProtectedRoute to use the ShopifyConnectionProvider
+// Modified ProtectedRoute to be more lenient in authenticating connections
 const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
-  const { user, loading } = useAuth();
-  const [connectionAttempted, setConnectionAttempted] = useState(false);
+  const { shopifyConnected, user, shop, loading } = useAuth();
   
   // إذا كان لا يزال يتم التحميل، نعرض حالة التحميل
   if (loading) {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Use context values directly from the ShopifyConnectionProvider
-  // This will be injected by the ShopifyConnectionProvider component
+  // Enhanced connection checking to be more tolerant of different connection states
+  const activeStore = shopifyConnectionManager.getActiveStore();
+  const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
+  const localStorageShop = localStorage.getItem('shopify_store');
+  const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
   
   // Check for ANY indication of a connection - much more tolerant approach
-  const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
-  const activeStore = shopifyConnectionManager.getActiveStore();
-  
+  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
   const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
   
-  // Allow access based on any valid connection evidence or in development
-  const hasAccess = isAuthenticated || !!activeStore || bypassAuth || (process.env.NODE_ENV === 'development');
+  // Allow access if ANY indication of connection exists
+  // Including a bypass flag for better reliability
+  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development') || bypassAuth;
+  
+  console.log("Protected route check:", {
+    authContextConnected: shopifyConnected,
+    localStorageConnected,
+    activeStore,
+    localStorageShop,
+    hasShopifyAccess,
+    isAuthenticated,
+    hasAccess,
+    requireAuth,
+    bypassAuth,
+    env: process.env.NODE_ENV
+  });
   
   // Only redirect if we have absolutely no indication of access rights
   if (requireAuth && !hasAccess) {
-    console.log("No authentication or Shopify connection, redirecting to /shopify");
+    console.log("No authentication or Shopify connection, redirecting to /shopify-connect");
     
     // Save current path for redirection after authentication
     const currentPath = window.location.pathname;
-    if (currentPath !== '/shopify') {
+    if (currentPath !== '/shopify-connect') {
       localStorage.setItem('auth_redirect', currentPath);
     }
     
     toast.info("يجب الاتصال بمتجر Shopify أولاً");
-    return <Navigate to="/shopify" replace />;
+    return <Navigate to="/shopify-connect" replace />;
   }
   
   // وإلا، قم بعرض مسارات الطفل
@@ -81,48 +96,97 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
 };
 
 function AppRoutes() {
+  const [readyForNavigation, setReadyForNavigation] = useState(false);
+  
+  // Clean placeholder tokens on app start
+  useEffect(() => {
+    shopifyConnectionService.cleanupPlaceholderTokens()
+      .then(() => console.log("Cleaned placeholder tokens on app start"))
+      .catch(err => console.error("Error cleaning placeholder tokens:", err));
+  }, []);
+  
+  // Check for saved redirects
+  React.useEffect(() => {
+    // Give time for auth provider to initialize
+    const timer = setTimeout(() => {
+      setReadyForNavigation(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/shopify" element={<Shopify />} />
+      <Route path="/shopify-connect" element={<ShopifyConnect />} />
       <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
       <Route path="/auth/*" element={<Auth />} />
       
-      {/* Public landing page routes */}
-      <Route path="/landing/:slug" element={<LandingPageView />} />
-      
-      {/* Shopify callback route */}
+      {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
+      <Route path="/settings" element={<Settings />} />
       
-      {/* المسارات المحمية التي تتطلب مصادقة */}
+      {/* Add direct routes for ShopifyTest and ShopifyProducts */}
+      <Route path="/shopify-test" element={<ShopifyTest />} />
+      <Route path="/shopify-products" element={<ShopifyProducts />} />
+      
+      {/* المسارات المحمية التي تتطلب مصادقة لكن بشكل أكثر تساهلاً */}
       <Route element={<ProtectedRoute requireAuth={true} />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forms" element={<Forms />} />
         <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/landing-pages" element={<LandingPages />} />
-        <Route path="/landing-pages/editor" element={<LandingPageEditor />} />
-        <Route path="/landing-pages/editor/:id" element={<LandingPageEditor />} />
-        <Route path="/shopify-products" element={<ShopifyProducts />} />
-        <Route path="/settings" element={<Settings />} />
       </Route>
       
+      {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
+      <Route path="/shopify-stores" element={<ShopifyStores />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
 function App() {
+  // Clean placeholder tokens and validate connection on startup
+  React.useEffect(() => {
+    console.log("App mounted, cleaning tokens and validating connection");
+    
+    // Attempt to validate the connection state with retry logic
+    const validateConnection = async () => {
+      try {
+        // First clean any placeholder tokens
+        await shopifyConnectionService.cleanupPlaceholderTokens();
+        console.log("Placeholder tokens cleaned up on startup");
+        
+        // Then validate connection
+        shopifyConnectionManager.validateConnectionState();
+        console.log("Connection validated successfully");
+      } catch (error) {
+        console.error("Error validating connection:", error);
+        
+        // If validation fails, retry after a delay
+        setTimeout(() => {
+          try {
+            console.log("Retrying connection validation...");
+            shopifyConnectionManager.validateConnectionState();
+          } catch (retryError) {
+            console.error("Retry validation failed:", retryError);
+          }
+        }, 2000);
+      }
+    };
+    
+    validateConnection();
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <TooltipProvider>
           <Router>
             <AuthProvider>
-              <ShopifyConnectionProvider>
-                <SonnerToaster position="top-right" />
-                <AppRoutes />
-              </ShopifyConnectionProvider>
+              <AppRoutes />
+              <Toaster />
             </AuthProvider>
           </Router>
         </TooltipProvider>

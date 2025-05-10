@@ -201,10 +201,7 @@ const ShopifyTest: React.FC = () => {
       setTestStep('جاري إنشاء عميل API...');
       
       // Create API client directly
-      const api = createShopifyAPI({
-        shop: shop,
-        accessToken: token
-      });
+      const api = createShopifyAPI(token, shop);
       
       // First verify connection
       setTestStep('جاري التحقق من الاتصال...');

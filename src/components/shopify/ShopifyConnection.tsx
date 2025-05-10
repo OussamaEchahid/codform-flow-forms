@@ -6,65 +6,162 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Store, Loader2, CheckCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
+import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 
 const ShopifyConnection = () => {
-  // Context now has the disconnect method included
-  const { isConnected, shopDomain, isLoading, error, reload, disconnect } = useShopifyConnection();
-  const [shopInput, setShopInput] = useState('');
+  const [shopDomain, setShopDomain] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectedShop, setConnectedShop] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Initialize shop input with current shop domain
+  // Check existing connection on mount
   useEffect(() => {
-    if (shopDomain) {
-      setShopInput(shopDomain);
-    }
-  }, [shopDomain]);
+    // Clean placeholder tokens on component mount
+    shopifyConnectionService.cleanupPlaceholderTokens()
+      .then(() => checkConnectionStatus())
+      .catch(error => {
+        console.error("Error cleaning placeholder tokens:", error);
+        checkConnectionStatus();
+      });
+  }, []);
 
-  // Clean shop domain
-  const normalizeShopDomain = (domain: string): string => {
-    let normalizedDomain = domain.trim().toLowerCase();
+  // Check connection status - single source of truth
+  const checkConnectionStatus = async () => {
+    setIsCheckingStatus(true);
+    setConnectionError(null);
+    
+    try {
+      // Check local storage first for quick UI feedback
+      const storedShop = localStorage.getItem('shopify_store');
+      const storedConnected = localStorage.getItem('shopify_connected') === 'true';
+      
+      if (!storedShop) {
+        setIsConnected(false);
+        setIsCheckingStatus(false);
+        return;
+      }
+      
+      // Verify against database
+      const { data, error } = await shopifyStores()
+        .select('*')
+        .eq('shop', storedShop)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Error fetching store data:', error);
+        setConnectionError('خطأ في التحقق من حالة الاتصال');
+        setIsConnected(false);
+        setIsCheckingStatus(false);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        setConnectedShop(storedShop);
+        
+        // Only test if there's a valid token and it's not the placeholder
+        if (data[0].access_token && data[0].access_token !== 'placeholder_token') {
+          // Test token validity
+          const isValid = await testToken(storedShop, data[0].access_token);
+          setIsConnected(isValid);
+          
+          if (!isValid) {
+            // If token is invalid, mark as disconnected and offer reconnection
+            localStorage.setItem('shopify_connected', 'false');
+            setConnectionError('رمز الوصول غير صالح - يرجى إعادة الاتصال');
+          }
+        } else {
+          // If token is placeholder or missing, set as disconnected
+          setIsConnected(false);
+          setConnectionError('رمز الوصول غير موجود - يرجى الاتصال');
+          localStorage.setItem('shopify_connected', 'false');
+          
+          // Clean up placeholder tokens
+          if (data[0].access_token === 'placeholder_token') {
+            await shopifyConnectionService.cleanupPlaceholderTokens();
+          }
+        }
+      } else {
+        // No store found in database
+        setIsConnected(false);
+        localStorage.removeItem('shopify_store');
+        localStorage.removeItem('shopify_connected');
+      }
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+      setConnectionError('حدث خطأ أثناء التحقق من حالة الاتصال');
+      setIsConnected(false);
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  // Test token validity
+  const testToken = async (shop: string, token: string): Promise<boolean> => {
+    try {
+      if (!shop || !token || token === 'placeholder_token') {
+        return false;
+      }
+      
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
+        body: { shop, accessToken: token }
+      });
+      
+      if (error) {
+        console.error('Error testing token:', error);
+        return false;
+      }
+      
+      return data?.success || false;
+    } catch (error) {
+      console.error('Error testing token:', error);
+      return false;
+    }
+  };
+
+  // Connect to Shopify store via OAuth
+  const connectStore = async () => {
+    if (!shopDomain.trim()) {
+      toast.error('يرجى إدخال نطاق المتجر');
+      return;
+    }
+    
+    // Clean shop domain
+    let normalizedShopDomain = shopDomain.trim().toLowerCase();
     
     // Remove protocol if present
-    if (normalizedDomain.startsWith('http://') || normalizedDomain.startsWith('https://')) {
+    if (normalizedShopDomain.startsWith('http://') || normalizedShopDomain.startsWith('https://')) {
       try {
-        const url = new URL(normalizedDomain);
-        normalizedDomain = url.hostname;
+        const url = new URL(normalizedShopDomain);
+        normalizedShopDomain = url.hostname;
       } catch (error) {
         console.error('Invalid URL format', error);
       }
     }
     
     // Add myshopify.com if missing
-    if (!normalizedDomain.includes('.myshopify.com')) {
-      normalizedDomain = `${normalizedDomain}.myshopify.com`;
+    if (!normalizedShopDomain.includes('.myshopify.com')) {
+      normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
     }
-    
-    return normalizedDomain;
-  };
-
-  // Connect to Shopify store
-  const connectStore = async () => {
-    if (!shopInput.trim()) {
-      toast.error('يرجى إدخال نطاق المتجر');
-      return;
-    }
-    
-    const normalizedShopDomain = normalizeShopDomain(shopInput);
     
     // Save for recovery
     localStorage.setItem('shopify_last_url_shop', normalizedShopDomain);
     
     setIsConnecting(true);
-    setLocalError(null);
+    setConnectionError(null);
     
     try {
+      // Force cleanup of any existing placeholder tokens
+      await shopifyConnectionService.cleanupPlaceholderTokens();
+      console.log('Placeholder tokens cleaned before connection');
+      
       // Initiate OAuth flow
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
         body: { shop: normalizedShopDomain, clean: true }
@@ -85,35 +182,61 @@ const ShopifyConnection = () => {
       window.location.href = data.redirect;
     } catch (error) {
       console.error('Error connecting store:', error);
-      setLocalError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
+      setConnectionError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
       setIsConnecting(false);
       toast.error('فشل في الاتصال بالمتجر');
     }
   };
 
-  // Reconnect store
+  // Reconnect store - reinitiate OAuth flow
   const reconnectStore = async () => {
-    if (!shopDomain) {
+    if (!connectedShop) {
       toast.error('لا يوجد متجر متصل للإعادة الاتصال');
       return;
     }
     
-    setShopInput(shopDomain);
+    // Clean placeholder tokens before reconnection
+    await shopifyConnectionService.cleanupPlaceholderTokens();
+    
+    setShopDomain(connectedShop);
     await connectStore();
+  };
+
+  // Disconnect store
+  const disconnectStore = async () => {
+    if (!window.confirm('هل أنت متأكد من رغبتك في قطع الاتصال؟')) {
+      return;
+    }
+    
+    try {
+      // Update database
+      if (connectedShop) {
+        await shopifyStores()
+          .update({ 
+            is_active: false,
+            access_token: null
+          })
+          .eq('shop', connectedShop);
+      }
+      
+      // Complete reset
+      shopifyConnectionService.completeConnectionReset();
+      
+      setIsConnected(false);
+      setConnectedShop(null);
+      
+      toast.success('تم قطع الاتصال بنجاح');
+    } catch (error) {
+      console.error('Error disconnecting store:', error);
+      toast.error('فشل في قطع الاتصال');
+    }
   };
 
   // Force reset connection state
   const forceReset = async () => {
     try {
       setIsResetting(true);
-      
-      // Disconnect properly
-      await disconnect();
-      
-      // Clear any temporary state
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_last_url_shop');
-      
+      await shopifyConnectionService.forceResetConnection();
       toast.success('تم إعادة تعيين الاتصال بنجاح');
       
       // Force browser reload to clear any cached state
@@ -131,7 +254,7 @@ const ShopifyConnection = () => {
   };
 
   // Render loading state
-  if (isLoading) {
+  if (isCheckingStatus) {
     return (
       <Card>
         <CardContent className="pt-6 text-center">
@@ -158,7 +281,7 @@ const ShopifyConnection = () => {
               <CheckCircle className="h-5 w-5 text-green-500 ml-2 flex-shrink-0" />
               <div>
                 <p className="font-medium text-green-800">متصل بنجاح</p>
-                <p className="text-sm text-green-700">المتجر: {shopDomain}</p>
+                <p className="text-sm text-green-700">المتجر: {connectedShop}</p>
               </div>
             </div>
           </div>
@@ -170,7 +293,7 @@ const ShopifyConnection = () => {
           <Button variant="outline" onClick={reconnectStore} className="w-full">
             إعادة الاتصال
           </Button>
-          <Button variant="destructive" onClick={disconnect} className="w-full">
+          <Button variant="destructive" onClick={disconnectStore} className="w-full">
             قطع الاتصال
           </Button>
         </CardFooter>
@@ -188,10 +311,10 @@ const ShopifyConnection = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {(error || localError) && (
+        {connectionError && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error || localError}</AlertDescription>
+            <AlertDescription>{connectionError}</AlertDescription>
           </Alert>
         )}
         
@@ -200,8 +323,8 @@ const ShopifyConnection = () => {
           <Input
             id="shopDomain"
             placeholder="متجرك.myshopify.com"
-            value={shopInput}
-            onChange={(e) => setShopInput(e.target.value)}
+            value={shopDomain}
+            onChange={(e) => setShopDomain(e.target.value)}
             disabled={isConnecting}
           />
           <p className="text-xs text-muted-foreground">

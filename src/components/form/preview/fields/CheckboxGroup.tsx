@@ -7,10 +7,9 @@ import { useI18n } from '@/lib/i18n';
 interface CheckboxGroupProps {
   field: FormField;
   formStyle: {
-    primaryColor: string;
-    borderRadius: string;
-    fontSize: string;
-    buttonStyle: string;
+    primaryColor?: string;
+    borderRadius?: string;
+    fontSize?: string;
   };
 }
 
@@ -28,23 +27,17 @@ const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
         className="space-y-2" 
         dir={language === 'ar' ? 'rtl' : 'ltr'}
       >
-        {field.options?.map((option, index) => {
-          // Handle both string and object options for backward compatibility
-          const optionValue = typeof option === 'string' ? option : option.value;
-          const optionLabel = typeof option === 'string' ? option : option.label;
-          
-          return (
-            <div key={index} className="flex items-center gap-2">
-              <Checkbox id={`${field.id}-${index}`} disabled />
-              <label 
-                htmlFor={`${field.id}-${index}`}
-                className="text-sm"
-              >
-                {optionLabel}
-              </label>
-            </div>
-          );
-        })}
+        {field.options?.map((option, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <Checkbox id={`${field.id}-${index}`} disabled />
+            <label 
+              htmlFor={`${field.id}-${index}`}
+              className="text-sm"
+            >
+              {option}
+            </label>
+          </div>
+        ))}
       </div>
     </div>
   );

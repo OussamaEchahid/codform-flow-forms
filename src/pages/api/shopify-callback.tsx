@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,15 +55,13 @@ const ShopifyCallback = () => {
       });
 
       // Check for connection loop
-      // A simplified version that doesn't rely on isInConnectionLoop
-      const loopDetected = retryCount > 3; // Simple fallback detection method
-      if (loopDetected) {
+      if (shopifyConnectionManager.isInConnectionLoop()) {
         console.warn("Connection loop detected, taking recovery action");
         setConnectionLoopDetected(true);
         
         // Reset local state to break the loop
         shopifyConnectionManager.clearAllStores();
-        // No resetLoopDetection needed here
+        shopifyConnectionManager.resetLoopDetection();
         
         if (shop) {
           // Force connection state to be connected with strong caching preventions
@@ -229,7 +228,7 @@ const ShopifyCallback = () => {
   const clearCacheAndReconnect = () => {
     // Clear cached data
     shopifyConnectionManager.clearAllStores();
-    // No need for resetLoopDetection here
+    shopifyConnectionManager.resetLoopDetection();
     localStorage.removeItem('shopify_store');
     localStorage.removeItem('shopify_connected');
     localStorage.removeItem('shopify_temp_store');
