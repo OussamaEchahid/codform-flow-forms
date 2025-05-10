@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useFormStore } from './useFormStore';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from 'sonner';
 
 // Export the FormStyle interface
 export interface FormStyle {
@@ -33,87 +35,84 @@ export function useFormEditor(initialFormId?: string) {
   const loadFormData = useCallback(async (formId: string) => {
     try {
       setIsLoading(true);
-
-      // Fetch the form data
-      const response = await fetch(`/api/forms/${formId}`);
-      const jsonResponse = await response.json();
+      console.log('Loading form data directly from Supabase for ID:', formId);
       
-      // Check if response has data property and necessary fields
-      if (!jsonResponse || typeof jsonResponse !== 'object') {
-        throw new Error('Invalid response format');
+      // Use direct Supabase query instead of the failing API route
+      const { data: formData, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error loading form from Supabase:', error);
+        throw new Error(error.message || 'Error fetching form');
       }
       
-      const data = jsonResponse.data || jsonResponse;
-      
-      // Ensure id exists
-      const id = data?.id || formId;
-      if (!id) {
-        throw new Error('No form ID found in response');
+      if (!formData) {
+        console.error('Form not found with ID:', formId);
+        throw new Error('Form not found');
       }
       
-      // Type checking and default values for required fields
-      const formTitle = data?.title || 'Untitled Form';
-      const formDescription = data?.description || '';
-      const isPublished = !!data?.is_published;
+      console.log('Form data loaded successfully:', formData);
       
-      let formElements = [];
-      // Check and extract form elements from various possible structures
-      if (data?.data?.steps && Array.isArray(data.data.steps)) {
-        // Extract from steps
-        formElements = data.data.steps.flatMap(step => step.fields || []);
-      } else if (data?.data?.fields && Array.isArray(data.data.fields)) {
-        // Direct fields array
-        formElements = data.data.fields;
-      } else if (Array.isArray(data?.data)) {
-        // Data is directly an array
-        formElements = data.data;
-      }
-      
-      // Handle form style
-      const formStyle = {
-        primaryColor: data?.primaryColor || '#9b87f5',
-        fontSize: data?.fontSize || '1rem',
-        borderRadius: data?.borderRadius || '0.5rem',
-        buttonStyle: data?.buttonStyle || 'rounded'
-      };
-
       // Set the extracted data to state
-      setCurrentFormId(id);
-      setFormTitle(formTitle);
-      setFormDescription(formDescription);
-      setSubmitButtonText(data?.submitButtonText || 'Submit');
-      setFormElements(formElements || []);
-      setFormStyle(formStyle);
-      setIsPublished(isPublished);
+      setCurrentFormId(formId);
+      setFormTitle(formData.title || 'Untitled Form');
+      setFormDescription(formData.description || '');
+      setSubmitButtonText(formData.submitbuttontext || 'Submit');
+      
+      // Extract form elements
+      let elements: FormField[] = [];
+      if (formData.data?.fields && Array.isArray(formData.data.fields)) {
+        elements = formData.data.fields;
+      } else if (formData.data?.steps && Array.isArray(formData.data.steps)) {
+        elements = formData.data.steps.flatMap(step => step.fields || []);
+      } else if (Array.isArray(formData.data)) {
+        elements = formData.data;
+      }
+      
+      setFormElements(elements || []);
+      
+      // Set form style
+      setFormStyle({
+        primaryColor: formData.primaryColor || '#9b87f5',
+        fontSize: formData.fontSize || '1rem',
+        borderRadius: formData.borderRadius || '0.5rem',
+        buttonStyle: formData.buttonStyle || 'rounded'
+      });
+      
+      setIsPublished(!!formData.is_published);
       setIsLoading(false);
       
       // Update the form store as well
       useFormStore.getState().setFormState({
-        id,
-        title: formTitle,
-        description: formDescription,
-        data: data?.data || {},
-        isPublished,
-        submitButtonText: data?.submitButtonText || 'Submit',
+        id: formId,
+        title: formData.title || 'Untitled Form',
+        description: formData.description || '',
+        data: formData.data || {},
+        isPublished: !!formData.is_published,
+        submitButtonText: formData.submitbuttontext || 'Submit',
         // Copy style properties
-        primaryColor: formStyle.primaryColor,
-        fontSize: formStyle.fontSize,
-        borderRadius: formStyle.borderRadius,
-        buttonStyle: formStyle.buttonStyle
+        primaryColor: formData.primaryColor || '#9b87f5',
+        fontSize: formData.fontSize || '1rem',
+        borderRadius: formData.borderRadius || '0.5rem',
+        buttonStyle: formData.buttonStyle || 'rounded'
       });
       
-      console.log(`Form loaded successfully: ${id}`, { 
-        title: formTitle, 
-        elements: formElements?.length || 0 
+      console.log(`Form loaded successfully: ${formId}`, { 
+        title: formData.title || 'Untitled Form', 
+        elements: elements?.length || 0 
       });
       
       // Force a refresh to ensure UI updates
       setRefreshKey(prev => prev + 1);
       
-      return id;
+      return formId;
     } catch (error) {
       console.error('Error loading form data:', error);
       setIsLoading(false);
+      toast.error(error instanceof Error ? error.message : 'Failed to load form data');
       return null;
     }
   }, []);
@@ -140,16 +139,26 @@ export function useFormEditor(initialFormId?: string) {
         buttonStyle: formStyle.buttonStyle
       };
 
-      const response = await fetch(`/api/forms/${currentFormId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: formData }),
-      });
+      // Use direct Supabase update instead of API route
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          title: formTitle,
+          description: formDescription,
+          data: {
+            fields: formElements
+          },
+          is_published: isPublished,
+          submitbuttontext: submitButtonText,
+          primaryColor: formStyle.primaryColor,
+          fontSize: formStyle.fontSize,
+          borderRadius: formStyle.borderRadius,
+          buttonStyle: formStyle.buttonStyle
+        })
+        .eq('id', currentFormId);
 
-      if (!response.ok) {
-        console.error('Error saving form:', response.statusText);
+      if (error) {
+        console.error('Error saving form to Supabase:', error);
         setIsSaving(false);
         return false;
       }
@@ -170,16 +179,16 @@ export function useFormEditor(initialFormId?: string) {
         throw new Error('Form ID is missing');
       }
 
-      const response = await fetch(`/api/forms/${currentFormId}/publish`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isPublished: !isPublished }),
-      });
+      // Use direct Supabase update instead of API route
+      const { error } = await supabase
+        .from('forms')
+        .update({ 
+          is_published: !isPublished 
+        })
+        .eq('id', currentFormId);
 
-      if (!response.ok) {
-        console.error('Error publishing form:', response.statusText);
+      if (error) {
+        console.error('Error publishing form:', error);
         setIsPublishing(false);
         return false;
       }

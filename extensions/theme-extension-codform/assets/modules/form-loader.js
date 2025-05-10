@@ -62,10 +62,10 @@ function CODFORMFormLoader(API_BASE_URL) {
       return;
     }
     
-    // Ensure the API URL is correct and includes the /api-forms/ endpoint
+    // Ensure the API URL is correct and includes the get-form endpoint (new endpoint)
     let apiUrl = API_BASE_URL;
     if (!apiUrl.endsWith('/')) apiUrl += '/';
-    apiUrl += 'api-forms/' + formId;
+    apiUrl += 'get-form/' + formId;
     
     console.log('CODFORM: Fetching form from:', apiUrl);
     

@@ -1,13 +1,16 @@
+
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
-import { formTemplates } from '@/lib/hooks/useFormTemplates';
 import { arrayMove } from '@dnd-kit/sortable';
 import { useFormEditor, FormStyle } from '@/hooks/useFormEditor';
 import { useShopify } from '@/hooks/useShopify';
 import FormEditorLayout from './FormEditorLayout';
+import { dataCache } from '@/lib/data-cache';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -24,6 +27,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const loadAttemptRef = useRef<number>(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveRetryCount, setSaveRetryCount] = useState<number>(0);
+  const [recoverMode, setRecoverMode] = useState<boolean>(false);
   const maxLoadAttempts = 3;
   const maxSaveRetries = 5;
   
@@ -59,7 +63,37 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // Add reference to track if there are any open dialogs
   const openDialogRef = useRef<boolean>(false);
   
-  // IMPROVED: Better debounced save function with cancellation
+  // Try to restore form from cache if loading fails
+  const attemptFormRestore = useCallback(() => {
+    if (!id) return false;
+    
+    try {
+      const cachedForm = dataCache.get(`form:${id}`);
+      if (cachedForm) {
+        console.log('Restoring form data from cache:', cachedForm);
+        
+        if (cachedForm.formTitle) setFormTitle(cachedForm.formTitle);
+        if (cachedForm.formDescription) setFormDescription(cachedForm.formDescription);
+        if (cachedForm.formElements) setFormElements(cachedForm.formElements);
+        if (cachedForm.formStyle) updateFormStyle(cachedForm.formStyle);
+        if (cachedForm.submitButtonText) setSubmitButtonText(cachedForm.submitButtonText);
+        
+        setRecoverMode(true);
+        toast.warning(
+          language === 'ar' 
+            ? 'تم استعادة بيانات النموذج من النسخة المحفوظة مؤقتًا. يرجى حفظ النموذج للتأكد من عدم فقدان البيانات.'
+            : 'Form data restored from cache. Please save the form to ensure data is not lost.'
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error restoring form from cache:', error);
+      return false;
+    }
+  }, [id, setFormElements, updateFormStyle]);
+  
+  // IMPROVED: Better debounced save function with cancellation and caching
   const debouncedSave = useCallback(() => {
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
@@ -68,6 +102,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     // Clear any previous save error
     setSaveError(null);
+    
+    // Cache current form state in case saving fails
+    if (id) {
+      dataCache.set(`form:${id}`, {
+        formTitle,
+        formDescription,
+        formElements,
+        formStyle,
+        submitButtonText
+      });
+    }
     
     // Set a new timeout with longer delay
     saveTimeoutRef.current = window.setTimeout(async () => {
@@ -97,6 +142,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         } else if (success) {
           // Reset retry counter on success
           setSaveRetryCount(0);
+          
+          // If we were in recover mode, exit it
+          if (recoverMode) {
+            setRecoverMode(false);
+          }
         }
       } catch (error) {
         console.error("Error in debounced save:", error);
@@ -105,7 +155,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
       saveTimeoutRef.current = null;
     }, 2000); // Increased to 2 seconds debounce for better reliability
-  }, [handleSave, language, saveRetryCount, maxSaveRetries]);
+  }, [handleSave, language, saveRetryCount, maxSaveRetries, id, formTitle, formDescription, formElements, formStyle, submitButtonText, recoverMode]);
 
   // Cleanup function for timeouts
   useEffect(() => {
@@ -159,13 +209,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               }
             }, retryDelay);
           } else {
-            toast.error(language === 'ar' ? 'فشل تحميل النموذج بعد عدة محاولات' : 'Failed to load form after multiple attempts');
+            // All attempts failed, try to restore from cache
+            const restored = attemptFormRestore();
+            if (!restored) {
+              toast.error(language === 'ar' ? 'فشل تحميل النموذج بعد عدة محاولات' : 'Failed to load form after multiple attempts');
+            }
           }
         }
       } catch (err) {
         console.error("Error loading form data:", err);
         if (!controller.signal.aborted) {
-          toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
+          // Try to restore from cache after error
+          const restored = attemptFormRestore();
+          if (!restored) {
+            toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
+          }
         }
       }
     };
@@ -175,7 +233,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     return () => {
       controller.abort();
     };
-  }, [id, loadFormData, language, maxLoadAttempts]); 
+  }, [id, loadFormData, language, maxLoadAttempts, attemptFormRestore]); 
 
   // Add error message for save issues
   useEffect(() => {
@@ -270,6 +328,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         // Clear any save error on successful save
         setSaveError(null);
         setSaveRetryCount(0);
+        
+        // Turn off recover mode if active
+        if (recoverMode) {
+          setRecoverMode(false);
+        }
       } else {
         // If save fails, try one more time
         setTimeout(async () => {
@@ -279,6 +342,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (محاولة ثانية)' : 'Form saved successfully (retry)');
               setSaveError(null);
               setSaveRetryCount(0);
+              if (recoverMode) setRecoverMode(false);
             } else {
               toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
               setSaveError('manual-save-failed');
@@ -295,7 +359,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
       setSaveError('manual-save-error');
     }
-  }, [handleSave, language]);
+  }, [handleSave, language, recoverMode]);
 
   // Publish handler wrapper to return void
   const handlePublishWrapper = useCallback(async () => {
@@ -316,14 +380,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   }, [handlePublish, handleSave, language]);
 
-  // Shopify integration handler
-  const handleShopifyIntegration = useCallback(async () => {
+  // Shopify integration handler with improved error handling
+  const handleShopifyIntegration = useCallback(async (settings: any) => {
     try {
+      if (!currentFormId) {
+        toast.error(language === 'ar' ? 'معرّف النموذج مفقود' : 'Form ID is missing');
+        return;
+      }
+      
+      // Try to save form first to ensure we have the latest data
+      await handleSave();
+      
       // Make sure we're passing correctly structured data
-      await shopifyIntegration.syncForm({
+      const result = await shopifyIntegration.syncForm({
         formId: currentFormId,
+        shopDomain: shopifyIntegration.shop,
         settings: {
-          position: 'product-page',
+          position: settings?.position || 'product-page',
           style: {
             primaryColor: formStyle.primaryColor,
             fontSize: formStyle.fontSize,
@@ -331,45 +404,70 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           }
         }
       });
+      
+      if (result.success) {
+        toast.success(language === 'ar' ? 'تم مزامنة النموذج مع Shopify بنجاح' : 'Form synchronized with Shopify successfully');
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
     } catch (error) {
       console.error("Error during Shopify integration:", error);
+      toast.error(
+        language === 'ar' 
+          ? 'فشل في مزامنة النموذج مع Shopify'
+          : 'Failed to synchronize form with Shopify'
+      );
     }
-  }, [currentFormId, shopifyIntegration, formStyle]);
+  }, [currentFormId, shopifyIntegration, formStyle, handleSave, language]);
 
   return (
-    <FormEditorLayout
-      formId={currentFormId}
-      formTitle={formTitle}
-      formDescription={formDescription}
-      formElements={formElements}
-      formStyle={formStyle}
-      submitButtonText={submitButtonText}
-      refreshKey={refreshKey}
-      selectedElementIndex={selectedElementIndex}
-      isSaving={isSaving}
-      isPublished={isPublished}
-      isPublishing={isPublishing}
-      currentPreviewStep={currentPreviewStep}
-      
-      // Use the adapted handlers to match the required signatures
-      onSelectElement={setSelectedElementIndex}
-      onAddElement={handleAddElement}
-      onEditElement={(index: number) => {
-        setSelectedElementIndex(index);
-      }}
-      onDeleteElement={deleteElement}
-      onDuplicateElement={duplicateElement}
-      onUpdateElement={handleUpdateElement}
-      onDragEnd={handleDragEnd}
-      onUpdateMeta={handleUpdateMeta}
-      onStyleChange={handleStyleChange}
-      onSave={manualSaveHandler}
-      onPublish={handlePublishWrapper}
-      onShopifyIntegration={handleShopifyIntegration}
-      
-      // Add reference for open dialogs
-      dialogRef={openDialogRef}
-    />
+    <>
+      {/* Show recovery mode warning if active */}
+      {recoverMode && (
+        <Alert variant="warning" className="m-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            {language === 'ar' 
+              ? 'تم استعادة بيانات النموذج من النسخة المحفوظة مؤقتًا. يرجى حفظ النموذج للتأكد من عدم فقدان البيانات.'
+              : 'Form data has been restored from local cache. Please save the form to ensure data is not lost.'}
+          </AlertDescription>
+        </Alert>
+      )}
+    
+      <FormEditorLayout
+        formId={currentFormId}
+        formTitle={formTitle}
+        formDescription={formDescription}
+        formElements={formElements}
+        formStyle={formStyle}
+        submitButtonText={submitButtonText}
+        refreshKey={refreshKey}
+        selectedElementIndex={selectedElementIndex}
+        isSaving={isSaving}
+        isPublished={isPublished}
+        isPublishing={isPublishing}
+        currentPreviewStep={currentPreviewStep}
+        
+        // Use the adapted handlers to match the required signatures
+        onSelectElement={setSelectedElementIndex}
+        onAddElement={handleAddElement}
+        onEditElement={(index: number) => {
+          setSelectedElementIndex(index);
+        }}
+        onDeleteElement={deleteElement}
+        onDuplicateElement={duplicateElement}
+        onUpdateElement={handleUpdateElement}
+        onDragEnd={handleDragEnd}
+        onUpdateMeta={handleUpdateMeta}
+        onStyleChange={handleStyleChange}
+        onSave={manualSaveHandler}
+        onPublish={handlePublishWrapper}
+        onShopifyIntegration={handleShopifyIntegration}
+        
+        // Add reference for open dialogs
+        dialogRef={openDialogRef}
+      />
+    </>
   );
 };
 
