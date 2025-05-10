@@ -7,6 +7,18 @@ export type ShopifyStoreConnection = {
   shop?: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
 };
 
+// Add the ShopifyStore type which was missing
+export type ShopifyStore = {
+  id: string;
+  shop: string;
+  access_token?: string;
+  created_at?: string;
+  updated_at?: string;
+  scope?: string;
+  token_type?: string;
+  is_active?: boolean;
+}
+
 // واجهة لمدير اتصال Shopify
 export interface ShopifyConnectionManager {
   // إضافة متجر جديد أو تحديث متجر موجود

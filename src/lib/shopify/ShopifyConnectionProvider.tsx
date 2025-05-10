@@ -1,4 +1,3 @@
-
 import React, { 
   createContext, 
   useState, 
@@ -291,4 +290,3 @@ export const ShopifyConnectionProvider = ({ children }: { children: React.ReactN
     </ShopifyConnectionContext.Provider>
   );
 };
-
