@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -39,14 +39,16 @@ interface FormListProps {
   onSelectForm: (formId: string) => void;
   maxAttempts?: number;
   onRefresh?: () => Promise<void>;
+  instanceId?: string;
 }
 
 const FormList: React.FC<FormListProps> = ({ 
   forms, 
   isLoading, 
   onSelectForm,
-  maxAttempts = 5, // Increased from 3 to 5
-  onRefresh 
+  maxAttempts = 7, // Increased from 5 to 7
+  onRefresh,
+  instanceId = 'form-list' 
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
@@ -56,20 +58,30 @@ const FormList: React.FC<FormListProps> = ({
   const [processingComplete, setProcessingComplete] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
-  console.log('FormList render with forms:', forms);
+  // Track if component is mounted to prevent state updates after unmounting
+  const isMounted = useRef(true);
+  
+  // On unmount, set mounted ref to false
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  
+  console.log(`[${instanceId}] FormList render with forms:`, forms);
   
   // Timer to prevent infinite processing
   useEffect(() => {
     // Set a timeout to force complete processing after 5 seconds
     const timeoutId = setTimeout(() => {
-      if (!processingComplete) {
-        console.log('FormList: Forcing processing completion after timeout');
+      if (!processingComplete && isMounted.current) {
+        console.log(`[${instanceId}] FormList: Forcing processing completion after timeout`);
         setProcessingComplete(true);
       }
     }, 5000); // 5 second timeout
     
     return () => clearTimeout(timeoutId);
-  }, [processingComplete]);
+  }, [processingComplete, instanceId]);
   
   // Process and validate forms data whenever it changes, with improved safety
   useEffect(() => {
@@ -78,104 +90,76 @@ const FormList: React.FC<FormListProps> = ({
       return;
     }
     
-    console.log(`FormList: Processing attempt ${attemptCount + 1} of ${maxAttempts}`);
+    console.log(`[${instanceId}] FormList: Processing attempt ${attemptCount + 1} of ${maxAttempts}`);
+    
+    // Simple guard against state updates on unmounted component
+    if (!isMounted.current) return;
+    
     setAttemptCount(prev => prev + 1);
     
-    // Only process if we have forms data to process
-    if (!forms) {
-      console.log('FormList: No valid forms data received');
-      setProcessedForms([]);
-      setProcessingComplete(true);
-      return;
-    }
-    
     try {
-      // Enhanced data validation
-      if (!Array.isArray(forms)) {
-        console.log('FormList: Forms data is not an array:', forms);
-        
-        // Try to convert to array if possible
-        const formsArray = forms && typeof forms === 'object' ? [forms] : [];
-        console.log('FormList: Converted to array:', formsArray);
-        
-        if (formsArray.length > 0) {
-          setProcessedForms(formsArray);
-          setProcessingComplete(true);
-          return;
-        } else {
-          setProcessedForms([]);
-          setProcessingComplete(true);
-          return;
-        }
+      // IMPROVED: Better handling of forms data
+      if (!forms) {
+        console.log(`[${instanceId}] FormList: No forms data received`);
+        setProcessedForms([]);
+        setProcessingComplete(true);
+        return;
       }
       
-      // Enhanced data processing with detailed logging
-      console.log('FormList: Processing forms data structure:', 
-        forms.map(form => ({ 
+      // Convert to array if object was passed
+      const formsArray = Array.isArray(forms) ? forms : (forms ? [forms] : []);
+      
+      console.log(`[${instanceId}] FormList: Processing forms data:`, 
+        formsArray.map(form => ({ 
           id: form?.id, 
           title: form?.title,
-          has_data: !!form?.data,
-          has_shop_id: !!form?.shop_id
+          valid: Boolean(form && form.id)
         }))
       );
       
-      // Filter out invalid forms with detailed logging on what's being filtered
-      const validForms = forms.filter(form => {
-        if (!form) {
-          console.log('FormList: Filtering out null/undefined form');
-          return false;
-        }
-        
-        if (typeof form !== 'object') {
-          console.log(`FormList: Filtering out non-object form: ${typeof form}`);
-          return false;
-        }
-        
-        if (!form.id || typeof form.id !== 'string') {
-          console.log(`FormList: Filtering out form with invalid ID: ${form.id}`);
-          return false;
-        }
-        
-        return true;
-      });
+      // Basic validation of forms data - objects with an id property
+      const validForms = formsArray.filter(form => 
+        form && typeof form === 'object' && form.id && typeof form.id === 'string'
+      );
       
-      // Remove duplicates with detailed logging
-      const uniqueFormIds = new Set();
-      const uniqueForms = validForms.filter(form => {
-        if (!form.id || uniqueFormIds.has(form.id)) {
-          console.log(`FormList: Filtering out duplicate form ID: ${form.id}`);
-          return false;
-        }
-        uniqueFormIds.add(form.id);
-        return true;
-      });
-      
-      console.log(`FormList: Processed ${uniqueForms.length} unique, valid forms`);
-      setProcessedForms(uniqueForms);
-      setProcessingComplete(true);
-      
-      // If no valid forms and we still have attempts left, try again later
-      if (uniqueForms.length === 0 && attemptCount < maxAttempts) {
-        console.log(`FormList: No valid forms found, will retry. Attempt ${attemptCount} of ${maxAttempts}`);
+      if (validForms.length === 0 && attemptCount < maxAttempts - 1) {
+        console.log(`[${instanceId}] FormList: No valid forms found, will retry. Attempt ${attemptCount + 1} of ${maxAttempts}`);
         
-        // Schedule another attempt with longer timeout for each retry
+        // Schedule an immediate retry with backoff
+        const retryDelay = Math.min(attemptCount * 300, 2000);
         const retryTimeout = setTimeout(() => {
-          setProcessingComplete(false);
-        }, attemptCount * 1000); // Increase timeout with each attempt
+          if (isMounted.current) {
+            console.log(`[${instanceId}] FormList: Retrying processing after ${retryDelay}ms`);
+            setProcessingComplete(false);
+          }
+        }, retryDelay);
         
         return () => clearTimeout(retryTimeout);
       }
-    } catch (error) {
-      console.error('FormList: Error processing forms data:', error);
-      setHasError(true);
+      
+      console.log(`[${instanceId}] FormList: Found ${validForms.length} valid forms`);
+      
+      // Remove duplicates by ID
+      const uniqueForms = Array.from(
+        new Map(validForms.map(form => [form.id, form])).values()
+      );
+      
+      console.log(`[${instanceId}] FormList: Final processed forms: ${uniqueForms.length}`);
+      setProcessedForms(uniqueForms);
       setProcessingComplete(true);
-      toast.error('حدث خطأ في معالجة بيانات النماذج');
+    } catch (error) {
+      console.error(`[${instanceId}] FormList: Error processing forms data:`, error);
+      if (isMounted.current) {
+        setHasError(true);
+        setProcessingComplete(true);
+        toast.error('حدث خطأ في معالجة بيانات النماذج');
+      }
     }
-  }, [forms, attemptCount, maxAttempts, processingComplete]);
+  }, [forms, attemptCount, maxAttempts, processingComplete, instanceId]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
-      console.error("Cannot toggle publish: Invalid form ID");
+      console.error(`[${instanceId}] Cannot toggle publish: Invalid form ID`);
       return;
     }
     
@@ -183,18 +167,20 @@ const FormList: React.FC<FormListProps> = ({
       await publishForm(formId, !currentStatus);
       
       // Update local state to reflect the change
-      setProcessedForms(prev => prev.map(form => 
-        form.id === formId 
-          ? { ...form, is_published: !currentStatus, isPublished: !currentStatus } 
-          : form
-      ));
+      if (isMounted.current) {
+        setProcessedForms(prev => prev.map(form => 
+          form.id === formId 
+            ? { ...form, is_published: !currentStatus, isPublished: !currentStatus } 
+            : form
+        ));
+      }
       
       toast.success(currentStatus 
         ? 'تم إلغاء نشر النموذج بنجاح' 
         : 'تم نشر النموذج بنجاح'
       );
     } catch (error) {
-      console.error("Error toggling form publish status:", error);
+      console.error(`[${instanceId}] Error toggling form publish status:`, error);
       toast.error("فشل في تغيير حالة النشر");
     }
   };
@@ -203,13 +189,13 @@ const FormList: React.FC<FormListProps> = ({
     if (formToDelete) {
       try {
         await deleteForm(formToDelete);
-        setFormToDelete(null);
-        
-        // Remove the deleted form from the local state
-        setProcessedForms(prev => prev.filter(form => form.id !== formToDelete));
+        if (isMounted.current) {
+          setFormToDelete(null);
+          setProcessedForms(prev => prev.filter(form => form.id !== formToDelete));
+        }
         toast.success('تم حذف النموذج بنجاح');
       } catch (error) {
-        console.error("Error deleting form:", error);
+        console.error(`[${instanceId}] Error deleting form:`, error);
         toast.error("فشل في حذف النموذج");
       }
     }
@@ -223,10 +209,12 @@ const FormList: React.FC<FormListProps> = ({
         await onRefresh();
         toast.success('تم تحديث قائمة النماذج');
       } catch (error) {
-        console.error('Error refreshing forms:', error);
+        console.error(`[${instanceId}] Error refreshing forms:`, error);
         toast.error('فشل في تحديث النماذج');
       } finally {
-        setIsRefreshing(false);
+        if (isMounted.current) {
+          setIsRefreshing(false);
+        }
       }
     }
   };
@@ -237,7 +225,9 @@ const FormList: React.FC<FormListProps> = ({
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
-        setLoadingTimeout(true);
+        if (isMounted.current) {
+          setLoadingTimeout(true);
+        }
       }, 10000); // 10 second timeout
       return () => clearTimeout(timeout);
     }
@@ -316,7 +306,7 @@ const FormList: React.FC<FormListProps> = ({
   }
 
   // Show empty state - either no forms array or empty array
-  if (!Array.isArray(processedForms) || processedForms.length === 0) {
+  if (!processedForms.length) {
     return (
       <Card className="bg-gray-50 border-dashed">
         <CardContent className="pt-6 text-center">
@@ -348,12 +338,13 @@ const FormList: React.FC<FormListProps> = ({
     );
   }
 
-  console.log('Rendering form list with forms:', processedForms);
-
   // Show forms list
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-500">
+          عدد النماذج: {processedForms.length}
+        </p>
         <Button 
           variant="outline" 
           size="sm"

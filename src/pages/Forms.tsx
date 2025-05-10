@@ -14,11 +14,19 @@ const Forms = () => {
   const [hasSynced, setHasSynced] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [emergencyReset, setEmergencyReset] = useState(false);
+  const [forceRender, setForceRender] = useState(0);
   
   // Run diagnostics on component mount
   useEffect(() => {
+    // Log diagnostics data for debugging
+    console.log('Forms page mounted. Running diagnostics...');
     logShopifyDiagnostics();
     logFormDiagnostics(supabase, shopDomain);
+    
+    // Force all caches to be cleared and re-initialized
+    localStorage.removeItem('forms_cache');
+    localStorage.removeItem('shopify_forms');
+    localStorage.setItem('forms_last_reload', Date.now().toString());
   }, [shopDomain]);
   
   // Force a sync before rendering forms
@@ -35,6 +43,7 @@ const Forms = () => {
             const fallbackShopId = localStorage.getItem('shopify_store');
             if (fallbackShopId) {
               console.log('Forms page: Using fallback shop ID from localStorage:', fallbackShopId);
+              
               // Double verify this shop exists in the database
               try {
                 const { data: shopExists } = await supabase
@@ -45,6 +54,8 @@ const Forms = () => {
                   
                 if (shopExists && shopExists.length > 0) {
                   console.log('Forms page: Confirmed shop has forms in database');
+                  // Force a re-render after verification to ensure FormsPage uses the correct shop ID
+                  setForceRender(prev => prev + 1);
                 }
               } catch (verifyErr) {
                 console.log('Forms page: Error verifying shop forms:', verifyErr);
@@ -61,30 +72,38 @@ const Forms = () => {
     performSync();
   }, [syncState, isLoading, hasSynced, shopDomain]);
 
+  // Store current shop ID in localStorage immediately when available
   useEffect(() => {
     // Log the connection status for debugging
-    console.log('Forms page loaded. Shopify connection status:', { 
+    console.log('Forms page updated. Shopify connection status:', { 
       isConnected, 
       shopDomain,
       isLoading,
       localStorageShopId: localStorage.getItem('shopify_store'),
-      connectionMatch: shopDomain === localStorage.getItem('shopify_store')
+      connectionMatch: shopDomain === localStorage.getItem('shopify_store'),
+      forceRender
     });
     
-    // Store current shop ID in localStorage as a fallback
+    // Store current shop ID in localStorage as a fallback immediately when available
     if (shopDomain) {
       localStorage.setItem('shopify_store', shopDomain);
       console.log('Stored shopDomain in localStorage:', shopDomain);
     }
-  }, [isConnected, shopDomain, isLoading]);
+  }, [isConnected, shopDomain, isLoading, forceRender]);
 
   const handleReload = async () => {
     try {
+      toast.info('جاري إعادة تهيئة الاتصال...');
       await reload();
       setSyncError(null);
-      window.location.reload();
+      
+      // Force reload all forms
+      setForceRender(prev => prev + 1);
+      
+      toast.success('تم إعادة تهيئة الاتصال بنجاح');
     } catch (error) {
       console.error('Error reloading connection:', error);
+      toast.error('فشل في إعادة تهيئة الاتصال');
     }
   };
 
@@ -145,8 +164,9 @@ const Forms = () => {
     );
   }
 
+  // Pass forceRender to FormsPage to trigger refreshes when needed
   return (
-    <FormsPage shopId={shopDomain} />
+    <FormsPage shopId={shopDomain} key={`forms-${forceRender}`} forceRefresh={forceRender > 0} />
   );
 };
 
