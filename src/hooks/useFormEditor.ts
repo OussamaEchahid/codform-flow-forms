@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { FormField } from '@/lib/form-utils';
-import { FormStyle } from '@/lib/form-utils';
 import { useFormStore } from './useFormStore';
 
 // Export the FormStyle interface
