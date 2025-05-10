@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -25,11 +25,13 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 interface FormListProps {
   forms: FormData[];
@@ -40,23 +42,50 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [processedForms, setProcessedForms] = useState<FormData[]>([]);
   
-  // Enhanced validation to make sure we only work with valid form objects
-  const validForms = Array.isArray(forms) ? forms.filter(form => 
-    form && typeof form === 'object' && form.id && typeof form.id === 'string'
-  ) : [];
-  
-  // Remove duplicate forms by ID with additional safety checks
-  const uniqueForms = validForms.reduce((acc: FormData[], current) => {
-    // Skip invalid forms
-    if (!current || !current.id) return acc;
-    
-    const existingForm = acc.find(form => form.id === current.id);
-    if (!existingForm) {
-      acc.push(current);
+  // Process and validate forms data whenever it changes
+  useEffect(() => {
+    try {
+      console.log('FormList: Processing forms data', { 
+        received: forms, 
+        isArray: Array.isArray(forms),
+        length: Array.isArray(forms) ? forms.length : 0
+      });
+      
+      // Reset error state
+      setHasError(false);
+      
+      // Enhanced validation to make sure we only work with valid form objects
+      const validForms = Array.isArray(forms) ? forms.filter(form => 
+        form && typeof form === 'object' && form.id && typeof form.id === 'string'
+      ) : [];
+      
+      // Remove duplicate forms by ID with additional safety checks
+      const uniqueForms = validForms.reduce((acc: FormData[], current) => {
+        // Skip invalid forms
+        if (!current || !current.id) return acc;
+        
+        const existingForm = acc.find(form => form.id === current.id);
+        if (!existingForm) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+      
+      console.log('FormList: Processed forms', { 
+        valid: validForms.length, 
+        unique: uniqueForms.length 
+      });
+      
+      setProcessedForms(uniqueForms);
+    } catch (error) {
+      console.error('Error processing forms data:', error);
+      setHasError(true);
+      toast.error('حدث خطأ في معالجة بيانات النماذج');
     }
-    return acc;
-  }, []);
+  }, [forms]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (!formId) {
@@ -68,6 +97,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       await publishForm(formId, !currentStatus);
     } catch (error) {
       console.error("Error toggling form publish status:", error);
+      toast.error("فشل في تغيير حالة النشر");
     }
   };
 
@@ -78,10 +108,12 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
         setFormToDelete(null);
       } catch (error) {
         console.error("Error deleting form:", error);
+        toast.error("فشل في حذف النموذج");
       }
     }
   };
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -90,7 +122,20 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
-  if (!Array.isArray(forms) || uniqueForms.length === 0) {
+  // Show error state
+  if (hasError) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          حدث خطأ أثناء تحميل النماذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show empty state - either no forms array or empty array
+  if (!Array.isArray(processedForms) || processedForms.length === 0) {
     return (
       <Card className="bg-gray-50 border-dashed">
         <CardContent className="pt-6 text-center">
@@ -101,9 +146,10 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
+  // Show forms list
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {uniqueForms.map((form) => (
+      {processedForms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
@@ -120,7 +166,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                     <Edit className="mr-2 h-4 w-4" />
                     <span>تعديل</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
+                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published || false)}>
                     {form.is_published ? (
                       <>
                         <EyeOff className="mr-2 h-4 w-4" />
