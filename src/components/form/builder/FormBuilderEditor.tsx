@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -32,7 +33,6 @@ import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
-import { formStepsToJson, jsonToFormSteps } from '@/lib/supabase-utils';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -113,12 +113,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fields: []
       };
 
-      // Create new form in database - convert FormStep[] to Json
+      // Create new form in database
       const { data, error } = await supabase.from('forms').insert({
         id: newId,
         title: formTitle,
         description: formDescription,
-        data: formStepsToJson([initialFormStep]),
+        data: [initialFormStep],
         shop_id: shopId,
         is_published: false
       }).select();
@@ -232,13 +232,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         });
       } else {
         // Try direct database update if the saveForm method fails
-        // Convert FormStep[] to Json before saving to Supabase
         const { error } = await supabase
           .from('forms')
           .update({
             title: formTitle,
             description: formDescription,
-            data: formStepsToJson([formStep]),
+            data: [formStep],
             shop_id: shopId,
             updated_at: new Date().toISOString()
           })
