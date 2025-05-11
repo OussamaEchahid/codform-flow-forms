@@ -5,20 +5,13 @@ import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 
-// Define the position type to be used consistently throughout the component
-export type ShopifyFormPosition = 
-  'product-page' | 'cart-page' | 'checkout' | 
-  'after_gallery' | 'before_description' | 'after_description' | 
-  'before_buy_buttons' | 'after_buy_buttons';
-
 interface ShopifyFormSync {
   formId: string;
   shopDomain?: string;
   settings?: {
-    position?: ShopifyFormPosition;
+    position?: 'product-page' | 'cart-page' | 'checkout';
     blockId?: string;
     products?: string[];
-    updateTemplate?: boolean;  // Flag to indicate we should update the product template
   };
 }
 
@@ -210,49 +203,7 @@ export const useShopify = () => {
         return { success: true, message: 'Form saved for future sync' };
       }
 
-      // Check if we should update the product template (for auto-insert feature)
-      if (formData.settings?.updateTemplate) {
-        // Get access token
-        const { data: tokenData, error: tokenError } = await shopifyStores()
-          .select('*')
-          .eq('shop', shopDomain)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (tokenError || !tokenData || tokenData.length === 0) {
-          throw new Error('Access token not found');
-        }
-
-        const token = tokenData[0].access_token || '';
-        
-        // Call the theme updater function
-        const { data: themeUpdateData, error: themeUpdateError } = await shopifySupabase.functions.invoke('shopify-theme-updater', {
-          body: { 
-            shop: shopDomain,
-            accessToken: token,
-            formId: formData.formId,
-            blockId: formData.settings.blockId || '',
-            sectionPosition: formData.settings.position || 'after_buy_buttons'
-          }
-        });
-
-        if (themeUpdateError) {
-          console.error('Error updating theme:', themeUpdateError);
-          throw new Error(`Failed to update theme: ${themeUpdateError.message || 'Unknown error'}`);
-        }
-
-        if (!themeUpdateData.success) {
-          throw new Error(`Failed to update theme: ${themeUpdateData.error || 'Unknown error'}`);
-        }
-
-        console.log('Theme update successful:', themeUpdateData);
-        
-        // No need to continue with script tag creation in this case
-        setIsSyncing(false);
-        return themeUpdateData;
-      }
-
-      // Regular sync with Shopify (script tag creation)
+      // Real sync with Shopify
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: {
           shop: shopDomain,

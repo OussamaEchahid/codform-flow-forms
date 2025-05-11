@@ -337,7 +337,7 @@ class ShopifyAPI {
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
         console.error('HTML Error Response:', responseText.substring(0, 200));
-        throw new Error('Authentication error: Received HTML instead of JSON. This usually means your access token is invalid or expired.');
+        throw new Error('Authentication error: Received HTML instead of JSON. Your access token is likely invalid or expired.');
       }
 
       if (!response.ok) {
@@ -407,78 +407,6 @@ class ShopifyAPI {
     } catch (error) {
       console.error('Error setting up auto-sync:', error);
       throw new Error(`Failed to set up auto-sync with Shopify: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Update product template to include form automatically
-   */
-  async updateProductTemplate(formData: ShopifyFormData): Promise<void> {
-    console.log('Updating product template with form', { formData });
-    
-    try {
-      // Verify connection first
-      await this.verifyConnection();
-      
-      // Generate a cache-busting timestamp
-      const timestamp = Date.now();
-      const uniqueId = Math.random().toString(36).substring(2, 15);
-      const url = `/api/shopify-proxy?t=${timestamp}&rid=${this.requestId}&uid=${uniqueId}`;
-      
-      console.log('Calling edge function to update product template');
-      
-      // Call Edge Function via proxy
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Unique-Id': uniqueId
-        },
-        body: JSON.stringify({
-          functionName: 'shopify-theme-updater',
-          payload: {
-            shop: this.shopDomain,
-            accessToken: this.accessToken,
-            formId: formData.formId,
-            blockId: formData.settings.blockId || '',
-            sectionPosition: formData.settings.position || 'after_buy_buttons'
-          }
-        }),
-        cache: 'no-store',
-      });
-      
-      // Handle non-200 responses
-      if (!response.ok) {
-        let errorText;
-        try {
-          const errorData = await response.json();
-          errorText = errorData.error || errorData.message || response.statusText;
-        } catch (e) {
-          errorText = await response.text();
-        }
-        console.error('Error response from theme updater:', errorText);
-        throw new Error(`Failed to update product template (${response.status}): ${errorText}`);
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        console.error('Theme update reported failure:', result);
-        throw new Error(`Failed to update product template: ${result.error || 'Unknown error'}`);
-      }
-      
-      console.log('Product template updated successfully', result);
-      
-      // Additional return data for debugging
-      if (result.snippetCreated) {
-        console.log('Created snippet for form embedding');
-      }
-    } catch (error) {
-      console.error('Error updating product template:', error);
-      throw new Error(`Failed to update product template: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
