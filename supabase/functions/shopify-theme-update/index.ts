@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 interface UpdateThemeRequest {
@@ -122,7 +122,8 @@ serve(async (req: Request) => {
       console.error('Error updating theme:', error);
       return new Response(JSON.stringify({
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error updating theme'
+        message: error instanceof Error ? error.message : 'Unknown error updating theme',
+        error_details: error instanceof Error ? error.stack : undefined
       }), { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -132,7 +133,8 @@ serve(async (req: Request) => {
     console.error('Error in theme update function:', error);
     return new Response(JSON.stringify({
       success: false,
-      message: error instanceof Error ? error.message : 'Internal server error'
+      message: error instanceof Error ? error.message : 'Internal server error',
+      error_details: error instanceof Error ? error.stack : undefined
     }), { 
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -225,6 +227,9 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   const formIdShort = formId.substring(0, 8);
   const actualBlockId = blockId || `codform_${formIdShort}`;
   
+  // We need to use the full app block path format for OS2.0 themes
+  const appBlockType = "theme-extension-codform.codform_form";
+  
   // Add our app block - first check if it's already there
   let blockOrder = productSection.blocks_order || [];
   
@@ -250,11 +255,13 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Set/update the block definition
+  // Set/update the block definition using the correct app block format
   productSection.blocks[actualBlockId] = {
-    type: "@app",
+    type: appBlockType,
     settings: {
-      form_id: formId
+      form_id: formId,
+      title: "اطلب المنتج الآن - الدفع عند الاستلام",
+      description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
     }
   };
   
@@ -283,7 +290,8 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   return {
     block_id: actualBlockId,
     template: 'product.json',
-    section: 'main'
+    section: 'main',
+    block_type: appBlockType
   };
 }
 
@@ -569,3 +577,4 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     snippet: 'codform.liquid'
   };
 }
+
