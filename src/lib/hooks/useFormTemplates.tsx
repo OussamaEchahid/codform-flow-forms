@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { formStepsToJson, jsonToFormSteps } from '@/lib/supabase-utils';
 
 // Export FormData interface
 export interface FormData {
@@ -65,10 +66,11 @@ export const useFormTemplates = () => {
         return;
       }
       
-      // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
+      // Transform data to match FormData interface and convert Json to FormStep[]
+      const formattedData: FormData[] = data.map(form => ({
         ...form,
-        isPublished: form.is_published
+        isPublished: form.is_published,
+        data: jsonToFormSteps(form.data)
       }));
       
       setForms(formattedData);
@@ -111,14 +113,14 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
-      // Insert into Supabase
+      // Insert into Supabase - convert FormStep[] to Json
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: template.title,
           description: template.description,
-          data: template.data,
+          data: formStepsToJson(template.data),
           is_published: false,
           shop_id: shopId,
           user_id: user?.id
@@ -171,14 +173,14 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
-      // Insert into Supabase
+      // Insert into Supabase - convert FormStep[] to Json
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: 'نموذج جديد',
           description: 'نموذج جديد',
-          data: defaultTemplate.data,
+          data: formStepsToJson(defaultTemplate.data),
           is_published: false,
           shop_id: shopId,
           user_id: user?.id
@@ -217,6 +219,11 @@ export const useFormTemplates = () => {
       if (dbData.isPublished !== undefined) {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
+      }
+      
+      // Convert FormStep[] to Json for Supabase
+      if (dbData.data) {
+        dbData.data = formStepsToJson(dbData.data);
       }
       
       // Update form in Supabase
@@ -340,10 +347,11 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Format data for form state
+      // Format data for form state and convert Json to FormStep[]
       const formData: FormData = {
         ...data,
-        isPublished: data.is_published
+        isPublished: data.is_published,
+        data: jsonToFormSteps(data.data)
       };
       
       // Update form state
