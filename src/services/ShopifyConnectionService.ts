@@ -1,5 +1,4 @@
-
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 class ShopifyConnectionService {
@@ -19,8 +18,7 @@ class ShopifyConnectionService {
       console.log(`Getting access token for shop: ${shop}`);
       
       // First try to get from database
-      const { data, error } = await shopifySupabase
-        .from('shopify_stores')
+      const { data, error } = await shopifyStores()
         .select('access_token')
         .eq('shop', shop)
         .order('updated_at', { ascending: false })
@@ -44,8 +42,7 @@ class ShopifyConnectionService {
         // تنظيف الرمز المؤقت
         try {
           await this.cleanupPlaceholderTokens();
-          await shopifySupabase
-            .from('shopify_stores')
+          await shopifyStores()
             .update({ access_token: null })
             .eq('shop', shop);
           console.log('Cleaned placeholder token for shop:', shop);
@@ -109,14 +106,12 @@ class ShopifyConnectionService {
   async forceActivateStore(shop: string): Promise<void> {
     try {
       // First, make all stores inactive
-      await shopifySupabase
-        .from('shopify_stores')
+      await shopifyStores()
         .update({ is_active: false })
         .neq('id', '00000000-0000-0000-0000-000000000000');
       
       // Then, find and update the target store
-      const { data, error } = await shopifySupabase
-        .from('shopify_stores')
+      const { data, error } = await shopifyStores()
         .select('id')
         .eq('shop', shop)
         .limit(1);
@@ -127,8 +122,7 @@ class ShopifyConnectionService {
       }
       
       // Set this store as active
-      await shopifySupabase
-        .from('shopify_stores')
+      await shopifyStores()
         .update({ is_active: true })
         .eq('id', data[0].id);
       
@@ -157,8 +151,7 @@ class ShopifyConnectionService {
       }
       
       // Check if store exists
-      const { data, error } = await shopifySupabase
-        .from('shopify_stores')
+      const { data, error } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
         .limit(1);
@@ -185,8 +178,7 @@ class ShopifyConnectionService {
         }
         
         // Update existing store
-        await shopifySupabase
-          .from('shopify_stores')
+        await shopifyStores()
           .update(updateData)
           .eq('id', data[0].id);
           
@@ -194,15 +186,13 @@ class ShopifyConnectionService {
       } else {
         // Create new store only if token is provided and not placeholder
         if (token && token !== 'placeholder_token') {
-          await shopifySupabase
-            .from('shopify_stores')
-            .insert({
-              shop,
-              access_token: token,
-              is_active: isActive,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
+          await shopifyStores().insert({
+            shop,
+            access_token: token,
+            is_active: isActive,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
           console.log(`Created new store: ${shop}`);
         } else {
           console.warn(`Not creating store record without token: ${shop}`);
@@ -267,8 +257,7 @@ class ShopifyConnectionService {
       console.log('Cleaning up placeholder tokens from database...');
       
       // تحديث جميع المتاجر التي لديها placeholder_token
-      const { data: placeholderData, error: placeholderError } = await shopifySupabase
-        .from('shopify_stores')
+      const { data: placeholderData, error: placeholderError } = await shopifyStores()
         .update({ access_token: null })
         .eq('access_token', 'placeholder_token')
         .select();
@@ -280,8 +269,7 @@ class ShopifyConnectionService {
       }
 
       // أيضًا قم بتنظيف أي سجلات بـ access_token فارغ
-      const { data: emptyData, error: emptyError } = await shopifySupabase
-        .from('shopify_stores')
+      const { data: emptyData, error: emptyError } = await shopifyStores()
         .update({ access_token: null })
         .eq('access_token', '')
         .select();
@@ -293,8 +281,7 @@ class ShopifyConnectionService {
       }
       
       // تنظيف المتاجر غير النشطة من أي رموز
-      const { data: inactiveData, error: inactiveError } = await shopifySupabase
-        .from('shopify_stores')
+      const { data: inactiveData, error: inactiveError } = await shopifyStores()
         .update({ access_token: null })
         .eq('is_active', false)
         .select();
@@ -371,8 +358,7 @@ class ShopifyConnectionService {
       await this.cleanupPlaceholderTokens();
       
       // تحديث جميع المتاجر لتكون غير نشطة
-      const { error: updateError } = await shopifySupabase
-        .from('shopify_stores')
+      const { error: updateError } = await shopifyStores()
         .update({ 
           is_active: false,
           access_token: null

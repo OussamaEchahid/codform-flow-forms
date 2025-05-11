@@ -1,465 +1,533 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useShopify } from '@/hooks/useShopify';
-import { useI18n } from '@/lib/i18n';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Check, ShoppingCart, RefreshCw, Database } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { ShopifyFormData } from '@/lib/shopify/types';
-import { Switch } from '@/components/ui/switch';
+import { useFormStore } from '@/hooks/useFormStore';
+import {
+  AlertCircle,
+  ShoppingBag,
+  RefreshCcw,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Settings,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import { ShopifyProduct } from '@/lib/shopify/types';
+import { shopifyProductSettings } from '@/lib/shopify/supabase-client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export interface ShopifyIntegrationProps {
-  formId: string;
+// Update the component props to match what's expected in FormBuilderEditor
+interface ShopifyIntegrationProps {
+  // Making this optional to prevent errors
+  formId?: string;
+  // These are also optional since they might not be provided
+  onSave?: (settings: any) => Promise<void>;
+  isSyncing?: boolean;
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
-  const { language } = useI18n();
-  const { 
-    syncForm, 
+/**
+ * A component for integrating a form with Shopify products
+ */
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
+  formId,
+  onSave,
+  isSyncing: externalIsSyncing
+}) => {
+  const { language, t } = useI18n();
+  const { formState } = useFormStore();
+  const actualFormId = formId || formState.id || '';
+  
+  // Get Shopify integration state from hook
+  const {
+    isLoading,
     isConnected,
-    shop,
     products,
-    isLoading: shopifyLoading,
-    refreshConnection,
+    shop,
+    error,
     loadProducts,
-    failSafeMode,
-    toggleFailSafeMode,
-    forceRealData,
-    toggleRealDataMode 
+    syncForm,
+    tokenError,
+    tokenExpired,
+    refreshConnection,
+    isSyncing: hookIsSyncing
   } = useShopify();
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
-  const [productsCount, setProductsCount] = useState<number>(Array.isArray(products) ? products.length : 0);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [advancedMode, setAdvancedMode] = useState(false);
-  const mounted = useRef(true);
-  
-  // Cleanup on unmount
+  // Combine external and internal syncing states
+  const isSyncing = externalIsSyncing || hookIsSyncing;
+
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [blockId, setBlockId] = useState<string>('');
+  const [existingSettings, setExistingSettings] = useState<any[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // Load existing settings when component mounts
   useEffect(() => {
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  
-  // Check connection and update UI
-  useEffect(() => {
-    setConnectionStatus(isConnected ? 'connected' : 'disconnected');
-    
-    // Update products count when products change
-    if (Array.isArray(products)) {
-      setProductsCount(products.length);
-      setLastRefreshed(new Date());
+    if (actualFormId) {
+      loadExistingSettings(actualFormId);
     }
-    
-    // After initial load, update loading state
-    setIsLoading(false);
-  }, [isConnected, products]);
-  
-  // Handle form sync
-  const handleSync = async () => {
-    if (!formId || isSyncing) return;
-    
-    setIsSyncing(true);
+  }, [actualFormId]);
+
+  // Load saved product settings from database
+  const loadExistingSettings = async (formId: string) => {
     try {
-      // Reset error state
-      setErrorMessage(null);
+      const { data, error } = await shopifyProductSettings()
+        .select('*')
+        .eq('form_id', formId);
+
+      if (error) {
+        console.error('Error loading existing settings:', error);
+        return;
+      }
+
+      setExistingSettings(data || []);
       
-      // Create a proper ShopifyFormData object
-      const formData: ShopifyFormData = {
-        formId: formId,
-        shopDomain: shop
-      };
-      
-      // Attempt to sync with the proper object
-      const result = await syncForm(formData);
-      
-      if (mounted.current) {
-        if (result && result.success) {
-          toast.success(language === 'ar' 
-            ? 'تم مزامنة النموذج مع Shopify بنجاح' 
-            : 'Form successfully synced with Shopify');
-        } else {
-          const message = (result && result.message) 
-            ? result.message 
-            : (language === 'ar' ? 'فشل في المزامنة مع Shopify' : 'Failed to sync with Shopify');
-          
-          toast.error(message);
-          setErrorMessage(message);
+      // Extract selected product IDs and block ID from existing settings
+      if (data && data.length > 0) {
+        const productIds = data.map(setting => setting.product_id);
+        setSelectedProducts(productIds);
+        
+        // Use the first block ID found (assuming all settings use the same block ID)
+        if (data[0].block_id) {
+          setBlockId(data[0].block_id);
         }
       }
     } catch (error) {
-      console.error('Error syncing form:', error);
-      
-      if (mounted.current) {
-        const errorMsg = language === 'ar' 
-          ? 'خطأ في مزامنة النموذج مع Shopify' 
-          : 'Error syncing form with Shopify';
-        
-        toast.error(errorMsg);
-        setErrorMessage(errorMsg);
-      }
-    } finally {
-      if (mounted.current) {
-        setIsSyncing(false);
-      }
+      console.error('Error in loadExistingSettings:', error);
     }
   };
-  
-  // Handle retry connection
-  const handleRetryConnection = async () => {
-    setConnectionStatus('checking');
-    setIsRefreshing(true);
-    
-    try {
-      const isConnectedResult = await refreshConnection(true);
-      
-      if (mounted.current) {
-        setConnectionStatus(isConnectedResult ? 'connected' : 'disconnected');
-        
-        // If connection was successful but we were previously disconnected
-        if (isConnectedResult) {
-          toast.success(language === 'ar' 
-            ? 'تم الاتصال بـ Shopify بنجاح' 
-            : 'Successfully connected to Shopify');
-          
-          // Also refresh products
-          handleRefreshProducts();
-        } else {
-          toast.error(language === 'ar' 
-            ? 'فشل في الاتصال بـ Shopify' 
-            : 'Failed to connect to Shopify');
-        }
-      }
-    } catch (error) {
-      console.error('Error retrying connection:', error);
-      
-      if (mounted.current) {
-        setConnectionStatus('disconnected');
-        toast.error(language === 'ar' 
-          ? 'خطأ في إعادة الاتصال' 
-          : 'Error refreshing connection');
-      }
-    } finally {
-      if (mounted.current) {
-        setIsRefreshing(false);
-      }
+
+  // Load products when component mounts if connected
+  useEffect(() => {
+    if (isConnected && shop) {
+      loadProducts();
+      setConnectionStatus('connected');
+    } else {
+      setConnectionStatus('error');
+    }
+  }, [isConnected, shop, loadProducts]);
+
+  // Handler for checkbox changes
+  const handleProductSelect = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
     }
   };
-  
-  // Handle refresh products
-  const handleRefreshProducts = async () => {
-    setIsRefreshing(true);
-    
-    try {
-      const refreshedProducts = await loadProducts(true);
-      
-      if (mounted.current && Array.isArray(refreshedProducts)) {
-        setProductsCount(refreshedProducts.length);
-        setLastRefreshed(new Date());
-        setErrorMessage(null);
+
+  // Copy form ID to clipboard
+  const copyFormIdToClipboard = () => {
+    if (actualFormId) {
+      navigator.clipboard.writeText(actualFormId).then(() => {
+        setCopySuccess(true);
         toast.success(language === 'ar' 
-          ? `تم تحديث ${refreshedProducts.length} منتج` 
-          : `Refreshed ${refreshedProducts.length} products`);
+          ? 'تم نسخ معرف النموذج إلى الحافظة' 
+          : 'Form ID copied to clipboard');
+        
+        setTimeout(() => {
+          setCopySuccess(false);
+        }, 2000);
+      });
+    }
+  };
+
+  // Handler for saving product settings
+  const handleSaveSettings = async () => {
+    if (!actualFormId) {
+      toast.error(language === 'ar' 
+        ? 'يجب حفظ النموذج أولاً قبل إعداد تكامل Shopify' 
+        : 'You must save the form first before setting up Shopify integration');
+      return;
+    }
+
+    if (!shop) {
+      toast.error(language === 'ar'
+        ? 'لم يتم العثور على متجر Shopify متصل'
+        : 'No connected Shopify store found');
+      return;
+    }
+
+    try {
+      // First delete any existing settings
+      const { error: deleteError } = await shopifyProductSettings()
+        .delete()
+        .eq('form_id', actualFormId);
+
+      if (deleteError) {
+        console.error('Error deleting existing settings:', deleteError);
+        throw deleteError;
+      }
+
+      // Then insert new settings
+      if (selectedProducts.length > 0) {
+        const settings = selectedProducts.map(productId => ({
+          form_id: actualFormId,
+          product_id: productId,
+          shop_id: shop,
+          block_id: blockId,
+          enabled: true
+        }));
+
+        const { error: insertError } = await shopifyProductSettings()
+          .insert(settings);
+
+        if (insertError) {
+          console.error('Error inserting settings:', insertError);
+          throw insertError;
+        }
+
+        // After saving settings, sync the form with Shopify
+        if (actualFormId) {
+          await syncForm({ 
+            formId: actualFormId,
+            shopDomain: shop, // Changed from shopifyIntegration.shop to shop
+            settings: {
+              products: selectedProducts,
+              blockId: blockId
+            }
+          });
+          
+          // Also call the external onSave if provided
+          if (onSave) {
+            await onSave({ 
+              formId: actualFormId,
+              products: selectedProducts,
+              blockId: blockId 
+            });
+          }
+          
+          toast.success(language === 'ar' 
+            ? 'تم حفظ الإعدادات وتزامن النموذج بنجاح!'
+            : 'Settings saved and form synced successfully!');
+        }
+      } else {
+        toast.success(language === 'ar'
+          ? 'تم مسح إعدادات المنتج'
+          : 'Product settings cleared');
       }
     } catch (error) {
-      console.error('Error refreshing products:', error);
+      console.error('Error saving settings:', error);
+      toast.error(language === 'ar'
+        ? 'حدث خطأ أثناء حفظ الإعدادات'
+        : 'Error saving settings');
+    }
+  };
+
+  // معالج مخصص للضغط على إعادة المحاولة مع العودة
+  const handleRetryWithFallback = async () => {
+    try {
+      // Attempt to refresh connection instead of fetching products
+      setConnectionStatus('checking');
+      // Using refreshConnection instead of fetchProducts
+      await refreshConnection();
       
-      if (mounted.current) {
-        setErrorMessage(language === 'ar' ? 'فشل تحديث المنتجات' : 'Failed to refresh products');
-        toast.error(language === 'ar' 
-          ? 'فشل تحديث المنتجات، يرجى المحاولة مرة أخرى' 
-          : 'Failed to refresh products, please try again');
-      }
-    } finally {
-      if (mounted.current) {
-        setIsRefreshing(false);
+      // If no error is thrown, connection is still valid
+      toast.success(language === 'ar'
+        ? 'تم إعادة الاتصال بنجاح!'
+        : 'Successfully reconnected!');
+      setConnectionStatus('connected');
+      
+      // Load products after successful reconnection
+      loadProducts();
+    } catch (error) {
+      console.error('Error in retry with fallback:', error);
+      toast.error(language === 'ar'
+        ? 'فشل إعادة الاتصال. يرجى تحديث رمز الوصول'
+        : 'Failed to reconnect. Please update access token');
+      setConnectionStatus('error');
+    }
+  };
+
+  // Open Shopify theme editor for product
+  const openShopifyThemeEditor = (productId: string) => {
+    if (shop) {
+      const productHandle = products.find(p => p.id === productId)?.handle;
+      if (productHandle) {
+        const shopifyUrl = `https://${shop}/admin/themes/current/editor?previewPath=%2Fproducts%2F${productHandle}`;
+        window.open(shopifyUrl, '_blank');
       }
     }
   };
-  
-  // Handle toggle fail-safe mode
-  const handleToggleFailSafeMode = () => {
-    toggleFailSafeMode(!failSafeMode);
-    toast.info(
-      failSafeMode 
-        ? (language === 'ar' ? 'تم إيقاف وضع الطوارئ' : 'Fail-safe mode disabled') 
-        : (language === 'ar' ? 'تم تفعيل وضع الطوارئ' : 'Fail-safe mode enabled')
-    );
-  };
-  
-  // Handle toggle real data mode
-  const handleToggleRealDataMode = () => {
-    toggleRealDataMode(!forceRealData);
-    toast.info(
-      forceRealData 
-        ? (language === 'ar' ? 'تم الانتقال لوضع البيانات الافتراضية' : 'Switched to mock data mode') 
-        : (language === 'ar' ? 'تم الانتقال لوضع البيانات الحقيقية' : 'Switched to real data mode')
-    );
-    
-    // Refresh products with new settings
-    setTimeout(() => handleRefreshProducts(), 500);
-  };
-  
-  // Show connection status badge
-  const statusBadge = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return (
-          <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
-            <Check className="h-3 w-3 mr-1" />
-            {language === 'ar' ? 'متصل' : 'Connected'}
-          </Badge>
-        );
-      case 'disconnected':
-        return (
-          <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            {language === 'ar' ? 'غير متصل' : 'Disconnected'}
-          </Badge>
-        );
-      case 'checking':
-        return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            {language === 'ar' ? 'جاري الفحص...' : 'Checking...'}
-          </Badge>
-        );
-      default:
-        return null;
+
+  // Render different content based on connection status
+  const renderContent = () => {
+    if (connectionStatus === 'checking') {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-500 mb-4" />
+          <p className="text-lg font-medium text-center">
+            {language === 'ar' ? 'التحقق من اتصال Shopify...' : 'Checking Shopify connection...'}
+          </p>
+        </div>
+      );
     }
+
+    if (connectionStatus === 'error' || !isConnected || tokenError || tokenExpired) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <div className="bg-red-100 p-3 rounded-full">
+            <AlertCircle className="h-10 w-10 text-red-600" />
+          </div>
+          
+          <h3 className="text-xl font-bold text-center">
+            {language === 'ar' ? 'خطأ في الاتصال بـ Shopify' : 'Shopify Connection Error'}
+          </h3>
+          
+          <p className="text-center max-w-md">
+            {tokenError || tokenExpired
+              ? (language === 'ar' 
+                  ? 'رمز الوصول إلى Shopify غير صالح أو منتهي الصلاحية. يرجى تحديثه.'
+                  : 'Shopify access token is invalid or expired. Please update it.')
+              : (language === 'ar'
+                  ? 'لم يتم العثور على اتصال Shopify. يرجى الاتصال بمتجر Shopify أولاً.'
+                  : 'No Shopify connection found. Please connect to a Shopify store first.')}
+          </p>
+          
+          <div className="flex space-x-3 space-y-0">
+            <Button onClick={handleRetryWithFallback} variant="secondary">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </Button>
+            
+            <Button
+              onClick={() => window.location.href = '/shopify'}
+              variant="default"
+            >
+              {language === 'ar' ? 'اتصال بمتجر Shopify' : 'Connect Shopify Store'}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {/* Form ID section */}
+        <div className="mb-6 border rounded-lg p-4 bg-slate-50">
+          <h3 className="font-medium mb-2">
+            {language === 'ar' ? 'معرف النموذج:' : 'Form ID:'}
+          </h3>
+          
+          <div className="flex items-center gap-2">
+            <div className="bg-white border rounded px-3 py-2 flex-1 font-mono text-sm break-all">
+              {actualFormId || (language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'No form ID found')}
+            </div>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={copyFormIdToClipboard}
+                    className={copySuccess ? "bg-green-100" : ""}
+                  >
+                    {copySuccess ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {language === 'ar' ? 'نسخ معرف النموذج' : 'Copy form ID'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <p className="text-sm text-muted-foreground mt-2">
+            {language === 'ar' 
+              ? 'يمكنك استخدام هذا المعرف لإضافة النموذج يدويًا إلى متجرك'
+              : 'You can use this ID to manually add the form to your store'}
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <ShoppingBag className="h-5 w-5 mr-2 text-green-600" />
+            <span className="font-medium">
+              {language === 'ar'
+                ? `متصل بـ: ${shop}`
+                : `Connected to: ${shop}`}
+            </span>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadProducts}
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
+          </Button>
+        </div>
+
+        <div className="mb-4">
+          <Label htmlFor="blockId" className="block mb-1">
+            {language === 'ar' ? 'معرف كتلة النموذج (اختياري)' : 'Form Block ID (optional)'}
+          </Label>
+          <Input
+            id="blockId"
+            value={blockId}
+            onChange={(e) => setBlockId(e.target.value)}
+            placeholder={language === 'ar' ? 'أدخل معرف HTML لكتلة النموذج...' : 'Enter HTML ID for form block...'}
+            className="mb-1"
+          />
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar'
+              ? 'يستخدم لتحديد مكان إدراج النموذج في صفحة المنتج (سيتم إنشاؤه تلقائيًا إذا تُرك فارغًا)'
+              : 'Used to identify where to insert the form in the product page (will be auto-generated if left empty)'}
+          </p>
+        </div>
+
+        <div className="border rounded-lg p-4 mb-6">
+          <h3 className="font-medium mb-2">
+            {language === 'ar' ? 'حدد المنتجات:' : 'Select Products:'}
+          </h3>
+          
+          <div className="max-h-64 overflow-y-auto">
+            {products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
+              </p>
+            ) : (
+              products.map((product: ShopifyProduct) => (
+                <div key={product.id} className="flex items-center justify-between mb-3 p-2 border border-transparent hover:bg-slate-50 hover:border-slate-200 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`product-${product.id}`}
+                      checked={selectedProducts.includes(product.id)}
+                      onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
+                    />
+                    <Label htmlFor={`product-${product.id}`} className="flex-grow cursor-pointer ml-2">
+                      {product.title}
+                      {selectedProducts.includes(product.id) && (
+                        <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 border-green-200">
+                          {language === 'ar' ? 'تم الاختيار' : 'Selected'}
+                        </Badge>
+                      )}
+                    </Label>
+                  </div>
+                  
+                  {selectedProducts.includes(product.id) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openShopifyThemeEditor(product.id)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {language === 'ar' ? 'فتح في محرر القوالب' : 'Open in theme editor'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Step by step instructions */}
+        <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
+          <AlertDescription>
+            <h4 className="font-semibold mb-2">
+              {language === 'ar' ? 'خطوات إضافة النموذج إلى متجرك:' : 'Steps to add the form to your store:'}
+            </h4>
+            <ol className="list-decimal ml-5 space-y-1">
+              <li>{language === 'ar' ? 'حدد المنتجات التي ترغب في إضافة النموذج إليها' : 'Select the products you want to add the form to'}</li>
+              <li>{language === 'ar' ? 'انقر على "حفظ إعدادات المنتج" أدناه' : 'Click "Save Product Settings" below'}</li>
+              <li>{language === 'ar' ? 'انتقل إلى متجرك واضغط على "تخصيص القالب"' : 'Go to your store and click "Customize Theme"'}</li>
+              <li>{language === 'ar' ? 'ابحث عن "نموذج الدفع عند الاستلام" في الأدوات المساعدة' : 'Look for "COD Form" in the Apps section'}</li>
+              <li>{language === 'ar' ? 'أضف الكتلة وحدد معرف النموذج المعروض أعلاه' : 'Add the block and select the form ID shown above'}</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
+
+        <Button
+          onClick={handleSaveSettings}
+          disabled={!actualFormId || isSyncing}
+          className="w-full"
+        >
+          {isSyncing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Settings className="mr-2 h-4 w-4" />
+          )}
+          {language === 'ar' ? 'حفظ إعدادات المنتج' : 'Save Product Settings'}
+        </Button>
+      </>
+    );
   };
 
   return (
-    <div className="space-y-4">
-      <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-        <h2 className="text-xl font-semibold">
-          {language === 'ar' ? 'تكامل Shopify' : 'Shopify Integration'}
-        </h2>
-        
-        <div className="flex items-center gap-2">
-          {statusBadge()}
-          {shop && (
-            <div className="text-sm text-gray-500">
-              {shop}
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>
+          {language === 'ar' ? 'تكامل منتج Shopify' : 'Shopify Product Integration'}
+        </CardTitle>
+        <CardDescription>
+          {language === 'ar'
+            ? 'حدد منتجات Shopify لعرض هذا النموذج عليها'
+            : 'Select Shopify products to display this form on'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {renderContent()}
+      </CardContent>
+      <CardFooter className="flex justify-between border-t pt-4">
+        <div className="text-sm text-muted-foreground">
+          {isConnected ? (
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              {language === 'ar' ? 'متصل بـ Shopify' : 'Connected to Shopify'}
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <XCircle className="h-4 w-4 text-red-500 mr-1" />
+              {language === 'ar' ? 'غير متصل بـ Shopify' : 'Not connected to Shopify'}
             </div>
           )}
         </div>
-      </div>
-      
-      {failSafeMode && (
-        <Alert variant="warning" className="bg-amber-50 border-amber-200">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle>{language === 'ar' ? 'وضع الطوارئ' : 'Fail-safe Mode'}</AlertTitle>
-          <AlertDescription className="text-amber-700 text-sm">
-            {language === 'ar' 
-              ? 'هناك مشكلة في اتصال Shopify. تم تفعيل وضع الطوارئ للحفاظ على استمرارية الخدمة.' 
-              : 'There is an issue with the Shopify connection. Fail-safe mode is activated for continuity.'}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>
-                {language === 'ar' ? 'معلومات المتجر' : 'Store Information'}
-              </CardTitle>
-              <CardDescription>
-                {language === 'ar' 
-                  ? 'حالة اتصال المتجر ومنتجاته' 
-                  : 'Store connection status and products'}
-              </CardDescription>
-            </div>
-            <ShoppingCart className="h-6 w-6 text-gray-400" />
-          </div>
-        </CardHeader>
         
-        <CardContent className="pt-3">
-          {errorMessage && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {errorMessage}
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="space-y-1">
-              <span className="text-gray-500 block">
-                {language === 'ar' ? 'حالة الاتصال:' : 'Connection:'}
-              </span>
-              <span>
-                {connectionStatus === 'connected' 
-                  ? (language === 'ar' ? 'متصل بـ Shopify' : 'Connected to Shopify')
-                  : (language === 'ar' ? 'غير متصل' : 'Not connected')}
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              <span className="text-gray-500 block">
-                {language === 'ar' ? 'عدد المنتجات:' : 'Products Count:'}
-              </span>
-              <span className="text-sm flex items-center gap-1">
-                {isLoading || isRefreshing || shopifyLoading
-                 ? <Loader2 className="h-3 w-3 animate-spin inline ml-2" /> 
-                 : productsCount}
-                <Badge variant={productsCount > 0 ? "success" : "secondary"} className="text-[10px] h-5">
-                  {forceRealData ? (language === 'ar' ? 'بيانات حقيقية' : 'REAL DATA') : (language === 'ar' ? 'بيانات افتراضية' : 'MOCK DATA')}
-                </Badge>
-              </span>
-            </div>
-            
-            {lastRefreshed && (
-              <div className="col-span-2 space-y-1">
-                <span className="text-gray-500 block">
-                  {language === 'ar' ? 'آخر تحديث:' : 'Last Refreshed:'}
-                </span>
-                <span className="text-xs text-gray-600">
-                  {lastRefreshed.toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Advanced settings toggle */}
-          <div className="mt-4 border-t pt-3">
-            <button 
-              onClick={() => setAdvancedMode(!advancedMode)}
-              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-            >
-              {language === 'ar' ? 'الإعدادات المتقدمة' : 'Advanced settings'}
-              <span className="text-xs">{advancedMode ? '▲' : '▼'}</span>
-            </button>
-            
-            {advancedMode && (
-              <div className="mt-3 space-y-3 bg-gray-50 p-3 rounded-md">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium">
-                      {language === 'ar' ? 'وضع الطوارئ' : 'Fail-safe Mode'}
-                    </h4>
-                    <p className="text-xs text-gray-500">
-                      {language === 'ar' 
-                        ? 'يتيح المواصلة عند حدوث مشاكل في الاتصال' 
-                        : 'Allows operation even when connection issues occur'}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={failSafeMode}
-                    onCheckedChange={handleToggleFailSafeMode}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium">
-                      {language === 'ar' ? 'استخدام البيانات الحقيقية' : 'Use Real Data'}
-                    </h4>
-                    <p className="text-xs text-gray-500">
-                      {language === 'ar' 
-                        ? 'استخدام بيانات المتجر الحقيقية بدلاً من البيانات الافتراضية' 
-                        : 'Use real store data instead of mock data'}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={forceRealData} 
-                    onCheckedChange={handleToggleRealDataMode}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex gap-2 justify-end">
+        {shop && (
           <Button
-            variant="outline"
+            variant="link"
             size="sm"
-            onClick={handleRetryConnection}
-            disabled={connectionStatus === 'checking' || isRefreshing}
+            onClick={() => window.open(`https://${shop}/admin/themes/current/editor`, '_blank')}
           >
-            {connectionStatus === 'checking' || isRefreshing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {language === 'ar' ? 'جاري الفحص...' : 'Checking...'}
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
-              </>
-            )}
+            <ExternalLink className="h-4 w-4 mr-1" />
+            {language === 'ar' ? 'فتح محرر القوالب' : 'Open Theme Editor'}
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefreshProducts}
-            disabled={isLoading || isRefreshing}
-            className="flex items-center"
-          >
-            {isLoading || isRefreshing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {language === 'ar' ? 'جاري التحديث...' : 'Refreshing...'}
-              </>
-            ) : (
-              <>
-                <Database className="h-4 w-4 mr-2" />
-                {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
-              </>
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>
-            {language === 'ar' ? 'ربط النموذج بالمتجر' : 'Form Integration'}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ar' 
-              ? 'مزامنة هذا النموذج مع متجر Shopify' 
-              : 'Sync this form with your Shopify store'}
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="pt-3">
-          <p className="text-sm text-gray-600 mb-4">
-            {language === 'ar' 
-              ? 'المزامنة تعني أن هذا النموذج سيكون متاحًا في متجرك كنموذج طلب يمكن للعملاء استخدامه.' 
-              : 'Syncing means this form will be available in your store as an order form that customers can use.'}
-          </p>
-        </CardContent>
-        
-        <CardFooter>
-          <Button 
-            onClick={handleSync} 
-            disabled={connectionStatus !== 'connected' && !failSafeMode || isSyncing}
-            className="w-full"
-          >
-            {isSyncing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {language === 'ar' ? 'جاري المزامنة...' : 'Syncing...'}
-              </>
-            ) : (
-              language === 'ar' ? 'مزامنة النموذج مع Shopify' : 'Sync Form with Shopify'
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 

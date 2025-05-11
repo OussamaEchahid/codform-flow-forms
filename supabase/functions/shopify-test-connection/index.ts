@@ -1,107 +1,126 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
-};
+console.log("Initializing shopify-test-connection function");
 
-// Simplified edge function for testing Shopify connections
-serve(async (req) => {
-  // Generate a unique request identifier for tracking
-  const requestId = `req_${Math.random().toString(36).substring(2, 8)}_${Date.now()}`;
+// دالة لتنظيف نطاق المتجر
+function cleanShopDomain(shop: string): string {
+  if (!shop) return "";
   
-  // Handle CORS preflight requests
+  let cleanedShop = shop.trim();
+  
+  // إزالة البروتوكول إذا كان موجودًا
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // التأكد من أنه ينتهي بـ myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+    }
+  }
+  
+  return cleanedShop;
+}
+
+// خدمة الطلبات
+serve(async (req) => {
+  // التعامل مع طلبات OPTIONS لـ CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 200 });
   }
 
+  console.log(`Test connection request received: ${req.url}`);
+  
   try {
-    // Parse request body
-    const body = await req.json();
-    const { shop = '', devMode = false } = body || {};
+    // استخراج البيانات من طلب POST
+    const requestData = await req.json();
     
-    console.log(`[${requestId}] Testing connection for shop: ${shop}, devMode: ${devMode}`);
-    
-    // Always succeed for dev mode
-    if (devMode === true) {
-      console.log(`[${requestId}] DEV MODE ENABLED: Guaranteed success`);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          connected: true,
-          message: 'Dev mode connection successful',
-          shopName: shop ? `${shop} (Dev Mode)` : 'Dev Mode Shop',
-          shopDomain: shop?.includes('.myshopify.com') ? shop : shop ? `${shop}.myshopify.com` : 'test-store.myshopify.com',
-          devMode: true,
-          timestamp: new Date().toISOString(),
-          requestId
-        }),
-        { headers: corsHeaders }
-      );
+    if (!requestData.shop || !requestData.accessToken) {
+      throw new Error('المعلمات المطلوبة مفقودة: shop و accessToken');
     }
     
-    // Auto success for test stores
-    if (shop && ['astrem', 'test'].some(str => shop.toLowerCase().includes(str))) {
-      console.log(`[${requestId}] TEST STORE DETECTED: Guaranteed success`);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          connected: true,
-          message: 'Test store connection successful',
-          shopName: 'Test Store',
-          shopDomain: shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`,
-          testStore: true,
-          timestamp: new Date().toISOString(),
-          requestId
-        }),
-        { headers: corsHeaders }
-      );
+    // تنظيف نطاق المتجر
+    const shop = cleanShopDomain(requestData.shop);
+    const accessToken = requestData.accessToken;
+    
+    console.log(`Testing connection for shop: ${shop}`);
+    
+    // إذا كان الرمز مؤقتًا، ارجع خطأ على الفور
+    if (accessToken === 'placeholder_token') {
+      throw new Error('الرمز المؤقت (placeholder_token) غير صالح للاتصال');
     }
     
-    if (!shop) {
-      console.log(`[${requestId}] Missing required parameter: shop`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          connected: false,
-          error: 'Missing required parameter: shop',
-          requestId,
-          timestamp: new Date().toISOString()
-        }),
-        { headers: corsHeaders }
-      );
+    // إجراء طلب اختبار إلى API متجر Shopify
+    const shopUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    
+    const response = await fetch(shopUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    // التحقق من الاستجابة
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Invalid token or shop. Status: ${response.status}, Response: ${errorText}`);
+      throw new Error(`رمز الوصول غير صالح. الخطأ: ${response.status} ${response.statusText}`);
     }
     
-    // For real shops, we'd implement actual API connection
-    // But for now, let's return success to avoid errors
+    // تحليل الاستجابة للتأكد من صحتها
+    const data = await response.json();
+    
+    if (!data.shop || !data.shop.id) {
+      throw new Error('تنسيق استجابة غير صالح من API متجر Shopify');
+    }
+    
+    // ارجع استجابة ناجحة
     return new Response(
       JSON.stringify({
         success: true,
-        connected: true,
-        message: 'Connection successful (simplified)',
-        shopName: shop,
-        shopDomain: shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`,
-        timestamp: new Date().toISOString(),
-        requestId
+        message: 'تم التحقق من صحة رمز الوصول',
+        shop_info: {
+          id: data.shop.id,
+          name: data.shop.name,
+          email: data.shop.email,
+          domain: data.shop.domain,
+          myshopify_domain: data.shop.myshopify_domain
+        }
       }),
-      { headers: corsHeaders }
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 200
+      }
     );
   } catch (error) {
-    console.error(`[${requestId}] Unexpected error:`, error);
+    // ارجع استجابة الخطأ
+    console.error('Error testing connection:', error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        connected: false,
-        error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        errorId: requestId,
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        success: false,
+        message: error instanceof Error ? error.message : 'حدث خطأ غير معروف',
+        error: error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       }),
-      { headers: corsHeaders }
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 200 // استخدام الحالة 200 حتى مع الأخطاء لتمكين العميل من معالجة الخطأ
+      }
     );
   }
 });

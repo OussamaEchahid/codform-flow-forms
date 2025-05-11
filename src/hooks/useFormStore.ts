@@ -5,48 +5,24 @@ export interface FormState {
   id: string;
   title: string;
   description?: string;
-  data: any; // Changed to any to support our standardized structure
+  data: any[];
   isPublished: boolean;
-  is_published?: boolean; // Added for consistency with database field
   shop_id?: string;
-  submitButtonText: string;
-  // Style properties
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
 }
 
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
-  updateFormPublishedState: (formId: string, isPublished: boolean) => void;
 }
 
 const defaultFormState: FormState = {
   id: '',
-  title: 'نموذج جديد',
+  title: 'New Form',
   description: '',
-  data: {
-    settings: {
-      formStyle: {
-        primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
-        fontSize: '1rem',
-        buttonStyle: 'rounded',
-        submitButtonText: 'إرسال الطلب'
-      }
-    },
-    steps: []
-  },
+  data: [],
   isPublished: false,
-  shop_id: undefined,
-  submitButtonText: 'إرسال الطلب',
-  primaryColor: '#9b87f5',
-  borderRadius: '0.5rem',
-  fontSize: '1rem',
-  buttonStyle: 'rounded'
+  shop_id: undefined
 };
 
 export const useFormStore = create<FormStore>((set) => ({
@@ -57,18 +33,5 @@ export const useFormStore = create<FormStore>((set) => ({
       ...form 
     } 
   })),
-  resetFormState: () => set({ formState: {...defaultFormState} }),
-  updateFormPublishedState: (formId, isPublished) => set((state) => {
-    // Only update if the IDs match
-    if (state.formState.id === formId) {
-      return {
-        formState: {
-          ...state.formState,
-          isPublished,
-          is_published: isPublished
-        }
-      };
-    }
-    return state;
-  })
+  resetFormState: () => set({ formState: {...defaultFormState} })
 }));

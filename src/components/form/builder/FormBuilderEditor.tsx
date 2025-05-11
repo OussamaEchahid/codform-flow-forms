@@ -1,17 +1,38 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
-import { FormField } from '@/lib/form-utils';
-import { arrayMove } from '@dnd-kit/sortable';
-import { useFormEditor, FormStyle } from '@/hooks/useFormEditor';
+import { useFormStore } from '@/hooks/useFormStore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { FormField, FormStep } from '@/lib/form-utils';
+import FieldEditor from '@/components/form/FieldEditor';
+import FormHeader from '@/components/form/builder/FormHeader';
+import FormElementEditor from '@/components/form/builder/FormElementEditor';
+import FormElementList from '@/components/form/builder/FormElementList';
+import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
+import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
+import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { useShopify } from '@/hooks/useShopify';
-import FormEditorLayout from './FormEditorLayout';
-import { dataCache } from '@/lib/data-cache';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
-import { validateFormElements } from '@/lib/form-data-utils';
+import { Dialog } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface FormBuilderEditorProps {
   formId?: string;
@@ -22,641 +43,543 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const params = useParams();
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
-  const id = formId || params.formId;
-  const saveTimeoutRef = useRef<number | null>(null);
-  const initialLoadCompleted = useRef<boolean>(false);
-  const loadAttemptRef = useRef<number>(0);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveRetryCount, setSaveRetryCount] = useState<number>(0);
-  const [recoverMode, setRecoverMode] = useState<boolean>(false);
-  const maxLoadAttempts = 3;
-  const maxSaveRetries = 5;
-  const lastServerLoadTimeRef = useRef<number>(0);
+  const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
+  const { formState, setFormState } = useFormStore();
   
-  // Use our custom hook for form state and operations
-  const {
-    formTitle,
-    formDescription,
-    formElements,
-    formStyle,
-    submitButtonText,
-    refreshKey,
-    selectedElementIndex,
-    isSaving,
-    isPublished,
-    isPublishing,
-    currentFormId,
-    currentPreviewStep,
-    
-    // Methods
-    setSelectedElementIndex,
-    loadFormData,
-    handleSave,
-    handlePublish,
-    updateFormStyle,
-    addElement,
-    deleteElement,
-    duplicateElement,
-    updateElement,
-    updateFormMeta,
-    setFormElements
-  } = useFormEditor(id);
-
-  // Add reference to track if there are any open dialogs
-  const openDialogRef = useRef<boolean>(false);
+  const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   
-  // IMPROVED: Try to restore form from cache if loading fails with better logging
-  const attemptFormRestore = useCallback(() => {
-    if (!id) return false;
-    
-    try {
-      const cachedForm = dataCache.get<{
-        formTitle?: string;
-        formDescription?: string;
-        formElements?: FormField[];
-        formStyle?: FormStyle;
-        submitButtonText?: string;
-        timestamp?: string;
-      }>(`form:${id}`);
-      
-      if (cachedForm) {
-        console.log('Restoring form data from cache:', cachedForm);
-        
-        // Check cache timestamp to ensure we don't use very old data
-        if (cachedForm.timestamp) {
-          const cacheTimestamp = new Date(cachedForm.timestamp).getTime();
-          const now = Date.now();
-          const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
-          
-          if (now - cacheTimestamp > maxCacheAge) {
-            console.warn('Cache data is too old, not restoring');
-            return false;
-          }
-        }
-        
-        // Restore cached data with validation
-        if (cachedForm.formTitle) updateFormMeta({ title: cachedForm.formTitle });
-        if (cachedForm.formDescription) updateFormMeta({ description: cachedForm.formDescription });
-        
-        if (cachedForm.formElements && Array.isArray(cachedForm.formElements)) {
-          const validatedElements = validateFormElements(cachedForm.formElements);
-          setFormElements(validatedElements);
-        }
-        
-        if (cachedForm.formStyle) updateFormStyle(cachedForm.formStyle);
-        if (cachedForm.submitButtonText) updateFormMeta({ submitButtonText: cachedForm.submitButtonText });
-        
-        setRecoverMode(true);
-        toast.warning(
-          language === 'ar' 
-            ? 'تم استعادة بيانات النموذج من النسخة المحفوظة مؤقتًا. يرجى حفظ النموذج للتأكد من عدم فقدان البيانات.'
-            : 'Form data restored from cache. Please save the form to ensure data is not lost.'
-        );
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error restoring form from cache:', error);
-      return false;
-    }
-  }, [id, setFormElements, updateFormStyle, updateFormMeta, language]);
+  const [formStyle, setFormStyle] = useState(() => {
+    const storedStyle = localStorage.getItem('selectedTemplateStyle');
+    return storedStyle ? JSON.parse(storedStyle) : {
+      primaryColor: '#9b87f5',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      buttonStyle: 'rounded',
+    };
+  });
+  
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [formElements, setFormElements] = useState<Array<FormField>>([]);
+  
+  const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
+  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
+  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formDescription, setFormDescription] = useState('');
+  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
+  const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
 
-  // IMPROVED: Better debounced save function with cancellation, caching, and optimized save logic
-  const debouncedSave = useCallback(() => {
-    // Clear any existing timeout
-    if (saveTimeoutRef.current) {
-      window.clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Clear any previous save error
-    setSaveError(null);
-    
-    // Cache current form state in case saving fails
-    if (id) {
-      console.log('Caching current form state before saving:', {
-        formTitle,
-        formDescription,
-        formElements,
-        formStyle,
-        submitButtonText
-      });
-      
-      dataCache.set(`form:${id}`, {
-        formTitle,
-        formDescription,
-        formElements,
-        formStyle,
-        submitButtonText,
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    // Set a new timeout with longer delay
-    saveTimeoutRef.current = window.setTimeout(async () => {
-      try {
-        console.log('Executing debounced save...');
-        const success = await handleSave();
-        console.log('Save result:', success);
-        
-        if (!success && saveRetryCount < maxSaveRetries) {
-          console.error("Auto-save failed, will retry...");
-          setSaveRetryCount(prev => prev + 1);
-          
-          // Try one more time after a longer delay
-          setTimeout(async () => {
-            try {
-              const retrySuccess = await handleSave();
-              console.log('Retry save result:', retrySuccess);
-              
-              if (!retrySuccess) {
-                setSaveError('auto-save-failed');
-                toast.error(language === 'ar' ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' : 'Auto-save failed, please try again');
-              } else {
-                setSaveRetryCount(0);
-              }
-            } catch (retryError) {
-              console.error("Error in retry save:", retryError);
-              setSaveError('auto-save-error');
-            }
-          }, 2000); // 2 second delay before retry
-        } else if (success) {
-          // Reset retry counter on success
-          setSaveRetryCount(0);
-          
-          // If we were in recover mode, exit it
-          if (recoverMode) {
-            setRecoverMode(false);
-          }
-        }
-      } catch (error) {
-        console.error("Error in debounced save:", error);
-        setSaveError('auto-save-error');
-        toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-      }
-      saveTimeoutRef.current = null;
-    }, 2000); // 2 seconds debounce for better reliability
-  }, [handleSave, language, saveRetryCount, maxSaveRetries, id, formTitle, formDescription, formElements, formStyle, submitButtonText, recoverMode]);
+  const availableElements = [
+    { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
+    { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
+    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
+    { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
+    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
+    { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
+    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
+    { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
+    { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
+    { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
+    { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
+    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
+  ];
 
-  // IMPROVED: Optimized form loading with edge function
-  const loadFormWithEdgeFunction = useCallback(async (formId: string) => {
+  // Get active shop ID for database operations
+  const getActiveShopId = () => {
+    return shopifyIntegration.shop || localStorage.getItem('shopify_store');
+  };
+
+  // Initialize a new form if no form ID is provided
+  const initializeNewForm = async () => {
     try {
-      console.log(`Loading form data via edge function for ID: ${formId}`);
-      
-      // Fix: Use the correct property name 'body' instead of 'params' for Supabase function invoke options
-      const { data, error } = await supabase.functions.invoke('get-form', {
-        body: { id: formId }
-      });
-      
+      const shopId = getActiveShopId();
+      if (!shopId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
+        return;
+      }
+
+      // Create a new ID for the form
+      const newId = uuidv4();
+      setCurrentFormId(newId);
+
+      // Prepare initial form data
+      const initialFormStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: []
+      };
+
+      // Create new form in database
+      const { data, error } = await supabase.from('forms').insert({
+        id: newId,
+        title: formTitle,
+        description: formDescription,
+        data: [initialFormStep],
+        shop_id: shopId,
+        is_published: false
+      }).select();
+
       if (error) {
-        console.error('Edge function error:', error);
-        return null;
+        console.error("Error creating new form:", error);
+        toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
+        return;
       }
-      
-      if (!data.success) {
-        console.error('Form load unsuccessful:', data.error);
-        return null;
-      }
-      
-      const formData = data.data;
-      console.log('Form loaded successfully via edge function:', formData);
-      
-      // Update all form state at once
-      updateFormMeta({ 
-        title: formData.title || 'Untitled Form',
-        description: formData.description || '',
-        submitButtonText: formData.submitbuttontext || 'Submit'
+
+      // Update form state
+      setFormState({
+        id: newId,
+        title: formTitle,
+        description: formDescription,
+        data: [initialFormStep],
+        isPublished: false,
+        shop_id: shopId
       });
-      
-      // Extract form elements with improved safety
-      let elements: FormField[] = [];
-      try {
-        if (formData.data?.fields && Array.isArray(formData.data.fields)) {
-          elements = validateFormElements(formData.data.fields);
-        } else if (formData.data?.steps && Array.isArray(formData.data.steps)) {
-          const allFields = formData.data.steps.flatMap(step => step.fields || []);
-          elements = validateFormElements(allFields);
-        } else if (Array.isArray(formData.data)) {
-          elements = validateFormElements(formData.data);
-        }
-      } catch (parseError) {
-        console.error('Error parsing form elements:', parseError);
-        elements = [];
-      }
-      
-      setFormElements(elements);
-      
-      // Update style
-      updateFormStyle({
-        primaryColor: formData.primaryColor || '#9b87f5',
-        fontSize: formData.fontSize || '1rem',
-        borderRadius: formData.borderRadius || '0.5rem',
-        buttonStyle: formData.buttonStyle || 'rounded'
-      });
-      
-      // Update published state
-      const isPublishedState = !!formData.is_published;
-      
-      // Cache the loaded data
-      dataCache.set(`form:${formId}`, {
-        formTitle: formData.title || 'Untitled Form',
-        formDescription: formData.description || '',
-        formElements: elements,
-        formStyle: {
-          primaryColor: formData.primaryColor || '#9b87f5',
-          fontSize: formData.fontSize || '1rem',
-          borderRadius: formData.borderRadius || '0.5rem',
-          buttonStyle: formData.buttonStyle || 'rounded'
-        },
-        submitButtonText: formData.submitbuttontext || 'Submit',
-        isPublished: isPublishedState,
-        timestamp: new Date().toISOString()
-      });
-      
-      return formId;
+
+      toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
     } catch (error) {
-      console.error('Error loading form via edge function:', error);
-      return null;
+      console.error("Error initializing new form:", error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
     }
-  }, [updateFormMeta, setFormElements, updateFormStyle]);
+  };
 
-  // Cleanup function for timeouts
+  // Load form data when formId changes
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        window.clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  // IMPROVED: Enhanced form loading with edge function and multiple fallback strategies
-  useEffect(() => {
-    if (!id) {
-      console.log("No form ID provided");
-      return;
-    }
-    
-    if (initialLoadCompleted.current) {
-      console.log("Initial load already completed, skipping");
-      return;
-    }
-    
-    console.log('FormBuilderEditor: Loading form data for ID:', id);
-    
-    // Adding an abort controller to prevent multiple loads
-    const controller = new AbortController();
-    
-    // Use a cleanup function to prevent state updates after unmount
-    const loadData = async () => {
-      try {
-        loadAttemptRef.current += 1;
-        console.log(`Starting form data load for: ${id} (attempt ${loadAttemptRef.current}/${maxLoadAttempts})`);
-        
-        // First try to load using the edge function (faster)
-        const now = Date.now();
-        const shouldUseEdgeFunction = now - lastServerLoadTimeRef.current > 30000; // Only use edge function if >30s since last attempt
-        
-        let loadedId = null;
-        if (shouldUseEdgeFunction && loadAttemptRef.current === 1) {
-          console.log('Attempting to load form via edge function');
-          loadedId = await loadFormWithEdgeFunction(id);
-          lastServerLoadTimeRef.current = Date.now();
-        }
-        
-        // If edge function fails, fall back to direct loading
-        if (!loadedId) {
-          console.log('Edge function load failed or skipped, trying direct load');
-          loadedId = await loadFormData(id);
-        }
-        
-        console.log('Form data load result:', loadedId);
-        
-        if (loadedId) {
-          initialLoadCompleted.current = true;
-          console.log('Form data loaded successfully for:', loadedId);
-        } else {
-          console.error(`Form load failed for ID: ${id}`);
+    const loadFormData = async () => {
+      const id = formId || params.formId;
+      
+      if (id) {
+        setCurrentFormId(id);
+        try {
+          const formData = await loadForm(id);
           
-          if (loadAttemptRef.current < maxLoadAttempts) {
-            console.log(`Retrying form load (attempt ${loadAttemptRef.current + 1}/${maxLoadAttempts})...`);
+          if (formData) {
+            setFormTitle(formData.title);
+            setFormDescription(formData.description || '');
+            setFormElements(
+              formData.data?.flatMap(step => step.fields) || []
+            );
+            setIsPublished(!!formData.isPublished || !!formData.is_published);
             
-            // Retry with exponential backoff
-            const retryDelay = 1000 * Math.pow(2, loadAttemptRef.current - 1);
-            setTimeout(() => {
-              if (!controller.signal.aborted) {
-                loadData();
-              }
-            }, retryDelay);
+            console.log("Loaded form data:", formData);
           } else {
-            // All attempts failed, try to restore from cache
-            console.log('All load attempts failed, trying to restore from cache');
-            const restored = attemptFormRestore();
-            if (!restored) {
-              toast.error(language === 'ar' ? 'فشل تحميل النموذج بعد عدة محاولات' : 'Failed to load form after multiple attempts');
-            }
+            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
+            navigate('/form-builder');
           }
+        } catch (error) {
+          console.error("Error loading form:", error);
+          toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
         }
-      } catch (err) {
-        console.error("Error loading form data:", err);
-        if (!controller.signal.aborted) {
-          // Try to restore from cache after error
-          console.log('Error during load, trying to restore from cache');
-          const restored = attemptFormRestore();
-          if (!restored) {
-            toast.error(language === 'ar' ? 'خطأ في تحميل بيانات النموذج' : 'Error loading form data');
-          }
-        }
+      } else {
+        // If no form ID, initialize a new form
+        await initializeNewForm();
       }
     };
     
-    loadData();
-    
-    return () => {
-      controller.abort();
-    };
-  }, [id, loadFormData, language, maxLoadAttempts, attemptFormRestore, loadFormWithEdgeFunction]); 
+    loadFormData();
+  }, [formId, params.formId]);
 
-  // Add error message for save issues
   useEffect(() => {
-    if (saveError) {
-      const errorMessage = language === 'ar' 
-        ? 'فشل الحفظ التلقائي، يرجى المحاولة مرة أخرى' 
-        : 'Auto-save failed, please try again';
-      
-      if (saveRetryCount >= maxSaveRetries) {
-        toast.error(errorMessage);
-      }
-    }
-  }, [saveError, language, saveRetryCount, maxSaveRetries]);
+    setRefreshKey(prev => prev + 1);
+  }, [formElements]);
 
-  // IMPROVED: Handle form drag-and-drop reordering with better error handling
-  const handleDragEnd = useCallback((event: any) => {
-    try {
-      const { active, over } = event;
-      
-      if (!over || active.id === over.id) {
-        return;
-      }
-      
-      const oldIndex = formElements.findIndex((item) => item.id === active.id);
-      const newIndex = formElements.findIndex((item) => item.id === over.id);
-      
-      if (oldIndex === -1 || newIndex === -1) {
-        console.error("Invalid drag indices:", {oldIndex, newIndex, active, over});
-        return;
-      }
-      
-      // Properly reorder the array using arrayMove
-      const newElements = arrayMove([...formElements], oldIndex, newIndex);
-      
-      // Update the entire elements array instead of just one element
-      setFormElements(newElements);
-      
-      // Trigger debounced save after reordering
-      debouncedSave();
-    } catch (error) {
-      console.error("Error in handleDragEnd:", error);
-    }
-  }, [formElements, setFormElements, debouncedSave]);
-
-  // Adapter function for style changes
-  const handleStyleChange = useCallback((key: string, value: string) => {
-    const newStyle: Partial<FormStyle> = {};
-    newStyle[key as keyof FormStyle] = value;
-    updateFormStyle(newStyle);
-    debouncedSave();
-  }, [updateFormStyle, debouncedSave]);
-
-  // Adapt addElement to accept string type and create a basic element
-  const handleAddElement = useCallback((type: string) => {
-    // Create a basic FormField from the type
-    const newElement: FormField = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: type,
-      label: `New ${type}`,
-      required: false
-    };
+  const handleSave = async () => {
+    setIsSaving(true);
     
-    addElement(newElement);
-    debouncedSave();
-  }, [addElement, debouncedSave]);
-
-  // Adapt updateElement to match interface requirements
-  const handleUpdateElement = useCallback((field: FormField) => {
-    const index = formElements.findIndex(el => el.id === field.id);
-    if (index !== -1) {
-      updateElement(index, field);
-      debouncedSave();
-    }
-  }, [formElements, updateElement, debouncedSave]);
-
-  // Adapt updateFormMeta to match required signature
-  const handleUpdateMeta = useCallback((field: 'title' | 'description' | 'submitButtonText', value: string) => {
-    const metadata: {[key: string]: string} = {};
-    metadata[field] = value;
-    updateFormMeta(metadata);
-    debouncedSave();
-  }, [updateFormMeta, debouncedSave]);
-
-  // IMPROVED: Manual save handler with better feedback and verification
-  const manualSaveHandler = useCallback(async () => {
     try {
-      toast.loading(language === 'ar' ? 'جاري حفظ النموذج...' : 'Saving form...');
-      console.log('Starting manual form save...');
+      if (!currentFormId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+        setIsSaving(false);
+        return;
+      }
       
-      const success = await handleSave();
+      // Create form step from elements
+      const formStep: FormStep = {
+        id: '1',
+        title: 'Main Step',
+        fields: formElements
+      };
+      
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.warn("No active shop ID found, saving without shop association");
+      }
+      
+      const formData: Partial<FormData> = {
+        title: formTitle,
+        description: formDescription,
+        data: [formStep],
+        shop_id: shopId
+      };
+      
+      console.log("Saving form with data:", formData);
+      
+      // Update existing form
+      const success = await saveForm(currentFormId, formData);
       
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
-        // Clear any save error on successful save
-        setSaveError(null);
-        setSaveRetryCount(0);
         
-        // Turn off recover mode if active
-        if (recoverMode) {
-          setRecoverMode(false);
-        }
-        
-        // Verify save by attempting to reload the form
-        setTimeout(async () => {
-          try {
-            // Quick verification check to ensure data was saved
-            const { data, error } = await supabase
-              .from('forms')
-              .select('updated_at')
-              .eq('id', currentFormId)
-              .single();
-              
-            if (error) {
-              console.warn('Verification check failed:', error);
-            } else {
-              console.log('Save verified, last updated:', data.updated_at);
-            }
-          } catch (e) {
-            console.error('Error during save verification:', e);
-          }
-        }, 1000);
+        // Update form state
+        setFormState({
+          ...formState,
+          ...formData,
+          id: currentFormId
+        });
       } else {
-        // If save fails, try one more time
-        setTimeout(async () => {
-          try {
-            const retrySuccess = await handleSave();
-            if (retrySuccess) {
-              toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح (محاولة ثانية)' : 'Form saved successfully (retry)');
-              setSaveError(null);
-              setSaveRetryCount(0);
-              if (recoverMode) setRecoverMode(false);
-            } else {
-              toast.error(language === 'ar' ? 'فشل في حفظ النموذج' : 'Failed to save form');
-              setSaveError('manual-save-failed');
-            }
-          } catch (retryError) {
-            console.error("Error during retry save:", retryError);
-            toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-            setSaveError('manual-save-error');
-          }
-        }, 1000);
+        // Try direct database update if the saveForm method fails
+        const { error } = await supabase
+          .from('forms')
+          .update({
+            title: formTitle,
+            description: formDescription,
+            data: [formStep],
+            shop_id: shopId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentFormId);
+        
+        if (error) {
+          console.error("Direct database update failed:", error);
+          toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
+        } else {
+          toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+        }
       }
     } catch (error) {
-      console.error("Error during manual save:", error);
+      console.error("Error saving form:", error);
       toast.error(language === 'ar' ? 'خطأ في حفظ النموذج' : 'Error saving form');
-      setSaveError('manual-save-error');
     }
-  }, [handleSave, language, recoverMode, currentFormId]);
+    
+    setIsSaving(false);
+  };
 
-  // Publish handler wrapper to return void
-  const handlePublishWrapper = useCallback(async () => {
+  const handlePublish = async () => {
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+      return;
+    }
+    
+    setIsPublishing(true);
+    
     try {
-      // First try to save before publishing
-      const saveSuccess = await handleSave();
-      if (!saveSuccess) {
-        toast.warning(language === 'ar' ? 'تم حفظ النموذج قبل النشر' : 'Form saved before publishing');
-      }
+      // Save form before publishing
+      await handleSave();
       
-      const publishSuccess = await handlePublish();
-      if (!publishSuccess) {
-        toast.error(language === 'ar' ? 'فشل في نشر النموذج' : 'Failed to publish form');
+      // Toggle publish status
+      const newPublishState = !isPublished;
+      
+      // Try using the publishForm method from useFormTemplates
+      const success = await publishForm(currentFormId, newPublishState);
+      
+      if (success) {
+        setIsPublished(newPublishState);
+        toast.success(
+          newPublishState 
+            ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+            : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+        );
+      } else {
+        // Try direct database update if the publishForm method fails
+        const { error } = await supabase
+          .from('forms')
+          .update({
+            is_published: newPublishState,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentFormId);
+        
+        if (error) {
+          console.error("Direct database update for publishing failed:", error);
+          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+        } else {
+          setIsPublished(newPublishState);
+          toast.success(
+            newPublishState 
+              ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
+              : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
+          );
+        }
       }
     } catch (error) {
       console.error("Error publishing form:", error);
       toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
     }
-  }, [handlePublish, handleSave, language]);
+    
+    setIsPublishing(false);
+  };
 
-  // IMPROVED: Better Shopify integration with error handling and verification
-  const handleShopifyIntegration = useCallback(async (settings: any) => {
+  const addElement = (type: string) => {
+    const newElement = {
+      type,
+      id: `${type}-${Date.now()}`,
+      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+    };
+    
+    const updatedElements = [...formElements, newElement];
+    setFormElements(updatedElements);
+    setTimeout(() => {
+      setSelectedElementIndex(updatedElements.length - 1);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const editElement = (index: number) => {
+    const element = formElements[index];
+    setCurrentEditingField(element);
+    setIsFieldEditorOpen(true);
+  };
+
+  const deleteElement = (index: number) => {
+    const updatedElements = [...formElements];
+    updatedElements.splice(index, 1);
+    setFormElements(updatedElements);
+    setSelectedElementIndex(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const duplicateElement = (index: number) => {
+    const element = formElements[index];
+    const newElement = {
+      ...element,
+      id: `${element.id}-copy-${Date.now()}`
+    };
+    
+    const updatedElements = [...formElements];
+    updatedElements.splice(index + 1, 0, newElement);
+    setFormElements(updatedElements);
+    
+    setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+    toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
+  };
+
+  const handleSelectTemplate = async (templateId: number) => {
+    const template = formTemplates.find(t => t.id === templateId);
+    if (template) {
+      toast.success(language === 'ar' ? `تم اختيار قالب ${template.title}` : `Selected template ${template.title}`);
+      
+      const storedStyle = localStorage.getItem('selectedTemplateStyle');
+      const templateStyle = storedStyle ? JSON.parse(storedStyle) : null;
+      
+      if (templateStyle) {
+        setFormStyle({
+          primaryColor: template.primaryColor || templateStyle.primaryColor,
+          borderRadius: templateStyle.borderRadius,
+          fontSize: templateStyle.fontSize,
+          buttonStyle: templateStyle.buttonStyle
+        });
+      }
+      
+      const newElements = template.data.flatMap(step => 
+        step.fields.map(field => ({
+          ...field,
+          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        }))
+      );
+      
+      setFormTitle(template.title);
+      setFormDescription(template.description);
+      setFormElements(newElements);
+      setRefreshKey(prev => prev + 1);
+      setIsTemplateDialogOpen(false);
+      
+      // Save the form immediately after applying template
+      setTimeout(() => handleSave(), 500);
+    }
+  };
+
+  const saveField = (updatedField: FormField) => {
+    const newElements = [...formElements];
+    const index = newElements.findIndex(el => el.id === updatedField.id);
+    if (index !== -1) {
+      newElements[index] = updatedField;
+      setFormElements(newElements);
+    }
+    setIsFieldEditorOpen(false);
+    setCurrentEditingField(null);
+    
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const handleStyleChange = (key: string, value: string) => {
+    setFormStyle({
+      ...formStyle,
+      [key]: value
+    });
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleSaveStyle = () => {
+    setIsStyleDialogOpen(false);
+    localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+  };
+
+  const handleShopifyIntegration = async (settings: any) => {
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
+      return;
+    }
+    
     try {
-      if (!currentFormId) {
-        toast.error(language === 'ar' ? 'معرّف النموذج مفقود' : 'Form ID is missing');
-        return;
-      }
-      
-      // Try to save form first to ensure we have the latest data
-      await manualSaveHandler();
-      
-      // Ensure the form is published before sync
-      const { data: formData, error: formError } = await supabase
-        .from('forms')
-        .select('is_published')
-        .eq('id', currentFormId)
-        .single();
-        
-      if (formError) {
-        throw new Error(`Error checking form publication status: ${formError.message}`);
-      }
-      
-      if (!formData.is_published) {
-        // Auto-publish the form before syncing
-        console.log('Form is not published. Auto-publishing before sync');
-        await handlePublish();
-      }
-      
-      // Make sure shop is defined
-      if (!shopifyIntegration.shop) {
-        throw new Error(language === 'ar' ? 'لم يتم تحديد متجر Shopify' : 'Shopify store not defined');
-      }
-      
-      console.log('Syncing form with Shopify...');
-      const result = await shopifyIntegration.syncForm({
+      await shopifyIntegration.syncForm({ 
         formId: currentFormId,
         shopDomain: shopifyIntegration.shop,
-        productId: settings?.productId, 
-        blockId: settings?.blockId,
-        settings: {
-          position: settings?.position || 'product-page',
-          style: {
-            primaryColor: formStyle.primaryColor,
-            fontSize: formStyle.fontSize,
-            borderRadius: formStyle.borderRadius
-          }
-        }
+        settings
       });
       
-      if (result.success) {
-        toast.success(language === 'ar' ? 'تم مزامنة النموذج مع Shopify بنجاح' : 'Form synchronized with Shopify successfully');
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-      
-      // Return void to match the expected return type
-    } catch (error) {
-      console.error("Error during Shopify integration:", error);
-      toast.error(
+      toast.success(
         language === 'ar' 
-          ? 'فشل في مزامنة النموذج مع Shopify'
-          : 'Failed to synchronize form with Shopify'
+          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+          : 'Shopify settings saved successfully'
+      );
+      
+      // Save form after Shopify integration
+      handleSave();
+    } catch (error) {
+      console.error("Error saving Shopify settings:", error);
+      toast.error(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'Error saving Shopify settings'
       );
     }
-  }, [currentFormId, shopifyIntegration, formStyle, manualSaveHandler, handlePublish, language]);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    setFormElements((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      
+      return arrayMove(items, oldIndex, newIndex);
+    });
+
+    setTimeout(() => {
+      setSelectedElementIndex(null);
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
 
   return (
-    <>
-      {/* Show recovery mode warning if active */}
-      {recoverMode && (
-        <Alert variant="warning" className="m-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            {language === 'ar' 
-              ? 'تم استعادة بيانات النموذج من النسخة المحفوظة مؤقتًا. يرجى حفظ النموذج للتأكد من عدم فقدان البيانات.'
-              : 'Form data has been restored from local cache. Please save the form to ensure data is not lost.'}
-          </AlertDescription>
-        </Alert>
-      )}
-    
-      <FormEditorLayout
-        formId={currentFormId}
-        formTitle={formTitle}
-        formDescription={formDescription}
-        formElements={formElements}
-        formStyle={formStyle}
-        submitButtonText={submitButtonText}
-        refreshKey={refreshKey}
-        selectedElementIndex={selectedElementIndex}
+    <main className="flex-1 overflow-auto">
+      <FormHeader 
+        onSave={handleSave}
+        onPublish={handlePublish}
+        onStyleOpen={() => setIsStyleDialogOpen(true)}
+        onTemplateOpen={() => setIsTemplateDialogOpen(true)}
         isSaving={isSaving}
-        isPublished={isPublished}
         isPublishing={isPublishing}
-        currentPreviewStep={currentPreviewStep}
-        
-        // Use the adapted handlers to match the required signatures
-        onSelectElement={setSelectedElementIndex}
-        onAddElement={handleAddElement}
-        onEditElement={(index: number) => {
-          setSelectedElementIndex(index);
-        }}
-        onDeleteElement={deleteElement}
-        onDuplicateElement={duplicateElement}
-        onUpdateElement={handleUpdateElement}
-        onDragEnd={handleDragEnd}
-        onUpdateMeta={handleUpdateMeta}
-        onStyleChange={handleStyleChange}
-        onSave={manualSaveHandler}
-        onPublish={handlePublishWrapper}
-        onShopifyIntegration={handleShopifyIntegration}
-        
-        // Add reference for open dialogs
-        dialogRef={openDialogRef}
+        isPublished={isPublished}
       />
-    </>
+      
+      <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
+        <div className="col-span-2 border-r bg-white p-4">
+          <FormElementList 
+            availableElements={availableElements}
+            onAddElement={addElement}
+          />
+        </div>
+        
+        <div className="col-span-6 bg-gray-50 p-6">
+          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+          </h2>
+          
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={formElements.map(el => el.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <FormElementEditor
+                elements={formElements}
+                selectedIndex={selectedElementIndex}
+                onSelectElement={setSelectedElementIndex}
+                onEditElement={editElement}
+                onDeleteElement={deleteElement}
+                onDuplicateElement={duplicateElement}
+              />
+            </SortableContext>
+          </DndContext>
+        </div>
+        
+        <div className="col-span-4 border-l bg-white p-6">
+          <FormPreviewPanel
+            formTitle={formTitle}
+            formDescription={formDescription}
+            currentStep={currentPreviewStep}
+            totalSteps={1}
+            formStyle={formStyle}
+            fields={formElements}
+            onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+            onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
+            refreshKey={refreshKey}
+          />
+        </div>
+      </div>
+      
+      <FormStyleEditor
+        isOpen={isStyleDialogOpen}
+        onOpenChange={setIsStyleDialogOpen}
+        formStyle={formStyle}
+        onStyleChange={handleStyleChange}
+        onSave={handleSaveStyle}
+      />
+
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <FormTemplatesDialog 
+          open={isTemplateDialogOpen}
+          onSelect={handleSelectTemplate} 
+          onClose={() => setIsTemplateDialogOpen(false)}
+        />
+      </Dialog>
+
+      {isFieldEditorOpen && currentEditingField && (
+        <FieldEditor
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => setIsFieldEditorOpen(false)}
+        />
+      )}
+
+      {currentFormId && (
+        <div className="mt-6">
+          <ShopifyIntegration
+            formId={currentFormId}
+            onSave={handleShopifyIntegration}
+            isSyncing={shopifyIntegration.isSyncing}
+          />
+        </div>
+      )}
+    </main>
   );
 };
 

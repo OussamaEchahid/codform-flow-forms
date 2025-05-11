@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -16,14 +17,6 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
-  updated_at?: string; // Added updated_at property to fix TypeScript errors
-  submitButtonText?: string; 
-  submitbuttontext?: string; // Added lowercase version to match DB column
-  // Add style properties
-  primaryColor?: string;
-  borderRadius?: string;
-  fontSize?: string;
-  buttonStyle?: string;
 }
 
 export interface FormTemplate {
@@ -214,11 +207,10 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Save form changes with retry logic
-  const saveForm = async (formId: string, formData: Partial<FormData>, retryCount = 0, maxRetries = 3) => {
+  // Save form changes
+  const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
-      console.log(`Attempting to save form (attempt ${retryCount + 1}/${maxRetries + 1})`, formId, formData);
       
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
@@ -226,15 +218,6 @@ export const useFormTemplates = () => {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
       }
-      
-      // Make sure submitButtonText is saved as submitbuttontext
-      if (dbData.submitButtonText !== undefined) {
-        dbData.submitbuttontext = dbData.submitButtonText;
-        delete dbData.submitButtonText;
-      }
-      
-      // Add timestamp to ensure update is detected
-      dbData.updated_at = new Date().toISOString();
       
       // Update form in Supabase
       const { error } = await supabase
@@ -246,15 +229,6 @@ export const useFormTemplates = () => {
         console.error('Error updating form:', error);
         toast.error('خطأ في تحديث النموذج');
         setIsLoading(false);
-        
-        // Handle retry logic
-        if (retryCount < maxRetries) {
-          console.log(`Will retry save operation (${retryCount + 1}/${maxRetries})`);
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return saveForm(formId, formData, retryCount + 1, maxRetries);
-        }
-        
         return false;
       }
       
@@ -271,15 +245,6 @@ export const useFormTemplates = () => {
       console.error('Error saving form', error);
       toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
-      
-      // Handle retry logic for exceptions
-      if (retryCount < maxRetries) {
-        console.log(`Will retry save operation after exception (${retryCount + 1}/${maxRetries})`);
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return saveForm(formId, formData, retryCount + 1, maxRetries);
-      }
-      
       return false;
     }
   };

@@ -55,144 +55,37 @@ export type Database = {
       }
       forms: {
         Row: {
-          borderRadius: string | null
-          buttonStyle: string | null
           created_at: string
           data: Json
           description: string | null
-          fontSize: string | null
           id: string
           is_published: boolean
-          primaryColor: string | null
           shop_id: string | null
-          submitbuttontext: string | null
           title: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
-          borderRadius?: string | null
-          buttonStyle?: string | null
           created_at?: string
           data?: Json
           description?: string | null
-          fontSize?: string | null
           id?: string
           is_published?: boolean
-          primaryColor?: string | null
           shop_id?: string | null
-          submitbuttontext?: string | null
           title: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
-          borderRadius?: string | null
-          buttonStyle?: string | null
           created_at?: string
           data?: Json
           description?: string | null
-          fontSize?: string | null
           id?: string
           is_published?: boolean
-          primaryColor?: string | null
           shop_id?: string | null
-          submitbuttontext?: string | null
           title?: string
           updated_at?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      landing_page_templates: {
-        Row: {
-          content: Json
-          created_at: string
-          id: string
-          page_id: string
-          updated_at: string
-        }
-        Insert: {
-          content?: Json
-          created_at?: string
-          id?: string
-          page_id: string
-          updated_at?: string
-        }
-        Update: {
-          content?: Json
-          created_at?: string
-          id?: string
-          page_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_page_templates_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      landing_pages: {
-        Row: {
-          created_at: string
-          id: string
-          is_published: boolean
-          product_id: string | null
-          slug: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          product_id?: string | null
-          slug: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          product_id?: string | null
-          slug?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      products: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          name: string
-          price: number | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name: string
-          price?: number | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name?: string
-          price?: number | null
-          updated_at?: string
         }
         Relationships: []
       }
@@ -219,41 +112,6 @@ export type Database = {
           state?: string
         }
         Relationships: []
-      }
-      shopify_page_syncs: {
-        Row: {
-          created_at: string
-          id: string
-          page_id: string
-          shop_id: string
-          synced_url: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          page_id: string
-          shop_id: string
-          synced_url: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          page_id?: string
-          shop_id?: string
-          synced_url?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shopify_page_syncs_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       shopify_product_settings: {
         Row: {
@@ -339,10 +197,6 @@ export type Database = {
         Args: { p_table: string; p_column: string }
         Returns: boolean
       }
-      check_trigger_exists: {
-        Args: { trigger_name: string }
-        Returns: boolean
-      }
       cleanup_expired_shopify_auth: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -356,14 +210,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
-      }
-      create_table_if_not_exists: {
-        Args: { p_table_name: string; p_table_definition: string }
-        Returns: undefined
-      }
-      create_timestamp_trigger: {
-        Args: { table_name: string }
-        Returns: undefined
       }
     }
     Enums: {

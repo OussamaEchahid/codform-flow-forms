@@ -22,8 +22,8 @@ api_version = "2025-04"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# أضفنا صلاحية metaobject_definitions المطلوبة مع الصلاحيات السابقة
-scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content,write_metaobject_definitions"
+# أضفنا جميع الصلاحيات المطلوبة للعمل مع قوالب ونماذج المتجر
+scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content"
 
 [auth]
 redirect_urls = [
@@ -47,4 +47,3 @@ embedded = false
 [extensions]
 theme_app_extensions = ["extensions/theme-extension-codform"]
 ui_extensions = ["extensions/admin-action-extension"]
-

@@ -19,15 +19,15 @@ const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
   apiVersion: ApiVersion.January25,
-  // تم تحديث نطاقات الصلاحيات بإضافة write_metaobject_definitions
-  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes", "read_content", "write_content", "write_metaobject_definitions"],
+  // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
+  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes", "read_content", "write_content"],
   appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   // هذا الإعداد مهم جداً - التطبيق غير مضمن
   isEmbeddedApp: false,
-  // تم إضافة المزيد من النطاقات المسموح بها
+  // إضافة المزيد من النطاقات المسموح بها
   hooks: {
     afterAuth: async ({ session, admin }) => {
       console.log("Authentication completed successfully for shop:", session.shop);

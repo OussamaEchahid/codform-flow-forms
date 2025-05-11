@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,11 +49,7 @@ const ShopifyProductView = () => {
         }
         
         // Create ShopifyAPI instance and fetch products
-        const shopifyAPI = createShopifyAPI({
-          shop: activeShop,
-          accessToken: accessToken
-        });
-        
+        const shopifyAPI = createShopifyAPI(accessToken, activeShop);
         const productData = await shopifyAPI.getProducts();
         
         setProducts(productData);

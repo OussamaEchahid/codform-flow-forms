@@ -1,224 +1,232 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Type': 'application/json'
-};
+// إعدادات Supabase
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
-const PLACEHOLDER_TOKEN = 'placeholder_token';
+console.log("Initializing update-shopify-token function with Supabase:", SUPABASE_URL);
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    // Parse request body
-    let body;
+// دالة لتنظيف نطاق المتجر
+function cleanShopDomain(shop: string): string {
+  if (!shop) return "";
+  
+  let cleanedShop = shop.trim();
+  
+  // إزالة البروتوكول إذا كان موجودًا
+  if (cleanedShop.startsWith('http')) {
     try {
-      body = await req.json();
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
     } catch (e) {
-      console.error('Failed to parse request body:', e);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON body' }),
-        { status: 400, headers: corsHeaders }
-      );
+      console.error("Error cleaning shop URL:", e);
     }
-
-    const { shop, token, requestId = `update_token_${Math.random().toString(36).substring(2, 8)}` } = body;
-
-    console.log(`[${requestId}] Token update request received`);
-
-    if (!shop || !token) {
-      console.error(`[${requestId}] Missing required parameters: shop=${!!shop}, token=${!!token}`);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing required parameters: shop and token' }),
-        { status: 400, headers: corsHeaders }
-      );
+  }
+  
+  // التأكد من أنه ينتهي بـ myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
     }
+  }
+  
+  return cleanedShop;
+}
 
-    // Don't allow placeholder tokens
-    if (token === PLACEHOLDER_TOKEN) {
-      console.error(`[${requestId}] Attempted to set placeholder token for ${shop}`);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Cannot set placeholder_token as a valid token' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Normalize shop domain
-    const normalizedShopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
-    console.log(`[${requestId}] Updating token for shop: ${normalizedShopDomain}`);
-
-    // Test the token first to make sure it's valid
-    try {
-      console.log(`[${requestId}] Testing token validity before updating`);
-      const testResponse = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': token
-        }
-      });
-
-      if (!testResponse.ok) {
-        console.error(`[${requestId}] Token validation failed with status ${testResponse.status}`);
-        let responseText = '';
-        try {
-          responseText = await testResponse.text();
-        } catch (e) {
-          // Ignore errors when trying to read response text
-        }
-        
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Invalid token. Shopify API returned status ${testResponse.status}`,
-            details: responseText || 'No response details available'
-          }),
-          { headers: corsHeaders }
-        );
+// دالة اختبار الرمز للتأكد من صحته
+async function testToken(shop: string, token: string): Promise<boolean> {
+  try {
+    console.log(`Testing token for shop: ${shop}`);
+    
+    // بناء عنوان URL لاختبار الرمز
+    const testUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    
+    // إجراء طلب باستخدام الرمز
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
-
-      // Parse the response to further validate
-      const shopData = await testResponse.json();
-      if (!shopData || !shopData.shop) {
-        console.error(`[${requestId}] Invalid response format from Shopify API during token test`);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Invalid response from Shopify API during token validation',
-            details: JSON.stringify(shopData)
-          }),
-          { headers: corsHeaders }
-        );
-      }
-
-      console.log(`[${requestId}] Token validated successfully for shop: ${normalizedShopDomain}`);
-    } catch (testError) {
-      console.error(`[${requestId}] Error testing token:`, testError);
-      return new Response(
-        JSON.stringify({ success: false, error: `Error validating token: ${testError.message || 'Unknown error'}` }),
-        { headers: corsHeaders }
-      );
+    });
+    
+    // التحقق من الاستجابة
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error(`Token test failed. Status: ${response.status}, Response: ${responseText}`);
+      return false;
     }
+    
+    // تحليل الاستجابة للتأكد من صحة البنية
+    const data = await response.json();
+    
+    if (!data || !data.shop || !data.shop.id) {
+      console.error('Invalid response format from shop endpoint');
+      return false;
+    }
+    
+    console.log(`Token test successful for shop ID: ${data.shop.id}`);
+    return true;
+  } catch (error) {
+    console.error('Error testing token:', error instanceof Error ? error.message : String(error));
+    return false;
+  }
+}
 
-    // Token is valid, update in database
-    try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-      if (!supabaseKey) {
-        throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // Check if the store exists
-      const { data: existingStore, error: queryError } = await supabase
+// دالة تحديث رمز الوصول في قاعدة البيانات
+async function updateTokenInDatabase(shop: string, token: string): Promise<boolean> {
+  try {
+    console.log(`Updating token in database for shop: ${shop}`);
+    
+    if (!SUPABASE_KEY) {
+      throw new Error("Cannot update token: SUPABASE_KEY is not available");
+    }
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // التحقق من وجود المتجر أولاً
+    const { data: existingShop, error: queryError } = await supabase
+      .from('shopify_stores')
+      .select('*')
+      .eq('shop', shop)
+      .limit(1);
+    
+    if (queryError) {
+      console.error('Error querying shop:', queryError);
+      throw new Error(`Database query error: ${queryError.message}`);
+    }
+    
+    const currentTimestamp = new Date().toISOString();
+    
+    // إذا كان المتجر موجودًا، قم بتحديثه
+    if (existingShop && existingShop.length > 0) {
+      const { error: updateError } = await supabase
         .from('shopify_stores')
-        .select('id')
-        .eq('shop', normalizedShopDomain)
-        .limit(1);
-
-      if (queryError) {
-        throw queryError;
+        .update({
+          access_token: token,
+          updated_at: currentTimestamp,
+          is_active: true
+        })
+        .eq('shop', shop);
+      
+      if (updateError) {
+        console.error('Error updating token:', updateError);
+        throw new Error(`Database update error: ${updateError.message}`);
       }
-
-      let result;
-      if (!existingStore || existingStore.length === 0) {
-        // Create new store
-        result = await supabase
-          .from('shopify_stores')
-          .insert({
-            shop: normalizedShopDomain,
-            access_token: token,
-            token_type: 'offline',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        
-        console.log(`[${requestId}] Created new store entry for ${normalizedShopDomain}`);
-      } else {
-        // Update existing store
-        result = await supabase
-          .from('shopify_stores')
-          .update({
-            access_token: token,
-            token_type: 'offline',
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('shop', normalizedShopDomain);
-        
-        console.log(`[${requestId}] Updated existing store entry for ${normalizedShopDomain}`);
+      
+      console.log(`Token updated successfully for existing shop: ${shop}`);
+      return true;
+    } else {
+      // إذا لم يكن المتجر موجودًا، قم بإنشاء سجل جديد
+      const { error: insertError } = await supabase
+        .from('shopify_stores')
+        .insert([{
+          shop: shop,
+          access_token: token,
+          created_at: currentTimestamp,
+          updated_at: currentTimestamp,
+          is_active: true,
+          token_type: 'offline'
+        }]);
+      
+      if (insertError) {
+        console.error('Error inserting new shop record:', insertError);
+        throw new Error(`Database insert error: ${insertError.message}`);
       }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      // Clear any placeholder tokens
-      try {
-        await supabase
-          .from('shopify_stores')
-          .update({ access_token: null })
-          .eq('access_token', PLACEHOLDER_TOKEN);
-        
-        console.log(`[${requestId}] Cleared any placeholder tokens`);
-      } catch (cleanupError) {
-        console.error(`[${requestId}] Error cleaning placeholder tokens:`, cleanupError);
-        // Non-fatal error, continue
-      }
-
-      // Run a second test to verify token works
-      try {
-        console.log(`[${requestId}] Running final verification test`);
-        const verifyResponse = await fetch(`https://${normalizedShopDomain}/admin/api/2023-10/shop.json`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': token
-          }
-        });
-        
-        if (verifyResponse.ok) {
-          console.log(`[${requestId}] Final verification test passed`);
-        } else {
-          console.warn(`[${requestId}] Final verification test failed with status ${verifyResponse.status}`);
-        }
-      } catch (verifyError) {
-        console.warn(`[${requestId}] Error during final verification test:`, verifyError);
-        // Non-fatal error, continue
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Token updated successfully',
-          shop: normalizedShopDomain,
-          timestamp: new Date().toISOString(),
-          requestId
-        }),
-        { headers: corsHeaders }
-      );
-    } catch (dbError) {
-      console.error(`[${requestId}] Database error:`, dbError);
-      return new Response(
-        JSON.stringify({ success: false, error: `Database error: ${dbError.message || 'Unknown error'}` }),
-        { headers: corsHeaders }
-      );
+      
+      console.log(`New shop record created with token: ${shop}`);
+      return true;
     }
   } catch (error) {
-    const errorId = `error_${Math.random().toString(36).substring(2, 8)}`;
-    console.error(`[${errorId}] Unexpected error:`, error);
+    console.error('Error updating token in database:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+}
+
+// خدمة الدالة لمعالجة الطلبات
+serve(async (req) => {
+  // معرف فريد للطلب للتتبع
+  const requestId = crypto.randomUUID();
+  console.log(`[${requestId}] Token update request received: ${req.method} ${req.url}`);
+  
+  // التعامل مع طلبات OPTIONS بشكل صحيح لـ CORS
+  if (req.method === "OPTIONS") {
+    return new Response(null, { 
+      headers: corsHeaders, 
+      status: 200 
+    });
+  }
+  
+  try {
+    if (req.method !== "POST") {
+      throw new Error("Method not allowed. Use POST.");
+    }
+    
+    // استخراج البيانات من body
+    const requestData = await req.json();
+    console.log(`[${requestId}] Request data:`, { 
+      shop: requestData.shop, 
+      hasToken: !!requestData.token 
+    });
+    
+    // التحقق من وجود المعلمات المطلوبة
+    if (!requestData.shop || !requestData.token) {
+      throw new Error("Missing required parameters: shop and token");
+    }
+    
+    // تنظيف عنوان المتجر
+    const shop = cleanShopDomain(requestData.shop);
+    const token = requestData.token;
+    
+    // التحقق من أن الرمز ليس placeholder_token
+    if (token === 'placeholder_token') {
+      throw new Error("Cannot update to placeholder token");
+    }
+    
+    // اختبار صحة الرمز
+    console.log(`[${requestId}] Testing token before updating database...`);
+    const isValid = await testToken(shop, token);
+    
+    if (!isValid) {
+      throw new Error("Token validation failed. The token appears to be invalid or expired.");
+    }
+    
+    // تحديث الرمز في قاعدة البيانات
+    console.log(`[${requestId}] Token is valid, updating in database...`);
+    await updateTokenInDatabase(shop, token);
+    
+    // إعادة الاستجابة الناجحة
     return new Response(
-      JSON.stringify({ success: false, error: `Unexpected error: ${error.message || 'Unknown error'}`, errorId }),
-      { headers: corsHeaders }
+      JSON.stringify({ 
+        success: true, 
+        message: "Token updated successfully", 
+        shop, 
+        timestamp: Date.now(),
+        request_id: requestId
+      }),
+      { 
+        status: 200, 
+        headers: corsHeaders 
+      }
+    );
+  } catch (error) {
+    // التعامل مع الأخطاء
+    console.error(`[${requestId}] Error processing token update:`, error);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error", 
+        timestamp: Date.now(),
+        request_id: requestId
+      }),
+      { 
+        status: 200, // استخدام 200 حتى مع الأخطاء لتمكين العميل من معالجتها
+        headers: corsHeaders 
+      }
     );
   }
 });

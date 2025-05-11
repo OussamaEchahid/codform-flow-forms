@@ -1,5 +1,59 @@
 
 project_id = "mtyfuwdsshlzqwjujavp"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[realtime]
+enabled = true
+
+[functions.shopify-products]
+verify_jwt = false
+
+[functions.shopify-auth]
+verify_jwt = false
+
+[functions.shopify-callback]
+verify_jwt = false
+
 [functions.shopify-test-connection]
 verify_jwt = false
+
+[functions.update-schema]
+verify_jwt = false
+
+[functions.update-shopify-token]
+verify_jwt = false
+
+[functions.shopify-sync-form]
+verify_jwt = false
+
+[functions.api-forms]
+verify_jwt = false
+port = 54340
+paths = ["/api/forms/*"]
+
+[functions.api-submissions]
+verify_jwt = false
+port = 54341
+paths = ["/api/submissions"]
