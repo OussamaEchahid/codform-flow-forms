@@ -147,7 +147,7 @@ async function createFormSnippet(shop: string, accessToken: string, themeId: str
       return snippetName;
     }
     
-    // Create snippet content with both approaches (extension and direct embed)
+    // Create snippet content with direct embed approach
     const snippetContent = `
 {% comment %}
   CodForm Integration Snippet
@@ -155,20 +155,14 @@ async function createFormSnippet(shop: string, accessToken: string, themeId: str
 {% endcomment %}
 
 <div id="${blockId || `codform-container-${formId.substring(0, 8)}`}" class="codform-container">
-  {% comment %}First try to use the theme extension if available{% endcomment %}
-  {% if section.theme-extension-codform.codform_form %}
-    {% section 'theme-extension-codform.codform_form' %}
-  {% else %}
-    {% comment %}Fallback to script-based embed{% endcomment %}
-    <script
-      type="text/javascript"
-      src="https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formId}&blockId=${blockId || ''}&shop={{shop.domain}}"
-      defer
-    ></script>
-    <div id="${blockId || `codform-container-${formId.substring(0, 8)}`}-loader" style="text-align: center; padding: 20px;">
-      <p>جاري تحميل النموذج...</p>
-    </div>
-  {% endif %}
+  <script
+    type="text/javascript"
+    src="https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formId}&blockId=${blockId || ''}&shop={{shop.domain}}"
+    defer
+  ></script>
+  <div id="${blockId || `codform-container-${formId.substring(0, 8)}`}-loader" style="text-align: center; padding: 20px;">
+    <p>جاري تحميل النموذج...</p>
+  </div>
 </div>
 `;
 
@@ -200,165 +194,118 @@ async function createFormSnippet(shop: string, accessToken: string, themeId: str
   }
 }
 
-// Function to update product template to include our form block
-async function updateProductTemplate(shop: string, accessToken: string, themeId: string, 
-  template: any, formId: string, blockId: string, position: string): Promise<boolean> {
+// Function to add section to JSON templates (newer themes)
+async function updateJsonTemplate(shop: string, accessToken: string, themeId: string, template: any, 
+  snippetName: string, position: string): Promise<boolean> {
   
-  console.log(`Updating product template ${template.key} with form ID: ${formId}`);
+  console.log(`Updating JSON template: ${template.key}`);
   
   try {
-    let updatedContent;
-    const blockIdToUse = blockId || `codform-container-${formId.substring(0, 8)}`;
+    const content = template.content;
     
-    // First create a snippet that includes our form (as a fallback approach)
-    const snippetName = await createFormSnippet(shop, accessToken, themeId, formId, blockIdToUse);
-
-    if (template.isJson) {
-      // Handle JSON template (modern themes)
-      const content = template.content;
-      
-      // Check if our block is already in the template
-      const sections = content.sections || {};
-      const alreadyExists = Object.values(sections).some((section: any) => {
-        return (section as any).type?.includes('codform') || 
-               (section as any).template?.includes(snippetName);
-      });
-      
-      if (alreadyExists) {
-        console.log('Form block already exists in template, updating settings');
-        
-        // Update existing block
-        for (const [sectionId, section] of Object.entries(sections)) {
-          if ((section as any).type?.includes('codform') || 
-              (section as any).template?.includes(snippetName)) {
-            (section as any).settings = {
-              ...(section as any).settings || {},
-              form_id: formId,
-              block_id: blockIdToUse
-            };
-          }
-        }
-      } else {
-        console.log('Adding new form block to template');
-        
-        // Find main product section - usually has product reference
-        let productSectionId = '';
-        
-        // First, check for the main content layout section
-        for (const [sectionId, section] of Object.entries(sections)) {
-          if ((section as any).type === 'main-product' || 
-              (section as any).type === 'product-template' ||
-              sectionId === 'main' || 
-              sectionId === 'product-template') {
-            productSectionId = sectionId;
-            break;
-          }
-        }
-        
-        // If we found a main product section
-        if (productSectionId) {
-          // Create a new unique section ID for our form
-          const formSectionId = `codform-${Date.now()}`;
-          
-          // Add our form section to the sections object using the snippet approach
-          sections[formSectionId] = {
-            type: "snippet",
-            settings: {
-              title: "اطلب المنتج الآن - الدفع عند الاستلام",
-              description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
-            },
-            // Use the snippet as a safer approach
-            template: snippetName
-          };
-          
-          // Get the order array to determine where to place our section
-          if (content.order) {
-            // Clone the order array
-            const newOrder = [...content.order];
-            
-            // Find where to insert our section
-            const productSectionIndex = newOrder.indexOf(productSectionId);
-            if (productSectionIndex !== -1) {
-              // Insert after the product section
-              newOrder.splice(productSectionIndex + 1, 0, formSectionId);
-              content.order = newOrder;
-            } else {
-              // If we couldn't find it, just append to the end
-              content.order.push(formSectionId);
-            }
-          }
-        } else {
-          // If we couldn't find a product section, add to a reasonable location
-          const formSectionId = `codform-${Date.now()}`;
-          sections[formSectionId] = {
-            type: "snippet",
-            settings: {
-              title: "اطلب المنتج الآن - الدفع عند الاستلام",
-              description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
-            },
-            template: snippetName
-          };
-          
-          // Add to order if it exists
-          if (content.order) {
-            content.order.push(formSectionId);
-          }
-        }
+    // First check if there is already a codform section
+    let existingFormSectionId = null;
+    const sections = content.sections || {};
+    
+    for (const [sectionId, section] of Object.entries(sections)) {
+      if (sectionId.includes('codform') || (section as any).template?.includes('codform')) {
+        existingFormSectionId = sectionId;
+        break;
       }
-      
-      // Prepare the updated content
-      updatedContent = JSON.stringify(content);
-      
-    } else {
-      // Handle Liquid template (older themes)
-      let liquidContent = template.content;
-      
-      // Check if our block is already in the template
-      if (liquidContent.includes(snippetName) || liquidContent.includes('codform')) {
-        console.log('Form block already exists in Liquid template, not modifying');
-        return true;
-      }
-      
-      // Define the block to insert
-      const formBlock = `
-{% include '${snippetName}' %}
-`;
-      
-      // Look for common insertion points
-      const insertionPoints = [
-        'id="shopify-section-product-template"',
-        'class="product-template',
-        'class="product-section',
-        'id="ProductSection',
-        '<form action="/cart/add"'
-      ];
-      
-      let inserted = false;
-      for (const point of insertionPoints) {
-        if (liquidContent.includes(point)) {
-          const index = liquidContent.indexOf(point);
-          const closingTagIndex = liquidContent.indexOf('>', index);
-          
-          if (closingTagIndex !== -1) {
-            // Insert after the closing tag
-            liquidContent = liquidContent.substring(0, closingTagIndex + 1) + 
-                          formBlock + 
-                          liquidContent.substring(closingTagIndex + 1);
-            inserted = true;
-            break;
-          }
-        }
-      }
-      
-      if (!inserted) {
-        // If we couldn't find a good insertion point, add near the end of the file
-        liquidContent = liquidContent + '\n' + formBlock;
-      }
-      
-      updatedContent = liquidContent;
     }
     
-    // Update the template asset
+    if (existingFormSectionId) {
+      console.log(`Found existing form section with ID: ${existingFormSectionId}, updating it`);
+      // Just update the existing section to reference our snippet
+      (sections[existingFormSectionId] as any).template = snippetName;
+    } else {
+      console.log('Adding new form section to template');
+      
+      // Find main product section to determine where to place our form
+      let productSectionId = '';
+      
+      // First, check for the main content layout section
+      for (const [sectionId, section] of Object.entries(sections)) {
+        if ((section as any).type === 'main-product' || 
+            (section as any).type === 'product-template' ||
+            sectionId === 'main' || 
+            sectionId === 'product-template') {
+          productSectionId = sectionId;
+          break;
+        }
+      }
+      
+      // Create a new section using the include tag approach
+      const formSectionId = `codform-${Date.now()}`;
+      
+      // For modern Shopify themes, we need to use proper section reference
+      sections[formSectionId] = {
+        type: "include", // Using include type instead of snippet
+        settings: {
+          title: "اطلب المنتج الآن - الدفع عند الاستلام",
+          description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+        },
+        template: snippetName // Reference to our snippet
+      };
+      
+      // Add section to the appropriate location in the order
+      if (content.order) {
+        const newOrder = [...content.order];
+        
+        if (productSectionId && newOrder.indexOf(productSectionId) !== -1) {
+          // Insert based on position preference
+          const productIndex = newOrder.indexOf(productSectionId);
+          
+          // Determine insert position based on requested position
+          let insertIndex = productIndex + 1; // default to after product section
+          
+          // Adjust insert position based on the position parameter
+          if (position === 'before_description') {
+            // Try to find the description section and insert before it
+            const descIndex = newOrder.findIndex(id => 
+              id.includes('description') || (sections[id] && (sections[id] as any).type?.includes('description')));
+            
+            if (descIndex !== -1) {
+              insertIndex = descIndex;
+            }
+          } else if (position === 'after_description') {
+            // Try to find the description section and insert after it
+            const descIndex = newOrder.findIndex(id => 
+              id.includes('description') || (sections[id] && (sections[id] as any).type?.includes('description')));
+            
+            if (descIndex !== -1) {
+              insertIndex = descIndex + 1;
+            }
+          } else if (position === 'before_buy_buttons') {
+            // Try to find buy buttons section
+            const buyIndex = newOrder.findIndex(id => 
+              id.includes('buy') || (sections[id] && (sections[id] as any).type?.includes('buy')));
+            
+            if (buyIndex !== -1) {
+              insertIndex = buyIndex;
+            }
+          }
+          // The default 'after_buy_buttons' and 'after_gallery' will just use productIndex + 1
+          
+          // Insert our section at the calculated position
+          newOrder.splice(insertIndex, 0, formSectionId);
+          content.order = newOrder;
+          
+          console.log(`Inserted form section at index ${insertIndex} (${position})`);
+        } else {
+          // If we couldn't find the right section, append to the end
+          newOrder.push(formSectionId);
+          content.order = newOrder;
+          console.log('Could not locate specific section for positioning, appended to end');
+        }
+      } else if (!content.order) {
+        // If there's no order array, create one
+        content.order = [formSectionId];
+        console.log('No order array found, created new one');
+      }
+    }
+    
+    // Update the template on Shopify
     const response = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
       method: 'PUT',
       headers: {
@@ -368,18 +315,174 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
       body: JSON.stringify({
         asset: {
           key: template.key,
-          value: updatedContent
+          value: JSON.stringify(content)
         }
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to update template: ${response.status} ${errorText}`);
+      console.error(`Error response updating JSON template: ${errorText}`);
+      throw new Error(`Failed to update JSON template: ${response.status} ${errorText}`);
     }
 
-    console.log(`Successfully updated product template: ${template.key}`);
+    console.log(`Successfully updated JSON template: ${template.key}`);
     return true;
+  } catch (error) {
+    console.error('Error updating JSON template:', error);
+    throw error;
+  }
+}
+
+// Function to update Liquid template (older themes)
+async function updateLiquidTemplate(shop: string, accessToken: string, themeId: string, template: any, 
+  snippetName: string, position: string): Promise<boolean> {
+  
+  console.log(`Updating Liquid template: ${template.key}`);
+  
+  try {
+    let liquidContent = template.content;
+    
+    // Check if our snippet is already included
+    if (liquidContent.includes(`{% include '${snippetName}'`) || 
+        liquidContent.includes(`{% include "${snippetName}"`)) {
+      console.log('Snippet already included in Liquid template');
+      return true;
+    }
+    
+    // Define the include statement to insert
+    const includeStatement = `\n{% include '${snippetName}' %}\n`;
+    
+    // Determine where to insert the snippet based on position
+    let inserted = false;
+    
+    // Define potential insertion points based on position
+    const positionMarkers: Record<string, string[]> = {
+      'after_gallery': [
+        '{% endfor %}', // After image gallery loop
+        'product-gallery',
+        'product-images',
+        'class="product-single__photos"'
+      ],
+      'before_description': [
+        '<div class="product-single__description',
+        'id="ProductDescription"',
+        'class="product__description"'
+      ],
+      'after_description': [
+        '</div><!-- /.product-single__description',
+        '</div><!-- /.product-description',
+        '</div><!-- /product-description' 
+      ],
+      'before_buy_buttons': [
+        '<form action="/cart/add"',
+        'class="product-form',
+        'id="AddToCartForm"'
+      ],
+      'after_buy_buttons': [
+        '</form><!-- /.product-form -->',
+        '</form><!-- /product-form -->',
+        '<div class="product__policies',
+        'class="additional-checkout-buttons'
+      ]
+    };
+    
+    // Get markers for the requested position
+    const markers = positionMarkers[position] || positionMarkers['after_buy_buttons'];
+    
+    // Try to insert at the first matching marker
+    for (const marker of markers) {
+      if (liquidContent.includes(marker)) {
+        const index = liquidContent.indexOf(marker) + marker.length;
+        liquidContent = liquidContent.substring(0, index) + includeStatement + liquidContent.substring(index);
+        inserted = true;
+        console.log(`Inserted at marker: ${marker}`);
+        break;
+      }
+    }
+    
+    // If we couldn't find a specific marker, try to insert in a reasonable location
+    if (!inserted) {
+      // Fall back to common structural markers
+      const fallbackMarkers = [
+        'id="shopify-section-product-template"',
+        'class="product-template',
+        'class="product-section',
+        'id="ProductSection',
+        '<form action="/cart/add"'
+      ];
+      
+      for (const marker of fallbackMarkers) {
+        if (liquidContent.includes(marker)) {
+          const index = liquidContent.indexOf(marker);
+          const closingTagIndex = liquidContent.indexOf('>', index);
+          
+          if (closingTagIndex !== -1) {
+            // Insert after the closing tag
+            liquidContent = liquidContent.substring(0, closingTagIndex + 1) + includeStatement + liquidContent.substring(closingTagIndex + 1);
+            inserted = true;
+            console.log(`Inserted at fallback marker: ${marker}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Last resort - add near the end of the file
+    if (!inserted) {
+      liquidContent = liquidContent + includeStatement;
+      console.log('Could not find specific insertion point, added to end of file');
+    }
+    
+    // Update the template on Shopify
+    const response = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        asset: {
+          key: template.key,
+          value: liquidContent
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error response updating Liquid template: ${errorText}`);
+      throw new Error(`Failed to update Liquid template: ${response.status} ${errorText}`);
+    }
+
+    console.log(`Successfully updated Liquid template: ${template.key}`);
+    return true;
+  } catch (error) {
+    console.error('Error updating Liquid template:', error);
+    throw error;
+  }
+}
+
+// Main function to update product template
+async function updateProductTemplate(shop: string, accessToken: string, themeId: string, 
+  template: any, formId: string, blockId: string, position: string): Promise<boolean> {
+  
+  console.log(`Updating product template ${template.key} with form ID: ${formId}, position: ${position}`);
+  
+  try {
+    const blockIdToUse = blockId || `codform-container-${formId.substring(0, 8)}`;
+    
+    // First create a snippet that includes our form
+    const snippetName = await createFormSnippet(shop, accessToken, themeId, formId, blockIdToUse);
+
+    // Update template based on its type
+    if (template.isJson) {
+      // Handle modern JSON template update
+      return await updateJsonTemplate(shop, accessToken, themeId, template, snippetName, position);
+    } else {
+      // Handle traditional Liquid template update
+      return await updateLiquidTemplate(shop, accessToken, themeId, template, snippetName, position);
+    }
   } catch (error) {
     console.error('Error updating product template:', error);
     throw error;
@@ -416,7 +519,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[${requestId}] Processing request for shop: ${shop}, formId: ${formId}`);
+    console.log(`[${requestId}] Processing request for shop: ${shop}, formId: ${formId}, position: ${sectionPosition || 'after_buy_buttons'}`);
 
     // Step 1: Get the main theme ID
     const themeId = await getMainThemeId(shop, accessToken);
