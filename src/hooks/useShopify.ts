@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import { useShopifyConnection } from '@/lib/shopify/ShopifyConnectionProvider';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
+import { LS_KEYS } from '@/lib/shopify/constants';
 
 // Test store configuration for development
 const DEV_TEST_STORE = 'astrem.myshopify.com';
@@ -31,6 +32,9 @@ export const useShopify = () => {
   const [tokenExpired, setTokenExpired] = useState(false);
   const [failSafeMode, setFailSafeMode] = useState(false);
   const [isNetworkError, setIsNetworkError] = useState(false);
+  const [forceRealData, setForceRealData] = useState<boolean>(
+    localStorage.getItem(LS_KEYS.FORCE_PROD_MODE) === 'true'
+  );
   const { language } = useI18n();
   const { isDevMode, testConnection } = useShopifyConnection();
   
@@ -64,6 +68,29 @@ export const useShopify = () => {
   
   // Check if connected to Shopify
   const isConnected = !!shopifyStore || !!localStorage.getItem('shopify_store');
+
+  // Toggle real data mode
+  const toggleRealDataMode = useCallback((enable: boolean) => {
+    setForceRealData(enable);
+    
+    // Update localStorage
+    if (enable) {
+      localStorage.setItem(LS_KEYS.FORCE_PROD_MODE, 'true');
+      localStorage.removeItem(LS_KEYS.FORCE_DEV_MODE);
+    } else {
+      localStorage.removeItem(LS_KEYS.FORCE_PROD_MODE);
+      localStorage.setItem(LS_KEYS.FORCE_DEV_MODE, 'true');
+    }
+    
+    console.log(`[${instanceId.current}] Force real data mode ${enable ? 'enabled' : 'disabled'}`);
+    
+    // We'll use the stored reference for fetching products later
+    setTimeout(() => {
+      if (window.__fetchProductsRef) {
+        window.__fetchProductsRef(true);
+      }
+    }, 100);
+  }, []);
 
   // Enhanced Shopify store loading with better error recovery
   const loadShopifyStore = useCallback(async (force = false) => {
@@ -568,6 +595,22 @@ export const useShopify = () => {
     refreshConnection();
   }, [refreshConnection]);
 
+  // Fix circular dependency in fetchProducts and toggleRealDataMode
+  useEffect(() => {
+    // Define this for typechecking
+    interface WindowWithFetchProducts extends Window {
+      __fetchProductsRef?: (forceRefresh: boolean) => Promise<any>;
+    }
+    
+    // Type assertion for window
+    const windowWithFetch = window as WindowWithFetchProducts;
+    
+    // Store a reference to the loadProducts function on window for toggleRealDataMode to use
+    windowWithFetch.__fetchProductsRef = (forceRefresh: boolean = false) => {
+      return loadProducts(forceRefresh);
+    };
+  }, [loadProducts]);
+
   return {
     shopifyStore,
     isLoading,
@@ -576,7 +619,7 @@ export const useShopify = () => {
     shop,
     isConnected,
     products,
-    loadProducts, // Renamed from getProducts to match the component usage
+    loadProducts,
     syncForm,
     tokenError,
     tokenExpired,
@@ -586,7 +629,9 @@ export const useShopify = () => {
     toggleFailSafeMode,
     emergencyReset,
     isNetworkError,
-    testConnection
+    testConnection,
+    forceRealData,
+    toggleRealDataMode
   };
 };
 

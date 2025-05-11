@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for Shopify integration
  */
@@ -104,4 +103,11 @@ export function cleanShopifyDomain(shop: string): string {
   }
   
   return cleanedShop;
+}
+
+// Add this to the global Window interface
+declare global {
+  interface Window {
+    __fetchProductsRef?: (forceRefresh: boolean) => Promise<any>;
+  }
 }
