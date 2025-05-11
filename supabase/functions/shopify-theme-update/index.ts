@@ -227,8 +227,8 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   const formIdShort = formId.substring(0, 8);
   const actualBlockId = blockId || `codform_${formIdShort}`;
   
-  // We need to use the full app block path format for OS2.0 themes
-  const appBlockType = "theme-extension-codform.codform_form";
+  // We need to use the correct fully qualified block type for OS2.0 themes
+  const appBlockType = "codform_form";
   
   // Add our app block - first check if it's already there
   let blockOrder = productSection.blocks_order || [];
@@ -255,7 +255,7 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Set/update the block definition using the correct app block format
+  // Set/update the block definition using the correct app block format for OS 2.0
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
     settings: {
@@ -577,4 +577,3 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     snippet: 'codform.liquid'
   };
 }
-

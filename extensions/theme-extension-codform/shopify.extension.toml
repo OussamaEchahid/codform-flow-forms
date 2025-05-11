@@ -14,3 +14,12 @@ fields = [
     { value = "manual", label = { en = "Manual insertion", ar = "إدراج يدوي" } }
   ], default = "auto" }
 ]
+
+[[extensions.blocks]]
+name = "نموذج الدفع عند الاستلام"
+handle = "codform_form"
+type = "product"
+target = "section"
+
+[extensions.settings]
+# Global extension settings
