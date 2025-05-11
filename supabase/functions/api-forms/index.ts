@@ -94,14 +94,15 @@ serve(async (req) => {
 
     console.log('Successfully fetched form:', formData.title, 'ID:', formId)
 
-    // Transform form data to the expected format
+    // Transform form data to the expected format, optimizing for size
     const transformedData = transformFormData(formData)
     
-    // Return the form data
+    // Return the form data with proper caching headers
     return new Response(JSON.stringify(transformedData), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
       },
       status: 200,
     })
@@ -124,7 +125,12 @@ serve(async (req) => {
 
 // Function to transform form data into a structure that's easier to use in the frontend
 function transformFormData(formData) {
-  console.log('Transform function received data type:', typeof formData)
+  // Only log brief info in production to reduce function size
+  if (Deno.env.get('SUPABASE_ENV') !== 'development') {
+    console.log(`Transform function received form: ${formData.id}, title: ${formData.title}`);
+  } else {
+    console.log('Transform function received data type:', typeof formData);
+  }
   
   if (!formData || !formData.data) {
     return {
@@ -138,52 +144,32 @@ function transformFormData(formData) {
 
   const data = formData.data
   
-  console.log('Form data array length:', Array.isArray(data) ? data.length : 'not an array')
-  
-  // Log a portion of the raw form data structure
-  console.log('Raw form data structure:', JSON.stringify(data).substring(0, 500) + '...')
+  // In production environment, skip verbose logging
+  if (Deno.env.get('SUPABASE_ENV') === 'development') {
+    console.log('Form data array length:', Array.isArray(data) ? data.length : 'not an array');
+    console.log('Raw form data structure:', JSON.stringify(data).substring(0, 500) + '...');
+  }
   
   // Check if form has steps
   const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields))
-  console.log('Form has steps:', hasSteps)
   
-  let transformedFields = []
+  if (Deno.env.get('SUPABASE_ENV') === 'development') {
+    console.log('Form has steps:', hasSteps);
+  }
   
-  if (hasSteps) {
-    // Process multi-step form
-    console.log('Processing as multi-step form')
-    data.forEach((step, stepIndex) => {
-      // Add a step marker field
-      transformedFields.push({
-        id: step.id || `step-${stepIndex}`,
-        type: 'step',
-        label: step.title || `Step ${stepIndex + 1}`,
-        stepIndex: stepIndex,
-        isStep: true
-      })
-      
-      // Process fields in this step
-      if (step.fields && Array.isArray(step.fields)) {
-        step.fields.forEach(field => {
-          transformedFields.push({
-            ...field,
-            stepId: step.id,
-            stepTitle: step.title,
-            stepIndex: stepIndex
-          })
-        })
+  let transformedFields = [];
+  
+  try {
+    if (hasSteps) {
+      // Process multi-step form
+      if (Deno.env.get('SUPABASE_ENV') === 'development') {
+        console.log('Processing as multi-step form');
       }
-    })
-  } else {
-    // Process single-step form with nested fields structure
-    console.log('Processing as single-step form with nested fields structure')
-    let totalFields = 0
-    
-    if (Array.isArray(data) && data.length > 0) {
+      
       data.forEach((step, stepIndex) => {
         // Add a step marker field
         transformedFields.push({
-          id: step.id || `${stepIndex + 1}`,
+          id: step.id || `step-${stepIndex}`,
           type: 'step',
           label: step.title || `Step ${stepIndex + 1}`,
           stepIndex: stepIndex,
@@ -195,28 +181,77 @@ function transformFormData(formData) {
           step.fields.forEach(field => {
             transformedFields.push({
               ...field,
-              stepId: step.id || `${stepIndex + 1}`,
-              stepTitle: step.title || `Step ${stepIndex + 1}`,
+              stepId: step.id,
+              stepTitle: step.title,
               stepIndex: stepIndex
             })
-            totalFields++
           })
         }
       })
+    } else {
+      // Process single-step form with nested fields structure
+      if (Deno.env.get('SUPABASE_ENV') === 'development') {
+        console.log('Processing as single-step form with nested fields structure');
+      }
+      
+      let totalFields = 0;
+      
+      if (Array.isArray(data) && data.length > 0) {
+        data.forEach((step, stepIndex) => {
+          // Add a step marker field
+          transformedFields.push({
+            id: step.id || `${stepIndex + 1}`,
+            type: 'step',
+            label: step.title || `Step ${stepIndex + 1}`,
+            stepIndex: stepIndex,
+            isStep: true
+          })
+          
+          // Process fields in this step
+          if (step.fields && Array.isArray(step.fields)) {
+            step.fields.forEach(field => {
+              transformedFields.push({
+                ...field,
+                stepId: step.id || `${stepIndex + 1}`,
+                stepTitle: step.title || `Step ${stepIndex + 1}`,
+                stepIndex: stepIndex
+              })
+              totalFields++;
+            })
+          }
+        })
+      }
+      
+      if (Deno.env.get('SUPABASE_ENV') === 'development') {
+        console.log('Transformed', totalFields, 'total fields');
+        
+        // Log the first and second fields for debugging
+        if (transformedFields.length > 0) {
+          console.log('First field:', JSON.stringify(transformedFields[0]));
+        }
+        if (transformedFields.length > 1) {
+          console.log('Second field:', JSON.stringify(transformedFields[1]));
+        }
+      }
     }
-    
-    console.log('Transformed', totalFields, 'total fields')
-    
-    // Log the first and second fields for debugging
-    if (transformedFields.length > 0) {
-      console.log('First field:', JSON.stringify(transformedFields[0]))
-    }
-    if (transformedFields.length > 1) {
-      console.log('Second field:', JSON.stringify(transformedFields[1]))
-    }
+  } catch (error) {
+    console.error('Error transforming form data:', error.message);
+    // Return basic form data if transformation fails
+    return {
+      id: formData.id,
+      title: formData.title,
+      description: formData.description,
+      primaryColor: formData.primary_color || '#9b87f5',
+      error: 'Error transforming form data',
+      fields: []
+    };
   }
   
-  console.log('Transformed', transformedFields.length, 'fields for the form')
+  if (Deno.env.get('SUPABASE_ENV') === 'development') {
+    console.log('Transformed', transformedFields.length, 'fields for the form');
+  } else {
+    console.log(`Transformed ${transformedFields.length} fields for form: ${formData.id}`);
+  }
   
   return {
     id: formData.id,

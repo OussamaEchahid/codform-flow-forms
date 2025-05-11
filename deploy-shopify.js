@@ -44,6 +44,13 @@ function findRootDirectory() {
 function validateExtensions(rootDir) {
   console.log('Validating extensions structure...');
   
+  // Run the separate validation script
+  try {
+    require('./validate-shopify-extensions');
+  } catch (error) {
+    console.error('Error running validation script:', error.message);
+  }
+  
   // Check if the app has the extensions section in shopify.app.toml
   const appConfigPath = path.join(rootDir, 'shopify.app.toml');
   if (fs.existsSync(appConfigPath)) {
@@ -65,6 +72,19 @@ function validateExtensions(rootDir) {
       const blockFiles = fs.readdirSync(blocksDir);
       console.log(`✓ Found ${blockFiles.length} blocks in theme extension`);
     }
+    
+    // Check JS file size
+    const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
+    if (fs.existsSync(jsFilePath)) {
+      const stats = fs.statSync(jsFilePath);
+      const fileSizeInBytes = stats.size;
+      if (fileSizeInBytes > 10000) {
+        console.warn(`⚠️ Warning: codform.js is ${fileSizeInBytes} bytes, which exceeds the 10KB limit`);
+        console.warn('Consider running the optimize-theme-js.js script before deployment');
+      } else {
+        console.log(`✓ codform.js size is ${fileSizeInBytes} bytes (within limits)`);
+      }
+    }
   } else {
     console.warn('⚠️ Warning: theme-extension-codform not found or missing configuration file');
   }
@@ -74,15 +94,50 @@ function validateExtensions(rootDir) {
   if (fs.existsSync(uiExtPath)) {
     console.log('✓ Found UI extension: admin-action-extension');
     
+    // Check for package.json
+    const pkgPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'package.json');
+    if (!fs.existsSync(pkgPath)) {
+      console.warn('⚠️ Warning: admin-action-extension is missing package.json file');
+    } else {
+      console.log('✓ admin-action-extension has package.json file');
+    }
+    
     // Check for extension_points vs. extensions.targeting
     const uiExtConfig = fs.readFileSync(uiExtPath, 'utf8');
     if (!uiExtConfig.includes('[extension_points]') && uiExtConfig.includes('[[extensions.targeting]]')) {
       console.warn('⚠️ Warning: UI extension is using [[extensions.targeting]] which may be outdated');
       console.warn('Consider updating to [extension_points] format');
     }
+  } else {
+    console.warn('⚠️ Warning: admin-action-extension not found or missing configuration file');
   }
   
   console.log('Extension validation complete');
+}
+
+// Optimize JS if needed
+function optimizeThemeJs(rootDir, force = false) {
+  const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
+  
+  if (!fs.existsSync(jsFilePath)) {
+    console.log('No codform.js file found to optimize');
+    return;
+  }
+  
+  const stats = fs.statSync(jsFilePath);
+  const fileSizeInBytes = stats.size;
+  
+  if (fileSizeInBytes > 10000 || force) {
+    console.log(`codform.js size is ${fileSizeInBytes} bytes, running optimization...`);
+    try {
+      // Run the optimization script
+      require('./optimize-theme-js');
+    } catch (error) {
+      console.error('Error running optimization script:', error.message);
+    }
+  } else {
+    console.log(`codform.js size is ${fileSizeInBytes} bytes (within limits), skipping optimization`);
+  }
 }
 
 // Main function
@@ -92,6 +147,8 @@ function main() {
     const args = process.argv.slice(2);
     let rootDir;
     let command = 'deploy';
+    let skipOptimize = false;
+    let forceOptimize = false;
     
     // Check for --path argument
     const pathArgIndex = args.findIndex(arg => arg === '--path' || arg === '-p');
@@ -102,6 +159,20 @@ function main() {
     } else {
       // Auto-detect path
       rootDir = findRootDirectory();
+    }
+    
+    // Check for --skip-optimize argument
+    const skipOptimizeIndex = args.findIndex(arg => arg === '--skip-optimize');
+    if (skipOptimizeIndex !== -1) {
+      skipOptimize = true;
+      args.splice(skipOptimizeIndex, 1);
+    }
+    
+    // Check for --force-optimize argument
+    const forceOptimizeIndex = args.findIndex(arg => arg === '--force-optimize');
+    if (forceOptimizeIndex !== -1) {
+      forceOptimize = true;
+      args.splice(forceOptimizeIndex, 1);
     }
     
     // Check if the app config file exists in the detected directory
@@ -124,6 +195,11 @@ function main() {
     // Validate extensions before deployment
     if (command === 'deploy' || command === 'deploy-extensions') {
       validateExtensions(rootDir);
+      
+      // Optimize JS files if needed and not skipped
+      if (!skipOptimize) {
+        optimizeThemeJs(rootDir, forceOptimize);
+      }
     }
     
     // Execute the appropriate Shopify command
@@ -162,6 +238,11 @@ function main() {
         console.log('Validating extension structure without deployment...');
         validateExtensions(rootDir);
         console.log('Validation complete - fix any warnings before deploying');
+        return;
+        
+      case 'optimize':
+        console.log('Optimizing theme JS files...');
+        optimizeThemeJs(rootDir, true);
         return;
         
       default:

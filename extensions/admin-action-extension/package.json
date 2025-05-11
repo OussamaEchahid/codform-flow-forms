@@ -1,0 +1,7 @@
+
+{
+  "name": "admin-action-extension",
+  "version": "1.0.0",
+  "main": "src/ActionExtension.jsx",
+  "license": "UNLICENSED"
+}
