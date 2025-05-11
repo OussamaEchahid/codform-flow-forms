@@ -1,4 +1,3 @@
-
 // Shopify Theme Updater Edge Function
 // Updates product template to automatically insert form block
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
@@ -216,8 +215,23 @@ async function updateJsonTemplate(shop: string, accessToken: string, themeId: st
     
     if (existingFormSectionId) {
       console.log(`Found existing form section with ID: ${existingFormSectionId}, updating it`);
-      // Just update the existing section to reference our snippet
-      (sections[existingFormSectionId] as any).template = snippetName;
+      
+      // For existing section, we'll modify its settings but keep the same section type
+      if ((sections[existingFormSectionId] as any).type) {
+        // Keep the existing section type, just update the snippet reference
+        (sections[existingFormSectionId] as any).settings = {
+          ...(sections[existingFormSectionId] as any).settings,
+          snippet: snippetName,
+          heading: "اطلب المنتج الآن - الدفع عند الاستلام",
+          subheading: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+        };
+      } else {
+        // If it doesn't have a type, it's likely our custom section format
+        (sections[existingFormSectionId] as any).settings = {
+          ...(sections[existingFormSectionId] as any).settings,
+          snippet: snippetName
+        };
+      }
     } else {
       console.log('Adding new form section to template');
       
@@ -235,17 +249,19 @@ async function updateJsonTemplate(shop: string, accessToken: string, themeId: st
         }
       }
       
-      // Create a new section using the include tag approach
+      // Create a new section - using the custom snippet renderer type if available
+      // This is a better approach than using "include" type
       const formSectionId = `codform-${Date.now()}`;
       
-      // For modern Shopify themes, we need to use proper section reference
+      // IMPORTANT: Fix - Use a standard section type like "custom-liquid"
+      // instead of "include" which caused the error
       sections[formSectionId] = {
-        type: "include", // Using include type instead of snippet
+        type: "custom-liquid", // Using custom-liquid type which is commonly available
         settings: {
-          title: "اطلب المنتج الآن - الدفع عند الاستلام",
-          description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
-        },
-        template: snippetName // Reference to our snippet
+          custom_liquid: `{% include '${snippetName}' %}`,
+          heading: "اطلب المنتج الآن - الدفع عند الاستلام",
+          subheading: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+        }
       };
       
       // Add section to the appropriate location in the order
@@ -323,6 +339,13 @@ async function updateJsonTemplate(shop: string, accessToken: string, themeId: st
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Error response updating JSON template: ${errorText}`);
+      
+      // If there's an error with our approach, try an alternative approach
+      if (errorText.includes('Section type')) {
+        console.log('Attempting alternative approach for JSON template...');
+        return await updateJsonTemplateAlternative(shop, accessToken, themeId, template, snippetName, position);
+      }
+      
       throw new Error(`Failed to update JSON template: ${response.status} ${errorText}`);
     }
 
@@ -331,6 +354,212 @@ async function updateJsonTemplate(shop: string, accessToken: string, themeId: st
   } catch (error) {
     console.error('Error updating JSON template:', error);
     throw error;
+  }
+}
+
+// Alternative approach for updating JSON templates
+async function updateJsonTemplateAlternative(shop: string, accessToken: string, themeId: string, template: any,
+  snippetName: string, position: string): Promise<boolean> {
+  
+  console.log(`Using alternative approach for JSON template: ${template.key}`);
+  
+  try {
+    const content = template.content;
+    
+    // Create section ID
+    const formSectionId = `codform-${Date.now()}`;
+    
+    // Use a more compatible section definition
+    // For Dawn theme, "custom-liquid" is the most reliable section type
+    content.sections = content.sections || {};
+    content.sections[formSectionId] = {
+      type: "custom-liquid",
+      settings: {
+        custom_liquid: `{% include '${snippetName}' %}`,
+        title: "اطلب المنتج الآن - الدفع عند الاستلام",
+        text: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+      }
+    };
+    
+    // Add to order array if it exists
+    if (content.order && Array.isArray(content.order)) {
+      // Find a good position for insertion - after the main product section if possible
+      let insertAt = content.order.length; // default to end
+      
+      // Look for main product section
+      const mainProductIndex = content.order.findIndex(id => {
+        const section = content.sections[id];
+        return section && (
+          section.type === 'main-product' || 
+          id === 'main-product' || 
+          id.includes('product')
+        );
+      });
+      
+      if (mainProductIndex !== -1) {
+        // Insert after the main product section
+        insertAt = mainProductIndex + 1;
+      }
+      
+      // Insert the section ID at the determined position
+      content.order.splice(insertAt, 0, formSectionId);
+    } else {
+      // Create order array if it doesn't exist
+      content.order = [formSectionId];
+    }
+    
+    // Update the template
+    const response = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        asset: {
+          key: template.key,
+          value: JSON.stringify(content)
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Alternative approach also failed: ${errorText}`);
+      
+      // Final fallback - direct template insertion of liquid
+      console.log('Attempting direct liquid template insertion as final fallback');
+      return await updateTemplateWithDirectLiquid(shop, accessToken, themeId, template, snippetName);
+    }
+    
+    console.log('Alternative JSON update successful!');
+    return true;
+  } catch (error) {
+    console.error('Error in alternative JSON update:', error);
+    throw error;
+  }
+}
+
+// Last resort approach - directly inject liquid include
+async function updateTemplateWithDirectLiquid(shop: string, accessToken: string, themeId: string, template: any, 
+  snippetName: string): Promise<boolean> {
+  
+  console.log('Using direct liquid insertion as fallback');
+  
+  try {
+    // Create a new liquid section that just includes our snippet
+    const sectionName = `codform-section-${Date.now()}`;
+    const sectionKey = `sections/${sectionName}.liquid`;
+    const sectionContent = `
+<div class="page-width">
+  <div class="section-{{ section.id }}-padding">
+    <h2>{{ section.settings.heading }}</h2>
+    <div>{{ section.settings.text }}</div>
+    {% include '${snippetName}' %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "CodForm Embed",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "اطلب المنتج الآن - الدفع عند الاستلام",
+      "label": "عنوان النموذج"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "default": "<p>املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.</p>",
+      "label": "وصف النموذج"
+    }
+  ],
+  "presets": [
+    {
+      "name": "CodForm Embed",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}
+`;
+
+    // Create the section
+    const createResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        asset: {
+          key: sectionKey,
+          value: sectionContent
+        }
+      })
+    });
+    
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error(`Failed to create liquid section: ${errorText}`);
+      return false;
+    }
+    
+    console.log('Created custom section for form embed');
+    
+    // Now update the template to use our new section
+    if (template.isJson) {
+      const content = template.content;
+      
+      // Add our section to the template
+      content.sections = content.sections || {};
+      content.sections[sectionName] = {
+        type: sectionName,
+        settings: {
+          heading: "اطلب المنتج الآن - الدفع عند الاستلام",
+          text: "<p>املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.</p>"
+        }
+      };
+      
+      // Add to order array
+      if (content.order && Array.isArray(content.order)) {
+        content.order.push(sectionName);
+      } else {
+        content.order = [sectionName];
+      }
+      
+      // Update the template
+      const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken
+        },
+        body: JSON.stringify({
+          asset: {
+            key: template.key,
+            value: JSON.stringify(content)
+          }
+        })
+      });
+      
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error(`Failed with final fallback approach: ${errorText}`);
+        return false;
+      }
+      
+      console.log('Final fallback approach successful!');
+      return true;
+    } else {
+      // For liquid templates, call updateLiquidTemplate
+      return await updateLiquidTemplate(shop, accessToken, themeId, template, snippetName, 'after_buy_buttons');
+    }
+  } catch (error) {
+    console.error('Error in direct liquid insertion fallback:', error);
+    return false;
   }
 }
 
@@ -563,7 +792,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
         errorDetails: error instanceof Error ? error.stack : null
       }),
       { 
