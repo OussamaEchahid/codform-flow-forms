@@ -8,6 +8,8 @@ export interface FormState {
   data: any[];
   isPublished: boolean;
   shop_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface FormStore {

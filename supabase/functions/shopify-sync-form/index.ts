@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface SyncFormRequest {
   formId: string;
@@ -64,10 +64,17 @@ serve(async (req: Request) => {
       });
     }
 
-    // Update form with shop_id if needed
+    // Log form details
+    console.log(`Form found: "${formData.title}", current published status: ${formData.is_published}`);
+
+    // Update form with shop_id and ensure it's published for use in the theme
     const { error: formUpdateError } = await supabase
       .from('forms')
-      .update({ shop_id: shop })
+      .update({ 
+        shop_id: shop,
+        is_published: true, // Always ensure the form is published when synced with a shop
+        updated_at: new Date().toISOString()
+      })
       .eq('id', formId);
     
     if (formUpdateError) {
@@ -80,8 +87,17 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } else {
-      console.log(`Form ${formId} updated with shop_id ${shop}`);
+      console.log(`Form ${formId} updated with shop_id ${shop} and published successfully`);
     }
+
+    // Verify form is now published
+    const { data: updatedForm } = await supabase
+      .from('forms')
+      .select('is_published')
+      .eq('id', formId)
+      .single();
+      
+    console.log(`Form published status after sync: ${updatedForm?.is_published}`);
 
     // If we have product settings
     if (settings?.products && settings.products.length > 0) {
@@ -101,7 +117,9 @@ serve(async (req: Request) => {
         product_id: productId,
         shop_id: shop,
         block_id: settings.blockId || null,
-        enabled: true
+        enabled: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }));
       
       const { error: insertError } = await supabase
@@ -126,7 +144,8 @@ serve(async (req: Request) => {
       success: true,
       message: 'Form synced with Shopify successfully',
       form_id: formId,
-      shop: shop
+      shop: shop,
+      is_published: true
     }), { 
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -19,7 +19,11 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   
   return (
     <div className="form-control mb-4">
-      <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+      <label 
+        className="form-label mb-2 block" 
+        style={{ color: fieldStyle.color }}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      >
         {field.label}
         {field.required && <span className="text-red-500 mr-1">*</span>}
       </label>
@@ -30,9 +34,15 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
         disabled
       >
         {field.options?.map((option, index) => (
-          <div key={index} className="flex items-center space-x-2">
-            <RadioGroupItem value={option} />
-            <label className="text-sm">{option}</label>
+          <div key={index} className={`flex items-center ${language === 'ar' ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}>
+            <RadioGroupItem value={option} id={`option-${field.id}-${index}`} />
+            <label 
+              htmlFor={`option-${field.id}-${index}`} 
+              className="text-sm"
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
+            >
+              {option}
+            </label>
           </div>
         ))}
       </UIRadioGroup>

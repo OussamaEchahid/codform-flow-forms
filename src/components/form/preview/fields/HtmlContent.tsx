@@ -26,9 +26,12 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {field.content ? (
-        <div dangerouslySetInnerHTML={{ __html: field.content }} />
+        <div 
+          className="html-content"
+          dangerouslySetInnerHTML={{ __html: field.content }} 
+        />
       ) : (
-        <p>
+        <p className={language === 'ar' ? 'text-right' : 'text-left'}>
           {language === 'ar' 
             ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
             : 'Add HTML content here. You can add paragraphs, images, links and more.'}

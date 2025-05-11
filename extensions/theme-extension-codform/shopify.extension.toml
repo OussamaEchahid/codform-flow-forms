@@ -6,3 +6,6 @@ handle = "theme-extension-codform"
 [[metafields]]
 namespace = "codform"
 key = "settings"
+
+[settings]
+fields = []

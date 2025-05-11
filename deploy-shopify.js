@@ -58,6 +58,15 @@ function validateExtensions(rootDir) {
   const themeExtPath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'shopify.extension.toml');
   if (fs.existsSync(themeExtPath)) {
     console.log('✓ Found theme extension: theme-extension-codform');
+    
+    // Check if block files exist
+    const blocksDir = path.join(rootDir, 'extensions', 'theme-extension-codform', 'blocks');
+    if (fs.existsSync(blocksDir)) {
+      const blockFiles = fs.readdirSync(blocksDir);
+      console.log(`✓ Found ${blockFiles.length} blocks in theme extension`);
+    }
+  } else {
+    console.warn('⚠️ Warning: theme-extension-codform not found or missing configuration file');
   }
   
   // Validate UI extension
