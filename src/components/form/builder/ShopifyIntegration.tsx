@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +11,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useShopify } from '@/hooks/useShopify';
+import { useShopify, ShopifyFormPosition } from '@/hooks/useShopify';
 import { toast } from 'sonner';
 import { useFormStore } from '@/hooks/useFormStore';
 import {
@@ -89,7 +88,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
-  const [position, setPosition] = useState<string>('after_buy_buttons');
+  const [position, setPosition] = useState<ShopifyFormPosition>('after_buy_buttons');
   const [existingSettings, setExistingSettings] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [copySuccess, setCopySuccess] = useState(false);
@@ -129,7 +128,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         
         // Use position if available
         if (data[0].position) {
-          setPosition(data[0].position);
+          setPosition(data[0].position as ShopifyFormPosition);
         }
       }
     } catch (error) {
@@ -462,7 +461,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             </Label>
             <Select
               value={position}
-              onValueChange={setPosition}
+              onValueChange={(val) => setPosition(val as ShopifyFormPosition)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={language === 'ar' ? 'اختر موقعًا...' : 'Select a position...'} />

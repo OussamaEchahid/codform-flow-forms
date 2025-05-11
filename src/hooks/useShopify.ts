@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -6,13 +5,17 @@ import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 
+// Define the position type to be used consistently throughout the component
+export type ShopifyFormPosition = 
+  'product-page' | 'cart-page' | 'checkout' | 
+  'after_gallery' | 'before_description' | 'after_description' | 
+  'before_buy_buttons' | 'after_buy_buttons';
+
 interface ShopifyFormSync {
   formId: string;
   shopDomain?: string;
   settings?: {
-    position?: 'product-page' | 'cart-page' | 'checkout' | 
-              'after_gallery' | 'before_description' | 'after_description' | 
-              'before_buy_buttons' | 'after_buy_buttons';
+    position?: ShopifyFormPosition;
     blockId?: string;
     products?: string[];
     updateTemplate?: boolean;  // Flag to indicate we should update the product template
