@@ -26,6 +26,7 @@ import {
   Copy,
   ExternalLink,
   HelpCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
@@ -105,6 +106,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [showInstructions, setShowInstructions] = useState<boolean>(false);
   const [isUpdatingTheme, setIsUpdatingTheme] = useState<boolean>(false);
   const [activationScreen, setActivationScreen] = useState<boolean>(true);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Load existing settings when component mounts
   useEffect(() => {
@@ -207,9 +209,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
 
     setIsUpdatingTheme(true);
+    setUpdateError(null);
 
     try {
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-theme-update', {
+      const response = await shopifySupabase.functions.invoke('shopify-theme-update', {
         body: { 
           shop, 
           accessToken, 
@@ -219,12 +222,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           position: 'product-page'
         }
       });
-
-      if (error) {
-        console.error('Error updating theme:', error);
-        throw new Error(error.message || 'حدث خطأ أثناء تحديث القالب');
+      
+      if (response.error) {
+        console.error('Edge function error:', response.error);
+        throw new Error(response.error.message || 'حدث خطأ أثناء تحديث القالب');
       }
-
+      
+      const data = response.data;
+      
       if (!data.success) {
         throw new Error(data.message || 'فشل تحديث القالب');
       }
@@ -240,6 +245,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       await handleSaveSettings(false);
     } catch (error) {
       console.error('Theme update error:', error);
+      setUpdateError(error.message);
       toast.error(language === 'ar'
         ? `فشل تحديث القالب: ${error.message}` 
         : `Failed to update theme: ${error.message}`);
@@ -572,6 +578,23 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </div>
         </div>
         
+        {updateError && (
+          <Alert className="mb-4 bg-red-50 border-red-200 text-red-800">
+            <AlertTitle className="flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              {language === 'ar' ? 'خطأ أثناء التفعيل' : 'Activation Error'}
+            </AlertTitle>
+            <AlertDescription>
+              {updateError}
+              <p className="mt-2 text-sm">
+                {language === 'ar'
+                  ? 'حاول استخدام الإدراج اليدوي بدلاً من ذلك أو اتصل بالدعم الفني.'
+                  : 'Try using manual insertion instead or contact technical support.'}
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-x-3">
           <Button
             onClick={() => setActivationScreen(false)}
@@ -778,6 +801,23 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           {renderThemeCompatibilityInfo()}
 
           {insertionMethod === 'manual' && showInstructions && renderManualInstructions()}
+          
+          {updateError && (
+            <Alert className="my-4 bg-red-50 border-red-200 text-red-800">
+              <AlertTitle className="flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'خطأ أثناء تحديث القالب' : 'Theme Update Error'}
+              </AlertTitle>
+              <AlertDescription>
+                {updateError}
+                <p className="mt-2 text-sm">
+                  {language === 'ar'
+                    ? 'حاول استخدام الإدراج اليدوي بدلاً من ذلك أو اتصل بالدعم الفني.'
+                    : 'Try using manual insertion instead or contact technical support.'}
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
           
           {insertionMethod === 'auto' && (
             <Button

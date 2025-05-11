@@ -17,6 +17,8 @@ interface ThemeUpdateRequest {
 }
 
 serve(async (req: Request) => {
+  console.log("Theme update function started");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -28,12 +30,14 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { shop, accessToken, formId, blockId, position, themeType } = await req.json() as ThemeUpdateRequest;
+    const requestData = await req.json();
+    const { shop, accessToken, formId, blockId, position, themeType } = requestData as ThemeUpdateRequest;
 
-    if (!shop || !accessToken) {
+    if (!shop || !accessToken || !formId) {
+      console.error("Missing required parameters:", { shop, accessToken, formId });
       return new Response(JSON.stringify({
         success: false,
-        message: 'Missing required parameters: shop and accessToken'
+        message: 'Missing required parameters: shop, accessToken and formId'
       }), { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -52,12 +56,13 @@ serve(async (req: Request) => {
     });
 
     if (!themeResponse.ok) {
-      const error = await themeResponse.text();
-      console.error(`Error fetching themes: ${error}`);
+      const errorText = await themeResponse.text();
+      console.error(`Error fetching themes: ${errorText}`);
       return new Response(JSON.stringify({
         success: false,
         message: 'Error fetching themes',
-        error
+        error: errorText,
+        statusCode: themeResponse.status
       }), { 
         status: themeResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -68,6 +73,7 @@ serve(async (req: Request) => {
     const mainTheme = themesData.themes.find((theme: any) => theme.role === 'main');
     
     if (!mainTheme) {
+      console.error("No main theme found");
       return new Response(JSON.stringify({
         success: false,
         message: 'No main theme found'
@@ -95,31 +101,31 @@ serve(async (req: Request) => {
       }
     }
     
-    // Now, let's get the theme's sections first
-    const assetResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!assetResponse.ok) {
-      const error = await assetResponse.text();
-      console.error(`Error fetching settings data: ${error}`);
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Error fetching theme settings',
-        error
-      }), { 
-        status: assetResponse.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Check if theme has OS2.0 features by checking for templates/product.json
+    try {
+      const templateCheckResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.json`, {
+        method: 'GET',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (templateCheckResponse.ok) {
+        // If we can access product.json, it's likely an OS2.0 theme
+        detectedThemeType = 'os2';
+        console.log('Confirmed OS2.0 theme by finding templates/product.json');
+      }
+    } catch (checkError) {
+      console.log('Theme type check error (non-critical):', checkError);
+      // Continue with previously detected theme type
     }
 
     // For OS2.0 themes, update the product template
     if (detectedThemeType === 'os2') {
       try {
+        console.log("Updating OS2.0 theme");
+        
         // Get the product template
         const templateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.json`, {
           method: 'GET',
@@ -130,7 +136,8 @@ serve(async (req: Request) => {
         });
 
         if (!templateResponse.ok) {
-          console.error(`Error fetching product template: ${await templateResponse.text()}`);
+          const errorText = await templateResponse.text();
+          console.error(`Error fetching product template: ${errorText}`);
           throw new Error('Could not fetch product template');
         }
 
@@ -157,7 +164,7 @@ serve(async (req: Request) => {
         // Generate a unique block ID if not provided
         const actualBlockId = blockId || `codform_${formId.substring(0, 8)}`;
         
-        // Create the form block
+        // Create the form block - using the correct app ID for COD Form app
         const formBlock = {
           type: "shopify://apps/codform-flow-forms/blocks/codform_form/theme-extension-codform",
           settings: {
@@ -209,6 +216,8 @@ serve(async (req: Request) => {
           }
         }
         
+        console.log(`Block order after update:`, sectionData.block_order);
+        
         // Update the template
         const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json`, {
           method: 'PUT',
@@ -225,9 +234,9 @@ serve(async (req: Request) => {
         });
 
         if (!updateResponse.ok) {
-          const error = await updateResponse.text();
-          console.error(`Error updating product template: ${error}`);
-          throw new Error(`Failed to update template: ${error}`);
+          const errorText = await updateResponse.text();
+          console.error(`Error updating product template: ${errorText}`);
+          throw new Error(`Failed to update template: ${errorText}`);
         }
         
         console.log('Successfully updated OS2.0 product template');
@@ -278,6 +287,71 @@ serve(async (req: Request) => {
     } else {
       // Traditional theme update logic
       try {
+        console.log("Updating traditional theme");
+        // First check if the theme allows API updates to liquid files
+        let canUpdateLiquidFiles = true;
+        let templateLiquidExists = false;
+        
+        try {
+          // Check if product.liquid exists
+          const templateCheckResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.liquid`, {
+            method: 'GET',
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          templateLiquidExists = templateCheckResponse.ok;
+          console.log(`Template product.liquid exists: ${templateLiquidExists}`);
+          
+          if (!templateLiquidExists) {
+            console.log("Product.liquid not found, checking alternate product template locations");
+            
+            // Check for sections/product-template.liquid (common in older themes)
+            const altTemplateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=sections/product-template.liquid`, {
+              method: 'GET',
+              headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (altTemplateResponse.ok) {
+              console.log("Found alternative product template at sections/product-template.liquid");
+              templateLiquidExists = true;
+            }
+          }
+          
+        } catch (templateCheckError) {
+          console.error("Error checking template:", templateCheckError);
+          canUpdateLiquidFiles = false;
+        }
+        
+        if (!templateLiquidExists) {
+          console.error("No suitable product template found to update");
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'No suitable product template found to update. The theme structure is not compatible with automatic updates.',
+            theme_type: detectedThemeType
+          }), { 
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        if (!canUpdateLiquidFiles) {
+          console.error("Cannot update liquid files, theme may be locked or protected");
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'Theme content cannot be updated automatically. Please use manual insertion method.',
+            theme_type: detectedThemeType
+          }), { 
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
         // For traditional themes, we need to modify the product-template.liquid file
         const templateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.liquid`, {
           method: 'GET',
@@ -288,7 +362,8 @@ serve(async (req: Request) => {
         });
 
         if (!templateResponse.ok) {
-          console.error(`Error fetching traditional product template: ${await templateResponse.text()}`);
+          const errorText = await templateResponse.text();
+          console.error(`Error fetching traditional product template: ${errorText}`);
           throw new Error('Could not fetch traditional product template');
         }
 

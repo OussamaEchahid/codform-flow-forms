@@ -25,16 +25,25 @@ serve(async (req) => {
 
     // Check API key if provided
     const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      // Format: Bearer <token>
-      const token = authHeader.split(' ')[1]
-      
+    const apiKey = req.headers.get('X-API-Key');
+    
+    // Allow both Authorization header and X-API-Key header for backward compatibility
+    if (authHeader || apiKey) {
       try {
+        let token = '';
+        
+        if (authHeader) {
+          // Format: Bearer <token>
+          token = authHeader.split(' ')[1];
+        } else if (apiKey) {
+          token = apiKey;
+        }
+        
         // Verify the token is a valid anon key
         // For this implementation, we just check if it starts with "eyJ" which is common for JWTs
         if (!token || !token.startsWith('eyJ')) {
-          console.error('Invalid API key format provided')
-          throw new Error('Invalid API key')
+          console.error('Invalid API key format provided');
+          throw new Error('Invalid API key');
         }
       } catch (authError) {
         return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
