@@ -262,7 +262,7 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
           
           // Add our form section to the sections object using the snippet approach
           sections[formSectionId] = {
-            type: "liquid",
+            type: "snippet",
             settings: {
               title: "اطلب المنتج الآن - الدفع عند الاستلام",
               description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
@@ -291,7 +291,7 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
           // If we couldn't find a product section, add to a reasonable location
           const formSectionId = `codform-${Date.now()}`;
           sections[formSectionId] = {
-            type: "liquid",
+            type: "snippet",
             settings: {
               title: "اطلب المنتج الآن - الدفع عند الاستلام",
               description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
