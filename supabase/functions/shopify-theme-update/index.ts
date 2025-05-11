@@ -227,8 +227,9 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   const formIdShort = formId.substring(0, 8);
   const actualBlockId = blockId || `codform_${formIdShort}`;
   
-  // We need to use the correct fully qualified block type for OS2.0 themes
-  const appBlockType = "codform_form";
+  // For OS2.0 themes, the block type should be the extension handle followed by the block handle
+  // This is the correct format for theme app extensions with the branding domain prefix
+  const appBlockType = "theme-extension-codform.codform_form";
   
   // Add our app block - first check if it's already there
   let blockOrder = productSection.blocks_order || [];
