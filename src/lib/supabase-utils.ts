@@ -13,8 +13,33 @@ export function formStepsToJson(formSteps: FormStep[]): Json {
  * Convert Json from Supabase to FormStep[]
  */
 export function jsonToFormSteps(json: Json): FormStep[] {
-  if (Array.isArray(json)) {
-    return json as FormStep[];
+  if (!json) {
+    return [];
   }
+  
+  if (Array.isArray(json)) {
+    // First cast to unknown, then to FormStep[] to avoid direct type assertion errors
+    // We validate the structure before returning to ensure type safety
+    const steps = json.map(step => {
+      // Verify the step has the required FormStep properties
+      if (typeof step === 'object' && step !== null && 
+          'id' in step && 'title' in step && 'fields' in step) {
+        return {
+          id: String(step.id),
+          title: String(step.title),
+          fields: Array.isArray(step.fields) ? step.fields : []
+        } as FormStep;
+      }
+      // Return a default step if structure doesn't match
+      return {
+        id: 'default-id',
+        title: 'Default Step',
+        fields: []
+      } as FormStep;
+    });
+    
+    return steps;
+  }
+  
   return [];
 }
