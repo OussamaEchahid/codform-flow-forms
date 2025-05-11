@@ -3,7 +3,6 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/lib/i18n';
-import { Label } from '@/components/ui/label';
 
 interface ShippingOptionsProps {
   field: FormField;
@@ -46,11 +45,11 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) =
         disabled
       >
         {shippingOptions.map((option) => (
-          <div key={option.id} className="flex items-center space-x-2 rtl:space-x-reverse">
-            <RadioGroupItem value={option.id} id={`shipping-${option.id}`} />
+          <div key={option.id} className="flex items-center space-x-2">
+            <RadioGroupItem value={option.id} />
             <div className="flex flex-1 justify-between items-center">
               <div>
-                <Label htmlFor={`shipping-${option.id}`} className="font-medium">{option.name}</Label>
+                <div className="font-medium">{option.name}</div>
                 <div className="text-sm text-gray-500">{option.time}</div>
               </div>
               <div className="font-medium">{option.price}</div>

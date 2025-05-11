@@ -8,7 +8,6 @@ export interface FormState {
   data: any[];
   isPublished: boolean;
   shop_id?: string;
-  submitButtonText?: string; // Added this field
 }
 
 interface FormStore {
@@ -23,8 +22,7 @@ const defaultFormState: FormState = {
   description: '',
   data: [],
   isPublished: false,
-  shop_id: undefined,
-  submitButtonText: 'إرسال الطلب' // Added default value
+  shop_id: undefined
 };
 
 export const useFormStore = create<FormStore>((set) => ({

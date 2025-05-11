@@ -25,27 +25,24 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           borderColor: fieldStyle.borderColor || formStyle.primaryColor || '#9b87f5',
         }}
       >
-        <h3 
-          className="text-lg font-medium mb-2"
-          style={{ color: fieldStyle.color || 'inherit' }}
-        >
+        <h3 className="text-lg font-medium mb-2">
           {field.label || (language === 'ar' ? 'الوقت المتبقي للعرض' : 'Offer ends in')}
         </h3>
-        <div className="flex justify-center gap-4 mt-3" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-          <div className="bg-white p-2 rounded min-w-[60px] shadow-sm">
-            <div className="text-2xl font-bold" style={{ color: formStyle.primaryColor || '#9b87f5' }}>24</div>
+        <div className="flex justify-center gap-4 mt-3">
+          <div className="bg-white p-2 rounded min-w-[60px]">
+            <div className="text-2xl font-bold">24</div>
             <div className="text-xs text-gray-500">
               {language === 'ar' ? 'ساعة' : 'Hours'}
             </div>
           </div>
-          <div className="bg-white p-2 rounded min-w-[60px] shadow-sm">
-            <div className="text-2xl font-bold" style={{ color: formStyle.primaryColor || '#9b87f5' }}>00</div>
+          <div className="bg-white p-2 rounded min-w-[60px]">
+            <div className="text-2xl font-bold">00</div>
             <div className="text-xs text-gray-500">
               {language === 'ar' ? 'دقيقة' : 'Minutes'}
             </div>
           </div>
-          <div className="bg-white p-2 rounded min-w-[60px] shadow-sm">
-            <div className="text-2xl font-bold" style={{ color: formStyle.primaryColor || '#9b87f5' }}>00</div>
+          <div className="bg-white p-2 rounded min-w-[60px]">
+            <div className="text-2xl font-bold">00</div>
             <div className="text-xs text-gray-500">
               {language === 'ar' ? 'ثانية' : 'Seconds'}
             </div>

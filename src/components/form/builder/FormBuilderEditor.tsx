@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -50,7 +51,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [submitButtonText, setSubmitButtonText] = useState('إرسال الطلب');
   
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
@@ -120,8 +120,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         description: formDescription,
         data: [initialFormStep],
         shop_id: shopId,
-        is_published: false,
-        submitButtonText: submitButtonText
+        is_published: false
       }).select();
 
       if (error) {
@@ -137,8 +136,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         description: formDescription,
         data: [initialFormStep],
         isPublished: false,
-        shop_id: shopId,
-        submitButtonText: submitButtonText
+        shop_id: shopId
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -159,13 +157,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           const formData = await loadForm(id);
           
           if (formData) {
-            setFormTitle(formData.title || (language === 'ar' ? 'نموذج جديد' : 'New Form'));
+            setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             setFormElements(
               formData.data?.flatMap(step => step.fields) || []
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
-            setSubmitButtonText(formData.submitButtonText || 'إرسال الطلب');
             
             console.log("Loaded form data:", formData);
           } else {
@@ -216,8 +213,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         title: formTitle,
         description: formDescription,
         data: [formStep],
-        shop_id: shopId,
-        submitButtonText: submitButtonText
+        shop_id: shopId
       };
       
       console.log("Saving form with data:", formData);
@@ -243,8 +239,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             description: formDescription,
             data: [formStep],
             shop_id: shopId,
-            updated_at: new Date().toISOString(),
-            submitButtonText: submitButtonText
+            updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);
         
@@ -490,11 +485,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
-  // Add a handler for submit button text change
-  const handleSubmitButtonTextChange = (text: string) => {
-    setSubmitButtonText(text);
-  };
-
   return (
     <main className="flex-1 overflow-auto">
       <FormHeader 
@@ -519,54 +509,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
           </h2>
-          
-          {/* Form Basic Information Section */}
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-            <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' ? 'معلومات النموذج الأساسية' : 'Form Basic Information'}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
-                  {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-                </label>
-                <input
-                  type="text"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
-                />
-              </div>
-              
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
-                  {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
-                </label>
-                <textarea
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
-                  rows={3}
-                />
-              </div>
-              
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${language === 'ar' ? 'text-right' : ''}`}>
-                  {language === 'ar' ? 'نص زر الإرسال' : 'Submit Button Text'}
-                </label>
-                <input
-                  type="text"
-                  value={submitButtonText}
-                  onChange={(e) => handleSubmitButtonTextChange(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  placeholder={language === 'ar' ? 'أدخل نص زر الإرسال' : 'Enter submit button text'}
-                />
-              </div>
-            </div>
-          </div>
           
           <DndContext 
             sensors={sensors}
@@ -600,7 +542,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
-            submitButtonText={submitButtonText}
           />
         </div>
       </div>

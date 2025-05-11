@@ -3,7 +3,6 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { RadioGroup as UIRadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/lib/i18n';
-import { Label } from '@/components/ui/label';
 
 interface RadioGroupProps {
   field: FormField;
@@ -31,9 +30,9 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
         disabled
       >
         {field.options?.map((option, index) => (
-          <div key={index} className="flex items-center space-x-2 rtl:space-x-reverse">
-            <RadioGroupItem value={option} id={`radio-${field.id}-${index}`} />
-            <Label htmlFor={`radio-${field.id}-${index}`} className="text-sm">{option}</Label>
+          <div key={index} className="flex items-center space-x-2">
+            <RadioGroupItem value={option} />
+            <label className="text-sm">{option}</label>
           </div>
         ))}
       </UIRadioGroup>
