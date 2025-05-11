@@ -1,4 +1,3 @@
-
 // CODFORM - نماذج الدفع عند الاستلام
 // This file handles the form loading and submission in the Shopify store
 
@@ -99,6 +98,7 @@ function initializeForm(container) {
 // Fetch form data from API
 async function fetchForm(formId) {
   try {
+    // Fixed API key that matches the one in the backend
     const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
     
     // Ensure formId is properly formatted
@@ -108,17 +108,22 @@ async function fetchForm(formId) {
     
     console.log(`CODFORM: Fetching form ${formId}`);
     
-    // Fetch from the API
+    // Fetch from the API with proper headers
     const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms/${formId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-API-Key': apiKey
       }
     });
     
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData && errorData.error 
+        ? errorData.error 
+        : `API error: ${response.status} - ${response.statusText}`;
+      
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -131,6 +136,35 @@ async function fetchForm(formId) {
     return data;
   } catch (error) {
     console.error(`CODFORM: Error fetching form ${formId}:`, error);
+    throw error;
+  }
+}
+
+// Submit form data to API
+async function submitFormData(formId, data) {
+  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
+  
+  try {
+    const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-submissions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      },
+      body: JSON.stringify({
+        form_id: formId,
+        data: data
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} - ${errorText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('CODFORM: Error submitting form data:', error);
     throw error;
   }
 }
@@ -611,35 +645,6 @@ function renderField(field) {
   }
   
   return fieldDiv;
-}
-
-// Submit form data to API
-async function submitFormData(formId, data) {
-  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
-  
-  try {
-    const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-submissions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        form_id: formId,
-        data: data
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('CODFORM: Error submitting form data:', error);
-    throw error;
-  }
 }
 
 // Show error message in the form container

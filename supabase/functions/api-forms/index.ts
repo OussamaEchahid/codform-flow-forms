@@ -4,8 +4,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 }
+
+// Define the expected API key - make it consistent across functions
+const VALID_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
 serve(async (req) => {
   // Handle CORS
@@ -28,32 +31,32 @@ serve(async (req) => {
     const apiKey = req.headers.get('X-API-Key');
     
     // Allow both Authorization header and X-API-Key header for backward compatibility
-    if (authHeader || apiKey) {
-      try {
-        let token = '';
-        
-        if (authHeader) {
-          // Format: Bearer <token>
-          token = authHeader.split(' ')[1];
-        } else if (apiKey) {
-          token = apiKey;
-        }
-        
-        // Verify the token is a valid anon key
-        // For this implementation, we just check if it starts with "eyJ" which is common for JWTs
-        if (!token || !token.startsWith('eyJ')) {
-          console.error('Invalid API key format provided');
-          throw new Error('Invalid API key');
-        }
-      } catch (authError) {
-        return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          status: 401,
-        })
+    let isAuthorized = false;
+    let token = '';
+    
+    if (authHeader) {
+      // Format: Bearer <token>
+      token = authHeader.split(' ')[1];
+      if (token === VALID_API_KEY) {
+        isAuthorized = true;
       }
+    } else if (apiKey) {
+      token = apiKey;
+      if (token === VALID_API_KEY) {
+        isAuthorized = true;
+      }
+    }
+    
+    // If API key was provided but is invalid, return an error
+    if (token && !isAuthorized) {
+      console.error('Invalid API key provided:', token);
+      return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 401,
+      });
     }
 
     // Get form ID from URL
