@@ -25,6 +25,9 @@ import {
   Settings,
   Copy,
   ExternalLink,
+  Code,
+  Layers,
+  Puzzle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
@@ -37,6 +40,13 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -79,9 +89,12 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [blockId, setBlockId] = useState<string>('');
+  const [position, setPosition] = useState<string>('after_buy_buttons');
   const [existingSettings, setExistingSettings] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isAutoInserting, setIsAutoInserting] = useState(false);
+  const [autoInsertSuccess, setAutoInsertSuccess] = useState<boolean | null>(null);
 
   // Load existing settings when component mounts
   useEffect(() => {
@@ -112,6 +125,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         // Use the first block ID found (assuming all settings use the same block ID)
         if (data[0].block_id) {
           setBlockId(data[0].block_id);
+        }
+        
+        // Use position if available
+        if (data[0].position) {
+          setPosition(data[0].position);
         }
       }
     } catch (error) {
@@ -154,6 +172,54 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
+  // Handler for auto inserting form into product templates
+  const handleAutoInsert = async () => {
+    if (!actualFormId) {
+      toast.error(language === 'ar' 
+        ? 'يجب حفظ النموذج أولاً قبل إدراجه في قالب المنتج' 
+        : 'You must save the form first before inserting into product template');
+      return;
+    }
+
+    if (!shop) {
+      toast.error(language === 'ar'
+        ? 'لم يتم العثور على متجر Shopify متصل'
+        : 'No connected Shopify store found');
+      return;
+    }
+
+    try {
+      setIsAutoInserting(true);
+      setAutoInsertSuccess(null);
+      
+      // Call syncForm with special flag for template update
+      await syncForm({ 
+        formId: actualFormId,
+        shopDomain: shop,
+        settings: {
+          products: selectedProducts,
+          blockId: blockId,
+          position: position,
+          updateTemplate: true // Special flag to indicate template update
+        }
+      });
+      
+      setAutoInsertSuccess(true);
+      toast.success(language === 'ar' 
+        ? 'تم إدراج النموذج تلقائيًا في قالب المنتج بنجاح!'
+        : 'Form automatically inserted into product template successfully!');
+      
+    } catch (error) {
+      console.error('Error auto-inserting form:', error);
+      setAutoInsertSuccess(false);
+      toast.error(language === 'ar'
+        ? `فشل إدراج النموذج تلقائيًا: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+        : `Failed to auto-insert form: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAutoInserting(false);
+    }
+  };
+
   // Handler for saving product settings
   const handleSaveSettings = async () => {
     if (!actualFormId) {
@@ -188,6 +254,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           product_id: productId,
           shop_id: shop,
           block_id: blockId,
+          position: position,
           enabled: true
         }));
 
@@ -203,10 +270,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (actualFormId) {
           await syncForm({ 
             formId: actualFormId,
-            shopDomain: shop, // Changed from shopifyIntegration.shop to shop
+            shopDomain: shop,
             settings: {
               products: selectedProducts,
-              blockId: blockId
+              blockId: blockId,
+              position: position
             }
           });
           
@@ -215,7 +283,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             await onSave({ 
               formId: actualFormId,
               products: selectedProducts,
-              blockId: blockId 
+              blockId: blockId,
+              position: position
             });
           }
           
@@ -362,6 +431,77 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </p>
         </div>
         
+        {/* Auto-insert feature */}
+        <div className="mb-6 border border-green-200 rounded-lg p-4 bg-green-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center">
+              <Puzzle className="h-5 w-5 mr-2 text-green-600" />
+              <h3 className="font-medium">
+                {language === 'ar' ? 'إدراج تلقائي في صفحة المنتج:' : 'Auto-insert in product page:'}
+              </h3>
+            </div>
+            
+            {autoInsertSuccess !== null && (
+              <Badge variant={autoInsertSuccess ? "success" : "destructive"} className={autoInsertSuccess ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                {autoInsertSuccess 
+                  ? (language === 'ar' ? 'تم بنجاح' : 'Success') 
+                  : (language === 'ar' ? 'فشل' : 'Failed')}
+              </Badge>
+            )}
+          </div>
+          
+          <p className="text-sm text-green-700 mb-3">
+            {language === 'ar' 
+              ? 'أضف النموذج تلقائيًا إلى قالب المنتج في متجرك. سيظهر لجميع المنتجات.'
+              : 'Automatically add this form to your store\'s product template. It will appear for all products.'}
+          </p>
+          
+          <div className="mb-4">
+            <Label htmlFor="position" className="block mb-1">
+              {language === 'ar' ? 'موقع النموذج في الصفحة:' : 'Form position on page:'}
+            </Label>
+            <Select
+              value={position}
+              onValueChange={setPosition}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={language === 'ar' ? 'اختر موقعًا...' : 'Select a position...'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="after_gallery">
+                  {language === 'ar' ? 'بعد معرض الصور' : 'After image gallery'}
+                </SelectItem>
+                <SelectItem value="before_description">
+                  {language === 'ar' ? 'قبل الوصف' : 'Before description'}
+                </SelectItem>
+                <SelectItem value="after_description">
+                  {language === 'ar' ? 'بعد الوصف' : 'After description'}
+                </SelectItem>
+                <SelectItem value="before_buy_buttons">
+                  {language === 'ar' ? 'قبل أزرار الشراء' : 'Before buy buttons'}
+                </SelectItem>
+                <SelectItem value="after_buy_buttons">
+                  {language === 'ar' ? 'بعد أزرار الشراء' : 'After buy buttons'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button
+            onClick={handleAutoInsert}
+            disabled={!actualFormId || isAutoInserting}
+            variant="outline"
+            className="w-full bg-green-100 hover:bg-green-200 text-green-800 border-green-300"
+          >
+            {isAutoInserting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Code className="mr-2 h-4 w-4" />
+            )}
+            {language === 'ar' ? 'إدراج النموذج في قالب المنتج' : 'Insert form into product template'}
+          </Button>
+        </div>
+        
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <ShoppingBag className="h-5 w-5 mr-2 text-green-600" />
@@ -463,9 +603,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <ol className="list-decimal ml-5 space-y-1">
               <li>{language === 'ar' ? 'حدد المنتجات التي ترغب في إضافة النموذج إليها' : 'Select the products you want to add the form to'}</li>
               <li>{language === 'ar' ? 'انقر على "حفظ إعدادات المنتج" أدناه' : 'Click "Save Product Settings" below'}</li>
-              <li>{language === 'ar' ? 'انتقل إلى متجرك واضغط على "تخصيص القالب"' : 'Go to your store and click "Customize Theme"'}</li>
-              <li>{language === 'ar' ? 'ابحث عن "نموذج الدفع عند الاستلام" في الأدوات المساعدة' : 'Look for "COD Form" in the Apps section'}</li>
-              <li>{language === 'ar' ? 'أضف الكتلة وحدد معرف النموذج المعروض أعلاه' : 'Add the block and select the form ID shown above'}</li>
+              <li className="text-green-700 font-medium">
+                {language === 'ar' ? 'أو استخدم زر "إدراج النموذج في قالب المنتج" للإضافة التلقائية!' : 'Or use "Insert form into product template" for automatic insertion!'}
+              </li>
             </ol>
           </AlertDescription>
         </Alert>
