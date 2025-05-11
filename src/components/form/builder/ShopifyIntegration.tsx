@@ -191,6 +191,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       setIsAutoInserting(true);
       setAutoInsertSuccess(null);
       
+      // Show toast that we're starting the process
+      toast.info(language === 'ar'
+        ? 'جاري إدراج النموذج في قالب المنتج...'
+        : 'Inserting form into product template...');
+      
       // Call syncForm with special flag for template update
       await syncForm({ 
         formId: actualFormId,
@@ -436,7 +441,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <div className="flex items-center">
               <Puzzle className="h-5 w-5 mr-2 text-green-600" />
               <h3 className="font-medium">
-                {language === 'ar' ? 'إدراج تلقائي في صفحة المنتج:' : 'Auto-insert in product page:'}
+                {language === 'ar' ? 'إدراج تلقائي ف�� صفحة المنتج:' : 'Auto-insert in product page:'}
               </h3>
             </div>
             

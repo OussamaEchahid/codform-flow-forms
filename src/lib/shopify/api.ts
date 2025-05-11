@@ -425,6 +425,8 @@ class ShopifyAPI {
       const uniqueId = Math.random().toString(36).substring(2, 15);
       const url = `/api/shopify-proxy?t=${timestamp}&rid=${this.requestId}&uid=${uniqueId}`;
       
+      console.log('Calling edge function to update product template');
+      
       // Call Edge Function via proxy
       const response = await fetch(url, {
         method: 'POST',
@@ -448,19 +450,32 @@ class ShopifyAPI {
         cache: 'no-store',
       });
       
+      // Handle non-200 responses
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error updating product template:', errorText);
-        throw new Error(`Failed to update product template: ${response.statusText}`);
+        let errorText;
+        try {
+          const errorData = await response.json();
+          errorText = errorData.error || errorData.message || response.statusText;
+        } catch (e) {
+          errorText = await response.text();
+        }
+        console.error('Error response from theme updater:', errorText);
+        throw new Error(`Failed to update product template (${response.status}): ${errorText}`);
       }
       
       const result = await response.json();
       
       if (!result.success) {
+        console.error('Theme update reported failure:', result);
         throw new Error(`Failed to update product template: ${result.error || 'Unknown error'}`);
       }
       
       console.log('Product template updated successfully', result);
+      
+      // Additional return data for debugging
+      if (result.snippetCreated) {
+        console.log('Created snippet for form embedding');
+      }
     } catch (error) {
       console.error('Error updating product template:', error);
       throw new Error(`Failed to update product template: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -124,6 +124,82 @@ async function getProductTemplate(shop: string, accessToken: string, themeId: st
   }
 }
 
+// Function to create a snippet for form inclusion
+async function createFormSnippet(shop: string, accessToken: string, themeId: string, formId: string, blockId: string): Promise<string> {
+  console.log(`Creating form snippet for form ID: ${formId}`);
+  
+  try {
+    const snippetName = `codform-embed-${formId.substring(0, 8)}`;
+    const snippetKey = `snippets/${snippetName}.liquid`;
+    
+    // Check if snippet already exists
+    const checkResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json?asset[key]=${snippetKey}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+    
+    // If snippet exists, just return the name
+    if (checkResponse.ok) {
+      console.log('Form snippet already exists');
+      return snippetName;
+    }
+    
+    // Create snippet content with both approaches (extension and direct embed)
+    const snippetContent = `
+{% comment %}
+  CodForm Integration Snippet
+  Auto-created for form: ${formId}
+{% endcomment %}
+
+<div id="${blockId || `codform-container-${formId.substring(0, 8)}`}" class="codform-container">
+  {% comment %}First try to use the theme extension if available{% endcomment %}
+  {% if section.theme-extension-codform.codform_form %}
+    {% section 'theme-extension-codform.codform_form' %}
+  {% else %}
+    {% comment %}Fallback to script-based embed{% endcomment %}
+    <script
+      type="text/javascript"
+      src="https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formId}&blockId=${blockId || ''}&shop={{shop.domain}}"
+      defer
+    ></script>
+    <div id="${blockId || `codform-container-${formId.substring(0, 8)}`}-loader" style="text-align: center; padding: 20px;">
+      <p>جاري تحميل النموذج...</p>
+    </div>
+  {% endif %}
+</div>
+`;
+
+    // Create the snippet
+    const createResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${themeId}/assets.json`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        asset: {
+          key: snippetKey,
+          value: snippetContent
+        }
+      })
+    });
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      throw new Error(`Failed to create snippet: ${createResponse.status} ${errorText}`);
+    }
+
+    console.log(`Successfully created form snippet: ${snippetKey}`);
+    return snippetName;
+  } catch (error) {
+    console.error('Error creating form snippet:', error);
+    throw error;
+  }
+}
+
 // Function to update product template to include our form block
 async function updateProductTemplate(shop: string, accessToken: string, themeId: string, 
   template: any, formId: string, blockId: string, position: string): Promise<boolean> {
@@ -134,6 +210,9 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
     let updatedContent;
     const blockIdToUse = blockId || `codform-container-${formId.substring(0, 8)}`;
     
+    // First create a snippet that includes our form (as a fallback approach)
+    const snippetName = await createFormSnippet(shop, accessToken, themeId, formId, blockIdToUse);
+
     if (template.isJson) {
       // Handle JSON template (modern themes)
       const content = template.content;
@@ -141,7 +220,8 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
       // Check if our block is already in the template
       const sections = content.sections || {};
       const alreadyExists = Object.values(sections).some((section: any) => {
-        return section.type === 'theme-extension-codform.codform_form';
+        return (section as any).type?.includes('codform') || 
+               (section as any).template?.includes(snippetName);
       });
       
       if (alreadyExists) {
@@ -149,7 +229,8 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
         
         // Update existing block
         for (const [sectionId, section] of Object.entries(sections)) {
-          if ((section as any).type === 'theme-extension-codform.codform_form') {
+          if ((section as any).type?.includes('codform') || 
+              (section as any).template?.includes(snippetName)) {
             (section as any).settings = {
               ...(section as any).settings || {},
               form_id: formId,
@@ -162,16 +243,9 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
         
         // Find main product section - usually has product reference
         let productSectionId = '';
-        let mainContentSectionOrder = [];
         
         // First, check for the main content layout section
         for (const [sectionId, section] of Object.entries(sections)) {
-          if ((section as any).type === 'main-product') {
-            productSectionId = sectionId;
-            break;
-          }
-          
-          // For Dawn theme structure
           if ((section as any).type === 'main-product' || 
               (section as any).type === 'product-template' ||
               sectionId === 'main' || 
@@ -186,15 +260,15 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
           // Create a new unique section ID for our form
           const formSectionId = `codform-${Date.now()}`;
           
-          // Add our form section to the sections object
+          // Add our form section to the sections object using the snippet approach
           sections[formSectionId] = {
-            type: 'theme-extension-codform.codform_form',
+            type: "liquid",
             settings: {
-              form_id: formId,
-              block_id: blockIdToUse,
-              title: 'اطلب المنتج الآن - الدفع عند الاستلام',
-              description: 'املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.'
-            }
+              title: "اطلب المنتج الآن - الدفع عند الاستلام",
+              description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+            },
+            // Use the snippet as a safer approach
+            template: snippetName
           };
           
           // Get the order array to determine where to place our section
@@ -217,13 +291,12 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
           // If we couldn't find a product section, add to a reasonable location
           const formSectionId = `codform-${Date.now()}`;
           sections[formSectionId] = {
-            type: 'theme-extension-codform.codform_form',
+            type: "liquid",
             settings: {
-              form_id: formId,
-              block_id: blockIdToUse,
-              title: 'اطلب المنتج الآن - الدفع عند الاستلام',
-              description: 'املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.'
-            }
+              title: "اطلب المنتج الآن - الدفع عند الاستلام",
+              description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+            },
+            template: snippetName
           };
           
           // Add to order if it exists
@@ -241,14 +314,14 @@ async function updateProductTemplate(shop: string, accessToken: string, themeId:
       let liquidContent = template.content;
       
       // Check if our block is already in the template
-      if (liquidContent.includes('codform_form')) {
+      if (liquidContent.includes(snippetName) || liquidContent.includes('codform')) {
         console.log('Form block already exists in Liquid template, not modifying');
         return true;
       }
       
       // Define the block to insert
       const formBlock = `
-{% section 'theme-extension-codform.codform_form' %}
+{% include '${snippetName}' %}
 `;
       
       // Look for common insertion points
@@ -371,7 +444,8 @@ Deno.serve(async (req) => {
         theme: {
           id: themeId,
           template: template.key
-        }
+        },
+        snippetCreated: true
       }),
       { 
         headers: { 
@@ -386,7 +460,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message || 'Unknown error',
+        errorDetails: error instanceof Error ? error.stack : null
       }),
       { 
         status: 500,
