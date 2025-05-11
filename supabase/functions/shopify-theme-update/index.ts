@@ -1,43 +1,44 @@
 
+// This function is responsible for updating the Shopify theme to insert the form
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-interface ThemeUpdateRequest {
+interface UpdateThemeRequest {
   shop: string;
   accessToken: string;
   formId: string;
+  insertionMethod?: 'auto' | 'manual';
   blockId?: string;
-  position?: 'product-page' | 'cart-page' | 'checkout';
-  themeType?: 'os2' | 'traditional' | 'auto-detect';
+  themeId?: number;
 }
 
 serve(async (req: Request) => {
-  console.log("Theme update function started");
+  console.log('Theme update function started');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const requestData = await req.json();
-    const { shop, accessToken, formId, blockId, position, themeType } = requestData as ThemeUpdateRequest;
+    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
 
     if (!shop || !accessToken || !formId) {
-      console.error("Missing required parameters:", { shop, formId });
       return new Response(JSON.stringify({
         success: false,
-        message: 'Missing required parameters: shop, accessToken and formId'
+        message: 'Missing required parameters: shop, accessToken, and formId are required'
       }), { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -45,663 +46,526 @@ serve(async (req: Request) => {
     }
 
     console.log(`Updating theme for shop ${shop} with form ${formId}`);
-    
-    // First, detect the current theme ID and type
+
     try {
-      const themeResponse = await fetch(`https://${shop}/admin/api/2023-10/themes.json`, {
-        method: 'GET',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!themeResponse.ok) {
-        const errorText = await themeResponse.text();
-        console.error(`Error fetching themes: ${errorText}`);
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Error fetching themes',
-          error: errorText,
-          statusCode: themeResponse.status
-        }), { 
-          status: themeResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const themesData = await themeResponse.json();
-      if (!themesData || !themesData.themes || themesData.themes.length === 0) {
-        console.error("No themes found or invalid response format");
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'No themes found or invalid response format'
-        }), { 
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      // First, get theme info to determine if we're dealing with OS2.0 or traditional theme
+      let themeType = 'unknown';
+      let targetThemeId = themeId;
       
-      const mainTheme = themesData.themes.find((theme: any) => theme.role === 'main');
-      
-      if (!mainTheme) {
-        console.error("No main theme found");
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'No main theme found'
-        }), { 
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Log theme details
-      console.log(`Found main theme: ${mainTheme.name} (ID: ${mainTheme.id})`);
-      
-      // Determine theme type based on theme name or provided type
-      let detectedThemeType = themeType;
-      
-      if (themeType === 'auto-detect' || !themeType) {
-        // Try to detect theme type based on theme name
-        const themeName = mainTheme.name.toLowerCase();
-        if (themeName.includes('dawn') || themeName.includes('os2') || themeName.includes('online store 2')) {
-          detectedThemeType = 'os2';
-          console.log('Detected theme type: OS2.0');
-        } else {
-          detectedThemeType = 'traditional';
-          console.log('Detected theme type: Traditional');
-        }
-      }
-      
-      // Check if theme has OS2.0 features by checking for templates/product.json
-      let isOs2Theme = detectedThemeType === 'os2';
-      try {
-        const templateCheckResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.json`, {
-          method: 'GET',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json'
-          }
-        });
+      // If no theme ID was provided, find the main theme
+      if (!targetThemeId) {
+        const themes = await getShopifyThemes(shop, accessToken);
+        const mainTheme = themes.find(t => t.role === 'main');
         
-        if (templateCheckResponse.ok) {
-          // If we can access product.json, it's likely an OS2.0 theme
-          isOs2Theme = true;
-          detectedThemeType = 'os2';
-          console.log('Confirmed OS2.0 theme by finding templates/product.json');
+        if (!mainTheme) {
+          throw new Error('No main theme found');
         }
-      } catch (checkError) {
-        console.log('Theme type check error (non-critical):', checkError);
-        // Continue with previously detected theme type
-      }
-
-      // For OS2.0 themes, update the product template
-      if (isOs2Theme) {
-        try {
-          console.log("Updating OS2.0 theme");
-          
-          // Get the product template
-          const templateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.json`, {
-            method: 'GET',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!templateResponse.ok) {
-            const errorText = await templateResponse.text();
-            console.error(`Error fetching product template: ${errorText}`);
-            throw new Error(`Could not fetch product template: ${errorText}`);
-          }
-
-          const templateAsset = await templateResponse.json();
-          if (!templateAsset.asset || !templateAsset.asset.value) {
-            throw new Error('Invalid product template format');
-          }
-
-          // Parse the template JSON
-          const templateData = JSON.parse(templateAsset.asset.value);
-          
-          // Find the main product section
-          const mainSection = templateData.sections && 
-                            Object.keys(templateData.sections).find(key => 
-                              templateData.sections[key].type && 
-                              (templateData.sections[key].type.includes('product') || 
-                               key.includes('main-product') || 
-                               key.includes('product-template')));
-          
-          if (!mainSection) {
-            // Try to find any section that might be related to products
-            const possibleSection = Object.keys(templateData.sections).find(key => 
-              key.includes('product') || 
-              (templateData.sections[key].type && templateData.sections[key].type.includes('product'))
-            );
-            
-            if (possibleSection) {
-              console.log(`Using alternative product section: ${possibleSection}`);
-              const sectionData = templateData.sections[possibleSection];
-              
-              // Generate a unique block ID if not provided
-              const actualBlockId = blockId || `codform_${formId.substring(0, 8)}`;
-              
-              // Create the form block - using the correct app ID for COD Form app
-              const formBlock = {
-                type: "shopify://apps/codform-flow-forms/blocks/codform_form/theme-extension-codform",
-                settings: {
-                  form_id: formId
-                }
-              };
-              
-              // Add our block to the section
-              if (!sectionData.blocks) {
-                sectionData.blocks = {};
-              }
-              
-              // Add our block with a unique key
-              sectionData.blocks[actualBlockId] = formBlock;
-              
-              // Add our block to the block_order array
-              if (!sectionData.block_order || !Array.isArray(sectionData.block_order)) {
-                sectionData.block_order = [];
-              }
-              
-              // Check if our block is already in the order
-              if (!sectionData.block_order.includes(actualBlockId)) {
-                // Add to middle or end
-                const insertIndex = Math.max(1, Math.floor(sectionData.block_order.length / 2));
-                sectionData.block_order.splice(insertIndex, 0, actualBlockId);
-              }
-              
-              // Update the template
-              const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json`, {
-                method: 'PUT',
-                headers: {
-                  'X-Shopify-Access-Token': accessToken,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  asset: {
-                    key: 'templates/product.json',
-                    value: JSON.stringify(templateData)
-                  }
-                })
-              });
-              
-              if (!updateResponse.ok) {
-                const errorText = await updateResponse.text();
-                throw new Error(`Failed to update template: ${errorText}`);
-              }
-              
-              // Save block info to database
-              try {
-                const { error: insertError } = await supabase
-                  .from('shopify_form_insertion')
-                  .upsert({
-                    form_id: formId,
-                    shop_id: shop,
-                    block_id: actualBlockId,
-                    theme_id: mainTheme.id,
-                    theme_type: detectedThemeType,
-                    insertion_method: 'auto',
-                    position: position || 'product-page',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                  }, { onConflict: 'form_id,shop_id' });
-                  
-                if (insertError) {
-                  console.error("Error saving insertion data:", insertError);
-                }
-              } catch (dbError) {
-                console.error("Database error:", dbError);
-              }
-              
-              return new Response(JSON.stringify({
-                success: true,
-                message: 'Successfully updated OS2.0 theme with alternative section',
-                theme_type: detectedThemeType,
-                block_id: actualBlockId
-              }), { 
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              });
-            }
-            
-            throw new Error('Could not find main product section or any suitable alternative');
-          }
-          
-          console.log(`Found main product section: ${mainSection}`);
-          
-          // Generate a unique block ID if not provided
-          const actualBlockId = blockId || `codform_${formId.substring(0, 8)}`;
-          
-          // Create the form block - using the correct app ID for COD Form app
-          const formBlock = {
-            type: "shopify://apps/codform-flow-forms/blocks/codform_form/theme-extension-codform",
-            settings: {
-              form_id: formId
-            }
-          };
-          
-          // Add our block to the section
-          const sectionData = templateData.sections[mainSection];
-          
-          if (!sectionData.blocks) {
-            sectionData.blocks = {};
-          }
-          
-          // Add our block with a unique key
-          sectionData.blocks[actualBlockId] = formBlock;
-          
-          // Add our block to the block_order array, usually after variant_picker or buy_buttons
-          if (!sectionData.block_order || !Array.isArray(sectionData.block_order)) {
-            sectionData.block_order = [];
-          }
-          
-          // Check if our block is already in the order
-          if (!sectionData.block_order.includes(actualBlockId)) {
-            // Find the position where we want to insert our block
-            const buyButtonsIndex = sectionData.block_order.findIndex(block => 
-              block === 'buy_buttons' || block.includes('buy_buttons'));
-            
-            const variantPickerIndex = sectionData.block_order.findIndex(block => 
-              block === 'variant_picker' || block.includes('variant_picker'));
-            
-            let insertIndex = -1;
-            
-            if (buyButtonsIndex !== -1) {
-              // Insert after buy buttons
-              insertIndex = buyButtonsIndex + 1;
-            } else if (variantPickerIndex !== -1) {
-              // Insert after variant picker
-              insertIndex = variantPickerIndex + 1;
-            } else {
-              // If neither found, insert near the middle of the array
-              insertIndex = Math.floor(sectionData.block_order.length / 2);
-            }
-            
-            // Insert our block at the determined position
-            if (insertIndex >= 0) {
-              sectionData.block_order.splice(insertIndex, 0, actualBlockId);
-            } else {
-              // If something went wrong, just append to the end
-              sectionData.block_order.push(actualBlockId);
-            }
-          }
-          
-          console.log(`Block order after update:`, sectionData.block_order);
-          
-          // Update the template
-          const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json`, {
-            method: 'PUT',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              asset: {
-                key: 'templates/product.json',
-                value: JSON.stringify(templateData)
-              }
-            })
-          });
-
-          if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            console.error(`Error updating product template: ${errorText}`);
-            throw new Error(`Failed to update template: ${errorText}`);
-          }
-          
-          console.log('Successfully updated OS2.0 product template');
-          
-          // Save the block ID in the database
-          try {
-            const { error: insertError } = await supabase
-              .from('shopify_form_insertion')
-              .upsert({
-                form_id: formId,
-                shop_id: shop,
-                block_id: actualBlockId,
-                theme_id: mainTheme.id,
-                theme_type: detectedThemeType,
-                insertion_method: 'auto',
-                position: position || 'product-page',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'form_id,shop_id' });
-              
-            if (insertError) {
-              console.error("Error saving insertion data:", insertError);
-            }
-          } catch (dbError) {
-            console.error("Database error:", dbError);
-          }
-
-          return new Response(JSON.stringify({
-            success: true,
-            message: 'Successfully updated OS2.0 theme',
-            theme_type: detectedThemeType,
-            block_id: actualBlockId
-          }), { 
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        } catch (os2Error) {
-          console.error('Error updating OS2.0 theme:', os2Error);
-          return new Response(JSON.stringify({
-            success: false,
-            message: 'Error updating OS2.0 theme',
-            error: os2Error.message
-          }), { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-      } else {
-        // Traditional theme update logic
-        try {
-          console.log("Updating traditional theme");
-          // First check if the theme allows API updates to liquid files
-          let canUpdateLiquidFiles = true;
-          let templateLiquidExists = false;
-          
-          try {
-            // Check if product.liquid exists
-            const templateCheckResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.liquid`, {
-              method: 'GET',
-              headers: {
-                'X-Shopify-Access-Token': accessToken,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            templateLiquidExists = templateCheckResponse.ok;
-            console.log(`Template product.liquid exists: ${templateLiquidExists}`);
-            
-            if (!templateLiquidExists) {
-              console.log("Product.liquid not found, checking alternate product template locations");
-              
-              // Check for sections/product-template.liquid (common in older themes)
-              const altTemplateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=sections/product-template.liquid`, {
-                method: 'GET',
-                headers: {
-                  'X-Shopify-Access-Token': accessToken,
-                  'Content-Type': 'application/json'
-                }
-              });
-              
-              if (altTemplateResponse.ok) {
-                console.log("Found alternative product template at sections/product-template.liquid");
-                templateLiquidExists = true;
-              }
-            }
-            
-          } catch (templateCheckError) {
-            console.error("Error checking template:", templateCheckError);
-            canUpdateLiquidFiles = false;
-          }
-          
-          if (!templateLiquidExists) {
-            console.error("No suitable product template found to update");
-            return new Response(JSON.stringify({
-              success: false,
-              message: 'No suitable product template found to update. The theme structure is not compatible with automatic updates.',
-              theme_type: detectedThemeType
-            }), { 
-              status: 404,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-          }
-          
-          if (!canUpdateLiquidFiles) {
-            console.error("Cannot update liquid files, theme may be locked or protected");
-            return new Response(JSON.stringify({
-              success: false,
-              message: 'Theme content cannot be updated automatically. Please use manual insertion method.',
-              theme_type: detectedThemeType
-            }), { 
-              status: 403,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-          }
-
-          // For traditional themes, we need to modify the product-template.liquid file
-          const templateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json?asset[key]=templates/product.liquid`, {
-            method: 'GET',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!templateResponse.ok) {
-            const errorText = await templateResponse.text();
-            console.error(`Error fetching traditional product template: ${errorText}`);
-            throw new Error('Could not fetch traditional product template');
-          }
-
-          const templateAsset = await templateResponse.json();
-          if (!templateAsset.asset || !templateAsset.asset.value) {
-            throw new Error('Invalid traditional product template format');
-          }
-
-          // Get the template content
-          let templateContent = templateAsset.asset.value;
-          
-          // Generate a unique block ID if not provided
-          const actualBlockId = blockId || `codform_${formId.substring(0, 8)}`;
-          
-          // Create the form snippet to inject
-          const formSnippet = `
-{% comment %}COD Form Auto-Inserted{% endcomment %}
-{% render 'codform-form-renderer', form_id: '${formId}', block_id: '${actualBlockId}' %}
-`;
-
-          // Find a suitable insertion point in the template
-          // Usually after the add to cart button or before the product description
-          const insertionPoints = [
-            '<div class="product-form__buttons">',
-            '{% form \'product\'',
-            '<div class="product-form">',
-            '<div class="product__description">',
-            '<div class="product__info-wrapper">'
-          ];
-          
-          let inserted = false;
-          for (const point of insertionPoints) {
-            if (templateContent.includes(point)) {
-              // Insert our form after this point
-              const index = templateContent.indexOf(point) + point.length;
-              templateContent = 
-                templateContent.substring(0, index) + 
-                formSnippet + 
-                templateContent.substring(index);
-              inserted = true;
-              console.log(`Inserted form at position with marker: ${point}`);
-              break;
-            }
-          }
-          
-          if (!inserted) {
-            // If no known insertion points are found, try to insert before the end of the main content
-            const endPoints = [
-              '</main>',
-              '</div>{% endunless %}',
-              '{% section'
-            ];
-            
-            for (const point of endPoints) {
-              if (templateContent.includes(point)) {
-                const index = templateContent.indexOf(point);
-                templateContent = 
-                  templateContent.substring(0, index) + 
-                  formSnippet + 
-                  templateContent.substring(index);
-                inserted = true;
-                console.log(`Inserted form before end marker: ${point}`);
-                break;
-              }
-            }
-          }
-          
-          if (!inserted) {
-            throw new Error('Could not find suitable insertion point in template');
-          }
-          
-          // Now create the form renderer snippet if it doesn't exist
-          const formRendererContent = `{% comment %}
-  CODFORM - نماذج الدفع عند الاستلام - Form Renderer
-  
-  هذا الملف يقوم بعرض نموذج الدفع عند الاستلام
-{% endcomment %}
-
-{% if form_id %}
-<div id="codform-container-{{ block_id | default: 'default' }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ form_id }}">
-  <div class="codform-header">
-    <h3>{{ block.settings.title | default: "اطلب المنتج الآن - الدفع عند الاستلام" }}</h3>
-    {% if block.settings.description != blank %}
-      <p>{{ block.settings.description | default: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج." }}</p>
-    {% endif %}
-  </div>
-
-  <div class="codform-form-container">
-    <div id="codform-form-loader-{{ block_id | default: 'default' }}" class="codform-loader">
-      <div class="codform-spinner"></div>
-      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
-    </div>
-
-    <div id="codform-form-{{ block_id | default: 'default' }}" class="codform-form" style="display: none;">
-      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
-    </div>
-
-    <div id="codform-success-{{ block_id | default: 'default' }}" class="codform-success" style="display: none;">
-      <div class="codform-success-icon">✓</div>
-      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
-      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
-    </div>
-
-    <div id="codform-error-{{ block_id | default: 'default' }}" class="codform-error" style="display: none;">
-      <div class="codform-error-icon">!</div>
-      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
-      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
-      <button id="codform-retry-{{ block_id | default: 'default' }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
-    </div>
-  </div>
-</div>
-{% endif %}`;
-
-          // Create or update the snippet
-          const snippetResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json`, {
-            method: 'PUT',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              asset: {
-                key: 'snippets/codform-form-renderer.liquid',
-                value: formRendererContent
-              }
-            })
-          });
-
-          if (!snippetResponse.ok) {
-            const error = await snippetResponse.text();
-            console.error(`Error creating form renderer snippet: ${error}`);
-          } else {
-            console.log('Successfully created form renderer snippet');
-          }
-
-          // Update the template
-          const updateResponse = await fetch(`https://${shop}/admin/api/2023-10/themes/${mainTheme.id}/assets.json`, {
-            method: 'PUT',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              asset: {
-                key: 'templates/product.liquid',
-                value: templateContent
-              }
-            })
-          });
-
-          if (!updateResponse.ok) {
-            const error = await updateResponse.text();
-            console.error(`Error updating traditional product template: ${error}`);
-            throw new Error(`Failed to update traditional template: ${error}`);
-          }
-          
-          console.log('Successfully updated traditional product template');
-
-          // Save the block ID in the database
-          try {
-            const { error: insertError } = await supabase
-              .from('shopify_form_insertion')
-              .upsert({
-                form_id: formId,
-                shop_id: shop,
-                block_id: actualBlockId,
-                theme_id: mainTheme.id,
-                theme_type: detectedThemeType,
-                insertion_method: 'auto',
-                position: position || 'product-page',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'form_id,shop_id' });
-              
-            if (insertError) {
-              console.error("Error saving insertion data:", insertError);
-            }
-          } catch (dbError) {
-            console.error("Database error:", dbError);
-          }
-
-          return new Response(JSON.stringify({
-            success: true,
-            message: 'Successfully updated traditional theme',
-            theme_type: detectedThemeType,
-            block_id: actualBlockId
-          }), { 
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-
-        } catch (traditionalError) {
-          console.error('Error updating traditional theme:', traditionalError);
-          return new Response(JSON.stringify({
-            success: false,
-            message: 'Error updating traditional theme',
-            error: traditionalError.message
-          }), { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
+        
+        targetThemeId = mainTheme.id;
+        console.log(`Found main theme: ${mainTheme.name} (ID: ${targetThemeId})`);
       }
       
-    } catch (themeError) {
-      console.error("Error fetching or updating theme:", themeError);
+      // Detect theme type
+      themeType = await detectThemeType(shop, accessToken, targetThemeId);
+      console.log(`Detected theme type: ${themeType}`);
+      
+      let updateResult;
+      
+      if (themeType === 'OS2.0') {
+        // Update OS2.0 theme
+        console.log('Updating OS2.0 theme');
+        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, formId, blockId);
+      } else {
+        // Update traditional theme
+        console.log('Updating traditional theme');
+        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, formId, blockId);
+      }
+
+      // Store insertion information in the database for reference
+      const formIdShort = formId.substring(0, 8);
+      try {
+        // Store insertion meta in a separate table for reference
+        const { error: insertionError } = await supabase
+          .from('shopify_form_insertion')
+          .upsert({
+            shop_id: shop,
+            form_id: formId,
+            theme_id: targetThemeId,
+            theme_type: themeType,
+            insertion_method: insertionMethod,
+            block_id: blockId || `codform_${formIdShort}`,
+            status: 'success',
+            updated_at: new Date().toISOString()
+          }, { 
+            onConflict: 'shop_id,form_id' 
+          });
+        
+        if (insertionError) {
+          console.error('Error saving insertion data:', insertionError);
+        }
+      } catch (dbError) {
+        console.error('Error saving insertion data:', dbError);
+      }
+
+      // Return success
+      return new Response(JSON.stringify({
+        success: true,
+        theme_id: targetThemeId,
+        theme_type: themeType,
+        message: `Form has been added to the theme successfully`,
+        details: updateResult
+      }), { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.error('Error updating theme:', error);
       return new Response(JSON.stringify({
         success: false,
-        message: 'Error fetching or updating theme',
-        error: themeError.message
+        message: error instanceof Error ? error.message : 'Unknown error updating theme'
       }), { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
   } catch (error) {
     console.error('Error in theme update function:', error);
     return new Response(JSON.stringify({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: error instanceof Error ? error.message : 'Internal server error'
     }), { 
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-})
+});
+
+// Helper function to detect theme type
+async function detectThemeType(shop: string, accessToken: string, themeId: number): Promise<string> {
+  try {
+    // Try to fetch product.json template file to check if it exists (OS2.0 themes have this)
+    const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+    
+    const data = await response.json();
+    
+    // If the response has an asset and doesn't have errors, it's likely an OS2.0 theme
+    if (data.asset && !data.errors) {
+      console.log('Confirmed OS2.0 theme by finding templates/product.json');
+      return 'OS2.0';
+    }
+    
+    // Traditional theme
+    return 'Traditional';
+  } catch (error) {
+    console.error('Error detecting theme type:', error);
+    // Default to traditional theme if detection fails
+    return 'Traditional';
+  }
+}
+
+// Helper function to get shop themes
+async function getShopifyThemes(shop: string, accessToken: string): Promise<any[]> {
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes.json`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Failed to get themes: ${response.status} - ${errorData}`);
+  }
+  
+  const data = await response.json();
+  return data.themes || [];
+}
+
+// OS2.0 Theme update function
+async function updateOS2Theme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
+  // For OS2.0 themes, we need to update the product.json template to insert our app block
+  // First, get the template
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Failed to get product template: ${response.status} - ${errorData}`);
+  }
+  
+  const data = await response.json();
+  if (!data.asset || !data.asset.value) {
+    throw new Error('Product template not found or empty');
+  }
+  
+  // Parse the template
+  const template = JSON.parse(data.asset.value);
+  
+  // Find the main product section
+  const productSection = template.sections.main;
+  if (!productSection) {
+    throw new Error('Main product section not found in template');
+  }
+  
+  console.log('Found main product section: main');
+  
+  // Form block ID (ensure it's unique)
+  const formIdShort = formId.substring(0, 8);
+  const actualBlockId = blockId || `codform_${formIdShort}`;
+  
+  // Add our app block - first check if it's already there
+  let blockOrder = productSection.blocks_order || [];
+  
+  // If the block isn't already in the order, add it before the description
+  if (!blockOrder.includes(actualBlockId)) {
+    const descIdx = blockOrder.indexOf('description');
+    if (descIdx !== -1) {
+      // Add before description
+      blockOrder.splice(descIdx, 0, actualBlockId);
+    } else {
+      // Add to the end
+      blockOrder.push(actualBlockId);
+    }
+    
+    // Update blocks_order
+    productSection.blocks_order = blockOrder;
+  }
+  
+  console.log('Block order after update:', JSON.stringify(blockOrder, null, 2));
+  
+  // Add block definition if it doesn't exist
+  if (!productSection.blocks) {
+    productSection.blocks = {};
+  }
+  
+  // Set/update the block definition
+  productSection.blocks[actualBlockId] = {
+    type: "@app",
+    settings: {
+      form_id: formId
+    }
+  };
+  
+  // Update the template
+  const updateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    },
+    body: JSON.stringify({
+      asset: {
+        key: "templates/product.json",
+        value: JSON.stringify(template, null, 2)
+      }
+    })
+  });
+  
+  if (!updateResponse.ok) {
+    const errorData = await updateResponse.text();
+    throw new Error(`Failed to update template: ${updateResponse.status} - ${errorData}`);
+  }
+  
+  console.log('Successfully updated OS2.0 product template');
+  
+  return {
+    block_id: actualBlockId,
+    template: 'product.json',
+    section: 'main'
+  };
+}
+
+// Traditional Theme update function
+async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
+  // For traditional themes, we need to update the product template to include our snippet
+  
+  // First, get the product template
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    }
+  });
+  
+  if (!response.ok) {
+    // Try alternative product template
+    const altResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+    
+    if (!altResponse.ok) {
+      throw new Error('Could not find product template');
+    }
+    
+    const altData = await altResponse.json();
+    if (!altData.asset || !altData.asset.value) {
+      throw new Error('Product template not found or empty');
+    }
+    
+    // Continue with the alternative template
+    return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', altData.asset.value);
+  }
+  
+  const data = await response.json();
+  if (!data.asset || !data.asset.value) {
+    throw new Error('Product template not found or empty');
+  }
+  
+  // Process the template
+  return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', data.asset.value);
+}
+
+// Helper function to process the traditional liquid template
+async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, formId: string, blockId: string, templateKey: string, templateContent: string): Promise<any> {
+  // Generate a block ID if not provided
+  const formIdShort = formId.substring(0, 8);
+  const actualBlockId = blockId || `codform_${formIdShort}`;
+  
+  // Check if our snippet is already included
+  const snippetIncludeString = `{% render 'codform', product: product, form_id: '${formId}', block_id: '${actualBlockId}' %}`;
+  
+  if (templateContent.includes(snippetIncludeString)) {
+    console.log('Snippet already included in template');
+    return {
+      block_id: actualBlockId,
+      template: templateKey,
+      status: 'already_exists'
+    };
+  }
+
+  // Look for common insertion points
+  const addToCartButtonRegex = /<form.*?product-form.*?>|<form.*?action="\/cart\/add".*?>|<form.*?add-to-cart.*?>|\{\%\s*form.*?cart\/add.*?\%\}/i;
+  const priceRegex = /<div.*?product(\-|\s+|\_)price.*?>|\{\{.*?product\.price.*?\}\}|\{\{.*?current\_variant\.price.*?\}\}/i;
+  const variantSelectorRegex = /<select.*?id="product(\-|\s+|\_)select.*?>|<div.*?product(\-|\s+|\_)variant.*?>/i;
+  
+  // Try to insert it before the add to cart button
+  let modifiedContent = '';
+  let insertionPoint = '';
+  
+  if (addToCartButtonRegex.test(templateContent)) {
+    insertionPoint = 'add to cart button';
+    modifiedContent = templateContent.replace(addToCartButtonRegex, match => {
+      return `${snippetIncludeString}\n\n${match}`;
+    });
+  } else if (priceRegex.test(templateContent)) {
+    insertionPoint = 'price element';
+    modifiedContent = templateContent.replace(priceRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
+  } else if (variantSelectorRegex.test(templateContent)) {
+    insertionPoint = 'variant selector';
+    modifiedContent = templateContent.replace(variantSelectorRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
+  } else {
+    // If we couldn't find a good insertion point, add it to the end of the main content area 
+    // which often has a class like "product" or "product-content"
+    const productContainerRegex = /<div.*?class=".*?product.*?".*?>.*?<\/div>/s;
+    
+    if (productContainerRegex.test(templateContent)) {
+      insertionPoint = 'product container';
+      modifiedContent = templateContent.replace(productContainerRegex, match => {
+        // Insert before the closing div
+        const lastDivIndex = match.lastIndexOf('</div>');
+        const start = match.substring(0, lastDivIndex);
+        const end = match.substring(lastDivIndex);
+        return `${start}\n${snippetIncludeString}\n${end}`;
+      });
+    } else {
+      // Last resort - just append to the template
+      modifiedContent = `${templateContent}\n\n${snippetIncludeString}`;
+      insertionPoint = 'end of template';
+    }
+  }
+  
+  // Create the snippet
+  const snippetContent = `{% comment %}
+  CODFORM - نماذج الدفع عند الاستلام
+  
+  هذا المقتطف يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
+{% endcomment %}
+
+{% if product %}
+<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ form_id }}">
+  <div class="codform-header">
+    <h3>{{ block.settings.title | default: "اطلب المنتج الآن - الدفع عند الاستلام" }}</h3>
+    {% if block.settings.description != blank %}
+      <p>{{ block.settings.description }}</p>
+    {% else %}
+      <p>املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.</p>
+    {% endif %}
+  </div>
+
+  <div class="codform-form-container">
+    <div id="codform-form-loader-{{ block_id }}" class="codform-loader">
+      <div class="codform-spinner"></div>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
+    </div>
+
+    <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;">
+      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
+    </div>
+
+    <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;">
+      <div class="codform-success-icon">✓</div>
+      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
+      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
+    </div>
+
+    <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;">
+      <div class="codform-error-icon">!</div>
+      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
+      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
+      <button id="codform-retry-{{ block_id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .codform-container {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+  }
+  
+  .codform-header {
+    margin-bottom: 1rem;
+  }
+  
+  .codform-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
+  }
+  
+  .codform-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #9b87f5;
+    border-radius: 50%;
+    animation: codform-spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  @keyframes codform-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .codform-success, .codform-error {
+    text-align: center;
+    padding: 2rem 0;
+  }
+  
+  .codform-success-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
+  }
+  
+  .codform-error-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #F44336;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
+  }
+  
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+  }
+  
+  .codform-button:hover {
+    opacity: 0.9;
+  }
+</style>
+{% endif %}`;
+  
+  // Upload the snippet
+  const snippetResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    },
+    body: JSON.stringify({
+      asset: {
+        key: "snippets/codform.liquid",
+        value: snippetContent
+      }
+    })
+  });
+  
+  if (!snippetResponse.ok) {
+    const errorData = await snippetResponse.text();
+    throw new Error(`Failed to create snippet: ${snippetResponse.status} - ${errorData}`);
+  }
+  
+  console.log('Successfully created codform snippet');
+  
+  // Upload the modified template
+  const templateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    },
+    body: JSON.stringify({
+      asset: {
+        key: templateKey,
+        value: modifiedContent
+      }
+    })
+  });
+  
+  if (!templateResponse.ok) {
+    const errorData = await templateResponse.text();
+    throw new Error(`Failed to update template: ${templateResponse.status} - ${errorData}`);
+  }
+  
+  console.log(`Successfully updated traditional product template, inserted codform snippet near ${insertionPoint}`);
+  
+  return {
+    block_id: actualBlockId,
+    template: templateKey,
+    insertion_point: insertionPoint,
+    snippet: 'codform.liquid'
+  };
+}

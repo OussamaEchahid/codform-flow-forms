@@ -1,3 +1,4 @@
+
 // CODFORM - نماذج الدفع عند الاستلام
 // This file handles the form loading and submission in the Shopify store
 
@@ -95,10 +96,31 @@ function initializeForm(container) {
   }
 }
 
+// Show error message
+function showError(blockId, errorMessage) {
+  // Hide loader
+  const loaderElement = document.getElementById(`codform-form-loader-${blockId}`);
+  if (loaderElement) loaderElement.style.display = 'none';
+  
+  // Hide form
+  const formContainer = document.getElementById(`codform-form-${blockId}`);
+  if (formContainer) formContainer.style.display = 'none';
+  
+  // Show error
+  const errorElement = document.getElementById(`codform-error-${blockId}`);
+  if (errorElement) {
+    errorElement.style.display = 'block';
+    const errorText = errorElement.querySelector('p') || errorElement.querySelector('h4');
+    if (errorText) {
+      errorText.textContent = errorMessage || 'خطأ في تحميل النموذج';
+    }
+  }
+}
+
 // Fetch form data from API
 async function fetchForm(formId) {
   try {
-    // Fixed API key that matches the one in the backend
+    // Create API key header
     const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
     
     // Ensure formId is properly formatted
@@ -108,13 +130,21 @@ async function fetchForm(formId) {
     
     console.log(`CODFORM: Fetching form ${formId}`);
     
+    // Create headers with both Authorization and X-API-Key
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Authorization', `Bearer ${apiKey}`);
+    headers.append('X-API-Key', apiKey);
+    
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    
     // Fetch from the API with proper headers
-    const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms/${formId}`, {
+    const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms/${formId}?t=${timestamp}&u=${uniqueId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      }
+      headers: headers,
+      cache: 'no-store'
     });
     
     if (!response.ok) {
@@ -145,16 +175,24 @@ async function submitFormData(formId, data) {
   const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
   
   try {
-    const response = await fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-submissions', {
+    // Create headers with both Authorization and X-API-Key
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Authorization', `Bearer ${apiKey}`);
+    headers.append('X-API-Key', apiKey);
+    
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    
+    const response = await fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-submissions?t=${timestamp}&u=${uniqueId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      },
+      headers: headers,
       body: JSON.stringify({
         form_id: formId,
         data: data
-      })
+      }),
+      cache: 'no-store'
     });
     
     if (!response.ok) {
@@ -545,22 +583,36 @@ function renderField(field) {
       select.name = field.name || field.id;
       select.required = field.required || false;
       
-      // Add empty option
-      if (!field.required) {
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.innerText = field.placeholder || 'اختر...';
-        select.appendChild(emptyOption);
+      // Add placeholder option
+      if (field.placeholder) {
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.innerText = field.placeholder;
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        select.appendChild(placeholderOption);
       }
       
       // Add options
       if (field.options && Array.isArray(field.options)) {
         field.options.forEach(option => {
-          const optionEl = document.createElement('option');
-          optionEl.value = option.value || option.label;
-          optionEl.innerText = option.label;
-          optionEl.selected = option.selected || false;
-          select.appendChild(optionEl);
+          const optionElement = document.createElement('option');
+          
+          // Handle option as string or object
+          if (typeof option === 'string') {
+            optionElement.value = option;
+            optionElement.innerText = option;
+          } else {
+            optionElement.value = option.value || '';
+            optionElement.innerText = option.label || option.value || '';
+          }
+          
+          // Check if this option is selected
+          if (field.value === optionElement.value) {
+            optionElement.selected = true;
+          }
+          
+          select.appendChild(optionElement);
         });
       }
       
@@ -568,100 +620,69 @@ function renderField(field) {
       break;
       
     case 'checkbox':
-      const checkboxDiv = document.createElement('div');
-      checkboxDiv.className = 'codform-checkbox';
-      
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.id = field.id;
-      checkbox.name = field.name || field.id;
-      checkbox.required = field.required || false;
-      checkbox.checked = field.checked || false;
-      
-      const checkboxLabel = document.createElement('label');
-      checkboxLabel.setAttribute('for', field.id);
-      checkboxLabel.innerText = field.label || '';
-      
-      checkboxDiv.appendChild(checkbox);
-      checkboxDiv.appendChild(checkboxLabel);
-      fieldDiv.appendChild(checkboxDiv);
-      break;
-      
     case 'radio':
-      if (field.options && Array.isArray(field.options)) {
-        const radioGroup = document.createElement('div');
-        radioGroup.className = 'codform-radio-group';
-        
-        field.options.forEach((option, idx) => {
-          const radioDiv = document.createElement('div');
-          radioDiv.className = 'codform-radio';
-          
-          const radio = document.createElement('input');
-          radio.type = 'radio';
-          radio.id = `${field.id}-${idx}`;
-          radio.name = field.name || field.id;
-          radio.value = option.value || option.label;
-          radio.required = field.required || false;
-          radio.checked = option.selected || false;
-          
-          const radioLabel = document.createElement('label');
-          radioLabel.setAttribute('for', `${field.id}-${idx}`);
-          radioLabel.innerText = option.label;
-          
-          radioDiv.appendChild(radio);
-          radioDiv.appendChild(radioLabel);
-          radioGroup.appendChild(radioDiv);
-        });
-        
-        fieldDiv.appendChild(radioGroup);
-      }
-      break;
+      // Create container for options
+      const optionsContainer = document.createElement('div');
+      optionsContainer.className = `codform-${field.type}-group`;
       
-    case 'html':
-      const htmlDiv = document.createElement('div');
-      htmlDiv.className = 'codform-html';
-      htmlDiv.innerHTML = field.content || '';
-      fieldDiv.appendChild(htmlDiv);
+      // Add options
+      if (field.options && Array.isArray(field.options)) {
+        field.options.forEach((option, index) => {
+          const optionContainer = document.createElement('div');
+          optionContainer.className = `codform-${field.type}-option`;
+          
+          const optionLabel = document.createElement('label');
+          optionLabel.className = `codform-${field.type}-label`;
+          
+          const optionInput = document.createElement('input');
+          optionInput.type = field.type;
+          
+          // Handle option as string or object
+          let optionValue = '';
+          let optionText = '';
+          
+          if (typeof option === 'string') {
+            optionValue = option;
+            optionText = option;
+          } else {
+            optionValue = option.value || '';
+            optionText = option.label || option.value || '';
+          }
+          
+          optionInput.id = `${field.id}-${index}`;
+          optionInput.name = field.name || field.id;
+          
+          if (field.type === 'checkbox') {
+            // For checkboxes, append [] to name to get array of values
+            optionInput.name = (field.name || field.id) + '[]';
+          }
+          
+          optionInput.value = optionValue;
+          
+          // Check if this option is selected
+          if (field.value === optionValue || 
+              (Array.isArray(field.value) && field.value.includes(optionValue))) {
+            optionInput.checked = true;
+          }
+          
+          const optionText2 = document.createTextNode(optionText);
+          
+          optionLabel.appendChild(optionInput);
+          optionLabel.appendChild(optionText2);
+          
+          optionContainer.appendChild(optionLabel);
+          optionsContainer.appendChild(optionContainer);
+        });
+      }
+      
+      fieldDiv.appendChild(optionsContainer);
       break;
       
     default:
-      // Unknown field type, add as text
-      const defaultInput = document.createElement('input');
-      defaultInput.type = 'text';
-      defaultInput.id = field.id;
-      defaultInput.name = field.name || field.id;
-      defaultInput.placeholder = field.placeholder || '';
-      defaultInput.required = field.required || false;
-      
-      fieldDiv.appendChild(defaultInput);
-  }
-  
-  // Add description if available
-  if (field.description) {
-    const description = document.createElement('div');
-    description.className = 'codform-description';
-    description.innerText = field.description;
-    fieldDiv.appendChild(description);
+      const unknownField = document.createElement('p');
+      unknownField.innerText = `نوع الحقل غير مدعوم: ${field.type}`;
+      fieldDiv.appendChild(unknownField);
   }
   
   return fieldDiv;
-}
-
-// Show error message in the form container
-function showError(blockId, message) {
-  console.error('CODFORM Error:', message);
-  
-  // Hide loader
-  const loaderElement = document.getElementById(`codform-form-loader-${blockId}`);
-  if (loaderElement) loaderElement.style.display = 'none';
-  
-  // Show error
-  const errorElement = document.getElementById(`codform-error-${blockId}`);
-  if (errorElement) {
-    const errorMessage = errorElement.querySelector('p');
-    if (errorMessage) {
-      errorMessage.innerText = message || 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.';
-    }
-    errorElement.style.display = 'block';
-  }
 }

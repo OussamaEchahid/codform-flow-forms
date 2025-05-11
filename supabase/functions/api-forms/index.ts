@@ -30,26 +30,44 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     const apiKey = req.headers.get('X-API-Key');
     
+    console.log('Request headers:', {
+      hasAuthHeader: !!authHeader,
+      hasApiKey: !!apiKey,
+      authHeaderStart: authHeader ? authHeader.substring(0, 20) + '...' : 'none'
+    });
+    
     // Allow both Authorization header and X-API-Key header for backward compatibility
     let isAuthorized = false;
     let token = '';
     
     if (authHeader) {
       // Format: Bearer <token>
-      token = authHeader.split(' ')[1];
-      if (token === VALID_API_KEY) {
-        isAuthorized = true;
-      }
-    } else if (apiKey) {
-      token = apiKey;
+      token = authHeader.split(' ')[1] || authHeader;
       if (token === VALID_API_KEY) {
         isAuthorized = true;
       }
     }
     
+    if (apiKey) {
+      if (apiKey === VALID_API_KEY) {
+        isAuthorized = true;
+      }
+    }
+    
+    // Debug authentication
+    console.log('Authentication check:', {
+      isAuthorized,
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0,
+    });
+    
+    // Public access is allowed - we don't require API key for GET requests to form data
+    // This lets the forms be loaded from any Shopify store
+    const isPublicFormFetch = req.method === 'GET';
+    
     // If API key was provided but is invalid, return an error
-    if (token && !isAuthorized) {
-      console.error('Invalid API key provided:', token);
+    if (token && !isAuthorized && !isPublicFormFetch) {
+      console.error('Invalid API key provided:', token.substring(0, 10) + '...');
       return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
         headers: {
           ...corsHeaders,
@@ -61,7 +79,8 @@ serve(async (req) => {
 
     // Get form ID from URL
     const url = new URL(req.url)
-    const formId = url.pathname.split('/').pop()
+    const pathParts = url.pathname.split('/');
+    const formId = pathParts[pathParts.length - 1];
 
     if (!formId) {
       throw new Error('No form ID provided')
@@ -102,7 +121,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       },
       status: 200,
     })
