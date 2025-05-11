@@ -25,6 +25,7 @@ import {
   Settings,
   Copy,
   ExternalLink,
+  HelpCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ShopifyProduct } from '@/lib/shopify/types';
@@ -36,7 +37,22 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -82,6 +98,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [existingSettings, setExistingSettings] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [insertionMethod, setInsertionMethod] = useState<'auto' | 'manual'>('auto');
+  const [themeType, setThemeType] = useState<'os2' | 'traditional' | 'auto-detect'>('auto-detect');
+  const [showInstructions, setShowInstructions] = useState<boolean>(false);
 
   // Load existing settings when component mounts
   useEffect(() => {
@@ -93,6 +112,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Load saved product settings from database
   const loadExistingSettings = async (formId: string) => {
     try {
+      // Load product settings
       const { data, error } = await shopifyProductSettings()
         .select('*')
         .eq('form_id', formId);
@@ -113,6 +133,22 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (data[0].block_id) {
           setBlockId(data[0].block_id);
         }
+      }
+      
+      // Load insertion settings
+      try {
+        const { data: insertionData, error: insertionError } = await shopifyProductSettings.supabase
+          .from('shopify_form_insertion')
+          .select('*')
+          .eq('form_id', formId)
+          .single();
+        
+        if (!insertionError && insertionData) {
+          setInsertionMethod(insertionData.insertion_method || 'auto');
+          setThemeType(insertionData.theme_type || 'auto-detect');
+        }
+      } catch (insertionLoadError) {
+        console.error('Error loading insertion settings:', insertionLoadError);
       }
     } catch (error) {
       console.error('Error in loadExistingSettings:', error);
@@ -203,10 +239,12 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (actualFormId) {
           await syncForm({ 
             formId: actualFormId,
-            shopDomain: shop, // Changed from shopifyIntegration.shop to shop
+            shopDomain: shop,
             settings: {
               products: selectedProducts,
-              blockId: blockId
+              blockId: blockId,
+              insertionMethod: insertionMethod,
+              themeType: themeType
             }
           });
           
@@ -215,8 +253,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             await onSave({ 
               formId: actualFormId,
               products: selectedProducts,
-              blockId: blockId 
+              blockId: blockId,
+              insertionMethod: insertionMethod,
+              themeType: themeType
             });
+          }
+          
+          // Show instructions if manual insertion is selected
+          if (insertionMethod === 'manual') {
+            setShowInstructions(true);
           }
           
           toast.success(language === 'ar' 
@@ -270,6 +315,123 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         window.open(shopifyUrl, '_blank');
       }
     }
+  };
+  
+  // Open Shopify theme editor directly
+  const openShopifyThemeEditor2 = () => {
+    if (shop) {
+      window.open(`https://${shop}/admin/themes/current/editor`, '_blank');
+    }
+  };
+
+  // Render instructions for manual insertion
+  const renderManualInstructions = () => {
+    return (
+      <Alert className="mb-6 bg-blue-50 border-blue-200">
+        <AlertTitle className="text-blue-800 flex items-center">
+          <HelpCircle className="h-4 w-4 mr-2" />
+          {language === 'ar' ? 'تعليمات التثبيت اليدوي' : 'Manual Installation Instructions'}
+        </AlertTitle>
+        <AlertDescription className="space-y-4">
+          <p className="text-blue-700">
+            {language === 'ar' 
+              ? 'لقد اخترت طريقة الإدراج اليدوي للنموذج. اتبع الخطوات التالية لإضافة النموذج إلى متجرك:' 
+              : 'You have chosen manual insertion method. Follow these steps to add the form to your store:'}
+          </p>
+          
+          <ol className="list-decimal ml-5 space-y-2 text-blue-700">
+            <li>
+              {language === 'ar' 
+                ? 'انتقل إلى متجرك واضغط على "تخصيص القالب"' 
+                : 'Go to your store and click "Customize Theme"'}
+            </li>
+            <li>
+              {language === 'ar' 
+                ? 'انتقل إلى صفحة المنتج التي تريد إضافة النموذج إليها' 
+                : 'Navigate to the product page you want to add the form to'}
+            </li>
+            <li>
+              {language === 'ar' 
+                ? 'اضغط على "إضافة قسم" واختر "تطبيقات"' 
+                : 'Click "Add section" and choose "Apps"'}
+            </li>
+            <li>
+              {language === 'ar' 
+                ? 'ابحث عن "نموذج الدفع عند الاستلام" وأضفه' 
+                : 'Look for "COD Form" and add it'}
+            </li>
+            <li>
+              {language === 'ar' 
+                ? `أدخل معرف النموذج التالي: ${actualFormId}` 
+                : `Enter this Form ID: ${actualFormId}`}
+            </li>
+            <li>
+              {language === 'ar' 
+                ? 'احفظ التغييرات' 
+                : 'Save your changes'}
+            </li>
+          </ol>
+          
+          <div className="flex justify-end mt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={openShopifyThemeEditor2}
+              className="text-xs"
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
+              {language === 'ar' ? 'فتح محرر القوالب' : 'Open Theme Editor'}
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
+  // Render theme compatibility information
+  const renderThemeCompatibilityInfo = () => {
+    return (
+      <Accordion type="single" collapsible className="mb-4">
+        <AccordionItem value="theme-compat">
+          <AccordionTrigger className="text-sm font-medium">
+            {language === 'ar' 
+              ? 'معلومات توافق القالب ومشاكل الإدراج' 
+              : 'Theme Compatibility & Insertion Issues'}
+          </AccordionTrigger>
+          <AccordionContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              {language === 'ar'
+                ? 'قد تواجه بعض القوالب مشاكل في الإدراج التلقائي للنموذج. إذا واجهت خطأ 422 أو لم يظهر النموذج، جرب الإدراج اليدوي بدلاً من ذلك.'
+                : 'Some themes may have issues with automatic form insertion. If you encounter a 422 error or the form doesn\'t appear, try manual insertion instead.'}
+            </p>
+            <div className="flex items-center justify-between mt-2 border-t pt-2">
+              <span className="font-medium">Online Store 2.0:</span>
+              <Badge variant="outline" className="bg-green-50">
+                {language === 'ar' ? 'متوافق' : 'Compatible'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between border-t pt-2">
+              <span className="font-medium">Dawn Theme:</span>
+              <Badge variant="outline" className="bg-green-50">
+                {language === 'ar' ? 'متوافق' : 'Compatible'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between border-t pt-2">
+              <span className="font-medium">Legacy Themes:</span>
+              <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                {language === 'ar' ? 'قد يتطلب الإدراج اليدوي' : 'May require manual insertion'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between border-t pt-2">
+              <span className="font-medium">Custom Themes:</span>
+              <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                {language === 'ar' ? 'قد يتطلب الإدراج اليدوي' : 'May require manual insertion'}
+              </Badge>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    );
   };
 
   // Render different content based on connection status
@@ -383,6 +545,57 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </Button>
         </div>
 
+        {/* Insertion method selection */}
+        <div className="mb-4 border rounded-lg p-4 bg-slate-50">
+          <h3 className="font-medium mb-3">
+            {language === 'ar' ? 'طريقة إدراج النموذج:' : 'Form Insertion Method:'}
+          </h3>
+          
+          <RadioGroup 
+            value={insertionMethod} 
+            onValueChange={(value) => setInsertionMethod(value as 'auto' | 'manual')}
+            className="space-y-2"
+          >
+            <div className={cn(
+              "flex items-center space-x-2 border rounded p-3",
+              insertionMethod === 'auto' ? "border-blue-300 bg-blue-50" : "border-gray-200"
+            )}>
+              <RadioGroupItem value="auto" id="insertion-auto" />
+              <Label htmlFor="insertion-auto" className="flex-1 cursor-pointer">
+                <div className="font-medium">
+                  {language === 'ar' ? 'إدراج تلقائي' : 'Automatic Insertion'}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'النظام سيحاول إدراج النموذج تلقائياً في صفحة المنتج'
+                    : 'System will attempt to automatically insert the form in the product page'}
+                </p>
+              </Label>
+            </div>
+            
+            <div className={cn(
+              "flex items-center space-x-2 border rounded p-3",
+              insertionMethod === 'manual' ? "border-blue-300 bg-blue-50" : "border-gray-200"
+            )}>
+              <RadioGroupItem value="manual" id="insertion-manual" />
+              <Label htmlFor="insertion-manual" className="flex-1 cursor-pointer">
+                <div className="font-medium">
+                  {language === 'ar' ? 'إدراج يدوي' : 'Manual Insertion'}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'سيتم تزويدك بتعليمات لإضافة النموذج يدوياً باستخدام محرر السمة'
+                    : 'You will be provided with instructions to add the form manually using theme editor'}
+                </p>
+              </Label>
+            </div>
+          </RadioGroup>
+          
+          {renderThemeCompatibilityInfo()}
+
+          {insertionMethod === 'manual' && showInstructions && renderManualInstructions()}
+        </div>
+
         <div className="mb-4">
           <Label htmlFor="blockId" className="block mb-1">
             {language === 'ar' ? 'معرف كتلة النموذج (اختياري)' : 'Form Block ID (optional)'}
@@ -458,14 +671,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
           <AlertDescription>
             <h4 className="font-semibold mb-2">
-              {language === 'ar' ? 'خطوات إضافة النموذج إلى متجرك:' : 'Steps to add the form to your store:'}
+              {language === 'ar' ? 'خطوات تكامل النموذج مع متجرك:' : 'Steps to integrate the form with your store:'}
             </h4>
             <ol className="list-decimal ml-5 space-y-1">
               <li>{language === 'ar' ? 'حدد المنتجات التي ترغب في إضافة النموذج إليها' : 'Select the products you want to add the form to'}</li>
+              <li>{language === 'ar' ? 'اختر طريقة الإدراج (تلقائي أو يدوي)' : 'Choose insertion method (automatic or manual)'}</li>
               <li>{language === 'ar' ? 'انقر على "حفظ إعدادات المنتج" أدناه' : 'Click "Save Product Settings" below'}</li>
-              <li>{language === 'ar' ? 'انتقل إلى متجرك واضغط على "تخصيص القالب"' : 'Go to your store and click "Customize Theme"'}</li>
-              <li>{language === 'ar' ? 'ابحث عن "نموذج الدفع عند الاستلام" في الأدوات المساعدة' : 'Look for "COD Form" in the Apps section'}</li>
-              <li>{language === 'ar' ? 'أضف الكتلة وحدد معرف النموذج المعروض أعلاه' : 'Add the block and select the form ID shown above'}</li>
+              <li>{language === 'ar' ? 'اتبع التعليمات لإكمال عملية الإدراج' : 'Follow instructions to complete the insertion process'}</li>
             </ol>
           </AlertDescription>
         </Alert>
@@ -494,8 +706,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardTitle>
         <CardDescription>
           {language === 'ar'
-            ? 'حدد منتجات Shopify لعرض هذا النموذج عليها'
-            : 'Select Shopify products to display this form on'}
+            ? 'حدد منتجات Shopify لعرض هذا النموذج عليها واختر طريقة الإدراج المفضلة'
+            : 'Select Shopify products and choose your preferred insertion method'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -520,7 +732,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           <Button
             variant="link"
             size="sm"
-            onClick={() => window.open(`https://${shop}/admin/themes/current/editor`, '_blank')}
+            onClick={openShopifyThemeEditor2}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             {language === 'ar' ? 'فتح محرر القوالب' : 'Open Theme Editor'}

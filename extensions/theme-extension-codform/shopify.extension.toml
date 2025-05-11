@@ -8,4 +8,16 @@ namespace = "codform"
 key = "settings"
 
 [settings]
-fields = []
+fields = [
+  {
+    "key": "insertion_method",
+    "type": "select",
+    "label": { "en": "Form Insertion Method", "ar": "طريقة إدراج النموذج" },
+    "options": [
+      { "value": "auto", "label": { "en": "Automatic (recommended)", "ar": "تلقائي (موصى به)" } },
+      { "value": "manual", "label": { "en": "Manual insertion", "ar": "إدراج يدوي" } }
+    ],
+    "default": "auto"
+  }
+]
+

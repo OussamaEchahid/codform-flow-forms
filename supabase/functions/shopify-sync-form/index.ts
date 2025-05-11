@@ -16,6 +16,8 @@ interface SyncFormRequest {
     position?: 'product-page' | 'cart-page' | 'checkout';
     blockId?: string;
     products?: string[];
+    insertionMethod?: 'auto' | 'manual';
+    themeType?: 'os2' | 'traditional' | 'auto-detect';
   }
 }
 
@@ -99,6 +101,33 @@ serve(async (req: Request) => {
       
     console.log(`Form published status after sync: ${updatedForm?.is_published}`);
 
+    // Store insertion preferences if provided
+    if (settings) {
+      const insertionSettings = {
+        form_id: formId,
+        shop_id: shop,
+        insertion_method: settings.insertionMethod || 'auto',
+        theme_type: settings.themeType || 'auto-detect',
+        position: settings.position || 'product-page',
+        block_id: settings.blockId || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Store insertion preferences
+      const { error: insertionError } = await supabase
+        .from('shopify_form_insertion')
+        .upsert(insertionSettings, { 
+          onConflict: 'form_id,shop_id' 
+        });
+
+      if (insertionError) {
+        console.error("Error saving insertion settings:", insertionError);
+      } else {
+        console.log("Insertion settings saved successfully:", insertionSettings);
+      }
+    }
+
     // If we have product settings
     if (settings?.products && settings.products.length > 0) {
       // Delete existing product settings for this form
@@ -145,7 +174,9 @@ serve(async (req: Request) => {
       message: 'Form synced with Shopify successfully',
       form_id: formId,
       shop: shop,
-      is_published: true
+      is_published: true,
+      manual_installation_required: settings?.insertionMethod === 'manual',
+      insertion_settings: settings
     }), { 
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
