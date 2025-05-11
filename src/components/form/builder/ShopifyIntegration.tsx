@@ -53,6 +53,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 // Update the component props to match what's expected in FormBuilderEditor
 interface ShopifyIntegrationProps {
@@ -137,7 +138,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       // Load insertion settings
       try {
-        const { data: insertionData, error: insertionError } = await shopifyProductSettings.supabase
+        const { data: insertionData, error: insertionError } = await shopifySupabase
           .from('shopify_form_insertion')
           .select('*')
           .eq('form_id', formId)
@@ -243,8 +244,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             settings: {
               products: selectedProducts,
               blockId: blockId,
-              insertionMethod: insertionMethod,
-              themeType: themeType
+              position: 'product-page',
+              themeType: themeType,
+              insertionMethod: insertionMethod
             }
           });
           
@@ -254,8 +256,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               formId: actualFormId,
               products: selectedProducts,
               blockId: blockId,
-              insertionMethod: insertionMethod,
-              themeType: themeType
+              position: 'product-page',
+              themeType: themeType,
+              insertionMethod: insertionMethod
             });
           }
           

@@ -126,5 +126,7 @@ export interface ShopifyFormData {
     };
     products?: string[];
     blockId?: string;
+    themeType?: 'os2' | 'traditional' | 'auto-detect';
+    insertionMethod?: 'auto' | 'manual';
   };
 }

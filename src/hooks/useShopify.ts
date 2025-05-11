@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -12,6 +13,8 @@ interface ShopifyFormSync {
     position?: 'product-page' | 'cart-page' | 'checkout';
     blockId?: string;
     products?: string[];
+    themeType?: 'os2' | 'traditional' | 'auto-detect';
+    insertionMethod?: 'auto' | 'manual';
   };
 }
 
