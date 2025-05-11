@@ -23,6 +23,30 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Check API key if provided
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader) {
+      // Format: Bearer <token>
+      const token = authHeader.split(' ')[1]
+      
+      try {
+        // Verify the token is a valid anon key
+        // For this implementation, we just check if it starts with "eyJ" which is common for JWTs
+        if (!token || !token.startsWith('eyJ')) {
+          console.error('Invalid API key format provided')
+          throw new Error('Invalid API key')
+        }
+      } catch (authError) {
+        return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 401,
+        })
+      }
+    }
+
     // Get form ID from URL
     const url = new URL(req.url)
     const formId = url.pathname.split('/').pop()
@@ -41,11 +65,19 @@ serve(async (req) => {
       .single()
 
     if (error) {
+      console.error('Database error:', error)
       throw error
     }
 
     if (!formData) {
+      console.error('Form not found:', formId)
       throw new Error(`Form with ID ${formId} not found`)
+    }
+
+    // Verify the form is published
+    if (formData.is_published !== true) {
+      console.error('Form is not published:', formId)
+      throw new Error(`Form with ID ${formId} is not published`)
     }
 
     console.log('Successfully fetched form:', formData.title, 'ID:', formId)
@@ -64,12 +96,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error getting form:', error.message)
     
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      path: new URL(req.url).pathname
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
       },
-      status: 400,
+      status: error.message.includes('not found') ? 404 : 400,
     })
   }
 })

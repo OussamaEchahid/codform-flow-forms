@@ -14,46 +14,88 @@ enabled = true
 port = 54323
 api_url = "http://localhost"
 
+[[db.migrations.directories]]
+path = "supabase/migrations"
+
 [inbucket]
 enabled = true
 port = 54324
 
 [storage]
 enabled = true
+file_size_limit = "50MiB"
 
 [auth]
 enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
 
-[realtime]
-enabled = true
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
 
-[functions.shopify-products]
+[auth.external.apple]
+enabled = false
+client_id = ""
+secret = ""
+
+[auth.external.github]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.facebook]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[analytics]
+enabled = false
+port = 54327
+
+[experimental.functions]
+[experimental.functions.check_sitemap]
 verify_jwt = false
 
-[functions.shopify-auth]
+[experimental.functions.api-forms]
 verify_jwt = false
 
-[functions.shopify-callback]
+[experimental.functions.api-submissions]
 verify_jwt = false
 
-[functions.shopify-test-connection]
+[experimental.functions.shopify-auth]
 verify_jwt = false
 
-[functions.update-schema]
+[experimental.functions.shopify-callback]
 verify_jwt = false
 
-[functions.update-shopify-token]
+[experimental.functions.shopify-products]
 verify_jwt = false
 
-[functions.shopify-sync-form]
+[experimental.functions.shopify-sync-form]
 verify_jwt = false
 
-[functions.api-forms]
+[experimental.functions.shopify-test-connection]
 verify_jwt = false
-port = 54340
-paths = ["/api/forms/*"]
 
-[functions.api-submissions]
+[experimental.functions.shopify-theme-update]
 verify_jwt = false
-port = 54341
-paths = ["/api/submissions"]
+
+[experimental.functions.update-schema]
+verify_jwt = false
+
+[experimental.functions.update-shopify-token]
+verify_jwt = false

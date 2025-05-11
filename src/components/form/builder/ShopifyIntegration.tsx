@@ -88,7 +88,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     tokenError,
     tokenExpired,
     refreshConnection,
-    isSyncing: hookIsSyncing
+    isSyncing: hookIsSyncing,
+    accessToken
   } = useShopify();
   
   // Combine external and internal syncing states
@@ -102,6 +103,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [insertionMethod, setInsertionMethod] = useState<'auto' | 'manual'>('auto');
   const [themeType, setThemeType] = useState<'os2' | 'traditional' | 'auto-detect'>('auto-detect');
   const [showInstructions, setShowInstructions] = useState<boolean>(false);
+  const [isUpdatingTheme, setIsUpdatingTheme] = useState<boolean>(false);
+  const [activationScreen, setActivationScreen] = useState<boolean>(true);
 
   // Load existing settings when component mounts
   useEffect(() => {
@@ -147,6 +150,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         if (!insertionError && insertionData) {
           setInsertionMethod(insertionData.insertion_method || 'auto');
           setThemeType(insertionData.theme_type || 'auto-detect');
+          
+          // If we have insertion data, don't show activation screen
+          setActivationScreen(false);
         }
       } catch (insertionLoadError) {
         console.error('Error loading insertion settings:', insertionLoadError);
@@ -191,8 +197,59 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     }
   };
 
+  // Update theme directly using the new edge function
+  const updateShopifyTheme = async () => {
+    if (!actualFormId || !shop || !accessToken) {
+      toast.error(language === 'ar' 
+        ? 'بيانات غير كافية لتحديث القالب' 
+        : 'Insufficient data to update theme');
+      return;
+    }
+
+    setIsUpdatingTheme(true);
+
+    try {
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-theme-update', {
+        body: { 
+          shop, 
+          accessToken, 
+          formId: actualFormId,
+          blockId,
+          themeType,
+          position: 'product-page'
+        }
+      });
+
+      if (error) {
+        console.error('Error updating theme:', error);
+        throw new Error(error.message || 'حدث خطأ أثناء تحديث القالب');
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'فشل تحديث القالب');
+      }
+
+      toast.success(language === 'ar' 
+        ? 'تم تحديث قالب المتجر وإضافة النموذج بنجاح!' 
+        : 'Store theme updated and form added successfully!');
+        
+      // Update insertion method to avoid showing activation screen again
+      setActivationScreen(false);
+      
+      // Save the settings in the database too
+      await handleSaveSettings(false);
+    } catch (error) {
+      console.error('Theme update error:', error);
+      toast.error(language === 'ar'
+        ? `فشل تحديث القالب: ${error.message}` 
+        : `Failed to update theme: ${error.message}`);
+    } finally {
+      setIsUpdatingTheme(false);
+    }
+  };
+
   // Handler for saving product settings
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (showSuccess = true) => {
     if (!actualFormId) {
       toast.error(language === 'ar' 
         ? 'يجب حفظ النموذج أولاً قبل إعداد تكامل Shopify' 
@@ -267,14 +324,18 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             setShowInstructions(true);
           }
           
-          toast.success(language === 'ar' 
-            ? 'تم حفظ الإعدادات وتزامن النموذج بنجاح!'
-            : 'Settings saved and form synced successfully!');
+          if (showSuccess) {
+            toast.success(language === 'ar' 
+              ? 'تم حفظ الإعدادات وتزامن النموذج بنجاح!'
+              : 'Settings saved and form synced successfully!');
+          }
         }
       } else {
-        toast.success(language === 'ar'
-          ? 'تم مسح إعدادات المنتج'
-          : 'Product settings cleared');
+        if (showSuccess) {
+          toast.success(language === 'ar'
+            ? 'تم مسح إعدادات المنتج'
+            : 'Product settings cleared');
+        }
       }
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -436,6 +497,121 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       </Accordion>
     );
   };
+  
+  // Render activation screen
+  const renderActivationScreen = () => {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="bg-green-100 p-4 rounded-full mb-4">
+          <ShoppingBag className="h-12 w-12 text-green-600" />
+        </div>
+        
+        <h3 className="text-xl font-bold mb-3">
+          {language === 'ar' ? 'تفعيل نموذج الدفع عند الاستلام' : 'Activate Cash On Delivery Form'}
+        </h3>
+        
+        <p className="text-gray-600 mb-6 max-w-md">
+          {language === 'ar' 
+            ? 'لإضافة نموذج الدفع عند الاستلام إلى متجرك، يمكنك اختيار طريقة الإدراج المفضلة لديك:'
+            : 'To add the Cash On Delivery form to your store, choose your preferred insertion method:'}
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mb-6">
+          <div 
+            className={cn(
+              "border rounded-lg p-5 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all",
+              insertionMethod === 'auto' ? "border-blue-500 bg-blue-50" : "border-gray-200"
+            )}
+            onClick={() => setInsertionMethod('auto')}
+          >
+            <div className="flex items-center mb-2">
+              <div className={cn(
+                "w-5 h-5 rounded-full mr-2 flex items-center justify-center border",
+                insertionMethod === 'auto' ? "border-blue-500" : "border-gray-300"
+              )}>
+                {insertionMethod === 'auto' && (
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                )}
+              </div>
+              <h4 className="font-medium">
+                {language === 'ar' ? 'إدراج تلقائي' : 'Automatic Insertion'}
+              </h4>
+            </div>
+            <p className="text-sm text-gray-500 ml-7">
+              {language === 'ar' 
+                ? 'سيقوم النظام بإضافة النموذج تلقائياً إلى صفحة المنتج الخاصة بك'
+                : 'The system will automatically add the form to your product page'}
+            </p>
+          </div>
+          
+          <div 
+            className={cn(
+              "border rounded-lg p-5 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all",
+              insertionMethod === 'manual' ? "border-blue-500 bg-blue-50" : "border-gray-200"
+            )}
+            onClick={() => setInsertionMethod('manual')}
+          >
+            <div className="flex items-center mb-2">
+              <div className={cn(
+                "w-5 h-5 rounded-full mr-2 flex items-center justify-center border",
+                insertionMethod === 'manual' ? "border-blue-500" : "border-gray-300"
+              )}>
+                {insertionMethod === 'manual' && (
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                )}
+              </div>
+              <h4 className="font-medium">
+                {language === 'ar' ? 'إدراج يدوي' : 'Manual Insertion'}
+              </h4>
+            </div>
+            <p className="text-sm text-gray-500 ml-7">
+              {language === 'ar' 
+                ? 'سيتم تزويدك بتعليمات لإضافة النموذج يدويًا باستخدام محرر السمة'
+                : 'You will be provided with instructions to add the form manually using theme editor'}
+            </p>
+          </div>
+        </div>
+        
+        <div className="space-x-3">
+          <Button
+            onClick={() => setActivationScreen(false)}
+            variant="outline"
+          >
+            {language === 'ar' ? 'تخطي هذه الخطوة' : 'Skip this step'}
+          </Button>
+          
+          {insertionMethod === 'auto' ? (
+            <Button 
+              onClick={updateShopifyTheme}
+              disabled={isUpdatingTheme}
+              className="min-w-[160px]"
+            >
+              {isUpdatingTheme ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {language === 'ar' ? 'جاري التفعيل...' : 'Activating...'}
+                </>
+              ) : (
+                <>
+                  {language === 'ar' ? 'تفعيل تلقائي' : 'Activate Automatically'}
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => {
+                setActivationScreen(false);
+                setShowInstructions(true);
+                handleSaveSettings(false);
+              }}
+            >
+              {language === 'ar' ? 'عرض تعليمات التثبيت' : 'Show Installation Instructions'}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Render different content based on connection status
   const renderContent = () => {
@@ -486,6 +662,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           </div>
         </div>
       );
+    }
+
+    // Show activation screen if needed
+    if (activationScreen) {
+      return renderActivationScreen();
     }
 
     return (
@@ -597,6 +778,19 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           {renderThemeCompatibilityInfo()}
 
           {insertionMethod === 'manual' && showInstructions && renderManualInstructions()}
+          
+          {insertionMethod === 'auto' && (
+            <Button
+              onClick={updateShopifyTheme}
+              disabled={isUpdatingTheme}
+              className="w-full mt-4"
+            >
+              {isUpdatingTheme ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {language === 'ar' ? 'تحديث القالب وإضافة النموذج' : 'Update Theme & Add Form'}
+            </Button>
+          )}
         </div>
 
         <div className="mb-4">
@@ -686,7 +880,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </Alert>
 
         <Button
-          onClick={handleSaveSettings}
+          onClick={() => handleSaveSettings(true)}
           disabled={!actualFormId || isSyncing}
           className="w-full"
         >
