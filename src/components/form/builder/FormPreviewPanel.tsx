@@ -54,6 +54,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formStyle={formStyle}
           fields={fields}
           floatingButton={floatingButton}
+          hideFloatingButtonPreview={false} // Show floating button in preview
         >
           <div></div>
         </FormPreview>

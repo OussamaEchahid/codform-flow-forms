@@ -77,6 +77,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isFloatingButtonDialogOpen, setIsFloatingButtonDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -755,13 +756,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1); // Refresh the preview
   };
 
+  const handleFloatingButtonOpen = () => {
+    setIsFloatingButtonDialogOpen(true);
+  };
+
+  const handleFloatingButtonClose = () => {
+    setIsFloatingButtonDialogOpen(false);
+  };
+
   return (
-    <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-white">
       <FormHeader 
         onSave={handleSave}
         onPublish={handlePublish}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+        onFloatingButtonOpen={handleFloatingButtonOpen}
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
@@ -828,16 +838,60 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         </div>
       </div>
       
-      <FormStyleEditor
-        isOpen={isStyleDialogOpen}
-        onOpenChange={setIsStyleDialogOpen}
-        formStyle={formStyle}
-        onStyleChange={handleStyleChange}
-        onSave={handleSaveStyle}
-        floatingButton={floatingButton}  // Use the floatingButton from the state hook
-        onFloatingButtonChange={handleFloatingButtonChange}
-      />
-
+      {/* Style Editor Dialog */}
+      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <FormStyleEditor 
+            formStyle={formStyle}
+            onStyleChange={handleStyleChange}
+            onSave={handleSaveStyle}
+            floatingButton={floatingButton}  // Use the floatingButton from the state hook
+            onFloatingButtonChange={handleFloatingButtonChange}
+            showFloatingButtonEditor={false} // Don't show floating button editor here
+          />
+          
+          <DialogFooter>
+            <Button onClick={() => setIsStyleDialogOpen(false)}>
+              {language === 'ar' ? 'تم' : 'Done'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Floating Button Dialog */}
+      <Dialog open={isFloatingButtonDialogOpen} onOpenChange={setIsFloatingButtonDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'قم بتخصيص مظهر وسلوك الزر العائم الذي سيظهر في متجرك' 
+                : 'Customize the appearance and behavior of the floating button that will appear in your store'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <FloatingButtonEditor 
+            floatingButton={floatingButton} 
+            onChange={handleFloatingButtonChange}
+          />
+          
+          <DialogFooter>
+            <Button onClick={handleFloatingButtonClose}>
+              {language === 'ar' ? 'تم' : 'Done'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Template Dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
           open={isTemplateDialogOpen}
@@ -863,7 +917,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           />
         </div>
       )}
-    </main>
+    </div>
   );
 };
 

@@ -21,6 +21,7 @@ interface FormPreviewProps {
   fields?: FormField[];
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
+  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -38,6 +39,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   fields = [],
   hideHeader = false,
   floatingButton,
+  hideFloatingButtonPreview = false, // Default to false to show in preview
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
@@ -170,8 +172,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* Render floating button if enabled */}
-      {floatingButton && floatingButton.enabled && (
+      {/* Render floating button if enabled AND not hidden for preview purposes */}
+      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} />
       )}
     </div>

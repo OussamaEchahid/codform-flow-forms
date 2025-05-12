@@ -6,9 +6,10 @@ import { ShoppingCart, Package, Truck, Send } from 'lucide-react';
 
 interface FloatingButtonProps {
   config: FloatingButtonConfig;
+  isPreview?: boolean;
 }
 
-const FloatingButton: React.FC<FloatingButtonProps> = ({ config }) => {
+const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = false }) => {
   const { language } = useI18n();
   
   const getAnimationClass = () => {
@@ -47,6 +48,17 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config }) => {
     }
   };
   
+  // Scroll to form handler
+  const handleClick = () => {
+    // Only execute scroll if we're not in preview mode
+    if (!isPreview) {
+      const formElement = document.querySelector('.codform-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+  
   return (
     <div 
       className="codform-floating-button-container"
@@ -81,13 +93,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config }) => {
           transition: 'transform 0.2s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
-        onClick={() => {
-          // Scroll to form
-          const formElement = document.querySelector('.codform-form');
-          if (formElement) {
-            formElement.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
+        onClick={handleClick}
       >
         {(language === 'ar' || !config.showIcon) && (
           <span>{config.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}</span>

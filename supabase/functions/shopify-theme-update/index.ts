@@ -1,4 +1,3 @@
-
 // This function is responsible for updating the Shopify theme to insert the form
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -262,7 +261,16 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     settings: {
       form_id: formId,
       title: "اطلب المنتج الآن - الدفع عند الاستلام",
-      description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+      description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.",
+      
+      // Add floating button settings from the form configuration
+      enable_floating_button: false, // Default to false, will be updated by the form settings
+      floating_button_text: "اطلب الآن",
+      floating_bg_color: "#000000",
+      floating_text_color: "#ffffff",
+      floating_animation: "none",
+      floating_show_icon: true,
+      floating_icon: "shopping-cart"
     }
   };
   
@@ -447,6 +455,60 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   </div>
 </div>
 
+{% if block.settings.enable_floating_button %}
+<div id="codform-floating-button-{{ block_id }}" class="codform-floating-button-container">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color | default: '#000000' }};
+      color: {{ block.settings.floating_text_color | default: '#ffffff' }};
+      border-radius: {{ block.settings.floating_border_radius | default: '4px' }};
+      padding: {{ block.settings.floating_padding_y | default: '10px' }} 20px;
+      font-size: {{ block.settings.floating_font_size | default: '16px' }};
+      font-weight: {{ block.settings.floating_font_weight | default: '500' }};
+      margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      {% if block.settings.floating_border_width != '0px' %}
+      border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
+      {% else %}
+      border: none;
+      {% endif %}
+    "
+    onclick="document.querySelector('#codform-container-{{ block_id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
+    {% endunless %}
+  </button>
+</div>
+{% endif %}
+
 <style>
   .codform-container {
     margin: 2rem 0;
@@ -523,6 +585,91 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   
   .codform-button:hover {
     opacity: 0.9;
+  }
+  
+  /* Floating button container styles */
+  .codform-floating-button-container {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 999;
+  }
+  
+  /* Floating button styles */
+  .codform-floating-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+  }
+  
+  .codform-floating-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .codform-floating-button-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Animation styles */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  .pulse-animation {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+  
+  .shake-animation {
+    animation: shake 0.8s infinite;
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  .bounce-animation {
+    animation: bounce 2s infinite;
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    50% { transform: rotate(0); }
+    75% { transform: rotate(5deg); }
+  }
+  
+  .wiggle-animation {
+    animation: wiggle 0.7s ease-in-out infinite;
+  }
+  
+  @keyframes flash {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
+  }
+  
+  .flash-animation {
+    animation: flash 3s infinite;
   }
 </style>
 {% endif %}`;
