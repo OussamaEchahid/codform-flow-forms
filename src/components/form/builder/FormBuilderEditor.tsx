@@ -177,7 +177,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     });
     
     fields.push({
-      type: 'text' as FormFieldType,
+      type: 'phone' as FormFieldType,
       id: `text-${Date.now()}-2`,
       label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
       placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
@@ -223,6 +223,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         color: '#ffffff',
         fontSize: '1.1rem',
         animation: true,
+        animationType: 'pulse',
+        iconPosition: 'left',
       },
     });
     

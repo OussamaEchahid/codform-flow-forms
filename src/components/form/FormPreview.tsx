@@ -34,7 +34,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
-  hideHeader = true, // تم تغييرها لتكون true افتراضيًا لإخفاء الترويسة دائمًا
+  hideHeader = false, // تغيير القيمة الافتراضية لتكون false بدلاً من true
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
@@ -79,9 +79,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return uniqueFields;
   }, [fields, language, formStyle.primaryColor, hideHeader]);
   
-  // إنشاء محتوى الترويسة - لن يظهر هذا المحتوى بسبب hideHeader=true
+  // إنشاء محتوى الترويسة - سيظهر هذا المحتوى الآن بسبب تغيير hideHeader=false
   const headerContent = () => {
-    // تم تغيير الشرط لإخفاء الترويسة دائمًا
     if (!hideHeader && !sanitizedFields.some(field => field.type === 'form-title')) {
       return (
         <div 
