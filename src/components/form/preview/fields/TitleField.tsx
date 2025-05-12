@@ -45,6 +45,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Use larger styling for form-title type
   const isFormTitle = field.type === 'form-title';
   
+  console.log('Rendering TitleField:', { field, isFormTitle, style: fieldStyle });
+  
   return (
     <div 
       className={`mb-4 ${isFormTitle ? 'pt-4 pb-2' : ''}`}

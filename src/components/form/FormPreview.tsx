@@ -37,9 +37,33 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key, setKey] = useState(0);
   
+  // إضافة عنصر العنوان الافتراضي إذا لم يكن موجودًا بالفعل
+  const [processedFields, setProcessedFields] = useState<FormField[]>([]);
+  
   useEffect(() => {
+    // Process fields to ensure form-title exists
+    const titleField = fields.find(f => f.type === 'form-title');
+    if (!titleField && fields.length > 0) {
+      // إنشاء عنوان النموذج إذا كان مطلوبًا
+      const defaultTitleField: FormField = {
+        type: 'form-title',
+        id: `form-title-${Date.now()}`,
+        label: formTitle || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
+        style: {
+          color: formStyle.primaryColor,
+          textAlign: language === 'ar' ? 'right' : 'left',
+          fontWeight: 'bold',
+          fontSize: '1.5rem',
+        }
+      };
+      console.log('Adding default form title field:', defaultTitleField);
+      setProcessedFields([defaultTitleField, ...fields]);
+    } else {
+      console.log('Using existing fields, title field exists:', titleField);
+      setProcessedFields(fields);
+    }
     setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields]);
+  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, language]);
   
   return (
     <div 
@@ -109,9 +133,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
-        {fields && fields.length > 0 ? (
+        {processedFields && processedFields.length > 0 ? (
           <div className="space-y-4">
-            {fields.map(field => (
+            {processedFields.map(field => (
               <FormFieldComponent 
                 key={field.id} 
                 field={field} 

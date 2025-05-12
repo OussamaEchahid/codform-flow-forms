@@ -36,6 +36,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
 
+  console.log('FormPreviewPanel rendering with fields:', fields);
+  // Check if form-title exists
+  const formTitleField = fields.find(f => f.type === 'form-title');
+  console.log('Form title field exists:', formTitleField);
+
   return (
     <div>
       <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>

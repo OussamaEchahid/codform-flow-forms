@@ -46,6 +46,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
+  
+  console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {
     'text': TextInput,
