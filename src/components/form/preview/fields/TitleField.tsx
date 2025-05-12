@@ -51,6 +51,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       className={`mb-4 ${isFormTitle ? 'pt-4 pb-2' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       style={backgroundStyle}
+      data-testid="title-field"
     >
       <h3 
         className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}

@@ -37,7 +37,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
           {language === 'ar' ? 'تخصيص مظهر النموذج' : 'Customize Form Style'}
         </DialogTitle>
         <DialogDescription>
-          {language === 'ar' ? 'قم بتخصيص مظهر النموذج لتناسب هويتك التجارية' : 'Customize the form appearance to match your brand identity'}
+          {language === 'ar' ? 'قم بتخصيص مظهر النموذج لتناسب هويتك التجارية. هذه الإعدادات خاصة بهذا النموذج فقط.' : 'Customize the form appearance to match your brand identity. These settings apply to this form only.'}
         </DialogDescription>
         
         <div className="grid gap-4 py-4">

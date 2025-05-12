@@ -78,14 +78,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
-  const [formStyle, setFormStyle] = useState(() => {
-    const storedStyle = localStorage.getItem('selectedTemplateStyle');
-    return storedStyle ? JSON.parse(storedStyle) : {
-      primaryColor: '#000000',
-      borderRadius: '0.5rem',
-      fontSize: '1rem',
-      buttonStyle: 'rounded',
-    };
+  // التغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
+  const [formStyle, setFormStyle] = useState({
+    primaryColor: '#9b87f5',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    buttonStyle: 'rounded',
   });
   
   const [refreshKey, setRefreshKey] = useState(0);
@@ -221,7 +219,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       id: `submit-${Date.now()}`,
       label: language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
-        backgroundColor: '#000000',
+        backgroundColor: '#9b87f5', // استخدم لون افتراضي
         color: '#ffffff',
         fontSize: '1.1rem',
         animation: true,
@@ -244,6 +242,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
+      // أضف إعدادات النمط الخاصة بالنموذج الجديد
+      const defaultStyle = {
+        primaryColor: '#9b87f5',
+        borderRadius: '0.5rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded',
+      };
+      
+      setFormStyle(defaultStyle);
+
       // Create default fields
       const defaultFields = createDefaultForm();
       setFormElements(defaultFields);
@@ -255,14 +263,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fields: defaultFields
       };
 
-      // Create new form in database
+      // Create new form in database with style info
       const { data, error } = await supabase.from('forms').insert({
         id: newId,
         title: formTitle,
         description: formDescription,
         data: [initialFormStep],
         shop_id: shopId,
-        is_published: false
+        is_published: false,
+        style: defaultStyle // حفظ إعدادات النمط مع النموذج
       }).select();
 
       if (error) {
@@ -278,7 +287,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         description: formDescription,
         data: [initialFormStep],
         isPublished: false,
-        shop_id: shopId
+        shop_id: shopId,
+        style: defaultStyle // حفظ إعدادات النمط مع النموذج
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -305,6 +315,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               formData.data?.flatMap(step => step.fields) || []
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
+            
+            // تحميل إعدادات النمط الخاصة بهذا النموذج بالتحديد
+            if (formData.style) {
+              setFormStyle(formData.style);
+            } else {
+              // استخدم الإعدادات الافتراضية إذا لم تكن موجودة
+              setFormStyle({
+                primaryColor: '#9b87f5',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                buttonStyle: 'rounded',
+              });
+            }
             
             console.log("Loaded form data:", formData);
           } else {
@@ -370,11 +393,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         console.warn("No active shop ID found, saving without shop association");
       }
       
+      // حفظ إعدادات النمط مع النموذج
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
-        shop_id: shopId
+        shop_id: shopId,
+        style: formStyle // إضافة إعدادات النمط للنموذج
       };
       
       console.log("Saving form with data:", formData);
@@ -389,7 +414,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         setFormState({
           ...formState,
           ...formData,
-          id: currentFormId
+          id: currentFormId,
+          style: formStyle  // إضافة إعدادات النمط للنموذج في الحالة
         });
       } else {
         // Try direct database update if the saveForm method fails
@@ -400,6 +426,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             description: formDescription,
             data: [formStep],
             shop_id: shopId,
+            style: formStyle, // إضافة إعدادات النمط للنموذج في قاعدة البيانات
             updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);
@@ -581,7 +608,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   const handleSaveStyle = () => {
     setIsStyleDialogOpen(false);
-    localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+    // لا تحفظ إعدادات النمط في localStorage بل اجعلها خاصة بالنموذج الحالي فقط
+    // localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
+    
+    // حفظ النموذج مع إعدادات النمط الجديدة
+    handleSave();
+    
+    toast.success(language === 'ar' ? 'تم حفظ تخصيص النمط بنجاح' : 'Style customization saved successfully');
   };
 
   const handleShopifyIntegration = async (settings: any) => {
