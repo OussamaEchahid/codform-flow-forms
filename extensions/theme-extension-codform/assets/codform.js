@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
       initializeForm(container);
     });
   });
+
+  // تحميل الخط العربي
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap';
+  document.head.appendChild(link);
 });
 
 // Initialize a single form container
@@ -267,6 +273,7 @@ function renderForm(container, formData, blockId, productId) {
       border-radius: ${formData.borderRadius || '0.5rem'};
       font-size: ${formData.fontSize || '1rem'};
       margin-bottom: 1rem;
+      font-family: 'Cairo', sans-serif;
     }
     
     .codform-container .codform-submit-btn {
@@ -338,9 +345,11 @@ function renderForm(container, formData, blockId, productId) {
       padding: 0 !important;
     }
 
-    .codform-field[data-has-bg="true"] h3 {
+    .codform-field[data-has-bg="true"] > div {
       padding: 15px !important;
       border-radius: 8px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     /* تحسينات لملخص العربة */
@@ -363,6 +372,16 @@ function renderForm(container, formData, blockId, productId) {
       display: flex !important;
       padding: 15px !important;
       border-bottom: 1px solid #e5e7eb !important;
+      align-items: center !important;
+    }
+    
+    /* تحسين صور المنتجات */
+    .codform-cart-item img {
+      width: 80px !important;
+      height: 80px !important;
+      border-radius: 4px !important;
+      object-fit: cover !important;
+      margin-left: 15px !important;
     }
   `;
   
@@ -662,9 +681,6 @@ function renderField(field, formData, productId) {
   
   // Special case for title field
   if (field.type === 'title' || field.type === 'form-title') {
-    const title = document.createElement('h3');
-    title.innerText = field.label || '';
-    
     const fieldStyle = field.style || {};
     const hasBackground = fieldStyle.backgroundColor && fieldStyle.backgroundColor !== '';
     
@@ -674,10 +690,23 @@ function renderField(field, formData, productId) {
     
     // Set background data attribute
     fieldDiv.setAttribute('data-has-bg', hasBackground ? 'true' : 'false');
+
+    // Create div for title and description with background
+    const titleContainer = document.createElement('div');
+    if (hasBackground) {
+      titleContainer.style.backgroundColor = fieldStyle.backgroundColor;
+      titleContainer.style.padding = '15px';
+      titleContainer.style.borderRadius = '8px';
+      titleContainer.style.width = '100%';
+      titleContainer.style.boxSizing = 'border-box';
+    }
     
-    // Apply styles directly
+    const title = document.createElement('h3');
+    title.innerText = field.label || '';
+    
+    // Apply styles directly to title
     if (fieldStyle.color) {
-      title.style.color = fieldStyle.color;
+      title.style.color = hasBackground ? '#ffffff' : fieldStyle.color;
     }
     
     if (fieldStyle.fontSize) {
@@ -692,20 +721,23 @@ function renderField(field, formData, productId) {
       title.style.fontWeight = fieldStyle.fontWeight;
     }
     
-    if (hasBackground) {
-      title.style.backgroundColor = fieldStyle.backgroundColor;
+    if (alignment) {
+      title.style.textAlign = alignment;
     }
     
-    fieldDiv.appendChild(title);
+    titleContainer.appendChild(title);
     
     // Add description if available
     if (field.helpText) {
       const description = document.createElement('p');
       description.innerText = field.helpText;
-      description.style.color = fieldStyle.descriptionColor || '#6b7280';
+      description.style.color = hasBackground ? '#ffffff' : (fieldStyle.descriptionColor || '#6b7280');
       description.style.fontSize = fieldStyle.descriptionFontSize || '0.875rem';
-      fieldDiv.appendChild(description);
+      description.style.textAlign = alignment;
+      titleContainer.appendChild(description);
     }
+    
+    fieldDiv.appendChild(titleContainer);
     
     return fieldDiv;
   }
@@ -800,36 +832,31 @@ function renderField(field, formData, productId) {
                           'https://via.placeholder.com/80';
       
       // Create product image
-      const imageContainer = document.createElement('div');
-      imageContainer.className = 'w-20 h-20 flex-shrink-0 ml-4';
-      imageContainer.style.backgroundSize = 'cover';
-      imageContainer.style.borderRadius = '0.25rem';
-      imageContainer.style.marginLeft = '1rem';
-      
       const img = document.createElement('img');
       img.src = productImage;
       img.alt = productTitle;
-      img.className = 'product-image';
-      img.style.width = '100%';
-      img.style.height = '100%';
+      img.className = 'codform-cart-item-image';
+      img.style.width = '80px';
+      img.style.height = '80px';
       img.style.objectFit = 'cover';
-      img.style.borderRadius = '0.25rem';
-      
-      imageContainer.appendChild(img);
+      img.style.borderRadius = '4px';
+      img.style.marginLeft = '15px';
       
       // Create content div
       const contentDiv = document.createElement('div');
-      contentDiv.className = 'flex-1';
+      contentDiv.className = 'codform-cart-item-details';
+      contentDiv.style.flex = '1';
       
       const title = document.createElement('h4');
-      title.className = 'product-title';
+      title.className = 'codform-cart-item-title';
       title.innerText = productTitle;
       title.style.fontSize = field.style?.fontSize || '1.1rem';
       title.style.color = field.style?.color || '#1f2937';
       title.style.fontWeight = 'medium';
+      title.style.marginBottom = '5px';
       
       const quantity = document.createElement('div');
-      quantity.className = 'product-quantity';
+      quantity.className = 'codform-cart-item-quantity';
       quantity.innerText = 'الكمية: ١';
       quantity.style.fontSize = field.style?.descriptionFontSize || '0.9rem';
       quantity.style.color = field.style?.descriptionColor || '#6b7280';
@@ -840,10 +867,10 @@ function renderField(field, formData, productId) {
       
       // Create price div
       const priceDiv = document.createElement('div');
+      priceDiv.className = 'codform-cart-item-price';
       priceDiv.style.textAlign = 'right';
       
       const price = document.createElement('div');
-      price.className = 'product-price';
       price.innerText = productPrice;
       price.style.fontSize = field.style?.priceFontSize || '1rem';
       price.style.color = field.style?.priceColor || '#1f2937';
@@ -852,7 +879,7 @@ function renderField(field, formData, productId) {
       priceDiv.appendChild(price);
       
       // Append all elements
-      cartItem.appendChild(imageContainer);
+      cartItem.appendChild(img);
       cartItem.appendChild(contentDiv);
       cartItem.appendChild(priceDiv);
       
@@ -904,18 +931,19 @@ function renderField(field, formData, productId) {
     
     // Subtotal row
     const subtotalRow = document.createElement('div');
-    subtotalRow.className = 'flex justify-between mb-3';
+    subtotalRow.className = 'codform-cart-summary-row';
     subtotalRow.style.display = 'flex';
     subtotalRow.style.justifyContent = 'space-between';
     subtotalRow.style.marginBottom = '0.75rem';
     
     const subtotalLabel = document.createElement('span');
+    subtotalLabel.className = 'codform-cart-summary-label';
     subtotalLabel.innerText = 'المجموع الفرعي';
     subtotalLabel.style.fontSize = field.style?.labelFontSize || '1rem';
     subtotalLabel.style.color = field.style?.labelColor || '#6b7280';
     
     const subtotalValue = document.createElement('span');
-    subtotalValue.className = 'product-price';
+    subtotalValue.className = 'codform-cart-summary-value';
     subtotalValue.innerText = productPrice;
     subtotalValue.style.fontSize = field.style?.valueFontSize || '1rem';
     subtotalValue.style.color = field.style?.valueColor || '#1f2937';
@@ -926,18 +954,19 @@ function renderField(field, formData, productId) {
     
     // Shipping row
     const shippingRow = document.createElement('div');
-    shippingRow.className = 'flex justify-between mb-3';
+    shippingRow.className = 'codform-cart-summary-row';
     shippingRow.style.display = 'flex';
     shippingRow.style.justifyContent = 'space-between';
     shippingRow.style.marginBottom = '0.75rem';
     
     const shippingLabel = document.createElement('span');
+    shippingLabel.className = 'codform-cart-summary-label';
     shippingLabel.innerText = 'الشحن';
     shippingLabel.style.fontSize = field.style?.labelFontSize || '1rem';
     shippingLabel.style.color = field.style?.labelColor || '#6b7280';
     
     const shippingValue = document.createElement('span');
-    shippingValue.className = 'shipping-price';
+    shippingValue.className = 'codform-cart-summary-value';
     shippingValue.innerText = '$10.00';
     shippingValue.style.fontSize = field.style?.valueFontSize || '1rem';
     shippingValue.style.color = field.style?.valueColor || '#1f2937';
@@ -948,7 +977,7 @@ function renderField(field, formData, productId) {
     
     // Total row
     const totalRow = document.createElement('div');
-    totalRow.className = 'border-t pt-3 mt-3 flex justify-between';
+    totalRow.className = 'codform-cart-summary-row';
     totalRow.style.display = 'flex';
     totalRow.style.justifyContent = 'space-between';
     totalRow.style.marginTop = '0.75rem';
@@ -956,6 +985,7 @@ function renderField(field, formData, productId) {
     totalRow.style.borderTop = '1px solid ' + (field.style?.borderColor || '#e5e7eb');
     
     const totalLabel = document.createElement('span');
+    totalLabel.className = 'codform-cart-summary-label';
     totalLabel.innerText = 'الإجمالي';
     totalLabel.style.fontSize = field.style?.totalLabelFontSize || '1.1rem';
     totalLabel.style.color = field.style?.totalLabelColor || '#1f2937';
@@ -980,7 +1010,7 @@ function renderField(field, formData, productId) {
     }
     
     const totalValue = document.createElement('span');
-    totalValue.className = 'total-price';
+    totalValue.className = 'codform-cart-summary-value';
     totalValue.innerText = totalPrice;
     totalValue.style.fontSize = field.style?.totalValueFontSize || '1.1rem';
     totalValue.style.color = field.style?.totalValueColor || formData.primaryColor || '#9b87f5';
@@ -1029,6 +1059,7 @@ function renderField(field, formData, productId) {
       input.name = field.name || field.id;
       input.placeholder = field.placeholder || '';
       input.required = field.required || false;
+      input.style.fontFamily = 'Cairo, sans-serif';
       
       if (field.pattern) {
         input.pattern = field.pattern;
@@ -1053,6 +1084,7 @@ function renderField(field, formData, productId) {
       textarea.placeholder = field.placeholder || '';
       textarea.required = field.required || false;
       textarea.rows = field.rows || 4;
+      textarea.style.fontFamily = 'Cairo, sans-serif';
       
       if (field.value) {
         textarea.value = field.value;
@@ -1066,6 +1098,7 @@ function renderField(field, formData, productId) {
       select.id = field.id;
       select.name = field.name || field.id;
       select.required = field.required || false;
+      select.style.fontFamily = 'Cairo, sans-serif';
       
       // Add placeholder option
       if (field.placeholder) {
@@ -1113,7 +1146,7 @@ function renderField(field, formData, productId) {
       if (field.options && Array.isArray(field.options)) {
         field.options.forEach((option, index) => {
           const optionContainer = document.createElement('div');
-          optionContainer.className = `codform-${field.type}-option`;
+          optionContainer.className = `codform-${field.type}-container`;
           
           const optionLabel = document.createElement('label');
           optionLabel.className = `codform-${field.type}-label`;
@@ -1170,3 +1203,4 @@ function renderField(field, formData, productId) {
   
   return fieldDiv;
 }
+

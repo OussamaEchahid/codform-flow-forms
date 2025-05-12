@@ -155,8 +155,7 @@
   
   /* تنسيق خاص لعنوان النموذج */
   .codform-title {
-    padding: 15px !important;
-    border-radius: 8px !important;
+    padding: 0 !important;
     margin-bottom: 20px !important;
     width: 100% !important;
     box-sizing: border-box !important;
@@ -183,9 +182,11 @@
     padding: 0 !important;
   }
 
-  .codform-field[data-has-bg="true"] h3 {
+  .codform-field[data-has-bg="true"] > div {
     padding: 15px !important;
     border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   /* تحسينات لملخص العربة */
@@ -208,6 +209,26 @@
     display: flex !important;
     padding: 15px !important;
     border-bottom: 1px solid #e5e7eb !important;
+    align-items: center !important;
+  }
+  
+  .codform-cart-item img {
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 4px !important;
+    object-fit: cover !important;
+    margin-left: 15px !important;
+  }
+  
+  /* تصحيح مشكلة العرض في الهاتف */
+  @font-face {
+    font-family: 'Cairo';
+    src: url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+    font-display: swap;
+  }
+  
+  .codform-container * {
+    font-family: 'Cairo', sans-serif !important;
   }
   
   .codform-html-content h3 {
@@ -228,6 +249,15 @@
     .codform-submit-button {
       font-size: 16px !important;
       padding: 12px !important;
+    }
+    
+    .codform-cart-item {
+      flex-direction: column !important;
+    }
+    
+    .codform-cart-item img {
+      margin-left: 0 !important;
+      margin-bottom: 10px !important;
     }
   }
 </style>

@@ -125,7 +125,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           borderRadius: buttonRadius,
           border: 'none',
           cursor: 'pointer',
-          fontFamily: 'inherit',
+          fontFamily: fieldStyle.fontFamily || 'inherit',
           fontWeight: 'bold',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)', // تعزيز الظل
           transition: 'all 0.3s ease',

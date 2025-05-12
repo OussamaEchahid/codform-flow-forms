@@ -41,6 +41,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     backgroundColor: fieldStyle.backgroundColor,
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
+    width: '100%',
+    boxSizing: 'border-box'
   } : {};
 
   // Use larger styling for form-title type
@@ -50,7 +52,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     <div 
       className={`mb-4 ${isFormTitle ? 'pt-4 pb-2 codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      style={hasBackgroundColor ? backgroundStyle : {}}
+      style={hasBackgroundColor ? {} : {}}
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg={hasBackgroundColor ? 'true' : 'false'}
@@ -58,32 +60,37 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={fieldStyle.backgroundColor || ''}
       data-font-family={fieldStyle.fontFamily || ''}
     >
-      <h3 
-        className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
-        style={{
-          color: fieldStyle.color || (hasBackgroundColor ? '#ffffff' : formStyle.primaryColor || 'inherit'),
-          fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
-          textAlign: alignment,
-          fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
-          fontFamily: fieldStyle.fontFamily || 'inherit',
-          margin: '0',
-          padding: isFormTitle && hasBackgroundColor ? '0.75rem' : '0',
-        }}
-      >
-        {field.label}
-      </h3>
-      {description && (
-        <p 
-          className="text-sm mt-1"
+      <div style={hasBackgroundColor ? backgroundStyle : {}}>
+        <h3 
+          className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
           style={{
+            color: fieldStyle.color || (hasBackgroundColor ? '#ffffff' : formStyle.primaryColor || 'inherit'),
+            fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
             textAlign: alignment,
-            color: fieldStyle.descriptionColor || '#6b7280',
-            fontSize: fieldStyle.descriptionFontSize || '0.875rem',
+            fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+            fontFamily: fieldStyle.fontFamily || 'inherit',
+            margin: '0',
+            padding: '0',
           }}
         >
-          {description}
-        </p>
-      )}
+          {field.label}
+        </h3>
+        
+        {description && (
+          <p 
+            className="text-sm mt-1"
+            style={{
+              textAlign: alignment,
+              color: hasBackgroundColor ? '#ffffff' : (fieldStyle.descriptionColor || '#6b7280'),
+              fontSize: fieldStyle.descriptionFontSize || '0.875rem',
+              margin: hasBackgroundColor ? '0.5rem 0 0 0' : '0.5rem 0 0 0',
+              padding: '0',
+            }}
+          >
+            {description}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
