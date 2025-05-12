@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
-import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 
 interface FormStyle {
@@ -55,35 +54,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         >
           <div></div>
         </FormPreview>
-
-        <div className="mt-4 flex justify-end">
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={onPreviousStep}
-              disabled={currentStep === 1}
-            >
-              {language === 'ar' ? 'السابق' : 'Previous'}
-            </Button>
-            
-            {currentStep < totalSteps ? (
-              <Button 
-                variant="default"
-                style={{ backgroundColor: formStyle.primaryColor }}
-                onClick={onNextStep}
-              >
-                {language === 'ar' ? 'التالي' : 'Next'}
-              </Button>
-            ) : (
-              <Button 
-                variant="default"
-                style={{ backgroundColor: formStyle.primaryColor }}
-              >
-                {language === 'ar' ? 'إرسال الطلب' : 'Submit'}
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

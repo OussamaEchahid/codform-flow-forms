@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { ShoppingCart } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -89,16 +90,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         }}
         disabled={field.disabled}
       >
-        {fieldStyle.iconPosition !== 'right' && fieldStyle.icon && (
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        {fieldStyle.iconPosition !== 'right' && (
+          <ShoppingCart className="w-5 h-5" />
         )}
         {field.label || (language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery')}
-        {fieldStyle.iconPosition === 'right' && fieldStyle.icon && (
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        {fieldStyle.iconPosition === 'right' && (
+          <ShoppingCart className="w-5 h-5" />
         )}
       </button>
     </div>
