@@ -111,6 +111,13 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
               <option value="pill">Pill</option>
             </select>
           </div>
+
+          <div className="border-t pt-4 mt-2">
+            <h3 className="text-sm font-medium mb-3">
+              {language === 'ar' ? 'تأثيرات الرسوم المتحركة للزر' : 'Button Animation Effects'}
+            </h3>
+            <AnimationSection field={{ style: { animation: false, animationType: 'pulse' } }} onChange={() => {}} />
+          </div>
         </div>
         
         <DialogFooter>
@@ -123,17 +130,28 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
   );
 };
 
-const AnimationSection = ({ field, onChange }) => {
+interface AnimationSectionProps {
+  field: {
+    style?: {
+      animation?: boolean;
+      animationType?: string;
+    };
+  };
+  onChange: (updatedField: any) => void;
+}
+
+const AnimationSection: React.FC<AnimationSectionProps> = ({ field, onChange }) => {
+  const { language } = useI18n();
   const animationTypes = [
-    { value: 'pulse', label: 'Pulse' },
-    { value: 'shake', label: 'Shake' },
-    { value: 'bounce', label: 'Bounce' },
-    { value: 'wiggle', label: 'Wiggle' },
-    { value: 'flash', label: 'Flash' }
+    { value: 'pulse', label: language === 'ar' ? 'نبض' : 'Pulse' },
+    { value: 'shake', label: language === 'ar' ? 'اهتزاز' : 'Shake' },
+    { value: 'bounce', label: language === 'ar' ? 'ارتداد' : 'Bounce' },
+    { value: 'wiggle', label: language === 'ar' ? 'تمايل' : 'Wiggle' },
+    { value: 'flash', label: language === 'ar' ? 'وميض' : 'Flash' }
   ];
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex items-center">
         <Checkbox
           id="animation"
@@ -145,7 +163,9 @@ const AnimationSection = ({ field, onChange }) => {
             });
           }}
         />
-        <label htmlFor="animation" className="ml-2 text-sm font-medium">Enable Animation</label>
+        <label htmlFor="animation" className="ml-2 text-sm font-medium">
+          {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
+        </label>
       </div>
       
       {field.style?.animation && (
@@ -159,7 +179,7 @@ const AnimationSection = ({ field, onChange }) => {
           }}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select animation type" />
+            <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
           </SelectTrigger>
           <SelectContent>
             {animationTypes.map((type) => (
@@ -170,6 +190,27 @@ const AnimationSection = ({ field, onChange }) => {
           </SelectContent>
         </Select>
       )}
+
+      <div className="grid grid-cols-5 gap-2 mt-4">
+        {animationTypes.map((type) => (
+          <div 
+            key={type.value}
+            className="relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50"
+            onClick={() => {
+              onChange({
+                ...field,
+                style: { ...field.style, animation: true, animationType: type.value }
+              });
+            }}
+          >
+            <button 
+              className={`w-full py-2 bg-[#9b87f5] text-white text-xs font-medium rounded ${type.value}-animation`}
+            >
+              {type.label}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

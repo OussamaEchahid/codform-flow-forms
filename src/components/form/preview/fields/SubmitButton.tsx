@@ -67,71 +67,6 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   
   return (
     <div className="mb-4 mt-8">
-      <style>
-        {`
-        @keyframes pulse-animation {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
-          }
-          
-          70% {
-            transform: scale(1.02);
-            box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-          }
-          
-          100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-          }
-        }
-        
-        @keyframes shake-animation {
-          0% { transform: translateX(0); }
-          10%, 90% { transform: translateX(-2px); }
-          20%, 80% { transform: translateX(4px); }
-          30%, 50%, 70% { transform: translateX(-6px); }
-          40%, 60% { transform: translateX(6px); }
-        }
-        
-        @keyframes bounce-animation {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        
-        @keyframes wiggle-animation {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(5deg); }
-          50% { transform: rotate(0deg); }
-          75% { transform: rotate(-5deg); }
-        }
-        
-        @keyframes flash-animation {
-          0%, 50%, 100% { opacity: 1; }
-          25%, 75% { opacity: 0.5; }
-        }
-        
-        .pulse-animation {
-          animation: pulse-animation 2s infinite;
-        }
-        
-        .shake-animation {
-          animation: shake-animation 2s infinite;
-        }
-        
-        .bounce-animation {
-          animation: bounce-animation 2s infinite;
-        }
-        
-        .wiggle-animation {
-          animation: wiggle-animation 1.5s infinite;
-        }
-        
-        .flash-animation {
-          animation: flash-animation 2s infinite;
-        }
-        `}
-      </style>
       <button
         className={`w-full py-4 px-4 font-medium transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-2 ${animationClass}`}
         style={{
@@ -164,6 +99,25 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           <ShoppingCart className="w-5 h-5" />
         )}
       </button>
+
+      {/* Animation Preview */}
+      <div className="mt-4 grid grid-cols-5 gap-2 text-xs text-center">
+        <div className="pulse-animation p-1 bg-gray-100 rounded">
+          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'نبض' : 'Pulse'}</div>
+        </div>
+        <div className="shake-animation p-1 bg-gray-100 rounded">
+          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'اهتزاز' : 'Shake'}</div>
+        </div>
+        <div className="bounce-animation p-1 bg-gray-100 rounded">
+          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'ارتداد' : 'Bounce'}</div>
+        </div>
+        <div className="wiggle-animation p-1 bg-gray-100 rounded">
+          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'تمايل' : 'Wiggle'}</div>
+        </div>
+        <div className="flash-animation p-1 bg-gray-100 rounded">
+          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'وميض' : 'Flash'}</div>
+        </div>
+      </div>
     </div>
   );
 };
