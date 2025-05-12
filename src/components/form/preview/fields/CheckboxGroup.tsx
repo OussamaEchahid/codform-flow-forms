@@ -13,7 +13,7 @@ interface CheckboxGroupProps {
 }
 
 const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
-  const { language } = useI18n';
+  const { language } = useI18n();
   const fieldStyle = field.style || {};
   
   // Ensure options are available and have correct format
