@@ -35,23 +35,21 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   // Define font size based on style or field settings
   const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
-  
-  // Determine animation class based on animation type
-  const determineAnimationClass = () => {
+
+  // Improved animation class determination
+  const getAnimationClass = () => {
     if (!fieldStyle.animation) return '';
     
-    // If animation is just boolean true, default to pulse
-    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation && !fieldStyle.animationType) {
-      console.log("Using default pulse animation");
+    // If animation is just boolean true with no specific type, default to pulse
+    if (fieldStyle.animation === true && !fieldStyle.animationType) {
       return 'pulse-animation';
     }
     
-    // If we have a specific animation type
+    // Get the specific animation type if provided
     if (fieldStyle.animationType) {
-      const animationType = fieldStyle.animationType.toLowerCase();
-      console.log(`Applying specific animation: ${animationType}`);
+      const type = fieldStyle.animationType.toLowerCase();
       
-      switch (animationType) {
+      switch (type) {
         case 'pulse':
           return 'pulse-animation';
         case 'shake':
@@ -63,7 +61,6 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         case 'flash':
           return 'flash-animation';
         default:
-          console.warn(`Unknown animation type: ${animationType}`);
           return '';
       }
     }
@@ -71,12 +68,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     return '';
   };
   
-  const animationClass = determineAnimationClass();
+  const animationClass = getAnimationClass();
   
   console.log("Button animation data:", { 
     animation: fieldStyle.animation, 
     type: fieldStyle.animationType,
-    class: animationClass 
+    class: animationClass
   });
   
   return (
@@ -96,6 +93,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           transition: 'all 0.3s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
           textAlign: 'center',
+          animationDuration: '2s',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'ease-in-out',
         }}
         disabled={field.disabled}
         data-animation-type={fieldStyle.animationType || ''}
