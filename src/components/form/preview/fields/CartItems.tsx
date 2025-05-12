@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { Image } from 'lucide-react';
 
 interface CartItemsProps {
   field: FormField;
@@ -38,12 +39,24 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
       }}>
         {/* عنصر العربة النموذجي للمعاينة */}
         <div className="flex items-center p-4 border-b codform-cart-item" data-product-item>
-          <div className="w-20 h-20 bg-gray-100 rounded-md flex-shrink-0 ml-4" style={{ borderRadius: '0.25rem' }}>
+          <div className="w-20 h-20 bg-gray-100 rounded-md flex-shrink-0 ml-4 flex items-center justify-center" style={{ borderRadius: '0.25rem' }}>
             <img 
-              src="https://via.placeholder.com/80" 
+              src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=80&h=80&q=80" 
               alt="Product" 
               className="w-full h-full object-cover product-image"
               style={{ borderRadius: '0.25rem' }}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  const iconElement = document.createElement('div');
+                  iconElement.className = 'w-full h-full flex items-center justify-center text-gray-400';
+                  iconElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                  parent.appendChild(iconElement);
+                }
+              }}
             />
           </div>
           <div className="flex-1">

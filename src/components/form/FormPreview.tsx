@@ -41,9 +41,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
+    // Ensure cart-items and cart-summary have empty labels by default
+    const updatedFields = fields.map(field => {
+      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
+        return { ...field, label: '' };
+      }
+      return field;
+    });
+    
     // إذا كان هناك form-title موجود، نستخدمه
-    if (fields.some(field => field.type === 'form-title')) {
-      return fields;
+    if (updatedFields.some(field => field.type === 'form-title')) {
+      return updatedFields;
     }
     
     // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
@@ -64,9 +72,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     };
     
     // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
-    const hasSubmitButton = fields.some(field => field.type === 'submit');
+    const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
-    let result = [formTitleField, ...fields.filter(f => f.type !== 'form-title')];
+    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
     // إذا لم يكن هناك زر إرسال، نضيف واحدًا
     if (!hasSubmitButton) {

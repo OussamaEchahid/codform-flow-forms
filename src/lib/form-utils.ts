@@ -33,7 +33,7 @@ export interface FormField {
     fontFamily?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
-    descriptionFontWeight?: string; // Add this property
+    descriptionFontWeight?: string;
     titleColor?: string; // Added for backward compatibility
     titleFontSize?: string; // Added for backward compatibility
     priceColor?: string;
@@ -238,13 +238,13 @@ export const createDefaultForm = (): FormStep[] => {
         {
           id: "cart_items",
           type: "cart-items",
-          label: "المنتج المختار",
+          label: "", // Empty label to hide the title
           required: false
         },
         {
           id: "cart_summary",
           type: "cart-summary",
-          label: "ملخص الطلب",
+          label: "", // Empty label to hide the title
           required: false
         },
         {
