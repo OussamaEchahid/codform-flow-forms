@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
@@ -21,17 +22,19 @@ export interface FormField {
   showPrice?: boolean;
   showShipping?: boolean;
   showTax?: boolean;
-  icon?: string; // Added icon property
-  defaultValue?: string; // Added defaultValue property
+  icon?: string; 
+  defaultValue?: string;
   style?: {
     backgroundColor?: string;
     color?: string;
     fontSize?: string;
-    textAlign?: string; // Added for title alignment
-    fontWeight?: string; // Added for font weight
-    fontFamily?: string; // Added for font family
+    textAlign?: string;
+    fontWeight?: string;
+    fontFamily?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
+    titleColor?: string; // Added for backward compatibility
+    titleFontSize?: string; // Added for backward compatibility
     priceColor?: string;
     priceFontSize?: string;
     labelColor?: string;
@@ -45,10 +48,10 @@ export interface FormField {
     borderColor?: string;
     borderRadius?: string;
     borderWidth?: string;
-    animation?: boolean; // Animation flag
-    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash'; // Added animation types
-    iconPosition?: 'left' | 'right'; // Added iconPosition property
-    icon?: boolean; // Added icon property
+    animation?: boolean;
+    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash';
+    iconPosition?: 'left' | 'right';
+    icon?: boolean;
   };
   disabled?: boolean;
 }

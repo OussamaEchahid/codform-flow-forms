@@ -12,6 +12,7 @@ import FormElementList from '@/components/form/builder/FormElementList';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
@@ -72,30 +73,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
 
-  const availableElements = [
-    { type: 'whatsapp', label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', icon: '📱' },
-    { type: 'image', label: language === 'ar' ? 'صورة' : 'Image', icon: '🖼️' },
-    { type: 'title', label: language === 'ar' ? 'عنوان' : 'Title', icon: 'T' },
-    { type: 'text/html', label: language === 'ar' ? 'نص/HTML' : 'Text/Html', icon: '📄' },
-    { type: 'cart-items', label: language === 'ar' ? 'عناصر السلة' : 'Cart items', icon: '🛒' },
-    { type: 'cart-summary', label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', icon: '📋' },
-    { type: 'text', label: language === 'ar' ? 'حقل نص' : 'Text Input', icon: '✍️' },
-    { type: 'textarea', label: language === 'ar' ? 'حقل نص متعدد الأسطر' : 'Multi-line Input', icon: '📝' },
-    { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
-    { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
-    { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
-    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' },
-    { type: 'submit', label: language === 'ar' ? 'زر الإرسال' : 'Submit Button', icon: '📤' }
-  ];
-
-  // Get active shop ID for database operations
-  const getActiveShopId = () => {
-    return shopifyIntegration.shop || localStorage.getItem('shopify_store');
-  };
-
   // Create a default form with fields from the image
   const createDefaultForm = (): FormField[] => {
     return [
+      {
+        type: 'form-title' as FormFieldType,
+        id: `form-title-${Date.now()}`,
+        label: formTitle,
+        helpText: formDescription,
+        style: {
+          color: '#1A1F2C',
+          textAlign: language === 'ar' ? 'right' : 'left',
+          fontWeight: 'bold',
+          fontSize: '1.5rem',
+          descriptionColor: '#6b7280',
+          descriptionFontSize: '0.875rem',
+          backgroundColor: '',
+        }
+      },
       {
         type: 'text' as FormFieldType,
         id: `text-${Date.now()}-1`,
@@ -149,6 +144,45 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         },
       }
     ];
+  };
+
+  // Find existing form title field or create one
+  const getFormTitleField = (): FormField | undefined => {
+    return formElements.find(f => f.type === 'form-title');
+  };
+
+  // Add form title field if not exists
+  const addFormTitleField = () => {
+    if (getFormTitleField()) return;
+
+    const titleField: FormField = {
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: formTitle,
+      helpText: formDescription,
+      style: {
+        color: '#1A1F2C',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '1.5rem',
+        descriptionColor: '#6b7280',
+        descriptionFontSize: '0.875rem',
+      }
+    };
+
+    setFormElements(prev => [titleField, ...prev]);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Update form title field
+  const updateFormTitleField = (updatedField: FormField) => {
+    const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
+    if (fieldIndex === -1) return;
+
+    const updatedElements = [...formElements];
+    updatedElements[fieldIndex] = updatedField;
+    setFormElements(updatedElements);
+    setRefreshKey(prev => prev + 1);
   };
 
   // Initialize a new form if no form ID is provided
@@ -582,6 +616,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
           </h2>
+          
+          {/* Add the form title editor at top */}
+          <FormTitleEditor
+            formTitle={formTitle}
+            formDescription={formDescription}
+            onFormTitleChange={(title) => setFormTitle(title)}
+            onFormDescriptionChange={(desc) => setFormDescription(desc)}
+            formTitleField={getFormTitleField()}
+            onAddTitleField={addFormTitleField}
+            onUpdateTitleField={updateFormTitleField}
+          />
           
           <DndContext 
             sensors={sensors}

@@ -36,26 +36,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // First, check if fields already contain a form-title field
-  const existingTitleField = fields.find(f => f.type === 'form-title');
-  
-  // If there is no form-title field and there are other fields, create a form-title field
-  const fieldsToRender = fields.length > 0 && !existingTitleField
-    ? [
-        {
-          type: 'form-title' as const,
-          id: `form-title-${Date.now()}`,
-          label: formTitle || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
-          style: {
-            color: formStyle.primaryColor,
-            textAlign: language === 'ar' ? 'right' : 'left',
-            fontWeight: 'bold',
-            fontSize: '1.5rem',
-          }
-        },
-        ...fields
-      ]
-    : fields;
+  // Only use the fields directly provided, no auto-generation of title fields
+  const fieldsToRender = fields;
   
   return (
     <div 
