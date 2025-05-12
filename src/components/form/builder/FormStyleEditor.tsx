@@ -1,6 +1,14 @@
+
 import React from 'react';
 import { FormStyle } from '@/hooks/useFormStore';
 import { FloatingButtonConfig } from '@/lib/form-utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface FormStyleEditorProps {
   formStyle: FormStyle;
@@ -160,7 +168,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
         </div>
         
         {/* Only show floating button section if specifically requested */}
-        {showFloatingButtonEditor && floatingButton && (
+        {showFloatingButtonEditor && floatingButton && onFloatingButtonChange && (
           <>
             <Separator className="my-6" />
             <h3 className="text-lg font-medium mb-4">
