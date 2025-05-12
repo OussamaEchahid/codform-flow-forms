@@ -20,8 +20,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   
   // Default label based on language if not provided
   const buttonLabel = field.label || (language === 'ar' 
-    ? 'شراء بخاصية الدفع عند الاستلام' 
-    : 'Buy with Cash on Delivery');
+    ? 'إرسال الطلب' 
+    : 'Submit Order');
   
   // Determine button radius based on style
   let buttonRadius = '8px'; // زيادة القيمة الافتراضية للحواف

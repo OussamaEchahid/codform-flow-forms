@@ -92,19 +92,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery');
-  const [formDescription, setFormDescription] = useState('');
+  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
 
-  // Find existing form title field or create one
+  // تحسين وظيفة البحث عن حقل عنوان النموذج
   const getFormTitleField = (): FormField | undefined => {
     return formElements.find(f => f.type === 'form-title');
   };
 
-  // Convert form header to an editable title field
+  // تحويل عنوان النموذج إلى حقل قابل للتعديل مع الخلفية البنفسجية
   const addFormTitleField = () => {
-    // Check if title field already exists
+    // التحقق مما إذا كان حقل العنوان موجودًا بالفعل
     const existingTitleField = getFormTitleField();
     
     if (existingTitleField) {
@@ -112,33 +112,57 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return;
     }
 
+    // إنشاء حقل عنوان جديد دائمًا بخلفية بنفسجية
     const titleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
       label: formTitle,
       helpText: formDescription,
       style: {
-        color: '#1A1F2C',
+        color: '#ffffff', // نص أبيض للتباين
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
         fontSize: '1.5rem',
-        descriptionColor: '#6b7280',
+        descriptionColor: '#ffffff', // وصف أبيض للتباين
         descriptionFontSize: '0.875rem',
-        backgroundColor: '#f1f0fb', // إضافة لون خلفية افتراضي
+        backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
       }
     };
 
-    // Add title field at the beginning of the form
+    // إضافة حقل العنوان في بداية النموذج
     const updatedElements = [titleField, ...formElements.filter(f => f.type !== 'form-title')];
     setFormElements(updatedElements);
     setRefreshKey(prev => prev + 1);
     toast.success(language === 'ar' ? 'تم تحويل العنوان إلى قابل للتعديل بنجاح' : 'Title converted to editable successfully');
   };
 
-  // Update form title field
+  // تحديث حقل عنوان النموذج
   const updateFormTitleField = (updatedField: FormField) => {
     const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
     if (fieldIndex === -1) return;
+
+    // تأكد من أن خلفية العنوان دائمًا بنفسجية
+    if (!updatedField.style?.backgroundColor) {
+      updatedField.style = {
+        ...updatedField.style,
+        backgroundColor: '#9b87f5'
+      };
+    }
+
+    // تحديث لون النص والوصف للتباين إذا لم يكن محددًا
+    if (!updatedField.style?.color) {
+      updatedField.style = {
+        ...updatedField.style,
+        color: '#ffffff'
+      };
+    }
+
+    if (!updatedField.style?.descriptionColor) {
+      updatedField.style = {
+        ...updatedField.style,
+        descriptionColor: '#ffffff'
+      };
+    }
 
     const updatedElements = [...formElements];
     updatedElements[fieldIndex] = updatedField;
@@ -146,27 +170,28 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // Create a default form with fields
+  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
-    // Add title field as form-title type with default background color
+    // إضافة حقل عنوان بخلفية بنفسجية دائمًا
     fields.push({
       type: 'form-title' as FormFieldType,
       id: `form-title-${Date.now()}`,
-      label: language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery',
-      helpText: formDescription,
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
-        color: '#1A1F2C',
+        color: '#ffffff', // نص أبيض للتباين
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
         fontSize: '1.5rem',
-        descriptionColor: '#6b7280',
+        descriptionColor: '#ffffff', // وصف أبيض للتباين
         descriptionFontSize: '0.875rem',
-        backgroundColor: '#f1f0fb', // إضافة لون خلفية افتراضي
+        backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
       }
     });
     
+    // إضافة حقل الاسم الكامل
     fields.push({
       type: 'text' as FormFieldType,
       id: `text-${Date.now()}-1`,
@@ -176,24 +201,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       icon: 'user',
     });
     
+    // إضافة حقل رقم الهاتف
     fields.push({
       type: 'phone' as FormFieldType,
-      id: `text-${Date.now()}-2`,
+      id: `phone-${Date.now()}-2`,
       label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
       placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
       required: true,
       icon: 'phone',
     });
     
-    fields.push({
-      type: 'text' as FormFieldType,
-      id: `text-${Date.now()}-3`,
-      label: language === 'ar' ? 'المدينة' : 'City',
-      placeholder: language === 'ar' ? 'المدينة' : 'City',
-      required: true,
-      icon: 'map-pin',
-    });
-    
+    // إضافة حقل العنوان
     fields.push({
       type: 'textarea' as FormFieldType,
       id: `textarea-${Date.now()}`,
@@ -202,26 +220,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       required: true,
     });
     
-    fields.push({
-      type: 'cart-items' as FormFieldType,
-      id: `cart-items-${Date.now()}`,
-      label: language === 'ar' ? 'المنتج المختار' : 'Selected Product',
-    });
-    
-    fields.push({
-      type: 'cart-summary' as FormFieldType,
-      id: `cart-summary-${Date.now()}`,
-      label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
-    });
-    
+    // إضافة زر الطلب
     fields.push({
       type: 'submit' as FormFieldType,
       id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
       style: {
-        backgroundColor: '#9b87f5', // استخدم لون افتراضي
+        backgroundColor: '#9b87f5',
         color: '#ffffff',
-        fontSize: '1.1rem',
+        fontSize: '1.2rem',
         animation: true,
         animationType: 'pulse',
         iconPosition: 'left',
@@ -231,7 +238,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     return fields;
   };
 
-  // Initialize a new form if no form ID is provided
+  // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج
   const initializeNewForm = async () => {
     try {
       const shopId = getActiveShopId();
@@ -300,7 +307,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
   };
 
-  // Load form data when formId changes
+  // تحميل بيانات النموذج عند تغيير معرف النموذج
   useEffect(() => {
     const loadFormData = async () => {
       const id = formId || params.formId;
@@ -313,12 +320,57 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           if (formData) {
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
-            setFormElements(
-              formData.data?.flatMap(step => step.fields) || []
-            );
+            
+            // تأكد من أن النموذج يحتوي على كل العناصر المطلوبة
+            let loadedElements = formData.data?.flatMap(step => step.fields) || [];
+            
+            // إذا لم يكن هناك عنوان للنموذج أو زر إرسال، أضفهما
+            let needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
+            let needsTitleField = !loadedElements.some(f => f.type === 'form-title');
+            
+            // إذا كنا بحاجة إلى إضافة عناصر، نقوم بذلك
+            if (needsTitleField || needsSubmitButton) {
+              if (needsTitleField) {
+                const titleField: FormField = {
+                  type: 'form-title',
+                  id: `form-title-${Date.now()}`,
+                  label: formData.title,
+                  helpText: formData.description || '',
+                  style: {
+                    color: '#ffffff',
+                    textAlign: language === 'ar' ? 'right' : 'left',
+                    fontWeight: 'bold',
+                    fontSize: '1.5rem',
+                    descriptionColor: '#ffffff',
+                    descriptionFontSize: '0.875rem',
+                    backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
+                  }
+                };
+                loadedElements = [titleField, ...loadedElements];
+              }
+              
+              if (needsSubmitButton) {
+                const submitButton: FormField = {
+                  type: 'submit',
+                  id: `submit-${Date.now()}`,
+                  label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+                  style: {
+                    backgroundColor: '#9b87f5',
+                    color: '#ffffff',
+                    fontSize: '1.2rem',
+                    animation: true,
+                    animationType: 'pulse',
+                    iconPosition: 'left',
+                  },
+                };
+                loadedElements.push(submitButton);
+              }
+            }
+            
+            setFormElements(loadedElements);
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             
-            // Update the style handling to ensure we never use undefined values
+            // تحديث نمط النموذج مع التأكد من عدم استخدام قيم غير محددة
             if (formData.style) {
               setFormStyle({
                 primaryColor: formData.style.primaryColor || '#9b87f5',
@@ -327,7 +379,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 buttonStyle: formData.style.buttonStyle || 'rounded',
               });
             } else {
-              // Default values if style is missing
+              // قيم افتراضية إذا كان النمط مفقودًا
               setFormStyle({
                 primaryColor: '#9b87f5',
                 borderRadius: '0.5rem',
@@ -336,20 +388,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               });
             }
             
-            console.log("Loaded form data:", formData);
+            console.log("تم تحميل بيانات النموذج:", formData);
           } else {
-            // If form not found, initialize with default form
+            // إذا لم يتم العثور على النموذج، تهيئة نموذج افتراضي
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
             setFormElements(createDefaultForm());
           }
         } catch (error) {
-          console.error("Error loading form:", error);
+          console.error("خطأ في تحميل النموذج:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-          // If error, create default form
+          // في حالة وجود خطأ، إنشاء نموذج افتراضي
           setFormElements(createDefaultForm());
         }
       } else {
-        // If no form ID, initialize a new form
+        // إذا لم يكن هناك معرف للنموذج، تهيئة نموذج جديد
         await initializeNewForm();
       }
     };

@@ -18,7 +18,7 @@ interface FormPreviewProps {
     buttonStyle?: string;
   };
   fields?: FormField[];
-  hideHeader?: boolean; // إضافة خيار لإخفاء الترويسة
+  hideHeader?: boolean;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -34,34 +34,41 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
-  hideHeader = false, // تغيير القيمة الافتراضية لتكون false بدلاً من true
+  hideHeader = false,
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // تنظيف الحقول: الاحتفاظ فقط بحقل عنوان نموذج واحد والتأكد من وجود زر إرسال
+  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
-    // الخطوة 1: إزالة حقول عنوان النموذج المكررة (الاحتفاظ فقط بالأول)
-    const uniqueFields: FormField[] = [];
-    let foundTitle = false;
+    // إذا كان هناك form-title موجود، نستخدمه
+    if (fields.some(field => field.type === 'form-title')) {
+      return fields;
+    }
     
-    fields.forEach(field => {
-      // إذا لم تكن عنوان نموذج أو لم نجد عنوان بعد، أضفها
-      if (field.type !== 'form-title' || !foundTitle) {
-        uniqueFields.push(field);
-        
-        // تحديد أننا وجدنا حقل عنوان
-        if (field.type === 'form-title') {
-          foundTitle = true;
-          hideHeader = true; // إخفاء الترويسة إذا كان هناك حقل form-title
-        }
+    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
+    const formTitleField: FormField = {
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: formTitle,
+      helpText: formDescription,
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '1.5rem',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '0.875rem',
+        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
       }
-    });
+    };
     
-    // الخطوة 2: التحقق مما إذا كان هناك زر إرسال موجود
-    const hasSubmitButton = uniqueFields.some(field => field.type === 'submit');
+    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
+    const hasSubmitButton = fields.some(field => field.type === 'submit');
     
-    // الخطوة 3: إذا لم يكن هناك زر إرسال موجود، أضف واحدًا افتراضيًا
+    let result = [formTitleField, ...fields.filter(f => f.type !== 'form-title')];
+    
+    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -70,34 +77,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '1rem',
+          fontSize: '1.2rem',
+          animation: true,
+          animationType: 'pulse',
         },
       };
-      uniqueFields.push(submitButton);
+      result.push(submitButton);
     }
     
-    return uniqueFields;
-  }, [fields, language, formStyle.primaryColor, hideHeader]);
-  
-  // إنشاء محتوى الترويسة - سيظهر هذا المحتوى الآن بسبب تغيير hideHeader=false
-  const headerContent = () => {
-    if (!hideHeader && !sanitizedFields.some(field => field.type === 'form-title')) {
-      return (
-        <div 
-          className="p-4 border-b" 
-          style={{ 
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
-            color: 'white',
-            borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
-          }}
-        >
-          <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-          {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
-        </div>
-      );
-    }
-    return null;
-  };
+    return result;
+  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
   return (
     <div 
@@ -109,8 +98,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
     >
-      {headerContent()}
-      
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
           <div className="flex items-center">

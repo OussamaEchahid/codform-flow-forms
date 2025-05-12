@@ -37,15 +37,16 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // Background styling
-  const hasBackgroundColor = fieldStyle.backgroundColor && fieldStyle.backgroundColor !== '';
-  const backgroundStyle = hasBackgroundColor ? {
-    backgroundColor: fieldStyle.backgroundColor,
+  // Background styling - Always use a background color for form-title type
+  // If field already has a backgroundColor, use it; otherwise use #9b87f5
+  const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
+  const backgroundStyle = {
+    backgroundColor: backgroundColor,
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-  } : {};
+  };
 
   // Use larger styling for form-title type
   const isFormTitle = field.type === 'form-title';
@@ -54,19 +55,18 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     <div 
       className={`mb-4 ${isFormTitle ? 'pt-4 pb-2 codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      style={hasBackgroundColor ? {} : {}}
       data-testid="title-field"
       data-title-align={alignment}
-      data-has-bg={hasBackgroundColor ? 'true' : 'false'}
-      data-title-color={fieldStyle.color || ''}
-      data-bg-color={fieldStyle.backgroundColor || ''}
+      data-has-bg="true"
+      data-title-color={fieldStyle.color || '#ffffff'}
+      data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
     >
-      <div style={hasBackgroundColor ? backgroundStyle : {}}>
+      <div style={backgroundStyle}>
         <h3 
           className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
           style={{
-            color: fieldStyle.color || (hasBackgroundColor ? '#ffffff' : formStyle.primaryColor || 'inherit'),
+            color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
             fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
             textAlign: alignment,
             fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
@@ -83,9 +83,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
             className="text-sm mt-1"
             style={{
               textAlign: alignment,
-              color: hasBackgroundColor ? '#ffffff' : (fieldStyle.descriptionColor || '#6b7280'),
+              color: fieldStyle.descriptionColor || '#ffffff', // Default to white for description
               fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-              margin: hasBackgroundColor ? '0.5rem 0 0 0' : '0.5rem 0 0 0',
+              margin: '0.5rem 0 0 0',
               padding: '0',
             }}
           >
