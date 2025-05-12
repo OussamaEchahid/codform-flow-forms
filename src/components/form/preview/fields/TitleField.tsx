@@ -48,6 +48,13 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     marginBottom: '0', // No bottom margin to match store display
   };
 
+  // Use larger styling for form-title type
+  const isFormTitle = field.type === 'form-title';
+  
+  // Determine font size for title - Make sure it's stored correctly for store rendering
+  const fontSize = fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem');
+  const fontWeight = fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium');
+  
   // Description styles inside the same background container
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
@@ -56,14 +63,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0',
     textAlign: alignment,
     fontFamily: fieldStyle.fontFamily || 'inherit',
+    fontWeight: fieldStyle.descriptionFontWeight || 'normal',
   };
 
-  // Use larger styling for form-title type
-  const isFormTitle = field.type === 'form-title';
-  
-  // Determine font size for title - Make sure it's stored correctly for store rendering
-  const fontSize = fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem');
-  
   return (
     <div 
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
@@ -76,15 +78,18 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
       data-font-size={fontSize}
+      data-font-weight={fontWeight}
+      data-desc-font-size={fieldStyle.descriptionFontSize || '0.875rem'}
+      data-desc-font-weight={fieldStyle.descriptionFontWeight || 'normal'}
     >
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
-          className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
+          className={isFormTitle ? "text-2xl" : "text-lg"}
           style={{
             color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
             fontSize: fontSize,
             textAlign: alignment,
-            fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+            fontWeight: fontWeight,
             fontFamily: fieldStyle.fontFamily || 'inherit',
             margin: '0',
             padding: '0',

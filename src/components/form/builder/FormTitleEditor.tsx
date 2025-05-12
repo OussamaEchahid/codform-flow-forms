@@ -29,23 +29,29 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onUpdateTitleField
 }) => {
   const { language } = useI18n();
-  const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#1A1F2C');
+  const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
     formTitleField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
   );
   const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
-  const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#6b7280');
-  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#f1f0fb');
+  const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
+  const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
+  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
+  const [descWeight, setDescWeight] = useState(formTitleField?.style?.descriptionFontWeight || 'normal');
+  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
   // Update local state when formTitleField changes
   useEffect(() => {
     if (formTitleField) {
-      setTitleColor(formTitleField.style?.color || '#1A1F2C');
+      setTitleColor(formTitleField.style?.color || '#ffffff');
       setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
       setTitleSize(formTitleField.style?.fontSize || '1.5rem');
-      setDescColor(formTitleField.style?.descriptionColor || '#6b7280');
-      setBackgroundColor(formTitleField.style?.backgroundColor || '#f1f0fb');
+      setTitleWeight(formTitleField.style?.fontWeight || 'bold');
+      setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
+      setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
+      setDescWeight(formTitleField.style?.descriptionFontWeight || 'normal');
+      setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
   }, [formTitleField, language]);
 
@@ -63,7 +69,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'color') setTitleColor(value);
     if (property === 'textAlign') setTitleAlignment(value);
     if (property === 'fontSize') setTitleSize(value);
+    if (property === 'fontWeight') setTitleWeight(value);
     if (property === 'descriptionColor') setDescColor(value);
+    if (property === 'descriptionFontSize') setDescSize(value);
+    if (property === 'descriptionFontWeight') setDescWeight(value);
     if (property === 'backgroundColor') setBackgroundColor(value);
     
     onUpdateTitleField(updatedField);
@@ -154,68 +163,90 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 {language === 'ar' ? 'تحويل العنوان إلى قابل للتعديل' : 'Convert to Editable Title'}
               </Button>
             ) : (
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                <div>
-                  <Label htmlFor="title-color" className={language === 'ar' ? 'text-right block' : ''}>
-                    {language === 'ar' ? 'لون العنوان' : 'Title Color'}
-                  </Label>
-                  <div className="flex mt-1">
-                    <Input
-                      id="title-color"
-                      type="color"
-                      value={titleColor}
-                      onChange={(e) => handleUpdateStyle('color', e.target.value)}
-                      className="w-12 h-8 p-1"
-                    />
-                    <Input
-                      value={titleColor}
-                      onChange={(e) => handleUpdateStyle('color', e.target.value)}
-                      className="ml-2 flex-1"
-                    />
+              <div className="space-y-4 pt-2 border-t">
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <Label htmlFor="title-color" className={language === 'ar' ? 'text-right block' : ''}>
+                      {language === 'ar' ? 'لون العنوان' : 'Title Color'}
+                    </Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="title-color"
+                        type="color"
+                        value={titleColor}
+                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                        className="w-12 h-8 p-1"
+                      />
+                      <Input
+                        value={titleColor}
+                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                        className="ml-2 flex-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="bg-color" className={language === 'ar' ? 'text-right block' : ''}>
+                      {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+                    </Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="bg-color"
+                        type="color"
+                        value={backgroundColor}
+                        onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                        className="w-12 h-8 p-1"
+                      />
+                      <Input
+                        value={backgroundColor}
+                        onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                        className="ml-2 flex-1"
+                      />
+                    </div>
                   </div>
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="desc-color" className={language === 'ar' ? 'text-right block' : ''}>
-                    {language === 'ar' ? 'لون النص الوصفي' : 'Description Color'}
-                  </Label>
-                  <div className="flex mt-1">
-                    <Input
-                      id="desc-color"
-                      type="color"
-                      value={descColor}
-                      onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                      className="w-12 h-8 p-1"
-                    />
-                    <Input
-                      value={descColor}
-                      onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                      className="ml-2 flex-1"
-                    />
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    {language === 'ar' ? 'خصائص العنوان' : 'Title Properties'}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="title-size" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'حجم العنوان' : 'Title Size'}
+                      </Label>
+                      <select
+                        id="title-size"
+                        value={titleSize}
+                        onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="1rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="1.25rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="1.5rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                        <option value="2rem">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="title-weight" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'سمك العنوان' : 'Title Weight'}
+                      </Label>
+                      <select
+                        id="title-weight"
+                        value={titleWeight}
+                        onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
+                        <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="bg-color" className={language === 'ar' ? 'text-right block' : ''}>
-                    {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
-                  </Label>
-                  <div className="flex mt-1">
-                    <Input
-                      id="bg-color"
-                      type="color"
-                      value={backgroundColor}
-                      onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
-                      className="w-12 h-8 p-1"
-                    />
-                    <Input
-                      value={backgroundColor}
-                      onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
-                      className="ml-2 flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="col-span-2">
                   <Label className={language === 'ar' ? 'text-right block' : ''}>
                     {language === 'ar' ? 'محاذاة العنوان' : 'Title Alignment'}
                   </Label>
@@ -246,38 +277,65 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                     </Button>
                   </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="title-size" className={language === 'ar' ? 'text-right block' : ''}>
-                    {language === 'ar' ? 'حجم العنوان' : 'Title Size'}
-                  </Label>
-                  <select
-                    id="title-size"
-                    value={titleSize}
-                    onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                  >
-                    <option value="1rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
-                    <option value="1.25rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                    <option value="1.5rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
-                    <option value="2rem">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label htmlFor="title-weight" className={language === 'ar' ? 'text-right block' : ''}>
-                    {language === 'ar' ? 'سمك العنوان' : 'Title Weight'}
-                  </Label>
-                  <select
-                    id="title-weight"
-                    value={formTitleField.style?.fontWeight || 'bold'}
-                    onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                  >
-                    <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
-                    <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                    <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
-                  </select>
+                
+                <div className="border-t pt-3">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    {language === 'ar' ? 'خصائص الوصف' : 'Description Properties'}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="desc-color" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'لون الوصف' : 'Description Color'}
+                      </Label>
+                      <div className="flex mt-1">
+                        <Input
+                          id="desc-color"
+                          type="color"
+                          value={descColor}
+                          onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                          className="w-12 h-8 p-1"
+                        />
+                        <Input
+                          value={descColor}
+                          onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                          className="ml-2 flex-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="desc-size" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
+                      </Label>
+                      <select
+                        id="desc-size"
+                        value={descSize}
+                        onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="0.75rem">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
+                        <option value="0.875rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="1rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="1.125rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="desc-weight" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'سمك الوصف' : 'Description Weight'}
+                      </Label>
+                      <select
+                        id="desc-weight"
+                        value={descWeight}
+                        onChange={(e) => handleUpdateStyle('descriptionFontWeight', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
+                        <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

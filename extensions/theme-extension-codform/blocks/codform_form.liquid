@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -203,19 +204,19 @@
     margin-bottom: 0 !important;
   }
 
-  /* تحسينات لمحاذاة العنوان */
+  /* تحسينات لمحاذاة العنوان والوصف */
   .codform-field[data-title-align="center"] h3,
-  .codform-field[data-title-align="center"] p {
+  .codform-field[data-title-align="center"] p.codform-title-description {
     text-align: center !important;
   }
 
   .codform-field[data-title-align="right"] h3,
-  .codform-field[data-title-align="right"] p {
+  .codform-field[data-title-align="right"] p.codform-title-description {
     text-align: right !important;
   }
 
   .codform-field[data-title-align="left"] h3,
-  .codform-field[data-title-align="left"] p {
+  .codform-field[data-title-align="left"] p.codform-title-description {
     text-align: left !important;
   }
 
@@ -231,13 +232,12 @@
     box-sizing: border-box !important;
   }
   
-  /* تحسي�� تنسيق حقل العنوان في النموذج */
+  /* تحسين تنسيق حقل العنوان في النموذج */
   .codform-field[data-field-type="form-title"] {
     margin-bottom: 20px !important;
   }
   
   .codform-field[data-field-type="form-title"] h3 {
-    font-size: 1.5rem !important;
     font-weight: bold !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -245,16 +245,79 @@
   }
   
   .codform-field[data-field-type="title"] h3 {
-    font-size: 1.25rem !important;
     font-weight: medium !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.3 !important;
   }
   
-  /* تطبيق حجم الخط المخصص من خلال البيانات المخصصة */
-  .codform-field[data-font-size] h3 {
+  /* تطبيق خصائص العنوان المخصصة */
+  .codform-field h3 {
     font-size: attr(data-font-size) !important;
+    font-weight: attr(data-font-weight) !important;
+  }
+  
+  /* تطبيق خصائص الوصف المخصصة */
+  .codform-field .codform-title-description {
+    font-size: attr(data-desc-font-size) !important;
+    font-weight: attr(data-desc-font-weight) !important;
+  }
+  
+  /* تصحيح الأحجام وفقًا للبيانات المخصصة */
+  .codform-field[data-font-size="1rem"] h3 {
+    font-size: 1rem !important;
+  }
+  
+  .codform-field[data-font-size="1.25rem"] h3 {
+    font-size: 1.25rem !important;
+  }
+  
+  .codform-field[data-font-size="1.5rem"] h3 {
+    font-size: 1.5rem !important;
+  }
+  
+  .codform-field[data-font-size="2rem"] h3 {
+    font-size: 2rem !important;
+  }
+  
+  .codform-field[data-desc-font-size="0.75rem"] .codform-title-description {
+    font-size: 0.75rem !important;
+  }
+  
+  .codform-field[data-desc-font-size="0.875rem"] .codform-title-description {
+    font-size: 0.875rem !important;
+  }
+  
+  .codform-field[data-desc-font-size="1rem"] .codform-title-description {
+    font-size: 1rem !important;
+  }
+  
+  .codform-field[data-desc-font-size="1.125rem"] .codform-title-description {
+    font-size: 1.125rem !important;
+  }
+  
+  .codform-field[data-font-weight="normal"] h3 {
+    font-weight: normal !important;
+  }
+  
+  .codform-field[data-font-weight="medium"] h3 {
+    font-weight: 500 !important;
+  }
+  
+  .codform-field[data-font-weight="bold"] h3 {
+    font-weight: bold !important;
+  }
+  
+  .codform-field[data-desc-font-weight="normal"] .codform-title-description {
+    font-weight: normal !important;
+  }
+  
+  .codform-field[data-desc-font-weight="medium"] .codform-title-description {
+    font-weight: 500 !important;
+  }
+  
+  .codform-field[data-desc-font-weight="bold"] .codform-title-description {
+    font-weight: bold !important;
   }
   
   /* تحسينات لملخص العربة */
