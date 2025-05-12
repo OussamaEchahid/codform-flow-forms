@@ -19,14 +19,19 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
+  // Check if we should show the title (default to true if not explicitly set to false)
+  const showTitle = field.label !== '' && field.label !== undefined;
+  
   return (
     <div className="mb-6 codform-cart-items">
-      <h3 className="text-lg font-medium mb-3" style={{
-        color: fieldStyle.color || '#1f2937',
-        fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
-      }}>
-        {field.label || (language === 'ar' ? 'المنتج المختار' : 'Selected Product')}
-      </h3>
+      {showTitle && (
+        <h3 className="text-lg font-medium mb-3" style={{
+          color: fieldStyle.color || '#1f2937',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
+        }}>
+          {field.label || (language === 'ar' ? 'المنتج المختار' : 'Selected Product')}
+        </h3>
+      )}
       <div className="border rounded-md overflow-hidden" style={{ 
         borderRadius,
         direction: language === 'ar' ? 'rtl' : 'ltr',

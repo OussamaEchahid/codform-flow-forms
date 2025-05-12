@@ -395,12 +395,14 @@ export const createEmptyField = (type: string): FormField => {
     case 'cart-items':
       return {
         ...baseField,
+        label: '', // Empty label to hide the title
         showImage: true,
         showPrice: true,
       };
     case 'cart-summary':
       return {
         ...baseField,
+        label: '', // Empty label to hide the title
         showShipping: true,
         showTax: false,
       };
