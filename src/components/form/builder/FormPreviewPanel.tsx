@@ -35,9 +35,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   refreshKey
 }) => {
   const { language } = useI18n();
-
+  
+  // We won't manipulate fields here - this is just for debugging
   console.log('FormPreviewPanel rendering with fields:', fields);
-  // Check if form-title exists
   const formTitleField = fields.find(f => f.type === 'form-title');
   console.log('Form title field exists:', formTitleField);
 

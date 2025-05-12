@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -35,35 +34,28 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   fields = [],
 }) => {
   const { language } = useI18n();
-  const [key, setKey] = useState(0);
+  const [key] = useState(0);
   
-  // إضافة عنصر العنوان الافتراضي إذا لم يكن موجودًا بالفعل
-  const [processedFields, setProcessedFields] = useState<FormField[]>([]);
+  // First, check if fields already contain a form-title field
+  const existingTitleField = fields.find(f => f.type === 'form-title');
   
-  useEffect(() => {
-    // Process fields to ensure form-title exists
-    const titleField = fields.find(f => f.type === 'form-title');
-    if (!titleField && fields.length > 0) {
-      // إنشاء عنوان النموذج إذا كان مطلوبًا
-      const defaultTitleField: FormField = {
-        type: 'form-title',
-        id: `form-title-${Date.now()}`,
-        label: formTitle || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
-        style: {
-          color: formStyle.primaryColor,
-          textAlign: language === 'ar' ? 'right' : 'left',
-          fontWeight: 'bold',
-          fontSize: '1.5rem',
-        }
-      };
-      console.log('Adding default form title field:', defaultTitleField);
-      setProcessedFields([defaultTitleField, ...fields]);
-    } else {
-      console.log('Using existing fields, title field exists:', titleField);
-      setProcessedFields(fields);
-    }
-    setKey(prevKey => prevKey + 1);
-  }, [formStyle, formTitle, formDescription, currentStep, totalSteps, fields, language]);
+  // If there is no form-title field and there are other fields, create a form-title field
+  const fieldsToRender = fields.length > 0 && !existingTitleField
+    ? [
+        {
+          type: 'form-title' as const,
+          id: `form-title-${Date.now()}`,
+          label: formTitle || (language === 'ar' ? 'نموذج جديد' : 'New Form'),
+          style: {
+            color: formStyle.primaryColor,
+            textAlign: language === 'ar' ? 'right' : 'left',
+            fontWeight: 'bold',
+            fontSize: '1.5rem',
+          }
+        },
+        ...fields
+      ]
+    : fields;
   
   return (
     <div 
@@ -133,9 +125,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
-        {processedFields && processedFields.length > 0 ? (
+        {fieldsToRender && fieldsToRender.length > 0 ? (
           <div className="space-y-4">
-            {processedFields.map(field => (
+            {fieldsToRender.map(field => (
               <FormFieldComponent 
                 key={field.id} 
                 field={field} 
