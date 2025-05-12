@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
 import WhatsAppFieldEditor from './editor/WhatsAppFieldEditor';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface FieldEditorProps {
   field: FormField;
@@ -48,6 +49,28 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       helpText: values.helpText,
     };
     handleSaveField(updatedField);
+  };
+
+  // Handle animation change for submit button
+  const handleAnimationChange = (checked: boolean) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        animation: checked
+      }
+    });
+  };
+
+  // Handle animation type change for submit button
+  const handleAnimationTypeChange = (type: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        animationType: type
+      }
+    });
   };
 
   const renderEditorByType = () => {
@@ -298,6 +321,14 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         );
         
       case 'submit':
+        const animationTypes = [
+          { value: 'pulse', label: language === 'ar' ? 'نبض' : 'Pulse' },
+          { value: 'shake', label: language === 'ar' ? 'اهتزاز' : 'Shake' },
+          { value: 'bounce', label: language === 'ar' ? 'ارتداد' : 'Bounce' },
+          { value: 'wiggle', label: language === 'ar' ? 'تمايل' : 'Wiggle' },
+          { value: 'flash', label: language === 'ar' ? 'وميض' : 'Flash' }
+        ];
+        
         return (
           <div className="p-4">
             <h3 className="text-lg font-medium mb-4">
@@ -318,6 +349,64 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     </FormItem>
                   )}
                 />
+                
+                {/* Animation controls */}
+                <div className="space-y-4 border rounded-md p-4">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'تأثيرات الرسوم المتحركة للزر' : 'Button Animation Effects'}
+                  </h4>
+                  
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <Checkbox
+                      id="animation"
+                      checked={currentField.style?.animation || false}
+                      onCheckedChange={handleAnimationChange}
+                    />
+                    <label htmlFor="animation" className="text-sm font-medium cursor-pointer">
+                      {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
+                    </label>
+                  </div>
+                  
+                  {currentField.style?.animation && (
+                    <>
+                      <div className="pt-2">
+                        <FormLabel>{language === 'ar' ? 'نوع التأثير' : 'Animation Type'}</FormLabel>
+                        <Select
+                          value={currentField.style?.animationType || 'pulse'}
+                          onValueChange={handleAnimationTypeChange}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {animationTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid grid-cols-5 gap-2 mt-4">
+                        {animationTypes.map((type) => (
+                          <div 
+                            key={type.value}
+                            className={`relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50 ${currentField.style?.animationType === type.value ? 'ring-2 ring-primary' : ''}`}
+                            onClick={() => handleAnimationTypeChange(type.value)}
+                          >
+                            <button 
+                              className={`w-full py-2 bg-[#9b87f5] text-white text-xs font-medium rounded ${type.value}-animation`}
+                              type="button"
+                            >
+                              {type.label}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
                 
                 <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
                   <Button type="button" variant="outline" onClick={onClose}>
