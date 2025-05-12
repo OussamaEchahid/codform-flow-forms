@@ -71,7 +71,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  const { formState, setFormState } = useFormStore();
+  
+  // Call useFormStore hook at the top level to follow React Rules of Hooks
+  const { formState, setFormState, floatingButton, updateFloatingButton } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -748,8 +750,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const handleFloatingButtonChange = (config: FloatingButtonConfig) => {
-    // Replace formStore with useFormStore() hook instance
-    const { updateFloatingButton } = useFormStore();
+    // Use the updateFloatingButton function from the useFormStore hook we called at the top
     updateFloatingButton(config);
     setRefreshKey(prev => prev + 1); // Refresh the preview
   };
@@ -822,7 +823,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
-            floatingButton={useFormStore().floatingButton}
+            floatingButton={floatingButton}  // Use the floatingButton from the state hook
           />
         </div>
       </div>
@@ -833,7 +834,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         formStyle={formStyle}
         onStyleChange={handleStyleChange}
         onSave={handleSaveStyle}
-        floatingButton={useFormStore().floatingButton}
+        floatingButton={floatingButton}  // Use the floatingButton from the state hook
         onFloatingButtonChange={handleFloatingButtonChange}
       />
 
