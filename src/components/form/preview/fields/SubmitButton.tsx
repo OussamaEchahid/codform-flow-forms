@@ -37,37 +37,41 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
   
   // Determine animation class based on animation type
-  let animationClass = '';
-  if (fieldStyle.animation) {
+  const determineAnimationClass = () => {
+    if (!fieldStyle.animation) return '';
+    
     // If animation is just boolean true, default to pulse
-    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
-      animationClass = 'pulse-animation';
-      console.log("Setting default pulse animation");
-    } 
-    // If we have a specific animation type
-    else if (fieldStyle.animationType) {
-      switch (fieldStyle.animationType) {
-        case 'pulse':
-          animationClass = 'pulse-animation';
-          break;
-        case 'shake':
-          animationClass = 'shake-animation';
-          break;
-        case 'bounce':
-          animationClass = 'bounce-animation';
-          break;
-        case 'wiggle':
-          animationClass = 'wiggle-animation';
-          break;
-        case 'flash':
-          animationClass = 'flash-animation';
-          break;
-        default:
-          animationClass = '';
-      }
-      console.log(`Applied animation: ${fieldStyle.animationType} -> class: ${animationClass}`);
+    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation && !fieldStyle.animationType) {
+      console.log("Using default pulse animation");
+      return 'pulse-animation';
     }
-  }
+    
+    // If we have a specific animation type
+    if (fieldStyle.animationType) {
+      const animationType = fieldStyle.animationType.toLowerCase();
+      console.log(`Applying specific animation: ${animationType}`);
+      
+      switch (animationType) {
+        case 'pulse':
+          return 'pulse-animation';
+        case 'shake':
+          return 'shake-animation';
+        case 'bounce':
+          return 'bounce-animation';
+        case 'wiggle':
+          return 'wiggle-animation';
+        case 'flash':
+          return 'flash-animation';
+        default:
+          console.warn(`Unknown animation type: ${animationType}`);
+          return '';
+      }
+    }
+    
+    return '';
+  };
+  
+  const animationClass = determineAnimationClass();
   
   console.log("Button animation data:", { 
     animation: fieldStyle.animation, 
