@@ -4,38 +4,86 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
-// Define the available form elements locally to avoid dependency on external variables
-const defaultElements = [
-  { type: 'text', label: 'Text Input', icon: 'T' },
-  { type: 'email', label: 'Email Input', icon: '@' },
-  { type: 'phone', label: 'Phone Input', icon: '☎' },
-  { type: 'textarea', label: 'Text Area', icon: '¶' },
-  { type: 'select', label: 'Dropdown', icon: '▼' },
-  { type: 'checkbox', label: 'Checkbox', icon: '☑' },
-  { type: 'radio', label: 'Radio Button', icon: '◉' },
-  { type: 'text/html', label: 'HTML Content', icon: '</>' },
-  { type: 'submit', label: 'Submit Button', icon: '✓' },
-  { type: 'cart-items', label: 'Cart Items', icon: '🛒' },
-  { type: 'cart-summary', label: 'Cart Summary', icon: '🧾' },
-  { type: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-  { type: 'image', label: 'Image', icon: '🖼️' },
-  { type: 'form-title', label: 'Form Title', icon: 'H1' }
-];
-
 interface FormElementListProps {
-  availableElements?: Array<{
-    type: string;
-    label: string;
-    icon: string;
-  }>;
   onAddElement: (type: string) => void;
 }
 
-const FormElementList: React.FC<FormElementListProps> = ({ 
-  availableElements = defaultElements, 
-  onAddElement 
-}) => {
+const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
+  
+  // Define the available form elements with translations
+  const availableElements = [
+    { 
+      type: 'text', 
+      label: language === 'ar' ? 'حقل نص' : 'Text Input', 
+      icon: 'T' 
+    },
+    { 
+      type: 'email', 
+      label: language === 'ar' ? 'بريد إلكتروني' : 'Email Input', 
+      icon: '@' 
+    },
+    { 
+      type: 'phone', 
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone Input', 
+      icon: '☎' 
+    },
+    { 
+      type: 'textarea', 
+      label: language === 'ar' ? 'نص متعدد الأسطر' : 'Text Area', 
+      icon: '¶' 
+    },
+    { 
+      type: 'select', 
+      label: language === 'ar' ? 'قائمة منسدلة' : 'Dropdown', 
+      icon: '▼' 
+    },
+    { 
+      type: 'checkbox', 
+      label: language === 'ar' ? 'خانة اختيار' : 'Checkbox', 
+      icon: '☑' 
+    },
+    { 
+      type: 'radio', 
+      label: language === 'ar' ? 'زر راديو' : 'Radio Button', 
+      icon: '◉' 
+    },
+    { 
+      type: 'text/html', 
+      label: language === 'ar' ? 'نص/HTML' : 'HTML Content', 
+      icon: '</>' 
+    },
+    { 
+      type: 'submit', 
+      label: language === 'ar' ? 'زر إرسال الطلب' : 'Submit Button', 
+      icon: '✓' 
+    },
+    { 
+      type: 'cart-items', 
+      label: language === 'ar' ? 'عناصر السلة' : 'Cart Items', 
+      icon: '🛒' 
+    },
+    { 
+      type: 'cart-summary', 
+      label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
+      icon: '🧾' 
+    },
+    { 
+      type: 'whatsapp', 
+      label: language === 'ar' ? 'واتساب' : 'WhatsApp', 
+      icon: '💬' 
+    },
+    { 
+      type: 'image', 
+      label: language === 'ar' ? 'صورة' : 'Image', 
+      icon: '🖼️' 
+    },
+    { 
+      type: 'form-title', 
+      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
+      icon: 'H1' 
+    }
+  ];
 
   return (
     <div className="space-y-2">
@@ -46,7 +94,7 @@ const FormElementList: React.FC<FormElementListProps> = ({
       {availableElements.map((element) => (
         <div 
           key={element.type}
-          className="flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer"
+          className={`flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer ${language === 'ar' ? 'flex-row-reverse' : ''}`}
         >
           <Button 
             variant="ghost" 
@@ -57,7 +105,7 @@ const FormElementList: React.FC<FormElementListProps> = ({
             <Plus size={16} />
           </Button>
           
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
             <span>{element.label}</span>
             <span className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded">
               {element.icon}

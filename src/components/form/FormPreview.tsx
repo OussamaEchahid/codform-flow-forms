@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -36,8 +37,26 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // Only use the fields directly provided, no auto-generation of title fields
-  const fieldsToRender = fields;
+  // Check for submit button in fields
+  const hasSubmitButton = fields.some(field => field.type === 'submit');
+  
+  // If no submit button exists and we have fields, add a default one
+  const fieldsToRender = React.useMemo(() => {
+    if (fields.length > 0 && !hasSubmitButton) {
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-${Date.now()}`,
+        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          fontSize: '1rem',
+        },
+      };
+      return [...fields, submitButton];
+    }
+    return fields;
+  }, [fields, hasSubmitButton, language, formStyle.primaryColor]);
   
   return (
     <div 
@@ -107,7 +126,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
-        {fieldsToRender && fieldsToRender.length > 0 ? (
+        {fieldsToRender.length > 0 ? (
           <div className="space-y-4">
             {fieldsToRender.map(field => (
               <FormFieldComponent 

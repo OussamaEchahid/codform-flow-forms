@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -36,7 +35,7 @@ import {
 } from '@dnd-kit/sortable';
 
 // Define available form elements
-const availableElements = [
+const formElementTypes = [
   { type: 'text', label: 'Text Input', icon: 'T' },
   { type: 'email', label: 'Email Input', icon: '@' },
   { type: 'phone', label: 'Phone Input', icon: '☎' },
@@ -102,75 +101,85 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Create a default form with fields from the image
   const createDefaultForm = (): FormField[] => {
-    return [
-      {
-        type: 'form-title' as FormFieldType,
-        id: `form-title-${Date.now()}`,
-        label: formTitle,
-        helpText: formDescription,
-        style: {
-          color: '#1A1F2C',
-          textAlign: language === 'ar' ? 'right' : 'left',
-          fontWeight: 'bold',
-          fontSize: '1.5rem',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '0.875rem',
-          backgroundColor: '',
-        }
-      },
-      {
-        type: 'text' as FormFieldType,
-        id: `text-${Date.now()}-1`,
-        label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-        placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-        required: true,
-        icon: 'user',
-      },
-      {
-        type: 'text' as FormFieldType,
-        id: `text-${Date.now()}-2`,
-        label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-        placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-        required: true,
-        icon: 'phone',
-      },
-      {
-        type: 'text' as FormFieldType,
-        id: `text-${Date.now()}-3`,
-        label: language === 'ar' ? 'المدينة' : 'City',
-        placeholder: language === 'ar' ? 'المدينة' : 'City',
-        required: true,
-        icon: 'map-pin',
-      },
-      {
-        type: 'textarea' as FormFieldType,
-        id: `textarea-${Date.now()}`,
-        label: language === 'ar' ? 'العنوان' : 'Address',
-        placeholder: language === 'ar' ? 'العنوان' : 'address',
-        required: true,
-      },
-      {
-        type: 'cart-items' as FormFieldType,
-        id: `cart-items-${Date.now()}`,
-        label: language === 'ar' ? 'المنتج المختار' : 'Selected Product',
-      },
-      {
-        type: 'cart-summary' as FormFieldType,
-        id: `cart-summary-${Date.now()}`,
-        label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
-      },
-      {
-        type: 'submit' as FormFieldType,
-        id: `submit-${Date.now()}`,
-        label: language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery',
-        style: {
-          backgroundColor: '#000000',
-          color: '#ffffff',
-          fontSize: '1.1rem',
-          animation: true,  // Changed from 'pulse 2s infinite' to boolean true
-        },
+    const fields: FormField[] = [];
+    
+    // Only add title field if no title field exists
+    fields.push({
+      type: 'form-title' as FormFieldType,
+      id: `form-title-${Date.now()}`,
+      label: language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery',
+      helpText: formDescription,
+      style: {
+        color: '#1A1F2C',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '1.5rem',
+        descriptionColor: '#6b7280',
+        descriptionFontSize: '0.875rem',
+        backgroundColor: '',
       }
-    ];
+    });
+    
+    fields.push({
+      type: 'text' as FormFieldType,
+      id: `text-${Date.now()}-1`,
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    fields.push({
+      type: 'text' as FormFieldType,
+      id: `text-${Date.now()}-2`,
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    fields.push({
+      type: 'text' as FormFieldType,
+      id: `text-${Date.now()}-3`,
+      label: language === 'ar' ? 'المدينة' : 'City',
+      placeholder: language === 'ar' ? 'المدينة' : 'City',
+      required: true,
+      icon: 'map-pin',
+    });
+    
+    fields.push({
+      type: 'textarea' as FormFieldType,
+      id: `textarea-${Date.now()}`,
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'العنوان' : 'address',
+      required: true,
+    });
+    
+    fields.push({
+      type: 'cart-items' as FormFieldType,
+      id: `cart-items-${Date.now()}`,
+      label: language === 'ar' ? 'المنتج المختار' : 'Selected Product',
+    });
+    
+    fields.push({
+      type: 'cart-summary' as FormFieldType,
+      id: `cart-summary-${Date.now()}`,
+      label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
+    });
+    
+    fields.push({
+      type: 'submit' as FormFieldType,
+      id: `submit-${Date.now()}`,
+      label: language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      style: {
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        fontSize: '1.1rem',
+        animation: true,  // Changed from 'pulse 2s infinite' to boolean true
+      },
+    });
+    
+    return fields;
   };
 
   // Find existing form title field or create one
@@ -180,7 +189,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Add form title field if not exists
   const addFormTitleField = () => {
-    if (getFormTitleField()) return;
+    // Check if title field already exists to prevent duplication
+    if (getFormTitleField()) {
+      toast.error(language === 'ar' ? 'عنوان النموذج موجود بالفعل' : 'Form title already exists');
+      return;
+    }
 
     const titleField: FormField = {
       type: 'form-title',
@@ -197,8 +210,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       }
     };
 
+    // Add title field at the beginning of the form
     setFormElements(prev => [titleField, ...prev]);
     setRefreshKey(prev => prev + 1);
+    toast.success(language === 'ar' ? 'تم إضافة عنوان النموذج بنجاح' : 'Form title added successfully');
   };
 
   // Update form title field
@@ -311,6 +326,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
+
+  useEffect(() => {
+    // Update the form title field when language changes
+    const titleField = getFormTitleField();
+    if (titleField) {
+      // Only update alignment based on language
+      const updatedField = {
+        ...titleField,
+        style: {
+          ...titleField.style,
+          textAlign: language === 'ar' ? 'right' : 'left'
+        }
+      };
+      updateFormTitleField(updatedField);
+    }
+  }, [language]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -634,7 +665,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
         <div className="col-span-2 border-r bg-white p-4">
           <FormElementList 
-            availableElements={availableElements}
             onAddElement={addElement}
           />
         </div>
