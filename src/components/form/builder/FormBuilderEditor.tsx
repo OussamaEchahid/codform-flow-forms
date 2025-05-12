@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -33,6 +34,32 @@ import {
   arrayMove, 
   verticalListSortingStrategy 
 } from '@dnd-kit/sortable';
+
+// Define available form elements
+const availableElements = [
+  { type: 'text', label: 'Text Input', icon: 'T' },
+  { type: 'email', label: 'Email Input', icon: '@' },
+  { type: 'phone', label: 'Phone Input', icon: '☎' },
+  { type: 'textarea', label: 'Text Area', icon: '¶' },
+  { type: 'select', label: 'Dropdown', icon: '▼' },
+  { type: 'checkbox', label: 'Checkbox', icon: '☑' },
+  { type: 'radio', label: 'Radio Button', icon: '◉' },
+  { type: 'text/html', label: 'HTML Content', icon: '</>' },
+  { type: 'submit', label: 'Submit Button', icon: '✓' },
+  { type: 'cart-items', label: 'Cart Items', icon: '🛒' },
+  { type: 'cart-summary', label: 'Cart Summary', icon: '🧾' },
+  { type: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { type: 'image', label: 'Image', icon: '🖼️' },
+  { type: 'form-title', label: 'Form Title', icon: 'H1' }
+];
+
+// Add function to get active shop ID
+const getActiveShopId = (): string | null => {
+  // Get from localStorage or any other source
+  return localStorage.getItem('shopify_store') || 
+         localStorage.getItem('shopify_active_store') || 
+         null;
+};
 
 interface FormBuilderEditorProps {
   formId?: string;
