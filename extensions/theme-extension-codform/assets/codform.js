@@ -212,7 +212,7 @@ function isFieldTypeSupported(type) {
   const supportedTypes = [
     'text', 'email', 'phone', 'textarea', 'select', 
     'checkbox', 'radio', 'submit', 'title', 'text/html',
-    'image', 'whatsapp'
+    'image', 'whatsapp', 'cart-items', 'cart-summary', 'form-title'
   ];
   
   return supportedTypes.includes(type);
@@ -223,16 +223,6 @@ function renderForm(container, formData, blockId, productId) {
   if (!container || !formData) return;
   
   console.log('CODFORM: Rendering form', formData);
-  
-  // Create form title
-  const formTitle = document.createElement('h3');
-  formTitle.className = 'codform-title';
-  formTitle.innerText = formData.title || '';
-  
-  // Create form description
-  const formDesc = document.createElement('p');
-  formDesc.className = 'codform-description';
-  formDesc.innerText = formData.description || '';
   
   // Create actual form element
   const form = document.createElement('form');
@@ -326,6 +316,54 @@ function renderForm(container, formData, blockId, productId) {
       font-size: 0.875rem;
       margin-top: 0.25rem;
     }
+
+    /* تحسينات لمحاذاة العنوان */
+    .codform-field[data-title-align="center"] h3,
+    .codform-field[data-title-align="center"] p {
+      text-align: center !important;
+    }
+
+    .codform-field[data-title-align="right"] h3,
+    .codform-field[data-title-align="right"] p {
+      text-align: right !important;
+    }
+
+    .codform-field[data-title-align="left"] h3,
+    .codform-field[data-title-align="left"] p {
+      text-align: left !important;
+    }
+
+    /* تنسيق خلفية العنوان */
+    .codform-field[data-has-bg="true"] {
+      padding: 0 !important;
+    }
+
+    .codform-field[data-has-bg="true"] h3 {
+      padding: 15px !important;
+      border-radius: 8px !important;
+    }
+
+    /* تحسينات لملخص العربة */
+    .codform-cart-summary {
+      background-color: #f9fafb !important;
+      border-radius: 8px !important;
+      padding: 15px !important;
+      margin: 15px 0 !important;
+      border: 1px solid #e5e7eb !important;
+    }
+    
+    /* تحسينات لعناصر العربة */
+    .codform-cart-items {
+      border: 1px solid #e5e7eb !important;
+      border-radius: 8px !important;
+      margin: 15px 0 !important;
+    }
+    
+    .codform-cart-item {
+      display: flex !important;
+      padding: 15px !important;
+      border-bottom: 1px solid #e5e7eb !important;
+    }
   `;
   
   container.appendChild(style);
@@ -342,8 +380,6 @@ function renderForm(container, formData, blockId, productId) {
     noFields.innerText = 'لا توجد حقول في هذا النموذج';
     
     container.innerHTML = '';
-    container.appendChild(formTitle);
-    container.appendChild(formDesc);
     container.appendChild(noFields);
     return;
   }
@@ -372,7 +408,7 @@ function renderForm(container, formData, blockId, productId) {
       form.appendChild(currentStepDiv);
     } else if (field.type) {
       // Regular field - add to current step or directly to form
-      const fieldContainer = renderField(field, formData);
+      const fieldContainer = renderField(field, formData, productId);
       
       if (currentStepDiv) {
         currentStepDiv.appendChild(fieldContainer);
@@ -600,13 +636,11 @@ function renderForm(container, formData, blockId, productId) {
   
   // Add form to container
   container.innerHTML = '';
-  container.appendChild(formTitle);
-  container.appendChild(formDesc);
   container.appendChild(form);
 }
 
 // Render a single form field based on its type
-function renderField(field, formData) {
+function renderField(field, formData, productId) {
   const fieldDiv = document.createElement('div');
   fieldDiv.className = 'codform-field';
   fieldDiv.setAttribute('data-field-type', field.type);
@@ -627,16 +661,52 @@ function renderField(field, formData) {
   }
   
   // Special case for title field
-  if (field.type === 'title') {
+  if (field.type === 'title' || field.type === 'form-title') {
     const title = document.createElement('h3');
     title.innerText = field.label || '';
-    if (field.style && field.style.color) {
-      title.style.color = field.style.color;
+    
+    const fieldStyle = field.style || {};
+    const hasBackground = fieldStyle.backgroundColor && fieldStyle.backgroundColor !== '';
+    
+    // Set alignment data attribute
+    const alignment = fieldStyle.textAlign || 'right'; // Default to right for Arabic
+    fieldDiv.setAttribute('data-title-align', alignment);
+    
+    // Set background data attribute
+    fieldDiv.setAttribute('data-has-bg', hasBackground ? 'true' : 'false');
+    
+    // Apply styles directly
+    if (fieldStyle.color) {
+      title.style.color = fieldStyle.color;
     }
-    if (field.style && field.style.fontSize) {
-      title.style.fontSize = field.style.fontSize;
+    
+    if (fieldStyle.fontSize) {
+      title.style.fontSize = fieldStyle.fontSize;
     }
+    
+    if (fieldStyle.fontFamily) {
+      title.style.fontFamily = fieldStyle.fontFamily;
+    }
+    
+    if (fieldStyle.fontWeight) {
+      title.style.fontWeight = fieldStyle.fontWeight;
+    }
+    
+    if (hasBackground) {
+      title.style.backgroundColor = fieldStyle.backgroundColor;
+    }
+    
     fieldDiv.appendChild(title);
+    
+    // Add description if available
+    if (field.helpText) {
+      const description = document.createElement('p');
+      description.innerText = field.helpText;
+      description.style.color = fieldStyle.descriptionColor || '#6b7280';
+      description.style.fontSize = fieldStyle.descriptionFontSize || '0.875rem';
+      fieldDiv.appendChild(description);
+    }
+    
     return fieldDiv;
   }
   
@@ -697,6 +767,239 @@ function renderField(field, formData) {
     return fieldDiv;
   }
   
+  // Special case for cart items
+  if (field.type === 'cart-items') {
+    const cartItemsContainer = document.createElement('div');
+    cartItemsContainer.className = 'codform-cart-items';
+    
+    // Add title
+    const cartTitle = document.createElement('h3');
+    cartTitle.className = 'codform-cart-title';
+    cartTitle.innerText = field.label || 'المنتج المختار';
+    cartTitle.style.fontSize = field.style?.fontSize || '1.2rem';
+    cartTitle.style.color = field.style?.color || '#1f2937';
+    
+    fieldDiv.appendChild(cartTitle);
+    
+    // Create cart item from product info
+    try {
+      const cartItem = document.createElement('div');
+      cartItem.className = 'codform-cart-item';
+      
+      // Try to get product info
+      const productTitle = document.querySelector('.product__title')?.innerText || 
+                          document.querySelector('.product-title')?.innerText ||
+                          document.querySelector('h1.title')?.innerText || 'منتج تجريبي';
+                          
+      const productPrice = document.querySelector('.price')?.innerText ||
+                          document.querySelector('.product-price')?.innerText || '$99.00';
+                          
+      const productImage = document.querySelector('.product__media img')?.src ||
+                          document.querySelector('.product-image img')?.src ||
+                          document.querySelector('.product-single__photo img')?.src || 
+                          'https://via.placeholder.com/80';
+      
+      // Create product image
+      const imageContainer = document.createElement('div');
+      imageContainer.className = 'w-20 h-20 flex-shrink-0 ml-4';
+      imageContainer.style.backgroundSize = 'cover';
+      imageContainer.style.borderRadius = '0.25rem';
+      imageContainer.style.marginLeft = '1rem';
+      
+      const img = document.createElement('img');
+      img.src = productImage;
+      img.alt = productTitle;
+      img.className = 'product-image';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.style.borderRadius = '0.25rem';
+      
+      imageContainer.appendChild(img);
+      
+      // Create content div
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'flex-1';
+      
+      const title = document.createElement('h4');
+      title.className = 'product-title';
+      title.innerText = productTitle;
+      title.style.fontSize = field.style?.fontSize || '1.1rem';
+      title.style.color = field.style?.color || '#1f2937';
+      title.style.fontWeight = 'medium';
+      
+      const quantity = document.createElement('div');
+      quantity.className = 'product-quantity';
+      quantity.innerText = 'الكمية: ١';
+      quantity.style.fontSize = field.style?.descriptionFontSize || '0.9rem';
+      quantity.style.color = field.style?.descriptionColor || '#6b7280';
+      quantity.style.marginTop = '0.25rem';
+      
+      contentDiv.appendChild(title);
+      contentDiv.appendChild(quantity);
+      
+      // Create price div
+      const priceDiv = document.createElement('div');
+      priceDiv.style.textAlign = 'right';
+      
+      const price = document.createElement('div');
+      price.className = 'product-price';
+      price.innerText = productPrice;
+      price.style.fontSize = field.style?.priceFontSize || '1rem';
+      price.style.color = field.style?.priceColor || '#1f2937';
+      price.style.fontWeight = 'medium';
+      
+      priceDiv.appendChild(price);
+      
+      // Append all elements
+      cartItem.appendChild(imageContainer);
+      cartItem.appendChild(contentDiv);
+      cartItem.appendChild(priceDiv);
+      
+      cartItemsContainer.appendChild(cartItem);
+      fieldDiv.appendChild(cartItemsContainer);
+    } catch (e) {
+      console.error('Error creating cart item:', e);
+      
+      // Fallback cart item
+      const fallbackItem = document.createElement('div');
+      fallbackItem.className = 'codform-cart-item';
+      fallbackItem.innerText = 'منتج تجريبي - $99.00';
+      cartItemsContainer.appendChild(fallbackItem);
+      fieldDiv.appendChild(cartItemsContainer);
+    }
+    
+    return fieldDiv;
+  }
+  
+  // Special case for cart summary
+  if (field.type === 'cart-summary') {
+    const summaryContainer = document.createElement('div');
+    summaryContainer.className = 'codform-cart-summary';
+    
+    // Add title
+    const summaryTitle = document.createElement('h3');
+    summaryTitle.className = 'codform-summary-title';
+    summaryTitle.innerText = field.label || 'ملخص الطلب';
+    summaryTitle.style.fontSize = field.style?.fontSize || '1.2rem';
+    summaryTitle.style.color = field.style?.color || '#1f2937';
+    summaryTitle.style.marginBottom = '0.75rem';
+    
+    // Try to get product price
+    let productPrice = '';
+    try {
+      productPrice = document.querySelector('.price')?.innerText ||
+                    document.querySelector('.product-price')?.innerText || '$99.00';
+    } catch (e) {
+      productPrice = '$99.00';
+    }
+    
+    // Create summary content
+    const content = document.createElement('div');
+    content.className = 'codform-summary-content';
+    content.style.backgroundColor = field.style?.backgroundColor || '#f9fafb';
+    content.style.borderRadius = '0.5rem';
+    content.style.padding = '1rem';
+    content.style.border = '1px solid ' + (field.style?.borderColor || '#e5e7eb');
+    
+    // Subtotal row
+    const subtotalRow = document.createElement('div');
+    subtotalRow.className = 'flex justify-between mb-3';
+    subtotalRow.style.display = 'flex';
+    subtotalRow.style.justifyContent = 'space-between';
+    subtotalRow.style.marginBottom = '0.75rem';
+    
+    const subtotalLabel = document.createElement('span');
+    subtotalLabel.innerText = 'المجموع الفرعي';
+    subtotalLabel.style.fontSize = field.style?.labelFontSize || '1rem';
+    subtotalLabel.style.color = field.style?.labelColor || '#6b7280';
+    
+    const subtotalValue = document.createElement('span');
+    subtotalValue.className = 'product-price';
+    subtotalValue.innerText = productPrice;
+    subtotalValue.style.fontSize = field.style?.valueFontSize || '1rem';
+    subtotalValue.style.color = field.style?.valueColor || '#1f2937';
+    subtotalValue.style.fontWeight = '500';
+    
+    subtotalRow.appendChild(subtotalLabel);
+    subtotalRow.appendChild(subtotalValue);
+    
+    // Shipping row
+    const shippingRow = document.createElement('div');
+    shippingRow.className = 'flex justify-between mb-3';
+    shippingRow.style.display = 'flex';
+    shippingRow.style.justifyContent = 'space-between';
+    shippingRow.style.marginBottom = '0.75rem';
+    
+    const shippingLabel = document.createElement('span');
+    shippingLabel.innerText = 'الشحن';
+    shippingLabel.style.fontSize = field.style?.labelFontSize || '1rem';
+    shippingLabel.style.color = field.style?.labelColor || '#6b7280';
+    
+    const shippingValue = document.createElement('span');
+    shippingValue.className = 'shipping-price';
+    shippingValue.innerText = '$10.00';
+    shippingValue.style.fontSize = field.style?.valueFontSize || '1rem';
+    shippingValue.style.color = field.style?.valueColor || '#1f2937';
+    shippingValue.style.fontWeight = '500';
+    
+    shippingRow.appendChild(shippingLabel);
+    shippingRow.appendChild(shippingValue);
+    
+    // Total row
+    const totalRow = document.createElement('div');
+    totalRow.className = 'border-t pt-3 mt-3 flex justify-between';
+    totalRow.style.display = 'flex';
+    totalRow.style.justifyContent = 'space-between';
+    totalRow.style.marginTop = '0.75rem';
+    totalRow.style.paddingTop = '0.75rem';
+    totalRow.style.borderTop = '1px solid ' + (field.style?.borderColor || '#e5e7eb');
+    
+    const totalLabel = document.createElement('span');
+    totalLabel.innerText = 'الإجمالي';
+    totalLabel.style.fontSize = field.style?.totalLabelFontSize || '1.1rem';
+    totalLabel.style.color = field.style?.totalLabelColor || '#1f2937';
+    totalLabel.style.fontWeight = 'bold';
+    
+    // Parse price and add shipping
+    let totalPrice = '$109.00'; // Default fallback value
+    try {
+      if (productPrice) {
+        // Extract numeric value from price string using regex
+        const priceMatch = productPrice.match(/[\d,.]+/);
+        if (priceMatch) {
+          // Convert the matched string to a number, accounting for commas
+          const priceNumber = parseFloat(priceMatch[0].replace(/,/g, ''));
+          // Add $10 shipping and format back to currency string
+          const total = priceNumber + 10;
+          totalPrice = '$' + total.toFixed(2);
+        }
+      }
+    } catch (e) {
+      console.error('Error calculating total price:', e);
+    }
+    
+    const totalValue = document.createElement('span');
+    totalValue.className = 'total-price';
+    totalValue.innerText = totalPrice;
+    totalValue.style.fontSize = field.style?.totalValueFontSize || '1.1rem';
+    totalValue.style.color = field.style?.totalValueColor || formData.primaryColor || '#9b87f5';
+    totalValue.style.fontWeight = 'bold';
+    
+    totalRow.appendChild(totalLabel);
+    totalRow.appendChild(totalValue);
+    
+    // Assemble all rows
+    content.appendChild(subtotalRow);
+    content.appendChild(shippingRow);
+    content.appendChild(totalRow);
+    
+    fieldDiv.appendChild(summaryTitle);
+    fieldDiv.appendChild(content);
+    
+    return fieldDiv;
+  }
+  
   // Create label for standard form fields
   const label = document.createElement('label');
   label.setAttribute('for', field.id);
@@ -717,10 +1020,11 @@ function renderField(field, formData) {
     case 'text':
     case 'email':
     case 'tel':
+    case 'phone':
     case 'number':
     case 'date':
       const input = document.createElement('input');
-      input.type = field.type;
+      input.type = field.type === 'phone' ? 'tel' : field.type; // Map phone to tel input
       input.id = field.id;
       input.name = field.name || field.id;
       input.placeholder = field.placeholder || '';

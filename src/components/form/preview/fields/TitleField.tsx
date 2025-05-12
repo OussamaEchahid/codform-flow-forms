@@ -52,6 +52,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       style={hasBackgroundColor ? backgroundStyle : {}}
       data-testid="title-field"
+      data-title-align={alignment}
+      data-has-bg={hasBackgroundColor ? 'true' : 'false'}
+      data-title-color={fieldStyle.color || ''}
+      data-bg-color={fieldStyle.backgroundColor || ''}
+      data-font-family={fieldStyle.fontFamily || ''}
     >
       <h3 
         className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}

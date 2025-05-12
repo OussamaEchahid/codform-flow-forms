@@ -141,6 +141,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           e.currentTarget.style.opacity = '1';
         }}
         disabled={field.disabled}
+        data-animation-type={fieldStyle.animationType || ''}
+        data-icon-position={fieldStyle.iconPosition || 'left'}
       >
         {fieldStyle.iconPosition !== 'right' && (
           <ShoppingCart className="w-6 h-6" />

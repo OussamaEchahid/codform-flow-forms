@@ -161,6 +161,32 @@
     width: 100% !important;
     box-sizing: border-box !important;
   }
+
+  /* تحسينات لمحاذاة العنوان */
+  .codform-field[data-title-align="center"] h3,
+  .codform-field[data-title-align="center"] p {
+    text-align: center !important;
+  }
+
+  .codform-field[data-title-align="right"] h3,
+  .codform-field[data-title-align="right"] p {
+    text-align: right !important;
+  }
+
+  .codform-field[data-title-align="left"] h3,
+  .codform-field[data-title-align="left"] p {
+    text-align: left !important;
+  }
+
+  /* تنسيق خلفية العنوان */
+  .codform-field[data-has-bg="true"] {
+    padding: 0 !important;
+  }
+
+  .codform-field[data-has-bg="true"] h3 {
+    padding: 15px !important;
+    border-radius: 8px !important;
+  }
   
   /* تحسينات لملخص العربة */
   .codform-cart-summary {
@@ -192,7 +218,6 @@
   
   /* تنسيق حقل العنوان */
   .codform-field[data-field-type="form-title"] h3 {
-    color: #ffffff !important;
     padding: 15px !important;
     border-radius: 8px !important;
     margin-bottom: 20px !important;
