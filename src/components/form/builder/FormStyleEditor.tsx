@@ -1,29 +1,14 @@
-
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { useI18n } from '@/lib/i18n';
+import { FormStyle } from '@/hooks/useFormStore';
 import { FloatingButtonConfig } from '@/lib/form-utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-// Define the component props interface
-interface FormStyle {
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-}
 
 interface FormStyleEditorProps {
   formStyle: FormStyle;
   onStyleChange: (newStyle: any) => void;
   onSave: () => void;
   floatingButton?: FloatingButtonConfig;
-  onFloatingButtonChange: (config: FloatingButtonConfig) => void;
-  showFloatingButtonEditor?: boolean; // Add prop to control floating button editor visibility
+  onFloatingButtonChange?: (config: FloatingButtonConfig) => void;
+  showFloatingButtonEditor?: boolean;
 }
 
 const FormStyleEditor: React.FC<FormStyleEditorProps> = ({ 
@@ -32,7 +17,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
   onSave,
   floatingButton,
   onFloatingButtonChange,
-  showFloatingButtonEditor = false // Default to false to hide this section
+  showFloatingButtonEditor = false 
 }) => {
   const { language } = useI18n();
   

@@ -90,7 +90,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
-  // التغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
+  // ��لتغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -182,7 +182,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
+  // إنشاء نموذج افتراضي جديد مع ال��ناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
