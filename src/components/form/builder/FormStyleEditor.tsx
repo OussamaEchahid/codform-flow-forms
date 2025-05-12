@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,13 +10,15 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Define the component props interface
+interface FormStyle {
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
+}
+
 interface FormStyleEditorProps {
-  formStyle: {
-    primaryColor: string;
-    borderRadius: string;
-    fontSize: string;
-    buttonStyle: string;
-  };
+  formStyle: FormStyle;
   onStyleChange: (newStyle: any) => void;
   onSave: () => void;
   floatingButton?: FloatingButtonConfig;
@@ -32,6 +35,15 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
   showFloatingButtonEditor = false // Default to false to hide this section
 }) => {
   const { language } = useI18n();
+  
+  // Update handler to create a new style object
+  const handleStyleChange = (key: string, value: string) => {
+    const newStyle = {
+      ...formStyle,
+      [key]: value
+    };
+    onStyleChange(newStyle);
+  };
   
   return (
     <Tabs defaultValue="general">
@@ -58,13 +70,13 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
                 id="primary-color"
                 type="color"
                 value={formStyle.primaryColor}
-                onChange={(e) => onStyleChange({ ...formStyle, primaryColor: e.target.value })}
+                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
                 className="w-12 h-10 p-1"
               />
               <Input
                 type="text"
                 value={formStyle.primaryColor}
-                onChange={(e) => onStyleChange({ ...formStyle, primaryColor: e.target.value })}
+                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
                 className="flex-1"
               />
             </div>
@@ -76,7 +88,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
             </Label>
             <Select 
               value={formStyle.borderRadius} 
-              onValueChange={(value) => onStyleChange({ ...formStyle, borderRadius: value })}
+              onValueChange={(value) => handleStyleChange('borderRadius', value)}
             >
               <SelectTrigger id="border-radius">
                 <SelectValue placeholder={language === 'ar' ? 'اختر تقويس الحواف' : 'Select border radius'} />
@@ -110,7 +122,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
             </Label>
             <Select 
               value={formStyle.fontSize} 
-              onValueChange={(value) => onStyleChange({ ...formStyle, fontSize: value })}
+              onValueChange={(value) => handleStyleChange('fontSize', value)}
             >
               <SelectTrigger id="font-size">
                 <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
@@ -142,7 +154,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
             </Label>
             <Select 
               value={formStyle.buttonStyle} 
-              onValueChange={(value) => onStyleChange({ ...formStyle, buttonStyle: value })}
+              onValueChange={(value) => handleStyleChange('buttonStyle', value)}
             >
               <SelectTrigger id="button-style">
                 <SelectValue placeholder={language === 'ar' ? 'اختر نمط الأزرار' : 'Select button style'} />

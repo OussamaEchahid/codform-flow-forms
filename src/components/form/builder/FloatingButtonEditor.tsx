@@ -1,422 +1,405 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { FloatingButtonConfig } from '@/lib/form-utils';
+import React from 'react';
 import { useI18n } from '@/lib/i18n';
+import { FloatingButtonConfig } from '@/lib/form-utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  ShoppingCart, 
+  Package, 
+  Truck, 
+  Send,
+  Check 
+} from 'lucide-react';
 
 interface FloatingButtonEditorProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   floatingButton: FloatingButtonConfig;
-  onSave: (config: FloatingButtonConfig) => void;
+  onChange: (config: FloatingButtonConfig) => void;
 }
 
-const FloatingButtonEditor: React.FC<FloatingButtonEditorProps> = ({
-  isOpen,
-  onOpenChange,
-  floatingButton,
-  onSave,
+const FloatingButtonEditor: React.FC<FloatingButtonEditorProps> = ({ 
+  floatingButton, 
+  onChange 
 }) => {
   const { language } = useI18n();
-  const [config, setConfig] = useState<FloatingButtonConfig>(floatingButton || {
-    enabled: false,
-    text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-    textColor: '#ffffff',
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-    borderRadius: '4px',
-    borderWidth: '0',
-    paddingY: '10',
-    marginBottom: '20',
-    showIcon: true,
-    icon: 'shopping-cart',
-    animation: 'none',
-    fontSize: '16',
-    fontWeight: '500',
-  });
-
-  const handleChange = (key: keyof FloatingButtonConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+  
+  const handleChange = (key: string, value: any) => {
+    onChange({
+      ...floatingButton,
+      [key]: value
+    });
   };
-
-  const handleSave = () => {
-    onSave(config);
-    onOpenChange(false);
+  
+  const getIconPreview = (iconName: string) => {
+    switch (iconName) {
+      case 'shopping-cart':
+        return <ShoppingCart size={16} />;
+      case 'package':
+        return <Package size={16} />;
+      case 'truck':
+        return <Truck size={16} />;
+      case 'send':
+        return <Send size={16} />;
+      default:
+        return <ShoppingCart size={16} />;
+    }
   };
-
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {language === 'ar' ? 'إعدادات زر التنقل العائم' : 'Floating Button Settings'}
-          </DialogTitle>
-          <DialogDescription>
-            {language === 'ar'
-              ? 'قم بتخصيص زر التنقل العائم الذي سيظهر للمستخدمين في الجزء السفلي من الصفحة'
-              : 'Customize the floating navigation button that will appear at the bottom of the page'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="enabled">
-                {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
-              </Label>
-              <Switch
-                id="enabled"
-                checked={config.enabled}
-                onCheckedChange={(checked) => handleChange('enabled', checked)}
-              />
-            </div>
-
-            {config.enabled && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="button-text">
-                    {language === 'ar' ? 'نص الزر' : 'Button Text'}
-                  </Label>
-                  <Input
-                    id="button-text"
-                    value={config.text || ''}
-                    onChange={(e) => handleChange('text', e.target.value)}
-                    placeholder={language === 'ar' ? 'اطلب الآن' : 'Order Now'}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="font-family">
-                    {language === 'ar' ? 'عائلة الخط' : 'Font Family'}
-                  </Label>
-                  <Select
-                    value={config.fontFamily || 'default'}
-                    onValueChange={(value) => handleChange('fontFamily', value === 'default' ? undefined : value)}
-                  >
-                    <SelectTrigger id="font-family">
-                      <SelectValue placeholder={language === 'ar' ? 'اختر الخط' : 'Select font'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default</SelectItem>
-                      <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                      <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-                      <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
-                      <SelectItem value="Tahoma, sans-serif">Tahoma</SelectItem>
-                      <SelectItem value="'Tajawal', sans-serif">Tajawal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="font-size">
-                      {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-                    </Label>
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <Input
-                        id="font-size"
-                        type="range"
-                        min="12"
-                        max="28"
-                        value={config.fontSize || '16'}
-                        onChange={(e) => handleChange('fontSize', e.target.value)}
-                        className="w-full"
-                      />
-                      <span>{config.fontSize || '16'}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="font-weight">
-                      {language === 'ar' ? 'وزن الخط' : 'Font Weight'}
-                    </Label>
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <Input
-                        id="font-weight"
-                        type="range"
-                        min="100"
-                        max="900"
-                        step="100"
-                        value={config.fontWeight || '500'}
-                        onChange={(e) => handleChange('fontWeight', e.target.value)}
-                        className="w-full"
-                      />
-                      <span>{config.fontWeight || '500'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="text-color">
-                    {language === 'ar' ? 'لون النص' : 'Text Color'}
-                  </Label>
-                  <div className="flex space-x-2 rtl:space-x-reverse">
-                    <input
-                      id="text-color"
-                      type="color"
-                      value={config.textColor || '#ffffff'}
-                      onChange={(e) => handleChange('textColor', e.target.value)}
-                      className="w-10 h-10 rounded border"
-                    />
-                    <Input
-                      type="text"
-                      value={config.textColor || '#ffffff'}
-                      onChange={(e) => handleChange('textColor', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="background-color">
-                    {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
-                  </Label>
-                  <div className="flex space-x-2 rtl:space-x-reverse">
-                    <input
-                      id="background-color"
-                      type="color"
-                      value={config.backgroundColor || '#000000'}
-                      onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                      className="w-10 h-10 rounded border"
-                    />
-                    <Input
-                      type="text"
-                      value={config.backgroundColor || '#000000'}
-                      onChange={(e) => handleChange('backgroundColor', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+    <Tabs defaultValue="general" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="general">
+          {language === 'ar' ? 'عام' : 'General'}
+        </TabsTrigger>
+        <TabsTrigger value="appearance">
+          {language === 'ar' ? 'المظهر' : 'Appearance'}
+        </TabsTrigger>
+        <TabsTrigger value="animation">
+          {language === 'ar' ? 'الحركة' : 'Animation'}
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="general" className="space-y-4 py-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="enable-floating"
+            checked={floatingButton?.enabled ?? false}
+            onCheckedChange={(checked) => handleChange('enabled', checked)}
+          />
+          <Label htmlFor="enable-floating" className={language === 'ar' ? 'mr-2' : 'ml-2'}>
+            {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
+          </Label>
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="button-text">
+            {language === 'ar' ? 'نص الزر' : 'Button Text'}
+          </Label>
+          <Input
+            id="button-text"
+            value={floatingButton?.text || ''}
+            onChange={(e) => handleChange('text', e.target.value)}
+            placeholder={language === 'ar' ? 'اطلب الآن' : 'Order Now'}
+          />
+        </div>
+        
+        <div className="grid gap-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-icon"
+              checked={floatingButton?.showIcon ?? true}
+              onCheckedChange={(checked) => handleChange('showIcon', checked)}
+            />
+            <Label htmlFor="show-icon" className={language === 'ar' ? 'mr-2' : 'ml-2'}>
+              {language === 'ar' ? 'إظهار أيقونة' : 'Show Icon'}
+            </Label>
           </div>
-
-          {config.enabled && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="border-color">
-                  {language === 'ar' ? 'لون الحدود' : 'Border Color'}
-                </Label>
-                <div className="flex space-x-2 rtl:space-x-reverse">
-                  <input
-                    id="border-color"
-                    type="color"
-                    value={config.borderColor || '#000000'}
-                    onChange={(e) => handleChange('borderColor', e.target.value)}
-                    className="w-10 h-10 rounded border"
-                  />
-                  <Input
-                    type="text"
-                    value={config.borderColor || '#000000'}
-                    onChange={(e) => handleChange('borderColor', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="border-radius">
-                    {language === 'ar' ? 'نصف قطر الحدود' : 'Border Radius'}
-                  </Label>
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Input
-                      id="border-radius"
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={parseInt(config.borderRadius || '4')}
-                      onChange={(e) => handleChange('borderRadius', `${e.target.value}px`)}
-                      className="w-full"
-                    />
-                    <span>{parseInt(config.borderRadius || '4')}px</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="border-width">
-                    {language === 'ar' ? 'سمك الحدود' : 'Border Width'}
-                  </Label>
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Input
-                      id="border-width"
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={config.borderWidth || '0'}
-                      onChange={(e) => handleChange('borderWidth', e.target.value)}
-                      className="w-full"
-                    />
-                    <span>{config.borderWidth || '0'}px</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="padding-y">
-                    {language === 'ar' ? 'تباعد عمودي' : 'Padding Y'}
-                  </Label>
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Input
-                      id="padding-y"
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={config.paddingY || '10'}
-                      onChange={(e) => handleChange('paddingY', e.target.value)}
-                      className="w-full"
-                    />
-                    <span>{config.paddingY || '10'}px</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="margin-bottom">
-                    {language === 'ar' ? 'هامش سفلي' : 'Margin Bottom'}
-                  </Label>
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Input
-                      id="margin-bottom"
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={config.marginBottom || '20'}
-                      onChange={(e) => handleChange('marginBottom', e.target.value)}
-                      className="w-full"
-                    />
-                    <span>{config.marginBottom || '20'}px</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-icon">
-                    {language === 'ar' ? 'إظهار الأيقونة' : 'Show Icon'}
-                  </Label>
-                  <Switch
-                    id="show-icon"
-                    checked={config.showIcon || false}
-                    onCheckedChange={(checked) => handleChange('showIcon', checked)}
-                  />
-                </div>
-                
-                {config.showIcon && (
-                  <div className="mt-2">
-                    <Label htmlFor="icon" className="mb-1 block">
-                      {language === 'ar' ? 'اختر الأيقونة' : 'Select Icon'}
-                    </Label>
-                    <Select
-                      value={config.icon || 'shopping-cart'}
-                      onValueChange={(value) => handleChange('icon', value)}
-                    >
-                      <SelectTrigger id="icon">
-                        <SelectValue placeholder={language === 'ar' ? 'اختر الأيقونة' : 'Select icon'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="shopping-cart">
-                          <div className="flex items-center">
-                            <span className="mr-2">🛒</span>
-                            {language === 'ar' ? 'عربة التسوق' : 'Shopping Cart'}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="truck">
-                          <div className="flex items-center">
-                            <span className="mr-2">🚚</span>
-                            {language === 'ar' ? 'شاحنة' : 'Truck'}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="package">
-                          <div className="flex items-center">
-                            <span className="mr-2">📦</span>
-                            {language === 'ar' ? 'طرد' : 'Package'}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="send">
-                          <div className="flex items-center">
-                            <span className="mr-2">📤</span>
-                            {language === 'ar' ? 'إرسال' : 'Send'}
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="animation">
-                  {language === 'ar' ? 'تأثير حركي' : 'Animation'}
-                </Label>
-                <Select
-                  value={config.animation || 'none'}
-                  onValueChange={(value) => handleChange('animation', value)}
-                >
-                  <SelectTrigger id="animation">
-                    <SelectValue placeholder={language === 'ar' ? 'اختر التأثير الحركي' : 'Select animation'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{language === 'ar' ? 'بدون تأثير' : 'None'}</SelectItem>
-                    <SelectItem value="pulse">{language === 'ar' ? 'نبض' : 'Pulse'}</SelectItem>
-                    <SelectItem value="bounce">{language === 'ar' ? 'ارتداد' : 'Bounce'}</SelectItem>
-                    <SelectItem value="shake">{language === 'ar' ? 'اهتزاز' : 'Shake'}</SelectItem>
-                    <SelectItem value="wiggle">{language === 'ar' ? 'تمايل' : 'Wiggle'}</SelectItem>
-                    <SelectItem value="flash">{language === 'ar' ? 'وميض' : 'Flash'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          
+          {floatingButton?.showIcon && (
+            <div className="mt-2">
+              <Label htmlFor="button-icon">
+                {language === 'ar' ? 'اختر الأيقونة' : 'Choose Icon'}
+              </Label>
+              <Select 
+                value={floatingButton?.icon || 'shopping-cart'} 
+                onValueChange={(value) => handleChange('icon', value)}
+              >
+                <SelectTrigger id="button-icon" className="mt-1">
+                  <SelectValue placeholder={language === 'ar' ? 'اختر الأيقونة' : 'Select icon'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shopping-cart" className="flex items-center">
+                    <div className="flex items-center">
+                      <ShoppingCart size={16} className="mr-2" />
+                      <span>{language === 'ar' ? 'عربة تسوق' : 'Shopping Cart'}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="package">
+                    <div className="flex items-center">
+                      <Package size={16} className="mr-2" />
+                      <span>{language === 'ar' ? 'طرد' : 'Package'}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="truck">
+                    <div className="flex items-center">
+                      <Truck size={16} className="mr-2" />
+                      <span>{language === 'ar' ? 'شاحنة' : 'Truck'}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="send">
+                    <div className="flex items-center">
+                      <Send size={16} className="mr-2" />
+                      <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
-
-        {config.enabled && (
-          <div className="mt-4 mb-6 border rounded-lg p-4 bg-gray-50">
-            <h3 className="text-sm font-medium mb-2">
-              {language === 'ar' ? 'معاينة الزر' : 'Button Preview'}
-            </h3>
-            <div className="flex justify-center p-4 bg-white border rounded min-h-20 items-center">
+        
+        <div className="grid gap-2">
+          <Label htmlFor="margin-bottom">
+            {language === 'ar' ? 'المسافة من أسفل' : 'Distance from Bottom'}
+          </Label>
+          <Select 
+            value={floatingButton?.marginBottom || '20px'} 
+            onValueChange={(value) => handleChange('marginBottom', value)}
+          >
+            <SelectTrigger id="margin-bottom">
+              <SelectValue placeholder={language === 'ar' ? 'اختر المسافة' : 'Select distance'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10px">
+                {language === 'ar' ? 'قريب جداً (10px)' : 'Very Close (10px)'}
+              </SelectItem>
+              <SelectItem value="20px">
+                {language === 'ar' ? 'قريب (20px)' : 'Close (20px)'}
+              </SelectItem>
+              <SelectItem value="30px">
+                {language === 'ar' ? 'متوسط (30px)' : 'Medium (30px)'}
+              </SelectItem>
+              <SelectItem value="40px">
+                {language === 'ar' ? 'بعيد (40px)' : 'Far (40px)'}
+              </SelectItem>
+              <SelectItem value="60px">
+                {language === 'ar' ? 'بعيد جداً (60px)' : 'Very Far (60px)'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="appearance" className="space-y-4 py-4">
+        <div className="grid gap-2">
+          <Label htmlFor="bg-color">
+            {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="bg-color"
+              type="color"
+              value={floatingButton?.backgroundColor || '#000000'}
+              onChange={(e) => handleChange('backgroundColor', e.target.value)}
+              className="w-12 h-10 p-1"
+            />
+            <Input
+              type="text"
+              value={floatingButton?.backgroundColor || '#000000'}
+              onChange={(e) => handleChange('backgroundColor', e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="text-color">
+            {language === 'ar' ? 'لون النص' : 'Text Color'}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="text-color"
+              type="color"
+              value={floatingButton?.textColor || '#ffffff'}
+              onChange={(e) => handleChange('textColor', e.target.value)}
+              className="w-12 h-10 p-1"
+            />
+            <Input
+              type="text"
+              value={floatingButton?.textColor || '#ffffff'}
+              onChange={(e) => handleChange('textColor', e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </div>
+        
+        <Separator className="my-2" />
+        
+        <div className="grid gap-2">
+          <Label htmlFor="border-radius">
+            {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
+          </Label>
+          <Select 
+            value={floatingButton?.borderRadius || '4px'} 
+            onValueChange={(value) => handleChange('borderRadius', value)}
+          >
+            <SelectTrigger id="border-radius">
+              <SelectValue placeholder={language === 'ar' ? 'اختر الاستدارة' : 'Select border radius'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0px">
+                {language === 'ar' ? 'بدون استدارة' : 'No Radius'}
+              </SelectItem>
+              <SelectItem value="4px">
+                {language === 'ar' ? 'استدارة صغيرة' : 'Small Radius'}
+              </SelectItem>
+              <SelectItem value="8px">
+                {language === 'ar' ? 'استدارة متوسطة' : 'Medium Radius'}
+              </SelectItem>
+              <SelectItem value="12px">
+                {language === 'ar' ? 'استدارة كبيرة' : 'Large Radius'}
+              </SelectItem>
+              <SelectItem value="50px">
+                {language === 'ar' ? 'استدارة كاملة' : 'Pill Shape'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="font-size">
+            {language === 'ar' ? 'حجم الخط' : 'Font Size'}
+          </Label>
+          <Select 
+            value={floatingButton?.fontSize || '16px'} 
+            onValueChange={(value) => handleChange('fontSize', value)}
+          >
+            <SelectTrigger id="font-size">
+              <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="14px">
+                {language === 'ar' ? 'صغير' : 'Small'}
+              </SelectItem>
+              <SelectItem value="16px">
+                {language === 'ar' ? 'متوسط' : 'Medium'}
+              </SelectItem>
+              <SelectItem value="18px">
+                {language === 'ar' ? 'كبير' : 'Large'}
+              </SelectItem>
+              <SelectItem value="20px">
+                {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="font-weight">
+            {language === 'ar' ? 'سمك الخط' : 'Font Weight'}
+          </Label>
+          <Select 
+            value={floatingButton?.fontWeight || '500'} 
+            onValueChange={(value) => handleChange('fontWeight', value)}
+          >
+            <SelectTrigger id="font-weight">
+              <SelectValue placeholder={language === 'ar' ? 'اختر سمك الخط' : 'Select font weight'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="400">
+                {language === 'ar' ? 'عادي' : 'Regular'}
+              </SelectItem>
+              <SelectItem value="500">
+                {language === 'ar' ? 'متوسط' : 'Medium'}
+              </SelectItem>
+              <SelectItem value="600">
+                {language === 'ar' ? 'سميك' : 'Semi-Bold'}
+              </SelectItem>
+              <SelectItem value="700">
+                {language === 'ar' ? 'سميك جداً' : 'Bold'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="padding-y">
+            {language === 'ar' ? 'التباعد الرأسي' : 'Vertical Padding'}
+          </Label>
+          <Select 
+            value={floatingButton?.paddingY || '10px'} 
+            onValueChange={(value) => handleChange('paddingY', value)}
+          >
+            <SelectTrigger id="padding-y">
+              <SelectValue placeholder={language === 'ar' ? 'اختر التباعد' : 'Select padding'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="6px">
+                {language === 'ar' ? 'صغير جداً' : 'Extra Small'}
+              </SelectItem>
+              <SelectItem value="8px">
+                {language === 'ar' ? 'صغير' : 'Small'}
+              </SelectItem>
+              <SelectItem value="10px">
+                {language === 'ar' ? 'متوسط' : 'Medium'}
+              </SelectItem>
+              <SelectItem value="12px">
+                {language === 'ar' ? 'كبير' : 'Large'}
+              </SelectItem>
+              <SelectItem value="16px">
+                {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="animation" className="space-y-4 py-4">
+        <div className="grid gap-2">
+          <Label htmlFor="animation-type">
+            {language === 'ar' ? 'نوع الحركة' : 'Animation Type'}
+          </Label>
+          <Select 
+            value={floatingButton?.animation || 'none'} 
+            onValueChange={(value) => handleChange('animation', value)}
+          >
+            <SelectTrigger id="animation-type">
+              <SelectValue placeholder={language === 'ar' ? 'اختر نوع الحركة' : 'Select animation'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                {language === 'ar' ? 'بدون حركة' : 'No Animation'}
+              </SelectItem>
+              <SelectItem value="pulse">
+                {language === 'ar' ? 'نبض' : 'Pulse'}
+              </SelectItem>
+              <SelectItem value="shake">
+                {language === 'ar' ? 'هزة' : 'Shake'}
+              </SelectItem>
+              <SelectItem value="bounce">
+                {language === 'ar' ? 'قفز' : 'Bounce'}
+              </SelectItem>
+              <SelectItem value="wiggle">
+                {language === 'ar' ? 'تمايل' : 'Wiggle'}
+              </SelectItem>
+              <SelectItem value="flash">
+                {language === 'ar' ? 'وميض' : 'Flash'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {floatingButton?.animation && floatingButton.animation !== 'none' && (
+          <div className="mt-4 p-4 border rounded-md">
+            <div className="flex justify-center">
               <button
-                className={cn("flex items-center gap-2", {
-                  "pulse-animation": config.animation === "pulse",
-                  "bounce-animation": config.animation === "bounce",
-                  "shake-animation": config.animation === "shake",
-                  "wiggle-animation": config.animation === "wiggle",
-                  "flash-animation": config.animation === "flash"
-                })}
+                className={`px-4 py-2 rounded flex items-center gap-2 ${floatingButton.animation}-animation`}
                 style={{
-                  backgroundColor: config.backgroundColor || '#000000',
-                  color: config.textColor || '#ffffff',
-                  padding: `${config.paddingY || '10'}px 20px`,
-                  borderRadius: config.borderRadius || '4px',
-                  borderWidth: `${config.borderWidth || '0'}px`,
-                  borderStyle: config.borderWidth && parseInt(config.borderWidth) > 0 ? 'solid' : 'none',
-                  borderColor: config.borderColor || '#000000',
-                  fontSize: `${config.fontSize || '16'}px`,
-                  fontWeight: config.fontWeight || '500',
-                  fontFamily: config.fontFamily || 'inherit'
+                  backgroundColor: floatingButton.backgroundColor || '#000000',
+                  color: floatingButton.textColor || '#ffffff',
+                  borderRadius: floatingButton.borderRadius || '4px',
+                  fontSize: floatingButton.fontSize || '16px',
+                  fontWeight: floatingButton.fontWeight || '500',
                 }}
               >
-                {config.showIcon && config.icon === 'shopping-cart' && <span>🛒</span>}
-                {config.showIcon && config.icon === 'truck' && <span>🚚</span>}
-                {config.showIcon && config.icon === 'package' && <span>📦</span>}
-                {config.showIcon && config.icon === 'send' && <span>📤</span>}
-                <span>{config.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}</span>
+                {floatingButton.showIcon && getIconPreview(floatingButton.icon || 'shopping-cart')}
+                <span>{floatingButton.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}</span>
               </button>
             </div>
           </div>
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {language === 'ar' ? 'إلغاء' : 'Cancel'}
-          </Button>
-          <Button onClick={handleSave}>
-            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </TabsContent>
+    </Tabs>
   );
 };
 

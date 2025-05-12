@@ -4,7 +4,7 @@ import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTe
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
-import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
+import { FormField, FormStep, FormFieldType, FloatingButtonConfig } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
@@ -14,8 +14,17 @@ import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import { useShopify } from '@/hooks/useShopify';
-import { Dialog } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -33,7 +42,6 @@ import {
   arrayMove, 
   verticalListSortingStrategy 
 } from '@dnd-kit/sortable';
-import { FloatingButtonConfig } from '@/lib/form-utils';
 
 // Define available form elements
 const formElementTypes = [
@@ -394,7 +402,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             
             console.log("تم تحميل بيانات النموذج:", formData);
           } else {
-            // إذا لم يتم العثور على النموذج، تهيئة نموذج افتراضي
+            // إذا لم يتم العثور على النموذج، ت��يئة نموذج افتراضي
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
             setFormElements(createDefaultForm());
           }
@@ -661,10 +669,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
-  const handleStyleChange = (key: string, value: string) => {
+  // Handle style change needs to match the expected signature for FormStyleEditor
+  const handleStyleChange = (newStyle: any) => {
     setFormStyle({
       ...formStyle,
-      [key]: value
+      ...newStyle
     });
     setRefreshKey(prev => prev + 1);
   };
@@ -833,7 +842,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
-            floatingButton={floatingButton}  // Use the floatingButton from the state hook
+            floatingButton={floatingButton}
+            hideFloatingButtonPreview={false}
           />
         </div>
       </div>
@@ -851,9 +861,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             formStyle={formStyle}
             onStyleChange={handleStyleChange}
             onSave={handleSaveStyle}
-            floatingButton={floatingButton}  // Use the floatingButton from the state hook
+            floatingButton={floatingButton}
             onFloatingButtonChange={handleFloatingButtonChange}
-            showFloatingButtonEditor={false} // Don't show floating button editor here
+            showFloatingButtonEditor={false}
           />
           
           <DialogFooter>

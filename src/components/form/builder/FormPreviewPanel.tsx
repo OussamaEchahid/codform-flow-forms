@@ -22,6 +22,7 @@ interface FormPreviewPanelProps {
   onNextStep?: () => void;
   refreshKey: number;
   floatingButton?: FloatingButtonConfig;
+  hideFloatingButtonPreview?: boolean;
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -34,7 +35,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   onPreviousStep,
   onNextStep,
   refreshKey,
-  floatingButton
+  floatingButton,
+  hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
 
@@ -54,7 +56,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formStyle={formStyle}
           fields={fields}
           floatingButton={floatingButton}
-          hideFloatingButtonPreview={false} // Show floating button in preview
+          hideFloatingButtonPreview={hideFloatingButtonPreview}
         >
           <div></div>
         </FormPreview>

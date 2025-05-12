@@ -3,6 +3,7 @@ import React from 'react';
 import { FloatingButtonConfig } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ShoppingCart, Package, Truck, Send } from 'lucide-react';
+import '@/components/form/builder/floating-button.css'; // Import animations
 
 interface FloatingButtonProps {
   config: FloatingButtonConfig;
