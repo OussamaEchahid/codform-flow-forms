@@ -63,7 +63,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
-  // عرض جميع العناصر بما فيها زر الإرسال
+  // تأكد من عرض جميع العناصر بما فيها زر الإرسال
   const displayElements = elements;
 
   return (

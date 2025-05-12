@@ -44,7 +44,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
     width: '100%',
-    boxSizing: 'border-box' as BoxSizing, // Fixed type casting here
+    boxSizing: 'border-box' as BoxSizing,
   } : {};
 
   // Use larger styling for form-title type
