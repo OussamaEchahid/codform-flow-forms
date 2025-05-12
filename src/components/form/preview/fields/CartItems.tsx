@@ -40,8 +40,8 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
           </div>
           <div className="flex-1">
             <h4 className="font-medium" style={{
-              fontSize: fieldStyle.titleFontSize || '1.1rem',
-              color: fieldStyle.titleColor || '#1f2937',
+              fontSize: fieldStyle.fontSize || '1.1rem',
+              color: fieldStyle.color || '#1f2937',
             }}>
               {language === 'ar' ? 'منتج تجريبي' : 'Sample Product'}
             </h4>
