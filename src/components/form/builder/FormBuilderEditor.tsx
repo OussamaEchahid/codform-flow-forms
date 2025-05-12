@@ -99,15 +99,25 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
 
-  // Create a default form with fields from the image
-  const createDefaultForm = (): FormField[] => {
-    const fields: FormField[] = [];
+  // Find existing form title field or create one
+  const getFormTitleField = (): FormField | undefined => {
+    return formElements.find(f => f.type === 'form-title');
+  };
+
+  // Convert form header to an editable title field
+  const addFormTitleField = () => {
+    // Check if title field already exists
+    const existingTitleField = getFormTitleField();
     
-    // Only add title field if no title field exists
-    fields.push({
-      type: 'form-title' as FormFieldType,
+    if (existingTitleField) {
+      toast.info(language === 'ar' ? 'عنوان النموذج قابل للتعديل بالفعل' : 'Form title is already editable');
+      return;
+    }
+
+    const titleField: FormField = {
+      type: 'form-title',
       id: `form-title-${Date.now()}`,
-      label: language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery',
+      label: formTitle,
       helpText: formDescription,
       style: {
         color: '#1A1F2C',
@@ -116,9 +126,33 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fontSize: '1.5rem',
         descriptionColor: '#6b7280',
         descriptionFontSize: '0.875rem',
-        backgroundColor: '',
       }
-    });
+    };
+
+    // Add title field at the beginning of the form
+    const updatedElements = [titleField, ...formElements.filter(f => f.type !== 'form-title')];
+    setFormElements(updatedElements);
+    setRefreshKey(prev => prev + 1);
+    toast.success(language === 'ar' ? 'تم تحويل العنوان إلى قابل للتعديل بنجاح' : 'Title converted to editable successfully');
+  };
+
+  // Update form title field
+  const updateFormTitleField = (updatedField: FormField) => {
+    const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
+    if (fieldIndex === -1) return;
+
+    const updatedElements = [...formElements];
+    updatedElements[fieldIndex] = updatedField;
+    setFormElements(updatedElements);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Create a default form with fields
+  const createDefaultForm = (): FormField[] => {
+    const fields: FormField[] = [];
+    
+    // Add title field (but not as form-title type)
+    // We'll use the header section to show it initially
     
     fields.push({
       type: 'text' as FormFieldType,
@@ -175,56 +209,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         backgroundColor: '#000000',
         color: '#ffffff',
         fontSize: '1.1rem',
-        animation: true,  // Changed from 'pulse 2s infinite' to boolean true
+        animation: true,
       },
     });
     
     return fields;
-  };
-
-  // Find existing form title field or create one
-  const getFormTitleField = (): FormField | undefined => {
-    return formElements.find(f => f.type === 'form-title');
-  };
-
-  // Add form title field if not exists
-  const addFormTitleField = () => {
-    // Check if title field already exists to prevent duplication
-    if (getFormTitleField()) {
-      toast.error(language === 'ar' ? 'عنوان النموذج موجود بالفعل' : 'Form title already exists');
-      return;
-    }
-
-    const titleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#1A1F2C',
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '1.5rem',
-        descriptionColor: '#6b7280',
-        descriptionFontSize: '0.875rem',
-      }
-    };
-
-    // Add title field at the beginning of the form
-    setFormElements(prev => [titleField, ...prev]);
-    setRefreshKey(prev => prev + 1);
-    toast.success(language === 'ar' ? 'تم إضافة عنوان النموذج بنجاح' : 'Form title added successfully');
-  };
-
-  // Update form title field
-  const updateFormTitleField = (updatedField: FormField) => {
-    const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
-    if (fieldIndex === -1) return;
-
-    const updatedElements = [...formElements];
-    updatedElements[fieldIndex] = updatedField;
-    setFormElements(updatedElements);
-    setRefreshKey(prev => prev + 1);
   };
 
   // Initialize a new form if no form ID is provided

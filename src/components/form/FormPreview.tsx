@@ -36,37 +36,29 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // Filter out duplicate form-title fields, keeping only the first one
-  const uniqueFields = React.useMemo(() => {
-    const hasTitleField = fields.some(field => field.type === 'form-title');
-    
-    // If fields array has no form-title, continue without modification
-    if (!hasTitleField) {
-      return fields;
-    }
-    
-    // Keep only the first form-title field and all other fields
+  // Sanitize fields: Keep only one form-title field and ensure there's a submit button
+  const sanitizedFields = React.useMemo(() => {
+    // Step 1: Remove duplicate form-title fields (keep only the first one)
+    const uniqueFields: FormField[] = [];
     let foundTitle = false;
-    return fields.filter(field => {
-      if (field.type !== 'form-title') {
-        return true;
+    
+    fields.forEach(field => {
+      // If it's not a form-title or we haven't seen one yet, add it
+      if (field.type !== 'form-title' || !foundTitle) {
+        uniqueFields.push(field);
+        
+        // Mark that we've found a title field
+        if (field.type === 'form-title') {
+          foundTitle = true;
+        }
       }
-      
-      if (!foundTitle) {
-        foundTitle = true;
-        return true;
-      }
-      
-      return false;
     });
-  }, [fields]);
-  
-  // Check for submit button in fields
-  const hasSubmitButton = uniqueFields.some(field => field.type === 'submit');
-  
-  // If no submit button exists and we have fields, add a default one
-  const fieldsToRender = React.useMemo(() => {
-    if (uniqueFields.length > 0 && !hasSubmitButton) {
+    
+    // Step 2: Check if a submit button exists
+    const hasSubmitButton = uniqueFields.some(field => field.type === 'submit');
+    
+    // Step 3: If no submit button exists, add a default one
+    if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
         id: `submit-${Date.now()}`,
@@ -77,10 +69,32 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           fontSize: '1rem',
         },
       };
-      return [...uniqueFields, submitButton];
+      uniqueFields.push(submitButton);
     }
+    
     return uniqueFields;
-  }, [uniqueFields, hasSubmitButton, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor]);
+  
+  // Generate the header content
+  const headerContent = () => {
+    // Only show the header if we don't have an editable form-title field
+    if (!sanitizedFields.some(field => field.type === 'form-title')) {
+      return (
+        <div 
+          className="p-4 border-b" 
+          style={{ 
+            backgroundColor: formStyle.primaryColor || '#9b87f5',
+            color: 'white',
+            borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
+          }}
+        >
+          <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
+          {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
+        </div>
+      );
+    }
+    return null;
+  };
   
   return (
     <div 
@@ -92,17 +106,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
     >
-      <div 
-        className="p-4 border-b" 
-        style={{ 
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: 'white',
-          borderRadius: `${formStyle.borderRadius} ${formStyle.borderRadius} 0 0`,
-        }}
-      >
-        <h2 className={cn("text-xl font-medium", language === 'ar' ? "text-right" : "text-left")}>{formTitle}</h2>
-        {formDescription && <p className={cn("text-sm opacity-90", language === 'ar' ? "text-right" : "text-left")}>{formDescription}</p>}
-      </div>
+      {headerContent()}
       
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -150,9 +154,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
-        {fieldsToRender.length > 0 ? (
+        {sanitizedFields.length > 0 ? (
           <div className="space-y-4">
-            {fieldsToRender.map(field => (
+            {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={field.id} 
                 field={field} 

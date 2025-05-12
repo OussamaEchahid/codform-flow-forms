@@ -65,7 +65,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   const handleUpdateLabel = (value: string) => {
-    if (!formTitleField) return;
+    if (!formTitleField) {
+      onFormTitleChange(value);
+      return;
+    }
     
     const updatedField = {
       ...formTitleField,
@@ -77,7 +80,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   const handleUpdateDescription = (value: string) => {
-    if (!formTitleField) return;
+    if (!formTitleField) {
+      onFormDescriptionChange(value);
+      return;
+    }
     
     const updatedField = {
       ...formTitleField,
@@ -103,13 +109,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             <Input
               id="form-title"
               value={formTitleField ? formTitleField.label : formTitle}
-              onChange={(e) => {
-                if (formTitleField) {
-                  handleUpdateLabel(e.target.value);
-                } else {
-                  onFormTitleChange(e.target.value);
-                }
-              }}
+              onChange={(e) => handleUpdateLabel(e.target.value)}
               placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
               className={language === 'ar' ? 'text-right' : ''}
             />
@@ -122,13 +122,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             <Textarea
               id="form-desc"
               value={formTitleField ? formTitleField.helpText : formDescription}
-              onChange={(e) => {
-                if (formTitleField) {
-                  handleUpdateDescription(e.target.value);
-                } else {
-                  onFormDescriptionChange(e.target.value);
-                }
-              }}
+              onChange={(e) => handleUpdateDescription(e.target.value)}
               placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
               className={`${language === 'ar' ? 'text-right' : ''} h-20`}
             />
@@ -140,7 +134,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             onClick={onAddTitleField}
             className="w-full mt-2"
           >
-            {language === 'ar' ? 'إضافة عنوان قابل للتعديل' : 'Add Editable Title Field'}
+            {language === 'ar' ? 'تحويل العنوان إلى قابل للتعديل' : 'Convert to Editable Title'}
           </Button>
         ) : (
           <div className="grid grid-cols-2 gap-3 pt-2 border-t">

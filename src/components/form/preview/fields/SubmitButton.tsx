@@ -46,29 +46,78 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   // Define animation class based on animation type
   let animationClass = '';
   if (fieldStyle.animation) {
-    switch (fieldStyle.animationType) {
-      case 'pulse':
-        animationClass = 'pulse-animation';
-        break;
-      case 'shake':
-        animationClass = 'shake-animation';
-        break;
-      case 'bounce':
-        animationClass = 'bounce-animation';
-        break;
-      case 'wiggle':
-        animationClass = 'wiggle-animation';
-        break;
-      case 'flash':
-        animationClass = 'flash-animation';
-        break;
-      default:
-        animationClass = '';
+    // Check if animation is boolean or string
+    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
+      // Default animation if only boolean true is provided
+      animationClass = 'pulse-animation';
+    } else if (typeof fieldStyle.animationType === 'string') {
+      // Use specific animation type if provided
+      switch (fieldStyle.animationType) {
+        case 'pulse':
+          animationClass = 'pulse-animation';
+          break;
+        case 'shake':
+          animationClass = 'shake-animation';
+          break;
+        case 'bounce':
+          animationClass = 'bounce-animation';
+          break;
+        case 'wiggle':
+          animationClass = 'wiggle-animation';
+          break;
+        case 'flash':
+          animationClass = 'flash-animation';
+          break;
+        default:
+          animationClass = '';
+      }
     }
   }
   
+  // In-component CSS for animations
+  const animationStyles = `
+    @keyframes pulse-animation {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    .pulse-animation {
+      animation: pulse-animation 2s infinite ease-in-out;
+    }
+    @keyframes shake-animation {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    .shake-animation {
+      animation: shake-animation 3s infinite;
+    }
+    @keyframes bounce-animation {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .bounce-animation {
+      animation: bounce-animation 2s infinite;
+    }
+    @keyframes wiggle-animation {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+    .wiggle-animation {
+      animation: wiggle-animation 1s infinite;
+    }
+    @keyframes flash-animation {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.7; }
+    }
+    .flash-animation {
+      animation: flash-animation 2s infinite;
+    }
+  `;
+  
   return (
     <div className="mb-4 mt-8">
+      <style>{animationStyles}</style>
       <button
         className={`w-full py-4 px-4 font-medium transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-2 ${animationClass}`}
         style={{
