@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -17,6 +18,7 @@ interface FormPreviewProps {
     buttonStyle?: string;
   };
   fields?: FormField[];
+  hideHeader?: boolean; // إضافة خيار لإخفاء الترويسة
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -32,32 +34,34 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
+  hideHeader = false, // افتراضيًا، يتم عرض الترويسة
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // Sanitize fields: Keep only one form-title field and ensure there's a submit button
+  // تنظيف الحقول: الاحتفاظ فقط بحقل عنوان نموذج واحد والتأكد من وجود زر إرسال
   const sanitizedFields = React.useMemo(() => {
-    // Step 1: Remove duplicate form-title fields (keep only the first one)
+    // الخطوة 1: إزالة حقول عنوان النموذج المكررة (الاحتفاظ فقط بالأول)
     const uniqueFields: FormField[] = [];
     let foundTitle = false;
     
     fields.forEach(field => {
-      // If it's not a form-title or we haven't seen one yet, add it
+      // إذا لم تكن عنوان نموذج أو لم نجد عنوان بعد، أضفها
       if (field.type !== 'form-title' || !foundTitle) {
         uniqueFields.push(field);
         
-        // Mark that we've found a title field
+        // تحديد أننا وجدنا حقل عنوان
         if (field.type === 'form-title') {
           foundTitle = true;
+          hideHeader = true; // إخفاء الترويسة إذا كان هناك حقل form-title
         }
       }
     });
     
-    // Step 2: Check if a submit button exists
+    // الخطوة 2: التحقق مما إذا كان هناك زر إرسال موجود
     const hasSubmitButton = uniqueFields.some(field => field.type === 'submit');
     
-    // Step 3: If no submit button exists, add a default one
+    // الخطوة 3: إذا لم يكن هناك زر إرسال موجود، أضف واحدًا افتراضيًا
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -73,12 +77,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return uniqueFields;
-  }, [fields, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor, hideHeader]);
   
-  // Generate the header content - only show if no form-title field exists
+  // إنشاء محتوى الترويسة - يظهر فقط إذا لم يكن هناك حقل form-title موجود وإذا كان hideHeader=false
   const headerContent = () => {
-    // Only show the header if we don't have an editable form-title field
-    if (!sanitizedFields.some(field => field.type === 'form-title')) {
+    // أظهر الترويسة فقط إذا لم يكن لدينا حقل عنوان نموذج قابل للتحرير وإذا كان hideHeader=false
+    if (!hideHeader && !sanitizedFields.some(field => field.type === 'form-title')) {
       return (
         <div 
           className="p-4 border-b" 

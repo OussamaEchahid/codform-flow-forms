@@ -7,6 +7,8 @@ import { useI18n } from '@/lib/i18n';
 import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -30,8 +32,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
+  const [hideHeader, setHideHeader] = useState(!!formTitleElement); // افتراضيًا، إخفاء الترويسة إذا كان هناك عنوان مخصص
   
-  // Reset copied state after 3 seconds
+  // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (copied) {
@@ -108,6 +111,26 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </Button>
             </div>
             
+            <div className="flex items-center justify-between py-2 border-t">
+              <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
+                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر' : 'Hide form header in store'}
+                <p className="text-sm text-gray-500 mt-1">
+                  {language === 'ar' 
+                    ? formTitleElement 
+                      ? 'موصى به: لديك بالفعل عنوان مخصص في النموذج' 
+                      : 'سيخفي ترويسة النموذج (العنوان والوصف) في صفحة المنتج' 
+                    : formTitleElement 
+                      ? 'Recommended: You already have a custom title in the form'
+                      : 'Will hide the form header (title and description) in product page'}
+                </p>
+              </Label>
+              <Switch 
+                id="hide-header"
+                checked={hideHeader}
+                onCheckedChange={setHideHeader}
+              />
+            </div>
+            
             {formTitleElement && (
               <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
                 <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
@@ -158,6 +181,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               {language === 'ar' 
                 ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
                 : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
+            </AlertDescription>
+          </Alert>
+          
+          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
+          <Alert variant="default" className="bg-green-50 border-green-200">
+            <Info className="h-4 w-4 text-green-600" />
+            <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar'
+                ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
+                : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
             </AlertDescription>
           </Alert>
         </div>

@@ -24,34 +24,32 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     : 'Buy with Cash on Delivery');
   
   // Determine button radius based on style
-  let buttonRadius = '0.5rem'; // default
+  let buttonRadius = '8px'; // زيادة القيمة الافتراضية للحواف
   if (formStyle.buttonStyle === 'pill') {
     buttonRadius = '9999px';
   } else if (formStyle.buttonStyle === 'square') {
     buttonRadius = '0';
-  } else {
-    buttonRadius = formStyle.borderRadius || '0.5rem';
+  } else if (formStyle.borderRadius) {
+    buttonRadius = formStyle.borderRadius;
   }
 
-  // Determine font size based on style or field config
-  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1.1rem';
+  // تحديد حجم الخط بناءً على النمط أو إعدادات الحقل
+  const fontSize = fieldStyle.fontSize || '1.2rem'; // زيادة حجم الخط الافتراضي
   
-  // Button hover and active effects
+  // تأثيرات التحويم والضغط على الزر
   const buttonHoverStyle = {
-    transform: 'translateY(-1px)',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 12px rgba(0, 0, 0, 0.15)',
     opacity: 0.95,
   };
 
-  // Define animation class based on animation type
+  // تحديد فئة الرسوم المتحركة بناءً على نوع الرسوم المتحركة
   let animationClass = '';
   if (fieldStyle.animation) {
-    // Check if animation is boolean or string
+    // تحقق مما إذا كانت الرسوم المتحركة منطقية أو نصية
     if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
-      // Default animation if only boolean true is provided
       animationClass = 'pulse-animation';
     } else if (typeof fieldStyle.animationType === 'string') {
-      // Use specific animation type if provided
       switch (fieldStyle.animationType) {
         case 'pulse':
           animationClass = 'pulse-animation';
@@ -74,7 +72,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     }
   }
   
-  // In-component CSS for animations
+  // CSS داخلي للرسوم المتحركة
   const animationStyles = `
     @keyframes pulse-animation {
       0% { transform: scale(1); }
@@ -119,7 +117,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     <div className="mb-4 mt-8">
       <style>{animationStyles}</style>
       <button
-        className={`w-full py-4 px-4 font-medium transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-2 ${animationClass}`}
+        className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
         style={{
           backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#000000',
           color: fieldStyle.color || 'white',
@@ -129,25 +127,27 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           cursor: 'pointer',
           fontFamily: 'inherit',
           fontWeight: 'bold',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-          transition: 'all 0.2s ease',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)', // تعزيز الظل
+          transition: 'all 0.3s ease',
+          direction: 'rtl', // ضمان الاتجاه من اليمين إلى اليسار
+          textAlign: 'center', // محاذاة النص للمركز
         }}
         onMouseOver={(e) => {
           Object.assign(e.currentTarget.style, buttonHoverStyle);
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.transform = '';
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
           e.currentTarget.style.opacity = '1';
         }}
         disabled={field.disabled}
       >
         {fieldStyle.iconPosition !== 'right' && (
-          <ShoppingCart className="w-5 h-5" />
+          <ShoppingCart className="w-6 h-6" />
         )}
         {buttonLabel}
         {fieldStyle.iconPosition === 'right' && (
-          <ShoppingCart className="w-5 h-5" />
+          <ShoppingCart className="w-6 h-6" />
         )}
       </button>
     </div>
