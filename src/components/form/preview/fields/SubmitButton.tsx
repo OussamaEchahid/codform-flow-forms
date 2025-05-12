@@ -34,9 +34,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   }
 
   // Define font size based on style or field settings
-  const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
+  const fontSize = fieldStyle.fontSize || '1.2rem';
 
-  // Improved animation class determination
+  // Get animation class
   const getAnimationClass = () => {
     if (!fieldStyle.animation) return '';
     
@@ -70,16 +70,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   
   const animationClass = getAnimationClass();
   
-  console.log("Button animation data:", { 
-    animation: fieldStyle.animation, 
-    type: fieldStyle.animationType,
-    class: animationClass
-  });
-  
   return (
-    <div className="mb-4 mt-8 codform-submit-container">
+    <div className="mb-4 mt-8">
       <button
-        className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
+        className={`codform-submit-btn w-full ${animationClass}`}
         style={{
           backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           color: fieldStyle.color || 'white',
@@ -90,25 +84,30 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           fontFamily: fieldStyle.fontFamily || 'inherit',
           fontWeight: 'bold',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+          padding: '16px 20px',
           transition: 'all 0.3s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          textAlign: 'center',
-          animationDuration: '2s',
-          animationIterationCount: 'infinite',
-          animationTimingFunction: 'ease-in-out',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px'
         }}
         disabled={field.disabled}
+        type="submit"
         data-animation-type={fieldStyle.animationType || ''}
         data-has-animation={fieldStyle.animation ? 'true' : 'false'}
         data-icon-position={fieldStyle.iconPosition || 'left'}
       >
-        {/* تحسين محاذاة الأيقونة والنص للغة العربية والإنجليزية */}
-        {fieldStyle.iconPosition !== 'right' && (
-          <ShoppingCart className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
+        {(fieldStyle.iconPosition !== 'right' || language === 'ar') && (
+          <span>
+            <ShoppingCart size={20} />
+          </span>
         )}
-        <span className="inline-block">{buttonLabel}</span>
-        {fieldStyle.iconPosition === 'right' && (
-          <ShoppingCart className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
+        <span>{buttonLabel}</span>
+        {fieldStyle.iconPosition === 'right' && language !== 'ar' && (
+          <span>
+            <ShoppingCart size={20} />
+          </span>
         )}
       </button>
     </div>

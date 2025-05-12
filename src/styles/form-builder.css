@@ -1,4 +1,3 @@
-
 .form-control {
   margin-bottom: 1rem;
 }
@@ -356,4 +355,52 @@
 /* محاذاة عناصر RTL بشكل صحيح */
 [dir="rtl"] .codform-submit-button {
   flex-direction: row-reverse;
+}
+
+/* تحسين أنماط زر الإرسال لتتوافق مع المتجر */
+.codform-submit-btn {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  margin: 20px 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-color: #9b87f5;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.codform-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0.95;
+}
+
+/* محاذاة عناصر RTL بشكل صحيح */
+[dir="rtl"] .codform-submit-btn {
+  flex-direction: row-reverse;
+}
+
+.codform-submit-btn span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fixed animation for buttons in preview */
+.pulse-animation, .shake-animation, .bounce-animation, .wiggle-animation, .flash-animation {
+  animation-duration: 2s !important;
+  animation-iteration-count: infinite !important;
+  animation-timing-function: ease-in-out !important;
+  animation-fill-mode: both !important;
 }
