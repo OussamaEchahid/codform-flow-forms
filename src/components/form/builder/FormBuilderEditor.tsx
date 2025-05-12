@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -145,7 +146,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           backgroundColor: '#000000',
           color: '#ffffff',
           fontSize: '1.1rem',
-          animation: 'pulse 2s infinite',
+          animation: true,  // Changed from 'pulse 2s infinite' to boolean true
         },
       }
     ];

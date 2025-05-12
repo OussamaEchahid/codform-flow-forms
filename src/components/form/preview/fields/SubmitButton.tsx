@@ -37,7 +37,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     opacity: 0.95,
   };
 
-  // Define CSS animation for pulsing effect
+  // Define CSS animation for pulsing effect - use animation boolean flag
   const pulseAnimation = fieldStyle.animation ? {
     animation: 'pulse 2s infinite',
   } : {};
