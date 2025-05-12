@@ -3,7 +3,7 @@ import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
-import { SortableField } from '@/components/form/SortableField';
+import SortableField from '@/components/form/SortableField';
 import { Button } from '@/components/ui/button';
 import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';

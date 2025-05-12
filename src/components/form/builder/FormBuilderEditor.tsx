@@ -17,6 +17,21 @@ import { useShopify } from '@/hooks/useShopify';
 import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+  DndContext, 
+  closestCenter, 
+  useSensor, 
+  useSensors, 
+  PointerSensor, 
+  KeyboardSensor,
+  DragEndEvent
+} from '@dnd-kit/core';
+import { 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  arrayMove, 
+  verticalListSortingStrategy 
+} from '@dnd-kit/sortable';
 
 interface FormBuilderEditorProps {
   formId?: string;
