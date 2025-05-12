@@ -243,7 +243,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       setCurrentFormId(newId);
 
       // أضف إعدادات النمط الخاصة بالنموذج الجديد
-      const defaultStyle = {
+      const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
         borderRadius: '0.5rem',
         fontSize: '1rem',
@@ -271,7 +271,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-        style: defaultStyle // حفظ إعدادات النمط مع النموذج
+        style: defaultStyle
       }).select();
 
       if (error) {
@@ -288,7 +288,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         isPublished: false,
         shop_id: shopId,
-        style: defaultStyle // حفظ إعدادات النمط مع النموذج
+        style: defaultStyle
       });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
@@ -404,7 +404,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         description: formDescription,
         data: [formStep],
         shop_id: shopId,
-        style: formStyle // إضافة إعدادات النمط للنموذج
+        style: formStyle
       };
       
       console.log("Saving form with data:", formData);
@@ -420,7 +420,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           ...formState,
           ...formData,
           id: currentFormId,
-          style: formStyle  // إضافة إعدادات النمط للنموذج في الحالة
+          style: formStyle
         });
       } else {
         // Try direct database update if the saveForm method fails
@@ -431,7 +431,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             description: formDescription,
             data: [formStep],
             shop_id: shopId,
-            style: formStyle, // إضافة إعدادات النمط ��لنموذج في قاعدة البيانات
+            style: formStyle,
             updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);
