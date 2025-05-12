@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -19,7 +20,7 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { FormField, FormStep } from '@/lib/form-utils';
+import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
