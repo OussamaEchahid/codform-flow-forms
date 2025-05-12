@@ -267,7 +267,7 @@
   25%, 75% { opacity: 0.5; }
 }
 
-/* Forceful animation classes with !important to override any conflicting styles */
+/* Apply animations to button in preview mode */
 .pulse-animation {
   animation: pulse 2s infinite !important;
 }
