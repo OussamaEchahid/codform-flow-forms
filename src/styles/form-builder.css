@@ -1,4 +1,3 @@
-
 .form-control {
   margin-bottom: 1rem;
 }
@@ -224,15 +223,15 @@
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Button animations */
+/* Button animations - Enhanced for consistent behavior */
 @keyframes pulse {
   0% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
   }
   
-  70% {
-    transform: scale(1.02);
+  50% {
+    transform: scale(1.05);
     box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
   }
   
@@ -243,7 +242,7 @@
 }
 
 @keyframes shake {
-  0% { transform: translateX(0); }
+  0%, 100% { transform: translateX(0); }
   10%, 90% { transform: translateX(-2px); }
   20%, 80% { transform: translateX(4px); }
   30%, 50%, 70% { transform: translateX(-6px); }
@@ -251,15 +250,16 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
 }
 
 @keyframes wiggle {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(5deg); }
+  25% { transform: rotate(-5deg); }
   50% { transform: rotate(0deg); }
-  75% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
 }
 
 @keyframes flash {
@@ -267,24 +267,25 @@
   25%, 75% { opacity: 0.5; }
 }
 
+/* Forceful animation classes with !important to override any conflicting styles */
 .pulse-animation {
-  animation: pulse 2s infinite;
+  animation: pulse 2s infinite !important;
 }
 
 .shake-animation {
-  animation: shake 0.8s infinite;
+  animation: shake 0.8s infinite !important;
 }
 
 .bounce-animation {
-  animation: bounce 1s infinite;
+  animation: bounce 2s infinite !important;
 }
 
 .wiggle-animation {
-  animation: wiggle 1s infinite;
+  animation: wiggle 0.7s ease-in-out infinite !important;
 }
 
 .flash-animation {
-  animation: flash 1.5s infinite;
+  animation: flash 3s infinite !important;
 }
 
 /* Animation Preview Section */

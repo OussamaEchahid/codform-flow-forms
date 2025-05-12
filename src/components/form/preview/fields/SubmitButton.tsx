@@ -85,6 +85,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         }}
         disabled={field.disabled}
         data-animation-type={fieldStyle.animationType || ''}
+        data-has-animation={fieldStyle.animation ? 'true' : 'false'}
         data-icon-position={fieldStyle.iconPosition || 'left'}
       >
         {fieldStyle.iconPosition !== 'right' && (
