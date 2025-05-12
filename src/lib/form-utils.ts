@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
@@ -16,11 +17,13 @@ export interface FormField {
   width?: string;
   phoneNumber?: string;
   message?: string;
-  whatsappNumber?: string; // Added this property
+  whatsappNumber?: string;
   showImage?: boolean;
   showPrice?: boolean;
-  showShipping?: boolean; // Added this property
-  showTax?: boolean; // Added this property
+  showShipping?: boolean;
+  showTax?: boolean;
+  icon?: string; // Added icon property
+  defaultValue?: string; // Added defaultValue property
   style?: {
     backgroundColor?: string;
     color?: string;
@@ -40,8 +43,11 @@ export interface FormField {
     totalValueColor?: string;
     totalValueFontSize?: string;
     borderColor?: string;
-    borderRadius?: string; // Added this property
-    borderWidth?: string; // Added this property
+    borderRadius?: string;
+    borderWidth?: string;
+    animation?: boolean; // Added animation property
+    iconPosition?: 'left' | 'right'; // Added iconPosition property
+    icon?: boolean; // Added icon property
   };
   disabled?: boolean;
 }

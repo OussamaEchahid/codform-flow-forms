@@ -44,7 +44,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   
   return (
     <div className="mb-4 mt-8">
-      <style jsx>{`
+      <style>
+        {`
         @keyframes pulse {
           0% {
             transform: scale(1);
@@ -61,7 +62,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
             box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
           }
         }
-      `}</style>
+        `}
+      </style>
       <button
         className="w-full py-4 px-4 font-medium transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-2"
         style={{
