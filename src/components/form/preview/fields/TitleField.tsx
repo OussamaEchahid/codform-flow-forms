@@ -61,6 +61,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Use larger styling for form-title type
   const isFormTitle = field.type === 'form-title';
   
+  // Determine font size for title - Make sure it's stored correctly for store rendering
+  const fontSize = fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem');
+  
   return (
     <div 
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
@@ -72,14 +75,14 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem')}
+      data-font-size={fontSize}
     >
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
           className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
           style={{
             color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
-            fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
+            fontSize: fontSize,
             textAlign: alignment,
             fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
             fontFamily: fieldStyle.fontFamily || 'inherit',

@@ -36,10 +36,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   // Define font size based on style or field settings
   const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
   
-  // Determine animation class based on animation type
+  // Determine animation class based on animation type - Ensuring consistency with store
   let animationClass = '';
   if (fieldStyle.animation) {
-    // Check if animation is boolean or has a specific type
     if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
       animationClass = 'pulse-animation';
     } else if (typeof fieldStyle.animationType === 'string') {
