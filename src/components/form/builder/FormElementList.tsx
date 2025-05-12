@@ -4,8 +4,26 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
+// Define the available form elements locally to avoid dependency on external variables
+const defaultElements = [
+  { type: 'text', label: 'Text Input', icon: 'T' },
+  { type: 'email', label: 'Email Input', icon: '@' },
+  { type: 'phone', label: 'Phone Input', icon: '☎' },
+  { type: 'textarea', label: 'Text Area', icon: '¶' },
+  { type: 'select', label: 'Dropdown', icon: '▼' },
+  { type: 'checkbox', label: 'Checkbox', icon: '☑' },
+  { type: 'radio', label: 'Radio Button', icon: '◉' },
+  { type: 'text/html', label: 'HTML Content', icon: '</>' },
+  { type: 'submit', label: 'Submit Button', icon: '✓' },
+  { type: 'cart-items', label: 'Cart Items', icon: '🛒' },
+  { type: 'cart-summary', label: 'Cart Summary', icon: '🧾' },
+  { type: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { type: 'image', label: 'Image', icon: '🖼️' },
+  { type: 'form-title', label: 'Form Title', icon: 'H1' }
+];
+
 interface FormElementListProps {
-  availableElements: Array<{
+  availableElements?: Array<{
     type: string;
     label: string;
     icon: string;
@@ -13,7 +31,10 @@ interface FormElementListProps {
   onAddElement: (type: string) => void;
 }
 
-const FormElementList: React.FC<FormElementListProps> = ({ availableElements, onAddElement }) => {
+const FormElementList: React.FC<FormElementListProps> = ({ 
+  availableElements = defaultElements, 
+  onAddElement 
+}) => {
   const { language } = useI18n();
 
   return (

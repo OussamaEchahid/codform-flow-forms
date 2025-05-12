@@ -18,8 +18,8 @@ interface FormPreviewPanelProps {
   totalSteps: number;
   formStyle: FormStyle;
   fields: FormField[];
-  onPreviousStep: () => void;
-  onNextStep: () => void;
+  onPreviousStep?: () => void;
+  onNextStep?: () => void;
   refreshKey: number;
 }
 
