@@ -337,6 +337,23 @@
   animation-iteration-count: infinite !important;
   animation-timing-function: ease-in-out !important;
   animation-fill-mode: both !important;
-  display: inline-block !important;
+  display: inline-flex !important;
 }
 
+/* تحسين محاذاة أيقونة وزر الإرسال */
+.codform-submit-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.codform-submit-button svg {
+  flex-shrink: 0;
+}
+
+/* محاذاة عناصر RTL بشكل صحيح */
+[dir="rtl"] .codform-submit-button {
+  flex-direction: row-reverse;
+}

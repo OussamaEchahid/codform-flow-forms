@@ -102,12 +102,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         data-has-animation={fieldStyle.animation ? 'true' : 'false'}
         data-icon-position={fieldStyle.iconPosition || 'left'}
       >
+        {/* تحسين محاذاة الأيقونة والنص للغة العربية والإنجليزية */}
         {fieldStyle.iconPosition !== 'right' && (
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
         )}
-        {buttonLabel}
+        <span className="inline-block">{buttonLabel}</span>
         {fieldStyle.iconPosition === 'right' && (
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
         )}
       </button>
     </div>
