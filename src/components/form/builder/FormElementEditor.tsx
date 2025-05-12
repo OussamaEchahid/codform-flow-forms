@@ -54,6 +54,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     if (onReorderElements) {
       const newElements = arrayMove(elements, oldIndex, newIndex);
       onReorderElements(newElements);
+      toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
   };
 

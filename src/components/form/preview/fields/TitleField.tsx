@@ -26,10 +26,21 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
         style={{
           color: fieldStyle.color || 'inherit',
           fontSize: fieldStyle.fontSize || formStyle.fontSize,
+          textAlign: language === 'ar' ? 'right' : 'left',
         }}
       >
         {field.label}
       </h3>
+      {fieldStyle.description && (
+        <p 
+          className="text-sm text-gray-600 mt-1"
+          style={{
+            textAlign: language === 'ar' ? 'right' : 'left',
+          }}
+        >
+          {fieldStyle.description}
+        </p>
+      )}
     </div>
   );
 };

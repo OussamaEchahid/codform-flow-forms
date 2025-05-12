@@ -4,17 +4,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle } from 'lucide-react';
+import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface ShopifyIntegrationProps {
   formId: string;
+  formTitle?: string;
+  formDescription?: string;
+  formStyle?: {
+    primaryColor?: string;
+  };
   onSave?: (settings: any) => void;
   isSyncing?: boolean;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
-  formId, 
+  formId,
+  formTitle,
+  formDescription,
+  formStyle = { primaryColor: '#9b87f5' },
   isSyncing = false 
 }) => {
   const { t, language } = useI18n();
@@ -38,6 +47,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         : 'Form ID copied successfully'
     );
   };
+
+  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
     <Card className="mt-4">
@@ -94,6 +105,29 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
+            
+            {formTitle && (
+              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+                  {language === 'ar' ? 'عنوان النموذج:' : 'Form Title:'}
+                </span>
+                <span className="p-2 bg-gray-100 rounded text-sm flex-1">{formTitle}</span>
+              </div>
+            )}
+            
+            <div className={`flex flex-col ${language === 'ar' ? 'items-end' : 'items-start'}`}>
+              <span className="text-sm font-medium mb-2">
+                {language === 'ar' ? 'إعدادات التنسيق:' : 'Styling Settings:'}
+              </span>
+              <div className="flex flex-wrap gap-2 w-full">
+                {formStyle.primaryColor && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: formStyle.primaryColor }}></div>
+                    {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
 
           <Alert variant="warning" className="bg-amber-50 border-amber-200">
@@ -102,6 +136,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               {language === 'ar' 
                 ? 'تأكد من نشر النموذج قبل استخدامه في متجرك. النماذج غير المنشورة لن تظهر للعملاء.' 
                 : 'Make sure to publish the form before using it in your store. Unpublished forms will not appear to customers.'}
+            </AlertDescription>
+          </Alert>
+          
+          <Alert variant="info" className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
+                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
             </AlertDescription>
           </Alert>
         </div>

@@ -39,6 +39,17 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     fieldType = 'text';
   }
 
+  // Check if this field type is supported in the store preview
+  const supportedStoreFieldTypes = [
+    'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
+    'submit', 'image', 'whatsapp'
+  ];
+  
+  const isSupported = supportedStoreFieldTypes.includes(fieldType);
+  if (!isSupported) {
+    console.warn(`Field type "${fieldType}" is not fully supported in the store preview.`);
+  }
+
   const components: { [key: string]: React.FC<FormFieldProps> } = {
     'text': TextInput,
     'textarea': TextArea,
@@ -59,6 +70,17 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;
+  }
+
+  if (!isSupported) {
+    return (
+      <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
+        <Component field={field} formStyle={formStyle} />
+        <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
+          {field.label ? `حقل "${field.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
+        </div>
+      </div>
+    );
   }
 
   return <Component field={field} formStyle={formStyle} />;

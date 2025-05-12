@@ -38,13 +38,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     opacity: 0.95,
   };
 
-  // Get animation type from the field style
-  const animationType = fieldStyle.animationType || 'pulse';
-  
   // Define animation class based on animation type
   let animationClass = '';
   if (fieldStyle.animation) {
-    switch (animationType) {
+    switch (fieldStyle.animationType) {
       case 'pulse':
         animationClass = 'pulse-animation';
         break;
