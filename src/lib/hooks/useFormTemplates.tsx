@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { useFormStore } from '@/hooks/useFormStore';
+import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { FormField, FormStep } from '@/lib/form-utils';
@@ -16,6 +17,7 @@ export interface FormData {
   is_published?: boolean;
   shop_id?: string;
   created_at?: string;
+  style?: FormStyle;
 }
 
 export interface FormTemplate {

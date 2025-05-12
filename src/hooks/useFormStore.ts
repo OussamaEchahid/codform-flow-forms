@@ -1,6 +1,13 @@
 
 import { create } from 'zustand';
 
+export interface FormStyle {
+  primaryColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  buttonStyle?: string;
+}
+
 export interface FormState {
   id: string;
   title: string;
@@ -10,6 +17,7 @@ export interface FormState {
   shop_id?: string;
   created_at?: string;
   updated_at?: string;
+  style?: FormStyle;
 }
 
 interface FormStore {
@@ -24,7 +32,13 @@ const defaultFormState: FormState = {
   description: '',
   data: [],
   isPublished: false,
-  shop_id: undefined
+  shop_id: undefined,
+  style: {
+    primaryColor: '#9b87f5',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    buttonStyle: 'rounded',
+  }
 };
 
 export const useFormStore = create<FormStore>((set) => ({
