@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -191,7 +190,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     try {
       if (!currentFormId) {
-        toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
+        toast.error(language === 'ar' ? 'لم يتم العثور على معرف ��لنموذج' : 'Form ID not found');
         setIsSaving(false);
         return;
       }
@@ -314,8 +313,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const addElement = (type: string) => {
-    const newElement = {
-      type,
+    const newElement: FormField = {
+      type: type as FormFieldType,
       id: `${type}-${Date.now()}`,
       label: language === 'ar' ? `${type} جديد` : `New ${type}`,
       placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,

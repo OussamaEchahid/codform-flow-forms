@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -493,7 +492,12 @@ export const formTemplates: FormTemplate[] = [
             type: 'checkbox',
             label: 'Areas of Interest',
             required: false,
-            options: ['Technology', 'Marketing', 'Design', 'Business']
+            options: [
+              { value: 'option1', label: 'Option 1' },
+              { value: 'option2', label: 'Option 2' },
+              { value: 'option3', label: 'Option 3' },
+              { value: 'option4', label: 'Option 4' }
+            ]
           }
         ]
       }

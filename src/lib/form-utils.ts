@@ -16,8 +16,11 @@ export interface FormField {
   width?: string;
   phoneNumber?: string;
   message?: string;
+  whatsappNumber?: string; // Added this property
   showImage?: boolean;
   showPrice?: boolean;
+  showShipping?: boolean; // Added this property
+  showTax?: boolean; // Added this property
   style?: {
     backgroundColor?: string;
     color?: string;
@@ -37,6 +40,8 @@ export interface FormField {
     totalValueColor?: string;
     totalValueFontSize?: string;
     borderColor?: string;
+    borderRadius?: string; // Added this property
+    borderWidth?: string; // Added this property
   };
   disabled?: boolean;
 }
@@ -70,6 +75,9 @@ export interface FormTemplate {
   title: string;
   description: string;
   data: FormStep[];
+  primaryColor?: string; // Added this property
+  fields?: number; // Added this property for FormTemplatesDialog
+  steps?: number; // Added this property for FormTemplatesDialog
 }
 
 /**

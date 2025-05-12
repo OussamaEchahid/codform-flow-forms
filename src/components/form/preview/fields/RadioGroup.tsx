@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
-import { RadioGroup as UIRadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/lib/i18n';
 
 interface RadioGroupProps {
@@ -17,35 +16,55 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Ensure options are available and have correct format
+  const options = Array.isArray(field.options) ? field.options : [];
+  
   return (
-    <div className="form-control mb-4">
+    <div className="mb-4">
       <label 
-        className="form-label mb-2 block" 
-        style={{ color: fieldStyle.color }}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
+        style={{ 
+          color: fieldStyle.labelColor || '#334155',
+          fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
+          fontWeight: 500
+        }}
       >
-        {field.label}
-        {field.required && <span className="text-red-500 mr-1">*</span>}
+        {field.label || (language === 'ar' ? 'اختيار واحد' : 'Single choice')}
+        {field.required && (
+          <span className="text-red-500 absolute right-0 top-0">*</span>
+        )}
       </label>
-      <UIRadioGroup 
-        defaultValue={field.options?.[0] || ""}
-        className="space-y-2"
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
-        disabled
-      >
-        {field.options?.map((option, index) => (
-          <div key={index} className={`flex items-center ${language === 'ar' ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}>
-            <RadioGroupItem value={option} id={`option-${field.id}-${index}`} />
-            <label 
-              htmlFor={`option-${field.id}-${index}`} 
-              className="text-sm"
-              dir={language === 'ar' ? 'rtl' : 'ltr'}
+      
+      <div className="space-y-2">
+        {options.map((option, index) => (
+          <div key={index} className="flex items-center">
+            <input
+              type="radio"
+              id={`${field.id}-${index}`}
+              name={field.id}
+              value={option.value}
+              className="mr-2 h-4 w-4 text-blue-600"
+              style={{
+                borderColor: fieldStyle.borderColor || '#d1d5db',
+                accentColor: fieldStyle.color || formStyle.primaryColor || '#9b87f5'
+              }}
+            />
+            <label
+              htmlFor={`${field.id}-${index}`}
+              style={{
+                color: fieldStyle.color || '#1f2937',
+                fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem'
+              }}
             >
-              {option}
+              {option.label}
             </label>
           </div>
         ))}
-      </UIRadioGroup>
+      </div>
+      
+      {field.helpText && (
+        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
+      )}
     </div>
   );
 };

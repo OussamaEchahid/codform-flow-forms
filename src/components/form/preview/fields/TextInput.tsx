@@ -16,35 +16,44 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Determine input type (text, email, phone, etc)
-  const inputType = field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text';
+  // Set default values for border styling
+  const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
+  const inputBorderWidth = fieldStyle.borderWidth || '1px';
   
   return (
-    <div className="form-control mb-5">
-      <label className="form-label block mb-2 font-medium" style={{ color: fieldStyle.color || '#374151' }}>
-        {field.label}
-        {field.required && <span className="text-red-500 mr-1">*</span>}
-      </label>
-      <input
-        type={inputType}
-        placeholder={field.placeholder || ''}
-        className="form-input w-full py-2 px-3 border transition-all duration-200"
-        style={{
-          backgroundColor: fieldStyle.backgroundColor || 'white',
-          color: fieldStyle.color || '#374151',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
-          borderRadius: fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem',
-          borderWidth: fieldStyle.borderWidth || '1px',
-          borderColor: fieldStyle.borderColor || '#e2e8f0',
-          outline: 'none',
+    <div className="mb-4">
+      <label 
+        htmlFor={field.id} 
+        className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
+        style={{ 
+          color: fieldStyle.labelColor || '#334155',
+          fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
+          fontWeight: 500
         }}
-        disabled={field.disabled}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      >
+        {field.label || (language === 'ar' ? 'حقل نصي' : 'Text field')}
+        {field.required && (
+          <span className="text-red-500 absolute right-0 top-0">*</span>
+        )}
+      </label>
+      
+      <input
+        type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
+        id={field.id}
+        placeholder={field.placeholder || ''}
+        className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
+        style={{
+          color: fieldStyle.color || '#1f2937',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
+          borderColor: fieldStyle.borderColor || '#d1d5db',
+          borderRadius: inputBorderRadius,
+          borderWidth: inputBorderWidth,
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+        }}
       />
+      
       {field.helpText && (
-        <p className="text-sm text-gray-500 mt-1">
-          {field.helpText}
-        </p>
+        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
       )}
     </div>
   );

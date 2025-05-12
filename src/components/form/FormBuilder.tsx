@@ -24,7 +24,7 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -220,7 +220,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   };
 
   useEffect(() => {
-    // إذا كانت البيانات فارغة، نقوم بإنشاء نموذج افتراضي
+    // If the data is empty, we create a default form
     if (initialFormData.data.length === 0) {
       setFormSteps(createDefaultForm());
       setPreviewRefresh(prev => prev + 1);

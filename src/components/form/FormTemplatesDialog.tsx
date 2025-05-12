@@ -398,8 +398,8 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
                 <h3 className="font-semibold text-lg">{currentTemplate.title}</h3>
                 <p className="text-sm text-gray-600">{currentTemplate.description}</p>
                 <div className="flex justify-between text-sm text-gray-500 mt-2">
-                  <span>{currentTemplate.fields} حقول</span>
-                  <span>{currentTemplate.steps} خطوات</span>
+                  <span>{currentTemplate.fields || 3} حقول</span>
+                  <span>{currentTemplate.steps || 1} خطوات</span>
                 </div>
                 <Button 
                   variant="outline" 
