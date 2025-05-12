@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
@@ -53,8 +52,29 @@ export interface FormField {
     animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash';
     iconPosition?: 'left' | 'right';
     icon?: boolean;
+    paddingY?: string;
+    marginBottom?: string;
   };
   disabled?: boolean;
+}
+
+// Add floating button configuration interface
+export interface FloatingButtonConfig {
+  enabled: boolean;
+  text: string;
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  textColor?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  paddingY?: string;
+  marginBottom?: string;
+  showIcon?: boolean;
+  icon?: string;
+  animation?: string;
 }
 
 export type FormFieldType =

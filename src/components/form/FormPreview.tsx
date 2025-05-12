@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
+import FloatingButton from './preview/FloatingButton';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -19,6 +20,7 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   hideHeader?: boolean;
+  floatingButton?: FloatingButtonConfig;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -35,6 +37,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   hideHeader = false,
+  floatingButton,
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
@@ -99,7 +102,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   return (
     <div 
       key={key}
-      className="rounded-lg border shadow-sm overflow-hidden bg-white"
+      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
@@ -166,6 +169,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           children
         )}
       </div>
+
+      {/* Render floating button if enabled */}
+      {floatingButton && floatingButton.enabled && (
+        <FloatingButton config={floatingButton} />
+      )}
     </div>
   );
 };

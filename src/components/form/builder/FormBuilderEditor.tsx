@@ -33,6 +33,7 @@ import {
   arrayMove, 
   verticalListSortingStrategy 
 } from '@dnd-kit/sortable';
+import { FloatingButtonConfig } from '@/lib/form-utils';
 
 // Define available form elements
 const formElementTypes = [
@@ -746,6 +747,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
+  const handleFloatingButtonChange = (config: FloatingButtonConfig) => {
+    formStore.updateFloatingButton(config);
+    setRefreshKey(prev => prev + 1); // Refresh the preview
+  };
+
   return (
     <main className="flex-1 overflow-auto">
       <FormHeader 
@@ -814,6 +820,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
+            floatingButton={formStore.floatingButton}
           />
         </div>
       </div>
@@ -824,6 +831,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         formStyle={formStyle}
         onStyleChange={handleStyleChange}
         onSave={handleSaveStyle}
+        floatingButton={formStore.floatingButton}
+        onFloatingButtonChange={handleFloatingButtonChange}
       />
 
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
