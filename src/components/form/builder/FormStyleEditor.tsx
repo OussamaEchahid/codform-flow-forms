@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
+import { Checkbox, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface FormStyle {
   primaryColor: string;
@@ -118,6 +118,57 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const AnimationSection = ({ field, onChange }) => {
+  const animationTypes = [
+    { value: 'pulse', label: 'Pulse' },
+    { value: 'shake', label: 'Shake' },
+    { value: 'bounce', label: 'Bounce' },
+    { value: 'wiggle', label: 'Wiggle' },
+    { value: 'flash', label: 'Flash' }
+  ];
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center">
+        <Checkbox
+          id="animation"
+          checked={field.style?.animation || false}
+          onCheckedChange={(checked) => {
+            onChange({
+              ...field,
+              style: { ...field.style, animation: !!checked }
+            });
+          }}
+        />
+        <label htmlFor="animation" className="ml-2 text-sm font-medium">Enable Animation</label>
+      </div>
+      
+      {field.style?.animation && (
+        <Select
+          value={field.style?.animationType || 'pulse'}
+          onValueChange={(value) => {
+            onChange({
+              ...field,
+              style: { ...field.style, animationType: value }
+            });
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select animation type" />
+          </SelectTrigger>
+          <SelectContent>
+            {animationTypes.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
   );
 };
 

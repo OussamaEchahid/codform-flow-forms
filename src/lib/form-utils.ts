@@ -45,7 +45,8 @@ export interface FormField {
     borderColor?: string;
     borderRadius?: string;
     borderWidth?: string;
-    animation?: boolean; // Added animation property
+    animation?: boolean; // Animation flag
+    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash'; // Added animation types
     iconPosition?: 'left' | 'right'; // Added iconPosition property
     icon?: boolean; // Added icon property
   };
