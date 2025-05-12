@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -80,7 +79,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   
   // التغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
-  const [formStyle, setFormStyle] = useState({
+  const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
     fontSize: '1rem',
@@ -317,11 +316,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             );
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             
-            // تحميل إعدادات النمط الخاصة بهذا النموذج بالتحديد
+            // Update the style handling to ensure we never use undefined values
             if (formData.style) {
-              setFormStyle(formData.style);
+              setFormStyle({
+                primaryColor: formData.style.primaryColor || '#9b87f5',
+                borderRadius: formData.style.borderRadius || '0.5rem',
+                fontSize: formData.style.fontSize || '1rem',
+                buttonStyle: formData.style.buttonStyle || 'rounded',
+              });
             } else {
-              // استخدم الإعدادات الافتراضية إذا لم تكن موجودة
+              // Default values if style is missing
               setFormStyle({
                 primaryColor: '#9b87f5',
                 borderRadius: '0.5rem',
@@ -427,7 +431,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             description: formDescription,
             data: [formStep],
             shop_id: shopId,
-            style: formStyle, // إضافة إعدادات النمط للنموذج في قاعدة البيانات
+            style: formStyle, // إضافة إعدادات النمط ��لنموذج في قاعدة البيانات
             updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);

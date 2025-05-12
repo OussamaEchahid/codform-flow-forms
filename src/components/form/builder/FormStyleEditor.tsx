@@ -1,17 +1,10 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-
-interface FormStyle {
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-}
+import { FormStyle } from '@/hooks/useFormStore';
 
 interface FormStyleEditorProps {
   isOpen: boolean;

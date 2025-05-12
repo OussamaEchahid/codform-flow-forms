@@ -2,10 +2,10 @@
 import { create } from 'zustand';
 
 export interface FormStyle {
-  primaryColor?: string;
-  borderRadius?: string;
-  fontSize?: string;
-  buttonStyle?: string;
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
 }
 
 export interface FormState {
