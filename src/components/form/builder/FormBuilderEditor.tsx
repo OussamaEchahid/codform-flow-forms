@@ -126,6 +126,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fontSize: '1.5rem',
         descriptionColor: '#6b7280',
         descriptionFontSize: '0.875rem',
+        backgroundColor: '#f1f0fb', // إضافة لون خلفية افتراضي
       }
     };
 
@@ -151,8 +152,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
-    // Add title field (but not as form-title type)
-    // We'll use the header section to show it initially
+    // Add title field as form-title type with default background color
+    fields.push({
+      type: 'form-title' as FormFieldType,
+      id: `form-title-${Date.now()}`,
+      label: language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery',
+      helpText: formDescription,
+      style: {
+        color: '#1A1F2C',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '1.5rem',
+        descriptionColor: '#6b7280',
+        descriptionFontSize: '0.875rem',
+        backgroundColor: '#f1f0fb', // إضافة لون خلفية افتراضي
+      }
+    });
     
     fields.push({
       type: 'text' as FormFieldType,
@@ -441,7 +456,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         
         if (error) {
           console.error("Direct database update for publishing failed:", error);
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+          toast.error(language === 'ar' ? 'فشل تغيير ��الة النشر' : 'Failed to change publish status');
         } else {
           setIsPublished(newPublishState);
           toast.success(

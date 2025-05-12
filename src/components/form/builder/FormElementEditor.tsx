@@ -63,6 +63,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
+  // عرض جميع العناصر دائمًا بما فيها زر الإرسال
+  const displayElements = elements;
+
   return (
     <div className="space-y-4">
       {!hasElements && (
@@ -76,8 +79,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       )}
       
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
-          {elements.map((element, index) => (
+        <SortableContext items={displayElements.map(element => element.id)} strategy={verticalListSortingStrategy}>
+          {displayElements.map((element, index) => (
             <SortableField 
               key={element.id} 
               field={element} 

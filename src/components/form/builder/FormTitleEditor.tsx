@@ -34,6 +34,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   );
   const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#6b7280');
+  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#f1f0fb');
 
   // Update local state when formTitleField changes
   useEffect(() => {
@@ -42,6 +43,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
       setTitleSize(formTitleField.style?.fontSize || '1.5rem');
       setDescColor(formTitleField.style?.descriptionColor || '#6b7280');
+      setBackgroundColor(formTitleField.style?.backgroundColor || '#f1f0fb');
     }
   }, [formTitleField, language]);
 
@@ -60,6 +62,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'textAlign') setTitleAlignment(value);
     if (property === 'fontSize') setTitleSize(value);
     if (property === 'descriptionColor') setDescColor(value);
+    if (property === 'backgroundColor') setBackgroundColor(value);
     
     onUpdateTitleField(updatedField);
   };
@@ -173,6 +176,26 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 <Input
                   value={descColor}
                   onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                  className="ml-2 flex-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="bg-color" className={language === 'ar' ? 'text-right block' : ''}>
+                {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+              </Label>
+              <div className="flex mt-1">
+                <Input
+                  id="bg-color"
+                  type="color"
+                  value={backgroundColor}
+                  onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                  className="w-12 h-8 p-1"
+                />
+                <Input
+                  value={backgroundColor}
+                  onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
                   className="ml-2 flex-1"
                 />
               </div>

@@ -75,7 +75,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return uniqueFields;
   }, [fields, language, formStyle.primaryColor]);
   
-  // Generate the header content
+  // Generate the header content - only show if no form-title field exists
   const headerContent = () => {
     // Only show the header if we don't have an editable form-title field
     if (!sanitizedFields.some(field => field.type === 'form-title')) {

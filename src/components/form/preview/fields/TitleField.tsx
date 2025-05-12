@@ -36,7 +36,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
   // Background styling
-  const backgroundStyle = fieldStyle.backgroundColor ? {
+  const hasBackgroundColor = fieldStyle.backgroundColor && fieldStyle.backgroundColor !== '';
+  const backgroundStyle = hasBackgroundColor ? {
     backgroundColor: fieldStyle.backgroundColor,
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
