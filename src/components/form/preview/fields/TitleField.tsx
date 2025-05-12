@@ -38,24 +38,24 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
   // Background styling - Always use a background color for form-title type
-  // If field already has a backgroundColor, use it; otherwise use #9b87f5
   const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '1rem', // Increased padding for better spacing
-    borderRadius: formStyle.borderRadius || '0.375rem',
+    padding: '16px', // Explicitly use 16px for exact matching with store
+    borderRadius: formStyle.borderRadius || '8px', // Use 8px as default for consistent rounding
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: description ? '0' : '0.5rem', // No bottom margin if there's a description
+    marginBottom: '0', // No bottom margin to match store display
   };
 
   // Description styles inside the same background container
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-    margin: '0.5rem 0 0 0',
+    margin: '8px 0 0 0', // Consistent 8px top margin
     padding: '0',
     textAlign: alignment,
+    fontFamily: fieldStyle.fontFamily || 'inherit',
   };
 
   // Use larger styling for form-title type
@@ -63,7 +63,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   return (
     <div 
-      className={`mb-4 ${isFormTitle ? 'pt-2 pb-0 codform-title' : ''}`}
+      className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-title-align={alignment}
@@ -72,6 +72,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
+      data-font-size={fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem')}
     >
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
@@ -84,6 +85,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
             fontFamily: fieldStyle.fontFamily || 'inherit',
             margin: '0',
             padding: '0',
+            lineHeight: '1.3', // Add line height for better text appearance
           }}
         >
           {field.label}
@@ -91,7 +93,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
         
         {description && (
           <p 
-            className="text-sm mt-1 codform-title-description"
+            className="codform-title-description"
             style={descriptionStyle}
           >
             {description}

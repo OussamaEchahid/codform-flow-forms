@@ -1,4 +1,3 @@
-
 // CODFORM - نماذج الدفع عند الاستلام
 // This file handles the form loading and submission in the Shopify store
 
@@ -19,7 +18,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // تحميل الخط العربي
+  // تحميل الخط العربي - استخدام preconnect لتحسين السرعة
+  const preconnect = document.createElement('link');
+  preconnect.rel = 'preconnect';
+  preconnect.href = 'https://fonts.gstatic.com';
+  preconnect.crossOrigin = 'anonymous';
+  document.head.appendChild(preconnect);
+  
+  // تحميل خط القاهرة بشكل صحيح مع تحديد جميع الأوزان المطلوبة
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap';
@@ -243,6 +249,7 @@ function renderForm(container, formData, blockId, productId) {
   const primaryColor = formData.primaryColor || '#9b87f5';
   const style = document.createElement('style');
   style.textContent = `
+    /* تنسيقات CSS المباشرة للعناصر */
     .codform-container .codform-header {
       background-color: ${primaryColor};
     }
@@ -251,7 +258,7 @@ function renderForm(container, formData, blockId, productId) {
       background-color: ${primaryColor};
       color: white;
       border: none;
-      border-radius: ${formData.borderRadius || '0.5rem'};
+      border-radius: ${formData.borderRadius || '8px'};
       padding: 0.75rem 1.5rem;
       cursor: pointer;
       font-size: ${formData.fontSize || '1rem'};
@@ -270,7 +277,7 @@ function renderForm(container, formData, blockId, productId) {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid #ddd;
-      border-radius: ${formData.borderRadius || '0.5rem'};
+      border-radius: ${formData.borderRadius || '8px'};
       font-size: ${formData.fontSize || '1rem'};
       margin-bottom: 1rem;
       font-family: 'Cairo', sans-serif;
@@ -280,12 +287,12 @@ function renderForm(container, formData, blockId, productId) {
       background-color: ${primaryColor};
       color: white;
       border: none;
-      border-radius: ${formData.buttonStyle === 'pill' ? '9999px' : (formData.buttonStyle === 'square' ? '0' : formData.borderRadius || '0.5rem')};
+      border-radius: ${formData.buttonStyle === 'pill' ? '9999px' : (formData.buttonStyle === 'square' ? '0' : formData.borderRadius || '8px')};
       width: 100%;
       padding: 0.85rem 1.5rem;
       font-weight: bold;
       cursor: pointer;
-      font-size: ${formData.fontSize || '1rem'};
+      font-size: ${formData.fontSize || '1.2rem'};
       transition: all 0.2s;
       display: flex;
       align-items: center;
@@ -299,89 +306,47 @@ function renderForm(container, formData, blockId, productId) {
       transform: translateY(-1px);
     }
     
-    .codform-form-element {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
+    /* تأكيد تنسيقات الرسوم المتحركة */
+    @keyframes pulse-animation {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .pulse-animation {
+      animation: pulse-animation 2s infinite;
     }
     
-    .codform-field {
-      margin-bottom: 1rem;
+    @keyframes shake-animation {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    .shake-animation {
+      animation: shake-animation 3s infinite;
     }
     
-    .codform-submit {
-      text-align: center;
-      margin-top: 1rem;
+    @keyframes bounce-animation {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .bounce-animation {
+      animation: bounce-animation 2s infinite;
     }
     
-    .codform-required {
-      color: red;
+    @keyframes wiggle-animation {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+    .wiggle-animation {
+      animation: wiggle-animation 1s infinite;
     }
     
-    .codform-error-message {
-      color: red;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
+    @keyframes flash-animation {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.7; }
     }
-
-    /* تحسينات لمحاذاة العنوان */
-    .codform-field[data-title-align="center"] h3,
-    .codform-field[data-title-align="center"] p {
-      text-align: center !important;
-    }
-
-    .codform-field[data-title-align="right"] h3,
-    .codform-field[data-title-align="right"] p {
-      text-align: right !important;
-    }
-
-    .codform-field[data-title-align="left"] h3,
-    .codform-field[data-title-align="left"] p {
-      text-align: left !important;
-    }
-
-    /* تنسيق خلفية العنوان */
-    .codform-field[data-has-bg="true"] {
-      padding: 0 !important;
-    }
-
-    .codform-field[data-has-bg="true"] > div {
-      padding: 15px !important;
-      border-radius: 8px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-
-    /* تحسينات لملخص العربة */
-    .codform-cart-summary {
-      background-color: #f9fafb !important;
-      border-radius: 8px !important;
-      padding: 15px !important;
-      margin: 15px 0 !important;
-      border: 1px solid #e5e7eb !important;
-    }
-    
-    /* تحسينات لعناصر العربة */
-    .codform-cart-items {
-      border: 1px solid #e5e7eb !important;
-      border-radius: 8px !important;
-      margin: 15px 0 !important;
-    }
-    
-    .codform-cart-item {
-      display: flex !important;
-      padding: 15px !important;
-      border-bottom: 1px solid #e5e7eb !important;
-      align-items: center !important;
-    }
-    
-    /* تحسين صور المنتجات */
-    .codform-cart-item img {
-      width: 80px !important;
-      height: 80px !important;
-      border-radius: 4px !important;
-      object-fit: cover !important;
-      margin-left: 15px !important;
+    .flash-animation {
+      animation: flash-animation 2s infinite;
     }
   `;
   
@@ -519,7 +484,22 @@ function renderForm(container, formData, blockId, productId) {
           
           // Apply animation class if configured
           if (submitField.style && submitField.style.animation) {
-            submitBtn.classList.add(submitField.style.animationType + '-animation');
+            const animationType = submitField.style.animationType || 'pulse';
+            submitBtn.classList.add(`${animationType}-animation`);
+          }
+          
+          // Apply custom colors if available
+          if (submitField.style && submitField.style.backgroundColor) {
+            submitBtn.style.backgroundColor = submitField.style.backgroundColor;
+          }
+          
+          if (submitField.style && submitField.style.color) {
+            submitBtn.style.color = submitField.style.color;
+          }
+          
+          // Apply font settings
+          if (submitField.style && submitField.style.fontSize) {
+            submitBtn.style.fontSize = submitField.style.fontSize;
           }
         } else {
           submitBtn.innerText = 'إرسال';
@@ -562,7 +542,8 @@ function renderForm(container, formData, blockId, productId) {
       
       // Apply animation class if configured
       if (submitField.style && submitField.style.animation) {
-        submitBtn.classList.add(submitField.style.animationType + '-animation');
+        const animationType = submitField.style.animationType || 'pulse';
+        submitBtn.classList.add(`${animationType}-animation`);
       }
       
       // Apply custom colors if available
@@ -573,6 +554,12 @@ function renderForm(container, formData, blockId, productId) {
       if (submitField.style && submitField.style.color) {
         submitBtn.style.color = submitField.style.color;
       }
+      
+      // Apply font settings
+      if (submitField.style && submitField.style.fontSize) {
+        submitBtn.style.fontSize = submitField.style.fontSize;
+      }
+      
     } else {
       submitBtn.innerText = 'إرسال';
     }
@@ -682,58 +669,56 @@ function renderField(field, formData, productId) {
   // Special case for title field
   if (field.type === 'title' || field.type === 'form-title') {
     const fieldStyle = field.style || {};
-    const hasBackground = fieldStyle.backgroundColor && fieldStyle.backgroundColor !== '';
+    const hasBackground = true; // Always use background for consistency
     
     // Set alignment data attribute
     const alignment = fieldStyle.textAlign || 'right'; // Default to right for Arabic
     fieldDiv.setAttribute('data-title-align', alignment);
     
     // Set background data attribute
-    fieldDiv.setAttribute('data-has-bg', hasBackground ? 'true' : 'false');
+    fieldDiv.setAttribute('data-has-bg', 'true');
+    
+    // Set font size data attribute
+    if (fieldStyle.fontSize) {
+      fieldDiv.setAttribute('data-font-size', fieldStyle.fontSize);
+    }
 
     // Create div for title and description with background
     const titleContainer = document.createElement('div');
-    if (hasBackground) {
-      titleContainer.style.backgroundColor = fieldStyle.backgroundColor;
-      titleContainer.style.padding = '15px';
-      titleContainer.style.borderRadius = '8px';
-      titleContainer.style.width = '100%';
-      titleContainer.style.boxSizing = 'border-box';
-    }
+    titleContainer.className = 'codform-title-container';
+    titleContainer.style.backgroundColor = fieldStyle.backgroundColor || '#9b87f5';
+    titleContainer.style.padding = '16px';
+    titleContainer.style.borderRadius = '8px';
+    titleContainer.style.width = '100%';
+    titleContainer.style.boxSizing = 'border-box';
     
     const title = document.createElement('h3');
     title.innerText = field.label || '';
+    title.style.margin = '0';
+    title.style.padding = '0';
+    title.style.lineHeight = '1.3';
     
     // Apply styles directly to title
-    if (fieldStyle.color) {
-      title.style.color = hasBackground ? '#ffffff' : fieldStyle.color;
-    }
-    
-    if (fieldStyle.fontSize) {
-      title.style.fontSize = fieldStyle.fontSize;
-    }
-    
-    if (fieldStyle.fontFamily) {
-      title.style.fontFamily = fieldStyle.fontFamily;
-    }
-    
-    if (fieldStyle.fontWeight) {
-      title.style.fontWeight = fieldStyle.fontWeight;
-    }
-    
-    if (alignment) {
-      title.style.textAlign = alignment;
-    }
+    title.style.color = fieldStyle.color || '#ffffff';
+    title.style.fontSize = fieldStyle.fontSize || (field.type === 'form-title' ? '1.5rem' : '1.25rem');
+    title.style.textAlign = alignment;
+    title.style.fontWeight = fieldStyle.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium');
+    title.style.fontFamily = fieldStyle.fontFamily || 'Cairo, sans-serif';
     
     titleContainer.appendChild(title);
     
     // Add description if available
     if (field.helpText) {
       const description = document.createElement('p');
+      description.className = 'codform-title-description';
       description.innerText = field.helpText;
-      description.style.color = hasBackground ? '#ffffff' : (fieldStyle.descriptionColor || '#6b7280');
+      description.style.color = fieldStyle.descriptionColor || '#ffffff';
       description.style.fontSize = fieldStyle.descriptionFontSize || '0.875rem';
       description.style.textAlign = alignment;
+      description.style.margin = '8px 0 0 0';
+      description.style.padding = '0';
+      description.style.fontFamily = fieldStyle.fontFamily || 'Cairo, sans-serif';
+      description.style.fontWeight = 'normal';
       titleContainer.appendChild(description);
     }
     
@@ -1203,4 +1188,3 @@ function renderField(field, formData, productId) {
   
   return fieldDiv;
 }
-
