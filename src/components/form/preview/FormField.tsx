@@ -42,7 +42,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // Check if this field type is supported in the store preview
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
-    'submit', 'image', 'whatsapp', 'form-title'
+    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary'
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);

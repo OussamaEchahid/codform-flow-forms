@@ -119,7 +119,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       <button
         className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
         style={{
-          backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#000000',
+          backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           color: fieldStyle.color || 'white',
           fontSize: fontSize,
           borderRadius: buttonRadius,

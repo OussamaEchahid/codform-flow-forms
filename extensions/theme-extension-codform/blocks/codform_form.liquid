@@ -36,6 +36,7 @@
 </div>
 
 <style>
+  /* تنسيقات الرسوم المتحركة للأزرار */
   .pulse-animation {
     animation: pulse 2s infinite;
   }
@@ -125,6 +126,40 @@
     align-items: center !important;
     direction: rtl !important;
     text-align: center !important;
+    background-color: #9b87f5 !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .codform-submit-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+    opacity: 0.95 !important;
+  }
+  
+  /* تحسينات لحقول النص والهاتف */
+  .codform-field input[type="text"],
+  .codform-field input[type="tel"],
+  .codform-field input[type="email"],
+  .codform-field textarea {
+    width: 100% !important;
+    padding: 12px 15px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+    direction: rtl !important;
+  }
+  
+  /* تنسيق خاص لعنوان النموذج */
+  .codform-title {
+    padding: 15px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   /* تحسينات لملخص العربة */
@@ -147,6 +182,20 @@
     display: flex !important;
     padding: 15px !important;
     border-bottom: 1px solid #e5e7eb !important;
+  }
+  
+  .codform-html-content h3 {
+    font-size: 1.3rem !important;
+    margin-bottom: 10px !important;
+    font-weight: bold !important;
+  }
+  
+  /* تنسيق حقل العنوان */
+  .codform-field[data-field-type="form-title"] h3 {
+    color: #ffffff !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
   }
   
   /* الشاشات الصغيرة */

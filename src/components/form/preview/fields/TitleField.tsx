@@ -48,20 +48,21 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   return (
     <div 
-      className={`mb-4 ${isFormTitle ? 'pt-4 pb-2' : ''}`}
+      className={`mb-4 ${isFormTitle ? 'pt-4 pb-2 codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      style={backgroundStyle}
+      style={hasBackgroundColor ? backgroundStyle : {}}
       data-testid="title-field"
     >
       <h3 
         className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
         style={{
-          color: fieldStyle.color || formStyle.primaryColor || 'inherit',
+          color: fieldStyle.color || (hasBackgroundColor ? '#ffffff' : formStyle.primaryColor || 'inherit'),
           fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
           textAlign: alignment,
           fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
           fontFamily: fieldStyle.fontFamily || 'inherit',
           margin: '0',
+          padding: isFormTitle && hasBackgroundColor ? '0.75rem' : '0',
         }}
       >
         {field.label}
