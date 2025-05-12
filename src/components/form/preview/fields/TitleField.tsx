@@ -42,10 +42,20 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '0.75rem',
+    padding: '1rem', // Increased padding for better spacing
     borderRadius: formStyle.borderRadius || '0.375rem',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
+    marginBottom: description ? '0' : '0.5rem', // No bottom margin if there's a description
+  };
+
+  // Description styles inside the same background container
+  const descriptionStyle = {
+    color: fieldStyle.descriptionColor || '#ffffff',
+    fontSize: fieldStyle.descriptionFontSize || '0.875rem',
+    margin: '0.5rem 0 0 0',
+    padding: '0',
+    textAlign: alignment,
   };
 
   // Use larger styling for form-title type
@@ -53,7 +63,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   return (
     <div 
-      className={`mb-4 ${isFormTitle ? 'pt-4 pb-2 codform-title' : ''}`}
+      className={`mb-4 ${isFormTitle ? 'pt-2 pb-0 codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-title-align={alignment}
@@ -61,8 +71,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-title-color={fieldStyle.color || '#ffffff'}
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
+      data-field-type={field.type}
     >
-      <div style={backgroundStyle}>
+      <div style={backgroundStyle} className="codform-title-container">
         <h3 
           className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
           style={{
@@ -80,14 +91,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
         
         {description && (
           <p 
-            className="text-sm mt-1"
-            style={{
-              textAlign: alignment,
-              color: fieldStyle.descriptionColor || '#ffffff', // Default to white for description
-              fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-              margin: '0.5rem 0 0 0',
-              padding: '0',
-            }}
+            className="text-sm mt-1 codform-title-description"
+            style={descriptionStyle}
           >
             {description}
           </p>
