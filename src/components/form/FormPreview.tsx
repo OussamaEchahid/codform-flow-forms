@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
@@ -37,12 +36,37 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
+  // Filter out duplicate form-title fields, keeping only the first one
+  const uniqueFields = React.useMemo(() => {
+    const hasTitleField = fields.some(field => field.type === 'form-title');
+    
+    // If fields array has no form-title, continue without modification
+    if (!hasTitleField) {
+      return fields;
+    }
+    
+    // Keep only the first form-title field and all other fields
+    let foundTitle = false;
+    return fields.filter(field => {
+      if (field.type !== 'form-title') {
+        return true;
+      }
+      
+      if (!foundTitle) {
+        foundTitle = true;
+        return true;
+      }
+      
+      return false;
+    });
+  }, [fields]);
+  
   // Check for submit button in fields
-  const hasSubmitButton = fields.some(field => field.type === 'submit');
+  const hasSubmitButton = uniqueFields.some(field => field.type === 'submit');
   
   // If no submit button exists and we have fields, add a default one
   const fieldsToRender = React.useMemo(() => {
-    if (fields.length > 0 && !hasSubmitButton) {
+    if (uniqueFields.length > 0 && !hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
         id: `submit-${Date.now()}`,
@@ -53,10 +77,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           fontSize: '1rem',
         },
       };
-      return [...fields, submitButton];
+      return [...uniqueFields, submitButton];
     }
-    return fields;
-  }, [fields, hasSubmitButton, language, formStyle.primaryColor]);
+    return uniqueFields;
+  }, [uniqueFields, hasSubmitButton, language, formStyle.primaryColor]);
   
   return (
     <div 

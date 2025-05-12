@@ -103,7 +103,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             <Input
               id="form-title"
               value={formTitleField ? formTitleField.label : formTitle}
-              onChange={(e) => handleUpdateLabel(e.target.value)}
+              onChange={(e) => {
+                if (formTitleField) {
+                  handleUpdateLabel(e.target.value);
+                } else {
+                  onFormTitleChange(e.target.value);
+                }
+              }}
               placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
               className={language === 'ar' ? 'text-right' : ''}
             />
@@ -116,14 +122,27 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             <Textarea
               id="form-desc"
               value={formTitleField ? formTitleField.helpText : formDescription}
-              onChange={(e) => handleUpdateDescription(e.target.value)}
+              onChange={(e) => {
+                if (formTitleField) {
+                  handleUpdateDescription(e.target.value);
+                } else {
+                  onFormDescriptionChange(e.target.value);
+                }
+              }}
               placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
               className={`${language === 'ar' ? 'text-right' : ''} h-20`}
             />
           </div>
         </div>
 
-        {formTitleField ? (
+        {!formTitleField ? (
+          <Button 
+            onClick={onAddTitleField}
+            className="w-full mt-2"
+          >
+            {language === 'ar' ? 'إضافة عنوان قابل للتعديل' : 'Add Editable Title Field'}
+          </Button>
+        ) : (
           <div className="grid grid-cols-2 gap-3 pt-2 border-t">
             <div>
               <Label htmlFor="title-color" className={language === 'ar' ? 'text-right block' : ''}>
@@ -230,13 +249,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
               </select>
             </div>
           </div>
-        ) : (
-          <Button 
-            onClick={onAddTitleField}
-            className="w-full"
-          >
-            {language === 'ar' ? 'إضافة عنوان قابل للتعديل' : 'Add Editable Title Field'}
-          </Button>
         )}
       </div>
     </div>

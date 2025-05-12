@@ -18,6 +18,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Default label based on language if not provided
+  const buttonLabel = field.label || (language === 'ar' 
+    ? 'شراء بخاصية الدفع عند الاستلام' 
+    : 'Buy with Cash on Delivery');
+  
   // Determine button radius based on style
   let buttonRadius = '0.5rem'; // default
   if (formStyle.buttonStyle === 'pill') {
@@ -91,7 +96,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         {fieldStyle.iconPosition !== 'right' && (
           <ShoppingCart className="w-5 h-5" />
         )}
-        {field.label || (language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery')}
+        {buttonLabel}
         {fieldStyle.iconPosition === 'right' && (
           <ShoppingCart className="w-5 h-5" />
         )}
