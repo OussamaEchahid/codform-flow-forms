@@ -16,6 +16,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Extract the description from the field itself, not from the style
+  const description = field.helpText || '';
+  
   return (
     <div 
       className="mb-4"
@@ -31,14 +34,14 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       >
         {field.label}
       </h3>
-      {fieldStyle.description && (
+      {description && (
         <p 
           className="text-sm text-gray-600 mt-1"
           style={{
             textAlign: language === 'ar' ? 'right' : 'left',
           }}
         >
-          {fieldStyle.description}
+          {description}
         </p>
       )}
     </div>
