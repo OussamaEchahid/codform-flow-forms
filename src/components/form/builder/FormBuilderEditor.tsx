@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -55,7 +54,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [formStyle, setFormStyle] = useState(() => {
     const storedStyle = localStorage.getItem('selectedTemplateStyle');
     return storedStyle ? JSON.parse(storedStyle) : {
-      primaryColor: '#9b87f5',
+      primaryColor: '#000000',
       borderRadius: '0.5rem',
       fontSize: '1rem',
       buttonStyle: 'rounded',
@@ -68,7 +67,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
+  const [formTitle, setFormTitle] = useState(language === 'ar' ? 'املأ النموذج للطلب عند الاستلام' : 'Fill the form for cash on delivery');
   const [formDescription, setFormDescription] = useState('');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
@@ -85,12 +84,71 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     { type: 'radio', label: language === 'ar' ? 'خيار واحد' : 'Single Choice', icon: '⭕' },
     { type: 'checkbox', label: language === 'ar' ? 'خيارات متعددة' : 'Multiple Choices', icon: '☑️' },
     { type: 'shipping', label: language === 'ar' ? 'الشحن' : 'Shipping', icon: '🚚' },
-    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' }
+    { type: 'countdown', label: language === 'ar' ? 'عد تنازلي' : 'CountDown', icon: '⏱️' },
+    { type: 'submit', label: language === 'ar' ? 'زر الإرسال' : 'Submit Button', icon: '📤' }
   ];
 
   // Get active shop ID for database operations
   const getActiveShopId = () => {
     return shopifyIntegration.shop || localStorage.getItem('shopify_store');
+  };
+
+  // Create a default form with fields from the image
+  const createDefaultForm = (): FormField[] => {
+    return [
+      {
+        type: 'text' as FormFieldType,
+        id: `text-${Date.now()}-1`,
+        label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+        placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+        required: true,
+        icon: 'user',
+      },
+      {
+        type: 'text' as FormFieldType,
+        id: `text-${Date.now()}-2`,
+        label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+        placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+        required: true,
+        icon: 'phone',
+      },
+      {
+        type: 'text' as FormFieldType,
+        id: `text-${Date.now()}-3`,
+        label: language === 'ar' ? 'المدينة' : 'City',
+        placeholder: language === 'ar' ? 'المدينة' : 'City',
+        required: true,
+        icon: 'map-pin',
+      },
+      {
+        type: 'textarea' as FormFieldType,
+        id: `textarea-${Date.now()}`,
+        label: language === 'ar' ? 'العنوان' : 'Address',
+        placeholder: language === 'ar' ? 'العنوان' : 'address',
+        required: true,
+      },
+      {
+        type: 'cart-items' as FormFieldType,
+        id: `cart-items-${Date.now()}`,
+        label: language === 'ar' ? 'المنتج المختار' : 'Selected Product',
+      },
+      {
+        type: 'cart-summary' as FormFieldType,
+        id: `cart-summary-${Date.now()}`,
+        label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
+      },
+      {
+        type: 'submit' as FormFieldType,
+        id: `submit-${Date.now()}`,
+        label: language === 'ar' ? 'شراء بخاصية الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+        style: {
+          backgroundColor: '#000000',
+          color: '#ffffff',
+          fontSize: '1.1rem',
+          animation: 'pulse 2s infinite',
+        },
+      }
+    ];
   };
 
   // Initialize a new form if no form ID is provided
@@ -106,11 +164,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
+      // Create default fields
+      const defaultFields = createDefaultForm();
+      setFormElements(defaultFields);
+
       // Prepare initial form data
       const initialFormStep: FormStep = {
         id: '1',
         title: 'Main Step',
-        fields: []
+        fields: defaultFields
       };
 
       // Create new form in database
@@ -166,12 +228,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             
             console.log("Loaded form data:", formData);
           } else {
-            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
-            navigate('/form-builder');
+            // If form not found, initialize with default form
+            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
+            setFormElements(createDefaultForm());
           }
         } catch (error) {
           console.error("Error loading form:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
+          // If error, create default form
+          setFormElements(createDefaultForm());
         }
       } else {
         // If no form ID, initialize a new form
@@ -191,7 +256,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     try {
       if (!currentFormId) {
-        toast.error(language === 'ar' ? 'لم يتم العثور على معرف ��لنموذج' : 'Form ID not found');
+        toast.error(language === 'ar' ? 'لم يتم العثور على معرف النموذج' : 'Form ID not found');
         setIsSaving(false);
         return;
       }
