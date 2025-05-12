@@ -12,6 +12,9 @@ interface TitleFieldProps {
   };
 }
 
+// Define valid text alignment options
+type TextAlign = 'left' | 'center' | 'right' | 'justify';
+
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
@@ -20,7 +23,17 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const description = field.helpText || '';
   
   // Get alignment from field style or default based on language
-  const alignment = fieldStyle.textAlign || (language === 'ar' ? 'right' : 'left');
+  const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
+  
+  // Convert string alignment to TextAlign type with validation
+  const getValidAlignment = (align?: string): TextAlign => {
+    if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
+      return align as TextAlign;
+    }
+    return defaultAlignment;
+  };
+  
+  const alignment = getValidAlignment(fieldStyle.textAlign);
   
   // Background styling
   const backgroundStyle = fieldStyle.backgroundColor ? {
