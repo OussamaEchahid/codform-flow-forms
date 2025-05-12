@@ -40,8 +40,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   // Get animation type from the field style
   const animationType = fieldStyle.animationType || 'pulse';
-
-  // Define CSS animation class based on animation type
+  
+  // Define animation class based on animation type
   let animationClass = '';
   if (fieldStyle.animation) {
     switch (animationType) {
@@ -61,7 +61,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         animationClass = 'flash-animation';
         break;
       default:
-        animationClass = 'pulse-animation';
+        animationClass = '';
     }
   }
   
@@ -100,24 +100,36 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         )}
       </button>
 
-      {/* Animation Preview */}
-      <div className="mt-4 grid grid-cols-5 gap-2 text-xs text-center">
-        <div className="pulse-animation p-1 bg-gray-100 rounded">
-          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'نبض' : 'Pulse'}</div>
+      {/* Animation options - show only in preview mode */}
+      {window.location.pathname.includes('form-builder') && (
+        <div className="mt-4 grid grid-cols-5 gap-2 text-xs text-center">
+          <div className="p-1 bg-gray-100 rounded">
+            <div className={`bg-gray-200 rounded p-1 pulse-animation ${animationType === 'pulse' ? 'ring-2 ring-primary' : ''}`}>
+              {language === 'ar' ? 'نبض' : 'Pulse'}
+            </div>
+          </div>
+          <div className="p-1 bg-gray-100 rounded">
+            <div className={`bg-gray-200 rounded p-1 shake-animation ${animationType === 'shake' ? 'ring-2 ring-primary' : ''}`}>
+              {language === 'ar' ? 'اهتزاز' : 'Shake'}
+            </div>
+          </div>
+          <div className="p-1 bg-gray-100 rounded">
+            <div className={`bg-gray-200 rounded p-1 bounce-animation ${animationType === 'bounce' ? 'ring-2 ring-primary' : ''}`}>
+              {language === 'ar' ? 'ارتداد' : 'Bounce'}
+            </div>
+          </div>
+          <div className="p-1 bg-gray-100 rounded">
+            <div className={`bg-gray-200 rounded p-1 wiggle-animation ${animationType === 'wiggle' ? 'ring-2 ring-primary' : ''}`}>
+              {language === 'ar' ? 'تمايل' : 'Wiggle'}
+            </div>
+          </div>
+          <div className="p-1 bg-gray-100 rounded">
+            <div className={`bg-gray-200 rounded p-1 flash-animation ${animationType === 'flash' ? 'ring-2 ring-primary' : ''}`}>
+              {language === 'ar' ? 'وميض' : 'Flash'}
+            </div>
+          </div>
         </div>
-        <div className="shake-animation p-1 bg-gray-100 rounded">
-          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'اهتزاز' : 'Shake'}</div>
-        </div>
-        <div className="bounce-animation p-1 bg-gray-100 rounded">
-          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'ارتداد' : 'Bounce'}</div>
-        </div>
-        <div className="wiggle-animation p-1 bg-gray-100 rounded">
-          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'تمايل' : 'Wiggle'}</div>
-        </div>
-        <div className="flash-animation p-1 bg-gray-100 rounded">
-          <div className="bg-gray-200 rounded p-1">{language === 'ar' ? 'وميض' : 'Flash'}</div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

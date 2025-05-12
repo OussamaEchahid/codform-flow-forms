@@ -195,7 +195,7 @@ const AnimationSection: React.FC<AnimationSectionProps> = ({ field, onChange }) 
         {animationTypes.map((type) => (
           <div 
             key={type.value}
-            className="relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50"
+            className={`relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50 ${field.style?.animationType === type.value ? 'ring-2 ring-primary' : ''}`}
             onClick={() => {
               onChange({
                 ...field,
