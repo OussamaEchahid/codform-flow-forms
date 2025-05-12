@@ -63,7 +63,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   };
 
   // Handle animation type change for submit button
-  const handleAnimationTypeChange = (type: string) => {
+  const handleAnimationTypeChange = (type: "pulse" | "shake" | "bounce" | "wiggle" | "flash") => {
     setCurrentField({
       ...currentField,
       style: {
@@ -322,11 +322,11 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         
       case 'submit':
         const animationTypes = [
-          { value: 'pulse', label: language === 'ar' ? 'نبض' : 'Pulse' },
-          { value: 'shake', label: language === 'ar' ? 'اهتزاز' : 'Shake' },
-          { value: 'bounce', label: language === 'ar' ? 'ارتداد' : 'Bounce' },
-          { value: 'wiggle', label: language === 'ar' ? 'تمايل' : 'Wiggle' },
-          { value: 'flash', label: language === 'ar' ? 'وميض' : 'Flash' }
+          { value: "pulse" as const, label: language === 'ar' ? 'نبض' : 'Pulse' },
+          { value: "shake" as const, label: language === 'ar' ? 'اهتزاز' : 'Shake' },
+          { value: "bounce" as const, label: language === 'ar' ? 'ارتداد' : 'Bounce' },
+          { value: "wiggle" as const, label: language === 'ar' ? 'تمايل' : 'Wiggle' },
+          { value: "flash" as const, label: language === 'ar' ? 'وميض' : 'Flash' }
         ];
         
         return (
@@ -368,43 +368,24 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                   </div>
                   
                   {currentField.style?.animation && (
-                    <>
-                      <div className="pt-2">
-                        <FormLabel>{language === 'ar' ? 'نوع التأثير' : 'Animation Type'}</FormLabel>
-                        <Select
-                          value={currentField.style?.animationType || 'pulse'}
-                          onValueChange={handleAnimationTypeChange}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {animationTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="grid grid-cols-5 gap-2 mt-4">
-                        {animationTypes.map((type) => (
-                          <div 
-                            key={type.value}
-                            className={`relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50 ${currentField.style?.animationType === type.value ? 'ring-2 ring-primary' : ''}`}
-                            onClick={() => handleAnimationTypeChange(type.value)}
-                          >
-                            <button 
-                              className={`w-full py-2 bg-[#9b87f5] text-white text-xs font-medium rounded ${type.value}-animation`}
-                              type="button"
-                            >
+                    <div className="pt-2">
+                      <FormLabel>{language === 'ar' ? 'نوع التأثير' : 'Animation Type'}</FormLabel>
+                      <Select
+                        value={currentField.style?.animationType || 'pulse'}
+                        onValueChange={(value) => handleAnimationTypeChange(value as "pulse" | "shake" | "bounce" | "wiggle" | "flash")}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {animationTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
                               {type.label}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
                 

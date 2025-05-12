@@ -1,25 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore } from '@/hooks/useFormStore';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  arrayMove,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
@@ -551,6 +535,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
+  const handleReorderElements = (reorderedElements: FormField[]) => {
+    setFormElements(reorderedElements);
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      toast.success(language === 'ar' ? 'تم إعادة ترتيب العناصر' : 'Elements reordered');
+    }, 100);
+  };
+
   return (
     <main className="flex-1 overflow-auto">
       <FormHeader 
@@ -592,6 +584,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 onEditElement={editElement}
                 onDeleteElement={deleteElement}
                 onDuplicateElement={duplicateElement}
+                onReorderElements={handleReorderElements}
               />
             </SortableContext>
           </DndContext>

@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
+import { SortableField } from '@/components/form/SortableField';
 import { Button } from '@/components/ui/button';
 import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -15,6 +16,7 @@ interface FormElementEditorProps {
   onEditElement: (index: number) => void;
   onDeleteElement: (index: number) => void;
   onDuplicateElement: (index: number) => void;
+  onReorderElements?: (newOrder: FormField[]) => void;
 }
 
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
@@ -23,9 +25,37 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onSelectElement,
   onEditElement,
   onDeleteElement,
-  onDuplicateElement
+  onDuplicateElement,
+  onReorderElements
 }) => {
   const { language } = useI18n();
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    const oldIndex = elements.findIndex((item) => item.id === active.id);
+    const newIndex = elements.findIndex((item) => item.id === over.id);
+    
+    if (onReorderElements) {
+      const newElements = arrayMove(elements, oldIndex, newIndex);
+      onReorderElements(newElements);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -37,72 +67,26 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         </div>
       </div>
       
-      {elements.map((element, index) => (
-        <div 
-          key={element.id}
-          className={`bg-white p-4 rounded-md border ${selectedIndex === index ? 'ring-2 ring-[#9b87f5]' : ''}`}
-          onClick={() => onSelectElement(index)}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={elements.map(element => element.id)}
+          strategy={verticalListSortingStrategy}
         >
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-red-500 p-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteElement(index);
-                  }}
-                >
-                  <Trash size={16} />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-blue-500 p-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDuplicateElement(index);
-                  }}
-                >
-                  <Copy size={16} />
-                </Button>
-                <span className="border-r h-4 mx-2"></span>
-                <span className="font-medium">
-                  {element.label} {language === 'ar' ? 'إعدادات' : 'configuration'}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="bg-green-100 text-green-700 rounded-full p-1 h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDuplicateElement(index);
-                }}
-              >
-                <Copy size={16} />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="bg-purple-100 text-purple-700 rounded-full p-1 h-8 w-8"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onEditElement(index);
-                }}
-              >
-                <Edit size={16} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      ))}
+          {elements.map((element, index) => (
+            <SortableField
+              key={element.id}
+              field={element}
+              onEdit={() => onEditElement(index)}
+              onDuplicate={() => onDuplicateElement(index)}
+              onDelete={() => onDeleteElement(index)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };
