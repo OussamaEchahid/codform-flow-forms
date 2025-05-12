@@ -42,7 +42,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // Check if this field type is supported in the store preview
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
-    'submit', 'image', 'whatsapp'
+    'submit', 'image', 'whatsapp', 'form-title'
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
@@ -56,7 +56,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
-    'form-title': TitleField, // Use TitleField for the new form-title type
+    'form-title': TitleField, // Use TitleField for the form-title type
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,

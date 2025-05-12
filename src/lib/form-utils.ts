@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
@@ -28,6 +27,9 @@ export interface FormField {
     backgroundColor?: string;
     color?: string;
     fontSize?: string;
+    textAlign?: string; // Added for title alignment
+    fontWeight?: string; // Added for font weight
+    fontFamily?: string; // Added for font family
     titleColor?: string;
     titleFontSize?: string;
     descriptionColor?: string;
@@ -69,7 +71,8 @@ export type FormFieldType =
   | 'countdown'
   | 'whatsapp'
   | 'image'
-  | 'title';
+  | 'title'
+  | 'form-title'; // Added form-title type
 
 export interface FormStep {
   id: string;
