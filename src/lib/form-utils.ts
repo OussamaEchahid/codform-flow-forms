@@ -33,6 +33,7 @@ export interface FormField {
     fontFamily?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
+    descriptionFontWeight?: string; // Add this property
     titleColor?: string; // Added for backward compatibility
     titleFontSize?: string; // Added for backward compatibility
     priceColor?: string;
