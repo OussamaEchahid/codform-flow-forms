@@ -30,8 +30,6 @@ export interface FormField {
     textAlign?: string; // Added for title alignment
     fontWeight?: string; // Added for font weight
     fontFamily?: string; // Added for font family
-    titleColor?: string;
-    titleFontSize?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
     priceColor?: string;
@@ -262,11 +260,27 @@ export const createDefaultForm = (): FormStep[] => {
  * @returns The new form state
  */
 export const createNewForm = (title: string = 'نموذج جديد'): FormStep[] => {
+  const formTitleField: FormField = {
+    id: `form-title-${Date.now()}`,
+    type: 'form-title',
+    label: 'نموذج جديد',
+    helpText: 'وصف النموذج (اختياري)',
+    style: {
+      textAlign: 'center',
+      color: '#1A1F2C',
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      descriptionColor: '#6b7280',
+      descriptionFontSize: '1rem',
+      backgroundColor: '#F59E0B',
+    }
+  };
+
   return [
     {
       id: uuidv4(),
       title: 'الخطوة الأولى',
-      fields: []
+      fields: [formTitleField]
     }
   ];
 };
@@ -281,13 +295,38 @@ export const createEmptyField = (type: string): FormField => {
 
   // Add type-specific properties
   switch (type) {
+    case 'form-title':
+      return {
+        ...baseField,
+        label: 'عنوان النموذج المخصص',
+        helpText: 'وصف النموذج (اختياري)',
+        style: {
+          textAlign: 'center',
+          color: '#1A1F2C',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          descriptionColor: '#6b7280',
+          descriptionFontSize: '1rem',
+          backgroundColor: '#F59E0B',
+        }
+      };
     case 'text':
+      return {
+        ...baseField,
+        placeholder: '',
+        validation: '',
+      };
     case 'email':
+      return {
+        ...baseField,
+        placeholder: '',
+        validation: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
+      };
     case 'phone':
       return {
         ...baseField,
         placeholder: '',
-        validation: type === 'email' ? '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$' : '',
+        validation: '',
       };
     case 'textarea':
       return {
@@ -382,7 +421,8 @@ const getDefaultLabelForType = (type: string): string => {
     case 'text/html': return 'نص/HTML';
     case 'whatsapp': return 'تواصل عبر واتساب';
     case 'image': return 'صورة';
-    case 'title': return 'عنوان';
+    case 'title': return 'عنوان قسم';
+    case 'form-title': return 'عنوان النموذج المخصص';
     case 'cart-items': return 'المنتج المختار';
     case 'cart-summary': return 'ملخص الطلب';
     case 'shipping': return 'خيارات الشحن';

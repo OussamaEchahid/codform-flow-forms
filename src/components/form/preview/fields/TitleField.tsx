@@ -41,20 +41,23 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
   } : {};
+
+  // Use larger styling for form-title type
+  const isFormTitle = field.type === 'form-title';
   
   return (
     <div 
-      className="mb-4"
+      className={`mb-4 ${isFormTitle ? 'pt-4 pb-2' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       style={backgroundStyle}
     >
       <h3 
-        className="text-lg font-medium"
+        className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
         style={{
           color: fieldStyle.color || formStyle.primaryColor || 'inherit',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize,
+          fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
           textAlign: alignment,
-          fontWeight: fieldStyle.fontWeight || 'medium',
+          fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
           fontFamily: fieldStyle.fontFamily || 'inherit',
           margin: '0',
         }}
