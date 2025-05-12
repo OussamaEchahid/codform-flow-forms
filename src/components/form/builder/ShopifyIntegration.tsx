@@ -32,7 +32,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
-  const [hideHeader, setHideHeader] = useState(!!formTitleElement); // افتراضيًا، إخفاء الترويسة إذا كان هناك عنوان مخصص
+  // الترويسة مخفية افتراضيًا الآن
+  const [hideHeader] = useState(true);
   
   // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
   useEffect(() => {
@@ -113,21 +114,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             
             <div className="flex items-center justify-between py-2 border-t">
               <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
-                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر' : 'Hide form header in store'}
+                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر (مفعل افتراضيًا)' : 'Hide form header in store (enabled by default)'}
                 <p className="text-sm text-gray-500 mt-1">
                   {language === 'ar' 
-                    ? formTitleElement 
-                      ? 'موصى به: لديك بالفعل عنوان مخصص في النموذج' 
-                      : 'سيخفي ترويسة النموذج (العنوان والوصف) في صفحة المنتج' 
-                    : formTitleElement 
-                      ? 'Recommended: You already have a custom title in the form'
-                      : 'Will hide the form header (title and description) in product page'}
+                    ? 'الترويسة مخفية تلقائيًا لتجنب العناوين المكررة في صفحة المنتج' 
+                    : 'The header is hidden automatically to avoid duplicate titles in the product page'}
                 </p>
               </Label>
               <Switch 
                 id="hide-header"
                 checked={hideHeader}
-                onCheckedChange={setHideHeader}
+                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
               />
             </div>
             

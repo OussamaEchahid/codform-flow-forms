@@ -7,16 +7,9 @@
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-product-price="{{ product.price | money_without_currency }}">
-  {% unless block.settings.hide_header %}
-  <div class="codform-header" style="background-color: {{ block.settings.header_color | default: '#9b87f5' }};">
-    <h3>{{ block.settings.title }}</h3>
-    {% if block.settings.description != blank %}
-      <p>{{ block.settings.description }}</p>
-    {% endif %}
-  </div>
-  {% endunless %}
-
+<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-product-price="{{ product.price | money_without_currency }}" data-hide-header="true">
+  {% comment %} تم تعديل تهيئة hide-header لتكون دائما true بدلاً من استخدام block.settings.hide_header {% endcomment %}
+  
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
       <div class="codform-spinner"></div>
@@ -191,19 +184,6 @@
       "id": "description",
       "label": "وصف النموذج",
       "default": "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
-    },
-    {
-      "type": "checkbox",
-      "id": "hide_header",
-      "label": "إخفاء ترويسة النموذج",
-      "default": false,
-      "info": "حدد هذا الخيار إذا كان لديك عنوان مخصص في النموذج نفسه"
-    },
-    {
-      "type": "color",
-      "id": "header_color",
-      "label": "لون الترويسة",
-      "default": "#9b87f5"
     },
     {
       "type": "text",

@@ -114,7 +114,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   `;
   
   return (
-    <div className="mb-4 mt-8">
+    <div className="mb-4 mt-8 codform-submit-container">
       <style>{animationStyles}</style>
       <button
         className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
@@ -129,7 +129,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           fontWeight: 'bold',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)', // تعزيز الظل
           transition: 'all 0.3s ease',
-          direction: 'rtl', // ضمان الاتجاه من اليمين إلى اليسار
+          direction: language === 'ar' ? 'rtl' : 'ltr', // تعديل لجعل الاتجاه يعتمد على اللغة
           textAlign: 'center', // محاذاة النص للمركز
         }}
         onMouseOver={(e) => {

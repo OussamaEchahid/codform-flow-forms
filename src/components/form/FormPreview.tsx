@@ -34,7 +34,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     buttonStyle: 'rounded',
   },
   fields = [],
-  hideHeader = false, // افتراضيًا، يتم عرض الترويسة
+  hideHeader = true, // تم تغييرها لتكون true افتراضيًا
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
