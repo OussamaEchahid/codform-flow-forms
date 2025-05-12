@@ -1,4 +1,3 @@
-
 // CODFORM - نماذج الدفع عند الاستلام
 // This file handles the form loading and submission in the Shopify store
 
@@ -246,151 +245,112 @@ function renderForm(container, formData, blockId, productId) {
     form.setAttribute('data-product-id', productId);
   }
   
-  // Get form style properties
-  const formStyle = formData.style || {};
-  
   // Primary color styling
-  const primaryColor = formStyle.primaryColor || '#9b87f5';
-  const borderColor = formStyle.borderColor || '#e2e8f0';
-  const borderWidth = formStyle.borderWidth || '1px';
-  const backgroundColor = formStyle.backgroundColor || '#ffffff';
-  const formBorderRadius = formStyle.borderRadius || '8px';
-  const fontSize = formStyle.fontSize || '1rem';
-  const buttonStyle = formStyle.buttonStyle || 'rounded';
-  const elementGap = formStyle.elementGap || '1rem';
-  
-  // Padding values
-  const paddingTop = formStyle.paddingTop || '1rem';
-  const paddingBottom = formStyle.paddingBottom || '1rem';
-  const paddingLeft = formStyle.paddingLeft || '1rem';
-  const paddingRight = formStyle.paddingRight || '1rem';
-  
-  // RTL support
-  const direction = formStyle.direction || 'ltr';
-  
-  // Define button radius based on style
-  let buttonRadius = '8px'; // Default border radius
-  if (buttonStyle === 'pill') {
-    buttonRadius = '9999px';
-  } else if (buttonStyle === 'square') {
-    buttonRadius = '0';
-  } else if (formBorderRadius) {
-    buttonRadius = formBorderRadius;
-  }
-  
-  // Add inline CSS to the form container
+  const primaryColor = formData.primaryColor || '#9b87f5';
   const style = document.createElement('style');
   style.textContent = `
-    /* Form styles */
-    #form-${blockId} {
-      background-color: ${backgroundColor};
-      border: ${borderWidth} solid ${borderColor};
-      border-radius: ${formBorderRadius};
-      padding: ${paddingTop} ${paddingRight} ${paddingBottom} ${paddingLeft};
-      font-size: ${fontSize};
-      direction: ${direction};
+    /* تنسيقات CSS المباشرة للعناصر */
+    .codform-container .codform-header {
+      background-color: ${primaryColor};
     }
     
-    #form-${blockId} .codform-field {
-      margin-bottom: ${elementGap};
-    }
-    
-    /* Button styles */
-    #form-${blockId} .codform-submit-btn {
+    .codform-container .codform-button {
       background-color: ${primaryColor};
       color: white;
       border: none;
-      border-radius: ${buttonRadius};
+      border-radius: ${formData.borderRadius || '8px'};
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      font-size: ${formData.fontSize || '1rem'};
+      transition: opacity 0.2s;
+    }
+    
+    .codform-container .codform-button:hover {
+      opacity: 0.9;
+    }
+    
+    .codform-container input[type="text"],
+    .codform-container input[type="tel"],
+    .codform-container input[type="email"],
+    .codform-container textarea,
+    .codform-container select {
       width: 100%;
-      padding: 1rem 1.5rem;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: ${formData.borderRadius || '8px'};
+      font-size: ${formData.fontSize || '1rem'};
+      margin-bottom: 1rem;
+      font-family: 'Cairo', sans-serif;
+    }
+    
+    .codform-container .codform-submit-btn {
+      background-color: ${primaryColor};
+      color: white;
+      border: none;
+      border-radius: ${formData.buttonStyle === 'pill' ? '9999px' : (formData.buttonStyle === 'square' ? '0' : formData.borderRadius || '8px')};
+      width: 100%;
+      padding: 0.85rem 1.5rem;
       font-weight: bold;
       cursor: pointer;
-      font-size: ${fontSize === '1rem' ? '1.2rem' : fontSize};
+      font-size: ${formData.fontSize || '1.2rem'};
       transition: all 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       margin-top: 1rem;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     
-    #form-${blockId} .codform-submit-btn:hover {
+    .codform-container .codform-submit-btn:hover {
       opacity: 0.9;
       transform: translateY(-1px);
     }
     
-    /* Form field styles */
-    #form-${blockId} input[type="text"],
-    #form-${blockId} input[type="tel"],
-    #form-${blockId} input[type="email"],
-    #form-${blockId} textarea,
-    #form-${blockId} select {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid ${borderColor};
-      border-radius: ${formBorderRadius};
-      font-size: ${fontSize};
-      margin-bottom: 1rem;
-      font-family: 'Cairo', sans-serif;
-    }
-    
-    /* Animation definitions */
-    @keyframes pulse {
+    /* تأكيد تنسيقات الرسوم المتحركة */
+    @keyframes pulse-animation {
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
-    
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 90% { transform: translateX(-2px); }
-      20%, 80% { transform: translateX(4px); }
-      30%, 50%, 70% { transform: translateX(-6px); }
-      40%, 60% { transform: translateX(6px); }
-    }
-    
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-10px); }
-      60% { transform: translateY(-5px); }
-    }
-    
-    @keyframes wiggle {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-5deg); }
-      50% { transform: rotate(0deg); }
-      75% { transform: rotate(5deg); }
-    }
-    
-    @keyframes flash {
-      0%, 50%, 100% { opacity: 1; }
-      25%, 75% { opacity: 0.5; }
-    }
-    
-    /* Animation classes */
     .pulse-animation {
-      animation: pulse 2s infinite;
+      animation: pulse-animation 2s infinite;
     }
     
+    @keyframes shake-animation {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
     .shake-animation {
-      animation: shake 0.8s infinite;
+      animation: shake-animation 3s infinite;
     }
     
+    @keyframes bounce-animation {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
     .bounce-animation {
-      animation: bounce 2s infinite;
+      animation: bounce-animation 2s infinite;
     }
     
+    @keyframes wiggle-animation {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
     .wiggle-animation {
-      animation: wiggle 0.7s ease-in-out infinite;
+      animation: wiggle-animation 1s infinite;
     }
     
+    @keyframes flash-animation {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.7; }
+    }
     .flash-animation {
-      animation: flash 3s infinite;
+      animation: flash-animation 2s infinite;
     }
   `;
   
-  form.appendChild(style);
+  container.appendChild(style);
   
   // Filter out unsupported field types
   const supportedFields = formData.fields ? formData.fields.filter(field => 
@@ -432,7 +392,7 @@ function renderForm(container, formData, blockId, productId) {
       form.appendChild(currentStepDiv);
     } else if (field.type) {
       // Regular field - add to current step or directly to form
-      const fieldContainer = renderField(field, formStyle, productId);
+      const fieldContainer = renderField(field, formData, productId);
       
       if (currentStepDiv) {
         currentStepDiv.appendChild(fieldContainer);
@@ -595,8 +555,10 @@ function renderForm(container, formData, blockId, productId) {
         submitBtn.style.color = submitField.style.color;
       }
       
-      // Apply font size from field style or form style
-      submitBtn.style.fontSize = submitField.style?.fontSize || (fontSize === '1rem' ? '1.2rem' : fontSize);
+      // Apply font settings
+      if (submitField.style && submitField.style.fontSize) {
+        submitBtn.style.fontSize = submitField.style.fontSize;
+      }
       
     } else {
       submitBtn.innerText = 'إرسال';
@@ -684,7 +646,7 @@ function renderForm(container, formData, blockId, productId) {
 }
 
 // Render a single form field based on its type
-function renderField(field, formStyle, productId) {
+function renderField(field, formData, productId) {
   const fieldDiv = document.createElement('div');
   fieldDiv.className = 'codform-field';
   fieldDiv.setAttribute('data-field-type', field.type);
@@ -707,31 +669,28 @@ function renderField(field, formStyle, productId) {
   // Special case for title field
   if (field.type === 'title' || field.type === 'form-title') {
     const fieldStyle = field.style || {};
-    const hasBackground = field.type === 'form-title' || fieldStyle.backgroundColor;
+    const hasBackground = true; // Always use background for consistency
     
     // Set alignment data attribute
-    const direction = formStyle.direction || 'ltr';
-    const alignment = fieldStyle.textAlign || (direction === 'rtl' ? 'right' : 'left');
+    const alignment = fieldStyle.textAlign || 'right'; // Default to right for Arabic
     fieldDiv.setAttribute('data-title-align', alignment);
     
     // Set background data attribute
-    fieldDiv.setAttribute('data-has-bg', hasBackground ? 'true' : 'false');
+    fieldDiv.setAttribute('data-has-bg', 'true');
     
     // Set font size data attribute
-    const fontSize = fieldStyle.fontSize || (field.type === 'form-title' ? '1.5rem' : '1.25rem');
-    fieldDiv.setAttribute('data-font-size', fontSize);
+    if (fieldStyle.fontSize) {
+      fieldDiv.setAttribute('data-font-size', fieldStyle.fontSize);
+    }
 
     // Create div for title and description with background
     const titleContainer = document.createElement('div');
     titleContainer.className = 'codform-title-container';
-    
-    if (hasBackground) {
-      titleContainer.style.backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
-      titleContainer.style.padding = '16px';
-      titleContainer.style.borderRadius = formStyle.borderRadius || '8px';
-      titleContainer.style.width = '100%';
-      titleContainer.style.boxSizing = 'border-box';
-    }
+    titleContainer.style.backgroundColor = fieldStyle.backgroundColor || '#9b87f5';
+    titleContainer.style.padding = '16px';
+    titleContainer.style.borderRadius = '8px';
+    titleContainer.style.width = '100%';
+    titleContainer.style.boxSizing = 'border-box';
     
     const title = document.createElement('h3');
     title.innerText = field.label || '';
@@ -740,8 +699,8 @@ function renderField(field, formStyle, productId) {
     title.style.lineHeight = '1.3';
     
     // Apply styles directly to title
-    title.style.color = fieldStyle.color || (hasBackground ? '#ffffff' : '#1A1F2C');
-    title.style.fontSize = fontSize;
+    title.style.color = fieldStyle.color || '#ffffff';
+    title.style.fontSize = fieldStyle.fontSize || (field.type === 'form-title' ? '1.5rem' : '1.25rem');
     title.style.textAlign = alignment;
     title.style.fontWeight = fieldStyle.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium');
     title.style.fontFamily = fieldStyle.fontFamily || 'Cairo, sans-serif';
@@ -753,7 +712,7 @@ function renderField(field, formStyle, productId) {
       const description = document.createElement('p');
       description.className = 'codform-title-description';
       description.innerText = field.helpText;
-      description.style.color = fieldStyle.descriptionColor || (hasBackground ? '#ffffff' : '#6b7280');
+      description.style.color = fieldStyle.descriptionColor || '#ffffff';
       description.style.fontSize = fieldStyle.descriptionFontSize || '0.875rem';
       description.style.textAlign = alignment;
       description.style.margin = '8px 0 0 0';

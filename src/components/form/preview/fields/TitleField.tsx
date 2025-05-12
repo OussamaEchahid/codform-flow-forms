@@ -9,8 +9,6 @@ interface TitleFieldProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
-    buttonStyle?: string;
-    direction?: 'ltr' | 'rtl';
   };
 }
 
@@ -26,9 +24,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Extract the description from the field itself
   const description = field.helpText || '';
   
-  // Get alignment from field style or default based on direction
-  const direction = formStyle.direction || (language === 'ar' ? 'rtl' : 'ltr');
-  const defaultAlignment: TextAlign = direction === 'rtl' ? 'right' : 'left';
+  // Get alignment from field style or default based on language
+  const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
   // Convert string alignment to TextAlign type with validation
   const getValidAlignment = (align?: string): TextAlign => {
@@ -41,31 +38,19 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
   // Background styling - Always use a background color for form-title type
-  const backgroundColor = fieldStyle.backgroundColor || (field.type === 'form-title' ? '#9b87f5' : undefined);
-  const backgroundStyle = backgroundColor ? {
+  const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
+  const backgroundStyle = {
     backgroundColor: backgroundColor,
     padding: '16px', // Explicitly use 16px for exact matching with store
     borderRadius: formStyle.borderRadius || '8px', // Use 8px as default for consistent rounding
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
     marginBottom: '0', // No bottom margin to match store display
-  } : {};
-
-  // Title styles
-  const titleStyle = {
-    color: fieldStyle.color || (backgroundColor ? '#ffffff' : '#1A1F2C'),
-    fontSize: fieldStyle.fontSize || (field.type === 'form-title' ? '1.5rem' : formStyle.fontSize || '1.25rem'),
-    textAlign: alignment,
-    fontWeight: fieldStyle.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium'),
-    fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3',
   };
 
   // Description styles inside the same background container
   const descriptionStyle = {
-    color: fieldStyle.descriptionColor || (backgroundColor ? '#ffffff' : '#6b7280'),
+    color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || '0.875rem',
     margin: '8px 0 0 0', // Consistent 8px top margin
     padding: '0',
@@ -79,12 +64,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   return (
     <div 
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={direction}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-title-align={alignment}
-      data-has-bg={backgroundColor ? "true" : "false"}
-      data-title-color={fieldStyle.color || (backgroundColor ? '#ffffff' : '#1A1F2C')}
-      data-bg-color={backgroundColor || ""}
+      data-has-bg="true"
+      data-title-color={fieldStyle.color || '#ffffff'}
+      data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
       data-font-size={fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem')}
@@ -92,7 +77,16 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
           className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
-          style={titleStyle}
+          style={{
+            color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
+            fontSize: fieldStyle.fontSize || (isFormTitle ? '1.5rem' : formStyle.fontSize),
+            textAlign: alignment,
+            fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+            fontFamily: fieldStyle.fontFamily || 'inherit',
+            margin: '0',
+            padding: '0',
+            lineHeight: '1.3', // Add line height for better text appearance
+          }}
         >
           {field.label}
         </h3>

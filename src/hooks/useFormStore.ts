@@ -6,16 +6,6 @@ export interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-  // New styling options
-  borderColor?: string;
-  borderWidth?: string;
-  backgroundColor?: string;
-  paddingTop?: string;
-  paddingBottom?: string;
-  paddingLeft?: string;
-  paddingRight?: string;
-  elementGap?: string;
-  direction?: 'ltr' | 'rtl';
 }
 
 export interface FormState {
@@ -48,15 +38,6 @@ const defaultFormState: FormState = {
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
-    borderColor: '#e2e8f0',
-    borderWidth: '1px',
-    backgroundColor: '#ffffff',
-    paddingTop: '1rem',
-    paddingBottom: '1rem',
-    paddingLeft: '1rem',
-    paddingRight: '1rem',
-    elementGap: '1rem',
-    direction: 'ltr',
   }
 };
 
