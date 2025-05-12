@@ -26,23 +26,44 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   } else {
     buttonRadius = formStyle.borderRadius || '0.5rem';
   }
+
+  // Determine font size based on style or field config
+  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1.1rem';
+  
+  // Button hover and active effects
+  const buttonHoverStyle = {
+    transform: 'translateY(-1px)',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    opacity: 0.95,
+  };
   
   return (
     <div className="mb-4 mt-8">
       <button
-        className="w-full py-3 px-4 font-medium transition-all duration-200 hover:opacity-90"
+        className="w-full py-4 px-4 font-medium transition-all duration-200 hover:opacity-90 relative overflow-hidden"
         style={{
           backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           color: fieldStyle.color || 'white',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
+          fontSize: fontSize,
           borderRadius: buttonRadius,
           border: 'none',
           cursor: 'pointer',
           fontFamily: 'inherit',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseOver={(e) => {
+          Object.assign(e.currentTarget.style, buttonHoverStyle);
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = '';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.opacity = '1';
         }}
         disabled={field.disabled}
       >
-        {field.label || (language === 'ar' ? 'إرسال' : 'Submit')}
+        {field.label || (language === 'ar' ? 'إرسال الطلب الآن' : 'Submit Order Now')}
       </button>
     </div>
   );

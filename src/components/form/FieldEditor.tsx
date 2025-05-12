@@ -205,6 +205,131 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           </div>
         );
         
+      case 'cart-items':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل عنصر المنتج المختار' : 'Edit Selected Product Component'}
+            </h3>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <UIFormField
+                  control={form.control}
+                  name="label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'المنتج المختار' : 'Selected Product'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="helpText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </Button>
+                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        );
+        
+      case 'cart-summary':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل ملخص الطلب' : 'Edit Order Summary'}
+            </h3>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <UIFormField
+                  control={form.control}
+                  name="label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'ملخص الطلب' : 'Order Summary'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <UIFormField
+                  control={form.control}
+                  name="helpText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </Button>
+                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        );
+        
+      case 'submit':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل زر الإرسال' : 'Edit Submit Button'}
+            </h3>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <UIFormField
+                  control={form.control}
+                  name="label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === 'ar' ? 'نص الزر' : 'Button Text'}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={language === 'ar' ? 'إرسال الطلب الآن' : 'Submit Order Now'} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </Button>
+                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        );
+        
       default:
         return (
           <div className="p-4">

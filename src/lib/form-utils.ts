@@ -1,29 +1,63 @@
-import { toast } from "sonner";
-
-export interface FieldStyle {
-  backgroundColor?: string;
-  color?: string;
-  fontSize?: string;
-  borderRadius?: string;
-  borderWidth?: string;
-  borderColor?: string;
-  padding?: string;
-}
+import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
   id: string;
-  type: string;
-  label: string;
+  type: FormFieldType;
+  label?: string;
+  required?: boolean;
   placeholder?: string;
-  required?: boolean; // Made this optional to match the other interface
-  options?: string[];
-  style?: FieldStyle;
-  content?: string; // Add the content property to support text/html fields
   helpText?: string;
-  disabled?: boolean;
-  whatsappNumber?: string;
+  options?: { value: string; label: string }[];
+  validation?: string;
+  rows?: number;
+  content?: string;
+  src?: string;
+  alt?: string;
+  width?: string;
+  phoneNumber?: string;
   message?: string;
+  showImage?: boolean;
+  showPrice?: boolean;
+  style?: {
+    backgroundColor?: string;
+    color?: string;
+    fontSize?: string;
+    titleColor?: string;
+    titleFontSize?: string;
+    descriptionColor?: string;
+    descriptionFontSize?: string;
+    priceColor?: string;
+    priceFontSize?: string;
+    labelColor?: string;
+    labelFontSize?: string;
+    valueColor?: string;
+    valueFontSize?: string;
+    totalLabelColor?: string;
+    totalLabelFontSize?: string;
+    totalValueColor?: string;
+    totalValueFontSize?: string;
+    borderColor?: string;
+  };
+  disabled?: boolean;
 }
+
+export type FormFieldType =
+  | 'text'
+  | 'email'
+  | 'phone'
+  | 'textarea'
+  | 'select'
+  | 'checkbox'
+  | 'radio'
+  | 'text/html'
+  | 'cart-items'
+  | 'cart-summary'
+  | 'submit'
+  | 'shipping'
+  | 'countdown'
+  | 'whatsapp'
+  | 'image'
+  | 'title';
 
 export interface FormStep {
   id: string;
@@ -35,172 +69,35 @@ export interface FormTemplate {
   id: number;
   title: string;
   description: string;
-  steps: number;
-  fields: number;
-  primaryColor: string; // Change to required property to ensure it's always set
   data: FormStep[];
 }
 
-// Generate a unique ID
-export const generateId = (): string => {
-  return Math.random().toString(36).substring(2, 9);
-};
-
-// Create a new empty form step
-export const createEmptyStep = (stepNumber: number): FormStep => {
-  return {
-    id: generateId(),
-    title: `خطوة ${stepNumber}`,
-    fields: []
-  };
-};
-
-// Create a new empty field
-export const createEmptyField = (type: string): FormField => {
-  return {
-    id: generateId(),
-    type,
-    label: 'حقل جديد',
-    placeholder: '',
-    required: false,
-    style: {
-      backgroundColor: '#ffffff',
-      color: '#333333',
-      fontSize: '1rem',
-      borderRadius: '0.5rem',
-      borderWidth: '1px',
-      borderColor: '#e2e8f0'
-    }
-  };
-};
-
-// Validate form data
-export const validateFormData = (formData: any, fields: FormField[]): boolean => {
-  for (const field of fields) {
-    if (field.required && (!formData[field.id] || formData[field.id] === '')) {
-      toast.error(`الحقل "${field.label}" مطلوب`);
-      return false;
-    }
-    
-    if (field.type === 'email' && formData[field.id]) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData[field.id])) {
-        toast.error(`البريد الإلكتروني غير صالح`);
-        return false;
-      }
-    }
-    
-    if (field.type === 'phone' && formData[field.id]) {
-      const phoneRegex = /^\d{10}$/;
-      if (!phoneRegex.test(formData[field.id].replace(/\D/g, ''))) {
-        toast.error(`رقم الهاتف غير صالح`);
-        return false;
-      }
-    }
-  }
-  
-  return true;
-};
-
-// Sample form templates
+/**
+ * Mock form templates for demonstration
+ */
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,
-    title: 'نموذج التوصيل الأساسي',
-    description: 'نموذج طلب بسيط للدفع عند الاستلام',
-    steps: 1,
-    fields: 5,
-    primaryColor: '#d97706', // Brown color for template 1
+    title: 'نموذج تسجيل بسيط',
+    description: 'نموذج أساسي لجمع معلومات المستخدمين.',
     data: [
       {
         id: '1',
-        title: 'تفاصيل التوصيل',
+        title: 'معلومات شخصية',
         fields: [
           {
             id: 'name',
             type: 'text',
-            label: 'الاسم الكامل',
-            placeholder: 'أدخل الاسم الكامل',
+            label: 'الاسم',
             required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'phone',
-            type: 'phone',
-            label: 'رقم الهاتف',
-            placeholder: 'أدخل رقم الهاتف',
-            required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'city',
-            type: 'text',
-            label: 'المدينة',
-            placeholder: 'أدخل المدينة',
-            required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'address',
-            type: 'textarea',
-            label: 'العنوان',
-            placeholder: 'أدخل العنوان التفصيلي',
-            required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
+            placeholder: 'أدخل اسمك'
           },
           {
             id: 'email',
             type: 'email',
             label: 'البريد الإلكتروني',
-            placeholder: 'example@email.com',
-            required: false,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'submit-1',
-            type: 'submit',
-            label: 'تقديم الطلب (الدفع عند الاستلام)',
-            style: {
-              backgroundColor: '#d97706', // Match the template's primary color
-              color: '#ffffff',
-              fontSize: '1rem',
-              borderRadius: '0.5rem'
-            }
+            required: true,
+            placeholder: 'أدخل بريدك الإلكتروني'
           }
         ]
       }
@@ -208,98 +105,39 @@ export const formTemplates: FormTemplate[] = [
   },
   {
     id: 2,
-    title: 'نموذج التوصيل السريع',
-    description: 'نموذج مع خيارات التوصيل السريع',
-    steps: 1,
-    fields: 6,
-    primaryColor: '#3b82f6', // Blue color for template 2
+    title: 'نموذج طلب منتج',
+    description: 'نموذج لطلب منتج مع تفاصيل الشحن.',
     data: [
       {
         id: '1',
-        title: 'معلومات الطلب والتوصيل',
+        title: 'معلومات المنتج',
         fields: [
           {
-            id: 'name',
+            id: 'product_name',
             type: 'text',
-            label: 'الاسم الكامل',
-            placeholder: 'أدخل الاسم الكامل',
+            label: 'اسم المنتج',
             required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
+            placeholder: 'أدخل اسم المنتج'
           },
           {
-            id: 'phone',
-            type: 'phone',
-            label: 'رقم الهاتف',
-            placeholder: 'أدخل رقم الهاتف',
-            required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'city',
+            id: 'quantity',
             type: 'text',
-            label: 'المدينة',
-            placeholder: 'أدخل المدينة',
+            label: 'الكمية',
             required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
+            placeholder: 'أدخل الكمية المطلوبة'
+          }
+        ]
+      },
+      {
+        id: '2',
+        title: 'معلومات الشحن',
+        fields: [
           {
             id: 'address',
             type: 'textarea',
-            label: 'العنوان',
-            placeholder: 'أدخل العنوان التفصيلي',
+            label: 'عنوان الشحن',
             required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.5rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'delivery',
-            type: 'radio',
-            label: 'نوع التوصيل',
-            options: ['توصيل مجاني', 'توصيل سريع'],
-            required: true,
-            style: {
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              fontSize: '1rem'
-            }
-          },
-          {
-            id: 'submit-1',
-            type: 'submit',
-            label: 'تقديم الطلب (الدفع عند الاستلام)',
-            style: {
-              backgroundColor: '#3b82f6', // Match the template's primary color
-              color: '#ffffff',
-              fontSize: '1rem',
-              borderRadius: '0.5rem'
-            }
+            placeholder: 'أدخل عنوان الشحن بالتفصيل'
           }
         ]
       }
@@ -307,89 +145,230 @@ export const formTemplates: FormTemplate[] = [
   },
   {
     id: 3,
-    title: 'نموذج الطلب المتميز',
-    description: 'نموذج طلب متميز مع تصميم أنيق',
-    steps: 1,
-    fields: 5,
-    primaryColor: '#115e59', // Teal color for template 3
+    title: 'نموذج استبيان',
+    description: 'نموذج لجمع آراء العملاء.',
     data: [
       {
         id: '1',
-        title: 'طلب جديد',
+        title: 'الآراء',
         fields: [
           {
-            id: 'name',
-            type: 'text',
-            label: 'الاسم الكامل',
-            placeholder: 'أدخل الاسم الكامل',
+            id: 'satisfaction',
+            type: 'radio',
+            label: 'ما مدى رضاك عن المنتج؟',
             required: true,
-            style: {
-              backgroundColor: '#f0f9ff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.75rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
+            options: [
+              { value: 'satisfied', label: 'راض جداً' },
+              { value: 'neutral', label: 'محايد' },
+              { value: 'dissatisfied', label: 'غير راض' }
+            ]
           },
           {
-            id: 'phone',
-            type: 'phone',
-            label: 'رقم الهاتف',
-            placeholder: 'أدخل رقم الهاتف',
-            required: true,
-            style: {
-              backgroundColor: '#f0f9ff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.75rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'city',
-            type: 'text',
-            label: 'المدينة',
-            placeholder: 'أدخل المدينة',
-            required: true,
-            style: {
-              backgroundColor: '#f0f9ff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.75rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'address',
+            id: 'comments',
             type: 'textarea',
-            label: 'العنوان',
-            placeholder: 'أدخل العنوان التفصيلي',
-            required: true,
-            style: {
-              backgroundColor: '#f0f9ff',
-              color: '#333333',
-              fontSize: '1rem',
-              borderRadius: '0.75rem',
-              borderWidth: '1px',
-              borderColor: '#e2e8f0'
-            }
-          },
-          {
-            id: 'submit-1',
-            type: 'submit',
-            label: 'إكمال الطلب',
-            style: {
-              backgroundColor: '#115e59', // Match the template's primary color
-              color: '#ffffff',
-              fontSize: '1rem',
-              borderRadius: '0.75rem'
-            }
+            label: 'تعليقات إضافية',
+            placeholder: 'أدخل تعليقاتك هنا'
           }
         ]
       }
     ]
   }
 ];
+
+/**
+ * Creates a default form template with standard fields
+ */
+export const createDefaultForm = (): FormStep[] => {
+  return [
+    {
+      id: "1",
+      title: "معلومات الطلب",
+      fields: [
+        {
+          id: "full_name",
+          type: "text",
+          label: "الاسم الكامل",
+          placeholder: "أدخل اسمك الكامل",
+          required: true,
+          helpText: "يرجى إدخال الاسم الثلاثي"
+        },
+        {
+          id: "phone",
+          type: "phone",
+          label: "رقم الهاتف",
+          placeholder: "05xxxxxxxx",
+          required: true,
+          validation: "^(05)\\d{8}$",
+          helpText: "يرجى إدخال رقم هاتف صحيح يبدأ بـ 05"
+        },
+        {
+          id: "city",
+          type: "text",
+          label: "المدينة",
+          placeholder: "أدخل اسم المدينة",
+          required: true
+        },
+        {
+          id: "address",
+          type: "textarea",
+          label: "العنوان",
+          placeholder: "أدخل عنوان التوصيل بالتفصيل",
+          required: true
+        },
+        {
+          id: "cart_items",
+          type: "cart-items",
+          label: "المنتج المختار",
+          required: false
+        },
+        {
+          id: "cart_summary",
+          type: "cart-summary",
+          label: "ملخص الطلب",
+          required: false
+        },
+        {
+          id: "submit",
+          type: "submit",
+          label: "إرسال الطلب الآن",
+          required: false
+        }
+      ]
+    }
+  ];
+};
+
+/**
+ * Creates a new empty form
+ * @param title The title of the form
+ * @returns The new form state
+ */
+export const createNewForm = (title: string = 'نموذج جديد'): FormStep[] => {
+  return [
+    {
+      id: uuidv4(),
+      title: 'الخطوة الأولى',
+      fields: []
+    }
+  ];
+};
+
+export const createEmptyField = (type: string): FormField => {
+  const baseField: FormField = {
+    id: `field-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    type: type as any,
+    label: getDefaultLabelForType(type),
+    required: false,
+  };
+
+  // Add type-specific properties
+  switch (type) {
+    case 'text':
+    case 'email':
+    case 'phone':
+      return {
+        ...baseField,
+        placeholder: '',
+        validation: type === 'email' ? '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$' : '',
+      };
+    case 'textarea':
+      return {
+        ...baseField,
+        placeholder: '',
+        rows: 4,
+      };
+    case 'select':
+      return {
+        ...baseField,
+        options: [
+          { value: 'option1', label: 'خيار 1' },
+          { value: 'option2', label: 'خيار 2' }
+        ],
+        placeholder: 'اختر من القائمة',
+      };
+    case 'checkbox':
+      return {
+        ...baseField,
+        options: [
+          { value: 'option1', label: 'خيار 1' },
+          { value: 'option2', label: 'خيار 2' }
+        ],
+      };
+    case 'radio':
+      return {
+        ...baseField,
+        options: [
+          { value: 'option1', label: 'خيار 1' },
+          { value: 'option2', label: 'خيار 2' }
+        ],
+      };
+    case 'text/html':
+      return {
+        ...baseField,
+        content: '<p>أدخل المحتوى هنا</p>',
+      };
+    case 'submit':
+      return {
+        ...baseField,
+        label: 'إرسال الطلب الآن',
+        style: {
+          backgroundColor: '#9b87f5',
+          color: 'white',
+          fontSize: '1.1rem',
+        }
+      };
+    case 'whatsapp':
+      return {
+        ...baseField,
+        label: 'تواصل عبر واتساب',
+        phoneNumber: '966500000000',
+        message: 'أرغب في التواصل بخصوص طلب المنتج',
+      };
+    case 'image':
+      return {
+        ...baseField,
+        src: '',
+        alt: '',
+        width: '100%',
+      };
+    case 'cart-items':
+      return {
+        ...baseField,
+        showImage: true,
+        showPrice: true,
+      };
+    case 'cart-summary':
+      return {
+        ...baseField,
+        showShipping: true,
+        showTax: false,
+      };
+    default:
+      return baseField;
+  }
+};
+
+/**
+ * Gets default label based on field type
+ */
+const getDefaultLabelForType = (type: string): string => {
+  switch (type) {
+    case 'text': return 'حقل نصي';
+    case 'email': return 'البريد الإلكتروني';
+    case 'phone': return 'رقم الهاتف';
+    case 'textarea': return 'ملاحظات إضافية';
+    case 'select': return 'اختر من القائمة';
+    case 'checkbox': return 'اختيارات متعددة';
+    case 'radio': return 'اختيار واحد';
+    case 'submit': return 'إرسال الطلب الآن';
+    case 'text/html': return 'نص/HTML';
+    case 'whatsapp': return 'تواصل عبر واتساب';
+    case 'image': return 'صورة';
+    case 'title': return 'عنوان';
+    case 'cart-items': return 'المنتج المختار';
+    case 'cart-summary': return 'ملخص الطلب';
+    case 'shipping': return 'خيارات الشحن';
+    case 'countdown': return 'العد التنازلي';
+    default: return 'حقل جديد';
+  }
+};

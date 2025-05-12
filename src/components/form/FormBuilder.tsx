@@ -42,6 +42,9 @@ const availableFieldTypes: Array<{
   { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
   { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
   { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
+  { type: 'cart-items', label: 'المنتج المختار', icon: <FileText size={16} /> },
+  { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
+  { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
   { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
 ];
 
@@ -215,6 +218,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     });
     setPreviewRefresh(prev => prev + 1);
   };
+
+  useEffect(() => {
+    // إذا كانت البيانات فارغة، نقوم بإنشاء نموذج افتراضي
+    if (initialFormData.data.length === 0) {
+      setFormSteps(createDefaultForm());
+      setPreviewRefresh(prev => prev + 1);
+    }
+  }, [initialFormData]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
