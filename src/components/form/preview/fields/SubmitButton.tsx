@@ -34,36 +34,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   }
 
   // Define font size based on style or field settings
-  const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
+  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1.2rem';
   
-  // Determine animation class based on animation type
-  let animationClass = '';
-  if (fieldStyle.animation) {
-    // Check if animation is boolean or has a specific type
-    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
-      animationClass = 'pulse-animation';
-    } else if (typeof fieldStyle.animationType === 'string') {
-      switch (fieldStyle.animationType) {
-        case 'pulse':
-          animationClass = 'pulse-animation';
-          break;
-        case 'shake':
-          animationClass = 'shake-animation';
-          break;
-        case 'bounce':
-          animationClass = 'bounce-animation';
-          break;
-        case 'wiggle':
-          animationClass = 'wiggle-animation';
-          break;
-        case 'flash':
-          animationClass = 'flash-animation';
-          break;
-        default:
-          animationClass = '';
-      }
-    }
-  }
+  // Standardized animation class names to match store implementation
+  const animationType = fieldStyle.animationType || 'pulse';
+  const hasAnimation = fieldStyle.animation || false;
+  const animationClass = hasAnimation ? `${animationType}-animation` : '';
   
   return (
     <div className="mb-4 mt-8 codform-submit-container">
@@ -82,10 +58,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
           transition: 'all 0.3s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
           textAlign: 'center',
+          width: '100%',
         }}
         disabled={field.disabled}
-        data-animation-type={fieldStyle.animationType || ''}
-        data-has-animation={fieldStyle.animation ? 'true' : 'false'}
+        data-animation-type={animationType}
+        data-has-animation={hasAnimation ? 'true' : 'false'}
         data-icon-position={fieldStyle.iconPosition || 'left'}
       >
         {fieldStyle.iconPosition !== 'right' && (

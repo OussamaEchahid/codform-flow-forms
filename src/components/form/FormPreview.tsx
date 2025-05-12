@@ -16,6 +16,15 @@ interface FormPreviewProps {
     borderRadius?: string;
     fontSize?: string;
     buttonStyle?: string;
+    borderColor?: string;
+    borderWidth?: string;
+    backgroundColor?: string;
+    paddingTop?: string;
+    paddingBottom?: string;
+    paddingLeft?: string;
+    paddingRight?: string;
+    elementGap?: string;
+    direction?: 'ltr' | 'rtl';
   };
   fields?: FormField[];
   hideHeader?: boolean;
@@ -32,12 +41,24 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
+    borderColor: '#e2e8f0',
+    borderWidth: '1px',
+    backgroundColor: '#ffffff',
+    paddingTop: '1rem',
+    paddingBottom: '1rem',
+    paddingLeft: '1rem',
+    paddingRight: '1rem',
+    elementGap: '1rem',
+    direction: 'ltr',
   },
   fields = [],
   hideHeader = false,
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
+  
+  // Use form direction or language-based direction
+  const direction = formStyle.direction || (language === 'ar' ? 'rtl' : 'ltr');
   
   // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
@@ -54,12 +75,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       helpText: formDescription,
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: direction === 'rtl' ? 'right' : 'left',
         fontWeight: 'bold',
         fontSize: '1.5rem',
         descriptionColor: '#ffffff',
         descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
+        backgroundColor: formStyle.primaryColor || '#9b87f5', 
       }
     };
     
@@ -77,7 +98,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '1.2rem',
+          fontSize: formStyle.fontSize || '1.2rem',
           animation: true,
           animationType: 'pulse',
         },
@@ -86,16 +107,25 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
+  }, [fields, formTitle, formDescription, language, formStyle, direction]);
+  
+  // Element gap styling as CSS variable
+  const elementGapStyle = {
+    '--element-gap': formStyle.elementGap || '1rem'
+  } as React.CSSProperties;
   
   return (
     <div 
       key={key}
-      className="rounded-lg border shadow-sm overflow-hidden bg-white"
+      className="rounded-lg border shadow-sm overflow-hidden"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
+        borderColor: formStyle.borderColor,
+        borderWidth: formStyle.borderWidth,
+        backgroundColor: formStyle.backgroundColor || 'white',
+        ...elementGapStyle
       } as React.CSSProperties}
     >
       {totalSteps > 1 && (
@@ -138,14 +168,15 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className="p-4" 
+        className="codform-content"
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: direction,
+          padding: `${formStyle.paddingTop} ${formStyle.paddingRight} ${formStyle.paddingBottom} ${formStyle.paddingLeft}`,
         }}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-4" style={{ gap: formStyle.elementGap || '1rem' }}>
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={field.id} 
