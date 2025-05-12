@@ -14,6 +14,8 @@ interface TitleFieldProps {
 
 // Define valid text alignment options
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
+// Define valid box-sizing values
+type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
@@ -42,7 +44,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0.75rem',
     borderRadius: formStyle.borderRadius || '0.375rem',
     width: '100%',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box' as BoxSizing, // Fixed type casting here
   } : {};
 
   // Use larger styling for form-title type
