@@ -46,7 +46,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
-  if (!isSupported) {
+  if (!isSupported && fieldType !== 'form-title') { // Don't warn about form-title type
     console.warn(`Field type "${fieldType}" is not fully supported in the store preview.`);
   }
 
@@ -56,6 +56,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
+    'form-title': TitleField, // Use TitleField for the new form-title type
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
@@ -72,7 +73,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  if (!isSupported) {
+  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (
       <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
         <Component field={field} formStyle={formStyle} />

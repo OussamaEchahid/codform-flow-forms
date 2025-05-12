@@ -16,29 +16,45 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Extract the description from the field itself, not from the style
+  // Extract the description from the field itself
   const description = field.helpText || '';
+  
+  // Get alignment from field style or default based on language
+  const alignment = fieldStyle.textAlign || (language === 'ar' ? 'right' : 'left');
+  
+  // Background styling
+  const backgroundStyle = fieldStyle.backgroundColor ? {
+    backgroundColor: fieldStyle.backgroundColor,
+    padding: '0.75rem',
+    borderRadius: formStyle.borderRadius || '0.375rem',
+  } : {};
   
   return (
     <div 
       className="mb-4"
       dir={language === 'ar' ? 'rtl' : 'ltr'}
+      style={backgroundStyle}
     >
       <h3 
         className="text-lg font-medium"
         style={{
-          color: fieldStyle.color || 'inherit',
+          color: fieldStyle.color || formStyle.primaryColor || 'inherit',
           fontSize: fieldStyle.fontSize || formStyle.fontSize,
-          textAlign: language === 'ar' ? 'right' : 'left',
+          textAlign: alignment,
+          fontWeight: fieldStyle.fontWeight || 'medium',
+          fontFamily: fieldStyle.fontFamily || 'inherit',
+          margin: '0',
         }}
       >
         {field.label}
       </h3>
       {description && (
         <p 
-          className="text-sm text-gray-600 mt-1"
+          className="text-sm mt-1"
           style={{
-            textAlign: language === 'ar' ? 'right' : 'left',
+            textAlign: alignment,
+            color: fieldStyle.descriptionColor || '#6b7280',
+            fontSize: fieldStyle.descriptionFontSize || '0.875rem',
           }}
         >
           {description}

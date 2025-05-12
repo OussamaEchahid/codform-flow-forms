@@ -17,6 +17,7 @@ interface ShopifyIntegrationProps {
   };
   onSave?: (settings: any) => void;
   isSyncing?: boolean;
+  formTitleElement?: any;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
@@ -24,7 +25,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formTitle,
   formDescription,
   formStyle = { primaryColor: '#9b87f5' },
-  isSyncing = false 
+  isSyncing = false,
+  formTitleElement
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -106,7 +108,18 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               </Button>
             </div>
             
-            {formTitle && (
+            {formTitleElement && (
+              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+                  {language === 'ar' ? 'عنوان النموذج المخصص:' : 'Custom Form Title:'}
+                </span>
+                <div className="p-2 bg-gray-100 rounded text-sm flex-1">
+                  <span className="font-semibold">✓</span> {language === 'ar' ? 'تم تعيين عنوان مخصص' : 'Custom title configured'}
+                </div>
+              </div>
+            )}
+            
+            {formTitle && !formTitleElement && (
               <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
                 <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
                   {language === 'ar' ? 'عنوان النموذج:' : 'Form Title:'}

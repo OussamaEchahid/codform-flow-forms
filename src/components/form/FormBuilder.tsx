@@ -29,12 +29,14 @@ import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from 
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 const availableFieldTypes: Array<{
   type: FormField['type'];
   label: string;
   icon: React.ReactNode;
 }> = [
+  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
   { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
   { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
   { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
@@ -46,6 +48,7 @@ const availableFieldTypes: Array<{
   { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
   { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
   { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
+  { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
 ];
 
 interface FormBuilderProps {
@@ -226,6 +229,73 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       setPreviewRefresh(prev => prev + 1);
     }
   }, [initialFormData]);
+
+  const createEmptyField = (type: FormField['type']) => {
+    let newField: FormField = {
+      id: uuidv4(), // Use UUID from imported library
+      type,
+      label: '',
+      required: false,
+    };
+  
+    // Add field-specific configuration
+    switch (type) {
+      case 'form-title':
+        newField.label = 'عنوان النموذج المخصص';
+        newField.helpText = 'وصف النموذج (اختياري)';
+        newField.style = {
+          textAlign: 'center',
+          color: '#1A1F2C',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          descriptionColor: '#6b7280',
+          descriptionFontSize: '1rem',
+          backgroundColor: '',
+        };
+        break;
+      case 'text':
+        newField.label = 'حقل نص';
+        break;
+      case 'email':
+        newField.label = 'بريد إلكتروني';
+        break;
+      case 'phone':
+        newField.label = 'رقم هاتف';
+        break;
+      case 'textarea':
+        newField.label = 'نص متعدد الأسطر';
+        break;
+      case 'select':
+        newField.label = 'قائمة منسدلة';
+        break;
+      case 'checkbox':
+        newField.label = 'خانة اختيار';
+        break;
+      case 'radio':
+        newField.label = 'زر راديو';
+        break;
+      case 'cart-items':
+        newField.label = 'المنتج المختار';
+        break;
+      case 'cart-summary':
+        newField.label = 'ملخص الطلب';
+        break;
+      case 'submit':
+        newField.label = 'زر إرسال الطلب';
+        break;
+      case 'text/html':
+        newField.label = 'نص/HTML';
+        break;
+      case 'title':
+        newField.label = 'عنوان قسم';
+        break;
+      default:
+        newField.label = 'حقل جديد';
+        break;
+    }
+  
+    return newField;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
