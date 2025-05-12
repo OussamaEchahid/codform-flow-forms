@@ -36,12 +36,16 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   // Define font size based on style or field settings
   const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
   
-  // Determine animation class based on animation type - Ensuring consistency with store
+  // Determine animation class based on animation type
   let animationClass = '';
   if (fieldStyle.animation) {
+    // If animation is just boolean true, default to pulse
     if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
       animationClass = 'pulse-animation';
-    } else if (typeof fieldStyle.animationType === 'string') {
+      console.log("Setting default pulse animation");
+    } 
+    // If we have a specific animation type
+    else if (fieldStyle.animationType) {
       switch (fieldStyle.animationType) {
         case 'pulse':
           animationClass = 'pulse-animation';
@@ -61,8 +65,15 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         default:
           animationClass = '';
       }
+      console.log(`Applied animation: ${fieldStyle.animationType} -> class: ${animationClass}`);
     }
   }
+  
+  console.log("Button animation data:", { 
+    animation: fieldStyle.animation, 
+    type: fieldStyle.animationType,
+    class: animationClass 
+  });
   
   return (
     <div className="mb-4 mt-8 codform-submit-container">

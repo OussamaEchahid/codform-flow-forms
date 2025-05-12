@@ -49,6 +49,15 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   
   console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
 
+  // Log animation data if this is a submit button
+  if (fieldType === 'submit' && field.style) {
+    console.log(`Submit button animation data:`, {
+      has_animation: field.style.animation || false,
+      animation_type: field.style.animationType || 'none',
+      style: field.style
+    });
+  }
+
   const components: { [key: string]: React.FC<FormFieldProps> } = {
     'text': TextInput,
     'textarea': TextArea,
