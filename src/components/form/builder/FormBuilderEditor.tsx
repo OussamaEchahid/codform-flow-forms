@@ -748,7 +748,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const handleFloatingButtonChange = (config: FloatingButtonConfig) => {
-    formStore.updateFloatingButton(config);
+    // Replace formStore with useFormStore() hook instance
+    const { updateFloatingButton } = useFormStore();
+    updateFloatingButton(config);
     setRefreshKey(prev => prev + 1); // Refresh the preview
   };
 
@@ -820,7 +822,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
-            floatingButton={formStore.floatingButton}
+            floatingButton={useFormStore().floatingButton}
           />
         </div>
       </div>
@@ -831,7 +833,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         formStyle={formStyle}
         onStyleChange={handleStyleChange}
         onSave={handleSaveStyle}
-        floatingButton={formStore.floatingButton}
+        floatingButton={useFormStore().floatingButton}
         onFloatingButtonChange={handleFloatingButtonChange}
       />
 
