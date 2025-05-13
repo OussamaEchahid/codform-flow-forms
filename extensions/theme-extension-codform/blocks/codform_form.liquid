@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -30,6 +31,58 @@
       <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
     </div>
   </div>
+</div>
+
+{% comment %}
+  FLOATING BUTTON - يتم التحكم في ظهوره من خلال إعدادات البلوك
+{% endcomment %}
+<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container" style="{% unless block.settings.enable_floating_button %}display: none;{% endunless %}">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != blank and block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color }};
+      color: {{ block.settings.floating_text_color }};
+      border-radius: {{ block.settings.floating_border_radius }};
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      border: none;
+      min-width: 250px;
+    "
+    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endunless %}
+  </button>
 </div>
 
 <style>
@@ -758,7 +811,22 @@
   }
 </style>
 
-{% endif %}
+<script>
+  // Make sure floating button is visible on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if floating button is enabled in block settings
+    var enableFloatingButton = {% if block.settings.enable_floating_button %}true{% else %}false{% endif %};
+    var floatingButtonContainer = document.getElementById('codform-floating-button-{{ block.id }}');
+    
+    if (floatingButtonContainer && enableFloatingButton) {
+      // Make floating button visible
+      floatingButtonContainer.style.display = 'flex';
+      floatingButtonContainer.style.visibility = 'visible';
+      floatingButtonContainer.style.opacity = '1';
+      floatingButtonContainer.classList.remove('hidden');
+    }
+  });
+</script>
 
 {% schema %}
 {
@@ -772,6 +840,103 @@
       "id": "form_id",
       "label": "معرّف النموذج",
       "info": "أدخل معرف النموذج الذي تريد عرضه"
+    },
+    {
+      "type": "header",
+      "content": "إعدادات الزر العائم"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تمكين الزر العائم",
+      "default": true,
+      "info": "يعرض زرًا في أسفل الشاشة للتنقل السريع إلى النموذج"
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون النص",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون الخلفية",
+      "default": "#000000"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "نصف قطر الحواف",
+      "default": "4px"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "عرض أيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "نوع الأيقونة",
+      "options": [
+        {
+          "value": "shopping-cart",
+          "label": "عربة تسوق"
+        },
+        {
+          "value": "package",
+          "label": "طرد"
+        },
+        {
+          "value": "truck",
+          "label": "شاحنة"
+        },
+        {
+          "value": "send",
+          "label": "إرسال"
+        }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي",
+      "options": [
+        {
+          "value": "none",
+          "label": "بدون"
+        },
+        {
+          "value": "pulse",
+          "label": "نبض"
+        },
+        {
+          "value": "bounce",
+          "label": "قفز"
+        },
+        {
+          "value": "shake",
+          "label": "اهتزاز"
+        },
+        {
+          "value": "wiggle",
+          "label": "تمايل"
+        },
+        {
+          "value": "flash",
+          "label": "وميض"
+        }
+      ],
+      "default": "none"
     }
   ]
 }

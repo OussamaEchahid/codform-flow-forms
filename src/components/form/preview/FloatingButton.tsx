@@ -13,6 +13,11 @@ interface FloatingButtonProps {
 const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = false }) => {
   const { language } = useI18n();
   
+  // If the floating button is not enabled, don't render it
+  if (!config.enabled) {
+    return null;
+  }
+  
   const getAnimationClass = () => {
     if (!config.animation || config.animation === 'none') return '';
     

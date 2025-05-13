@@ -75,13 +75,15 @@ export const useFormStore = create<FormStore>((set) => ({
   
   // Initialize floating button configuration with enabled=true to make sure it's active by default
   floatingButton: {
-    enabled: true, // تغيير القيمة الافتراضية إلى true
+    enabled: true, // Default to true to ensure it's active by default
     text: 'Order Now',
     textColor: '#ffffff',
     backgroundColor: '#000000',
     borderRadius: '4px',
     showIcon: true,
     icon: 'shopping-cart',
+    animation: 'none', // Default animation to none
+    marginBottom: '20px', // Default bottom margin
   },
   
   // Add method to update floating button

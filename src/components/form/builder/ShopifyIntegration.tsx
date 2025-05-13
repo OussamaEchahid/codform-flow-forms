@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFormStore } from '@/hooks/useFormStore';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -25,6 +26,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
+  const { floatingButton } = useFormStore();
   
   // Reset copy state after 3 seconds
   useEffect(() => {
@@ -61,6 +63,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       <CardContent>
         <div className="space-y-4">
           <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
                 ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
@@ -111,12 +114,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             </AlertDescription>
           </Alert>
           
-          <Alert variant="default" className="bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+          <Alert variant="default" className={`${floatingButton.enabled ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+            <Info className={`h-4 w-4 ${floatingButton.enabled ? 'text-green-600' : 'text-blue-600'}`} />
+            <AlertDescription className={`${floatingButton.enabled ? 'text-green-800' : 'text-blue-800'} ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
-                ? 'ملاحظة مهمة: يتم تفعيل الزر العائم وتعديل إعداداته فقط من صفحة تعديل النموذج (قسم "تخصيص الزر العائم"). يجب تفعيل الزر من هناك ليظهر في المتجر.' 
-                : 'Important Note: The floating button is enabled and configured only from the form editor page (Customize Floating Button section). You must enable it there to appear in the store.'}
+                ? floatingButton.enabled 
+                  ? 'الزر العائم مفعل حاليًا وسيظهر في المتجر. يمكنك تعديل إعداداته من قسم "تخصيص الزر العائم".'
+                  : 'الزر العائم غير مفعل حاليًا. يمكنك تفعيله وتعديل إعداداته من قسم "تخصيص الزر العائم".'
+                : floatingButton.enabled
+                  ? 'Floating button is currently ENABLED and will appear in the store. You can customize it in the "Customize Floating Button" section.'
+                  : 'Floating button is currently DISABLED. You can enable and customize it in the "Customize Floating Button" section.'}
             </AlertDescription>
           </Alert>
           
