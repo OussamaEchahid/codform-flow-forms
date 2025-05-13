@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import FormBuilder from '@/components/form/FormBuilder'; // Fixed import path
+import FormBuilder from '@/components/form/FormBuilder'; // Corrected import path
 import FormPreview from '@/components/form/FormPreview';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import PublishForm from '@/components/form/builder/PublishForm';

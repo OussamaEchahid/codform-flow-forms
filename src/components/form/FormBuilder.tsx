@@ -26,7 +26,7 @@ import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
 import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
-import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -51,16 +51,18 @@ const availableFieldTypes: Array<{
   { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
 ];
 
-interface FormBuilderProps {
-  initialFormData: FormData;
+// Define proper interface for form builder props
+export interface FormBuilderProps {
+  data: FormStep[];  
+  onChange: (newData: FormStep[]) => void;
 }
 
-const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
+const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const navigate = useNavigate();
   const { saveForm, publishForm } = useFormTemplates();
-  const [formTitle, setFormTitle] = useState(initialFormData.title);
-  const [formDescription, setFormDescription] = useState(initialFormData.description || '');
-  const [formSteps, setFormSteps] = useState<FormStep[]>(initialFormData.data);
+  
+  // Initialize formSteps with the data passed from props
+  const [formSteps, setFormSteps] = useState<FormStep[]>(data || []);
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
@@ -77,29 +79,25 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     buttonStyle: 'rounded',
   });
   
-  const handleSaveForm = async () => {
-    setIsSaving(true);
-    const saved = await saveForm(initialFormData.id, {
-      title: formTitle,
-      description: formDescription,
-      data: formSteps
-    });
-    setIsSaving(false);
-    
-    if (saved) {
-      toast.success('تم حفظ النموذج بنجاح');
+  // Update parent component when formSteps change
+  useEffect(() => {
+    if (formSteps !== data) {
+      onChange(formSteps);
     }
-  };
+  }, [formSteps, data, onChange]);
 
-  const handlePublishForm = async () => {
-    setIsPublishing(true);
-    const published = await publishForm(initialFormData.id, !initialFormData.is_published);
-    setIsPublishing(false);
-    
-    if (published) {
-      navigate('/form-builder');
+  // Initialize with default steps if data is empty
+  useEffect(() => {
+    // If the data is empty, we create a default form
+    if (data && data.length === 0) {
+      const defaultSteps = createDefaultForm();
+      setFormSteps(defaultSteps);
+      setPreviewRefresh(prev => prev + 1);
+    } else if (data && data.length > 0) {
+      // Otherwise use the data from props
+      setFormSteps(data);
     }
-  };
+  }, [data]);
   
   const addNewStep = () => {
     const newStep = {
@@ -107,7 +105,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       title: `خطوة جديدة ${formSteps.length + 1}`,
       fields: []
     };
-    setFormSteps([...formSteps, newStep]);
+    const updatedSteps = [...formSteps, newStep];
+    setFormSteps(updatedSteps);
     setCurrentEditStep(formSteps.length);
     setPreviewRefresh(prev => prev + 1);
   };
@@ -116,8 +115,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
       setFormSteps(template.data);
-      setFormTitle(template.title);
-      setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
       setPreviewRefresh(prev => prev + 1);
       toast.success(`تم تطبيق قالب ${template.title} بنجاح`);
@@ -125,10 +122,26 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   };
 
   const addFieldToStep = (type: FormField['type']) => {
-    const newField = createEmptyField(type);
-    const updatedSteps = [...formSteps];
-    updatedSteps[currentEditStep].fields.push(newField);
-    setFormSteps(updatedSteps);
+    if (formSteps.length === 0) {
+      // Create a first step if none exists
+      const newStep = {
+        id: "1",
+        title: "خطوة جديدة 1",
+        fields: [createEmptyField(type)]
+      };
+      setFormSteps([newStep]);
+    } else {
+      const newField = createEmptyField(type);
+      const updatedSteps = [...formSteps];
+      if (!updatedSteps[currentEditStep]) {
+        console.warn("Current edit step is invalid, defaulting to first step");
+        setCurrentEditStep(0);
+        updatedSteps[0].fields.push(newField);
+      } else {
+        updatedSteps[currentEditStep].fields.push(newField);
+      }
+      setFormSteps(updatedSteps);
+    }
     setPreviewRefresh(prev => prev + 1);
   };
 
@@ -140,6 +153,12 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const saveField = (updatedField: FormField) => {
     const updatedSteps = [...formSteps];
     const stepIndex = currentEditStep;
+    
+    if (stepIndex < 0 || stepIndex >= updatedSteps.length) {
+      console.error("Invalid step index when saving field");
+      return;
+    }
+    
     const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === updatedField.id);
     
     if (fieldIndex !== -1) {
@@ -153,14 +172,23 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   };
 
   const deleteField = (fieldId: string) => {
+    if (currentEditStep >= formSteps.length) {
+      console.error("Invalid current edit step when deleting field");
+      return;
+    }
+    
     const updatedSteps = [...formSteps];
-    const stepIndex = currentEditStep;
-    updatedSteps[stepIndex].fields = updatedSteps[stepIndex].fields.filter(f => f.id !== fieldId);
+    updatedSteps[currentEditStep].fields = updatedSteps[currentEditStep].fields.filter(f => f.id !== fieldId);
     setFormSteps(updatedSteps);
     setPreviewRefresh(prev => prev + 1);
   };
 
   const duplicateField = (field: FormField) => {
+    if (currentEditStep >= formSteps.length) {
+      console.error("Invalid current edit step when duplicating field");
+      return;
+    }
+    
     const newField = {
       ...field,
       id: `${field.id}-copy`,
@@ -168,10 +196,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     };
     
     const updatedSteps = [...formSteps];
-    const stepIndex = currentEditStep;
-    const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === field.id);
+    const fieldIndex = updatedSteps[currentEditStep].fields.findIndex(f => f.id === field.id);
     
-    updatedSteps[stepIndex].fields.splice(fieldIndex + 1, 0, newField);
+    if (fieldIndex === -1) {
+      console.error("Field not found when duplicating");
+      return;
+    }
+    
+    updatedSteps[currentEditStep].fields.splice(fieldIndex + 1, 0, newField);
     setFormSteps(updatedSteps);
     setPreviewRefresh(prev => prev + 1);
   };
@@ -205,9 +237,20 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     if (!over || active.id === over.id) return;
 
     const updatedSteps = [...formSteps];
+    
+    if (currentEditStep >= updatedSteps.length) {
+      console.error("Invalid current edit step when handling drag end for fields");
+      return;
+    }
+    
     const currentStep = updatedSteps[currentEditStep];
     const oldIndex = currentStep.fields.findIndex((field) => field.id === active.id);
     const newIndex = currentStep.fields.findIndex((field) => field.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) {
+      console.error("Field not found during drag operation");
+      return;
+    }
     
     currentStep.fields = arrayMove(currentStep.fields, oldIndex, newIndex);
     setFormSteps(updatedSteps);
@@ -222,14 +265,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setPreviewRefresh(prev => prev + 1);
   };
 
-  useEffect(() => {
-    // If the data is empty, we create a default form
-    if (initialFormData.data.length === 0) {
-      setFormSteps(createDefaultForm());
-      setPreviewRefresh(prev => prev + 1);
-    }
-  }, [initialFormData]);
-
+  // Safely create a new empty field
   const createEmptyField = (type: FormField['type']) => {
     let newField: FormField = {
       id: uuidv4(), // Use UUID from imported library
@@ -297,6 +333,23 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     return newField;
   };
 
+  // Safe getter for current step
+  const getCurrentStep = () => {
+    if (formSteps.length === 0) {
+      return null;
+    }
+    
+    if (currentEditStep >= formSteps.length) {
+      console.warn("Current edit step is out of bounds, defaulting to first step");
+      setCurrentEditStep(0);
+      return formSteps[0];
+    }
+    
+    return formSteps[currentEditStep];
+  };
+
+  const currentStep = getCurrentStep();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div className="lg:col-span-7 space-y-6">
@@ -305,7 +358,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                onClick={handleSaveForm}
                 disabled={isSaving}
                 className="flex items-center gap-2"
               >
@@ -327,8 +379,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 )}
               </Button>
               <Button 
-                variant={initialFormData.is_published ? "secondary" : "default"}
-                onClick={handlePublishForm}
+                variant="secondary"
                 disabled={isPublishing}
                 className="flex items-center gap-2"
               >
@@ -342,7 +393,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 ) : (
                   <FileCheck size={16} />
                 )}
-                <span>{initialFormData.is_published ? 'إلغاء النشر' : 'نشر النموذج'}</span>
+                <span>نشر النموذج</span>
               </Button>
             </div>
 
@@ -363,11 +414,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                     قوالب النماذج
                   </Button>
                 </DialogTrigger>
-                <FormTemplatesDialog 
-                  open={isTemplateDialogOpen}
-                  onSelect={applyTemplate} 
-                  onClose={() => setIsTemplateDialogOpen(false)} 
-                />
+                <DialogContent>
+                  <FormTemplatesDialog 
+                    open={isTemplateDialogOpen}
+                    onSelect={applyTemplate} 
+                    onClose={() => setIsTemplateDialogOpen(false)} 
+                  />
+                </DialogContent>
               </Dialog>
             </div>
           </CardHeader>
@@ -375,7 +428,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             <Tabs defaultValue="steps">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="steps">الخطوات</TabsTrigger>
-                <TabsTrigger value="settings">الإعدادات</TabsTrigger>
+                <TabsTrigger value="fields">الحقول</TabsTrigger>
                 <TabsTrigger value="design">التصميم</TabsTrigger>
               </TabsList>
               
@@ -435,33 +488,35 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3 text-right">
-                    حقول الخطوة: {formSteps[currentEditStep]?.title}
+                    حقول الخطوة: {currentStep?.title || 'لا توجد خطوات'}
                   </h3>
                   
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEndFields}
-                  >
-                    <SortableContext
-                      items={formSteps[currentEditStep]?.fields.map(field => field.id) || []}
-                      strategy={verticalListSortingStrategy}
+                  {currentStep && (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEndFields}
                     >
-                      <div className="space-y-2">
-                        {formSteps[currentEditStep]?.fields.map((field) => (
-                          <SortableField
-                            key={field.id}
-                            field={field}
-                            onEdit={() => editField(field)}
-                            onDuplicate={() => duplicateField(field)}
-                            onDelete={() => deleteField(field.id)}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
+                      <SortableContext
+                        items={currentStep.fields.map(field => field.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-2">
+                          {currentStep.fields.map((field) => (
+                            <SortableField
+                              key={field.id}
+                              field={field}
+                              onEdit={() => editField(field)}
+                              onDuplicate={() => duplicateField(field)}
+                              onDelete={() => deleteField(field.id)}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  )}
                   
-                  {formSteps[currentEditStep]?.fields.length === 0 && (
+                  {(!currentStep || currentStep.fields.length === 0) && (
                     <div className="text-center py-8 text-gray-500 border rounded-lg">
                       <p>لا توجد حقول في هذه الخطوة</p>
                       <p className="text-sm">أضف حقولًا من القائمة أعلاه</p>
@@ -470,33 +525,34 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 </div>
               </TabsContent>
               
-              <TabsContent value="settings" className="mt-6">
-                <div className="space-y-4 text-right">
-                  <div className="form-control">
-                    <label className="form-label">عنوان النموذج</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                    />
-                  </div>
+              <TabsContent value="fields" className="mt-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-right">
+                    حقول النموذج
+                  </h3>
                   
-                  <div className="form-control">
-                    <label className="form-label">وصف النموذج</label>
-                    <textarea 
-                      className="form-input h-24" 
-                      value={formDescription}
-                      onChange={(e) => setFormDescription(e.target.value)}
-                    ></textarea>
-                  </div>
+                  {availableFieldTypes.map((fieldType) => (
+                    <div 
+                      key={fieldType.type} 
+                      className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => addFieldToStep(fieldType.type)}
+                    >
+                      <Button variant="ghost" size="sm" className="p-0">
+                        <Plus size={16} />
+                      </Button>
+                      <div className="flex items-center gap-2 text-right">
+                        <span>{fieldType.label}</span>
+                        {fieldType.icon}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </TabsContent>
               
               <TabsContent value="design" className="mt-6">
                 <div className="space-y-4 text-right">
-                  <div className="form-control">
-                    <label className="form-label">اللون الرئيسي</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">اللون الرئيسي</label>
                     <div className="flex gap-2 items-center">
                       <input
                         type="color"
@@ -508,15 +564,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                         type="text"
                         value={formStyle.primaryColor}
                         onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                        className="flex-1 form-input"
+                        className="flex-1 border rounded px-3 py-2"
                       />
                     </div>
                   </div>
                   
-                  <div className="form-control">
-                    <label className="form-label">استدارة الحواف</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">استدارة الحواف</label>
                     <select
-                      className="form-select"
+                      className="w-full border rounded px-3 py-2"
                       value={formStyle.borderRadius}
                       onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
                     >
@@ -528,10 +584,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                     </select>
                   </div>
                   
-                  <div className="form-control">
-                    <label className="form-label">حجم الخط</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">حجم الخط</label>
                     <select
-                      className="form-select"
+                      className="w-full border rounded px-3 py-2"
                       value={formStyle.fontSize}
                       onChange={(e) => handleStyleChange('fontSize', e.target.value)}
                     >
@@ -542,10 +598,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                     </select>
                   </div>
                   
-                  <div className="form-control">
-                    <label className="form-label">نمط الأزرار</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">نمط الأزرار</label>
                     <select
-                      className="form-select"
+                      className="w-full border rounded px-3 py-2"
                       value={formStyle.buttonStyle}
                       onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
                     >
@@ -584,12 +640,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
           
           <FormPreview 
             key={previewRefresh}
-            formTitle={formTitle}
-            formDescription={formDescription}
+            formTitle="نموذج جديد"
+            formDescription="وصف النموذج"
             currentStep={currentPreviewStep}
-            totalSteps={formSteps.length}
-            formStyle={formStyle}
-            fields={formSteps[currentPreviewStep - 1]?.fields || []}
+            totalSteps={formSteps.length || 1}
+            style={formStyle}
+            fields={formSteps.length > 0 && currentPreviewStep <= formSteps.length
+              ? formSteps[currentPreviewStep - 1]?.fields || [] 
+              : []}
           >
             <div></div>
           </FormPreview>
@@ -626,11 +684,16 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       </div>
       
       {isFieldEditorOpen && currentEditingField && (
-        <FieldEditor
-          field={currentEditingField}
-          onSave={saveField}
-          onClose={() => setIsFieldEditorOpen(false)}
-        />
+        <Dialog open={isFieldEditorOpen} onOpenChange={setIsFieldEditorOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogTitle>تحرير الحقل</DialogTitle>
+            <FieldEditor
+              field={currentEditingField}
+              onSave={saveField}
+              onClose={() => setIsFieldEditorOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
       
       <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
@@ -638,8 +701,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
           <DialogTitle className="text-right">تخصيص مظهر النموذج</DialogTitle>
           
           <div className="space-y-4 py-4 text-right">
-            <div className="form-control">
-              <label className="form-label">اللون الرئيسي</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">اللون الرئيسي</label>
               <div className="flex gap-2 items-center">
                 <input
                   type="color"
@@ -651,15 +714,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                   type="text"
                   value={formStyle.primaryColor}
                   onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                  className="flex-1 form-input"
+                  className="flex-1 border rounded px-3 py-2"
                 />
               </div>
             </div>
             
-            <div className="form-control">
-              <label className="form-label">استدارة الحواف</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">استدارة الحواف</label>
               <select
-                className="form-select"
+                className="w-full border rounded px-3 py-2"
                 value={formStyle.borderRadius}
                 onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
               >
@@ -671,10 +734,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
               </select>
             </div>
             
-            <div className="form-control">
-              <label className="form-label">حجم الخط</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">حجم الخط</label>
               <select
-                className="form-select"
+                className="w-full border rounded px-3 py-2"
                 value={formStyle.fontSize}
                 onChange={(e) => handleStyleChange('fontSize', e.target.value)}
               >
@@ -685,10 +748,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
               </select>
             </div>
             
-            <div className="form-control">
-              <label className="form-label">نمط الأزرار</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">نمط الأزرار</label>
               <select
-                className="form-select"
+                className="w-full border rounded px-3 py-2"
                 value={formStyle.buttonStyle}
                 onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
               >
