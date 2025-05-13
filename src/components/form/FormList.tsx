@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, LinkIcon } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
@@ -40,32 +40,6 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [products, setProducts] = useState<{[key: string]: string}>({});
-  
-  // Load products to display their names instead of IDs - this is a mock function
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        // Mock products data - in a real app this would come from a Shopify API
-        const mockProducts = [
-          { id: 'product1', title: 'منتج تجريبي 1' },
-          { id: 'product2', title: 'منتج تجريبي 2' },
-          { id: 'product3', title: 'منتج تجريبي 3' },
-        ];
-        
-        const productMap: {[key: string]: string} = {};
-        mockProducts.forEach(product => {
-          productMap[product.id] = product.title;
-        });
-        
-        setProducts(productMap);
-      } catch (error) {
-        console.error('Error loading products for form list:', error);
-      }
-    };
-    
-    loadProducts();
-  }, []);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -149,19 +123,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                 {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
               </span>
             </div>
-            <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-              {form.description || 'لا يوجد وصف'}
-            </p>
-            
-            {/* Display associated product if available */}
-            {form.productId && (
-              <div className="flex items-center text-xs text-gray-500 mt-2">
-                <LinkIcon size={12} className="mr-1" />
-                <span>
-                  مرتبط بمنتج: {products[form.productId] || form.productId}
-                </span>
-              </div>
-            )}
+            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
           </CardContent>
           <CardFooter className="border-t pt-4">
             <Button 

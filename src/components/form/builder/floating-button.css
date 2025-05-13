@@ -1,0 +1,51 @@
+
+/* Animation styles for floating button */
+@keyframes pulse-animation {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake-animation {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes bounce-animation {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes wiggle-animation {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flash-animation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.pulse-animation {
+  animation: pulse-animation 1.5s infinite ease-in-out;
+}
+
+.shake-animation {
+  animation: shake-animation 1s infinite ease-in-out;
+}
+
+.bounce-animation {
+  animation: bounce-animation 1s infinite ease-in-out;
+}
+
+.wiggle-animation {
+  animation: wiggle-animation 1.5s infinite ease-in-out;
+}
+
+.flash-animation {
+  animation: flash-animation 1.5s infinite ease-in-out;
+}

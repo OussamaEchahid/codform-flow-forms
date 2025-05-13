@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
-import FormPreview from '@/components/form/preview/FormPreview';
+import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
 
 interface FormStyle {
