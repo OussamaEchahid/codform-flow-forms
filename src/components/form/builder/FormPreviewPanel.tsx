@@ -1,23 +1,14 @@
 
 import React from 'react';
+import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
-import { FloatingButtonConfig } from '@/lib/form-utils';
 
 interface FormStyle {
   primaryColor: string;
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-}
-
-interface FormField {
-  id: string;
-  type: string;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-  options?: Array<{label: string; value: string}>;
 }
 
 interface FormPreviewPanelProps {
@@ -62,7 +53,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formDescription={formDescription}
           currentStep={currentStep}
           totalSteps={totalSteps}
-          style={formStyle}
+          formStyle={formStyle}
           fields={fields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}

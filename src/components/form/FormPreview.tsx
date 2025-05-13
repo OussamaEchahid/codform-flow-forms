@@ -1,235 +1,180 @@
 
-import React from 'react';
-import { FormStyle } from '@/hooks/useFormStore';
-import { FloatingButtonConfig } from '@/lib/form-utils';
+import React, { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
+import FormFieldComponent from './preview/FormField';
+import FloatingButton from './preview/FloatingButton';
 
-export interface FormPreviewProps {
-  children?: React.ReactNode;
+interface FormPreviewProps {
   formTitle: string;
-  formDescription: string;
+  formDescription?: string;
   currentStep: number;
   totalSteps: number;
-  fields: any[];
-  style?: FormStyle;
+  children: React.ReactNode;
+  formStyle?: {
+    primaryColor?: string;
+    borderRadius?: string;
+    fontSize?: string;
+    buttonStyle?: string;
+  };
+  fields?: FormField[];
+  hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
-  hideFloatingButtonPreview?: boolean;
+  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
-  children,
   formTitle,
   formDescription,
   currentStep,
   totalSteps,
-  fields,
-  style = {
+  children,
+  formStyle = {
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
   },
+  fields = [],
+  hideHeader = false,
   floatingButton,
-  hideFloatingButtonPreview = false
+  hideFloatingButtonPreview = false, // Default to false to show in preview
 }) => {
-  const buttonRadius = style?.buttonStyle === 'pill' ? '9999px' : style?.borderRadius || '0.5rem';
+  const { language } = useI18n();
+  const [key] = useState(0);
   
-  // Safely access style properties with fallbacks
-  const primaryColor = style?.primaryColor || '#9b87f5';
-  const borderRadius = style?.borderRadius || '0.5rem';
-  const fontSize = style?.fontSize || '1rem';
+  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
+  const sanitizedFields = React.useMemo(() => {
+    // Ensure cart-items and cart-summary have empty labels by default
+    const updatedFields = fields.map(field => {
+      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
+        return { ...field, label: '' };
+      }
+      return field;
+    });
+    
+    // إذا كان هناك form-title موجود، نستخدمه
+    if (updatedFields.some(field => field.type === 'form-title')) {
+      return updatedFields;
+    }
+    
+    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
+    const formTitleField: FormField = {
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: formTitle,
+      helpText: formDescription,
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '1.5rem',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '0.875rem',
+        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
+      }
+    };
+    
+    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
+    const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
+    
+    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
+    
+    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
+    if (!hasSubmitButton) {
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-${Date.now()}`,
+        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          fontSize: '1.2rem',
+          animation: true,
+          animationType: 'pulse',
+        },
+      };
+      result.push(submitButton);
+    }
+    
+    return result;
+  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
   return (
-    <div
-      className="bg-white rounded-lg shadow-sm border p-6"
+    <div 
+      key={key}
+      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
-        borderRadius: borderRadius,
-        fontSize: fontSize
-      }}
+        fontSize: formStyle.fontSize,
+        '--form-primary-color': formStyle.primaryColor,
+        borderRadius: formStyle.borderRadius,
+      } as React.CSSProperties}
     >
-      <div className="mb-6 text-center">
-        <h3 className="text-xl font-bold mb-2">{formTitle}</h3>
-        {formDescription && (
-          <p className="text-gray-600">{formDescription}</p>
-        )}
-      </div>
-      
-      {/* Progress indicator */}
       {totalSteps > 1 && (
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">الخطوة {currentStep} من {totalSteps}</span>
-            <span className="text-sm font-medium">{Math.round((currentStep / totalSteps) * 100)}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div 
-              className="h-2.5 rounded-full" 
-              style={{
-                width: `${(currentStep / totalSteps) * 100}%`,
-                backgroundColor: primaryColor
-              }}
-            ></div>
+        <div className="px-4 py-2 bg-gray-50">
+          <div className="flex items-center">
+            <div className="flex-1 flex">
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <div key={i} className="flex-1 flex items-center">
+                  <div 
+                    className={cn(
+                      "h-2 flex-1",
+                      i < currentStep ? "bg-[var(--form-primary-color)]" : "bg-gray-200"
+                    )}
+                  ></div>
+                  <div 
+                    className={cn(
+                      "rounded-full h-5 w-5 flex items-center justify-center text-xs font-medium",
+                      i + 1 === currentStep 
+                        ? "bg-[var(--form-primary-color)] text-white" 
+                        : i < currentStep 
+                          ? "bg-[var(--form-primary-color)] text-white"
+                          : "bg-gray-200 text-gray-600"
+                    )}
+                  >
+                    {i + 1}
+                  </div>
+                  {i < totalSteps - 1 && (
+                    <div 
+                      className={cn(
+                        "h-2 flex-1",
+                        i + 1 < currentStep ? "bg-[var(--form-primary-color)]" : "bg-gray-200"
+                      )}
+                    ></div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
       
-      {/* Form fields */}
-      <div className="space-y-4">
-        {fields.map((field, index) => (
-          <div key={field.id || index} className="space-y-2">
-            {field.type === 'text' && (
-              <>
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <input 
-                  type="text" 
-                  className="w-full px-3 py-2 border rounded-md" 
-                  style={{ borderRadius: borderRadius }}
-                  placeholder={field.placeholder || ''}
-                />
-              </>
-            )}
-            
-            {field.type === 'textarea' && (
-              <>
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <textarea 
-                  className="w-full px-3 py-2 border rounded-md" 
-                  style={{ borderRadius: borderRadius }}
-                  placeholder={field.placeholder || ''}
-                  rows={4}
-                ></textarea>
-              </>
-            )}
-            
-            {field.type === 'select' && (
-              <>
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <select 
-                  className="w-full px-3 py-2 border rounded-md bg-white" 
-                  style={{ borderRadius: borderRadius }}
-                >
-                  <option value="">{field.placeholder || 'اختر...'}</option>
-                  {(field.options || []).map((option: any, optIdx: number) => (
-                    <option key={optIdx} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            
-            {field.type === 'checkbox' && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <div className="space-y-1">
-                  {(field.options || []).map((option: any, optIdx: number) => (
-                    <div key={optIdx} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                        id={`option-${field.id}-${optIdx}`}
-                      />
-                      <label htmlFor={`option-${field.id}-${optIdx}`} className="mr-2 text-sm text-gray-700">
-                        {option.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {field.type === 'radio' && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <div className="space-y-1">
-                  {(field.options || []).map((option: any, optIdx: number) => (
-                    <div key={optIdx} className="flex items-center">
-                      <input
-                        type="radio"
-                        className="h-4 w-4 text-indigo-600 border-gray-300"
-                        id={`radio-${field.id}-${optIdx}`}
-                        name={field.id}
-                      />
-                      <label htmlFor={`radio-${field.id}-${optIdx}`} className="mr-2 text-sm text-gray-700">
-                        {option.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {field.type === 'email' && (
-              <>
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <input 
-                  type="email" 
-                  className="w-full px-3 py-2 border rounded-md" 
-                  style={{ borderRadius: borderRadius }}
-                  placeholder={field.placeholder || ''}
-                />
-              </>
-            )}
-            
-            {field.type === 'phone' && (
-              <>
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <input 
-                  type="tel" 
-                  className="w-full px-3 py-2 border rounded-md" 
-                  style={{ borderRadius: borderRadius }}
-                  placeholder={field.placeholder || ''}
-                />
-              </>
-            )}
-
-            {field.type === 'submit' && (
-              <button
-                type="button"
-                className="w-full py-2 px-4 text-white font-medium shadow-sm"
-                style={{ 
-                  backgroundColor: primaryColor,
-                  borderRadius: buttonRadius
-                }}
-              >
-                {field.label || 'إرسال'}
-              </button>
-            )}
+      <div 
+        className="p-4" 
+        style={{
+          borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
+          direction: language === 'ar' ? 'rtl' : 'ltr',
+        }}
+      >
+        {sanitizedFields.length > 0 ? (
+          <div className="space-y-4">
+            {sanitizedFields.map(field => (
+              <FormFieldComponent 
+                key={field.id} 
+                field={field} 
+                formStyle={formStyle}
+              />
+            ))}
           </div>
-        ))}
+        ) : (
+          children
+        )}
       </div>
-      
-      {children}
 
-      {/* Floating button preview (if enabled) */}
-      {!hideFloatingButtonPreview && floatingButton && floatingButton.enabled && (
-        <div className="mt-6 p-3 border border-blue-200 bg-blue-50 rounded">
-          <div className="text-sm text-blue-600 mb-2">
-            Floating button preview: "{floatingButton.text || 'Order Now'}"
-          </div>
-          <button
-            className="w-full py-2 px-4 text-white font-medium shadow-sm text-center"
-            style={{ 
-              backgroundColor: floatingButton.backgroundColor || primaryColor,
-              borderRadius: '4px',
-            }}
-          >
-            {floatingButton.text || 'Order Now'}
-          </button>
-        </div>
+      {/* Render floating button if enabled AND not hidden for preview purposes */}
+      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
+        <FloatingButton config={floatingButton} isPreview={true} />
       )}
     </div>
   );

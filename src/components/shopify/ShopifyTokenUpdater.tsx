@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
@@ -108,8 +108,10 @@ export const ShopifyTokenUpdater = () => {
       console.error('Error updating token:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
-      toast.error("فشل التحديث", {
+      toast({
+        title: "فشل التحديث",
         description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

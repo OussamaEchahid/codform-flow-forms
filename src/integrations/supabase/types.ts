@@ -64,7 +64,6 @@ export type Database = {
           id: string
           is_published: boolean
           primaryColor: string | null
-          product_id: string | null
           shop_id: string | null
           style: Json | null
           submitbuttontext: string | null
@@ -82,7 +81,6 @@ export type Database = {
           id?: string
           is_published?: boolean
           primaryColor?: string | null
-          product_id?: string | null
           shop_id?: string | null
           style?: Json | null
           submitbuttontext?: string | null
@@ -100,7 +98,6 @@ export type Database = {
           id?: string
           is_published?: boolean
           primaryColor?: string | null
-          product_id?: string | null
           shop_id?: string | null
           style?: Json | null
           submitbuttontext?: string | null

@@ -25,21 +25,19 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { ShopifyProduct } from '@/lib/shopify/types';
 
 interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
-  findProductById?: (productId: string) => ShopifyProduct | undefined;
 }
 
-const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm, findProductById }) => {
+const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
 
@@ -75,84 +73,69 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm, fin
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {forms.map((form) => {
-        // Try to find product information if a product_id exists
-        const productInfo = form.product_id && findProductById ? findProductById(form.product_id) : undefined;
-        
-        return (
-          <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg truncate">{form.title}</CardTitle>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      <span>تعديل</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
-                      {form.is_published ? (
-                        <>
-                          <EyeOff className="mr-2 h-4 w-4" />
-                          <span>إلغاء النشر</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>نشر</span>
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setFormToDelete(form.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      <span>حذف</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center mb-2">
-                <Badge variant={form.is_published ? "success" : "secondary"}>
-                  {form.is_published ? 'منشور' : 'مسودة'}
-                </Badge>
-                <span className="text-xs text-gray-500 rtl:text-left">
-                  {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
-              
-              {/* Product information */}
-              {productInfo && (
-                <div className="mt-3 flex items-center border-t pt-3">
-                  <ShoppingBag className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-xs text-gray-600 truncate">
-                    {productInfo.title}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button 
-                variant="default" 
-                onClick={() => onSelectForm(form.id)}
-                className="w-full"
-              >
-                عرض وتعديل
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      })}
+      {forms.map((form) => (
+        <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
+          <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg truncate">{form.title}</CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>تعديل</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
+                    {form.is_published ? (
+                      <>
+                        <EyeOff className="mr-2 h-4 w-4" />
+                        <span>إلغاء النشر</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>نشر</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setFormToDelete(form.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    <span>حذف</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center mb-2">
+              <Badge variant={form.is_published ? "success" : "secondary"}>
+                {form.is_published ? 'منشور' : 'مسودة'}
+              </Badge>
+              <span className="text-xs text-gray-500 rtl:text-left">
+                {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <Button 
+              variant="default" 
+              onClick={() => onSelectForm(form.id)}
+              className="w-full"
+            >
+              عرض وتعديل
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
 
       <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
         <AlertDialogContent>

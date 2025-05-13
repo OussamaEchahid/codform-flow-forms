@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 
 interface ShopifyFormSync {
@@ -77,8 +78,7 @@ export const useShopify = () => {
 
   // Load products when connected
   const loadProducts = useCallback(async () => {
-    if (!shop) {
-      console.warn('Cannot load products - no shop selected');
+    if (!isConnected || !shop) {
       return [];
     }
 
@@ -92,32 +92,18 @@ export const useShopify = () => {
         .limit(1);
 
       if (tokenError || !tokenData || tokenData.length === 0) {
-        toast.error('Token not found. Please reconnect to Shopify.');
         throw new Error('Token not found');
       }
 
       const token = tokenData[0].access_token || '';
       
-      console.log('Fetching products for shop:', shop);
-      
-      // Fetch products using edge function with clear cache buster
-      const timestamp = new Date().getTime();
+      // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { 
-          shop, 
-          accessToken: token,
-          timestamp // Add timestamp to bust cache
-        }
+        body: { shop, accessToken: token }
       });
 
       if (error) {
         throw error;
-      }
-
-      if (!data?.products || data.products.length === 0) {
-        toast.warning('No products found in your Shopify store. Please add products to continue.');
-      } else {
-        console.log(`Loaded ${data?.products?.length || 0} products from Shopify`);
       }
 
       setProducts(data?.products || []);
@@ -127,10 +113,9 @@ export const useShopify = () => {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
-      toast.error('Failed to load products from Shopify.');
       return [];
     }
-  }, [shop]);
+  }, [isConnected, shop]);
 
   // Test connection
   const testConnection = useCallback(async (withRetry = false) => {

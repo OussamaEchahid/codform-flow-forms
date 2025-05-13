@@ -26,8 +26,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:border-amber-200 group-[.toast]:bg-amber-50 group-[.toast]:text-amber-800",
           error:
             "group-[.toast]:border-red-200 group-[.toast]:bg-red-50 group-[.toast]:text-red-800",
-          info:
-            "group-[.toast]:border-blue-200 group-[.toast]:bg-blue-50 group-[.toast]:text-blue-800",
         },
       }}
       {...props}

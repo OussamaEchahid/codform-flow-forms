@@ -1,203 +1,198 @@
+
 import React, { useState, useEffect } from 'react';
-import { useShopify } from '@/hooks/useShopify';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
-import { Loader2, ShoppingBag, Check, AlertCircle } from 'lucide-react';
-import { FormStyle } from '@/hooks/useFormStore';
+import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ShopifyIntegrationProps {
   formId: string;
-  formStyle: FormStyle;
-  productId?: string;
-  onSave: (settings: any) => void;
-}
-
-interface ShopifyFormSync {
-  formId: string;
-  settings: {
-    position: "product-page" | "cart-page" | "checkout";
-    style: FormStyle;
-    products: string[];
-    insertionMethod: "auto" | "manual"; // Fixed to strictly typed string literal
+  formTitle?: string;
+  formDescription?: string;
+  formStyle?: {
+    primaryColor?: string;
   };
+  onSave?: (settings: any) => void;
+  isSyncing?: boolean;
+  formTitleElement?: any;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
-  formId, 
-  formStyle, 
-  productId, 
-  onSave 
+  formId,
+  formTitle,
+  formDescription,
+  formStyle = { primaryColor: '#9b87f5' },
+  isSyncing = false,
+  formTitleElement
 }) => {
-  const { isConnected, syncFormWithShopify, products, loadProducts, isLoading } = useShopify();
   const { t, language } = useI18n();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [productInfo, setProductInfo] = useState<any>(null);
-
+  const [copied, setCopied] = useState(false);
+  // الترويسة مخفية افتراضيًا الآن
+  const [hideHeader] = useState(true);
+  
+  // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
   useEffect(() => {
-    // Load current product information
-    if (productId && products && products.length > 0) {
-      const product = products.find(p => 
-        p.id === productId || p.id.endsWith(`/${productId}`)
-      );
-      setProductInfo(product);
+    let timeout: NodeJS.Timeout;
+    if (copied) {
+      timeout = setTimeout(() => setCopied(false), 3000);
     }
-  }, [productId, products]);
-
-  useEffect(() => {
-    if (isConnected) {
-      // Always reload products to ensure we have real ones
-      loadProducts();
-    }
-  }, [isConnected, loadProducts]);
-
-  const handleSyncForm = async () => {
-    if (!formId || !productId) {
-      toast.error(language === 'ar' ? 'معلومات النموذج أو المنتج غير مكتملة' : 'Form or product information is incomplete');
-      return;
-    }
-    
-    try {
-      setIsSyncing(true);
-      
-      const syncData: ShopifyFormSync = {
-        formId: formId,
-        settings: {
-          position: "product-page",
-          style: formStyle,
-          products: [productId],
-          insertionMethod: 'auto' as "auto" // Type assertion to ensure it matches the literal type
-        }
-      };
-      
-      // Call sync function
-      await syncFormWithShopify(syncData);
-      
-      toast.success(language === 'ar' 
-        ? 'تم مزامنة النموذج مع Shopify بنجاح' 
-        : 'Form synced with Shopify successfully'
-      );
-      
-      if (onSave) {
-        onSave({
-          product_id: productId // Ensure we use the correct field name
-        });
-      }
-    } catch (error) {
-      console.error('Error syncing form with Shopify:', error);
-      toast.error(language === 'ar' 
-        ? 'حدث خطأ أثناء مزامنة النموذج مع Shopify' 
-        : 'Error syncing form with Shopify'
-      );
-    } finally {
-      setIsSyncing(false);
-    }
+    return () => clearTimeout(timeout);
+  }, [copied]);
+  
+  const handleCopyFormId = () => {
+    navigator.clipboard.writeText(formId);
+    setCopied(true);
+    toast.success(
+      language === 'ar' 
+        ? 'تم نسخ معرّف النموذج بنجاح' 
+        : 'Form ID copied successfully'
+    );
   };
 
-  // Function to get product name
-  const getProductName = () => {
-    if (!productInfo) return null;
-    return productInfo.title;
-  };
+  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
-    <div className="space-y-6">
-      {!isConnected ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                {language === 'ar' ? 'تنبيه اتصال' : 'Connection Alert'}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {language === 'ar' 
-                  ? 'أنت غير متصل بمتجر Shopify. يرجى الاتصال بمتجر Shopify لمزامنة النموذج.'
-                  : 'You are not connected to a Shopify store. Please connect to sync your form.'}
-              </p>
+    <Card className="mt-4">
+      <CardHeader className="pb-3">
+        <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+          {language === 'ar' ? 'دمج النموذج في متجرك' : 'Integrate Form in Your Store'}
+        </CardTitle>
+        <CardDescription className={language === 'ar' ? 'text-right' : ''}>
+          {language === 'ar' 
+            ? 'لاستخدام هذا النموذج في متجرك، قم بنسخ معرّف النموذج واستخدامه في إعدادات البلوك داخل متجرك' 
+            : 'To use this form in your store, copy the form ID and use it in the block settings in your store'}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="space-y-4">
+          <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
+                : 'To add this form to your store, follow these steps:'}
+              <ol className={`mt-2 list-decimal ${language === 'ar' ? 'mr-4' : 'ml-4'} space-y-1`}>
+                <li>
+                  {language === 'ar' 
+                    ? 'اذهب إلى "تخصيص المتجر" ثم انتقل إلى صفحة المنتج' 
+                    : 'Go to "Customize Store" then navigate to the product page'}
+                </li>
+                <li>
+                  {language === 'ar' 
+                    ? 'انقر على "إضافة كتلة" واختر "نموذج الدفع عند الاستلام"' 
+                    : 'Click "Add Block" and choose "Cash On Delivery Form"'}
+                </li>
+                <li>
+                  {language === 'ar' 
+                    ? 'الصق معرّف النموذج في حقل "معرّف النموذج" في الإعدادات' 
+                    : 'Paste the form ID in the "Form ID" field in settings'}
+                </li>
+              </ol>
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex flex-col space-y-4">
+            <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+              <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+                {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
+              </span>
+              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{formId}</code>
               <Button 
-                onClick={() => window.location.href = '/shopify'}
-                variant="default"
+                variant="ghost" 
+                size="sm" 
+                className="ml-2" 
+                onClick={handleCopyFormId}
               >
-                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect to Shopify Store'}
+                {copied ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-medium text-lg mb-2">
-                    {language === 'ar' ? 'المنتج المرتبط' : 'Linked Product'}
-                  </h3>
-                  
-                  <div className="flex items-center gap-3 mt-4">
-                    <div className="bg-green-100 rounded-full p-2">
-                      <ShoppingBag className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">{getProductName() || 'Unknown Product'}</div>
-                      <div className="text-sm text-gray-500">
-                        {productId ? `ID: ${productId}` : 'No product ID'}
-                      </div>
-                    </div>
-                  </div>
+            
+            <div className="flex items-center justify-between py-2 border-t">
+              <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
+                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر (مفعل افتراضيًا)' : 'Hide form header in store (enabled by default)'}
+                <p className="text-sm text-gray-500 mt-1">
+                  {language === 'ar' 
+                    ? 'الترويسة مخفية تلقائيًا لتجنب العناوين المكررة في صفحة المنتج' 
+                    : 'The header is hidden automatically to avoid duplicate titles in the product page'}
+                </p>
+              </Label>
+              <Switch 
+                id="hide-header"
+                checked={hideHeader}
+                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
+              />
+            </div>
+            
+            {formTitleElement && (
+              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+                  {language === 'ar' ? 'عنوان النموذج المخصص:' : 'Custom Form Title:'}
+                </span>
+                <div className="p-2 bg-gray-100 rounded text-sm flex-1">
+                  <span className="font-semibold">✓</span> {language === 'ar' ? 'تم تعيين عنوان مخصص' : 'Custom title configured'}
                 </div>
-                
-                <Button
-                  onClick={handleSyncForm}
-                  disabled={isSyncing || !productId}
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {language === 'ar' ? 'جاري المزامنة...' : 'Syncing...'}
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      {language === 'ar' ? 'مزامنة' : 'Sync'}
-                    </>
-                  )}
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-          
-          <div className="mt-6">
-            <h3 className="font-medium text-lg mb-2">
-              {language === 'ar' ? 'معلومات النموذج' : 'Form Information'}
-            </h3>
-            <div className="bg-gray-50 rounded-md p-4 flex flex-col gap-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  {language === 'ar' ? 'معرف النموذج:' : 'Form ID:'}
+            )}
+            
+            {formTitle && !formTitleElement && (
+              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
+                  {language === 'ar' ? 'عنوان النموذج:' : 'Form Title:'}
                 </span>
-                <span className="font-mono">{formId}</span>
+                <span className="p-2 bg-gray-100 rounded text-sm flex-1">{formTitle}</span>
               </div>
-              
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  {language === 'ar' ? 'موضع العرض:' : 'Display Position:'}
-                </span>
-                <span>{language === 'ar' ? 'صفحة المنتج' : 'Product Page'}</span>
-              </div>
-              
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  {language === 'ar' ? 'طريقة الإدراج:' : 'Insertion Method:'}
-                </span>
-                <span>{language === 'ar' ? 'تلقائي' : 'Automatic'}</span>
+            )}
+            
+            <div className={`flex flex-col ${language === 'ar' ? 'items-end' : 'items-start'}`}>
+              <span className="text-sm font-medium mb-2">
+                {language === 'ar' ? 'إعدادات التنسيق:' : 'Styling Settings:'}
+              </span>
+              <div className="flex flex-wrap gap-2 w-full">
+                {formStyle.primaryColor && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: formStyle.primaryColor }}></div>
+                    {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
-        </>
-      )}
-    </div>
+
+          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className={`text-amber-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'تأكد من نشر النموذج قبل استخدامه في متجرك. النماذج غير المنشورة لن تظهر للعملاء.' 
+                : 'Make sure to publish the form before using it in your store. Unpublished forms will not appear to customers.'}
+            </AlertDescription>
+          </Alert>
+          
+          <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
+                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
+            </AlertDescription>
+          </Alert>
+          
+          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
+          <Alert variant="default" className="bg-green-50 border-green-200">
+            <Info className="h-4 w-4 text-green-600" />
+            <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar'
+                ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
+                : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
