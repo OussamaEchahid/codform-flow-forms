@@ -1,20 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Plus, 
-  Trash2, 
-  Move, 
+  Trash2,
   GripVertical,
-  ChevronUp,
-  ChevronDown,
-  Settings,
-  Copy
+  Copy,
+  Settings
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -32,9 +26,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import SortableField from './SortableField';
 import { toast } from 'sonner';
 
 // Basic field types
@@ -59,67 +52,20 @@ interface FieldType {
   options?: Array<{value: string; label: string}>;
 }
 
-// SortableField component
-const SortableField = ({ field, onEdit, onDelete, onDuplicate }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: field.id });
-  
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-  
-  return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center border rounded-md p-3 bg-white mb-2 group"
-    >
-      <div className="cursor-move text-gray-400" {...attributes} {...listeners}>
-        <GripVertical size={16} />
-      </div>
-      
-      <div className="flex-1 mx-4">
-        <div className="font-medium">{field.label || 'حقل بدون عنوان'}</div>
-        <div className="text-sm text-gray-500">{fieldTypes.find(ft => ft.value === field.type)?.label}</div>
-      </div>
-      
-      <div className="flex space-x-2">
-        <button
-          onClick={() => onEdit(field)}
-          className="text-gray-500 hover:text-gray-700 p-1"
-          title="تعديل"
-        >
-          <Settings size={16} />
-        </button>
-        <button
-          onClick={() => onDuplicate(field)}
-          className="text-gray-500 hover:text-gray-700 p-1"
-          title="نسخ"
-        >
-          <Copy size={16} />
-        </button>
-        <button
-          onClick={() => onDelete(field.id)}
-          className="text-red-500 hover:text-red-700 p-1"
-          title="حذف"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Field Editor Dialog
-const FieldEditorDialog = ({ field, onSave, onClose }) => {
+const FieldEditorDialog = ({ field, onSave, onClose }: { 
+  field: FieldType, 
+  onSave: (field: FieldType) => void, 
+  onClose: () => void 
+}) => {
   const [editedField, setEditedField] = useState<FieldType>({ ...field });
-  const [options, setOptions] = useState(field.options || []);
+  const [options, setOptions] = useState<Array<{value: string; label: string}>>(field.options || []);
   
-  const handleChange = (key, value) => {
+  const handleChange = (key: string, value: any) => {
     setEditedField(prev => ({ ...prev, [key]: value }));
   };
   
-  const handleOptionChange = (index, value) => {
+  const handleOptionChange = (index: number, value: string) => {
     const newOptions = [...options];
     newOptions[index] = { ...newOptions[index], label: value };
     setOptions(newOptions);
@@ -129,7 +75,7 @@ const FieldEditorDialog = ({ field, onSave, onClose }) => {
     setOptions([...options, { value: `option-${options.length + 1}`, label: `الخيار ${options.length + 1}` }]);
   };
   
-  const removeOption = (index) => {
+  const removeOption = (index: number) => {
     setOptions(options.filter((_, i) => i !== index));
   };
   
@@ -262,11 +208,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const [currentEditingField, setCurrentEditingField] = useState<FieldType | null>(null);
   const [showFieldEditor, setShowFieldEditor] = useState(false);
   
-  // Update parent when our local data changes
-  useEffect(() => {
-    onChange(formData);
-  }, [formData, onChange]);
-  
   // Setup DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -279,11 +220,32 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
     })
   );
   
+  // Update parent when our local data changes - using useCallback to prevent dependency loop
+  const updateParent = useCallback(() => {
+    onChange(formData);
+  }, [formData, onChange]);
+  
+  // Update parent data after initial render and when formData changes
+  useEffect(() => {
+    // Only update parent if formData has changed compared to the initialData
+    if (JSON.stringify(formData) !== JSON.stringify(initialData)) {
+      updateParent();
+    }
+  }, [formData, initialData, updateParent]);
+  
+  // Update local state when parent data changes
+  useEffect(() => {
+    // Only update if data is valid and different from current formData
+    if (data && data.length > 0 && JSON.stringify(data) !== JSON.stringify(formData)) {
+      setFormData(data);
+    }
+  }, [data]);
+  
   // Get the current fields (first step only)
   const currentFields = formData[0]?.fields || [];
   
   // Add a new field
-  const addField = (type) => {
+  const addField = (type: string) => {
     const newField: FieldType = {
       id: uuidv4(),
       type,
@@ -319,13 +281,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   };
   
   // Edit a field
-  const editField = (field) => {
+  const editField = (field: FieldType) => {
     setCurrentEditingField(field);
     setShowFieldEditor(true);
   };
   
   // Save edited field
-  const saveField = (updatedField) => {
+  const saveField = (updatedField: FieldType) => {
     const updatedData = [...formData];
     
     if (updatedData[0]) {
@@ -344,7 +306,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   };
   
   // Delete a field
-  const deleteField = (fieldId) => {
+  const deleteField = (fieldId: string) => {
     const updatedData = [...formData];
     
     if (updatedData[0]) {
@@ -358,7 +320,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   };
   
   // Duplicate a field
-  const duplicateField = (field) => {
+  const duplicateField = (field: FieldType) => {
     const newField = {
       ...field,
       id: uuidv4(),
@@ -366,6 +328,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
     };
     
     const fieldIndex = currentFields.findIndex(f => f.id === field.id);
+    if (fieldIndex === -1) {
+      toast.error('Failed to duplicate field');
+      return;
+    }
+    
     const newFields = [...currentFields];
     newFields.splice(fieldIndex + 1, 0, newField);
     
@@ -423,9 +390,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
                 <SortableField
                   key={field.id}
                   field={field}
-                  onEdit={editField}
-                  onDelete={deleteField}
-                  onDuplicate={duplicateField}
+                  onEdit={() => editField(field)}
+                  onDelete={() => deleteField(field.id)}
+                  onDuplicate={() => duplicateField(field)}
                 />
               ))}
             </SortableContext>

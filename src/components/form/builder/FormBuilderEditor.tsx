@@ -39,12 +39,16 @@ const FormBuilderEditor = ({ formId }) => {
   const [activeTab, setActiveTab] = useState('builder');
   const [isSaving, setIsSaving] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
+  // Only load form once, when component mounts
   useEffect(() => {
-    if (formId && (!formState || formState.id !== formId)) {
-      loadForm(formId);
+    if (formId && (!formState || formState.id !== formId) && !isLoaded) {
+      loadForm(formId).then(() => {
+        setIsLoaded(true);
+      });
     }
-  }, [formId, formState, loadForm]);
+  }, [formId, formState, loadForm, isLoaded]);
   
   useEffect(() => {
     const handleBeforeUnload = (event) => {
@@ -62,26 +66,27 @@ const FormBuilderEditor = ({ formId }) => {
   }, [unsavedChanges]);
   
   const handleTitleChange = (e) => {
-    const newTitle = e.target.value;
     setFormState({
-      title: newTitle
+      title: e.target.value
     });
     setUnsavedChanges(true);
   };
   
   const handleDescriptionChange = (e) => {
-    const newDescription = e.target.value;
     setFormState({
-      description: newDescription
+      description: e.target.value
     });
     setUnsavedChanges(true);
   };
   
   const handleDataChange = (newData) => {
-    setFormState({
-      data: newData
-    });
-    setUnsavedChanges(true);
+    // Prevent unnecessary state updates
+    if (JSON.stringify(formState?.data) !== JSON.stringify(newData)) {
+      setFormState({
+        data: newData
+      });
+      setUnsavedChanges(true);
+    }
   };
   
   const handleStyleChange = (newStyle) => {
@@ -183,6 +188,11 @@ const FormBuilderEditor = ({ formId }) => {
   // Get the first step of form fields or empty array if none
   const currentFields = formState?.data?.length > 0 ? formState.data[0].fields || [] : [];
   
+  // Only render once formState is properly loaded
+  if (formId && !isLoaded && !formState) {
+    return <div className="p-6 text-center">Loading form data...</div>;
+  }
+  
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
@@ -248,10 +258,12 @@ const FormBuilderEditor = ({ formId }) => {
         
         <TabsContent value="builder">
           <div className="mt-4">
-            <FormBuilder
-              data={formState?.data || []}
-              onChange={handleDataChange}
-            />
+            {isLoaded && (
+              <FormBuilder
+                data={formState?.data || []}
+                onChange={handleDataChange}
+              />
+            )}
           </div>
         </TabsContent>
         
@@ -264,6 +276,8 @@ const FormBuilderEditor = ({ formId }) => {
               totalSteps={formState?.data?.length || 1}
               style={formStyle}
               fields={currentFields}
+              floatingButton={useFormStore.getState().floatingButton}
+              hideFloatingButtonPreview={false}
             />
           </div>
         </TabsContent>

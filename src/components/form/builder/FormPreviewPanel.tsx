@@ -2,6 +2,7 @@
 import React from 'react';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
+import { FloatingButtonConfig } from '@/lib/form-utils';
 
 interface FormStyle {
   primaryColor: string;
@@ -17,13 +18,6 @@ interface FormField {
   required?: boolean;
   placeholder?: string;
   options?: Array<{label: string; value: string}>;
-}
-
-interface FloatingButtonConfig {
-  enabled: boolean;
-  text: string;
-  position: string;
-  color: string;
 }
 
 interface FormPreviewPanelProps {

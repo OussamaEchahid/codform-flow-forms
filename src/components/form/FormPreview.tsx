@@ -213,6 +213,24 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       </div>
       
       {children}
+
+      {/* Floating button preview (if enabled) */}
+      {!hideFloatingButtonPreview && floatingButton && floatingButton.enabled && (
+        <div className="mt-6 p-3 border border-blue-200 bg-blue-50 rounded">
+          <div className="text-sm text-blue-600 mb-2">
+            Floating button preview: "{floatingButton.text || 'Order Now'}"
+          </div>
+          <button
+            className="w-full py-2 px-4 text-white font-medium shadow-sm text-center"
+            style={{ 
+              backgroundColor: floatingButton.backgroundColor || primaryColor,
+              borderRadius: '4px',
+            }}
+          >
+            {floatingButton.text || 'Order Now'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -95,8 +96,6 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
-  
-  console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
 
   // Log animation data if this is a submit button
   if (fieldType === 'submit' && field.style) {
