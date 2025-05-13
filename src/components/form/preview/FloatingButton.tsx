@@ -61,11 +61,11 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
   };
   
   // Set fixed minimum width for better appearance
-  const minWidth = '220px'; // Increased minimum width to make it longer
+  const minWidth = '250px'; // Increased minimum width to make it longer
   
   return (
     <div 
-      className="codform-floating-button-container"
+      className={`codform-floating-button-container ${config.enabled ? '' : 'hidden'}`}
       style={{
         position: 'fixed',
         bottom: config.marginBottom || '20px',
@@ -94,10 +94,12 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           alignItems: 'center',
           gap: '8px',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-          transition: 'transform 0.2s ease',
+          transition: 'transform 0.2s ease, opacity 0.3s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
           width: 'auto',
           minWidth: minWidth,
+          opacity: '1',
+          visibility: 'visible',
         }}
         onClick={handleClick}
       >

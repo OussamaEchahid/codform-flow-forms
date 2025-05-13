@@ -115,8 +115,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
-                ? 'ملاحظة: يتم تفعيل الزر العائم وتعديل إعداداته من صفحة تعديل النموذج فقط. ولا يمكن تعديله من المتجر.' 
-                : 'Note: The floating button is enabled and configured only from the form editor page and cannot be modified from the store.'}
+                ? 'ملاحظة مهمة: يتم تفعيل الزر العائم وتعديل إعداداته فقط من صفحة تعديل النموذج (قسم "تخصيص الزر العائم"). يجب تفعيل الزر من هناك ليظهر في المتجر.' 
+                : 'Important Note: The floating button is enabled and configured only from the form editor page (Customize Floating Button section). You must enable it there to appear in the store.'}
             </AlertDescription>
           </Alert>
           
