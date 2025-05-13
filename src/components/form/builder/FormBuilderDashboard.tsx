@@ -7,7 +7,7 @@ import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
 import ProductSelectionDialog from '@/components/form/ProductSelectionDialog';
 import { supabase } from '@/integrations/supabase/client';

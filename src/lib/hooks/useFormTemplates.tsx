@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from "sonner";
 import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
