@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
-import FloatingButton from './preview/FloatingButton';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -20,8 +19,6 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   hideHeader?: boolean;
-  floatingButton?: FloatingButtonConfig;
-  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -38,13 +35,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   hideHeader = false,
-  floatingButton,
-  hideFloatingButtonPreview = false, // Default to false to show in preview
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
+  // Clean up fields and display form title correctly
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
@@ -54,12 +49,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return field;
     });
     
-    // إذا كان هناك form-title موجود، نستخدمه
+    // If there's a form-title, use it
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
+    // If there's no form-title, add one at the beginning
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -72,16 +67,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: '1.5rem',
         descriptionColor: '#ffffff',
         descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
+        backgroundColor: '#9b87f5', // Primary background color
       }
     };
     
-    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
+    // Check if there's already a submit button
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
+    // If there's no submit button, add one
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -171,11 +166,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           children
         )}
       </div>
-
-      {/* Render floating button if enabled AND not hidden for preview purposes */}
-      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
-        <FloatingButton config={floatingButton} isPreview={true} />
-      )}
     </div>
   );
 };

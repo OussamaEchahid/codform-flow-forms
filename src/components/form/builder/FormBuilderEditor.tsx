@@ -1,15 +1,12 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFormStore } from '@/hooks/useFormStore';
-import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
-import { FormStep } from '@/lib/form-utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import FormBuilder from '@/components/form/builder/FormBuilder';
 import FormPreview from '@/components/form/preview/FormPreview';
@@ -22,7 +19,7 @@ interface FormBuilderEditorProps {
   formId: string;
 }
 
-const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
+const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const navigate = useNavigate();
   const { formState, setFormState } = useFormStore();
   const { loadForm, saveForm } = useFormTemplates();
@@ -66,7 +63,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     setUnsavedChanges(true);
   };
   
-  const handleDataChange = (newData: FormStep[]) => {
+  const handleDataChange = (newData: any) => {
     setFormState({ data: newData });
     setUnsavedChanges(true);
   };
@@ -93,12 +90,12 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     try {
       setIsSaving(true);
       
-      const updatedForm: Partial<FormData> = {
-        title: formState.title,
-        description: formState.description,
-        data: formState.data,
-        style: formState.style,
-        productId: formState.productId // Include productId when saving form
+      const updatedForm = {
+        title: formState?.title,
+        description: formState?.description,
+        data: formState?.data,
+        style: formState?.style,
+        productId: formState?.productId // Include productId when saving form
       };
       
       const success = await saveForm(formId, updatedForm);
@@ -211,7 +208,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
             
             <ShopifyIntegration 
               formId={formId} 
-              formStyle={formState.style}
+              formStyle={formState?.style}
               onSave={async (settings) => {
                 setFormState({ ...settings });
                 await handleSaveForm();

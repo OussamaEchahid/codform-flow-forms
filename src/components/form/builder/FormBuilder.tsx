@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { FormStep } from '@/lib/form-utils';
+import React from 'react';
+import { FormStep, FormFieldType } from '@/lib/form-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -13,7 +13,7 @@ interface FormBuilderProps {
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const { language } = useI18n();
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = React.useState(0);
 
   // Create a new empty step
   const handleAddStep = () => {
@@ -32,9 +32,10 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const handleAddField = () => {
     if (!data[activeStep]) return;
     
+    // Ensure we're using a proper FormFieldType
     const newField = {
       id: `field-${Date.now()}`,
-      type: 'text',
+      type: 'text' as FormFieldType, // Use type assertion to ensure TypeScript knows this is a FormFieldType
       label: language === 'ar' ? 'حقل نصي جديد' : 'New Text Field',
       required: false
     };
