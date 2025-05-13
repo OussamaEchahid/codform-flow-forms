@@ -1,4 +1,3 @@
-
 import { toast as sonnerToast } from 'sonner';
 import * as React from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +9,7 @@ export type ToastProps = {
   title?: string;
   description?: string;
   action?: ToastActionElement;
-  variant?: 'default' | 'destructive' | 'success' | 'warning';
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
   duration?: number;
 };
 
@@ -149,7 +148,7 @@ interface ToastOptions {
 }
 
 // Main toast function
-function toast(props: ToastOptions & { variant?: 'default' | 'destructive' | 'success' | 'warning' }) {
+function toast(props: ToastOptions & { variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info' }) {
   const id = uuidv4();
   const { variant = 'default', ...options } = props;
   
@@ -171,6 +170,9 @@ function toast(props: ToastOptions & { variant?: 'default' | 'destructive' | 'su
     case 'warning':
       sonnerToast.warning(options.title, { id, description: options.description, duration: options.duration });
       break;
+    case 'info':
+      sonnerToast.info(options.title, { id, description: options.description, duration: options.duration });
+      break;
     default:
       sonnerToast(options.title, { id, description: options.description, duration: options.duration });
   }
@@ -187,6 +189,10 @@ toast.warning = (title: string, options?: Omit<ToastOptions, 'title'>) =>
 
 toast.error = (title: string, options?: Omit<ToastOptions, 'title'>) => 
   toast({ title, ...options, variant: 'destructive' });
+
+// Add info method
+toast.info = (title: string, options?: Omit<ToastOptions, 'title'>) => 
+  toast({ title, ...options, variant: 'info' });
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
