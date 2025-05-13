@@ -1,9 +1,28 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Steps, Step } from '@/components/ui/steps';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InfoCircle } from 'lucide-react';
+
+// Define a simple Steps component since we don't have @/components/ui/steps
+const Steps = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`space-y-4 ${className || ''}`} {...props}>
+    {children}
+  </div>
+);
+
+// Define a simple Step component
+const Step = ({ 
+  children, 
+  title, 
+  className, 
+  ...props 
+}: React.HTMLAttributes<HTMLDivElement> & { title: string }) => (
+  <div className={`border rounded-lg p-4 ${className || ''}`} {...props}>
+    <h3 className="text-lg font-medium mb-2">{title}</h3>
+    <div>{children}</div>
+  </div>
+);
 
 const ShopifyIntegrationGuide = () => {
   return (
@@ -31,9 +50,9 @@ const ShopifyIntegrationGuide = () => {
               يمكنك القيام بذلك عن طريق:</p>
             <ol className="list-decimal mr-5 mt-2 space-y-2">
               <li>الذهاب إلى لوحة تحكم متجر شوبيفاي</li>
-              <li>الانتقال إلى "المتجر عبر الإنترنت" > "السمات" > "تخصيص"</li>
+              <li>الانتقال إلى "المتجر عبر الإنترنت" {">"} "السمات" {">"} "تخصيص"</li>
               <li>اختيار صفحة المنتج</li>
-              <li>النقر على "إضافة قسم" > "التطبيقات"</li>
+              <li>النقر على "إضافة قسم" {">"} "التطبيقات"</li>
               <li>اختيار "نموذج الدفع عند الاستلام"</li>
               <li>ترك حقل معرف النموذج فارغاً إذا كنت قد قمت بالفعل بربط المنتجات في الخطوة 1</li>
             </ol>
