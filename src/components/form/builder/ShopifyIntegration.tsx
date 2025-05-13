@@ -160,7 +160,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       );
     }
 
-    if (auth.shopifyConnected || auth.isConnected) {
+    if (auth.shopifyConnected) {
       return (
         <Alert variant="success">
           <CheckCircle className="h-4 w-4" />
@@ -203,7 +203,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!(auth.shopifyConnected || auth.isConnected) ? (
+          {!auth.shopifyConnected ? (
             <div className="flex flex-col items-center justify-center space-y-4">
               <p className="text-muted-foreground text-center">
                 {t('shopify.connection.instructions')}
@@ -218,7 +218,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
               <p className="text-muted-foreground text-center">
                 {t('shopify.connection.connectedAs')} <strong>{auth.shop}</strong>
               </p>
-              <Button variant="destructive" onClick={auth.emergencyReset}>
+              <Button variant="destructive" onClick={() => {
+                if (auth.emergencyReset) {
+                  auth.emergencyReset();
+                }
+              }}>
                 <X className="mr-2 h-4 w-4" />
                 {t('shopify.connection.disconnectButton')}
               </Button>
@@ -228,7 +232,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       </Card>
       
       {/* Product associations section - new section */}
-      {(auth.shopifyConnected || auth.isConnected) && (
+      {auth.shopifyConnected && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="text-right">{t('shopify.products.associateTitle')}</CardTitle>
@@ -258,7 +262,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                               <img 
                                 src={typeof product.images[0] === 'string' 
                                   ? product.images[0] 
-                                  : product.images[0].src}
+                                  : product.images[0]?.src || ''}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
