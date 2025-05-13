@@ -1,144 +1,308 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle, FileCheck, RefreshCw, UploadCloud, X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
-import { useFormStore } from '@/hooks/useFormStore';
+import { supabase } from '@/integrations/supabase/client';
+import { ShopifyProduct } from '@/lib/shopify/types';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ShopifyIntegrationProps {
   formId: string;
-  formStyle?: {
-    primaryColor?: string;
-  };
-  isSyncing?: boolean;
-  formTitleElement?: any;
-  onSave?: (settings: any) => Promise<void>; // Added onSave prop
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
-  formId,
-  formStyle = { primaryColor: '#9b87f5' },
-  isSyncing = false,
-  onSave // Added this to destructuring
-}) => {
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
+  const navigate = useNavigate();
   const { t, language } = useI18n();
-  const [copied, setCopied] = useState(false);
-  const { floatingButton } = useFormStore();
+  const { shop, isConnected, testConnection, refreshConnection, emergencyReset } = useAuth();
+  const { isSyncing, isRetrying, tokenError, failSafeMode, refreshConnection: refreshShopifyConnection } = useShopify();
+
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isSettingProducts, setIsSettingProducts] = useState(false);
+  const [productSettings, setProductSettings] = useState<Array<{product_id: string, form_id: string, enabled: boolean}>>([]);
   
-  // Reset copy state after 3 seconds
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (copied) {
-      timeout = setTimeout(() => setCopied(false), 3000);
+  // Add this function to load associated products when component mounts
+  const loadAssociatedProducts = useCallback(async () => {
+    if (!formId || !shop) return;
+    
+    try {
+      setIsLoadingProducts(true);
+      const { data, error } = await supabase
+        .from('shopify_product_settings')
+        .select('*')
+        .eq('form_id', formId)
+        .eq('enabled', true);
+        
+      if (error) throw error;
+      
+      const productIds = data?.map(setting => setting.product_id) || [];
+      setSelectedProducts(productIds);
+      setProductSettings(data || []);
+    } catch (error) {
+      console.error('Error loading associated products:', error);
+      toast.error('Could not load associated products');
+    } finally {
+      setIsLoadingProducts(false);
     }
-    return () => clearTimeout(timeout);
-  }, [copied]);
+  }, [formId, shop]);
   
-  const handleCopyFormId = () => {
-    navigator.clipboard.writeText(formId);
-    setCopied(true);
-    toast.success(
-      language === 'ar' 
-        ? 'تم نسخ معرّف النموذج بنجاح' 
-        : 'Form ID copied successfully'
+  // Function to load products from the store
+  const loadShopifyProducts = useCallback(async () => {
+    if (!shop) return;
+    
+    try {
+      setIsLoadingProducts(true);
+      // Load products from Shopify store
+      const response = await shopifySupabase.functions.invoke('shopify-products', {
+        body: { shop }
+      });
+      
+      if (response.error) throw response.error;
+      
+      setProducts(response.data?.products || []);
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Could not load products from Shopify');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [shop]);
+  
+  // Function to save product associations
+  const saveProductAssociations = async () => {
+    if (!formId || !shop) return;
+    
+    try {
+      setIsSettingProducts(true);
+      
+      // Remove existing settings
+      await supabase
+        .from('shopify_product_settings')
+        .delete()
+        .eq('form_id', formId);
+        
+      // Add new settings for selected products
+      if (selectedProducts.length > 0) {
+        const newSettings = selectedProducts.map(productId => ({
+          form_id: formId,
+          product_id: productId,
+          shop_id: shop,
+          enabled: true
+        }));
+        
+        const { error } = await supabase
+          .from('shopify_product_settings')
+          .insert(newSettings);
+          
+        if (error) throw error;
+      }
+      
+      toast.success('Product associations saved successfully');
+    } catch (error) {
+      console.error('Error saving product associations:', error);
+      toast.error('Could not save product associations');
+    } finally {
+      setIsSettingProducts(false);
+    }
+  };
+  
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+
+  // Load products and associations when component mounts
+  useEffect(() => {
+    if (shop) {
+      loadShopifyProducts();
+      loadAssociatedProducts();
+    }
+  }, [shop, loadShopifyProducts, loadAssociatedProducts]);
+  
+  const renderStatus = () => {
+    if (tokenError) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t('shopify.status.errorTitle')}</AlertTitle>
+          <AlertDescription>
+            {t('shopify.status.errorDescription')}
+            <Button variant="link" onClick={refreshShopifyConnection} disabled={isRetrying}>
+              {isRetrying ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  {t('shopify.status.reconnecting')}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t('shopify.status.reconnect')}
+                </>
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (isConnected) {
+      return (
+        <Alert variant="success">
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>{t('shopify.status.connectedTitle')}</AlertTitle>
+          <AlertDescription>{t('shopify.status.connectedDescription')}</AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>{t('shopify.status.notConnectedTitle')}</AlertTitle>
+        <AlertDescription>{t('shopify.status.notConnectedDescription')}</AlertDescription>
+      </Alert>
     );
   };
 
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-3">
-        <CardTitle className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'دمج النموذج في متجرك' : 'Integrate Form in Your Store'}
-        </CardTitle>
-        <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' 
-            ? 'لاستخدام هذا النموذج في متجرك، قم بنسخ معرّف النموذج واستخدامه في إعدادات البلوك داخل متجرك' 
-            : 'To use this form in your store, copy the form ID and use it in the block settings in your store'}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <div className="space-y-4">
-          <Alert variant="default" className="bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
-                : 'To add this form to your store, follow these steps:'}
-              <ol className={`mt-2 list-decimal ${language === 'ar' ? 'mr-4' : 'ml-4'} space-y-1`}>
-                <li>
-                  {language === 'ar' 
-                    ? 'اذهب إلى "تخصيص المتجر" ثم انتقل إلى صفحة المنتج' 
-                    : 'Go to "Customize Store" then navigate to the product page'}
-                </li>
-                <li>
-                  {language === 'ar' 
-                    ? 'انقر على "إضافة كتلة" واختر "نموذج الدفع عند الاستلام"' 
-                    : 'Click "Add Block" and choose "Cash On Delivery Form"'}
-                </li>
-                <li>
-                  {language === 'ar' 
-                    ? 'الصق معرّف النموذج في حقل "معرّف النموذج" في الإعدادات' 
-                    : 'Paste the form ID in the "Form ID" field in settings'}
-                </li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex flex-col space-y-4">
-            <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-              <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
-              </span>
-              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{formId}</code>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="ml-2" 
-                onClick={handleCopyFormId}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+    <div className="space-y-6 mb-4">
+      {/* Form title section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-right">
+            {t('shopify.integration.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground text-right">
+            {t('shopify.integration.description')}
+          </p>
+        </div>
+        {renderStatus()}
+      </div>
+
+      {/* Connection status & setup section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-right">{t('shopify.connection.title')}</CardTitle>
+          <CardDescription className="text-right">
+            {t('shopify.connection.description')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!isConnected ? (
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <p className="text-muted-foreground text-center">
+                {t('shopify.connection.instructions')}
+              </p>
+              <Button onClick={() => navigate('/shopify')}>
+                <UploadCloud className="mr-2 h-4 w-4" />
+                {t('shopify.connection.connectButton')}
               </Button>
             </div>
-          </div>
-
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className={`text-amber-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? 'تأكد من نشر النموذج قبل استخدامه في متجرك. النماذج غير المنشورة لن تظهر للعملاء.' 
-                : 'Make sure to publish the form before using it in your store. Unpublished forms will not appear to customers.'}
-            </AlertDescription>
-          </Alert>
-          
-          <Alert variant="default" className={`${floatingButton.enabled ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-            <Info className={`h-4 w-4 ${floatingButton.enabled ? 'text-green-600' : 'text-blue-600'}`} />
-            <AlertDescription className={`${floatingButton.enabled ? 'text-green-800' : 'text-blue-800'} ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? floatingButton.enabled 
-                  ? 'الزر العائم مفعل حاليًا وسيظهر في المتجر. يمكنك تعديل إعداداته من قسم "تخصيص الزر العائم".'
-                  : 'الزر العائم غير مفعل حاليًا. يمكنك تفعيله وتعديل إعداداته من قسم "تخصيص الزر العائم".'
-                : floatingButton.enabled
-                  ? 'Floating button is currently ENABLED and will appear in the store. You can customize it in the "Customize Floating Button" section.'
-                  : 'Floating button is currently DISABLED. You can enable and customize it in the "Customize Floating Button" section.'}
-            </AlertDescription>
-          </Alert>
-          
-          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
-          <Alert variant="default" className="bg-green-50 border-green-200">
-            <Info className="h-4 w-4 text-green-600" />
-            <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar'
-                ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
-                : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
-            </AlertDescription>
-          </Alert>
-        </div>
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <p className="text-muted-foreground text-center">
+                {t('shopify.connection.connectedAs')} <strong>{shop}</strong>
+              </p>
+              <Button variant="destructive" onClick={emergencyReset}>
+                <X className="mr-2 h-4 w-4" />
+                {t('shopify.connection.disconnectButton')}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Product associations section - new section */}
+      {isConnected && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-right">{t('shopify.products.associateTitle')}</CardTitle>
+            <p className="text-sm text-muted-foreground text-right">
+              {t('shopify.products.associateDescription')}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingProducts ? (
+                <div className="flex items-center justify-center p-8">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                <>
+                  {products.length > 0 ? (
+                    <div className="grid gap-4">
+                      {products.map(product => (
+                        <div 
+                          key={product.id}
+                          className={`p-4 border rounded-lg flex items-center justify-between ${
+                            selectedProducts.includes(product.id) ? 'border-primary bg-primary/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            {product.images && product.images[0] && (
+                              <img 
+                                src={product.images[0].src} 
+                                alt={product.title}
+                                className="h-12 w-12 object-cover rounded"
+                              />
+                            )}
+                            <div>
+                              <h4 className="font-medium">{product.title}</h4>
+                              <p className="text-sm text-muted-foreground">ID: {product.id}</p>
+                            </div>
+                          </div>
+                          <Checkbox 
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={() => toggleProductSelection(product.id)}
+                            id={`product-${product.id}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border rounded-lg">
+                      <p className="text-muted-foreground">
+                        {t('shopify.products.noProducts')}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={saveProductAssociations}
+                      disabled={isSettingProducts}
+                    >
+                      {isSettingProducts ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          {t('shopify.products.saving')}
+                        </>
+                      ) : (
+                        t('shopify.products.saveAssociations')
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -27,8 +26,13 @@
     <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
       <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <p id="codform-error-message-{{ block.id }}">حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
       <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
+    </div>
+
+    <div id="codform-not-available-{{ block.id }}" class="codform-error" style="display: none;">
+      <h4>هذا النموذج غير متاح لهذا المنتج</h4>
+      <p>النموذج المحدد غير متوفر لهذا المنتج، يرجى التحقق من إعدادات النموذج.</p>
     </div>
   </div>
 </div>
@@ -825,6 +829,132 @@
       floatingButtonContainer.style.opacity = '1';
       floatingButtonContainer.classList.remove('hidden');
     }
+    
+    // Initialize form with product ID check
+    initForm();
+  });
+  
+  // Initialize form with product ID check
+  function initForm() {
+    var container = document.getElementById('codform-container-{{ block.id }}');
+    if (!container) return;
+    
+    var formId = container.getAttribute('data-form-id');
+    var productId = container.getAttribute('data-product-id');
+    
+    if (!formId || !productId) return;
+    
+    // Load form data with product ID
+    fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: formId,
+        productId: productId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        console.error('Error loading form:', data.error);
+        
+        // Show appropriate error message
+        document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
+        
+        if (data.associationMissing) {
+          // Form is not associated with this product
+          document.getElementById('codform-not-available-{{ block.id }}').style.display = 'block';
+          
+          // Hide floating button if form not available for this product
+          var floatingButton = document.getElementById('codform-floating-button-{{ block.id }}');
+          if (floatingButton) {
+            floatingButton.style.display = 'none';
+          }
+        } else {
+          // Other error
+          document.getElementById('codform-error-message-{{ block.id }}').innerText = data.error;
+          document.getElementById('codform-error-{{ block.id }}').style.display = 'block';
+        }
+        return;
+      }
+      
+      // Successfully loaded form data
+      document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
+      
+      // Initialize form with the returned data
+      // ... additional form initialization code will go here
+      
+      // Show the form
+      document.getElementById('codform-form-{{ block.id }}').style.display = 'block';
+      
+      // Update floating button with form settings if available
+      if (data.floating_button) {
+        updateFloatingButton(data.floating_button);
+      }
+    })
+    .catch(error => {
+      console.error('Error in fetch:', error);
+      document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
+      document.getElementById('codform-error-{{ block.id }}').style.display = 'block';
+    });
+  }
+  
+  // Update floating button with settings from form
+  function updateFloatingButton(buttonSettings) {
+    if (!buttonSettings) return;
+    
+    var floatingButton = document.getElementById('codform-floating-button-{{ block.id }}');
+    if (!floatingButton) return;
+    
+    // Only show if enabled in settings
+    if (buttonSettings.enabled === false) {
+      floatingButton.style.display = 'none';
+      return;
+    }
+    
+    var buttonElement = floatingButton.querySelector('button');
+    if (!buttonElement) return;
+    
+    // Update button text
+    if (buttonSettings.text) {
+      var textSpan = buttonElement.querySelector('span:not(.codform-floating-button-icon)');
+      if (textSpan) {
+        textSpan.innerText = buttonSettings.text;
+      }
+    }
+    
+    // Update colors and styles
+    if (buttonSettings.textColor) {
+      buttonElement.style.color = buttonSettings.textColor;
+    }
+    
+    if (buttonSettings.backgroundColor) {
+      buttonElement.style.backgroundColor = buttonSettings.backgroundColor;
+    }
+    
+    if (buttonSettings.borderRadius) {
+      buttonElement.style.borderRadius = buttonSettings.borderRadius;
+    }
+    
+    // Update icon visibility
+    var iconSpan = buttonElement.querySelector('.codform-floating-button-icon');
+    if (iconSpan) {
+      iconSpan.style.display = buttonSettings.showIcon ? 'inline-flex' : 'none';
+    }
+    
+    // Make button visible
+    floatingButton.style.display = 'flex';
+    floatingButton.style.visibility = 'visible';
+    floatingButton.style.opacity = '1';
+  }
+  
+  // Handle retry button
+  document.getElementById('codform-retry-{{ block.id }}').addEventListener('click', function() {
+    document.getElementById('codform-error-{{ block.id }}').style.display = 'none';
+    document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'flex';
+    initForm();
   });
 </script>
 
@@ -839,7 +969,7 @@
       "type": "text",
       "id": "form_id",
       "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه"
+      "info": "أدخل معرف النموذج الذي تريد عرضه. سيظهر النموذج فقط إذا كان مرتبطًا بهذا المنتج."
     },
     {
       "type": "header",
@@ -937,6 +1067,13 @@
         }
       ],
       "default": "none"
+    },
+    {
+      "type": "checkbox",
+      "id": "is_rtl",
+      "label": "تخطيط من اليمين لليسار (RTL)",
+      "default": true,
+      "info": "تفعيل هذا الخيار إذا كان النص بالعربية أو اللغات التي تكتب من اليمين إلى اليسار"
     }
   ]
 }

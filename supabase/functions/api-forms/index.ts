@@ -21,14 +21,17 @@ serve(async (req: Request) => {
 
     // Parse request
     let formId;
+    let productId = null;
     
     try {
       const body = await req.json();
       formId = body.id;
+      productId = body.productId || null; // Get the product ID if provided
     } catch (e) {
       // If the request body is not valid JSON, try to get formId from URL
       const url = new URL(req.url);
       formId = url.searchParams.get('id');
+      productId = url.searchParams.get('productId') || null;
     }
 
     if (!formId) {
@@ -38,7 +41,7 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Fetching form with ID: ${formId}`);
+    console.log(`Fetching form with ID: ${formId}, Product ID: ${productId}`);
 
     // Get the form data
     const { data: form, error: formError } = await supabase
@@ -54,6 +57,25 @@ serve(async (req: Request) => {
         JSON.stringify({ error: 'Form not found or not published' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
+    }
+
+    // If productId is provided, check if this form is associated with this product
+    if (productId) {
+      const { data: productSettings, error: productSettingsError } = await supabase
+        .from('shopify_product_settings')
+        .select('*')
+        .eq('form_id', formId)
+        .eq('product_id', productId)
+        .eq('enabled', true);
+
+      // If there's no association between this form and product, or it's not enabled, return error
+      if (productSettingsError || !productSettings || productSettings.length === 0) {
+        console.log(`Form ${formId} is not associated with product ${productId} or is disabled`);
+        return new Response(
+          JSON.stringify({ error: 'Form not available for this product', associationMissing: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
     }
 
     // Make sure we include the floating button settings in the response
