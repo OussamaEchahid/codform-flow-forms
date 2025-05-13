@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,21 +36,24 @@ export const useFormTemplates = () => {
   const [forms, setForms] = useState<FormData[]>([]);
 
   // Get current active shop ID from localStorage if not available in context
-  const getActiveShopId = () => {
+  const getActiveShopId = useCallback(() => {
     return shop || localStorage.getItem('shopify_store');
-  };
+  }, [shop]);
 
   // Fetch all forms
-  const fetchForms = async () => {
+  const fetchForms = useCallback(async () => {
     try {
       setIsLoading(true);
       const shopId = getActiveShopId();
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error('لم يتم العثور على متجر نشط');
+        toast.error(
+          'لم يتم العثور على متجر نشط',
+          { description: 'تأكد من الاتصال بمتجر Shopify' }
+        );
         setIsLoading(false);
-        return;
+        return Promise.reject('No active shop ID found');
       }
       
       // Fetch forms from Supabase where shop_id matches
@@ -61,25 +65,34 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error fetching forms:', error);
-        toast.error('خطأ في جلب النماذج');
+        toast.error(
+          'خطأ في جلب النماذج',
+          { description: error.message }
+        );
         setIsLoading(false);
-        return;
+        return Promise.reject(error);
       }
       
       // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
+      const formattedData = (data || []).map(form => ({
         ...form,
         isPublished: form.is_published
       }));
       
+      console.log(`Found ${formattedData.length} forms for shop ${shopId}`);
       setForms(formattedData);
       setIsLoading(false);
+      return formattedData;
     } catch (error) {
       console.error('Error fetching forms', error);
-      toast.error('خطأ في جلب النماذج');
+      toast.error(
+        'خطأ في جلب النماذج',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
+      return Promise.reject(error);
     }
-  };
+  }, [getActiveShopId]);
 
   // Create a form from template
   const createFormFromTemplate = async (templateId: number) => {
@@ -89,14 +102,20 @@ export const useFormTemplates = () => {
       const shopId = getActiveShopId();
       
       if (!template) {
-        toast.error('لم يتم العثور على القالب');
+        toast.error(
+          'لم يتم العثور على القالب',
+          { description: 'القالب المطلوب غير موجود' }
+        );
         setIsLoading(false);
         return null;
       }
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error('لم يتم العثور على متجر نشط');
+        toast.error(
+          'لم يتم العثور على متجر نشط',
+          { description: 'تأكد من الاتصال بمتجر Shopify' }
+        );
         setIsLoading(false);
         return null;
       }
@@ -127,22 +146,31 @@ export const useFormTemplates = () => {
 
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        toast.error(
+          'خطأ في حفظ النموذج في قاعدة البيانات',
+          { description: error.message }
+        );
         setIsLoading(false);
         return null;
       }
 
       setFormState(formData);
-      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
+      toast.success(
+        `تم إنشاء نموذج من قالب ${template.title}`,
+        { description: 'يمكنك الآن تحرير النموذج' }
+      );
       
       // Refresh forms list
-      fetchForms();
+      await fetchForms();
       
       setIsLoading(false);
       return formData;
     } catch (error) {
       console.error('Error creating form from template', error);
-      toast.error('خطأ في إنشاء نموذج من قالب');
+      toast.error(
+        'خطأ في إنشاء نموذج من قالب',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return null;
     }
@@ -157,7 +185,10 @@ export const useFormTemplates = () => {
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error('لم يتم العثور على متجر نشط');
+        toast.error(
+          'لم يتم العثور على متجر نشط',
+          { description: 'تأكد من الاتصال بمتجر Shopify' }
+        );
         setIsLoading(false);
         return null;
       }
@@ -187,22 +218,31 @@ export const useFormTemplates = () => {
         
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        toast.error(
+          'خطأ في حفظ النموذج في قاعدة البيانات',
+          { description: error.message }
+        );
         setIsLoading(false);
         return null;
       }
 
       setFormState(formData);
-      toast.success('تم إنشاء نموذج جديد');
+      toast.success(
+        'تم إنشاء نموذج جديد',
+        { description: 'يمكنك الآن تحرير النموذج' }
+      );
       
       // Refresh forms list
-      fetchForms();
+      await fetchForms();
       
       setIsLoading(false);
       return formData;
     } catch (error) {
       console.error('Error creating default form', error);
-      toast.error('خطأ في إنشاء نموذج جديد');
+      toast.error(
+        'خطأ في إنشاء نموذج جديد',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return null;
     }
@@ -228,7 +268,10 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error updating form:', error);
-        toast.error('خطأ في تحديث النموذج');
+        toast.error(
+          'خطأ في تحديث النموذج',
+          { description: error.message }
+        );
         setIsLoading(false);
         return false;
       }
@@ -244,7 +287,10 @@ export const useFormTemplates = () => {
       return true;
     } catch (error) {
       console.error('Error saving form', error);
-      toast.error('خطأ في حفظ النموذج');
+      toast.error(
+        'خطأ في حفظ النموذج',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return false;
     }
@@ -263,7 +309,10 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error publishing form:', error);
-        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+        toast.error(
+          publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج',
+          { description: error.message }
+        );
         setIsLoading(false);
         return false;
       }
@@ -273,12 +322,18 @@ export const useFormTemplates = () => {
         form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
       ));
       
-      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
+      toast.success(
+        publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج',
+        { description: '' }
+      );
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error publishing form', error);
-      toast.error('خطأ في تغيير حالة نشر النموذج');
+      toast.error(
+        'خطأ في تغيير حالة نشر النموذج',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return false;
     }
@@ -297,7 +352,10 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error deleting form:', error);
-        toast.error('خطأ في حذف النموذج');
+        toast.error(
+          'خطأ في حذف النموذج',
+          { description: error.message }
+        );
         setIsLoading(false);
         return false;
       }
@@ -305,12 +363,18 @@ export const useFormTemplates = () => {
       // Update local state
       setForms(forms.filter(form => form.id !== formId));
       
-      toast.success('تم حذف النموذج بنجاح');
+      toast.success(
+        'تم حذف النموذج بنجاح',
+        { description: '' }
+      );
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error deleting form', error);
-      toast.error('خطأ في حذف النموذج');
+      toast.error(
+        'خطأ في حذف النموذج',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return false;
     }
@@ -330,13 +394,19 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error loading form:', error);
-        toast.error('خطأ في تحميل النموذج');
+        toast.error(
+          'خطأ في تحميل النموذج',
+          { description: error.message }
+        );
         setIsLoading(false);
         return null;
       }
       
       if (!data) {
-        toast.error('النموذج غير موجود');
+        toast.error(
+          'النموذج غير موجود',
+          { description: 'لم يتم العثور على النموذج المطلوب' }
+        );
         setIsLoading(false);
         return null;
       }
@@ -354,7 +424,10 @@ export const useFormTemplates = () => {
       return formData;
     } catch (error) {
       console.error('Error loading form', error);
-      toast.error('خطأ في تحميل النموذج');
+      toast.error(
+        'خطأ في تحميل النموذج',
+        { description: error instanceof Error ? error.message : 'Unknown error' }
+      );
       setIsLoading(false);
       return null;
     }
@@ -373,7 +446,7 @@ export const useFormTemplates = () => {
   };
 };
 
-// Update the template data to use id as string instead of number
+// Export form templates data
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,

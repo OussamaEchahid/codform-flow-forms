@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import ProductSelectionDialog from '@/components/form/ProductSelectionDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,15 +30,26 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [localForms, setLocalForms] = useState<FormData[]>(initialForms);
   const [isProductSelectionOpen, setIsProductSelectionOpen] = useState(false);
   const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const fetchingRef = useRef(false);
+  const initialFetchDoneRef = useRef(false);
   
   // Fetch forms on component mount if no initial forms or forceRefresh is true
   useEffect(() => {
-    if (forceRefresh || initialForms.length === 0) {
-      fetchForms().then(() => {
-        // Do nothing here, we'll handle the forms in the next useEffect
-      }).catch(error => {
-        console.error('Error fetching forms:', error);
-      });
+    // Prevent multiple fetches
+    if (!fetchingRef.current && (forceRefresh || initialForms.length === 0) && !initialFetchDoneRef.current) {
+      fetchingRef.current = true;
+      
+      fetchForms()
+        .then(() => {
+          // Successful fetch
+          initialFetchDoneRef.current = true;
+        })
+        .catch(error => {
+          console.error('Error fetching forms:', error);
+        })
+        .finally(() => {
+          fetchingRef.current = false;
+        });
     }
   }, [forceRefresh, initialForms, fetchForms]);
 
@@ -60,8 +71,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         if (success) {
           // Filter out the deleted form from local state
           setLocalForms((prevForms) => prevForms.filter((form) => form.id !== id));
-          toast(
-            language === 'ar' ? 'تم الحذف بنجاح' : 'Successfully deleted',
+          
+          toast.success(
+            language === 'ar' ? 'تم الحذف بنجاح' : 'Successfully deleted', 
             {
               description: language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully',
             }
@@ -69,7 +81,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         }
       } catch (error) {
         console.error('Error deleting form:', error);
-        toast(
+        
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form',
@@ -92,7 +105,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
     } catch (error) {
       console.error('Error toggling form publish status:', error);
-      toast(
+      
+      toast.error(
         language === 'ar' ? 'خطأ' : 'Error',
         {
           description: language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to toggle publish status',
@@ -110,7 +124,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       // Load the form to duplicate
       const formToDuplicate = await loadForm(id);
       if (!formToDuplicate) {
-        toast(
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
@@ -126,7 +140,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       const shopId = shop || localStorage.getItem('shopify_store');
       
       if (!shopId) {
-        toast(
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
@@ -149,7 +163,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (error) {
         console.error('Error duplicating form:', error);
-        toast(
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
@@ -159,13 +173,19 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
 
       // Refresh forms list - Fix: Use proper promise handling
-      fetchForms().then(() => {
-        // We'll get updated forms via the useEffect that watches forms state
-      }).catch(error => {
-        console.error('Error fetching forms after duplication:', error);
-      });
+      fetchingRef.current = true;
+      fetchForms()
+        .then(() => {
+          // We'll get updated forms via the useEffect that watches forms state
+        })
+        .catch(error => {
+          console.error('Error fetching forms after duplication:', error);
+        })
+        .finally(() => {
+          fetchingRef.current = false;
+        });
       
-      toast(
+      toast.success(
         language === 'ar' ? 'نجاح' : 'Success',
         {
           description: language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully',
@@ -173,7 +193,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       );
     } catch (error) {
       console.error('Error duplicating form:', error);
-      toast(
+      toast.error(
         language === 'ar' ? 'خطأ' : 'Error',
         {
           description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
@@ -198,7 +218,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       const shopId = shop || localStorage.getItem('shopify_store');
       
       if (!shopId) {
-        toast(
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
@@ -285,7 +305,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (error) {
         console.error('Error creating form:', error);
-        toast(
+        toast.error(
           language === 'ar' ? 'خطأ' : 'Error',
           {
             description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
@@ -311,7 +331,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (settingsError) {
         console.error('Error associating form with product:', settingsError);
-        toast(
+        toast.warning(
           language === 'ar' ? 'تحذير' : 'Warning',
           {
             description: language === 'ar' ? 'تم إنشاء النموذج ولكن فشل ربطه بالمنتج' : 'Form created but failed to associate with product',
@@ -321,7 +341,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       // Redirect to the form editor
       navigate(`/form-builder/${newFormId}`);
-      toast(
+      toast.success(
         language === 'ar' ? 'نجاح' : 'Success',
         {
           description: language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully',
@@ -329,7 +349,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       );
     } catch (error) {
       console.error('Error creating form:', error);
-      toast(
+      toast.error(
         language === 'ar' ? 'خطأ' : 'Error',
         {
           description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
