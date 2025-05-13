@@ -17,13 +17,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface ShopifyIntegrationProps {
   formId: string;
+  onSave?: (settings: any) => Promise<void>;
+  isSyncing?: boolean;
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave, isSyncing }) => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
   const auth = useAuth();
-  const { isSyncing, isRetrying, tokenError, failSafeMode, refreshConnection: refreshShopifyConnection } = useShopify();
+  const { isSyncing: isShopifySyncing, isRetrying, tokenError, failSafeMode, refreshConnection: refreshShopifyConnection } = useShopify();
 
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -108,6 +110,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       }
       
       toast.success('Product associations saved successfully');
+      
+      // Call the onSave callback if provided
+      if (onSave) {
+        await onSave({
+          products: selectedProducts
+        });
+      }
     } catch (error) {
       console.error('Error saving product associations:', error);
       toast.error('Could not save product associations');
@@ -258,11 +267,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {product.images && product.images.length > 0 && product.images[0] && (
+                            {product.images && product.images.length > 0 && (
                               <img 
                                 src={typeof product.images[0] === 'string' 
                                   ? product.images[0] 
-                                  : product.images[0]?.src || ''}
+                                  : product.images[0] && typeof product.images[0] === 'object' 
+                                    ? product.images[0].src || '' 
+                                    : ''}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
@@ -291,9 +302,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                   <div className="flex justify-end">
                     <Button
                       onClick={saveProductAssociations}
-                      disabled={isSettingProducts}
+                      disabled={isSettingProducts || isSyncing}
                     >
-                      {isSettingProducts ? (
+                      {isSettingProducts || isSyncing ? (
                         <>
                           <span className="animate-spin mr-2">⏳</span>
                           {t('shopify.products.saving')}
