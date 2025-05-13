@@ -269,11 +269,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
                           <div className="flex items-center space-x-3">
                             {product.images && product.images.length > 0 && (
                               <img 
-                                src={typeof product.images[0] === 'string' 
-                                  ? product.images[0] 
-                                  : product.images[0] && typeof product.images[0] === 'object' 
-                                    ? product.images[0].src || '' 
-                                    : ''}
+                                src={getProductImageSrc(product.images[0])}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
@@ -324,4 +320,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
   );
 };
 
+// Helper function to safely get product image source
+const getProductImageSrc = (image: string | { src?: string } | any): string => {
+  if (!image) return '';
+  
+  if (typeof image === 'string') {
+    return image;
+  }
+  
+  if (typeof image === 'object' && image !== null) {
+    return image.src || '';
+  }
+  
+  return '';
+};
+
 export default ShopifyIntegration;
+
