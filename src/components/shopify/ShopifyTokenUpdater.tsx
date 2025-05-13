@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
@@ -98,7 +97,6 @@ export const ShopifyTokenUpdater = () => {
       setIsSuccess(true);
       setHasPlaceholderToken(false);
       toast({
-        id: `update-success-${Date.now()}`,
         title: "تم التحديث بنجاح",
         description: "تم تحديث رمز وصول Shopify بنجاح.",
         variant: "success",
@@ -110,11 +108,8 @@ export const ShopifyTokenUpdater = () => {
       console.error('Error updating token:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
-      toast({
-        id: `update-error-${Date.now()}`,
-        title: "فشل التحديث",
+      toast.error("فشل التحديث", {
         description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

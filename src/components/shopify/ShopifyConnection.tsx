@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Store, Loader2, CheckCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 

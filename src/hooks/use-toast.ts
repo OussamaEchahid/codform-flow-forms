@@ -141,9 +141,19 @@ function dispatch(action: Action) {
   });
 }
 
-function toast({ variant = 'default', ...props }: Omit<ToastProps, 'id'>) {
-  const id = props.id || uuidv4();
-  const toastData = { id, variant, ...props };
+interface ToastOptions {
+  title?: string;
+  description?: string;
+  action?: ToastActionElement;
+  duration?: number;
+}
+
+// Main toast function
+function toast(props: ToastOptions & { variant?: 'default' | 'destructive' | 'success' | 'warning' }) {
+  const id = uuidv4();
+  const { variant = 'default', ...options } = props;
+  
+  const toastData = { id, variant, ...options };
 
   dispatch({
     type: actionTypes.ADD_TOAST,
@@ -153,20 +163,30 @@ function toast({ variant = 'default', ...props }: Omit<ToastProps, 'id'>) {
   // Also trigger the sonner toast for native integration
   switch (variant) {
     case 'destructive':
-      sonnerToast.error(props.title, { description: props.description, duration: props.duration });
+      sonnerToast.error(options.title, { id, description: options.description, duration: options.duration });
       break;
     case 'success':
-      sonnerToast.success(props.title, { description: props.description, duration: props.duration });
+      sonnerToast.success(options.title, { id, description: options.description, duration: options.duration });
       break;
     case 'warning':
-      sonnerToast.warning(props.title, { description: props.description, duration: props.duration });
+      sonnerToast.warning(options.title, { id, description: options.description, duration: options.duration });
       break;
     default:
-      sonnerToast(props.title, { description: props.description, duration: props.duration });
+      sonnerToast(options.title, { id, description: options.description, duration: options.duration });
   }
 
   return id;
 }
+
+// Adding helper methods to the toast function
+toast.success = (title: string, options?: Omit<ToastOptions, 'title'>) => 
+  toast({ title, ...options, variant: 'success' });
+
+toast.warning = (title: string, options?: Omit<ToastOptions, 'title'>) => 
+  toast({ title, ...options, variant: 'warning' });
+
+toast.error = (title: string, options?: Omit<ToastOptions, 'title'>) => 
+  toast({ title, ...options, variant: 'destructive' });
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
