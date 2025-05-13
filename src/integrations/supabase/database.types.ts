@@ -21,6 +21,7 @@ export interface Database extends ShopifyDatabase {
           user_id: string;
           shop_id?: string | null;
           style?: Json | null;
+          product_id?: string | null; // Ensure product_id is in the type definition
         };
         Insert: {
           id?: string;
@@ -32,6 +33,7 @@ export interface Database extends ShopifyDatabase {
           user_id: string;
           shop_id?: string | null;
           style?: Json | null;
+          product_id?: string | null; // Ensure product_id is in the type definition
         };
         Update: {
           id?: string;
@@ -43,6 +45,7 @@ export interface Database extends ShopifyDatabase {
           user_id?: string;
           shop_id?: string | null;
           style?: Json | null;
+          product_id?: string | null; // Ensure product_id is in the type definition
         };
         Relationships: [];
       };

@@ -1,4 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Plus, 
+  Trash2, 
+  Move, 
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Settings,
+  Copy
+} from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+
 import {
   DndContext,
   closestCenter,
@@ -13,201 +32,232 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  useSortable
 } from '@dnd-kit/sortable';
-import SortableStep from './SortableStep';
-import SortableField from './SortableField';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Copy, FileText, LayoutGrid, Plus, Settings, Trash, Save, FileCheck, Palette } from 'lucide-react';
-import FormPreview from './FormPreview';
-import FormTemplatesDialog from './FormTemplatesDialog';
-import FieldEditor from './FieldEditor';
-import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
-import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
-import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
 
-const availableFieldTypes: Array<{
-  type: FormField['type'];
-  label: string;
-  icon: React.ReactNode;
-}> = [
-  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
-  { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
-  { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
-  { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
-  { type: 'textarea', label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
-  { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
-  { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
-  { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
-  { type: 'cart-items', label: 'المنتج المختار', icon: <FileText size={16} /> },
-  { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
-  { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
-  { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
-  { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
+// Basic field types
+const fieldTypes = [
+  { value: 'text', label: 'حقل نص' },
+  { value: 'email', label: 'بريد إلكتروني' },
+  { value: 'phone', label: 'رقم هاتف' },
+  { value: 'textarea', label: 'نص متعدد الأسطر' },
+  { value: 'select', label: 'قائمة منسدلة' },
+  { value: 'checkbox', label: 'خانة اختيار' },
+  { value: 'radio', label: 'زر راديو' },
+  { value: 'submit', label: 'زر إرسال الطلب' },
 ];
 
-// Define proper interface for form builder props
+// SortableField component
+const SortableField = ({ field, onEdit, onDelete, onDuplicate }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: field.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center border rounded-md p-3 bg-white mb-2 group"
+    >
+      <div className="cursor-move text-gray-400" {...attributes} {...listeners}>
+        <GripVertical size={16} />
+      </div>
+      
+      <div className="flex-1 mx-4">
+        <div className="font-medium">{field.label || 'حقل بدون عنوان'}</div>
+        <div className="text-sm text-gray-500">{fieldTypes.find(ft => ft.value === field.type)?.label}</div>
+      </div>
+      
+      <div className="flex space-x-2">
+        <button
+          onClick={() => onEdit(field)}
+          className="text-gray-500 hover:text-gray-700 p-1"
+          title="تعديل"
+        >
+          <Settings size={16} />
+        </button>
+        <button
+          onClick={() => onDuplicate(field)}
+          className="text-gray-500 hover:text-gray-700 p-1"
+          title="نسخ"
+        >
+          <Copy size={16} />
+        </button>
+        <button
+          onClick={() => onDelete(field.id)}
+          className="text-red-500 hover:text-red-700 p-1"
+          title="حذف"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Field Editor Dialog
+const FieldEditorDialog = ({ field, onSave, onClose }) => {
+  const [editedField, setEditedField] = useState({ ...field });
+  const [options, setOptions] = useState(field.options || []);
+  
+  const handleChange = (key, value) => {
+    setEditedField(prev => ({ ...prev, [key]: value }));
+  };
+  
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...options];
+    newOptions[index] = { ...newOptions[index], label: value };
+    setOptions(newOptions);
+  };
+  
+  const addOption = () => {
+    setOptions([...options, { value: `option-${options.length + 1}`, label: `الخيار ${options.length + 1}` }]);
+  };
+  
+  const removeOption = (index) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+  
+  const handleSave = () => {
+    // Update options if field type requires them
+    const needsOptions = ['select', 'checkbox', 'radio'].includes(editedField.type);
+    const updatedField = {
+      ...editedField,
+      options: needsOptions ? options : undefined
+    };
+    
+    onSave(updatedField);
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+        <h3 className="text-xl font-semibold mb-4">تحرير الحقل</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">نوع الحقل</label>
+            <select
+              className="w-full border rounded px-3 py-2"
+              value={editedField.type}
+              onChange={(e) => handleChange('type', e.target.value)}
+            >
+              {fieldTypes.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">عنوان الحقل</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2"
+              value={editedField.label || ''}
+              onChange={(e) => handleChange('label', e.target.value)}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">نص توضيحي (اختياري)</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2"
+              value={editedField.placeholder || ''}
+              onChange={(e) => handleChange('placeholder', e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="required-field"
+              checked={editedField.required || false}
+              onChange={(e) => handleChange('required', e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="required-field" className="mr-2">حقل إلزامي</label>
+          </div>
+          
+          {/* Options for select, checkbox, and radio */}
+          {['select', 'checkbox', 'radio'].includes(editedField.type) && (
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm font-medium">الخيارات</h4>
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  + إضافة خيار
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {options.map((option, index) => (
+                  <div key={index} className="flex items-center">
+                    <input
+                      type="text"
+                      className="flex-1 border rounded px-3 py-2"
+                      value={option.label}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOption(index)}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                
+                {options.length === 0 && (
+                  <div className="text-sm text-gray-500 text-center py-2">
+                    انقر على "إضافة خيار" لإنشاء خيارات لهذا الحقل
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6 flex justify-end space-x-2">
+          <Button variant="outline" onClick={onClose}>إلغاء</Button>
+          <Button onClick={handleSave}>حفظ التغييرات</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main FormBuilder component
 export interface FormBuilderProps {
-  data: FormStep[];  
-  onChange: (newData: FormStep[]) => void;
+  data: any[];
+  onChange: (newData: any[]) => void;
 }
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
-  const navigate = useNavigate();
-  const { saveForm, publishForm } = useFormTemplates();
+  // Initialize with a default empty step if data is empty
+  const initialData = data && data.length > 0 
+    ? data 
+    : [{ id: '1', title: 'نموذج جديد', fields: [] }];
   
-  // Initialize formSteps with the data passed from props
-  const [formSteps, setFormSteps] = useState<FormStep[]>(data || []);
-  const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
-  const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
-  const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
-  const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [currentEditStep, setCurrentEditStep] = useState(0);
-  const [previewRefresh, setPreviewRefresh] = useState(0);
-  const [formStyle, setFormStyle] = useState({
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  });
+  const [formData, setFormData] = useState(initialData);
+  const [currentEditingField, setCurrentEditingField] = useState(null);
+  const [showFieldEditor, setShowFieldEditor] = useState(false);
   
-  // Update parent component when formSteps change
+  // Update parent when our local data changes
   useEffect(() => {
-    if (formSteps !== data) {
-      onChange(formSteps);
-    }
-  }, [formSteps, data, onChange]);
-
-  // Initialize with default steps if data is empty
-  useEffect(() => {
-    // If the data is empty, we create a default form
-    if (data && data.length === 0) {
-      const defaultSteps = createDefaultForm();
-      setFormSteps(defaultSteps);
-      setPreviewRefresh(prev => prev + 1);
-    } else if (data && data.length > 0) {
-      // Otherwise use the data from props
-      setFormSteps(data);
-    }
-  }, [data]);
+    onChange(formData);
+  }, [formData, onChange]);
   
-  const addNewStep = () => {
-    const newStep = {
-      id: (formSteps.length + 1).toString(),
-      title: `خطوة جديدة ${formSteps.length + 1}`,
-      fields: []
-    };
-    const updatedSteps = [...formSteps, newStep];
-    setFormSteps(updatedSteps);
-    setCurrentEditStep(formSteps.length);
-    setPreviewRefresh(prev => prev + 1);
-  };
-  
-  const applyTemplate = (templateId: number) => {
-    const template = formTemplates.find(t => t.id === templateId);
-    if (template) {
-      setFormSteps(template.data);
-      setIsTemplateDialogOpen(false);
-      setPreviewRefresh(prev => prev + 1);
-      toast.success(`تم تطبيق قالب ${template.title} بنجاح`);
-    }
-  };
-
-  const addFieldToStep = (type: FormField['type']) => {
-    if (formSteps.length === 0) {
-      // Create a first step if none exists
-      const newStep = {
-        id: "1",
-        title: "خطوة جديدة 1",
-        fields: [createEmptyField(type)]
-      };
-      setFormSteps([newStep]);
-    } else {
-      const newField = createEmptyField(type);
-      const updatedSteps = [...formSteps];
-      if (!updatedSteps[currentEditStep]) {
-        console.warn("Current edit step is invalid, defaulting to first step");
-        setCurrentEditStep(0);
-        updatedSteps[0].fields.push(newField);
-      } else {
-        updatedSteps[currentEditStep].fields.push(newField);
-      }
-      setFormSteps(updatedSteps);
-    }
-    setPreviewRefresh(prev => prev + 1);
-  };
-
-  const editField = (field: FormField) => {
-    setCurrentEditingField(field);
-    setIsFieldEditorOpen(true);
-  };
-
-  const saveField = (updatedField: FormField) => {
-    const updatedSteps = [...formSteps];
-    const stepIndex = currentEditStep;
-    
-    if (stepIndex < 0 || stepIndex >= updatedSteps.length) {
-      console.error("Invalid step index when saving field");
-      return;
-    }
-    
-    const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === updatedField.id);
-    
-    if (fieldIndex !== -1) {
-      updatedSteps[stepIndex].fields[fieldIndex] = updatedField;
-      setFormSteps(updatedSteps);
-    }
-    
-    setIsFieldEditorOpen(false);
-    setCurrentEditingField(null);
-    setPreviewRefresh(prev => prev + 1);
-  };
-
-  const deleteField = (fieldId: string) => {
-    if (currentEditStep >= formSteps.length) {
-      console.error("Invalid current edit step when deleting field");
-      return;
-    }
-    
-    const updatedSteps = [...formSteps];
-    updatedSteps[currentEditStep].fields = updatedSteps[currentEditStep].fields.filter(f => f.id !== fieldId);
-    setFormSteps(updatedSteps);
-    setPreviewRefresh(prev => prev + 1);
-  };
-
-  const duplicateField = (field: FormField) => {
-    if (currentEditStep >= formSteps.length) {
-      console.error("Invalid current edit step when duplicating field");
-      return;
-    }
-    
-    const newField = {
-      ...field,
-      id: `${field.id}-copy`,
-      label: `${field.label} (نسخة)`
-    };
-    
-    const updatedSteps = [...formSteps];
-    const fieldIndex = updatedSteps[currentEditStep].fields.findIndex(f => f.id === field.id);
-    
-    if (fieldIndex === -1) {
-      console.error("Field not found when duplicating");
-      return;
-    }
-    
-    updatedSteps[currentEditStep].fields.splice(fieldIndex + 1, 0, newField);
-    setFormSteps(updatedSteps);
-    setPreviewRefresh(prev => prev + 1);
-  };
-  
+  // Setup DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -218,571 +268,173 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  const handleDragEndSteps = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    setFormSteps((steps) => {
-      const oldIndex = steps.findIndex((step) => step.id === active.id);
-      const newIndex = steps.findIndex((step) => step.id === over.id);
-      const newSteps = arrayMove(steps, oldIndex, newIndex);
-      return newSteps;
-    });
-    setPreviewRefresh(prev => prev + 1);
-  };
-
-  const handleDragEndFields = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const updatedSteps = [...formSteps];
-    
-    if (currentEditStep >= updatedSteps.length) {
-      console.error("Invalid current edit step when handling drag end for fields");
-      return;
-    }
-    
-    const currentStep = updatedSteps[currentEditStep];
-    const oldIndex = currentStep.fields.findIndex((field) => field.id === active.id);
-    const newIndex = currentStep.fields.findIndex((field) => field.id === over.id);
-    
-    if (oldIndex === -1 || newIndex === -1) {
-      console.error("Field not found during drag operation");
-      return;
-    }
-    
-    currentStep.fields = arrayMove(currentStep.fields, oldIndex, newIndex);
-    setFormSteps(updatedSteps);
-    setPreviewRefresh(prev => prev + 1);
-  };
   
-  const handleStyleChange = (key: string, value: string) => {
-    setFormStyle({
-      ...formStyle,
-      [key]: value
-    });
-    setPreviewRefresh(prev => prev + 1);
-  };
-
-  // Safely create a new empty field
-  const createEmptyField = (type: FormField['type']) => {
-    let newField: FormField = {
-      id: uuidv4(), // Use UUID from imported library
+  // Get the current fields (first step only)
+  const currentFields = formData[0]?.fields || [];
+  
+  // Add a new field
+  const addField = (type) => {
+    const newField = {
+      id: uuidv4(),
       type,
-      label: '',
+      label: fieldTypes.find(ft => ft.value === type)?.label || 'حقل جديد',
       required: false,
+      placeholder: '',
     };
-  
-    // Add field-specific configuration
-    switch (type) {
-      case 'form-title':
-        newField.label = 'عنوان النموذج المخصص';
-        newField.helpText = 'وصف النموذج (اختياري)';
-        newField.style = {
-          textAlign: 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '',
-        };
-        break;
-      case 'text':
-        newField.label = 'حقل نص';
-        break;
-      case 'email':
-        newField.label = 'بريد إلكتروني';
-        break;
-      case 'phone':
-        newField.label = 'رقم هاتف';
-        break;
-      case 'textarea':
-        newField.label = 'نص متعدد الأسطر';
-        break;
-      case 'select':
-        newField.label = 'قائمة منسدلة';
-        break;
-      case 'checkbox':
-        newField.label = 'خانة اختيار';
-        break;
-      case 'radio':
-        newField.label = 'زر راديو';
-        break;
-      case 'cart-items':
-        newField.label = 'المنتج المختار';
-        break;
-      case 'cart-summary':
-        newField.label = 'ملخص الطلب';
-        break;
-      case 'submit':
-        newField.label = 'زر إرسال الطلب';
-        break;
-      case 'text/html':
-        newField.label = 'نص/HTML';
-        break;
-      case 'title':
-        newField.label = 'عنوان قسم';
-        break;
-      default:
-        newField.label = 'حقل جديد';
-        break;
-    }
-  
-    return newField;
-  };
-
-  // Safe getter for current step
-  const getCurrentStep = () => {
-    if (formSteps.length === 0) {
-      return null;
+    
+    if (['select', 'checkbox', 'radio'].includes(type)) {
+      newField.options = [
+        { value: 'option1', label: 'الخيار 1' },
+        { value: 'option2', label: 'الخيار 2' }
+      ];
     }
     
-    if (currentEditStep >= formSteps.length) {
-      console.warn("Current edit step is out of bounds, defaulting to first step");
-      setCurrentEditStep(0);
-      return formSteps[0];
-    }
+    const updatedData = [...formData];
+    updatedData[0] = {
+      ...updatedData[0],
+      fields: [...currentFields, newField]
+    };
     
-    return formSteps[currentEditStep];
+    setFormData(updatedData);
   };
-
-  const currentStep = getCurrentStep();
-
+  
+  // Edit a field
+  const editField = (field) => {
+    setCurrentEditingField(field);
+    setShowFieldEditor(true);
+  };
+  
+  // Save edited field
+  const saveField = (updatedField) => {
+    const updatedData = [...formData];
+    
+    updatedData[0] = {
+      ...updatedData[0],
+      fields: currentFields.map(f => 
+        f.id === updatedField.id ? updatedField : f
+      )
+    };
+    
+    setFormData(updatedData);
+    setShowFieldEditor(false);
+    setCurrentEditingField(null);
+  };
+  
+  // Delete a field
+  const deleteField = (fieldId) => {
+    const updatedData = [...formData];
+    
+    updatedData[0] = {
+      ...updatedData[0],
+      fields: currentFields.filter(f => f.id !== fieldId)
+    };
+    
+    setFormData(updatedData);
+  };
+  
+  // Duplicate a field
+  const duplicateField = (field) => {
+    const newField = {
+      ...field,
+      id: uuidv4(),
+      label: `${field.label} (نسخة)`
+    };
+    
+    const fieldIndex = currentFields.findIndex(f => f.id === field.id);
+    const newFields = [...currentFields];
+    newFields.splice(fieldIndex + 1, 0, newField);
+    
+    const updatedData = [...formData];
+    updatedData[0] = {
+      ...updatedData[0],
+      fields: newFields
+    };
+    
+    setFormData(updatedData);
+  };
+  
+  // Handle drag end event for field reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = currentFields.findIndex(f => f.id === active.id);
+      const newIndex = currentFields.findIndex(f => f.id === over.id);
+      
+      const newFields = arrayMove(currentFields, oldIndex, newIndex);
+      
+      const updatedData = [...formData];
+      updatedData[0] = {
+        ...updatedData[0],
+        fields: newFields
+      };
+      
+      setFormData(updatedData);
+    }
+  };
+  
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-7 space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between p-4">
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                disabled={isSaving}
-                className="flex items-center gap-2"
-              >
-                {isSaving ? (
-                  <>
-                    <span className="animate-spin">
-                      <svg className="h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </span>
-                    <span>جاري الحفظ</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    <span>حفظ</span>
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="secondary"
-                disabled={isPublishing}
-                className="flex items-center gap-2"
-              >
-                {isPublishing ? (
-                  <span className="animate-spin">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </span>
-                ) : (
-                  <FileCheck size={16} />
-                )}
-                <span>نشر النموذج</span>
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsStyleDialogOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Palette size={16} />
-                تخصيص المظهر
-              </Button>
-              
-              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <FileText size={16} />
-                    قوالب النماذج
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <FormTemplatesDialog 
-                    open={isTemplateDialogOpen}
-                    onSelect={applyTemplate} 
-                    onClose={() => setIsTemplateDialogOpen(false)} 
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="steps">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="steps">الخطوات</TabsTrigger>
-                <TabsTrigger value="fields">الحقول</TabsTrigger>
-                <TabsTrigger value="design">التصميم</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="steps" className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-right">خطوات النموذج</h3>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEndSteps}
-                    >
-                      <SortableContext
-                        items={formSteps.map(step => step.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {formSteps.map((step, index) => (
-                          <SortableStep
-                            key={step.id}
-                            step={step}
-                            isActive={currentEditStep === index}
-                            onClick={() => setCurrentEditStep(index)}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DndContext>
-                    
-                    <Button 
-                      variant="outline"
-                      className="w-full flex items-center justify-center gap-2"
-                      onClick={addNewStep}
-                    >
-                      <Plus size={16} />
-                      إضافة خطوة جديدة
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-right">إضافة حقول</h3>
-                    {availableFieldTypes.map((fieldType) => (
-                      <div 
-                        key={fieldType.type} 
-                        className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => addFieldToStep(fieldType.type)}
-                      >
-                        <Button variant="ghost" size="sm" className="p-0">
-                          <Plus size={16} />
-                        </Button>
-                        <div className="flex items-center gap-2 text-right">
-                          <span>{fieldType.label}</span>
-                          {fieldType.icon}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium mb-3 text-right">
-                    حقول الخطوة: {currentStep?.title || 'لا توجد خطوات'}
-                  </h3>
-                  
-                  {currentStep && (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEndFields}
-                    >
-                      <SortableContext
-                        items={currentStep.fields.map(field => field.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-2">
-                          {currentStep.fields.map((field) => (
-                            <SortableField
-                              key={field.id}
-                              field={field}
-                              onEdit={() => editField(field)}
-                              onDuplicate={() => duplicateField(field)}
-                              onDelete={() => deleteField(field.id)}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                  
-                  {(!currentStep || currentStep.fields.length === 0) && (
-                    <div className="text-center py-8 text-gray-500 border rounded-lg">
-                      <p>لا توجد حقول في هذه الخطوة</p>
-                      <p className="text-sm">أضف حقولًا من القائمة أعلاه</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="fields" className="mt-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-right">
-                    حقول النموذج
-                  </h3>
-                  
-                  {availableFieldTypes.map((fieldType) => (
-                    <div 
-                      key={fieldType.type} 
-                      className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => addFieldToStep(fieldType.type)}
-                    >
-                      <Button variant="ghost" size="sm" className="p-0">
-                        <Plus size={16} />
-                      </Button>
-                      <div className="flex items-center gap-2 text-right">
-                        <span>{fieldType.label}</span>
-                        {fieldType.icon}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="design" className="mt-6">
-                <div className="space-y-4 text-right">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">اللون الرئيسي</label>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="color"
-                        value={formStyle.primaryColor}
-                        onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                        className="h-8 w-8 rounded"
-                      />
-                      <input
-                        type="text"
-                        value={formStyle.primaryColor}
-                        onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                        className="flex-1 border rounded px-3 py-2"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">استدارة الحواف</label>
-                    <select
-                      className="w-full border rounded px-3 py-2"
-                      value={formStyle.borderRadius}
-                      onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
-                    >
-                      <option value="0">بدون استدارة</option>
-                      <option value="0.25rem">استدارة خفيفة</option>
-                      <option value="0.5rem">استدارة متوسطة</option>
-                      <option value="1rem">استدارة كبيرة</option>
-                      <option value="9999px">دائري</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">حجم الخط</label>
-                    <select
-                      className="w-full border rounded px-3 py-2"
-                      value={formStyle.fontSize}
-                      onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-                    >
-                      <option value="0.875rem">صغير</option>
-                      <option value="1rem">متوسط</option>
-                      <option value="1.125rem">كبير</option>
-                      <option value="1.25rem">كبير جداً</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">نمط الأزرار</label>
-                    <select
-                      className="w-full border rounded px-3 py-2"
-                      value={formStyle.buttonStyle}
-                      onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
-                    >
-                      <option value="rounded">مستدير</option>
-                      <option value="square">مربع</option>
-                      <option value="pill">كبسولي</option>
-                    </select>
-                  </div>
-                  
-                  <div className="mt-4 grid grid-cols-5 gap-2">
-                    {['#9b87f5', '#2563eb', '#10b981', '#f59e0b', '#ef4444'].map(color => (
-                      <div
-                        key={color}
-                        className={cn(
-                          "h-8 rounded cursor-pointer transition-all",
-                          formStyle.primaryColor === color ? "ring-2 ring-offset-2" : ""
-                        )}
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleStyleChange('primaryColor', color)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="bg-white border rounded-lg p-4">
+        <h3 className="text-lg font-medium mb-4">حقول النموذج</h3>
+        
+        {currentFields.length > 0 ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={currentFields.map(field => field.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {currentFields.map(field => (
+                <SortableField
+                  key={field.id}
+                  field={field}
+                  onEdit={editField}
+                  onDelete={deleteField}
+                  onDuplicate={duplicateField}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <div className="text-center py-8 text-gray-500 border border-dashed rounded-lg">
+            <p className="mb-2">لا توجد حقول في هذا النموذج</p>
+            <p className="text-sm">انقر على "إضافة حقل" أدناه لإضافة حقول للنموذج</p>
+          </div>
+        )}
       </div>
       
-      <div className="lg:col-span-5">
-        <div className="sticky top-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-sm text-gray-500">معاينة مباشرة</div>
-            <h3 className="text-lg font-medium text-right">معاينة النموذج</h3>
-          </div>
-          
-          <FormPreview 
-            key={previewRefresh}
-            formTitle="نموذج جديد"
-            formDescription="وصف النموذج"
-            currentStep={currentPreviewStep}
-            totalSteps={formSteps.length || 1}
-            style={formStyle}
-            fields={formSteps.length > 0 && currentPreviewStep <= formSteps.length
-              ? formSteps[currentPreviewStep - 1]?.fields || [] 
-              : []}
-          >
-            <div></div>
-          </FormPreview>
-          
-          <div className="mt-4 flex justify-end">
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
-                disabled={currentPreviewStep === 1}
-              >
-                السابق
-              </Button>
-              
-              {currentPreviewStep < formSteps.length ? (
-                <Button 
-                  variant="default"
-                  style={{ backgroundColor: formStyle.primaryColor }}
-                  onClick={() => setCurrentPreviewStep(prev => Math.min(prev + 1, formSteps.length))}
-                >
-                  التالي
-                </Button>
-              ) : (
-                <Button 
-                  variant="default"
-                  style={{ backgroundColor: formStyle.primaryColor }}
-                >
-                  إرسال الطلب
-                </Button>
-              )}
-            </div>
-          </div>
+      <div className="bg-white border rounded-lg p-4">
+        <h3 className="text-lg font-medium mb-4">إضافة حقل جديد</h3>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {fieldTypes.map(type => (
+            <Button
+              key={type.value}
+              variant="outline"
+              onClick={() => addField(type.value)}
+              className="justify-start h-auto py-3"
+            >
+              <Plus size={16} className="mr-2" />
+              {type.label}
+            </Button>
+          ))}
         </div>
       </div>
       
-      {isFieldEditorOpen && currentEditingField && (
-        <Dialog open={isFieldEditorOpen} onOpenChange={setIsFieldEditorOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogTitle>تحرير الحقل</DialogTitle>
-            <FieldEditor
-              field={currentEditingField}
-              onSave={saveField}
-              onClose={() => setIsFieldEditorOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+      {showFieldEditor && currentEditingField && (
+        <FieldEditorDialog
+          field={currentEditingField}
+          onSave={saveField}
+          onClose={() => {
+            setShowFieldEditor(false);
+            setCurrentEditingField(null);
+          }}
+        />
       )}
-      
-      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogTitle className="text-right">تخصيص مظهر النموذج</DialogTitle>
-          
-          <div className="space-y-4 py-4 text-right">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">اللون الرئيسي</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="color"
-                  value={formStyle.primaryColor}
-                  onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                  className="h-8 w-8 rounded"
-                />
-                <input
-                  type="text"
-                  value={formStyle.primaryColor}
-                  onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                  className="flex-1 border rounded px-3 py-2"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">استدارة الحواف</label>
-              <select
-                className="w-full border rounded px-3 py-2"
-                value={formStyle.borderRadius}
-                onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
-              >
-                <option value="0">بدون استدارة</option>
-                <option value="0.25rem">استدارة خفيفة</option>
-                <option value="0.5rem">استدارة متوسطة</option>
-                <option value="1rem">استدارة كبيرة</option>
-                <option value="9999px">دائري</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">حجم الخط</label>
-              <select
-                className="w-full border rounded px-3 py-2"
-                value={formStyle.fontSize}
-                onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-              >
-                <option value="0.875rem">صغير</option>
-                <option value="1rem">متوسط</option>
-                <option value="1.125rem">كبير</option>
-                <option value="1.25rem">كبير جداً</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">نمط الأزرار</label>
-              <select
-                className="w-full border rounded px-3 py-2"
-                value={formStyle.buttonStyle}
-                onChange={(e) => handleStyleChange('buttonStyle', e.target.value)}
-              >
-                <option value="rounded">مستدير</option>
-                <option value="square">مربع</option>
-                <option value="pill">كبسولي</option>
-              </select>
-            </div>
-            
-            <div className="mt-4 grid grid-cols-5 gap-2">
-              {['#9b87f5', '#2563eb', '#10b981', '#f59e0b', '#ef4444'].map(color => (
-                <div
-                  key={color}
-                  className={cn(
-                    "h-8 rounded cursor-pointer transition-all",
-                    formStyle.primaryColor === color ? "ring-2 ring-offset-2" : ""
-                  )}
-                  style={{ backgroundColor: color }}
-                  onClick={() => handleStyleChange('primaryColor', color)}
-                />
-              ))}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setIsStyleDialogOpen(false)}>
-              حفظ التغييرات
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

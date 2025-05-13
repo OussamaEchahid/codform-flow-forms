@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import FormBuilder from '@/components/form/FormBuilder'; // Corrected import path
+import FormBuilder from '@/components/form/FormBuilder'; 
 import FormPreview from '@/components/form/FormPreview';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import PublishForm from '@/components/form/builder/PublishForm';
@@ -180,6 +180,9 @@ const FormBuilderEditor = ({ formId }) => {
   // Ensure formStyle is a valid FormStyle object
   const formStyle: FormStyle = formState?.style || getDefaultStyle();
   
+  // Get the first step of form fields or empty array if none
+  const currentFields = formState?.data?.length > 0 ? formState.data[0].fields || [] : [];
+  
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
@@ -259,8 +262,8 @@ const FormBuilderEditor = ({ formId }) => {
               formDescription={formState?.description || ''}
               currentStep={1}
               totalSteps={formState?.data?.length || 1}
-              style={formStyle} // Pass the properly typed formStyle
-              fields={formState?.data?.length > 0 ? formState.data[0].fields || [] : []}
+              style={formStyle}
+              fields={currentFields}
             />
           </div>
         </TabsContent>
