@@ -60,9 +60,8 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     }
   };
   
-  // Calculate width based on content
-  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : 'auto';
-  const minWidth = '180px'; // Set minimum width to make it longer
+  // Set fixed minimum width for better appearance
+  const minWidth = '220px'; // Increased minimum width to make it longer
   
   return (
     <div 

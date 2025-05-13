@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -681,16 +682,18 @@
     z-index: 999;
   }
   
-  /* Floating button styles */
+  /* Floating button styles - Updated to be wider and better for scrolling */
   .codform-floating-button {
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease;
-    min-width: 180px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-width: 220px; /* Made wider for better visibility */
     padding: 12px 24px;
+    justify-content: center; /* Center the content */
+    font-weight: 600; /* Make text bolder */
   }
   
   .codform-floating-button:hover {

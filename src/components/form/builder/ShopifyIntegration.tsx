@@ -6,36 +6,26 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 interface ShopifyIntegrationProps {
   formId: string;
   formTitle?: string;
-  formDescription?: string;
   formStyle?: {
     primaryColor?: string;
   };
-  onSave?: (settings: any) => void;
   isSyncing?: boolean;
   formTitleElement?: any;
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
   formId,
-  formTitle,
-  formDescription,
   formStyle = { primaryColor: '#9b87f5' },
-  isSyncing = false,
-  formTitleElement
+  isSyncing = false
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
-  // الترويسة مخفية افتراضيًا الآن
-  const [hideHeader] = useState(true);
   
-  // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
+  // Reset copy state after 3 seconds
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (copied) {
@@ -53,8 +43,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         : 'Form ID copied successfully'
     );
   };
-
-  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
     <Card className="mt-4">
@@ -111,56 +99,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-            
-            <div className="flex items-center justify-between py-2 border-t">
-              <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
-                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر (مفعل افتراضيًا)' : 'Hide form header in store (enabled by default)'}
-                <p className="text-sm text-gray-500 mt-1">
-                  {language === 'ar' 
-                    ? 'الترويسة مخفية تلقائيًا لتجنب العناوين المكررة في صفحة المنتج' 
-                    : 'The header is hidden automatically to avoid duplicate titles in the product page'}
-                </p>
-              </Label>
-              <Switch 
-                id="hide-header"
-                checked={hideHeader}
-                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
-              />
-            </div>
-            
-            {formTitleElement && (
-              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                  {language === 'ar' ? 'عنوان النموذج المخصص:' : 'Custom Form Title:'}
-                </span>
-                <div className="p-2 bg-gray-100 rounded text-sm flex-1">
-                  <span className="font-semibold">✓</span> {language === 'ar' ? 'تم تعيين عنوان مخصص' : 'Custom title configured'}
-                </div>
-              </div>
-            )}
-            
-            {formTitle && !formTitleElement && (
-              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                  {language === 'ar' ? 'عنوان النموذج:' : 'Form Title:'}
-                </span>
-                <span className="p-2 bg-gray-100 rounded text-sm flex-1">{formTitle}</span>
-              </div>
-            )}
-            
-            <div className={`flex flex-col ${language === 'ar' ? 'items-end' : 'items-start'}`}>
-              <span className="text-sm font-medium mb-2">
-                {language === 'ar' ? 'إعدادات التنسيق:' : 'Styling Settings:'}
-              </span>
-              <div className="flex flex-wrap gap-2 w-full">
-                {formStyle.primaryColor && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: formStyle.primaryColor }}></div>
-                    {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
-                  </Badge>
-                )}
-              </div>
-            </div>
           </div>
 
           <Alert variant="warning" className="bg-amber-50 border-amber-200">
@@ -176,8 +114,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
-                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
-                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
+                ? 'ملاحظة: يتم تفعيل الزر العائم وتعديل إعداداته من صفحة تعديل النموذج فقط. ولا يمكن تعديله من المتجر.' 
+                : 'Note: The floating button is enabled and configured only from the form editor page and cannot be modified from the store.'}
             </AlertDescription>
           </Alert>
           
