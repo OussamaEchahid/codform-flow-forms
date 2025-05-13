@@ -34,6 +34,21 @@ export async function saveProductSettings(
 
     console.log('Using shop ID:', shopId);
     
+    // First check if we need to remove any old settings for this product
+    // This prevents duplication and ensures products only show one form
+    try {
+      await supabase
+        .from('shopify_product_settings')
+        .delete()
+        .eq('shop_id', shopId)
+        .eq('product_id', requestBody.productId);
+        
+      console.log('Successfully deleted any previous settings for this product');
+    } catch (deleteError) {
+      console.warn('Warning while cleaning up previous settings:', deleteError);
+      // Continue execution - non-critical error
+    }
+    
     try {
       // بناء كائن البيانات بعناية
       const settingsData: any = {
@@ -56,12 +71,8 @@ export async function saveProductSettings(
       console.log('Preparing to insert/update settings with data:', settingsData);
 
       // استخدام supabase للإدراج/التحديث
-      const result = await supabase.from('shopify_product_settings').upsert(
-        settingsData,
-        { 
-          onConflict: 'shop_id,product_id',
-          ignoreDuplicates: false
-        }
+      const result = await supabase.from('shopify_product_settings').insert(
+        settingsData
       );
 
       if (result.error) {

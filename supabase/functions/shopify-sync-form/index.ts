@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
@@ -34,40 +35,61 @@ export async function syncFormWithShopify(shop: string, formId: string, settings
     
     // Handle product associations if provided
     if (settings && settings.products && Array.isArray(settings.products) && settings.products.length > 0) {
-      // Delete any existing product settings for this form
-      await supabaseAdmin
-        .from('shopify_product_settings')
-        .delete()
-        .eq('form_id', formId)
-        .eq('shop_id', shop);
+      // First check if we need to delete existing product settings
+      // Only delete if specifically requested to replace all settings
+      if (settings.replaceExisting) {
+        // Delete any existing product settings for this form and shop
+        await supabaseAdmin
+          .from('shopify_product_settings')
+          .delete()
+          .match({ form_id: formId, shop_id: shop });
+      }
       
       // Insert new product settings
       const productSettings = settings.products.map((productId: string) => ({
         form_id: formId,
         product_id: productId,
         shop_id: shop,
-        block_id: settings.blockId || null,
+        block_id: settings.blockId || `codform_${formId.substring(0, 8)}`,
         enabled: true
       }));
       
       if (productSettings.length > 0) {
         const { error: productSettingsError } = await supabaseAdmin
           .from('shopify_product_settings')
-          .insert(productSettings);
+          .upsert(productSettings, { onConflict: 'shop_id,product_id' });
         
         if (productSettingsError) {
           console.error('Error creating product settings:', productSettingsError);
           // Continue anyway - non-critical error
         }
       }
+    } else if (settings.blockId) {
+      // If no specific products provided but blockId exists, create a single entry
+      // only if explicitly requested by the singleProductSync flag
+      if (settings.singleProductSync && settings.productId) {
+        const { error: singleProductError } = await supabaseAdmin
+          .from('shopify_product_settings')
+          .upsert({
+            form_id: formId,
+            product_id: settings.productId,
+            shop_id: shop,
+            block_id: settings.blockId,
+            enabled: true
+          }, { onConflict: 'shop_id,product_id' });
+          
+        if (singleProductError) {
+          console.error('Error creating single product settings:', singleProductError);
+        }
+      }
     }
     
-    // Fetch shop access token
+    // Get shop access token for theme operations
     const { data: shopData, error: shopError } = await supabaseAdmin
       .from('shopify_stores')
       .select('access_token')
       .eq('shop', shop)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -81,62 +103,43 @@ export async function syncFormWithShopify(shop: string, formId: string, settings
       throw new Error('No access token found for shop');
     }
 
-    // Construct the GraphQL query to update the theme
-    const graphqlQuery = JSON.stringify({
-      query: `
-        mutation {
-          themeEditorExtensionUpdate(
-            input: {
-              theme: "${form.theme_id}",
-              settings: [
-                {
-                  key: "form_id",
-                  value: "${form.id}"
-                }
-              ]
-            }
-          ) {
-            themeEditorExtension {
-              theme {
-                id
-                name
-              }
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `
-    });
-
-    // Call the Shopify Admin API to update the theme
-    const shopifyEndpoint = `https://${shop}/admin/api/2023-10/graphql.json`;
-    const shopifyResponse = await fetch(shopifyEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken,
-      },
-      body: graphqlQuery,
-    });
-
-    const shopifyData = await shopifyResponse.json();
-
-    if (shopifyData.errors) {
-      console.error('Shopify API errors:', shopifyData.errors);
-      throw new Error(`Shopify API error: ${shopifyData.errors.map((e: any) => e.message).join(', ')}`);
-    }
-
-    if (shopifyData.data?.themeEditorExtensionUpdate?.userErrors?.length > 0) {
-      console.error('Theme Editor Extension Update errors:', shopifyData.data.themeEditorExtensionUpdate.userErrors);
-      throw new Error(`Theme Editor Extension Update error: ${shopifyData.data.themeEditorExtensionUpdate.userErrors.map((e: any) => e.message).join(', ')}`);
+    // Proceed with theme updates only if needed
+    let themeUpdateResult = { success: true };
+    
+    if (settings.updateTheme) {
+      // Call the theme update function through another edge function
+      const themeUpdatePayload = {
+        shop,
+        accessToken,
+        formId,
+        insertionMethod: settings.insertionMethod || 'auto',
+        blockId: settings.blockId || `codform_${formId.substring(0, 8)}`,
+        themeId: settings.themeId,
+        floatingButtonSettings: settings.floatingButton || {}
+      };
+      
+      const themeUpdateResponse = await fetch(`${supabaseUrl}/functions/v1/shopify-theme-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify(themeUpdatePayload)
+      });
+      
+      if (!themeUpdateResponse.ok) {
+        const errorText = await themeUpdateResponse.text();
+        console.error('Theme update error:', errorText);
+        themeUpdateResult = { success: false, error: errorText };
+      } else {
+        themeUpdateResult = await themeUpdateResponse.json();
+      }
     }
     
     return {
       success: true,
-      message: 'Form synced successfully'
+      message: 'Form synced successfully',
+      theme_update: themeUpdateResult
     };
   } catch (error) {
     console.error('Error in syncFormWithShopify:', error);

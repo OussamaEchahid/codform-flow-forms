@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 
 interface ShopifyFormSync {
@@ -15,6 +15,9 @@ interface ShopifyFormSync {
     products?: string[];
     themeType?: 'os2' | 'traditional' | 'auto-detect';
     insertionMethod?: 'auto' | 'manual';
+    singleProductSync?: boolean;
+    productId?: string;
+    replaceExisting?: boolean;
   };
 }
 
@@ -206,6 +209,16 @@ export const useShopify = () => {
         return { success: true, message: 'Form saved for future sync' };
       }
 
+      // Ensure settings has the singleProductSync flag if needed
+      if (formData.settings && formData.settings.productId && !formData.settings.products) {
+        formData.settings.singleProductSync = true;
+      }
+      
+      // Default to replacing existing settings to avoid duplication
+      if (formData.settings && !formData.settings.replaceExisting) {
+        formData.settings.replaceExisting = true;
+      }
+
       // Real sync with Shopify
       const { data, error } = await shopifySupabase.functions.invoke('shopify-sync-form', {
         body: {
@@ -220,10 +233,25 @@ export const useShopify = () => {
       }
 
       setIsSyncing(false);
+      
+      // Show toast notification
+      toast({
+        title: "نجاح!",
+        description: "تم مزامنة النموذج بنجاح مع متجرك على Shopify.",
+        variant: "success"
+      });
+      
       return data;
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
       setIsSyncing(false);
+      
+      // Show toast notification
+      toast({
+        title: "خطأ",
+        description: `فشل في مزامنة النموذج: ${error.message || 'خطأ غير معروف'}`,
+        variant: "destructive"
+      });
       
       // If sync fails, store pending sync
       const pendingSyncs = JSON.parse(localStorage.getItem('pending_form_syncs') || '[]');
@@ -333,7 +361,7 @@ export const useShopify = () => {
     testConnection,
     refreshConnection,
     syncForm,
-    syncFormWithShopify, // Alias for compatibility
+    syncFormWithShopify: syncForm, // Alias for compatibility
     resyncPendingForms,
     emergencyReset
   };
