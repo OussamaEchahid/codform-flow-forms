@@ -10,13 +10,31 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import FormBuilder from '@/components/form/builder/FormBuilder';
+import FormBuilder from '@/components/form/FormBuilder'; // Fixed import path
 import FormPreview from '@/components/form/FormPreview';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import PublishForm from '@/components/form/builder/PublishForm';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { toast } from 'sonner';
 import { ShoppingBag } from 'lucide-react';
+
+// Add the FormState type extension to include product_id
+type FormStyleType = {
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
+};
+
+interface FormState {
+  id?: string;
+  title: string;
+  description: string;
+  data: any[];
+  style: FormStyleType;
+  isPublished?: boolean;
+  product_id?: string; // Added product_id field
+}
 
 const FormBuilderEditor = ({ formId }) => {
   const navigate = useNavigate();
@@ -222,22 +240,34 @@ const FormBuilderEditor = ({ formId }) => {
         <TabsContent value="builder">
           <div className="mt-4">
             <FormBuilder
-              data={formState?.data || []}
-              onChange={handleDataChange}
+              initialFormData={{
+                id: formId,
+                title: formState?.title || '',
+                description: formState?.description || '',
+                data: formState?.data || [],
+                is_published: formState?.isPublished || false
+              }}
             />
           </div>
         </TabsContent>
         
         <TabsContent value="preview">
           <div className="mt-4">
-            <FormPreview />
+            <FormPreview 
+              formTitle={formState?.title || ''}
+              formDescription={formState?.description || ''}
+              currentStep={1}
+              totalSteps={formState?.data?.length || 1}
+              style={formState?.style || {}}
+              fields={formState?.data?.length > 0 ? formState.data[0].fields || [] : []}
+            />
           </div>
         </TabsContent>
         
         <TabsContent value="style">
           <div className="mt-4">
             <FormStyleEditor
-              style={formState?.style}
+              formStyle={formState?.style || {}}
               onChange={handleStyleChange}
             />
           </div>
@@ -260,8 +290,8 @@ const FormBuilderEditor = ({ formId }) => {
             
             <ShopifyIntegration
               formId={formId}
-              formStyle={formState.style}
-              productId={formState.product_id}
+              formStyle={formState?.style || {}}
+              productId={formState?.product_id}
               onSave={async (settings) => {
                 setFormState({
                   ...settings
@@ -275,7 +305,7 @@ const FormBuilderEditor = ({ formId }) => {
       
       <div className="mt-6 flex justify-end">
         <Button
-          variant="primary"
+          variant="default"
           onClick={handleSaveForm}
           disabled={isSaving || !unsavedChanges}
           className="ml-2"

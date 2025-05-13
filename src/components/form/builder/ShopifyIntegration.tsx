@@ -6,10 +6,30 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { Loader2, ShoppingBag, Check, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
-import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 
-const ShopifyIntegration = ({ formId, formStyle, productId, onSave }) => {
+interface ShopifyIntegrationProps {
+  formId: string;
+  formStyle: any;
+  productId?: string;
+  onSave: (settings: any) => void;
+}
+
+interface ShopifyFormSync {
+  formId: string;
+  settings: {
+    position: "product-page" | "cart-page" | "checkout";
+    style: any;
+    products: string[];
+    insertionMethod: string;
+  };
+}
+
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
+  formId, 
+  formStyle, 
+  productId, 
+  onSave 
+}) => {
   const { isConnected, syncFormWithShopify, products, loadProducts, isLoading } = useShopify();
   const { t, language } = useI18n();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -40,10 +60,10 @@ const ShopifyIntegration = ({ formId, formStyle, productId, onSave }) => {
     try {
       setIsSyncing(true);
       
-      const syncData = {
+      const syncData: ShopifyFormSync = {
         formId: formId,
         settings: {
-          position: 'product-page',
+          position: "product-page",
           style: formStyle,
           products: [productId],
           insertionMethod: 'auto'
