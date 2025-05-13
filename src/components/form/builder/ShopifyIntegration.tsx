@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle, FileCheck, RefreshCw, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, FileCheck, RefreshCw, UploadCloud, X, Copy } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { useShopify } from '@/hooks/useShopify';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Checkbox } from '@/components/ui/checkbox';
+import ShopifyIntegrationGuide from '@/components/shopify/ShopifyIntegrationGuide';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -32,6 +33,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSettingProducts, setIsSettingProducts] = useState(false);
   const [productSettings, setProductSettings] = useState<Array<{product_id: string, form_id: string, enabled: boolean}>>([]);
+  const [showGuide, setShowGuide] = useState(false);
+  
+  // Copy form ID to clipboard
+  const copyFormIdToClipboard = () => {
+    if (formId) {
+      navigator.clipboard.writeText(formId);
+      toast.success(language === 'ar' ? 'تم نسخ معرّف النموذج' : 'Form ID copied to clipboard');
+    }
+  };
   
   // Add this function to load associated products when component mounts
   const loadAssociatedProducts = useCallback(async () => {
@@ -109,7 +119,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
         if (error) throw error;
       }
       
-      toast.success('Product associations saved successfully');
+      toast.success('تم حفظ ارتباط المنتجات بنجاح');
+      setShowGuide(true);
       
       // Call the onSave callback if provided
       if (onSave) {
@@ -119,7 +130,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
       }
     } catch (error) {
       console.error('Error saving product associations:', error);
-      toast.error('Could not save product associations');
+      toast.error('لم يتم حفظ ارتباطات المنتجات');
     } finally {
       setIsSettingProducts(false);
     }
@@ -203,6 +214,33 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
         {renderStatus()}
       </div>
 
+      {/* Integration Guide */}
+      {showGuide && <ShopifyIntegrationGuide />}
+
+      {/* Form ID section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-right">معرّف النموذج الحالي</CardTitle>
+          <CardDescription className="text-right">
+            استخدم هذا المعرّف عند إضافة النموذج يدويًا في متجر شوبيفاي
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between bg-muted p-3 rounded-md">
+            <code dir="ltr" className="text-sm font-mono">{formId}</code>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={copyFormIdToClipboard} 
+              className="h-8 w-8 p-0"
+              title="نسخ المعرف"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Connection status & setup section */}
       <Card className="mt-6">
         <CardHeader>
@@ -240,7 +278,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
         </CardContent>
       </Card>
       
-      {/* Product associations section - new section */}
+      {/* Product associations section */}
       {auth.shopifyConnected && (
         <Card className="mt-6">
           <CardHeader>
@@ -267,16 +305,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {product.images && product.images.length > 0 && (
+                            {product.image && (
                               <img 
-                                src={getProductImageSrc(product.images[0])}
+                                src={getProductImageSrc(product.image)}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
                             )}
                             <div>
                               <h4 className="font-medium">{product.title}</h4>
-                              <p className="text-sm text-muted-foreground">ID: {product.id}</p>
+                              <p className="text-sm text-muted-foreground">ID: {extractProductId(product.id)}</p>
                             </div>
                           </div>
                           <Checkbox 
@@ -316,6 +354,16 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
           </CardContent>
         </Card>
       )}
+      
+      {/* Button to show/hide the integration guide */}
+      <div className="flex justify-center">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowGuide(!showGuide)}
+        >
+          {showGuide ? 'إخفاء الدليل' : 'عرض دليل ربط النماذج بشوبيفاي'}
+        </Button>
+      </div>
     </div>
   );
 };
@@ -335,5 +383,12 @@ const getProductImageSrc = (image: string | { src?: string } | any): string => {
   return '';
 };
 
-export default ShopifyIntegration;
+// Helper function to extract product ID for display
+const extractProductId = (fullId: string): string => {
+  if (fullId.includes('/')) {
+    return fullId.split('/').pop() || fullId;
+  }
+  return fullId;
+};
 
+export default ShopifyIntegration;

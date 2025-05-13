@@ -34,23 +34,7 @@ export async function saveProductSettings(
 
     console.log('Using shop ID:', shopId);
     
-    // التحقق من وجود عمود block_id في الجدول قبل المتابعة
     try {
-      // التحقق من وجود الجدول وأعمدته
-      const { data: tableInfo, error: tableError } = await supabase
-        .from('shopify_product_settings')
-        .select('*')
-        .limit(1);
-      
-      if (tableError) {
-        console.error('خطأ في التحقق من بنية الجدول:', tableError);
-        return {
-          error: `خطأ في التحقق من بنية الجدول: ${tableError.message || 'خطأ غير معروف'}`
-        };
-      }
-      
-      console.log('Table structure verified successfully');
-
       // بناء كائن البيانات بعناية
       const settingsData: any = {
         shop_id: shopId,

@@ -1,3 +1,123 @@
+{% schema %}
+{
+  "name": "نموذج الدفع عند الاستلام",
+  "target": "section",
+  "stylesheet": "codform.css",
+  "javascript": "codform.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_id",
+      "label": "معرّف النموذج",
+      "info": "أدخل معرف النموذج الذي تريد عرضه. سيظهر النموذج فقط إذا كان مرتبطًا بهذا المنتج."
+    },
+    {
+      "type": "header",
+      "content": "إعدادات الزر العائم"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تمكين الزر العائم",
+      "default": true,
+      "info": "يعرض زرًا في أسفل الشاشة للتنقل السريع إلى النموذج"
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون النص",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون الخلفية",
+      "default": "#000000"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "نصف قطر الحواف",
+      "default": "4px"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "عرض أيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "نوع الأيقونة",
+      "options": [
+        {
+          "value": "shopping-cart",
+          "label": "عربة تسوق"
+        },
+        {
+          "value": "package",
+          "label": "طرد"
+        },
+        {
+          "value": "truck",
+          "label": "شاحنة"
+        },
+        {
+          "value": "send",
+          "label": "إرسال"
+        }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي",
+      "options": [
+        {
+          "value": "none",
+          "label": "بدون"
+        },
+        {
+          "value": "pulse",
+          "label": "نبض"
+        },
+        {
+          "value": "bounce",
+          "label": "قفز"
+        },
+        {
+          "value": "shake",
+          "label": "اهتزاز"
+        },
+        {
+          "value": "wiggle",
+          "label": "تمايل"
+        },
+        {
+          "value": "flash",
+          "label": "وميض"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "checkbox",
+      "id": "is_rtl",
+      "label": "تخطيط من اليمين لليسار (RTL)",
+      "default": true,
+      "info": "تفعيل هذا الخيار إذا كان النص بالعربية أو اللغات التي تكتب من اليمين إلى اليسار"
+    }
+  ]
+}
+{% endschema %}
 
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
@@ -737,346 +857,4 @@
     right: 0 !important;
     display: flex !important;
     justify-content: center !important;
-    z-index: 999999 !important; /* تم زيادة z-index لضمان ظهوره فوق جميع العناصر */
-    pointer-events: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transition: opacity 0.3s ease !important;
-  }
-  
-  .codform-floating-button-container.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-  }
-  
-  /* Floating button styles - Updated to be wider and better for scrolling */
-  .codform-floating-button {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-    min-width: 250px !important; /* Made wider for better visibility */
-    padding: 12px 24px !important;
-    justify-content: center !important; /* Center the content */
-    font-weight: 600 !important; /* Make text bolder */
-    margin: 0 auto !important;
-    position: relative !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .codform-floating-button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  .codform-floating-button-icon {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  /* Updated Submit Button Styles */
-  .codform-submit-button {
-    width: 100%;
-    padding: 16px 20px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    border: none;
-    margin-top: 20px;
-    margin-bottom: 20px;
-  }
-
-  .codform-submit-btn {
-    width: 100% !important;
-    padding: 16px 20px !important;
-    font-weight: bold !important;
-    transition: all 0.3s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    cursor: pointer !important;
-    border: none !important;
-    margin-top: 20px !important;
-    margin-bottom: 20px !important;
-  }
-</style>
-
-<script>
-  // Make sure floating button is visible on page load
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check if floating button is enabled in block settings
-    var enableFloatingButton = {% if block.settings.enable_floating_button %}true{% else %}false{% endif %};
-    var floatingButtonContainer = document.getElementById('codform-floating-button-{{ block.id }}');
-    
-    if (floatingButtonContainer && enableFloatingButton) {
-      // Make floating button visible
-      floatingButtonContainer.style.display = 'flex';
-      floatingButtonContainer.style.visibility = 'visible';
-      floatingButtonContainer.style.opacity = '1';
-      floatingButtonContainer.classList.remove('hidden');
-    }
-    
-    // Initialize form with product ID check
-    initForm();
-  });
-  
-  // Initialize form with product ID check
-  function initForm() {
-    var container = document.getElementById('codform-container-{{ block.id }}');
-    if (!container) return;
-    
-    var formId = container.getAttribute('data-form-id');
-    var productId = container.getAttribute('data-product-id');
-    
-    if (!formId || !productId) return;
-    
-    // Load form data with product ID
-    fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/api-forms', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        id: formId,
-        productId: productId
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) {
-        console.error('Error loading form:', data.error);
-        
-        // Show appropriate error message
-        document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-        
-        if (data.associationMissing) {
-          // Form is not associated with this product
-          document.getElementById('codform-not-available-{{ block.id }}').style.display = 'block';
-          
-          // Hide floating button if form not available for this product
-          var floatingButton = document.getElementById('codform-floating-button-{{ block.id }}');
-          if (floatingButton) {
-            floatingButton.style.display = 'none';
-          }
-        } else {
-          // Other error
-          document.getElementById('codform-error-message-{{ block.id }}').innerText = data.error;
-          document.getElementById('codform-error-{{ block.id }}').style.display = 'block';
-        }
-        return;
-      }
-      
-      // Successfully loaded form data
-      document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-      
-      // Initialize form with the returned data
-      // ... additional form initialization code will go here
-      
-      // Show the form
-      document.getElementById('codform-form-{{ block.id }}').style.display = 'block';
-      
-      // Update floating button with form settings if available
-      if (data.floating_button) {
-        updateFloatingButton(data.floating_button);
-      }
-    })
-    .catch(error => {
-      console.error('Error in fetch:', error);
-      document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-      document.getElementById('codform-error-{{ block.id }}').style.display = 'block';
-    });
-  }
-  
-  // Update floating button with settings from form
-  function updateFloatingButton(buttonSettings) {
-    if (!buttonSettings) return;
-    
-    var floatingButton = document.getElementById('codform-floating-button-{{ block.id }}');
-    if (!floatingButton) return;
-    
-    // Only show if enabled in settings
-    if (buttonSettings.enabled === false) {
-      floatingButton.style.display = 'none';
-      return;
-    }
-    
-    var buttonElement = floatingButton.querySelector('button');
-    if (!buttonElement) return;
-    
-    // Update button text
-    if (buttonSettings.text) {
-      var textSpan = buttonElement.querySelector('span:not(.codform-floating-button-icon)');
-      if (textSpan) {
-        textSpan.innerText = buttonSettings.text;
-      }
-    }
-    
-    // Update colors and styles
-    if (buttonSettings.textColor) {
-      buttonElement.style.color = buttonSettings.textColor;
-    }
-    
-    if (buttonSettings.backgroundColor) {
-      buttonElement.style.backgroundColor = buttonSettings.backgroundColor;
-    }
-    
-    if (buttonSettings.borderRadius) {
-      buttonElement.style.borderRadius = buttonSettings.borderRadius;
-    }
-    
-    // Update icon visibility
-    var iconSpan = buttonElement.querySelector('.codform-floating-button-icon');
-    if (iconSpan) {
-      iconSpan.style.display = buttonSettings.showIcon ? 'inline-flex' : 'none';
-    }
-    
-    // Make button visible
-    floatingButton.style.display = 'flex';
-    floatingButton.style.visibility = 'visible';
-    floatingButton.style.opacity = '1';
-  }
-  
-  // Handle retry button
-  document.getElementById('codform-retry-{{ block.id }}').addEventListener('click', function() {
-    document.getElementById('codform-error-{{ block.id }}').style.display = 'none';
-    document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'flex';
-    initForm();
-  });
-</script>
-
-{% schema %}
-{
-  "name": "نموذج الدفع عند الاستلام",
-  "target": "section",
-  "stylesheet": "codform.css",
-  "javascript": "codform.js",
-  "settings": [
-    {
-      "type": "text",
-      "id": "form_id",
-      "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه. سيظهر النموذج فقط إذا كان مرتبطًا بهذا المنتج."
-    },
-    {
-      "type": "header",
-      "content": "إعدادات الزر العائم"
-    },
-    {
-      "type": "checkbox",
-      "id": "enable_floating_button",
-      "label": "تمكين الزر العائم",
-      "default": true,
-      "info": "يعرض زرًا في أسفل الشاشة للتنقل السريع إلى النموذج"
-    },
-    {
-      "type": "text",
-      "id": "floating_button_text",
-      "label": "نص الزر العائم",
-      "default": "اطلب الآن"
-    },
-    {
-      "type": "color",
-      "id": "floating_text_color",
-      "label": "لون النص",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "floating_bg_color",
-      "label": "لون الخلفية",
-      "default": "#000000"
-    },
-    {
-      "type": "text",
-      "id": "floating_border_radius",
-      "label": "نصف قطر الحواف",
-      "default": "4px"
-    },
-    {
-      "type": "checkbox",
-      "id": "floating_show_icon",
-      "label": "عرض أيقونة",
-      "default": true
-    },
-    {
-      "type": "select",
-      "id": "floating_icon",
-      "label": "نوع الأيقونة",
-      "options": [
-        {
-          "value": "shopping-cart",
-          "label": "عربة تسوق"
-        },
-        {
-          "value": "package",
-          "label": "طرد"
-        },
-        {
-          "value": "truck",
-          "label": "شاحنة"
-        },
-        {
-          "value": "send",
-          "label": "إرسال"
-        }
-      ],
-      "default": "shopping-cart"
-    },
-    {
-      "type": "select",
-      "id": "floating_animation",
-      "label": "تأثير حركي",
-      "options": [
-        {
-          "value": "none",
-          "label": "بدون"
-        },
-        {
-          "value": "pulse",
-          "label": "نبض"
-        },
-        {
-          "value": "bounce",
-          "label": "قفز"
-        },
-        {
-          "value": "shake",
-          "label": "اهتزاز"
-        },
-        {
-          "value": "wiggle",
-          "label": "تمايل"
-        },
-        {
-          "value": "flash",
-          "label": "وميض"
-        }
-      ],
-      "default": "none"
-    },
-    {
-      "type": "checkbox",
-      "id": "is_rtl",
-      "label": "تخطيط من اليمين لليسار (RTL)",
-      "default": true,
-      "info": "تفعيل هذا الخيار إذا كان النص بالعربية أو اللغات التي تكتب من اليمين إلى اليسار"
-    }
-  ]
-}
-{% endschema %}
+    z-index: 999999 !important; /* تم زيادة
