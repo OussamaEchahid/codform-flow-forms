@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InfoCircle } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 // Define a simple Steps component since we don't have @/components/ui/steps
 const Steps = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -32,7 +32,7 @@ const ShopifyIntegrationGuide = () => {
       </CardHeader>
       <CardContent className="text-right">
         <Alert className="mb-4">
-          <InfoCircle className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertTitle>هام: آلية ربط النماذج بالمنتجات</AlertTitle>
           <AlertDescription>
             لكي يظهر النموذج على صفحة منتج معين، هناك خطوتان رئيسيتان يجب إكمالهما.
@@ -64,8 +64,8 @@ const ShopifyIntegrationGuide = () => {
           </Step>
         </Steps>
         
-        <Alert variant="info" className="mt-4">
-          <InfoCircle className="h-4 w-4" />
+        <Alert className="mt-4">
+          <Info className="h-4 w-4" />
           <AlertTitle>ملاحظة مهمة</AlertTitle>
           <AlertDescription>
             في معظم الحالات، يكفي ربط المنتجات في الخطوة 1 فقط. إذا واجهت أي مشكلات، حاول إضافة معرف النموذج يدوياً في إعدادات البلوك.

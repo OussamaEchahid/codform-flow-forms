@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -305,9 +304,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {product.image && (
+                            {product.images && product.images.length > 0 && (
                               <img 
-                                src={getProductImageSrc(product.image)}
+                                src={getProductImageSrc(product.images[0])}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
