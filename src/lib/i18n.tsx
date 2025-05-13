@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
 // Define language types
@@ -97,6 +98,12 @@ const ar = {
       saving: 'جاري الحفظ...',
     }
   }
+};
+
+// Create translations object that combines all language translations
+const translations = {
+  en,
+  ar
 };
 
 // Provider component

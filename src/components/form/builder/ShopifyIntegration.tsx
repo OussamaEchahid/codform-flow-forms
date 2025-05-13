@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,7 @@ interface ShopifyIntegrationProps {
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
-  const { shop, isConnected, testConnection, refreshConnection, emergencyReset } = useAuth();
+  const auth = useAuth();
   const { isSyncing, isRetrying, tokenError, failSafeMode, refreshConnection: refreshShopifyConnection } = useShopify();
 
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
@@ -32,7 +33,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
   
   // Add this function to load associated products when component mounts
   const loadAssociatedProducts = useCallback(async () => {
-    if (!formId || !shop) return;
+    if (!formId || !auth.shop) return;
     
     try {
       setIsLoadingProducts(true);
@@ -53,17 +54,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [formId, shop]);
+  }, [formId, auth.shop]);
   
   // Function to load products from the store
   const loadShopifyProducts = useCallback(async () => {
-    if (!shop) return;
+    if (!auth.shop) return;
     
     try {
       setIsLoadingProducts(true);
       // Load products from Shopify store
       const response = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop }
+        body: { shop: auth.shop }
       });
       
       if (response.error) throw response.error;
@@ -75,11 +76,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [shop]);
+  }, [auth.shop]);
   
   // Function to save product associations
   const saveProductAssociations = async () => {
-    if (!formId || !shop) return;
+    if (!formId || !auth.shop) return;
     
     try {
       setIsSettingProducts(true);
@@ -95,7 +96,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
         const newSettings = selectedProducts.map(productId => ({
           form_id: formId,
           product_id: productId,
-          shop_id: shop,
+          shop_id: auth.shop,
           enabled: true
         }));
         
@@ -127,11 +128,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
 
   // Load products and associations when component mounts
   useEffect(() => {
-    if (shop) {
+    if (auth.shop) {
       loadShopifyProducts();
       loadAssociatedProducts();
     }
-  }, [shop, loadShopifyProducts, loadAssociatedProducts]);
+  }, [auth.shop, loadShopifyProducts, loadAssociatedProducts]);
   
   const renderStatus = () => {
     if (tokenError) {
@@ -159,7 +160,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       );
     }
 
-    if (isConnected) {
+    if (auth.shopifyConnected || auth.isConnected) {
       return (
         <Alert variant="success">
           <CheckCircle className="h-4 w-4" />
@@ -202,7 +203,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!isConnected ? (
+          {!(auth.shopifyConnected || auth.isConnected) ? (
             <div className="flex flex-col items-center justify-center space-y-4">
               <p className="text-muted-foreground text-center">
                 {t('shopify.connection.instructions')}
@@ -215,9 +216,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
           ) : (
             <div className="flex flex-col items-center justify-center space-y-4">
               <p className="text-muted-foreground text-center">
-                {t('shopify.connection.connectedAs')} <strong>{shop}</strong>
+                {t('shopify.connection.connectedAs')} <strong>{auth.shop}</strong>
               </p>
-              <Button variant="destructive" onClick={emergencyReset}>
+              <Button variant="destructive" onClick={auth.emergencyReset}>
                 <X className="mr-2 h-4 w-4" />
                 {t('shopify.connection.disconnectButton')}
               </Button>
@@ -227,7 +228,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
       </Card>
       
       {/* Product associations section - new section */}
-      {isConnected && (
+      {(auth.shopifyConnected || auth.isConnected) && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="text-right">{t('shopify.products.associateTitle')}</CardTitle>
@@ -253,9 +254,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            {product.images && product.images[0] && (
+                            {product.images && product.images.length > 0 && product.images[0] && (
                               <img 
-                                src={product.images[0].src} 
+                                src={typeof product.images[0] === 'string' 
+                                  ? product.images[0] 
+                                  : product.images[0].src}
                                 alt={product.title}
                                 className="h-12 w-12 object-cover rounded"
                               />
