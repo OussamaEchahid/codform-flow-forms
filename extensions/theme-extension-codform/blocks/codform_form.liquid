@@ -3,11 +3,11 @@
   CODFORM - نماذج الدفع عند الاستلام
 
   هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
-  لاستخدام هذا النموذج، قم فقط بإضافة معرّف النموذج في إعدادات البلوك
+  النموذج يتم تحميله تلقائيًا بناءً على معرّف المنتج
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-hide-header="true">
+<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-block-id="{{ block.id }}" data-hide-header="true">
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
       <div class="codform-spinner"></div>
@@ -31,58 +31,6 @@
       <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
     </div>
   </div>
-</div>
-
-{% comment %}
-  FLOATING BUTTON - يتم التحكم في ظهوره من خلال إعدادات البلوك
-{% endcomment %}
-<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container" style="{% unless block.settings.enable_floating_button %}display: none;{% endunless %}">
-  <button
-    class="codform-floating-button {% if block.settings.floating_animation != blank and block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
-    style="
-      background-color: {{ block.settings.floating_bg_color }};
-      color: {{ block.settings.floating_text_color }};
-      border-radius: {{ block.settings.floating_border_radius }};
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 20px;
-      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
-      border: none;
-      min-width: 250px;
-    "
-    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
-  >
-    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
-      <span>{{ block.settings.floating_button_text }}</span>
-    {% endif %}
-    
-    {% if block.settings.floating_show_icon %}
-      <span class="codform-floating-button-icon">
-        {% case block.settings.floating_icon %}
-          {% when 'shopping-cart' %}
-            <!-- Shopping cart icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-          {% when 'package' %}
-            <!-- Package icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
-          {% when 'truck' %}
-            <!-- Truck icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-          {% when 'send' %}
-            <!-- Send icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          {% else %}
-            <!-- Default: Shopping cart icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-        {% endcase %}
-      </span>
-    {% endif %}
-    
-    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
-      <span>{{ block.settings.floating_button_text }}</span>
-    {% endunless %}
-  </button>
 </div>
 
 <style>
@@ -660,119 +608,6 @@
     color: #1f2937;
   }
 
-  /* Animation Effects - Improve animation definitions */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-
-  .pulse-animation {
-    animation: pulse 2s infinite !important;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-  }
-
-  .shake-animation {
-    animation: shake 0.8s infinite !important;
-  }
-
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-
-  .bounce-animation {
-    animation: bounce 2s infinite !important;
-  }
-
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0); }
-    75% { transform: rotate(5deg); }
-  }
-
-  .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
-  }
-
-  @keyframes flash {
-    0%, 50%, 100% {
-      opacity: 1;
-    }
-    25%, 75% {
-      opacity: 0.7;
-    }
-  }
-
-  .flash-animation {
-    animation: flash 3s infinite !important;
-  }
-  
-  /* Floating button container styles - تحديث أنماط حاوية الزر العائم */
-  .codform-floating-button-container {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 0 !important;
-    right: 0 !important;
-    display: flex !important;
-    justify-content: center !important;
-    z-index: 999999 !important; /* تم زيادة z-index لضمان ظهوره فوق جميع العناصر */
-    pointer-events: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transition: opacity 0.3s ease !important;
-  }
-  
-  .codform-floating-button-container.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-  }
-  
-  /* Floating button styles - Updated to be wider and better for scrolling */
-  .codform-floating-button {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-    min-width: 250px !important; /* Made wider for better visibility */
-    padding: 12px 24px !important;
-    justify-content: center !important; /* Center the content */
-    font-weight: 600 !important; /* Make text bolder */
-    margin: 0 auto !important;
-    position: relative !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .codform-floating-button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  .codform-floating-button-icon {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
   /* Updated Submit Button Styles */
   .codform-submit-button {
     width: 100%;
@@ -812,18 +647,18 @@
 </style>
 
 <script>
-  // Make sure floating button is visible on page load
+  // Initialize form loading
   document.addEventListener('DOMContentLoaded', function() {
-    // Check if floating button is enabled in block settings
-    var enableFloatingButton = {% if block.settings.enable_floating_button %}true{% else %}false{% endif %};
-    var floatingButtonContainer = document.getElementById('codform-floating-button-{{ block.id }}');
+    const container = document.getElementById('codform-container-{{ block.id }}');
+    const productId = container.getAttribute('data-product-id');
+    const blockId = container.getAttribute('data-block-id');
     
-    if (floatingButtonContainer && enableFloatingButton) {
-      // Make floating button visible
-      floatingButtonContainer.style.display = 'flex';
-      floatingButtonContainer.style.visibility = 'visible';
-      floatingButtonContainer.style.opacity = '1';
-      floatingButtonContainer.classList.remove('hidden');
+    if (productId) {
+      // The form will be loaded automatically based on the product ID
+      console.log('Loading form for product ID:', productId);
+      console.log('Block ID:', blockId);
+      
+      // The form loading script will handle the rest...
     }
   });
 </script>
@@ -834,110 +669,6 @@
   "target": "section",
   "stylesheet": "codform.css",
   "javascript": "codform.js",
-  "settings": [
-    {
-      "type": "text",
-      "id": "form_id",
-      "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه"
-    },
-    {
-      "type": "header",
-      "content": "إعدادات الزر العائم"
-    },
-    {
-      "type": "checkbox",
-      "id": "enable_floating_button",
-      "label": "تمكين الزر العائم",
-      "default": true,
-      "info": "يعرض زرًا في أسفل الشاشة للتنقل السريع إلى النموذج"
-    },
-    {
-      "type": "text",
-      "id": "floating_button_text",
-      "label": "نص الزر العائم",
-      "default": "اطلب الآن"
-    },
-    {
-      "type": "color",
-      "id": "floating_text_color",
-      "label": "لون النص",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "floating_bg_color",
-      "label": "لون الخلفية",
-      "default": "#000000"
-    },
-    {
-      "type": "text",
-      "id": "floating_border_radius",
-      "label": "نصف قطر الحواف",
-      "default": "4px"
-    },
-    {
-      "type": "checkbox",
-      "id": "floating_show_icon",
-      "label": "عرض أيقونة",
-      "default": true
-    },
-    {
-      "type": "select",
-      "id": "floating_icon",
-      "label": "نوع الأيقونة",
-      "options": [
-        {
-          "value": "shopping-cart",
-          "label": "عربة تسوق"
-        },
-        {
-          "value": "package",
-          "label": "طرد"
-        },
-        {
-          "value": "truck",
-          "label": "شاحنة"
-        },
-        {
-          "value": "send",
-          "label": "إرسال"
-        }
-      ],
-      "default": "shopping-cart"
-    },
-    {
-      "type": "select",
-      "id": "floating_animation",
-      "label": "تأثير حركي",
-      "options": [
-        {
-          "value": "none",
-          "label": "بدون"
-        },
-        {
-          "value": "pulse",
-          "label": "نبض"
-        },
-        {
-          "value": "bounce",
-          "label": "قفز"
-        },
-        {
-          "value": "shake",
-          "label": "اهتزاز"
-        },
-        {
-          "value": "wiggle",
-          "label": "تمايل"
-        },
-        {
-          "value": "flash",
-          "label": "وميض"
-        }
-      ],
-      "default": "none"
-    }
-  ]
+  "settings": []
 }
 {% endschema %}

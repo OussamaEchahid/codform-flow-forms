@@ -25,11 +25,13 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, LinkIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useShopify } from '@/hooks/useShopify';
+import { useEffect } from 'react';
 
 interface FormListProps {
   forms: FormData[];
@@ -40,6 +42,33 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
+  const { getProducts } = useShopify();
+  const [products, setProducts] = useState<{[key: string]: string}>({});
+  
+  // Load products to display their names instead of IDs
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const shopifyProducts = await getProducts();
+        if (shopifyProducts && Array.isArray(shopifyProducts)) {
+          const productMap: {[key: string]: string} = {};
+          shopifyProducts.forEach(product => {
+            // Extract the ID from the Shopify GID format if needed
+            const id = product.id.includes('/') 
+              ? product.id.split('/').pop() || product.id 
+              : product.id;
+            productMap[id] = product.title;
+            productMap[product.id] = product.title;
+          });
+          setProducts(productMap);
+        }
+      } catch (error) {
+        console.error('Error loading products for form list:', error);
+      }
+    };
+    
+    loadProducts();
+  }, [getProducts]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -123,7 +152,19 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                 {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
               </span>
             </div>
-            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+            <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+              {form.description || 'لا يوجد وصف'}
+            </p>
+            
+            {/* Display associated product if available */}
+            {form.productId && (
+              <div className="flex items-center text-xs text-gray-500 mt-2">
+                <LinkIcon size={12} className="mr-1" />
+                <span>
+                  مرتبط بمنتج: {products[form.productId] || form.productId}
+                </span>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="border-t pt-4">
             <Button 

@@ -21,6 +21,7 @@ export interface Database extends ShopifyDatabase {
           user_id: string;
           shop_id?: string | null;
           style?: Json | null;
+          productId?: string | null; // Add productId field
         };
         Insert: {
           id?: string;
@@ -32,6 +33,7 @@ export interface Database extends ShopifyDatabase {
           user_id: string;
           shop_id?: string | null;
           style?: Json | null;
+          productId?: string | null; // Add productId field
         };
         Update: {
           id?: string;
@@ -43,6 +45,7 @@ export interface Database extends ShopifyDatabase {
           user_id?: string;
           shop_id?: string | null;
           style?: Json | null;
+          productId?: string | null; // Add productId field
         };
         Relationships: [];
       };
