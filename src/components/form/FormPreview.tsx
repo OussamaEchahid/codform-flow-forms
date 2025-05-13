@@ -1,181 +1,100 @@
 
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { useI18n } from '@/lib/i18n';
-import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
-import FormFieldComponent from './preview/FormField';
-import FloatingButton from './preview/FloatingButton';
+import React from 'react';
+import { useFormStore } from '@/hooks/useFormStore';
 
-interface FormPreviewProps {
-  formTitle: string;
-  formDescription?: string;
-  currentStep: number;
-  totalSteps: number;
-  children: React.ReactNode;
-  formStyle?: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    buttonStyle?: string;
-  };
-  fields?: FormField[];
-  hideHeader?: boolean;
-  floatingButton?: FloatingButtonConfig;
-  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
-}
-
-const FormPreview: React.FC<FormPreviewProps> = ({
-  formTitle,
-  formDescription,
-  currentStep,
-  totalSteps,
-  children,
-  formStyle = {
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-  },
-  fields = [],
-  hideHeader = false,
-  floatingButton,
-  hideFloatingButtonPreview = false, // Default to false to show in preview
-}) => {
-  const { language } = useI18n();
-  const [key] = useState(0);
+// A simple form preview component
+const FormPreview = () => {
+  const { formState } = useFormStore();
   
-  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
-  const sanitizedFields = React.useMemo(() => {
-    // Ensure cart-items and cart-summary have empty labels by default
-    const updatedFields = fields.map(field => {
-      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
-        return { ...field, label: '' };
-      }
-      return field;
-    });
-    
-    // إذا كان هناك form-title موجود، نستخدمه
-    if (updatedFields.some(field => field.type === 'form-title')) {
-      return updatedFields;
-    }
-    
-    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
-    const formTitleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '1.5rem',
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
-      }
-    };
-    
-    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
-    const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
-    
-    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
-    
-    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
-    if (!hasSubmitButton) {
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-${Date.now()}`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '1.2rem',
-          animation: true,
-          animationType: 'pulse',
-        },
-      };
-      result.push(submitButton);
-    }
-    
-    return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
+  if (!formState) {
+    return (
+      <div className="p-4 text-center">
+        <p>No form data available to preview</p>
+      </div>
+    );
+  }
+  
+  const { title, description, data = [], style = {} } = formState;
+  
+  const primaryColor = style.primaryColor || '#9b87f5';
   
   return (
-    <div 
-      key={key}
-      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
-      style={{
-        fontSize: formStyle.fontSize,
-        '--form-primary-color': formStyle.primaryColor,
-        borderRadius: formStyle.borderRadius,
-      } as React.CSSProperties}
-    >
-      {totalSteps > 1 && (
-        <div className="px-4 py-2 bg-gray-50">
-          <div className="flex items-center">
-            <div className="flex-1 flex">
-              {Array.from({ length: totalSteps }).map((_, i) => (
-                <div key={i} className="flex-1 flex items-center">
-                  <div 
-                    className={cn(
-                      "h-2 flex-1",
-                      i < currentStep ? "bg-[var(--form-primary-color)]" : "bg-gray-200"
-                    )}
-                  ></div>
-                  <div 
-                    className={cn(
-                      "rounded-full h-5 w-5 flex items-center justify-center text-xs font-medium",
-                      i + 1 === currentStep 
-                        ? "bg-[var(--form-primary-color)] text-white" 
-                        : i < currentStep 
-                          ? "bg-[var(--form-primary-color)] text-white"
-                          : "bg-gray-200 text-gray-600"
-                    )}
-                  >
-                    {i + 1}
-                  </div>
-                  {i < totalSteps - 1 && (
-                    <div 
-                      className={cn(
-                        "h-2 flex-1",
-                        i + 1 < currentStep ? "bg-[var(--form-primary-color)]" : "bg-gray-200"
-                      )}
-                    ></div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      
+    <div className="border rounded-lg overflow-hidden">
       <div 
         className="p-4" 
-        style={{
-          borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
-        }}
+        style={{ backgroundColor: primaryColor }}
       >
-        {sanitizedFields.length > 0 ? (
-          <div className="space-y-4">
-            {sanitizedFields.map(field => (
-              <FormFieldComponent 
-                key={field.id} 
-                field={field} 
-                formStyle={formStyle}
-              />
+        <h3 className="text-xl font-bold text-white">{title}</h3>
+        {description && <p className="mt-2 text-white opacity-80">{description}</p>}
+      </div>
+      
+      <div className="p-4">
+        {data.length > 0 ? (
+          <div>
+            {data.map((step, index) => (
+              <div key={step.id || index} className="mb-4">
+                <h4 className="font-medium mb-2">{step.title}</h4>
+                
+                <div className="space-y-4">
+                  {step.fields && step.fields.map((field, fieldIndex) => (
+                    <div key={field.id || fieldIndex} className="mb-4">
+                      <label className="block text-sm font-medium mb-1">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      
+                      {field.type === 'text' && (
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border rounded"
+                          placeholder={field.placeholder || ''}
+                          disabled
+                        />
+                      )}
+                      
+                      {field.type === 'textarea' && (
+                        <textarea
+                          className="w-full px-3 py-2 border rounded"
+                          rows={3}
+                          placeholder={field.placeholder || ''}
+                          disabled
+                        />
+                      )}
+                      
+                      {field.type === 'checkbox' && field.options && (
+                        <div className="space-y-2">
+                          {field.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                className="mr-2"
+                                disabled
+                              />
+                              <span>{option.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
+            
+            <button
+              className="w-full py-3 mt-4 rounded font-medium text-white"
+              style={{ backgroundColor: primaryColor }}
+              disabled
+            >
+              Submit
+            </button>
           </div>
         ) : (
-          children
+          <div className="text-center py-6 text-gray-500">
+            No form fields have been added yet.
+          </div>
         )}
       </div>
-
-      {/* Render floating button if enabled AND not hidden for preview purposes */}
-      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
-        <FloatingButton config={floatingButton} isPreview={true} />
-      )}
     </div>
   );
 };

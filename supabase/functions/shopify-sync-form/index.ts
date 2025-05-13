@@ -81,10 +81,24 @@ serve(async (req: Request) => {
       );
     }
 
-    // Extract floating button settings
+    // Extract floating button settings and product ID
     const floatingButtonSettings = formData.floating_button || {};
+    const productId = formData.product_id || (settings?.products && settings.products[0]);
     
     console.log('Form floating button settings:', floatingButtonSettings);
+    console.log('Associated product ID:', productId);
+
+    if (!productId) {
+      console.warn('No product ID associated with form. Proceeding with general theme update.');
+    }
+
+    // If we have a product ID and settings.products is not set, add it
+    if (productId && (!settings?.products || settings.products.length === 0)) {
+      if (!settings) {
+        settings = {};
+      }
+      settings.products = [productId];
+    }
 
     // Call the shopify-theme-update function to update the theme
     const updateResponse = await supabase.functions.invoke('shopify-theme-update', {
@@ -94,7 +108,8 @@ serve(async (req: Request) => {
         formId,
         insertionMethod: settings?.insertionMethod || 'auto',
         blockId: settings?.blockId,
-        floatingButtonSettings // Pass floating button settings to theme update function
+        floatingButtonSettings, // Pass floating button settings to theme update function
+        productId // Pass product ID explicitly
       }
     });
 
@@ -117,6 +132,7 @@ serve(async (req: Request) => {
         form_id: formId,
         shop_id: shop,
         settings: settings || {},
+        product_id: productId, // Add product ID to mapping
         updated_at: new Date().toISOString()
       }, { onConflict: 'form_id,shop_id' });
 
@@ -124,12 +140,25 @@ serve(async (req: Request) => {
       console.error('Error storing form-shop mapping:', insertError);
     }
 
+    // Ensure the form has the product_id saved
+    if (productId) {
+      const { error: formUpdateError } = await supabase
+        .from('forms')
+        .update({ product_id: productId })
+        .eq('id', formId);
+
+      if (formUpdateError) {
+        console.error('Error updating form with product ID:', formUpdateError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Form successfully synced with Shopify store',
         theme_update_result: updateResponse.data,
-        floating_button: floatingButtonSettings.enabled
+        floating_button: floatingButtonSettings.enabled,
+        product_id: productId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );

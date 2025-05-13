@@ -3,11 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
+import { useShopify } from '@/hooks/useShopify';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { ShopifyProduct } from '@/lib/shopify/types';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -21,8 +26,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const navigate = useNavigate();
   const { language } = useI18n();
   const { forms, isLoading, fetchForms, createFormFromTemplate, createDefaultForm } = useFormTemplates();
+  const { products, loadProducts, isLoading: isLoadingProducts } = useShopify();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
 
@@ -49,6 +58,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   }, [forceRefresh]);
 
+  // Load products on component mount
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
   // Update local forms when the forms from hook change
   useEffect(() => {
     if (hasLoadedForms && forms && forms.length > 0) {
@@ -56,11 +70,22 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   }, [forms, hasLoadedForms]);
 
+  const handleOpenCreateDialog = () => {
+    setIsProductDialogOpen(true);
+  };
+
   const handleCreateForm = async () => {
+    if (!selectedProductId) {
+      toast.error(language === 'ar' ? 'يرجى اختيار منتج أولاً' : 'Please select a product first');
+      return;
+    }
+
     try {
-      const newForm = await createDefaultForm();
+      const newForm = await createDefaultForm(selectedProductId);
       if (newForm) {
         // Navigate to form builder with the new form ID
+        setIsProductDialogOpen(false);
+        setSelectedProductId('');
         navigate(`/form-builder/${newForm.id}`);
       }
     } catch (error) {
@@ -73,13 +98,30 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     navigate(`/form-builder/${formId}`);
   };
 
-  const handleSelectTemplate = async (templateId: number) => {
+  const handleOpenTemplateDialog = () => {
+    setIsTemplateDialogOpen(true);
+  };
+
+  const handleSelectTemplate = (templateId: number) => {
+    setSelectedTemplateId(templateId);
+    setIsTemplateDialogOpen(false);
+    setIsProductDialogOpen(true);
+  };
+
+  const handleTemplateWithProduct = async () => {
+    if (!selectedProductId || !selectedTemplateId) {
+      toast.error(language === 'ar' ? 'يرجى اختيار منتج وقالب' : 'Please select a product and template');
+      return;
+    }
+
     try {
-      setIsTemplateDialogOpen(false);
-      const newForm = await createFormFromTemplate(templateId);
+      const newForm = await createFormFromTemplate(selectedTemplateId, selectedProductId);
       
       if (newForm) {
         // Navigate to form builder with the new form ID
+        setIsProductDialogOpen(false);
+        setSelectedProductId('');
+        setSelectedTemplateId(null);
         navigate(`/form-builder/${newForm.id}`);
       }
     } catch (error) {
@@ -90,6 +132,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           : 'Error creating form from template'
       );
     }
+  };
+
+  const findProductById = (productId: string): ShopifyProduct | undefined => {
+    return products.find(product => product.id === productId || product.id.endsWith(`/${productId}`));
   };
 
   return (
@@ -107,12 +153,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         <div className="flex space-x-3">
           <Button 
             variant="outline"
-            onClick={() => setIsTemplateDialogOpen(true)}
+            onClick={handleOpenTemplateDialog}
           >
             {language === 'ar' ? 'استخدام قالب' : 'Use Template'}
           </Button>
           
-          <Button onClick={handleCreateForm}>
+          <Button onClick={handleOpenCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />
             {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </Button>
@@ -123,6 +169,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         forms={localForms} 
         isLoading={isLoading && !localForms.length} 
         onSelectForm={handleSelectForm}
+        findProductById={findProductById}
       />
       
       <FormTemplatesDialog
@@ -130,6 +177,66 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         onSelect={handleSelectTemplate}
         onClose={() => setIsTemplateDialogOpen(false)}
       />
+
+      {/* Product Selection Dialog */}
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'اختر منتجًا' : 'Select a Product'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Label htmlFor="product-select">
+              {language === 'ar' ? 'المنتج' : 'Product'}:
+            </Label>
+            <Select
+              value={selectedProductId}
+              onValueChange={setSelectedProductId}
+            >
+              <SelectTrigger id="product-select" className="mt-1">
+                <SelectValue placeholder={language === 'ar' ? 'اختر منتجًا' : 'Select a product'} />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingProducts ? (
+                  <SelectItem value="loading" disabled>
+                    {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+                  </SelectItem>
+                ) : products.length > 0 ? (
+                  products.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.title}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>
+                    {language === 'ar' ? 'لا توجد منتجات متاحة' : 'No products available'}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsProductDialogOpen(false);
+                setSelectedProductId('');
+              }}
+            >
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </Button>
+            <Button
+              onClick={selectedTemplateId ? handleTemplateWithProduct : handleCreateForm}
+              disabled={!selectedProductId}
+            >
+              {language === 'ar' ? 'إنشاء' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

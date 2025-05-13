@@ -87,6 +87,17 @@ export async function saveProductSettings(
         };
       }
 
+      // Update the form's product_id to ensure they're linked
+      const formUpdate = await supabase
+        .from('forms')
+        .update({ product_id: requestBody.productId })
+        .eq('id', requestBody.formId);
+
+      if (formUpdate.error) {
+        console.error('Error updating form with product ID:', formUpdate.error);
+        // Not a critical error, so we continue
+      }
+
       console.log('Product settings saved successfully');
       return { 
         success: true,

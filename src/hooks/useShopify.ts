@@ -92,6 +92,7 @@ export const useShopify = () => {
         .limit(1);
 
       if (tokenError || !tokenData || tokenData.length === 0) {
+        toast.error('Token not found. Please reconnect to Shopify.');
         throw new Error('Token not found');
       }
 
@@ -106,6 +107,10 @@ export const useShopify = () => {
         throw error;
       }
 
+      if (!data?.products || data.products.length === 0) {
+        toast.warning('No products found in your Shopify store. Please add products to continue.');
+      }
+
       setProducts(data?.products || []);
       setIsLoading(false);
       return data?.products || [];
@@ -113,6 +118,7 @@ export const useShopify = () => {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
+      toast.error('Failed to load products from Shopify.');
       return [];
     }
   }, [isConnected, shop]);

@@ -18,6 +18,7 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
+  product_id?: string;
 }
 
 export interface FormTemplate {
@@ -82,7 +83,7 @@ export const useFormTemplates = () => {
   };
 
   // Create a form from template
-  const createFormFromTemplate = async (templateId: number) => {
+  const createFormFromTemplate = async (templateId: number, productId: string) => {
     try {
       setIsLoading(true);
       const template = formTemplates.find(t => t.id === templateId);
@@ -101,6 +102,12 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      if (!productId) {
+        toast.error('لم يتم اختيار منتج');
+        setIsLoading(false);
+        return null;
+      }
+
       // New form data
       const newFormId = uuidv4();
       const formData: FormData = {
@@ -110,6 +117,7 @@ export const useFormTemplates = () => {
         data: template.data,
         isPublished: false,
         shop_id: shopId,
+        product_id: productId,
       };
 
       // Insert into Supabase
@@ -122,7 +130,8 @@ export const useFormTemplates = () => {
           data: template.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          product_id: productId
         });
 
       if (error) {
@@ -149,7 +158,7 @@ export const useFormTemplates = () => {
   };
 
   // Create a default form
-  const createDefaultForm = async () => {
+  const createDefaultForm = async (productId: string) => {
     try {
       setIsLoading(true);
       const defaultTemplate = formTemplates[0]; // Use first template as default
@@ -162,6 +171,12 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      if (!productId) {
+        toast.error('لم يتم اختيار منتج');
+        setIsLoading(false);
+        return null;
+      }
+
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
@@ -170,6 +185,7 @@ export const useFormTemplates = () => {
         data: defaultTemplate.data,
         isPublished: false,
         shop_id: shopId,
+        product_id: productId,
       };
 
       // Insert into Supabase
@@ -182,7 +198,8 @@ export const useFormTemplates = () => {
           data: defaultTemplate.data,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id
+          user_id: user?.id,
+          product_id: productId
         });
         
       if (error) {
