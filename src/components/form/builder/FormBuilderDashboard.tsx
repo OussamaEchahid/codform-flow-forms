@@ -133,7 +133,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
 
       // Refresh forms list
-      fetchForms();
+      const updatedForms = await fetchForms();
+      if (updatedForms) {
+        setLocalForms(updatedForms);
+      }
       
       toast.success(language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully');
     } catch (error) {

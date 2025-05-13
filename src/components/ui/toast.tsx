@@ -35,6 +35,8 @@ const toastVariants = cva(
           "success group border-green-200 bg-green-50 text-green-800 dark:border-green-400 dark:bg-green-900/20",
         warning:
           "warning group border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-400 dark:bg-amber-900/20",
+        info:
+          "info group border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-400 dark:bg-blue-900/20",
       },
     },
     defaultVariants: {
@@ -44,7 +46,7 @@ const toastVariants = cva(
 )
 
 // Export the toast variant type explicitly
-export type ToastVariant = "default" | "destructive" | "success" | "warning";
+export type ToastVariant = "default" | "destructive" | "success" | "warning" | "info";
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,

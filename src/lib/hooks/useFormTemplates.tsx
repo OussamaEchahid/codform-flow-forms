@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -18,6 +17,7 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
+  product_id?: string;
 }
 
 export interface FormTemplate {

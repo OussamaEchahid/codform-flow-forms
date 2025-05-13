@@ -15,7 +15,6 @@ export type ToastProps = {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
-  open: boolean;
   onOpenChange: (open: boolean) => void;
   className?: string;
   duration?: number;
@@ -112,7 +111,6 @@ export const reducer = (state: State, action: Action): State => {
           ...state,
           toasts: state.toasts.map((t) => ({
             ...t,
-            open: false,
           })),
         };
       }
@@ -122,7 +120,7 @@ export const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId ? { ...t, open: false } : t
+          t.id === toastId ? { ...t } : t
         ),
       };
     }
@@ -175,10 +173,6 @@ function toast(props: Toast) {
     toast: {
       ...props,
       id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss();
-      },
     },
   });
 
