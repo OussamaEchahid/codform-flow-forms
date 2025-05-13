@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormStore } from '@/hooks/useFormStore';
@@ -187,8 +188,8 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
         <TabsContent value="style">
           <div className="mt-4">
             <FormStyleEditor
-              style={formState?.style}
-              onChange={handleStyleChange}
+              formStyle={formState?.style}
+              onStyleChange={handleStyleChange}
             />
           </div>
         </TabsContent>
@@ -222,7 +223,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
       
       <div className="mt-6 flex justify-end">
         <Button
-          variant="primary"
+          variant="default"
           onClick={handleSaveForm}
           disabled={isSaving || !unsavedChanges}
           className="ml-2"

@@ -1,120 +1,109 @@
 
 import React from 'react';
-import { FormStyle } from '@/hooks/useFormStore';
-import { FloatingButtonConfig } from '@/lib/form-utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { useI18n } from '@/lib/i18n';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useI18n } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 interface FormStyleEditorProps {
-  formStyle: FormStyle;
+  formStyle?: {
+    primaryColor?: string;
+    borderRadius?: string;
+    fontSize?: string;
+    buttonStyle?: string;
+  };
   onStyleChange: (newStyle: any) => void;
-  onSave: () => void;
-  floatingButton?: FloatingButtonConfig;
-  onFloatingButtonChange?: (config: FloatingButtonConfig) => void;
-  showFloatingButtonEditor?: boolean;
 }
 
 const FormStyleEditor: React.FC<FormStyleEditorProps> = ({ 
-  formStyle, 
-  onStyleChange, 
-  onSave,
-  floatingButton,
-  onFloatingButtonChange,
-  showFloatingButtonEditor = false 
+  formStyle = {
+    primaryColor: '#9b87f5',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    buttonStyle: 'rounded'
+  }, 
+  onStyleChange 
 }) => {
   const { language } = useI18n();
   
-  // Update handler to create a new style object
   const handleStyleChange = (key: string, value: string) => {
-    const newStyle = {
+    const updatedStyle = {
       ...formStyle,
       [key]: value
     };
-    onStyleChange(newStyle);
+    onStyleChange(updatedStyle);
   };
-  
+
   return (
-    <Tabs defaultValue="general">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="general">
-          {language === 'ar' ? 'عام' : 'General'}
-        </TabsTrigger>
-        <TabsTrigger value="buttons">
-          {language === 'ar' ? 'الأزرار' : 'Buttons'}
-        </TabsTrigger>
-        <TabsTrigger value="advanced">
-          {language === 'ar' ? 'متقدم' : 'Advanced'}
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="general" className="space-y-4 py-4">
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="primary-color">
+    <Card>
+      <CardHeader>
+        <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+          {language === 'ar' ? 'تخصيص مظهر النموذج' : 'Customize Form Appearance'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Primary Color */}
+          <div className="space-y-2">
+            <Label htmlFor="primary-color" className={language === 'ar' ? 'text-right block' : 'block'}>
               {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
             </Label>
-            <div className="flex gap-2">
-              <Input
-                id="primary-color"
-                type="color"
-                value={formStyle.primaryColor}
-                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                className="w-12 h-10 p-1"
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded border"
+                style={{ backgroundColor: formStyle?.primaryColor || '#9b87f5' }}
               />
               <Input
+                id="primary-color"
                 type="text"
-                value={formStyle.primaryColor}
+                value={formStyle?.primaryColor || '#9b87f5'}
                 onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
                 className="flex-1"
               />
             </div>
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="border-radius">
-              {language === 'ar' ? 'تقويس الحواف' : 'Border Radius'}
+          {/* Border Radius */}
+          <div className="space-y-2">
+            <Label htmlFor="border-radius" className={language === 'ar' ? 'text-right block' : 'block'}>
+              {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
             </Label>
             <Select 
-              value={formStyle.borderRadius} 
+              value={formStyle?.borderRadius || '0.5rem'} 
               onValueChange={(value) => handleStyleChange('borderRadius', value)}
             >
               <SelectTrigger id="border-radius">
-                <SelectValue placeholder={language === 'ar' ? 'اختر تقويس الحواف' : 'Select border radius'} />
+                <SelectValue placeholder={language === 'ar' ? 'اختر استدارة الحواف' : 'Select border radius'} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">
-                  {language === 'ar' ? 'بدون تقويس' : 'No Radius'}
+                  {language === 'ar' ? 'بدون استدارة' : 'No Radius'}
                 </SelectItem>
                 <SelectItem value="0.25rem">
-                  {language === 'ar' ? 'صغير جداً' : 'Extra Small'}
+                  {language === 'ar' ? 'استدارة خفيفة' : 'Slight Radius'}
                 </SelectItem>
                 <SelectItem value="0.5rem">
-                  {language === 'ar' ? 'صغير' : 'Small'}
-                </SelectItem>
-                <SelectItem value="0.75rem">
-                  {language === 'ar' ? 'متوسط' : 'Medium'}
+                  {language === 'ar' ? 'استدارة متوسطة' : 'Medium Radius'}
                 </SelectItem>
                 <SelectItem value="1rem">
-                  {language === 'ar' ? 'كبير' : 'Large'}
+                  {language === 'ar' ? 'استدارة كبيرة' : 'Large Radius'}
                 </SelectItem>
-                <SelectItem value="1.5rem">
-                  {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
+                <SelectItem value="9999px">
+                  {language === 'ar' ? 'دائري' : 'Circular'}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="font-size">
+          {/* Font Size */}
+          <div className="space-y-2">
+            <Label htmlFor="font-size" className={language === 'ar' ? 'text-right block' : 'block'}>
               {language === 'ar' ? 'حجم الخط' : 'Font Size'}
             </Label>
             <Select 
-              value={formStyle.fontSize} 
+              value={formStyle?.fontSize || '1rem'} 
               onValueChange={(value) => handleStyleChange('fontSize', value)}
             >
               <SelectTrigger id="font-size">
@@ -136,17 +125,14 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
               </SelectContent>
             </Select>
           </div>
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="buttons" className="space-y-4 py-4">
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="button-style">
+          
+          {/* Button Style */}
+          <div className="space-y-2">
+            <Label htmlFor="button-style" className={language === 'ar' ? 'text-right block' : 'block'}>
               {language === 'ar' ? 'نمط الأزرار' : 'Button Style'}
             </Label>
             <Select 
-              value={formStyle.buttonStyle} 
+              value={formStyle?.buttonStyle || 'rounded'} 
               onValueChange={(value) => handleStyleChange('buttonStyle', value)}
             >
               <SelectTrigger id="button-style">
@@ -160,77 +146,70 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
                   {language === 'ar' ? 'مربع' : 'Square'}
                 </SelectItem>
                 <SelectItem value="pill">
-                  {language === 'ar' ? 'كبسولة' : 'Pill'}
+                  {language === 'ar' ? 'كبسولي' : 'Pill'}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
-        
-        {/* Only show floating button section if specifically requested */}
-        {showFloatingButtonEditor && floatingButton && onFloatingButtonChange && (
-          <>
-            <Separator className="my-6" />
-            <h3 className="text-lg font-medium mb-4">
-              {language === 'ar' ? 'الزر العائم' : 'Floating Button'}
-            </h3>
-            
-            <div className="grid gap-4">
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  id="enable-floating"
-                  checked={floatingButton.enabled}
-                  onChange={(e) => onFloatingButtonChange({
-                    ...floatingButton,
-                    enabled: e.target.checked
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <Label htmlFor="enable-floating">
-                  {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
-                </Label>
-              </div>
-              
-              <Button 
-                variant="secondary" 
-                className="mt-4"
-                onClick={() => {
-                  // Logic to open full floating button editor
-                }}
-              >
-                {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
-              </Button>
-            </div>
-          </>
-        )}
-      </TabsContent>
-      
-      <TabsContent value="advanced" className="space-y-4 py-4">
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="custom-css">
-              {language === 'ar' ? 'CSS مخصص' : 'Custom CSS'}
+          
+          {/* Color Presets */}
+          <div className="space-y-2">
+            <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+              {language === 'ar' ? 'ألوان مقترحة' : 'Color Presets'}
             </Label>
-            <textarea
-              id="custom-css"
-              rows={10}
-              className="w-full p-2 border rounded-md"
-              placeholder={language === 'ar' ? 'أدخل CSS المخصص هنا...' : 'Enter custom CSS here...'}
-            ></textarea>
-            <p className="text-sm text-gray-500">
-              {language === 'ar' 
-                ? 'استخدم CSS المخصص لتخصيص مظهر النموذج بشكل أكبر.' 
-                : 'Use custom CSS to further customize the appearance of your form.'}
-            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {['#9b87f5', '#2563eb', '#10b981', '#f59e0b', '#ef4444'].map(color => (
+                <div
+                  key={color}
+                  className={cn(
+                    "h-8 rounded cursor-pointer transition-all",
+                    (formStyle?.primaryColor === color) ? "ring-2 ring-offset-2" : ""
+                  )}
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleStyleChange('primaryColor', color)}
+                />
+              ))}
+            </div>
           </div>
           
-          <Button onClick={onSave} className="w-full">
-            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-          </Button>
+          {/* Preview */}
+          <div className="space-y-2 mt-6">
+            <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+              {language === 'ar' ? 'معاينة' : 'Preview'}
+            </Label>
+            <div className="border rounded-md p-4">
+              <div 
+                style={{ borderRadius: formStyle?.borderRadius || '0.5rem' }}
+                className="p-4 border mb-4"
+              >
+                <div style={{ fontSize: formStyle?.fontSize || '1rem' }}>
+                  {language === 'ar' 
+                    ? 'مثال على نص بالحجم المختار' 
+                    : 'Example text with selected font size'}
+                </div>
+              </div>
+              
+              <button
+                style={{
+                  backgroundColor: formStyle?.primaryColor || '#9b87f5',
+                  borderRadius: formStyle?.buttonStyle === 'rounded' 
+                    ? formStyle?.borderRadius || '0.5rem'
+                    : formStyle?.buttonStyle === 'pill' 
+                      ? '9999px' 
+                      : '0',
+                  padding: '0.5rem 1rem',
+                  color: 'white',
+                  border: 'none',
+                  width: '100%'
+                }}
+              >
+                {language === 'ar' ? 'زر بالنمط المختار' : 'Button with selected style'}
+              </button>
+            </div>
+          </div>
         </div>
-      </TabsContent>
-    </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

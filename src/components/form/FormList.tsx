@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -30,8 +30,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useShopify } from '@/hooks/useShopify';
-import { useEffect } from 'react';
 
 interface FormListProps {
   forms: FormData[];
@@ -42,33 +40,32 @@ interface FormListProps {
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const { getProducts } = useShopify();
   const [products, setProducts] = useState<{[key: string]: string}>({});
   
-  // Load products to display their names instead of IDs
+  // Load products to display their names instead of IDs - this is a mock function
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const shopifyProducts = await getProducts();
-        if (shopifyProducts && Array.isArray(shopifyProducts)) {
-          const productMap: {[key: string]: string} = {};
-          shopifyProducts.forEach(product => {
-            // Extract the ID from the Shopify GID format if needed
-            const id = product.id.includes('/') 
-              ? product.id.split('/').pop() || product.id 
-              : product.id;
-            productMap[id] = product.title;
-            productMap[product.id] = product.title;
-          });
-          setProducts(productMap);
-        }
+        // Mock products data - in a real app this would come from a Shopify API
+        const mockProducts = [
+          { id: 'product1', title: 'منتج تجريبي 1' },
+          { id: 'product2', title: 'منتج تجريبي 2' },
+          { id: 'product3', title: 'منتج تجريبي 3' },
+        ];
+        
+        const productMap: {[key: string]: string} = {};
+        mockProducts.forEach(product => {
+          productMap[product.id] = product.title;
+        });
+        
+        setProducts(productMap);
       } catch (error) {
         console.error('Error loading products for form list:', error);
       }
     };
     
     loadProducts();
-  }, [getProducts]);
+  }, []);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
