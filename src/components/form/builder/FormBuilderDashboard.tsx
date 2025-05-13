@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import ProductSelectionDialog from '@/components/form/ProductSelectionDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,10 +34,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   // Fetch forms on component mount if no initial forms or forceRefresh is true
   useEffect(() => {
     if (forceRefresh || initialForms.length === 0) {
-      fetchForms().then((fetchedForms) => {
-        if (fetchedForms) {
-          setLocalForms(fetchedForms);
-        }
+      fetchForms().then(() => {
+        // Do nothing here, we'll handle the forms in the next useEffect
       }).catch(error => {
         console.error('Error fetching forms:', error);
       });
@@ -61,19 +60,21 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         if (success) {
           // Filter out the deleted form from local state
           setLocalForms((prevForms) => prevForms.filter((form) => form.id !== id));
-          toast({
-            title: language === 'ar' ? 'تم الحذف بنجاح' : 'Successfully deleted',
-            description: language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully',
-            variant: 'default', // Changed to default as it's a valid variant
-          });
+          toast(
+            language === 'ar' ? 'تم الحذف بنجاح' : 'Successfully deleted',
+            {
+              description: language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully',
+            }
+          );
         }
       } catch (error) {
         console.error('Error deleting form:', error);
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form',
+          }
+        );
       }
     }
   };
@@ -91,11 +92,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       }
     } catch (error) {
       console.error('Error toggling form publish status:', error);
-      toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        description: language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to toggle publish status',
-        variant: 'destructive',
-      });
+      toast(
+        language === 'ar' ? 'خطأ' : 'Error',
+        {
+          description: language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to toggle publish status',
+        }
+      );
     }
   };
 
@@ -108,11 +110,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       // Load the form to duplicate
       const formToDuplicate = await loadForm(id);
       if (!formToDuplicate) {
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
+          }
+        );
         return;
       }
 
@@ -123,11 +126,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       const shopId = shop || localStorage.getItem('shopify_store');
       
       if (!shopId) {
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
+          }
+        );
         return;
       }
 
@@ -145,35 +149,36 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (error) {
         console.error('Error duplicating form:', error);
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
+          }
+        );
         return;
       }
 
-      // Refresh forms list - FIX: Don't test fetchForms() for truthiness, use .then() instead
-      fetchForms().then((updatedForms) => {
-        if (updatedForms) {
-          setLocalForms(updatedForms);
-        }
+      // Refresh forms list - Fix: Use proper promise handling
+      fetchForms().then(() => {
+        // We'll get updated forms via the useEffect that watches forms state
       }).catch(error => {
         console.error('Error fetching forms after duplication:', error);
       });
       
-      toast({
-        title: language === 'ar' ? 'نجاح' : 'Success',
-        description: language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully',
-        variant: 'default',
-      });
+      toast(
+        language === 'ar' ? 'نجاح' : 'Success',
+        {
+          description: language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully',
+        }
+      );
     } catch (error) {
       console.error('Error duplicating form:', error);
-      toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
-        variant: 'destructive',
-      });
+      toast(
+        language === 'ar' ? 'خطأ' : 'Error',
+        {
+          description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form',
+        }
+      );
     }
   };
   
@@ -193,11 +198,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       const shopId = shop || localStorage.getItem('shopify_store');
       
       if (!shopId) {
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'لم يتم العثور على معرف المتجر' : 'No shop ID found',
+          }
+        );
         setIsCreatingForm(false);
         return;
       }
@@ -279,11 +285,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (error) {
         console.error('Error creating form:', error);
-        toast({
-          title: language === 'ar' ? 'خطأ' : 'Error',
-          description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
-          variant: 'destructive',
-        });
+        toast(
+          language === 'ar' ? 'خطأ' : 'Error',
+          {
+            description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
+          }
+        );
         setIsCreatingForm(false);
         return;
       }
@@ -304,27 +311,30 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
       if (settingsError) {
         console.error('Error associating form with product:', settingsError);
-        toast({
-          title: language === 'ar' ? 'تحذير' : 'Warning',
-          description: language === 'ar' ? 'تم إنشاء النموذج ولكن فشل ربطه بالمنتج' : 'Form created but failed to associate with product',
-          variant: 'warning',
-        });
+        toast(
+          language === 'ar' ? 'تحذير' : 'Warning',
+          {
+            description: language === 'ar' ? 'تم إنشاء النموذج ولكن فشل ربطه بالمنتج' : 'Form created but failed to associate with product',
+          }
+        );
       }
 
       // Redirect to the form editor
       navigate(`/form-builder/${newFormId}`);
-      toast({
-        title: language === 'ar' ? 'نجاح' : 'Success',
-        description: language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully',
-        variant: 'default',
-      });
+      toast(
+        language === 'ar' ? 'نجاح' : 'Success',
+        {
+          description: language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully',
+        }
+      );
     } catch (error) {
       console.error('Error creating form:', error);
-      toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
-        variant: 'destructive',
-      });
+      toast(
+        language === 'ar' ? 'خطأ' : 'Error',
+        {
+          description: language === 'ar' ? 'فشل إنشاء النموذج' : 'Failed to create form',
+        }
+      );
     } finally {
       setIsCreatingForm(false);
     }
