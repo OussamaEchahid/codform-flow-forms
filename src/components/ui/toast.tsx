@@ -45,12 +45,13 @@ const toastVariants = cva(
   }
 )
 
-// Export the toast variant type explicitly
+// Define ToastVariant type to match all available variants
 export type ToastVariant = "default" | "destructive" | "success" | "warning" | "info";
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & { variant?: ToastVariant }
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & 
+  VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
   return (
     <ToastPrimitives.Root

@@ -208,34 +208,33 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) =>
-      dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
+    dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   };
 }
 
 // Add variant-specific methods
-toast.success = (props: string | Omit<ToasterToast, "id" | "variant">) => {
+toast.success = (props: string | Omit<Toast, "variant">) => {
   if (typeof props === "string") {
     return toast({ description: props, variant: "success" });
   }
   return toast({ ...props, variant: "success" });
 };
 
-toast.error = (props: string | Omit<ToasterToast, "id" | "variant">) => {
+toast.error = (props: string | Omit<Toast, "variant">) => {
   if (typeof props === "string") {
     return toast({ description: props, variant: "destructive" });
   }
   return toast({ ...props, variant: "destructive" });
 };
 
-toast.warning = (props: string | Omit<ToasterToast, "id" | "variant">) => {
+toast.warning = (props: string | Omit<Toast, "variant">) => {
   if (typeof props === "string") {
     return toast({ description: props, variant: "warning" });
   }
   return toast({ ...props, variant: "warning" });
 };
 
-toast.info = (props: string | Omit<ToasterToast, "id" | "variant">) => {
+toast.info = (props: string | Omit<Toast, "variant">) => {
   if (typeof props === "string") {
     return toast({ description: props, variant: "info" });
   }
