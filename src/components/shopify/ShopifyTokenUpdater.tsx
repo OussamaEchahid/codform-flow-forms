@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,6 +98,7 @@ export const ShopifyTokenUpdater = () => {
       setIsSuccess(true);
       setHasPlaceholderToken(false);
       toast({
+        id: `update-success-${Date.now()}`,
         title: "تم التحديث بنجاح",
         description: "تم تحديث رمز وصول Shopify بنجاح.",
         variant: "success",
@@ -109,6 +111,7 @@ export const ShopifyTokenUpdater = () => {
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
       toast({
+        id: `update-error-${Date.now()}`,
         title: "فشل التحديث",
         description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
         variant: "destructive",
