@@ -77,44 +77,96 @@ serve(async (req) => {
       });
     }
 
-    // Get form ID from URL
-    const url = new URL(req.url)
+    // Get URL parameters
+    const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
     const formId = pathParts[pathParts.length - 1];
+    
+    // Check if this is a product-specific form request
+    const productId = url.searchParams.get('product_id');
+    const shopId = url.searchParams.get('shop_id');
+    
+    console.log('Request parameters:', {
+      formId,
+      productId,
+      shopId
+    });
 
+    // If we have both a product ID and shop ID, try to get a product-specific form first
+    if (productId && shopId) {
+      console.log(`Looking for product-specific form for product: ${productId}, shop: ${shopId}`);
+      
+      // First look up product settings to find form ID for this product
+      const { data: productSettings, error: settingsError } = await supabase
+        .from('shopify_product_settings')
+        .select('form_id')
+        .eq('shop_id', shopId)
+        .eq('product_id', productId)
+        .eq('enabled', true)
+        .single();
+        
+      if (!settingsError && productSettings) {
+        console.log(`Found form ID "${productSettings.form_id}" for product: ${productId}`);
+        
+        // Get the form for this specific product
+        const { data: productForm, error: productFormError } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('id', productSettings.form_id)
+          .eq('is_published', true)
+          .single();
+          
+        if (!productFormError && productForm) {
+          console.log('Successfully retrieved product-specific form');
+          const transformedData = transformFormData(productForm);
+          return new Response(JSON.stringify(transformedData), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            },
+            status: 200,
+          });
+        }
+      }
+      
+      console.log('No product-specific form found, trying default form');
+    }
+
+    // If no product-specific form is found, or if formId is provided directly, get the requested form
     if (!formId) {
       throw new Error('No form ID provided')
     }
 
-    console.log('Fetching form with ID:', formId)
+    console.log('Fetching form with ID:', formId);
 
     // Get form from database
     const { data: formData, error } = await supabase
       .from('forms')
       .select('*')
       .eq('id', formId)
-      .single()
+      .single();
 
     if (error) {
-      console.error('Database error:', error)
-      throw error
+      console.error('Database error:', error);
+      throw error;
     }
 
     if (!formData) {
-      console.error('Form not found:', formId)
-      throw new Error(`Form with ID ${formId} not found`)
+      console.error('Form not found:', formId);
+      throw new Error(`Form with ID ${formId} not found`);
     }
 
     // Verify the form is published
     if (formData.is_published !== true) {
-      console.error('Form is not published:', formId)
-      throw new Error(`Form with ID ${formId} is not published`)
+      console.error('Form is not published:', formId);
+      throw new Error(`Form with ID ${formId} is not published`);
     }
 
-    console.log('Successfully fetched form:', formData.title, 'ID:', formId)
+    console.log('Successfully fetched form:', formData.title, 'ID:', formId);
 
     // Transform form data to the expected format, optimizing for size
-    const transformedData = transformFormData(formData)
+    const transformedData = transformFormData(formData);
     
     // Return the form data with proper caching headers
     return new Response(JSON.stringify(transformedData), {
@@ -124,9 +176,9 @@ serve(async (req) => {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       },
       status: 200,
-    })
+    });
   } catch (error) {
-    console.error('Error getting form:', error.message)
+    console.error('Error getting form:', error.message);
     
     return new Response(JSON.stringify({ 
       error: error.message,
@@ -138,9 +190,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       status: error.message.includes('not found') ? 404 : 400,
-    })
+    });
   }
-})
+});
 
 // Function to transform form data into a structure that's easier to use in the frontend
 function transformFormData(formData) {
@@ -157,11 +209,12 @@ function transformFormData(formData) {
       title: formData.title,
       description: formData.description,
       primaryColor: formData.primary_color || '#9b87f5',
+      product_id: formData.product_id,
       fields: []
     }
   }
 
-  const data = formData.data
+  const data = formData.data;
   
   // In production environment, skip verbose logging
   if (Deno.env.get('SUPABASE_ENV') === 'development') {
@@ -170,7 +223,7 @@ function transformFormData(formData) {
   }
   
   // Check if form has steps
-  const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields))
+  const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields));
   
   if (Deno.env.get('SUPABASE_ENV') === 'development') {
     console.log('Form has steps:', hasSteps);
@@ -193,7 +246,7 @@ function transformFormData(formData) {
           label: step.title || `Step ${stepIndex + 1}`,
           stepIndex: stepIndex,
           isStep: true
-        })
+        });
         
         // Process fields in this step
         if (step.fields && Array.isArray(step.fields)) {
@@ -203,10 +256,10 @@ function transformFormData(formData) {
               stepId: step.id,
               stepTitle: step.title,
               stepIndex: stepIndex
-            })
-          })
+            });
+          });
         }
-      })
+      });
     } else {
       // Process single-step form with nested fields structure
       if (Deno.env.get('SUPABASE_ENV') === 'development') {
@@ -224,7 +277,7 @@ function transformFormData(formData) {
             label: step.title || `Step ${stepIndex + 1}`,
             stepIndex: stepIndex,
             isStep: true
-          })
+          });
           
           // Process fields in this step
           if (step.fields && Array.isArray(step.fields)) {
@@ -234,11 +287,11 @@ function transformFormData(formData) {
                 stepId: step.id || `${stepIndex + 1}`,
                 stepTitle: step.title || `Step ${stepIndex + 1}`,
                 stepIndex: stepIndex
-              })
+              });
               totalFields++;
-            })
+            });
           }
-        })
+        });
       }
       
       if (Deno.env.get('SUPABASE_ENV') === 'development') {
@@ -261,6 +314,7 @@ function transformFormData(formData) {
       title: formData.title,
       description: formData.description,
       primaryColor: formData.primary_color || '#9b87f5',
+      product_id: formData.product_id,
       error: 'Error transforming form data',
       fields: []
     };
@@ -272,14 +326,18 @@ function transformFormData(formData) {
     console.log(`Transformed ${transformedFields.length} fields for form: ${formData.id}`);
   }
   
+  // Get style information from formData
+  const style = formData.style || {};
+  
   return {
     id: formData.id,
     title: formData.title,
     description: formData.description,
-    primaryColor: formData.primary_color || '#9b87f5',
-    borderRadius: formData.border_radius || '0.5rem',
-    fontSize: formData.font_size || '1rem',
-    buttonStyle: formData.button_style || 'rounded',
+    primaryColor: style.primaryColor || formData.primary_color || '#9b87f5',
+    borderRadius: style.borderRadius || formData.border_radius || '0.5rem',
+    fontSize: style.fontSize || formData.font_size || '1rem',
+    buttonStyle: style.buttonStyle || formData.button_style || 'rounded',
+    product_id: formData.product_id,
     fields: transformedFields
   }
 }
