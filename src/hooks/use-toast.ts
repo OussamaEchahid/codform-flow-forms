@@ -1,13 +1,9 @@
 
 import * as React from "react";
-import { toast as sonnerToast } from "sonner";
-import type { ToastT as SonnerToastType } from "sonner";
+import { toast as sonnerToast, type ToastT } from "sonner";
 
-type ToastProps = SonnerToastType & {
-  variant?: "default" | "destructive" | "success" | "warning" | "info";
-};
-
-export type Toast = ToastProps;
+// Define our ToastProps type based on Sonner's type
+export type ToastProps = Partial<ToastT>;
 
 export function useToast() {
   return {
@@ -26,28 +22,29 @@ export const toast = (props: string | ToastProps) => {
   return sonnerToast(props);
 };
 
-toast.success = (props: string | Omit<ToastProps, "variant">) => {
+// Add variants as methods to the toast function
+toast.success = (props: string | ToastProps) => {
   if (typeof props === "string") {
     return sonnerToast.success(props);
   }
   return sonnerToast.success(props);
 };
 
-toast.error = (props: string | Omit<ToastProps, "variant">) => {
+toast.error = (props: string | ToastProps) => {
   if (typeof props === "string") {
     return sonnerToast.error(props);
   }
   return sonnerToast.error(props);
 };
 
-toast.warning = (props: string | Omit<ToastProps, "variant">) => {
+toast.warning = (props: string | ToastProps) => {
   if (typeof props === "string") {
     return sonnerToast.warning(props);
   }
   return sonnerToast.warning(props);
 };
 
-toast.info = (props: string | Omit<ToastProps, "variant">) => {
+toast.info = (props: string | ToastProps) => {
   if (typeof props === "string") {
     return sonnerToast.info(props);
   }
