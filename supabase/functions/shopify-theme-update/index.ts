@@ -227,6 +227,7 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   const actualBlockId = blockId || `codform_${formIdShort}`;
   
   // For OS2.0 themes, the block type should be the extension handle followed by the block handle
+  // This is the correct format for theme app extensions with the branding domain prefix
   const appBlockType = "theme-extension-codform.codform_form";
   
   // Add our app block - first check if it's already there
@@ -255,11 +256,21 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   }
   
   // Set/update the block definition using the correct app block format for OS 2.0
-  // Simplified settings - only form_id is needed now
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
     settings: {
-      form_id: formId
+      form_id: formId,
+      title: "اطلب المنتج الآن - الدفع عند الاستلام",
+      description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.",
+      
+      // Add floating button settings from the form configuration
+      enable_floating_button: false, // Default to false, will be updated by the form settings
+      floating_button_text: "اطلب الآن",
+      floating_bg_color: "#000000",
+      floating_text_color: "#ffffff",
+      floating_animation: "none",
+      floating_show_icon: true,
+      floating_icon: "shopping-cart"
     }
   };
   
@@ -338,7 +349,7 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
   return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', data.asset.value);
 }
 
-// Helper function to process the traditional liquid template - simplified to just use the form_id
+// Helper function to process the traditional liquid template
 async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, formId: string, blockId: string, templateKey: string, templateContent: string): Promise<any> {
   // Generate a block ID if not provided
   const formIdShort = formId.substring(0, 8);
@@ -401,7 +412,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     }
   }
   
-  // Create the snippet - simplified version
+  // Create the snippet
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -409,11 +420,20 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ form_id }}" data-hide-header="true">
+<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ form_id }}">
+  <div class="codform-header">
+    <h3>{{ block.settings.title | default: "اطلب المنتج الآن - الدفع عند الاستلام" }}</h3>
+    {% if block.settings.description != blank %}
+      <p>{{ block.settings.description }}</p>
+    {% else %}
+      <p>املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.</p>
+    {% endif %}
+  </div>
+
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block_id }}" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p>جاري تحميل النموذج...</p>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
     </div>
 
     <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;">
@@ -422,29 +442,86 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 
     <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;">
       <div class="codform-success-icon">✓</div>
-      <h4>تم إرسال الطلب بنجاح</h4>
-      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
+      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
+      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
     </div>
 
     <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
-      <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
-      <button id="codform-retry-{{ block_id }}" class="codform-button">إعادة المحاولة</button>
+      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
+      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
+      <button id="codform-retry-{{ block_id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
     </div>
   </div>
 </div>
 
+{% if block.settings.enable_floating_button %}
+<div id="codform-floating-button-{{ block_id }}" class="codform-floating-button-container">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color | default: '#000000' }};
+      color: {{ block.settings.floating_text_color | default: '#ffffff' }};
+      border-radius: {{ block.settings.floating_border_radius | default: '4px' }};
+      padding: {{ block.settings.floating_padding_y | default: '10px' }} 20px;
+      font-size: {{ block.settings.floating_font_size | default: '16px' }};
+      font-weight: {{ block.settings.floating_font_weight | default: '500' }};
+      margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      {% if block.settings.floating_border_width != '0px' %}
+      border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
+      {% else %}
+      border: none;
+      {% endif %}
+    "
+    onclick="document.querySelector('#codform-container-{{ block_id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
+    {% endunless %}
+  </button>
+</div>
+{% endif %}
+
 <style>
-  /* Form container styles */
   .codform-container {
-    margin: 1.5rem 0;
-    padding: 0;
-    border: none;
-    background: transparent;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
   }
   
-  /* Loading styles */
+  .codform-header {
+    margin-bottom: 1rem;
+  }
+  
   .codform-loader {
     display: flex;
     flex-direction: column;
@@ -525,17 +602,21 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   .codform-floating-button {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    min-width: 180px;
-    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
   }
   
   .codform-floating-button:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .codform-floating-button-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   /* Animation styles */

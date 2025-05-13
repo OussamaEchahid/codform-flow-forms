@@ -37,15 +37,15 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     
     switch (config.icon) {
       case 'shopping-cart':
-        return <ShoppingCart size={18} />;
+        return <ShoppingCart size={16} />;
       case 'package':
-        return <Package size={18} />;
+        return <Package size={16} />;
       case 'truck':
-        return <Truck size={18} />;
+        return <Truck size={16} />;
       case 'send':
-        return <Send size={18} />;
+        return <Send size={16} />;
       default:
-        return <ShoppingCart size={18} />;
+        return <ShoppingCart size={16} />;
     }
   };
   
@@ -82,19 +82,17 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           borderWidth: config.borderWidth || '0px',
           borderStyle: config.borderWidth ? 'solid' : 'none',
           borderColor: config.borderColor || '#000000',
-          padding: `${config.paddingY || '12px'} 24px`,
+          padding: `${config.paddingY || '10px'} 20px`,
           fontSize: config.fontSize || '16px',
           fontWeight: config.fontWeight || '500',
           fontFamily: config.fontFamily || 'inherit',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-          transition: 'all 0.3s ease',
+          gap: '8px',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+          transition: 'transform 0.2s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          minWidth: '180px',
-          justifyContent: 'center',
         }}
         onClick={handleClick}
       >

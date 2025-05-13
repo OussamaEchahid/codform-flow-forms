@@ -8,10 +8,12 @@
 
 {% if product %}
 <div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-product-price="{{ product.price | money_without_currency }}" data-hide-header="true">
+  {% comment %} تم تعديل تهيئة hide-header لتكون دائما true بدلاً من استخدام block.settings.hide_header {% endcomment %}
+  
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p>جاري تحميل النموذج...</p>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
     </div>
 
     <div id="codform-form-{{ block.id }}" class="codform-form" style="display: none;">
@@ -20,93 +22,76 @@
 
     <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none;">
       <div class="codform-success-icon">✓</div>
-      <h4>تم إرسال الطلب بنجاح</h4>
-      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
+      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
+      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
     </div>
 
     <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
-      <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
-      <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
+      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
+      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
+      <button id="codform-retry-{{ block.id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
     </div>
   </div>
 </div>
 
+<!-- تضمين الزر العائم إذا كان مفعلًا -->
+{% if block.settings.enable_floating_button %}
+<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color | default: '#000000' }};
+      color: {{ block.settings.floating_text_color | default: '#ffffff' }};
+      border-radius: {{ block.settings.floating_border_radius | default: '4px' }};
+      padding: {{ block.settings.floating_padding_y | default: '10px' }} 20px;
+      font-size: {{ block.settings.floating_font_size | default: '16px' }};
+      font-weight: {{ block.settings.floating_font_weight | default: '500' }};
+      margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      {% if block.settings.floating_border_width != '0px' %}
+      border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
+      {% else %}
+      border: none;
+      {% endif %}
+    "
+    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
+    {% endunless %}
+  </button>
+</div>
+{% endif %}
+
 <style>
-  /* Form container styles */
-  .codform-container {
-    margin: 1.5rem 0;
-    padding: 0;
-    border: none;
-    background: transparent;
-  }
-  
-  /* Loading styles */
-  .codform-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 0;
-  }
-  
-  .codform-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #9b87f5;
-    border-radius: 50%;
-    animation: codform-spin 1s linear infinite;
-    margin-bottom: 1rem;
-  }
-  
-  @keyframes codform-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  .codform-success, .codform-error {
-    text-align: center;
-    padding: 2rem 0;
-  }
-  
-  .codform-success-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #4CAF50;
-    color: white;
-    font-size: 36px;
-    line-height: 60px;
-    margin: 0 auto 1rem;
-  }
-  
-  .codform-error-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #F44336;
-    color: white;
-    font-size: 36px;
-    line-height: 60px;
-    margin: 0 auto 1rem;
-  }
-  
-  .codform-button {
-    background-color: #9b87f5;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: opacity 0.2s;
-  }
-  
-  .codform-button:hover {
-    opacity: 0.9;
-  }
+  /* ... keep existing code (animations and other styles) */
   
   /* Floating button container styles */
   .codform-floating-button-container {
@@ -123,17 +108,15 @@
   .codform-floating-button {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    min-width: 180px;
-    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
   }
   
   .codform-floating-button:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   }
   
   .codform-floating-button-icon {
@@ -141,60 +124,8 @@
     align-items: center;
     justify-content: center;
   }
-  
-  /* Animation styles */
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
-  
-  .pulse-animation {
-    animation: pulse 2s infinite;
-  }
-  
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-  }
-  
-  .shake-animation {
-    animation: shake 0.8s infinite;
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-  
-  .bounce-animation {
-    animation: bounce 2s infinite;
-  }
-  
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0); }
-    75% { transform: rotate(5deg); }
-  }
-  
-  .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite;
-  }
-  
-  @keyframes flash {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.7; }
-  }
-  
-  .flash-animation {
-    animation: flash 3s infinite;
-  }
 </style>
+
 {% endif %}
 
 {% schema %}
@@ -209,6 +140,167 @@
       "id": "form_id",
       "label": "معرّف النموذج",
       "info": "أدخل معرف النموذج الذي تريد عرضه"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "عنوان النموذج",
+      "default": "اطلب المنتج الآن - الدفع عند الاستلام"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "وصف النموذج",
+      "default": "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
+    },
+    {
+      "type": "text",
+      "id": "loading_text",
+      "label": "نص التحميل",
+      "default": "جاري تحميل النموذج..."
+    },
+    {
+      "type": "text",
+      "id": "success_title",
+      "label": "عنوان رسالة النجاح",
+      "default": "تم إرسال الطلب بنجاح"
+    },
+    {
+      "type": "textarea",
+      "id": "success_message",
+      "label": "رسالة النجاح",
+      "default": "شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام."
+    },
+    {
+      "type": "text",
+      "id": "error_title",
+      "label": "عنوان رسالة الخطأ",
+      "default": "حدث خطأ"
+    },
+    {
+      "type": "textarea",
+      "id": "error_message",
+      "label": "رسالة الخطأ",
+      "default": "حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى."
+    },
+    {
+      "type": "text",
+      "id": "retry_button",
+      "label": "نص زر إعادة المحاولة",
+      "default": "إعادة المحاولة"
+    },
+    {
+      "type": "header",
+      "content": "إعدادات الزر العائم"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تفعيل الزر العائم",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون خلفية الزر",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون نص الزر",
+      "default": "#ffffff"
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير الرسوم المتحركة",
+      "options": [
+        { "value": "none", "label": "بلا تأثير" },
+        { "value": "pulse", "label": "نبض" },
+        { "value": "shake", "label": "اهتزاز" },
+        { "value": "bounce", "label": "ارتداد" },
+        { "value": "wiggle", "label": "تمايل" },
+        { "value": "flash", "label": "وميض" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "إظهار أيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "اختيار الأيقونة",
+      "options": [
+        { "value": "shopping-cart", "label": "عربة التسوق" },
+        { "value": "package", "label": "طرد" },
+        { "value": "truck", "label": "شاحنة توصيل" },
+        { "value": "send", "label": "إرسال" }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "تقويس الحواف",
+      "default": "4px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_size",
+      "label": "حجم الخط",
+      "default": "16px"
+    },
+    {
+      "type": "select",
+      "id": "floating_font_weight",
+      "label": "وزن الخط",
+      "options": [
+        { "value": "400", "label": "عادي" },
+        { "value": "500", "label": "متوسط" },
+        { "value": "700", "label": "غامق" }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "text",
+      "id": "floating_padding_y",
+      "label": "المساحة الداخلية (عمودي)",
+      "default": "10px"
+    },
+    {
+      "type": "text",
+      "id": "floating_margin_bottom",
+      "label": "المساحة من الأسفل",
+      "default": "20px"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_width",
+      "label": "عرض الحدود",
+      "default": "0px"
+    },
+    {
+      "type": "color",
+      "id": "floating_border_color",
+      "label": "لون الحدود",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
+      "id": "is_rtl",
+      "label": "نص من اليمين إلى اليسار (RTL)",
+      "default": true
     }
   ]
 }

@@ -34,7 +34,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   }
 
   // Define font size based on style or field settings
-  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1.2rem';
+  const fontSize = fieldStyle.fontSize || '1.2rem';
 
   // Get animation class
   const getAnimationClass = () => {
