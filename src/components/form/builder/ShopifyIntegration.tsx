@@ -9,18 +9,19 @@ import { toast } from 'sonner';
 
 interface ShopifyIntegrationProps {
   formId: string;
-  formTitle?: string;
   formStyle?: {
     primaryColor?: string;
   };
   isSyncing?: boolean;
   formTitleElement?: any;
+  onSave?: (settings: any) => Promise<void>; // Added onSave prop
 }
 
 const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
   formId,
   formStyle = { primaryColor: '#9b87f5' },
-  isSyncing = false
+  isSyncing = false,
+  onSave // Added this to destructuring
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
