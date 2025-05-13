@@ -15,15 +15,3 @@ target = "section"
 
 [extensions.settings]
 # Global extension settings
-fields = [
-  {
-    "key": "insertion_method",
-    "type": "select",
-    "label": { "en": "Form Insertion Method", "ar": "طريقة إدراج النموذج" },
-    "options": [
-      { "value": "auto", "label": { "en": "Automatic", "ar": "تلقائي" } },
-      { "value": "manual", "label": { "en": "Manual", "ar": "يدوي" } }
-    ],
-    "default": "manual"
-  }
-]

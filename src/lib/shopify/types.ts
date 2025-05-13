@@ -86,7 +86,7 @@ export interface ShopifyProduct {
   title: string;
   handle: string;
   price: string;
-  images: Array<string | { src?: string }>;
+  images: string[];
   variants: Array<{
     id: string;
     title: string;

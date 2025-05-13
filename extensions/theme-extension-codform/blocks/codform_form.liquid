@@ -1,4 +1,833 @@
 
+{% comment %}
+  CODFORM - نماذج الدفع عند الاستلام
+
+  هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
+  لاستخدام هذا النموذج، قم فقط بإضافة معرّف النموذج في إعدادات البلوك
+{% endcomment %}
+
+{% if product %}
+<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-hide-header="true">
+  <div class="codform-form-container">
+    <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
+      <div class="codform-spinner"></div>
+      <p>جاري تحميل النموذج...</p>
+    </div>
+
+    <div id="codform-form-{{ block.id }}" class="codform-form" style="display: none;">
+      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
+    </div>
+
+    <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none;">
+      <div class="codform-success-icon">✓</div>
+      <h4>تم إرسال الطلب بنجاح</h4>
+      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
+    </div>
+
+    <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
+      <div class="codform-error-icon">!</div>
+      <h4>حدث خطأ</h4>
+      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
+    </div>
+  </div>
+</div>
+
+{% comment %}
+  FLOATING BUTTON - يتم التحكم في ظهوره من خلال إعدادات البلوك
+{% endcomment %}
+<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container" style="{% unless block.settings.enable_floating_button %}display: none;{% endunless %}">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != blank and block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color }};
+      color: {{ block.settings.floating_text_color }};
+      border-radius: {{ block.settings.floating_border_radius }};
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      border: none;
+      min-width: 250px;
+    "
+    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endunless %}
+  </button>
+</div>
+
+<style>
+  /* Basic container configuration */
+  .codform-container {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* Form header */
+  .codform-header {
+    margin-bottom: 20px;
+    text-align: right;
+    padding: 15px;
+    border-radius: 8px;
+  }
+
+  .codform-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+    line-height: 1.3;
+  }
+
+  .codform-header p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Main form container */
+  .codform-form {
+    margin-top: 20px;
+  }
+
+  /* Field formatting */
+  .codform-field {
+    margin-bottom: 20px;
+  }
+
+  .codform-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 1rem;
+  }
+
+  .codform-field input[type="text"],
+  .codform-field input[type="email"],
+  .codform-field input[type="tel"],
+  .codform-field input[type="number"],
+  .codform-field textarea,
+  .codform-field select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+    font-family: 'Cairo', sans-serif;
+    background-color: #ffffff;
+    color: #1f2937;
+    box-sizing: border-box;
+  }
+
+  .codform-field input:focus,
+  .codform-field textarea:focus,
+  .codform-field select:focus {
+    outline: none;
+    border-color: #9b87f5;
+    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
+  }
+
+  /* Checkboxes */
+  .codform-checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .codform-checkbox-container input[type="checkbox"] {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    accent-color: #9b87f5;
+  }
+
+  /* Radio button group */
+  .codform-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .codform-radio-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .codform-radio-container input[type="radio"] {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    accent-color: #9b87f5;
+  }
+
+  /* Help text */
+  .codform-help-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+
+  /* Required field marker */
+  .codform-required {
+    color: #ef4444;
+    margin-right: 3px;
+  }
+
+  /* Submit and navigation buttons */
+  .codform-submit-button,
+  .codform-next-button,
+  .codform-prev-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    margin-top: 20px;
+    font-family: 'Cairo', sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .codform-submit-button:hover,
+  .codform-next-button:hover {
+    background-color: #8a76e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-prev-button {
+    background-color: #9ca3af;
+  }
+
+  .codform-prev-button:hover {
+    background-color: #8b8f96;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-submit-button:disabled,
+  .codform-next-button:disabled,
+  .codform-prev-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Loading state */
+  .codform-loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* Success and error messages */
+  .codform-success, .codform-error {
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .codform-success-icon {
+    background-color: #10b981;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin: 0 auto 20px;
+  }
+
+  .codform-error-icon {
+    background-color: #ef4444;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin: 0 auto 20px;
+  }
+
+  /* Loading indicator */
+  .codform-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 0;
+  }
+
+  .codform-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #9b87f5;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s ease-in-out;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .codform-button:hover {
+    background-color: #8a76e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Multi-step form formatting */
+  .codform-steps-nav {
+    margin-bottom: 25px;
+  }
+
+  .codform-step-indicators {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .codform-step-indicator {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #6b7280;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .codform-step-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    height: 3px;
+    width: 100%;
+    background-color: #e5e7eb;
+    transform: translateY(-50%);
+    transition: background-color 0.3s ease;
+  }
+
+  .codform-step-indicator:first-child::after {
+    display: none;
+  }
+
+  .codform-step-active {
+    background-color: #9b87f5;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .codform-step-completed {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .codform-step-completed::after,
+  .codform-step-active::after {
+    background-color: #10b981;
+  }
+
+  .codform-steps-container {
+    min-height: 200px;
+  }
+
+  .codform-nav-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+  }
+
+  .codform-prev-button,
+  .codform-next-button {
+    flex: 1;
+  }
+
+  /* Validation messages */
+  .codform-validation-message {
+    color: #ef4444;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .codform-field-error {
+    border-color: #ef4444 !important;
+    background-color: rgba(254, 226, 226, 0.3);
+  }
+
+  /* Special formatting for different field types */
+  .codform-field h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.25rem;
+    color: #374151;
+  }
+
+  /* Step title */
+  .codform-step-title {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #374151;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  /* Improve spacing and layout for better readability */
+  .codform-step {
+    padding: 15px 0;
+  }
+
+  /* Improve focus styles for better accessibility */
+  .codform-field input:focus,
+  .codform-field select:focus,
+  .codform-field textarea:focus {
+    outline: none;
+    border-color: #9b87f5;
+    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
+  }
+
+  /* Ensure radio and checkbox options are spaced correctly */
+  .codform-radio-container,
+  .codform-checkbox-container {
+    margin-bottom: 8px;
+  }
+
+  .codform-radio-container:last-child,
+  .codform-checkbox-container:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Image field formatting */
+  .codform-image-field {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .codform-image-container {
+    max-width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .codform-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .codform-image-placeholder {
+    min-height: 150px;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    padding: 20px;
+    transition: all 0.2s ease;
+  }
+
+  .codform-image-placeholder:hover {
+    background-color: #e5e7eb;
+    border-color: #9b87f5;
+  }
+
+  .codform-image-upload-input {
+    display: none;
+  }
+
+  .codform-image-upload-label {
+    display: inline-block;
+    background-color: #9b87f5;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
+  }
+
+  .codform-image-upload-label:hover {
+    background-color: #8a76e5;
+  }
+
+  /* WhatsApp button formatting */
+  .codform-whatsapp-button {
+    background-color: #25D366;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .codform-whatsapp-button:hover {
+    background-color: #20bd5a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-whatsapp-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* HTML content formatting */
+  .codform-html-content {
+    margin-bottom: 20px;
+  }
+
+  /* Cart items formatting */
+  .codform-cart-items {
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #ffffff;
+  }
+
+  .codform-cart-item {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+  }
+
+  .codform-cart-item:last-child {
+    border-bottom: none;
+  }
+
+  .codform-cart-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-left: 15px;
+  }
+
+  .codform-cart-item-details {
+    flex: 1;
+  }
+
+  .codform-cart-item-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #1f2937;
+    font-size: 1rem;
+  }
+
+  .codform-cart-item-variant {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 5px;
+  }
+
+  .codform-cart-item-price {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .codform-cart-item-quantity {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .codform-cart-item-quantity-label {
+    margin-left: 5px;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  /* Cart summary formatting */
+  .codform-cart-summary {
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f9fafb;
+  }
+
+  .codform-cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .codform-cart-summary-row:last-child {
+    margin-bottom: 0;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    font-weight: 700;
+  }
+
+  .codform-cart-summary-label {
+    color: #6b7280;
+  }
+
+  .codform-cart-summary-value {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  /* Animation Effects - Improve animation definitions */
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .pulse-animation {
+    animation: pulse 2s infinite !important;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+
+  .shake-animation {
+    animation: shake 0.8s infinite !important;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+
+  .bounce-animation {
+    animation: bounce 2s infinite !important;
+  }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    50% { transform: rotate(0); }
+    75% { transform: rotate(5deg); }
+  }
+
+  .wiggle-animation {
+    animation: wiggle 0.7s ease-in-out infinite !important;
+  }
+
+  @keyframes flash {
+    0%, 50%, 100% {
+      opacity: 1;
+    }
+    25%, 75% {
+      opacity: 0.7;
+    }
+  }
+
+  .flash-animation {
+    animation: flash 3s infinite !important;
+  }
+  
+  /* Floating button container styles - تحديث أنماط حاوية الزر العائم */
+  .codform-floating-button-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    z-index: 999999 !important; /* تم زيادة z-index لضمان ظهوره فوق جميع العناصر */
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease !important;
+  }
+  
+  .codform-floating-button-container.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Floating button styles - Updated to be wider and better for scrolling */
+  .codform-floating-button {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    min-width: 250px !important; /* Made wider for better visibility */
+    padding: 12px 24px !important;
+    justify-content: center !important; /* Center the content */
+    font-weight: 600 !important; /* Make text bolder */
+    margin: 0 auto !important;
+    position: relative !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .codform-floating-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .codform-floating-button-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Updated Submit Button Styles */
+  .codform-submit-button {
+    width: 100%;
+    padding: 16px 20px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    border: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .codform-submit-btn {
+    width: 100% !important;
+    padding: 16px 20px !important;
+    font-weight: bold !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+    border: none !important;
+    margin-top: 20px !important;
+    margin-bottom: 20px !important;
+  }
+</style>
+
+<script>
+  // Make sure floating button is visible on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if floating button is enabled in block settings
+    var enableFloatingButton = {% if block.settings.enable_floating_button %}true{% else %}false{% endif %};
+    var floatingButtonContainer = document.getElementById('codform-floating-button-{{ block.id }}');
+    
+    if (floatingButtonContainer && enableFloatingButton) {
+      // Make floating button visible
+      floatingButtonContainer.style.display = 'flex';
+      floatingButtonContainer.style.visibility = 'visible';
+      floatingButtonContainer.style.opacity = '1';
+      floatingButtonContainer.classList.remove('hidden');
+    }
+  });
+</script>
+
 {% schema %}
 {
   "name": "نموذج الدفع عند الاستلام",
@@ -10,7 +839,7 @@
       "type": "text",
       "id": "form_id",
       "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه. سيظهر النموذج فقط إذا كان مرتبطًا بهذا المنتج."
+      "info": "أدخل معرف النموذج الذي تريد عرضه"
     },
     {
       "type": "header",
@@ -108,556 +937,7 @@
         }
       ],
       "default": "none"
-    },
-    {
-      "type": "checkbox",
-      "id": "is_rtl",
-      "label": "تخطيط من اليمين لليسار (RTL)",
-      "default": true,
-      "info": "تفعيل هذا الخيار إذا كان النص بالعربية أو اللغات التي تكتب من اليمين إلى اليسار"
-    },
-    {
-      "type": "text",
-      "id": "product_filter",
-      "label": "تصفية المنتجات (اختياري)",
-      "info": "إذا أردت إظهار النموذج على منتج محدد فقط، أدخل معرّف المنتج هنا"
     }
   ]
 }
 {% endschema %}
-
-{% comment %}
-  CODFORM - نماذج الدفع عند الاستلام
-
-  هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
-  لاستخدام هذا النموذج، قم فقط بإضافة معرّف النموذج في إعدادات البلوك
-{% endcomment %}
-
-{% assign should_display_form = false %}
-
-{% if product and block.settings.form_id != blank %}
-  {% if block.settings.product_filter == blank %}
-    {% assign should_display_form = true %}
-  {% else %}
-    {% if product.id == block.settings.product_filter or product.handle contains block.settings.product_filter %}
-      {% assign should_display_form = true %}
-    {% endif %}
-  {% endif %}
-{% endif %}
-
-{% if should_display_form %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-hide-header="true">
-  <div class="codform-form-container">
-    <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
-      <div class="codform-spinner"></div>
-      <p>جاري تحميل النموذج...</p>
-    </div>
-
-    <div id="codform-form-{{ block.id }}" class="codform-form" style="display: none;">
-      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
-    </div>
-
-    <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none;">
-      <div class="codform-success-icon">✓</div>
-      <h4>تم إرسال الطلب بنجاح</h4>
-      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
-    </div>
-
-    <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
-      <div class="codform-error-icon">!</div>
-      <h4>حدث خطأ</h4>
-      <p id="codform-error-message-{{ block.id }}">حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
-      <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
-    </div>
-
-    <div id="codform-not-available-{{ block.id }}" class="codform-error" style="display: none;">
-      <h4>هذا النموذج غير متاح لهذا المنتج</h4>
-      <p>النموذج المحدد غير متوفر لهذا المنتج، يرجى التحقق من إعدادات النموذج.</p>
-    </div>
-  </div>
-</div>
-
-{% comment %}
-  FLOATING BUTTON - يتم التحكم في ظهوره من خلال إعدادات البلوك
-{% endcomment %}
-<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container" style="{% unless block.settings.enable_floating_button %}display: none;{% endunless %}">
-  <button
-    class="codform-floating-button {% if block.settings.floating_animation != blank and block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
-    style="
-      background-color: {{ block.settings.floating_bg_color }};
-      color: {{ block.settings.floating_text_color }};
-      border-radius: {{ block.settings.floating_border_radius }};
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 20px;
-      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
-      border: none;
-      min-width: 250px;
-    "
-    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
-  >
-    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
-      <span>{{ block.settings.floating_button_text }}</span>
-    {% endif %}
-    
-    {% if block.settings.floating_show_icon %}
-      <span class="codform-floating-button-icon">
-        {% case block.settings.floating_icon %}
-          {% when 'shopping-cart' %}
-            <!-- Shopping cart icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-          {% when 'package' %}
-            <!-- Package icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line><line x1="7" y1="3.5" x2="17" y2="8.5"></line></svg>
-          {% when 'truck' %}
-            <!-- Truck icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-          {% when 'send' %}
-            <!-- Send icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          {% else %}
-            <!-- Default: Shopping cart icon SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-        {% endcase %}
-      </span>
-    {% endif %}
-    
-    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
-      <span>{{ block.settings.floating_button_text }}</span>
-    {% endunless %}
-  </button>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the form for this specific product
-    const container = document.getElementById('codform-container-{{ block.id }}');
-    if (container) {
-      const formId = container.getAttribute('data-form-id');
-      const productId = container.getAttribute('data-product-id');
-      
-      console.log('COD Form initialized with:', {
-        formId: formId,
-        productId: productId,
-        blockId: '{{ block.id }}'
-      });
-      
-      // Check if form should be shown for this specific product
-      fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.{{ shop.permanent_domain }}&product_id=eq.${productId}&select=*`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data && data.length > 0) {
-          // Settings exist for this product, check if enabled
-          if (data[0].enabled) {
-            // Load the form
-            loadForm(formId, '{{ block.id }}', productId);
-          } else {
-            document.getElementById('codform-not-available-{{ block.id }}').style.display = 'block';
-            document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-          }
-        } else {
-          // No specific settings, load the form if there's a form ID
-          if (formId) {
-            loadForm(formId, '{{ block.id }}', productId);
-          } else {
-            document.getElementById('codform-not-available-{{ block.id }}').style.display = 'block';
-            document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Error checking product settings:', error);
-        // Still try to load the form as fallback
-        if (formId) {
-          loadForm(formId, '{{ block.id }}', productId);
-        }
-      });
-    }
-  });
-  
-  function loadForm(formId, blockId, productId) {
-    const formContainer = document.getElementById('codform-form-' + blockId);
-    const loaderContainer = document.getElementById('codform-form-loader-' + blockId);
-    const errorContainer = document.getElementById('codform-error-' + blockId);
-    
-    if (!formContainer || !loaderContainer) return;
-    
-    // Show loader
-    loaderContainer.style.display = 'flex';
-    
-    // Load form
-    fetch(`https://mtyfuwdsshlzqwjujavp.supabase.co/rest/v1/forms?id=eq.${formId}&select=*`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data && data.length > 0 && data[0].data) {
-        renderForm(data[0], formContainer, blockId, productId);
-        loaderContainer.style.display = 'none';
-        formContainer.style.display = 'block';
-      } else {
-        throw new Error('Form not found or invalid data');
-      }
-    })
-    .catch(error => {
-      console.error('Error loading form:', error);
-      loaderContainer.style.display = 'none';
-      errorContainer.style.display = 'block';
-      document.getElementById('codform-error-message-' + blockId).textContent = 'تعذر تحميل النموذج: ' + error.message;
-      
-      // Add retry button functionality
-      const retryButton = document.getElementById('codform-retry-' + blockId);
-      if (retryButton) {
-        retryButton.onclick = function() {
-          errorContainer.style.display = 'none';
-          loadForm(formId, blockId, productId);
-        };
-      }
-    });
-  }
-  
-  function renderForm(formData, container, blockId, productId) {
-    try {
-      console.log('Rendering form:', formData.id);
-      
-      // Create form elements based on formData
-      const form = document.createElement('form');
-      form.id = 'codform-' + blockId;
-      form.className = 'codform';
-      form.onsubmit = function(e) {
-        e.preventDefault();
-        submitForm(e.target, blockId, formData.id, productId);
-        return false;
-      };
-      
-      // Add form header if not hidden
-      const hideHeader = container.parentElement.parentElement.dataset.hideHeader === 'true';
-      if (!hideHeader && formData.title) {
-        const header = document.createElement('div');
-        header.className = 'codform-header';
-        header.style.backgroundColor = formData.style?.primaryColor || '#9b87f5';
-        
-        const title = document.createElement('h3');
-        title.textContent = formData.title;
-        header.appendChild(title);
-        
-        if (formData.description) {
-          const description = document.createElement('p');
-          description.textContent = formData.description;
-          header.appendChild(description);
-        }
-        
-        form.appendChild(header);
-      }
-      
-      // Add form fields based on data
-      if (formData.data && Array.isArray(formData.data)) {
-        formData.data.forEach(step => {
-          if (step.fields && Array.isArray(step.fields)) {
-            step.fields.forEach(field => {
-              if (field.type !== 'form-title' && field.type !== 'submit') {
-                const fieldContainer = document.createElement('div');
-                fieldContainer.className = 'codform-field';
-                
-                // Create label
-                const label = document.createElement('label');
-                label.setAttribute('for', 'field-' + field.id);
-                if (field.required) {
-                  const requiredMark = document.createElement('span');
-                  requiredMark.className = 'codform-required';
-                  requiredMark.textContent = '*';
-                  label.appendChild(requiredMark);
-                  label.appendChild(document.createTextNode(' '));
-                }
-                label.appendChild(document.createTextNode(field.label));
-                fieldContainer.appendChild(label);
-                
-                // Create input based on field type
-                let input;
-                switch (field.type) {
-                  case 'textarea':
-                    input = document.createElement('textarea');
-                    input.rows = 4;
-                    break;
-                  case 'select':
-                    input = document.createElement('select');
-                    if (field.options) {
-                      field.options.forEach(option => {
-                        const optElement = document.createElement('option');
-                        optElement.value = option.value;
-                        optElement.textContent = option.label;
-                        input.appendChild(optElement);
-                      });
-                    }
-                    break;
-                  default:
-                    input = document.createElement('input');
-                    input.type = field.type === 'phone' ? 'tel' : (field.type || 'text');
-                }
-                
-                // Set common attributes
-                input.id = 'field-' + field.id;
-                input.name = field.id;
-                input.className = 'codform-input';
-                if (field.required) input.required = true;
-                if (field.placeholder) input.placeholder = field.placeholder;
-                
-                fieldContainer.appendChild(input);
-                
-                // Add help text if available
-                if (field.helpText) {
-                  const helpText = document.createElement('div');
-                  helpText.className = 'codform-help-text';
-                  helpText.textContent = field.helpText;
-                  fieldContainer.appendChild(helpText);
-                }
-                
-                form.appendChild(fieldContainer);
-              }
-            });
-          }
-        });
-      }
-      
-      // Add submit button
-      const submitBtn = document.createElement('button');
-      submitBtn.type = 'submit';
-      submitBtn.className = 'codform-submit-button';
-      submitBtn.textContent = formData.submitbuttontext || 'إرسال الطلب';
-      
-      // Apply button styles
-      if (formData.style) {
-        submitBtn.style.backgroundColor = formData.style.primaryColor || '#9b87f5';
-        submitBtn.style.borderRadius = formData.style.borderRadius || '0.5rem';
-        
-        // Add animation if specified in any submit button
-        let hasAnimation = false;
-        let animationType = '';
-        
-        if (formData.data && Array.isArray(formData.data)) {
-          formData.data.forEach(step => {
-            if (step.fields && Array.isArray(step.fields)) {
-              step.fields.forEach(field => {
-                if (field.type === 'submit' && field.style && field.style.animation) {
-                  hasAnimation = true;
-                  animationType = field.style.animationType || 'pulse';
-                }
-              });
-            }
-          });
-        }
-        
-        if (hasAnimation) {
-          submitBtn.classList.add(animationType + '-animation');
-        }
-      }
-      
-      form.appendChild(submitBtn);
-      
-      // Clear and append to container
-      container.innerHTML = '';
-      container.appendChild(form);
-      
-    } catch (error) {
-      console.error('Error rendering form:', error);
-      container.innerHTML = '<div class="codform-error"><p>حدث خطأ أثناء عرض النموذج: ' + error.message + '</p></div>';
-    }
-  }
-  
-  function submitForm(form, blockId, formId, productId) {
-    // Get all form data
-    const formData = new FormData(form);
-    const data = {};
-    formData.forEach((value, key) => {
-      data[key] = value;
-    });
-    
-    // Add product information
-    data.product_id = productId;
-    data.product_title = document.querySelector('h1')?.innerText || '';
-    data.product_url = window.location.href;
-    
-    // Disable form and show loading state
-    form.classList.add('codform-loading');
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalButtonText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.textContent = 'جاري الإرسال...';
-    
-    // Submit form
-    fetch('https://mtyfuwdsshlzqwjujavp.supabase.co/rest/v1/form_submissions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        form_id: formId,
-        data: data,
-        shop_id: '{{ shop.permanent_domain }}',
-        status: 'pending'
-      })
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      
-      // Show success message
-      const formContainer = document.getElementById('codform-form-' + blockId);
-      const successContainer = document.getElementById('codform-success-' + blockId);
-      
-      formContainer.style.display = 'none';
-      successContainer.style.display = 'block';
-      
-      // Scroll to success message
-      successContainer.scrollIntoView({ behavior: 'smooth' });
-    })
-    .catch(error => {
-      console.error('Error submitting form:', error);
-      
-      // Reset form state
-      form.classList.remove('codform-loading');
-      submitButton.disabled = false;
-      submitButton.textContent = originalButtonText;
-      
-      // Show error message
-      alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
-    });
-  }
-</script>
-
-<style>
-  /* Basic container configuration */
-  .codform-container {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #f9fafb;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-    width: 100%;
-  }
-
-  /* Form header */
-  .codform-header {
-    margin-bottom: 20px;
-    text-align: right;
-    padding: 15px;
-    border-radius: 8px;
-  }
-
-  .codform-header h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #ffffff;
-    line-height: 1.3;
-  }
-
-  .codform-header p {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  /* Rest of the CSS styles... */
-  /* ... keep existing code */
-
-  /* Animation Effects - Improve animation definitions */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-
-  .pulse-animation {
-    animation: pulse 2s infinite !important;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-  }
-
-  .shake-animation {
-    animation: shake 0.8s infinite !important;
-  }
-
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-
-  .bounce-animation {
-    animation: bounce 2s infinite !important;
-  }
-
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0); }
-    75% { transform: rotate(5deg); }
-  }
-
-  .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
-  }
-
-  @keyframes flash {
-    0%, 50%, 100% {
-      opacity: 1;
-    }
-    25%, 75% {
-      opacity: 0.7;
-    }
-  }
-
-  .flash-animation {
-    animation: flash 3s infinite !important;
-  }
-  
-  /* Floating button container styles */
-  .codform-floating-button-container {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 0 !important;
-    right: 0 !important;
-    display: flex !important;
-    justify-content: center !important;
-    z-index: 999999 !important;
-    pointer-events: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transition: opacity 0.3s ease !important;
-  }
-</style>
-{% endif %}

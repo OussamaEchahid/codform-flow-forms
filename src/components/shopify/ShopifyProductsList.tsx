@@ -34,21 +34,6 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
     return '$0.00';
   };
 
-  // Helper function to safely get product image source
-  const getProductImageSrc = (image: string | { src?: string } | any): string => {
-    if (!image) return '';
-    
-    if (typeof image === 'string') {
-      return image;
-    }
-    
-    if (typeof image === 'object' && image !== null) {
-      return image.src || '';
-    }
-    
-    return '';
-  };
-
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
@@ -68,7 +53,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
                 <TableCell>
                   {product.images && product.images.length > 0 ? (
                     <img 
-                      src={getProductImageSrc(product.images[0])}
+                      src={product.images[0]} 
                       alt={product.title} 
                       className="w-16 h-16 object-cover rounded"
                       onError={(e) => {
