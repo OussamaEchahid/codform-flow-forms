@@ -60,6 +60,10 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     }
   };
   
+  // Calculate width based on content
+  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : (config.width || 'auto');
+  const minWidth = '180px'; // Set minimum width to make it longer
+  
   return (
     <div 
       className="codform-floating-button-container"
@@ -82,7 +86,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           borderWidth: config.borderWidth || '0px',
           borderStyle: config.borderWidth ? 'solid' : 'none',
           borderColor: config.borderColor || '#000000',
-          padding: `${config.paddingY || '10px'} 20px`,
+          padding: `${config.paddingY || '12px'} 24px`,
           fontSize: config.fontSize || '16px',
           fontWeight: config.fontWeight || '500',
           fontFamily: config.fontFamily || 'inherit',
@@ -93,6 +97,8 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
           transition: 'transform 0.2s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
+          width: buttonWidth,
+          minWidth: minWidth,
         }}
         onClick={handleClick}
       >

@@ -255,22 +255,11 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Set/update the block definition using the correct app block format for OS 2.0
+  // Simplified settings - only include form_id
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
     settings: {
-      form_id: formId,
-      title: "اطلب المنتج الآن - الدفع عند الاستلام",
-      description: "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.",
-      
-      // Add floating button settings from the form configuration
-      enable_floating_button: false, // Default to false, will be updated by the form settings
-      floating_button_text: "اطلب الآن",
-      floating_bg_color: "#000000",
-      floating_text_color: "#ffffff",
-      floating_animation: "none",
-      floating_show_icon: true,
-      floating_icon: "shopping-cart"
+      form_id: formId
     }
   };
   

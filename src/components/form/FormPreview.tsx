@@ -174,7 +174,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 
       {/* Render floating button if enabled AND not hidden for preview purposes */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
-        <FloatingButton config={floatingButton} />
+        <FloatingButton config={floatingButton} isPreview={true} />
       )}
     </div>
   );
