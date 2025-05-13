@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { FormStyle } from '@/hooks/useFormStore';
+import { FloatingButtonConfig } from '@/lib/form-utils';
 
 export interface FormPreviewProps {
   children?: React.ReactNode;
@@ -10,6 +11,8 @@ export interface FormPreviewProps {
   totalSteps: number;
   fields: any[];
   style?: FormStyle;
+  floatingButton?: FloatingButtonConfig;
+  hideFloatingButtonPreview?: boolean;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -24,7 +27,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
-  }
+  },
+  floatingButton,
+  hideFloatingButtonPreview = false
 }) => {
   const buttonRadius = style?.buttonStyle === 'pill' ? '9999px' : style?.borderRadius || '0.5rem';
   

@@ -49,6 +49,16 @@ const fieldTypes = [
   { value: 'submit', label: 'زر إرسال الطلب' },
 ];
 
+// Type definition for field
+interface FieldType {
+  id: string;
+  type: string;
+  label: string;
+  required?: boolean;
+  placeholder?: string;
+  options?: Array<{value: string; label: string}>;
+}
+
 // SortableField component
 const SortableField = ({ field, onEdit, onDelete, onDuplicate }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: field.id });
@@ -102,7 +112,7 @@ const SortableField = ({ field, onEdit, onDelete, onDuplicate }) => {
 
 // Field Editor Dialog
 const FieldEditorDialog = ({ field, onSave, onClose }) => {
-  const [editedField, setEditedField] = useState({ ...field });
+  const [editedField, setEditedField] = useState<FieldType>({ ...field });
   const [options, setOptions] = useState(field.options || []);
   
   const handleChange = (key, value) => {
@@ -249,7 +259,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
     : [{ id: '1', title: 'نموذج جديد', fields: [] }];
   
   const [formData, setFormData] = useState(initialData);
-  const [currentEditingField, setCurrentEditingField] = useState(null);
+  const [currentEditingField, setCurrentEditingField] = useState<FieldType | null>(null);
   const [showFieldEditor, setShowFieldEditor] = useState(false);
   
   // Update parent when our local data changes
@@ -274,7 +284,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   
   // Add a new field
   const addField = (type) => {
-    const newField = {
+    const newField: FieldType = {
       id: uuidv4(),
       type,
       label: fieldTypes.find(ft => ft.value === type)?.label || 'حقل جديد',
@@ -290,12 +300,22 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
     }
     
     const updatedData = [...formData];
-    updatedData[0] = {
-      ...updatedData[0],
-      fields: [...currentFields, newField]
-    };
-    
-    setFormData(updatedData);
+    if (updatedData[0]) {
+      updatedData[0] = {
+        ...updatedData[0],
+        fields: [...currentFields, newField]
+      };
+      
+      setFormData(updatedData);
+    } else {
+      // Handle case where formData[0] might be undefined
+      const newFormData = [{ 
+        id: '1', 
+        title: 'نموذج جديد', 
+        fields: [newField] 
+      }];
+      setFormData(newFormData);
+    }
   };
   
   // Edit a field
@@ -308,14 +328,17 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const saveField = (updatedField) => {
     const updatedData = [...formData];
     
-    updatedData[0] = {
-      ...updatedData[0],
-      fields: currentFields.map(f => 
-        f.id === updatedField.id ? updatedField : f
-      )
-    };
+    if (updatedData[0]) {
+      updatedData[0] = {
+        ...updatedData[0],
+        fields: currentFields.map(f => 
+          f.id === updatedField.id ? updatedField : f
+        )
+      };
+      
+      setFormData(updatedData);
+    }
     
-    setFormData(updatedData);
     setShowFieldEditor(false);
     setCurrentEditingField(null);
   };
@@ -324,12 +347,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
   const deleteField = (fieldId) => {
     const updatedData = [...formData];
     
-    updatedData[0] = {
-      ...updatedData[0],
-      fields: currentFields.filter(f => f.id !== fieldId)
-    };
-    
-    setFormData(updatedData);
+    if (updatedData[0]) {
+      updatedData[0] = {
+        ...updatedData[0],
+        fields: currentFields.filter(f => f.id !== fieldId)
+      };
+      
+      setFormData(updatedData);
+    }
   };
   
   // Duplicate a field
@@ -345,12 +370,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
     newFields.splice(fieldIndex + 1, 0, newField);
     
     const updatedData = [...formData];
-    updatedData[0] = {
-      ...updatedData[0],
-      fields: newFields
-    };
-    
-    setFormData(updatedData);
+    if (updatedData[0]) {
+      updatedData[0] = {
+        ...updatedData[0],
+        fields: newFields
+      };
+      
+      setFormData(updatedData);
+    }
   };
   
   // Handle drag end event for field reordering
@@ -361,15 +388,19 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ data, onChange }) => {
       const oldIndex = currentFields.findIndex(f => f.id === active.id);
       const newIndex = currentFields.findIndex(f => f.id === over.id);
       
-      const newFields = arrayMove(currentFields, oldIndex, newIndex);
-      
-      const updatedData = [...formData];
-      updatedData[0] = {
-        ...updatedData[0],
-        fields: newFields
-      };
-      
-      setFormData(updatedData);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newFields = arrayMove(currentFields, oldIndex, newIndex);
+        
+        const updatedData = [...formData];
+        if (updatedData[0]) {
+          updatedData[0] = {
+            ...updatedData[0],
+            fields: newFields
+          };
+          
+          setFormData(updatedData);
+        }
+      }
     }
   };
   
