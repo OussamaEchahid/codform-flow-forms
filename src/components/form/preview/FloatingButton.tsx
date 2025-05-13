@@ -61,7 +61,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
   };
   
   // Calculate width based on content
-  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : (config.width || 'auto');
+  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : 'auto';
   const minWidth = '180px'; // Set minimum width to make it longer
   
   return (
@@ -97,7 +97,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
           transition: 'transform 0.2s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          width: buttonWidth,
+          width: 'auto',
           minWidth: minWidth,
         }}
         onClick={handleClick}
