@@ -7,7 +7,7 @@ interface FormPreviewProps {
   formDescription?: string;
   currentStep?: number;
   totalSteps?: number;
-  style?: FormStyle; // Changed from any to FormStyle
+  style?: FormStyle | Record<string, string>; // Make sure style accepts FormStyle or object
   formStyle?: FormStyle; // Added formStyle prop
   fields?: any[];
   children?: React.ReactNode;
@@ -24,9 +24,23 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   fields = [],
   children,
 }) => {
+  // Make sure we have a properly typed style object with default values
+  const defaultStyle: FormStyle = {
+    primaryColor: '#9b87f5',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    buttonStyle: 'rounded',
+  };
+  
   // Use either style or formStyle, with style taking precedence
-  const styles = style && Object.keys(style).length > 0 ? style : formStyle || {};
-  const primaryColor = styles.primaryColor || '#9b87f5';
+  // Ensure it's properly typed by merging with defaultStyle
+  const styles: FormStyle = {
+    ...defaultStyle,
+    ...(Object.keys(style || {}).length > 0 ? style as FormStyle : formStyle || {})
+  };
+  
+  // Now we can safely access primaryColor
+  const primaryColor = styles.primaryColor;
   
   return (
     <div className="border rounded-lg overflow-hidden">

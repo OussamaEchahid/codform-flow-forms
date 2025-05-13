@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
@@ -167,7 +166,7 @@ const FormBuilderEditor = ({ formId }) => {
     setUnsavedChanges(true);
   };
   
-  // Make sure formState.style is always a valid FormStyle object
+  // Make sure we have a valid FormStyle object
   const getDefaultStyle = (): FormStyle => {
     return {
       primaryColor: '#9b87f5',
@@ -177,6 +176,7 @@ const FormBuilderEditor = ({ formId }) => {
     };
   };
   
+  // Ensure formStyle is a valid FormStyle object
   const formStyle: FormStyle = formState?.style || getDefaultStyle();
   
   return (
@@ -245,13 +245,8 @@ const FormBuilderEditor = ({ formId }) => {
         <TabsContent value="builder">
           <div className="mt-4">
             <FormBuilder
-              initialFormData={{
-                id: formId,
-                title: formState?.title || '',
-                description: formState?.description || '',
-                data: formState?.data || [],
-                is_published: formState?.isPublished || false
-              }}
+              data={formState?.data || []}
+              onChange={handleDataChange}
             />
           </div>
         </TabsContent>
@@ -263,7 +258,7 @@ const FormBuilderEditor = ({ formId }) => {
               formDescription={formState?.description || ''}
               currentStep={1}
               totalSteps={formState?.data?.length || 1}
-              style={formStyle}
+              style={formStyle} // Pass the properly typed formStyle
               fields={formState?.data?.length > 0 ? formState.data[0].fields || [] : []}
             />
           </div>
