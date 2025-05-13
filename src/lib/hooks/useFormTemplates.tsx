@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -236,6 +235,8 @@ export const useFormTemplates = () => {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
       }
+      
+      console.log('Saving form with data:', dbData);
       
       // Update form in Supabase
       const { error } = await supabase

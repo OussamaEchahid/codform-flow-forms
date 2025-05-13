@@ -15,7 +15,7 @@ import FormPreview from '@/components/form/FormPreview';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import PublishForm from '@/components/form/builder/PublishForm';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { ShoppingBag } from 'lucide-react';
 
 // Ensure FormState includes product_id

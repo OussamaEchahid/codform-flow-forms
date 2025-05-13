@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n';
 import { Loader2, ShoppingBag, Check, AlertCircle } from 'lucide-react';
 import { FormStyle } from '@/hooks/useFormStore';
@@ -47,10 +46,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   }, [productId, products]);
 
   useEffect(() => {
-    if (isConnected && !products.length) {
+    if (isConnected) {
+      // Always reload products to ensure we have real ones
       loadProducts();
     }
-  }, [isConnected, loadProducts, products.length]);
+  }, [isConnected, loadProducts]);
 
   const handleSyncForm = async () => {
     if (!formId || !productId) {
@@ -80,7 +80,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       );
       
       if (onSave) {
-        onSave(syncData.settings);
+        onSave({
+          product_id: productId // Ensure we use the correct field name
+        });
       }
     } catch (error) {
       console.error('Error syncing form with Shopify:', error);
