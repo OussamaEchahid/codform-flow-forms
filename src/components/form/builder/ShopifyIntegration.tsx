@@ -383,11 +383,15 @@ const getProductImageSrc = (image: string | { src?: string } | any): string => {
 };
 
 // Helper function to extract product ID for display
-const extractProductId = (fullId: string): string => {
-  if (fullId.includes('/')) {
-    return fullId.split('/').pop() || fullId;
+const extractProductId = (fullId: string | number | any): string => {
+  // First ensure we're working with a string
+  const idString = String(fullId || '');
+  
+  // Now we can safely use string methods
+  if (idString.includes('/')) {
+    return idString.split('/').pop() || idString;
   }
-  return fullId;
+  return idString;
 };
 
 export default ShopifyIntegration;
