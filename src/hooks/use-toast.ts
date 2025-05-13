@@ -1,5 +1,5 @@
-
 import * as React from "react";
+import { toast as sonnerToast } from "sonner";
 
 const TOAST_LIMIT = 5;
 export const TOAST_REMOVE_DELAY = 1000000;
@@ -70,23 +70,23 @@ interface State {
   toasts: ToasterToast[];
 }
 
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
-    return;
+    return
   }
 
   const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId);
+    toastTimeouts.delete(toastId)
     dispatch({
       type: actionTypes.REMOVE_TOAST,
       toastId: toastId,
-    });
-  }, TOAST_REMOVE_DELAY);
+    })
+  }, TOAST_REMOVE_DELAY)
 
-  toastTimeouts.set(toastId, timeout);
-};
+  toastTimeouts.set(toastId, timeout)
+}
 
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -142,7 +142,7 @@ export const reducer = (state: State, action: Action): State => {
       };
     }
   }
-};
+}
 
 const listeners: Array<(state: State) => void> = [];
 
@@ -157,42 +157,49 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast(props: Toast) {
-  const id = genId();
+// This is the toast function that will be exported
+export const toast = (props: string | Toast) => {
+  if (typeof props === "string") {
+    return sonnerToast(props);
+  }
+  return sonnerToast(props);
+};
 
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: actionTypes.UPDATE_TOAST,
-      toast: { ...props, id },
-    });
+// Add variant-specific methods
+toast.success = (props: string | Omit<Toast, "variant">) => {
+  if (typeof props === "string") {
+    return sonnerToast.success(props);
+  }
+  return sonnerToast.success(props);
+};
 
-  const dismiss = () =>
-    dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
+toast.error = (props: string | Omit<Toast, "variant">) => {
+  if (typeof props === "string") {
+    return sonnerToast.error(props);
+  }
+  return sonnerToast.error(props);
+};
 
-  // Add default onOpenChange if it's missing
-  const finalProps = {
-    ...props,
-    onOpenChange: props.onOpenChange || ((open: boolean) => {
-      if (!open) dismiss();
-    })
-  };
+toast.warning = (props: string | Omit<Toast, "variant">) => {
+  if (typeof props === "string") {
+    return sonnerToast.warning(props);
+  }
+  return sonnerToast.warning(props);
+};
 
-  dispatch({
-    type: actionTypes.ADD_TOAST,
-    toast: {
-      ...finalProps,
-      id,
-    },
-  });
+toast.info = (props: string | Omit<Toast, "variant">) => {
+  if (typeof props === "string") {
+    return sonnerToast.info(props);
+  }
+  return sonnerToast.info(props);
+};
 
-  return {
-    id,
-    dismiss,
-    update,
-  };
-}
+toast.dismiss = (toastId?: string) => {
+  sonnerToast.dismiss(toastId);
+};
 
-function useToast() {
+// Hook for managing toast state
+export function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
   React.useEffect(() => {
@@ -206,39 +213,9 @@ function useToast() {
   }, [state]);
 
   return {
-    ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
+    dismiss: (toastId?: string) => {
+      toast.dismiss(toastId);
+    },
   };
 }
-
-// Add variant-specific methods
-toast.success = (props: string | Omit<Toast, "variant">) => {
-  if (typeof props === "string") {
-    return toast({ description: props, variant: "success" });
-  }
-  return toast({ ...props, variant: "success" });
-};
-
-toast.error = (props: string | Omit<Toast, "variant">) => {
-  if (typeof props === "string") {
-    return toast({ description: props, variant: "destructive" });
-  }
-  return toast({ ...props, variant: "destructive" });
-};
-
-toast.warning = (props: string | Omit<Toast, "variant">) => {
-  if (typeof props === "string") {
-    return toast({ description: props, variant: "warning" });
-  }
-  return toast({ ...props, variant: "warning" });
-};
-
-toast.info = (props: string | Omit<Toast, "variant">) => {
-  if (typeof props === "string") {
-    return toast({ description: props, variant: "info" });
-  }
-  return toast({ ...props, variant: "info" });
-};
-
-export { useToast, toast };

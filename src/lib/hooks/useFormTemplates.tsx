@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -48,10 +47,7 @@ export const useFormTemplates = () => {
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error(
-          'لم يتم العثور على متجر نشط',
-          { description: 'تأكد من الاتصال بمتجر Shopify' }
-        );
+        toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
         return Promise.reject('No active shop ID found');
       }
@@ -65,10 +61,7 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error fetching forms:', error);
-        toast.error(
-          'خطأ في جلب النماذج',
-          { description: error.message }
-        );
+        toast.error('خطأ في جلب النماذج');
         setIsLoading(false);
         return Promise.reject(error);
       }
@@ -85,10 +78,7 @@ export const useFormTemplates = () => {
       return formattedData;
     } catch (error) {
       console.error('Error fetching forms', error);
-      toast.error(
-        'خطأ في جلب النماذج',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في جلب النماذج');
       setIsLoading(false);
       return Promise.reject(error);
     }
@@ -102,20 +92,14 @@ export const useFormTemplates = () => {
       const shopId = getActiveShopId();
       
       if (!template) {
-        toast.error(
-          'لم يتم العثور على القالب',
-          { description: 'القالب المطلوب غير موجود' }
-        );
+        toast.error('لم يتم العثور على القالب');
         setIsLoading(false);
         return null;
       }
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error(
-          'لم يتم العثور على متجر نشط',
-          { description: 'تأكد من الاتصال بمتجر Shopify' }
-        );
+        toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
         return null;
       }
@@ -146,19 +130,13 @@ export const useFormTemplates = () => {
 
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error(
-          'خطأ في حفظ النموذج في قاعدة البيانات',
-          { description: error.message }
-        );
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
         setIsLoading(false);
         return null;
       }
 
       setFormState(formData);
-      toast.success(
-        `تم إنشاء نموذج من قالب ${template.title}`,
-        { description: 'يمكنك الآن تحرير النموذج' }
-      );
+      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
       // Refresh forms list
       await fetchForms();
@@ -167,10 +145,7 @@ export const useFormTemplates = () => {
       return formData;
     } catch (error) {
       console.error('Error creating form from template', error);
-      toast.error(
-        'خطأ في إنشاء نموذج من قالب',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في إنشاء نموذج من قالب');
       setIsLoading(false);
       return null;
     }
@@ -185,10 +160,7 @@ export const useFormTemplates = () => {
       
       if (!shopId) {
         console.error('No active shop ID found');
-        toast.error(
-          'لم يتم العثور على متجر نشط',
-          { description: 'تأكد من الاتصال بمتجر Shopify' }
-        );
+        toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
         return null;
       }
@@ -218,19 +190,13 @@ export const useFormTemplates = () => {
         
       if (error) {
         console.error('Error saving form to database:', error);
-        toast.error(
-          'خطأ في حفظ النموذج في قاعدة البيانات',
-          { description: error.message }
-        );
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
         setIsLoading(false);
         return null;
       }
 
       setFormState(formData);
-      toast.success(
-        'تم إنشاء نموذج جديد',
-        { description: 'يمكنك الآن تحرير النموذج' }
-      );
+      toast.success('تم إنشاء نموذج جديد');
       
       // Refresh forms list
       await fetchForms();
@@ -239,10 +205,7 @@ export const useFormTemplates = () => {
       return formData;
     } catch (error) {
       console.error('Error creating default form', error);
-      toast.error(
-        'خطأ في إنشاء نموذج جديد',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في إنشاء نموذج جديد');
       setIsLoading(false);
       return null;
     }
@@ -268,10 +231,7 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error updating form:', error);
-        toast.error(
-          'خطأ في تحديث النموذج',
-          { description: error.message }
-        );
+        toast.error('خطأ في تحديث النموذج');
         setIsLoading(false);
         return false;
       }
@@ -287,10 +247,7 @@ export const useFormTemplates = () => {
       return true;
     } catch (error) {
       console.error('Error saving form', error);
-      toast.error(
-        'خطأ في حفظ النموذج',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في حفظ النموذج');
       setIsLoading(false);
       return false;
     }
@@ -309,10 +266,7 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error publishing form:', error);
-        toast.error(
-          publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج',
-          { description: error.message }
-        );
+        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
         setIsLoading(false);
         return false;
       }
@@ -322,18 +276,12 @@ export const useFormTemplates = () => {
         form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
       ));
       
-      toast.success(
-        publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج',
-        { description: '' }
-      );
+      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error publishing form', error);
-      toast.error(
-        'خطأ في تغيير حالة نشر النموذج',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في تغيير حالة نشر النموذج');
       setIsLoading(false);
       return false;
     }
@@ -352,10 +300,7 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error deleting form:', error);
-        toast.error(
-          'خطأ في حذف النموذج',
-          { description: error.message }
-        );
+        toast.error('خطأ في حذف النموذج');
         setIsLoading(false);
         return false;
       }
@@ -363,18 +308,12 @@ export const useFormTemplates = () => {
       // Update local state
       setForms(forms.filter(form => form.id !== formId));
       
-      toast.success(
-        'تم حذف النموذج بنجاح',
-        { description: '' }
-      );
+      toast.success('تم حذف النموذج بنجاح');
       setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Error deleting form', error);
-      toast.error(
-        'خطأ في حذف النموذج',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في حذف النموذج');
       setIsLoading(false);
       return false;
     }
@@ -394,19 +333,13 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error loading form:', error);
-        toast.error(
-          'خطأ في تحميل النموذج',
-          { description: error.message }
-        );
+        toast.error('خطأ في تحميل النموذج');
         setIsLoading(false);
         return null;
       }
       
       if (!data) {
-        toast.error(
-          'النموذج غير موجود',
-          { description: 'لم يتم العثور على النموذج المطلوب' }
-        );
+        toast.error('النموذج غير موجود');
         setIsLoading(false);
         return null;
       }
@@ -424,10 +357,7 @@ export const useFormTemplates = () => {
       return formData;
     } catch (error) {
       console.error('Error loading form', error);
-      toast.error(
-        'خطأ في تحميل النموذج',
-        { description: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      toast.error('خطأ في تحميل النموذج');
       setIsLoading(false);
       return null;
     }

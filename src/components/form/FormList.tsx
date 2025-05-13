@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Card, 
@@ -47,10 +46,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       await publishForm(formId, !currentStatus);
     } catch (error) {
       console.error("Error toggling publish status:", error);
-      toast.error(
-        'خطأ في تغيير حالة النشر', 
-        { description: 'حدث خطأ أثناء محاولة تغيير حالة النشر' }
-      );
+      toast.error('خطأ في تغيير حالة النشر');
     }
   };
 
@@ -61,10 +57,7 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
         setFormToDelete(null);
       } catch (error) {
         console.error("Error deleting form:", error);
-        toast.error(
-          'خطأ في حذف النموذج', 
-          { description: 'حدث خطأ أثناء محاولة حذف النموذج' }
-        );
+        toast.error('خطأ في حذف النموذج');
       }
     }
   };
