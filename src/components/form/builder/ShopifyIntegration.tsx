@@ -6,10 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { Loader2, ShoppingBag, Check, AlertCircle } from 'lucide-react';
+import { FormStyle } from '@/hooks/useFormStore';
 
 interface ShopifyIntegrationProps {
   formId: string;
-  formStyle: any;
+  formStyle: FormStyle;
   productId?: string;
   onSave: (settings: any) => void;
 }
@@ -18,9 +19,9 @@ interface ShopifyFormSync {
   formId: string;
   settings: {
     position: "product-page" | "cart-page" | "checkout";
-    style: any;
+    style: FormStyle;
     products: string[];
-    insertionMethod: string;
+    insertionMethod: "auto" | "manual"; // Fixed to strictly typed string literal
   };
 }
 
@@ -33,7 +34,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const { isConnected, syncFormWithShopify, products, loadProducts, isLoading } = useShopify();
   const { t, language } = useI18n();
   const [isSyncing, setIsSyncing] = useState(false);
-  const [productInfo, setProductInfo] = useState(null);
+  const [productInfo, setProductInfo] = useState<any>(null);
 
   useEffect(() => {
     // Load current product information
@@ -66,7 +67,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           position: "product-page",
           style: formStyle,
           products: [productId],
-          insertionMethod: 'auto'
+          insertionMethod: 'auto' as "auto" // Type assertion to ensure it matches the literal type
         }
       };
       

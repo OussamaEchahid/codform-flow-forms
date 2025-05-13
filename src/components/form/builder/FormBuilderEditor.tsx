@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFormStore } from '@/hooks/useFormStore';
+import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
 import { useShopify } from '@/hooks/useShopify';
@@ -18,22 +18,15 @@ import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { toast } from 'sonner';
 import { ShoppingBag } from 'lucide-react';
 
-// Add the FormState type extension to include product_id
-type FormStyleType = {
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-};
-
+// Ensure FormState includes product_id
 interface FormState {
   id?: string;
   title: string;
   description: string;
   data: any[];
-  style: FormStyleType;
+  style: FormStyle;
   isPublished?: boolean;
-  product_id?: string; // Added product_id field
+  product_id?: string;
 }
 
 const FormBuilderEditor = ({ formId }) => {
@@ -174,6 +167,18 @@ const FormBuilderEditor = ({ formId }) => {
     setUnsavedChanges(true);
   };
   
+  // Make sure formState.style is always a valid FormStyle object
+  const getDefaultStyle = (): FormStyle => {
+    return {
+      primaryColor: '#9b87f5',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      buttonStyle: 'rounded',
+    };
+  };
+  
+  const formStyle: FormStyle = formState?.style || getDefaultStyle();
+  
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
@@ -258,7 +263,7 @@ const FormBuilderEditor = ({ formId }) => {
               formDescription={formState?.description || ''}
               currentStep={1}
               totalSteps={formState?.data?.length || 1}
-              style={formState?.style || {}}
+              style={formStyle}
               fields={formState?.data?.length > 0 ? formState.data[0].fields || [] : []}
             />
           </div>
@@ -267,7 +272,7 @@ const FormBuilderEditor = ({ formId }) => {
         <TabsContent value="style">
           <div className="mt-4">
             <FormStyleEditor
-              formStyle={formState?.style || {}}
+              formStyle={formStyle}
               onChange={handleStyleChange}
             />
           </div>
@@ -290,7 +295,7 @@ const FormBuilderEditor = ({ formId }) => {
             
             <ShopifyIntegration
               formId={formId}
-              formStyle={formState?.style || {}}
+              formStyle={formStyle}
               productId={formState?.product_id}
               onSave={async (settings) => {
                 setFormState({

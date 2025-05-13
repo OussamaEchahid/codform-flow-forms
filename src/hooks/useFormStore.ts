@@ -15,6 +15,7 @@ export interface FormState {
   data: any[];
   isPublished: boolean;
   shop_id?: string;
+  product_id?: string;  // Added product_id to FormState
   created_at?: string;
   updated_at?: string;
   style?: FormStyle;
@@ -55,6 +56,7 @@ const defaultFormState: FormState = {
   data: [],
   isPublished: false,
   shop_id: undefined,
+  product_id: undefined,  // Added with default undefined
   style: {
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',

@@ -1,12 +1,14 @@
 
 import React from 'react';
+import { FormStyle } from '@/hooks/useFormStore';
 
 interface FormPreviewProps {
   formTitle?: string;
   formDescription?: string;
   currentStep?: number;
   totalSteps?: number;
-  style?: any;
+  style?: FormStyle; // Changed from any to FormStyle
+  formStyle?: FormStyle; // Added formStyle prop
   fields?: any[];
   children?: React.ReactNode;
   floatingButton?: any;
@@ -18,10 +20,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   formTitle,
   formDescription,
   style = {},
+  formStyle, // Add formStyle prop (will be used if style is not provided)
   fields = [],
   children,
 }) => {
-  const primaryColor = style.primaryColor || '#9b87f5';
+  // Use either style or formStyle, with style taking precedence
+  const styles = style && Object.keys(style).length > 0 ? style : formStyle || {};
+  const primaryColor = styles.primaryColor || '#9b87f5';
   
   return (
     <div className="border rounded-lg overflow-hidden">
