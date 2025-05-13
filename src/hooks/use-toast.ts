@@ -15,7 +15,7 @@ export type ToastProps = {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   className?: string;
   duration?: number;
   variant?: "default" | "destructive" | "success" | "warning" | "info";
@@ -29,6 +29,7 @@ export type ToasterToast = {
   duration?: number;
   className?: string;
   variant?: "default" | "destructive" | "success" | "warning" | "info";
+  onOpenChange?: (open: boolean) => void;
 };
 
 const actionTypes = {
@@ -168,10 +169,18 @@ function toast(props: Toast) {
   const dismiss = () =>
     dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
 
+  // Add default onOpenChange if it's missing
+  const finalProps = {
+    ...props,
+    onOpenChange: props.onOpenChange || ((open: boolean) => {
+      if (!open) dismiss();
+    })
+  };
+
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
-      ...props,
+      ...finalProps,
       id,
     },
   });
