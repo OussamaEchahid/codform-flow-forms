@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useI18n } from '@/lib/i18n';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,61 +40,67 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [formList, setFormList] = useState(initialForms.length > 0 ? initialForms : forms);
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  useEffect(() => {
-    const fetchFormsData = async () => {
-      setIsLoading(true);
-      await fetchForms();
-      setIsLoading(false);
-    };
+  // Fetch forms data only once on initial load or when forceRefresh changes
+  const initializeData = useCallback(async () => {
+    if (isInitialized && !forceRefresh) return;
     
-    fetchFormsData();
-  }, [fetchForms, forceRefresh]);
+    setIsLoading(true);
+    await fetchForms();
+    setIsInitialized(true);
+    setIsLoading(false);
+  }, [fetchForms, forceRefresh, isInitialized]);
   
   useEffect(() => {
-    if (forms.length > 0 || initialForms.length > 0) {
+    initializeData();
+  }, [initializeData]);
+  
+  // Update formList when initialForms or forms change
+  useEffect(() => {
+    if (initialForms.length > 0 || forms.length > 0) {
       setFormList(initialForms.length > 0 ? initialForms : forms);
     }
   }, [forms, initialForms]);
 
-  // Fetch product counts for each form
-  useEffect(() => {
-    const fetchProductCounts = async () => {
-      if (formList.length === 0) return;
-      
-      const formIds = formList.map(form => form.id);
-      
-      try {
-        const { data, error } = await supabase
-          .from('shopify_product_settings')
-          .select('form_id, product_id')
-          .in('form_id', formIds);
-          
-        if (error) {
-          console.error('Error fetching product associations:', error);
-          return;
-        }
-        
-        // Count products per form
-        const counts: Record<string, number> = {};
-        
-        if (data) {
-          data.forEach(item => {
-            if (!counts[item.form_id]) {
-              counts[item.form_id] = 0;
-            }
-            counts[item.form_id]++;
-          });
-        }
-        
-        setProductCounts(counts);
-      } catch (error) {
-        console.error('Error in fetchProductCounts:', error);
-      }
-    };
+  // Fetch product counts for each form - with useCallback to prevent unnecessary rerenders
+  const fetchProductCounts = useCallback(async () => {
+    if (formList.length === 0) return;
     
-    fetchProductCounts();
+    const formIds = formList.map(form => form.id);
+    
+    try {
+      const { data, error } = await supabase
+        .from('shopify_product_settings')
+        .select('form_id, product_id')
+        .in('form_id', formIds);
+        
+      if (error) {
+        console.error('Error fetching product associations:', error);
+        return;
+      }
+      
+      // Count products per form
+      const counts: Record<string, number> = {};
+      
+      if (data) {
+        data.forEach(item => {
+          if (!counts[item.form_id]) {
+            counts[item.form_id] = 0;
+          }
+          counts[item.form_id]++;
+        });
+      }
+      
+      setProductCounts(counts);
+    } catch (error) {
+      console.error('Error in fetchProductCounts:', error);
+    }
   }, [formList]);
+  
+  useEffect(() => {
+    fetchProductCounts();
+  }, [fetchProductCounts]);
   
   const filteredForms = formList.filter(form => 
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
