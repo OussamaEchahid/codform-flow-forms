@@ -4,7 +4,7 @@
  */
 
 // Base URL for Shopify Admin
-const ADMIN_BASE_URL = process.env.VITE_SHOPIFY_ADMIN_URL || 'https://codform-flow-forms.lovable.app';
+const ADMIN_BASE_URL = import.meta.env.VITE_SHOPIFY_ADMIN_URL || 'https://codform-flow-forms.lovable.app';
 
 /**
  * Get a full admin route URL
