@@ -19,6 +19,6 @@ export const shopifySupabase = createClient<Database>(
 );
 
 // تصدير وظائف مساعدة للتعامل مع جداول Shopify
-export const shopifyStores = () => shopifySupabase.from('shopify_stores');
+export const shopifyStores = () => shopifySupabase.from('shopify_shops');
 export const shopifyProductSettings = () => shopifySupabase.from('shopify_product_settings');
 export const shopifyAuth = shopifySupabase.auth;

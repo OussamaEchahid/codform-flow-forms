@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
@@ -14,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { shopifySupabase, shopifyStores } from '@/lib/shopify/supabase-client';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -93,8 +92,7 @@ const ShopifyProducts = () => {
       
       // Get token from database
       try {
-        const { data, error } = await shopifySupabase
-          .from('shopify_stores')
+        const { data, error } = await shopifyStores()
           .select('*')
           .eq('shop', storedShop)
           .order('updated_at', { ascending: false })
@@ -205,8 +203,7 @@ const ShopifyProducts = () => {
         
         if (!accessToken) {
           // Check specifically if it's a placeholder token by querying the DB directly
-          const { data } = await shopifySupabase
-            .from('shopify_stores')
+          const { data } = await shopifyStores()
             .select('access_token')
             .eq('shop', storedShop)
             .limit(1);
