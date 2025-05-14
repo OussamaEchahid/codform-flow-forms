@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, CheckCircle, RefreshCw, Tool } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, RefreshCw, Wrench } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export const ShopifyTokenUpdater = () => {
@@ -270,7 +269,7 @@ export const ShopifyTokenUpdater = () => {
                 </>
               ) : (
                 <>
-                  <Tool className="mr-2 h-4 w-4" />
+                  <Wrench className="mr-2 h-4 w-4" />
                   إصلاح امتداد المتجر
                 </>
               )}
