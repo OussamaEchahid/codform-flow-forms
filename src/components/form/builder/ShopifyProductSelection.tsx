@@ -33,6 +33,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   } = useShopify();
   
   const [localSelectedProducts, setLocalSelectedProducts] = useState<string[]>(selectedProducts);
+  const [filteredProducts, setFilteredProducts] = useState<ShopifyProduct[]>([]);
   
   useEffect(() => {
     // Load products when component mounts
@@ -43,6 +44,34 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     // Update local state when prop changes
     setLocalSelectedProducts(selectedProducts);
   }, [selectedProducts]);
+  
+  // Filter out test products
+  useEffect(() => {
+    if (!products || products.length === 0) {
+      setFilteredProducts([]);
+      return;
+    }
+
+    // Filter out test products based on title, handle, or other properties
+    const filtered = products.filter(product => {
+      const title = product.title?.toLowerCase() || '';
+      const handle = product.handle?.toLowerCase() || '';
+      
+      // Filter out products with "test" in the title or handle
+      const isTestProduct = 
+        title.includes('test') || 
+        handle.includes('test') ||
+        title.includes('demo') ||
+        handle.includes('demo') ||
+        title.includes('sample') ||
+        handle.includes('sample');
+      
+      return !isTestProduct;
+    });
+    
+    console.log(`Filtered ${products.length - filtered.length} test products from total ${products.length} products`);
+    setFilteredProducts(filtered);
+  }, [products]);
   
   const handleProductToggle = (productId: string) => {
     setLocalSelectedProducts(prev => {
@@ -58,9 +87,9 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   };
   
   const handleSelectAll = () => {
-    if (products.length === 0) return;
+    if (filteredProducts.length === 0) return;
     
-    const allProductIds = products.map(product => product.id);
+    const allProductIds = filteredProducts.map(product => product.id);
     setLocalSelectedProducts(allProductIds);
     onChange(allProductIds);
   };
@@ -114,7 +143,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     );
   }
   
-  if (!products || products.length === 0) {
+  if (!filteredProducts || filteredProducts.length === 0) {
     return (
       <Alert className="mb-4">
         <AlertCircle className="h-4 w-4" />
@@ -152,7 +181,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
       <CardContent>
         <ScrollArea className="h-[300px] pr-4">
           <div className="space-y-4">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <div 
                 key={product.id} 
                 className="flex items-center justify-between space-x-4 rtl:space-x-reverse border rounded-md p-3 hover:bg-muted/50 transition-colors"
@@ -190,8 +219,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         
         <div className="mt-4 text-sm text-muted-foreground">
           {language === 'ar' 
-            ? `تم تحديد ${localSelectedProducts.length} من المنتجات من إجمالي ${products.length}` 
-            : `${localSelectedProducts.length} of ${products.length} products selected`}
+            ? `تم تحديد ${localSelectedProducts.length} من المنتجات من إجمالي ${filteredProducts.length}` 
+            : `${localSelectedProducts.length} of ${filteredProducts.length} products selected`}
         </div>
       </CardContent>
     </Card>

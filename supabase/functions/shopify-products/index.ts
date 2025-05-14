@@ -38,6 +38,20 @@ function handleOptions() {
 interface RequestParams {
   shop: string;
   forceRefresh?: boolean;
+  includeTestProducts?: boolean; // New parameter to control including test products
+}
+
+// Function to check if a product is a test product
+function isTestProduct(product: any): boolean {
+  const title = (product.title || '').toLowerCase();
+  const handle = (product.handle || '').toLowerCase();
+  
+  return title.includes('test') || 
+    handle.includes('test') ||
+    title.includes('demo') ||
+    handle.includes('demo') ||
+    title.includes('sample') ||
+    handle.includes('sample');
 }
 
 serve(async (req: Request) => {
@@ -54,6 +68,7 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     let shop = url.searchParams.get('shop');
     let forceRefresh = url.searchParams.get('forceRefresh') === 'true';
+    let includeTestProducts = url.searchParams.get('includeTestProducts') === 'true';
     
     // If not in query params, try to get from request body
     if (!shop) {
@@ -61,6 +76,7 @@ serve(async (req: Request) => {
         const body = await req.json() as RequestParams;
         shop = body.shop;
         forceRefresh = body.forceRefresh || false;
+        includeTestProducts = body.includeTestProducts || false;
       } catch (err) {
         console.error(`[${requestId}] Error parsing request body:`, err);
       }
@@ -76,32 +92,40 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}`);
+    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}`);
 
     // For development/test stores, return mock data
     if (shop.includes('test') || shop.includes('example') || shop.includes('development') || shop.includes('myshopify')) {
       console.log(`[${requestId}] Test store detected, returning mock data`);
       
       // Generate mock products
-      const mockProducts = Array.from({ length: 10 }, (_, i) => ({
-        id: `gid://shopify/Product/${1000000 + i}`,
-        title: `Test Product ${i + 1}`,
-        handle: `test-product-${i + 1}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        published_at: new Date().toISOString(),
-        status: 'active',
-        image: {
-          src: `https://via.placeholder.com/500x500.png?text=Product+${i + 1}`
-        },
-        variants: [
-          {
-            id: `gid://shopify/ProductVariant/${2000000 + i}`,
-            price: `${Math.floor(10 + Math.random() * 90)}.99`,
-            title: 'Default Title'
-          }
-        ]
-      }));
+      const mockProducts = Array.from({ length: 10 }, (_, i) => {
+        // Create a mix of regular and test products
+        const isTest = i < 3; // First 3 are test products
+        const productName = isTest ? `Test Product ${i + 1}` : `Real Product ${i + 1}`;
+        const productHandle = isTest ? `test-product-${i + 1}` : `real-product-${i + 1}`;
+        
+        return {
+          id: `gid://shopify/Product/${1000000 + i}`,
+          title: productName,
+          handle: productHandle,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          published_at: new Date().toISOString(),
+          status: 'active',
+          images: [
+            `https://via.placeholder.com/500x500.png?text=${encodeURIComponent(productName)}`
+          ],
+          variants: [
+            {
+              id: `gid://shopify/ProductVariant/${2000000 + i}`,
+              price: `${Math.floor(10 + Math.random() * 90)}.99`,
+              title: 'Default Title',
+              available: true
+            }
+          ]
+        };
+      });
       
       return new Response(JSON.stringify({
         success: true,
@@ -128,7 +152,12 @@ serve(async (req: Request) => {
         
       if (!cacheError && cachedProducts && cachedProducts.length > 0 && cachedProducts[0].products) {
         console.log(`[${requestId}] Returning cached products for ${shop}`);
-        const productsData = cachedProducts[0].products;
+        let productsData = cachedProducts[0].products;
+        
+        // Filter out test products if needed
+        if (!includeTestProducts) {
+          productsData = productsData.filter((product: any) => !isTestProduct(product));
+        }
         
         return new Response(JSON.stringify({
           success: true,
@@ -177,7 +206,7 @@ serve(async (req: Request) => {
       }
       
       const shopifyData = await shopifyResponse.json();
-      const products = shopifyData.products;
+      let products = shopifyData.products;
       
       // Cache products in Supabase
       const { error: cacheInsertError } = await supabase
@@ -192,6 +221,11 @@ serve(async (req: Request) => {
         
       if (cacheInsertError) {
         console.error(`[${requestId}] Error caching products:`, cacheInsertError);
+      }
+      
+      // Filter out test products if needed
+      if (!includeTestProducts) {
+        products = products.filter((product: any) => !isTestProduct(product));
       }
       
       return new Response(JSON.stringify({

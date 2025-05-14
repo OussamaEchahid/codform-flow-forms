@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShopifyProduct } from '@/lib/shopify/types';
@@ -7,10 +7,37 @@ import { Badge } from '@/components/ui/badge';
 
 interface ShopifyProductsListProps {
   products: ShopifyProduct[];
+  hideTestProducts?: boolean;
 }
 
-const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) => {
-  if (!products || products.length === 0) {
+const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ 
+  products,
+  hideTestProducts = true
+}) => {
+  // Filter out test products if requested
+  const filteredProducts = useMemo(() => {
+    if (!hideTestProducts || !products || products.length === 0) {
+      return products;
+    }
+    
+    return products.filter(product => {
+      const title = product.title?.toLowerCase() || '';
+      const handle = product.handle?.toLowerCase() || '';
+      
+      // Filter out products with "test" in the title or handle
+      const isTestProduct = 
+        title.includes('test') || 
+        handle.includes('test') ||
+        title.includes('demo') ||
+        handle.includes('demo') ||
+        title.includes('sample') ||
+        handle.includes('sample');
+      
+      return !isTestProduct;
+    });
+  }, [products, hideTestProducts]);
+  
+  if (!filteredProducts || filteredProducts.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
         لا توجد منتجات لعرضها
@@ -48,7 +75,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
                   {product.images && product.images.length > 0 ? (
@@ -94,7 +121,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
       </div>
       
       <div className="bg-gray-50 p-3 rounded border text-sm text-gray-600">
-        <p className="text-right">إجمالي المنتجات: {products.length}</p>
+        <p className="text-right">إجمالي المنتجات: {filteredProducts.length}</p>
       </div>
     </div>
   );

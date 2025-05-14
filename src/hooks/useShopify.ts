@@ -21,6 +21,7 @@ interface ShopifyFormSync {
 export const useShopify = () => {
   const { shop } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -35,6 +36,23 @@ export const useShopify = () => {
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
+
+  // Function to filter test products
+  const filterTestProducts = (products: ShopifyProduct[]): ShopifyProduct[] => {
+    return products.filter(product => {
+      const title = (product.title || '').toLowerCase();
+      const handle = (product.handle || '').toLowerCase();
+      
+      return !(
+        title.includes('test') || 
+        handle.includes('test') ||
+        title.includes('demo') ||
+        handle.includes('demo') ||
+        title.includes('sample') ||
+        handle.includes('sample')
+      );
+    });
+  };
 
   // Initialize connection state
   useEffect(() => {
@@ -77,7 +95,7 @@ export const useShopify = () => {
   }, [shop]);
 
   // Load products when connected
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (includeTestProducts = false) => {
     if (!isConnected || !shop) {
       return [];
     }
@@ -99,16 +117,29 @@ export const useShopify = () => {
       
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop, accessToken: token }
+        body: { 
+          shop, 
+          accessToken: token,
+          includeTestProducts: includeTestProducts 
+        }
       });
 
       if (error) {
         throw error;
       }
 
-      setProducts(data?.products || []);
+      // Store all products for potential future filtering
+      const fetchedProducts = data?.products || [];
+      setAllProducts(fetchedProducts);
+      
+      // Filter out test products unless explicitly requested
+      const productList = includeTestProducts ? fetchedProducts : filterTestProducts(fetchedProducts);
+      setProducts(productList);
+      
+      console.log(`Loaded ${productList.length} products (${includeTestProducts ? 'including' : 'excluding'} test products)`);
+      
       setIsLoading(false);
-      return data?.products || [];
+      return productList;
     } catch (error) {
       console.error('Error loading products:', error);
       setIsLoading(false);
@@ -235,7 +266,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop]);
+  }, [isConnected, failSafeMode, shop, pendingSyncForms]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
@@ -314,6 +345,11 @@ export const useShopify = () => {
     return true;
   }, []);
 
+  // Get real products (without test products)
+  const getRealProducts = useCallback(() => {
+    return filterTestProducts(allProducts);
+  }, [allProducts]);
+
   return {
     isLoading,
     isSyncing,
@@ -324,6 +360,7 @@ export const useShopify = () => {
     accessToken,
     shopifyAPI,
     products,
+    allProducts,
     shop,
     error: tokenError,
     failSafeMode,
@@ -335,6 +372,7 @@ export const useShopify = () => {
     syncForm,
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
-    emergencyReset
+    emergencyReset,
+    getRealProducts // New function to get real products
   };
 };
