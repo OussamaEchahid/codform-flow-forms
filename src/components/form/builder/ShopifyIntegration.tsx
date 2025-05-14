@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
+import { Check, Copy, AlertTriangle, Info, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -57,8 +57,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   // Check if the form ID is in the correct UUID format
   const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
 
-  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
-
   return (
     <Card className="mt-4">
       <CardHeader className="pb-3">
@@ -74,8 +72,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       <CardContent>
         <div className="space-y-4">
-          <Alert variant="default" className="bg-blue-50 border-blue-200">
-            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+          <Alert variant={isValidUuid ? "default" : "destructive"} className={isValidUuid ? "bg-blue-50 border-blue-200" : ""}>
+            <AlertDescription className={`${isValidUuid ? "text-blue-800" : ""} ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
                 ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
                 : 'To add this form to your store, follow these steps:'}
@@ -104,7 +102,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
                 {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
               </span>
-              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{formId}</code>
+              <code className={`p-2 ${!isValidUuid ? 'bg-red-50 border-red-200 border' : 'bg-gray-100'} rounded text-sm flex-1`}>{formId}</code>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -189,9 +187,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           <Alert variant="default" className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              <div className="font-bold mb-2">
+                {language === 'ar' 
+                  ? 'هام: معرف النموذج بتنسيق UUID الكامل' 
+                  : 'IMPORTANT: Full UUID format required'}
+              </div>
               {language === 'ar' 
-                ? 'ملاحظة: يجب استخدام معرف النموذج بالتنسيق الكامل (UUID)، مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd". استخدام تنسيق آخر سيؤدي إلى عدم ظهور النموذج.' 
-                : 'Note: You must use the complete form ID format (UUID), such as: "6942b35d-ad06-40fb-8f70-86230d20b0fd". Using any other format will cause the form not to appear.'}
+                ? 'يجب استخدام معرف النموذج بالتنسيق الكامل (UUID)، مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd". استخدام تنسيق آخر سيؤدي إلى عدم ظهور النموذج.' 
+                : 'You must use the complete form ID format (UUID), such as: "6942b35d-ad06-40fb-8f70-86230d20b0fd". Using any other format will cause the form not to appear.'}
             </AlertDescription>
           </Alert>
           
@@ -201,6 +204,15 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               {language === 'ar'
                 ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
                 : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
+            </AlertDescription>
+          </Alert>
+          
+          <Alert variant="default" className="bg-orange-50 border-orange-200">
+            <ExternalLink className="h-4 w-4 text-orange-600" />
+            <AlertDescription className={`text-orange-800 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar'
+                ? 'عند مواجهة خطأ "Failed to fetch" في متجرك، تأكد من أن متصفحك يسمح بالاتصال بـ Supabase، وأن النموذج بالتنسيق الصحيح ومنشور.'
+                : 'If you encounter a "Failed to fetch" error in your store, ensure your browser allows connections to Supabase, and that your form has the correct format and is published.'}
             </AlertDescription>
           </Alert>
         </div>

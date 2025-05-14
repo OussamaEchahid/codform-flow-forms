@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -73,18 +74,38 @@
       successMessage.style.display = 'none';
       
       // Construct API URL with form ID
-      let apiUrl = `https://mtyfuwdsshlzqwjujavp.lovable.app/api/forms/${formId}`;
+      let apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/api-forms/${formId}`;
       
       // Append product ID if available
       if (productId) {
         apiUrl += `?product_id=${productId}&shop_id={{ shop.permanent_domain }}`;
       }
+
+      console.log('Fetching form from:', apiUrl);
       
-      // Fetch form data from API
-      fetch(apiUrl)
+      // Fetch form data from API with improved error handling
+      fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'
+        }
+      })
         .then(response => {
           if (!response.ok) {
-            return response.json().then(data => {
+            // Log the response status and statusText for debugging
+            console.error('API Response Error:', response.status, response.statusText);
+            
+            // Parse the error response if possible, otherwise throw generic error
+            return response.text().then(text => {
+              try {
+                // Try to parse as JSON
+                return JSON.parse(text);
+              } catch (e) {
+                // If not JSON, throw the text or status
+                throw new Error(text || `Server responded with status: ${response.status}`);
+              }
+            }).then(data => {
               throw new Error(data.error || `Server responded with status: ${response.status}`);
             });
           }
@@ -109,10 +130,19 @@
         })
         .catch(error => {
           console.error('Error loading form:', error);
-          showError(
-            'تعذر تحميل النموذج', 
-            `رسالة الخطأ: ${error.message || 'خطأ غير معروف'}`
-          );
+          
+          // Enhanced error message with network details
+          let errorMsg = 'تعذر تحميل النموذج';
+          let detailsMsg = '';
+          
+          if (error.message && error.message.includes('Failed to fetch')) {
+            errorMsg = 'فشل الاتصال بالخادم';
+            detailsMsg = 'يرجى التحقق من اتصال الإنترنت الخاص بك، أو قد تكون هناك مشكلة في الوصول للخادم.';
+          } else {
+            detailsMsg = `رسالة الخطأ: ${error.message || 'خطأ غير معروف'}`;
+          }
+          
+          showError(errorMsg, detailsMsg);
         });
     }
     

@@ -5,18 +5,28 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-}
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
 
 // Define the expected API key - make it consistent across functions
 const VALID_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Add CORS headers to all responses
+    const responseHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+    
+    // Log request details for debugging
+    console.log('Request origin:', req.headers.get('origin'));
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -69,10 +79,7 @@ serve(async (req) => {
     if (token && !isAuthorized && !isPublicFormFetch) {
       console.error('Invalid API key provided:', token.substring(0, 10) + '...');
       return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: responseHeaders,
         status: 401,
       });
     }
@@ -100,10 +107,7 @@ serve(async (req) => {
         formId: formId,
         invalidFormat: true
       }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: responseHeaders,
         status: 400,
       });
     }
@@ -124,6 +128,19 @@ serve(async (req) => {
       if (!settingsError && productSettings) {
         console.log(`Found form ID "${productSettings.form_id}" for product: ${productId}`);
         
+        // Validate product-specific form ID format (must be UUID)
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productSettings.form_id)) {
+          console.error('Invalid product-specific form ID format:', productSettings.form_id);
+          return new Response(JSON.stringify({ 
+            error: 'Product settings contain invalid form ID format. Please use a valid UUID format.',
+            formId: productSettings.form_id,
+            invalidFormat: true
+          }), {
+            headers: responseHeaders,
+            status: 400,
+          });
+        }
+        
         // Get the form for this specific product
         const { data: productForm, error: productFormError } = await supabase
           .from('forms')
@@ -136,11 +153,7 @@ serve(async (req) => {
           console.log('Successfully retrieved product-specific form');
           const transformedData = transformFormData(productForm);
           return new Response(JSON.stringify(transformedData), {
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-            },
+            headers: responseHeaders,
             status: 200,
           });
         }
@@ -164,10 +177,7 @@ serve(async (req) => {
         error: `Database error: ${error.message}`,
         details: error
       }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: responseHeaders,
         status: error.code === 'PGRST116' ? 404 : 500,
       });
     }
@@ -178,10 +188,7 @@ serve(async (req) => {
         error: `Form with ID ${formId} not found`,
         notFound: true
       }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: responseHeaders,
         status: 404,
       });
     }
@@ -194,10 +201,7 @@ serve(async (req) => {
         formId: formId,
         notPublished: true
       }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: responseHeaders,
         status: 403,
       });
     }
@@ -210,8 +214,7 @@ serve(async (req) => {
     // Return the form data with proper caching headers
     return new Response(JSON.stringify(transformedData), {
       headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
+        ...responseHeaders,
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       },
       status: 200,

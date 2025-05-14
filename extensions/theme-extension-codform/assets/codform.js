@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get the current shop domain for API requests
     const shopDomain = Shopify ? Shopify.shop : window.location.hostname;
     
-    console.log(`Initializing CODForm for form ID: ${formId}, product ID: ${productId}, block ID: ${blockId}`);
+    console.log(`Initializing CODForm for form ID: ${formId}, product ID: ${productId}, block ID: ${blockId}, shop: ${shopDomain}`);
     
     // Process form initialization
     initializeForm(container, formId, productId, shopDomain, hideHeader);
@@ -29,9 +29,11 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializeForm(container, formId, productId, shopDomain, hideHeader) {
   // Get elements
   const formElement = container.querySelector('[id^="codform-form-"]');
-  const loaderElement = container.querySelector('[id^="codform-loader-"]');
+  const loaderElement = container.querySelector('[id^="codform-form-loader-"]');
   const successElement = container.querySelector('[id^="codform-success-"]');
   const errorElement = container.querySelector('[id^="codform-error-"]');
+  const errorMessageElement = container.querySelector('[id^="codform-error-message-"]');
+  const errorDetailsElement = container.querySelector('[id^="codform-error-details-"]');
   const retryButton = container.querySelector('[id^="codform-retry-"]');
   
   if (retryButton) {
@@ -47,12 +49,12 @@ async function initializeForm(container, formId, productId, shopDomain, hideHead
   
   try {
     // Show loading state
-    if (loaderElement) loaderElement.style.display = 'block';
+    if (loaderElement) loaderElement.style.display = 'flex';
     if (formElement) formElement.style.display = 'none';
     if (errorElement) errorElement.style.display = 'none';
     if (successElement) successElement.style.display = 'none';
     
-    // Fetch form data
+    // Fetch form data - use direct URL to the Supabase Edge Function
     let url;
     if (productId) {
       // If we have a product ID, pass it in the query to get a product-specific form
@@ -64,16 +66,33 @@ async function initializeForm(container, formId, productId, shopDomain, hideHead
     
     console.log(`Fetching form data from: ${url}`);
     
+    // Add timeout for better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg'
-      }
+      },
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('API error response:', response.status, errorText);
+      
+      let errorDetails;
+      try {
+        errorDetails = JSON.parse(errorText);
+      } catch (e) {
+        errorDetails = { error: `HTTP error: ${response.status} ${response.statusText}` };
+      }
+      
+      throw new Error(errorDetails.error || `HTTP error: ${response.status} ${response.statusText}`);
     }
     
     const formData = await response.json();
@@ -95,8 +114,27 @@ async function initializeForm(container, formId, productId, shopDomain, hideHead
     // Hide loader
     if (loaderElement) loaderElement.style.display = 'none';
     
-    // Show error message
-    if (errorElement) errorElement.style.display = 'block';
+    // Show error message with more details
+    if (errorElement) {
+      errorElement.style.display = 'block';
+      
+      // Set specific error message based on error type
+      if (errorMessageElement) {
+        if (error.name === 'AbortError') {
+          errorMessageElement.textContent = 'انتهت مهلة الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+        } else if (error.message && error.message.includes('Failed to fetch')) {
+          errorMessageElement.textContent = 'فشل الاتصال بالخادم. تأكد من اتصالك بالإنترنت.';
+        } else {
+          errorMessageElement.textContent = 'حدث خطأ أثناء تحميل النموذج.';
+        }
+      }
+      
+      // Add detailed error message
+      if (errorDetailsElement) {
+        errorDetailsElement.textContent = `رسالة الخطأ: ${error.message || 'خطأ غير معروف'}`;
+        errorDetailsElement.style.display = 'block';
+      }
+    }
   }
 }
 
