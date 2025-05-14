@@ -34,25 +34,96 @@
   </div>
 </div>
 
+<!-- Inline JavaScript fallback to ensure form loading works even if external script fails -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialize form with container ID, form ID, and product ID
-    if (window.codformCore && window.codformCore.loadForm) {
-      codformCore.loadForm(
-        'codform-container-{{ block.id }}', 
-        '{{ block.settings.form_id }}',
-        '{{ product.id }}'
-      );
-    } else {
-      console.error('CODFORM: Core script not loaded');
-      document.getElementById('codform-form-loader-{{ block.id }}').style.display = 'none';
-      
-      const errorContainer = document.getElementById('codform-error-{{ block.id }}');
-      const errorMessage = document.getElementById('codform-error-message-{{ block.id }}');
-      
-      if (errorContainer && errorMessage) {
+    const containerId = 'codform-container-{{ block.id }}';
+    const formId = '{{ block.settings.form_id }}';
+    const productId = '{{ product.id }}';
+    const container = document.getElementById(containerId);
+    const loader = document.getElementById('codform-form-loader-{{ block.id }}');
+    const formContainer = document.getElementById('codform-form-{{ block.id }}');
+    const errorContainer = document.getElementById('codform-error-{{ block.id }}');
+    const errorMessage = document.getElementById('codform-error-message-{{ block.id }}');
+    const errorDetails = document.getElementById('codform-error-details-{{ block.id }}');
+    const retryButton = document.getElementById('codform-retry-{{ block.id }}');
+    
+    // Display debug information if the form ID is missing
+    if (!formId || formId.trim() === '') {
+      console.error('CODFORM: Missing form ID in block settings');
+      if (loader) loader.style.display = 'none';
+      if (errorContainer) {
         errorContainer.style.display = 'block';
-        errorMessage.textContent = 'فشل تحميل النموذج: لم يتم العثور على برنامج النموذج الأساسي';
+        if (errorMessage) errorMessage.textContent = 'لم يتم تعيين معرف النموذج. يرجى إضافة معرف النموذج في إعدادات البلوك.';
+      }
+      return;
+    }
+
+    // Check if the form ID format is valid (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(formId)) {
+      console.error(`CODFORM: Invalid form ID format: ${formId}`);
+      if (loader) loader.style.display = 'none';
+      if (errorContainer) {
+        errorContainer.style.display = 'block';
+        if (errorMessage) errorMessage.textContent = 'صيغة معرف النموذج غير صحيحة. يجب أن يكون المعرف بتنسيق UUID.';
+        if (errorDetails) {
+          errorDetails.textContent = `المعرف المستخدم: ${formId}`;
+          errorDetails.style.display = 'block';
+        }
+      }
+      return;
+    }
+
+    // Check if the codformCore library is loaded
+    if (typeof window.codformCore === 'undefined' || !window.codformCore.loadForm) {
+      console.error('CODFORM: Core library not loaded');
+      // Wait 2 seconds and try to load the script manually as fallback
+      setTimeout(() => {
+        if (typeof window.codformCore === 'undefined' || !window.codformCore.loadForm) {
+          console.log('CODFORM: Attempting to load core script manually...');
+          const script = document.createElement('script');
+          script.src = '{{ "codform-core.js" | asset_url }}';
+          script.onload = function() {
+            console.log('CODFORM: Successfully loaded core script');
+            if (window.codformCore && window.codformCore.loadForm) {
+              window.codformCore.loadForm(containerId, formId, productId);
+            }
+          };
+          script.onerror = function() {
+            console.error('CODFORM: Failed to load core script manually');
+            if (loader) loader.style.display = 'none';
+            if (errorContainer) {
+              errorContainer.style.display = 'block';
+              if (errorMessage) errorMessage.textContent = 'فشل تحميل ملفات النموذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.';
+            }
+          };
+          document.head.appendChild(script);
+        }
+      }, 2000);
+      
+      return;
+    }
+
+    // Initialize form
+    console.log(`CODFORM: Loading form ${formId} for product ${productId} in container ${containerId}`);
+    try {
+      window.codformCore.loadForm(containerId, formId, productId);
+      
+      // Add retry button functionality
+      if (retryButton) {
+        retryButton.addEventListener('click', function() {
+          if (errorContainer) errorContainer.style.display = 'none';
+          if (loader) loader.style.display = 'flex';
+          window.codformCore.loadForm(containerId, formId, productId);
+        });
+      }
+    } catch (e) {
+      console.error('CODFORM: Error initializing form:', e);
+      if (loader) loader.style.display = 'none';
+      if (errorContainer) {
+        errorContainer.style.display = 'block';
+        if (errorMessage) errorMessage.textContent = 'حدث خطأ أثناء تهيئة النموذج. يرجى تحديث الصفحة.';
       }
     }
   });
@@ -74,3 +145,4 @@
   ]
 }
 {% endschema %}
+
