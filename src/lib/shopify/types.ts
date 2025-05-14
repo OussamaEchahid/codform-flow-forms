@@ -1,36 +1,69 @@
 
-export interface ShopifyProduct {
-  id: string;
-  title: string;
-  handle: string;
-  vendor?: string;
-  product_type?: string;
-  price?: string;
-  image?: {
-    src: string;
-    alt?: string;
-  };
-  images?: Array<{
-    src: string;
-    alt?: string;
-  }>;
-  variants?: Array<{
-    id: string;
-    title: string;
-    price: string;
-    compare_at_price?: string;
-    inventory_quantity?: number;
-    available?: boolean;
-  }>;
+// نوع لتمثيل اتصال متجر Shopify
+export type ShopifyStoreConnection = {
+  domain: string;          // نطاق المتجر مثل store.myshopify.com
+  lastConnected?: string;  // آخر وقت تم فيه الاتصال بالمتجر (بتنسيق ISO string)
+  isActive: boolean;       // ما إذا كان هذا هو المتجر النشط حالياً
+  shop?: string;           // اسم المتجر (مرادف لـ domain للتوافق مع الواجهات الأخرى)
+};
+
+// واجهة لمدير اتصال Shopify
+export interface ShopifyConnectionManager {
+  // إضافة متجر جديد أو تحديث متجر موجود
+  addOrUpdateStore(shopDomain: string, isActive?: boolean, forceUpdate?: boolean): void;
+  
+  // الحصول على المتجر النشط
+  getActiveStore(): string | null;
+  
+  // تعيين المتجر النشط
+  setActiveStore(shopDomain: string): void;
+  
+  // الحصول على جميع المتاجر
+  getAllStores(): ShopifyStoreConnection[];
+  
+  // حذف متجر
+  removeStore(domain: string): void;
+  
+  // مسح جميع المتاجر
+  clearAllStores(): void;
+  
+  // مسح جميع المتاجر ماعدا متجر محدد
+  clearAllStoresExcept(shopDomain: string): void;
+  
+  // حفظ آخر متجر من URL
+  saveLastUrlShop(shopDomain: string): void;
+  
+  // الحصول على آخر متجر من URL
+  getLastUrlShop(): string | null;
 }
 
-export interface ShopifyStoreConnection {
-  domain: string;
-  shop: string;
-  isActive: boolean;
-  lastConnected?: string;
-}
+// دالة مساعدة لتنظيف اسم نطاق المتجر
+export const cleanShopifyDomain = (domain: string): string => {
+  if (!domain) return "";
+  
+  let cleanedDomain = domain.trim();
+  
+  // إزالة البروتوكول إذا كان موجوداً
+  if (cleanedDomain.startsWith('http')) {
+    try {
+      const url = new URL(cleanedDomain);
+      cleanedDomain = url.hostname;
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // التأكد من الانتهاء بـ myshopify.com
+  if (!cleanedDomain.endsWith('myshopify.com')) {
+    if (!cleanedDomain.includes('.')) {
+      cleanedDomain = `${cleanedDomain}.myshopify.com`;
+    }
+  }
+  
+  return cleanedDomain;
+};
 
+// واجهة الطلب إعدادات المنتج
 export interface ProductSettingsRequest {
   productId: string;
   formId: string;
@@ -38,6 +71,7 @@ export interface ProductSettingsRequest {
   enabled?: boolean;
 }
 
+// واجهة الاستجابة إعدادات المنتج
 export interface ProductSettingsResponse {
   success?: boolean;
   error?: string;
@@ -46,44 +80,53 @@ export interface ProductSettingsResponse {
   blockId?: string;
 }
 
-export interface ShopifyStore {
+// واجهة منتج Shopify
+export interface ShopifyProduct {
   id: string;
-  shop: string;
-  access_token: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  title: string;
+  handle: string;
+  price: string;
+  images: string[];
+  variants: Array<{
+    id: string;
+    title: string;
+    price: string;
+    available: boolean;
+  }>;
 }
 
+// واجهة طلب Shopify
 export interface ShopifyOrder {
   id: string;
-  order_number: number;
-  total_price: string;
+  orderNumber: string;
+  totalPrice: string;
+  createdAt: string;
   customer?: {
-    first_name: string;
-    last_name: string;
-    email: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
   };
+  lineItems: Array<{
+    title: string;
+    quantity: number;
+    price: string;
+  }>;
 }
 
+// واجهة بيانات نموذج Shopify
 export interface ShopifyFormData {
   formId: string;
-  shopDomain: string;
-  settings?: Record<string, any>;
-}
-
-// Function to clean Shopify domain (remove https://, trailing slashes, etc)
-export function cleanShopifyDomain(domain: string): string {
-  if (!domain) return '';
-  
-  // Remove protocol
-  let clean = domain.replace(/^https?:\/\//, '');
-  
-  // Remove trailing slashes
-  clean = clean.replace(/\/+$/, '');
-  
-  // Remove path if any
-  clean = clean.split('/')[0];
-  
-  return clean;
+  shopDomain?: string;
+  settings: {
+    position?: 'product-page' | 'cart-page' | 'checkout';
+    style?: {
+      primaryColor?: string;
+      fontSize?: string;
+      borderRadius?: string;
+    };
+    products?: string[];
+    blockId?: string;
+    themeType?: 'os2' | 'traditional' | 'auto-detect';
+    insertionMethod?: 'auto' | 'manual';
+  };
 }

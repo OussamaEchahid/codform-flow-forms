@@ -5,6 +5,8 @@ export interface ShopifyStore {
   id: string;
   shop: string;
   access_token: string | null;
+  token_type: string | null;
+  scope: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -21,18 +23,11 @@ export interface ShopifyProductSettings {
   updated_at: string;
 }
 
-export interface ShopifyCachedProducts {
-  id: string;
-  shop: string;
-  products: any[];
-  updated_at: string;
-}
-
 // Custom Database type that includes our tables
 export interface Database {
   public: {
     Tables: {
-      shopify_shops: {
+      shopify_stores: {
         Row: ShopifyStore;
         Insert: Omit<ShopifyStore, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ShopifyStore, 'id' | 'created_at' | 'updated_at'>>;
@@ -41,11 +36,6 @@ export interface Database {
         Row: ShopifyProductSettings;
         Insert: Omit<ShopifyProductSettings, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ShopifyProductSettings, 'id' | 'created_at' | 'updated_at'>>;
-      };
-      shopify_cached_products: {
-        Row: ShopifyCachedProducts;
-        Insert: Omit<ShopifyCachedProducts, 'id' | 'updated_at'>;
-        Update: Partial<Omit<ShopifyCachedProducts, 'id' | 'updated_at'>>;
       };
     };
     Views: {};
