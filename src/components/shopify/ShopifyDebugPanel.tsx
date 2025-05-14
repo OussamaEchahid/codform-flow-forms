@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
 import { Loader2, AlertCircle, CheckCircle, RefreshCw, X } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export const ShopifyDebugPanel = () => {
   const [loading, setLoading] = useState(true);
@@ -274,3 +275,5 @@ export const ShopifyDebugPanel = () => {
     </div>
   );
 };
+
+export default ShopifyDebugPanel;
