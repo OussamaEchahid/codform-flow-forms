@@ -1,4 +1,3 @@
-
 /**
  * CODFORM - Core JavaScript functionality
  * This file contains the core functionality for the COD form system
@@ -7,16 +6,75 @@
 (function() {
   // Main form loader function
   function loadCodForm(containerId, formId, productId) {
+    // تحقق من وجود العنصر الحاوي أولاً
     const container = document.getElementById(containerId);
+    if (!container) {
+      console.error(`Container element with ID "${containerId}" not found.`);
+      return;
+    }
+    
+    // تحقق من وجود العناصر الأخرى داخل الحاوية
     const formLoader = document.getElementById(`codform-form-loader-${containerId}`);
     const formContainer = document.getElementById(`codform-form-${containerId}`);
     const successMessage = document.getElementById(`codform-success-${containerId}`);
     const errorContainer = document.getElementById(`codform-error-${containerId}`);
-    const errorMessage = document.getElementById(`codform-error-message-${containerId}`);
-    const errorDetails = document.getElementById(`codform-error-details-${containerId}`);
-    const retryButton = document.getElementById(`codform-retry-${containerId}`);
+    const errorMessage = errorContainer ? document.getElementById(`codform-error-message-${containerId}`) : null;
+    const errorDetails = errorContainer ? document.getElementById(`codform-error-details-${containerId}`) : null;
+    const retryButton = errorContainer ? document.getElementById(`codform-retry-${containerId}`) : null;
     
-    if (!container) return;
+    // إنشاء عناصر مفقودة إذا لزم الأمر
+    if (!formLoader) {
+      console.warn(`Form loader element for "${containerId}" not found. Creating it.`);
+      const newFormLoader = document.createElement('div');
+      newFormLoader.id = `codform-form-loader-${containerId}`;
+      newFormLoader.className = 'codform-loader';
+      newFormLoader.innerHTML = '<div class="codform-spinner"></div>';
+      newFormLoader.style.display = 'none';
+      container.appendChild(newFormLoader);
+    }
+    
+    if (!formContainer) {
+      console.warn(`Form container element for "${containerId}" not found. Creating it.`);
+      const newFormContainer = document.createElement('div');
+      newFormContainer.id = `codform-form-${containerId}`;
+      newFormContainer.className = 'codform-form-container';
+      container.appendChild(newFormContainer);
+    }
+    
+    if (!successMessage) {
+      console.warn(`Success message element for "${containerId}" not found. Creating it.`);
+      const newSuccessMessage = document.createElement('div');
+      newSuccessMessage.id = `codform-success-${containerId}`;
+      newSuccessMessage.className = 'codform-success';
+      newSuccessMessage.innerHTML = '<h3>شكراً لك!</h3><p>تم استلام طلبك بنجاح.</p>';
+      newSuccessMessage.style.display = 'none';
+      container.appendChild(newSuccessMessage);
+    }
+    
+    if (!errorContainer) {
+      console.warn(`Error container element for "${containerId}" not found. Creating it.`);
+      const newErrorContainer = document.createElement('div');
+      newErrorContainer.id = `codform-error-${containerId}`;
+      newErrorContainer.className = 'codform-error';
+      newErrorContainer.innerHTML = `
+        <div class="codform-error-icon">⚠️</div>
+        <h3>عذراً! حدث خطأ</h3>
+        <p id="codform-error-message-${containerId}">تعذر تحميل النموذج</p>
+        <div id="codform-error-details-${containerId}" class="codform-error-details"></div>
+        <button id="codform-retry-${containerId}" class="codform-retry-button">إعادة المحاولة</button>
+      `;
+      newErrorContainer.style.display = 'none';
+      container.appendChild(newErrorContainer);
+    }
+    
+    // الآن بعد التأكد من وجود جميع العناصر، نقوم بإعادة تعريفها
+    const safeFormLoader = document.getElementById(`codform-form-loader-${containerId}`);
+    const safeFormContainer = document.getElementById(`codform-form-${containerId}`);
+    const safeSuccessMessage = document.getElementById(`codform-success-${containerId}`);
+    const safeErrorContainer = document.getElementById(`codform-error-${containerId}`);
+    const safeErrorMessage = document.getElementById(`codform-error-message-${containerId}`);
+    const safeErrorDetails = document.getElementById(`codform-error-details-${containerId}`);
+    const safeRetryButton = document.getElementById(`codform-retry-${containerId}`);
     
     // Validate form ID format (UUID format)
     const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
@@ -36,25 +94,30 @@
     }
     
     function showError(message, details = null, containerId) {
-      formLoader.style.display = 'none';
-      formContainer.style.display = 'none';
-      errorContainer.style.display = 'block';
-      errorMessage.textContent = message;
+      if (safeFormLoader) safeFormLoader.style.display = 'none';
+      if (safeFormContainer) safeFormContainer.style.display = 'none';
+      if (safeErrorContainer) safeErrorContainer.style.display = 'block';
       
-      if (details) {
-        errorDetails.textContent = details;
-        errorDetails.style.display = 'block';
-      } else {
-        errorDetails.style.display = 'none';
+      if (safeErrorMessage && message) {
+        safeErrorMessage.textContent = message;
+      }
+      
+      if (safeErrorDetails) {
+        if (details) {
+          safeErrorDetails.textContent = details;
+          safeErrorDetails.style.display = 'block';
+        } else {
+          safeErrorDetails.style.display = 'none';
+        }
       }
     }
     
     // Load form from API
     function loadForm() {
-      formLoader.style.display = 'flex';
-      errorContainer.style.display = 'none';
-      formContainer.style.display = 'none';
-      successMessage.style.display = 'none';
+      if (safeFormLoader) safeFormLoader.style.display = 'flex';
+      if (safeErrorContainer) safeErrorContainer.style.display = 'none';
+      if (safeFormContainer) safeFormContainer.style.display = 'none';
+      if (safeSuccessMessage) safeSuccessMessage.style.display = 'none';
       
       // Construct API URL with form ID
       let apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/api-forms/${formId}`;
@@ -111,8 +174,8 @@
           renderForm(formData, containerId);
           
           // Hide loader and show form
-          formLoader.style.display = 'none';
-          formContainer.style.display = 'block';
+          if (safeFormLoader) safeFormLoader.style.display = 'none';
+          if (safeFormContainer) safeFormContainer.style.display = 'block';
         })
         .catch(error => {
           console.error('Error loading form:', error);
@@ -132,8 +195,14 @@
         });
     }
     
-    // Add event listener for retry button
-    retryButton.addEventListener('click', loadForm);
+    // Add event listener for retry button - تحقق من وجود زر إعادة المحاولة قبل إضافة مستمع الحدث
+    if (safeRetryButton) {
+      // نقوم بإزالة أي مستمعي أحداث سابقين لتجنب التكرار
+      safeRetryButton.removeEventListener('click', loadForm);
+      safeRetryButton.addEventListener('click', loadForm);
+    } else {
+      console.warn(`Retry button for "${containerId}" not found. Skipping event listener.`);
+    }
     
     // Initial form load
     loadForm();
@@ -181,8 +250,13 @@
    * Render form using form data
    */
   function renderForm(formData, containerId) {
-    // Get the form container
+    // تحقق من وجود حاوية النموذج
     const formContainer = document.getElementById(`codform-form-${containerId}`);
+    if (!formContainer) {
+      console.error(`Form container element for "${containerId}" not found.`);
+      return;
+    }
+    
     // تنظيف أي محتوى سابق
     formContainer.innerHTML = '';
     
@@ -190,6 +264,13 @@
     const formStyle = formData.style || {};
     const primaryColor = formStyle.primaryColor || '#9b87f5';
     const container = document.getElementById(containerId);
+    
+    // تحقق من وجود العنصر الحاوي
+    if (!container) {
+      console.error(`Container element with ID "${containerId}" not found.`);
+      return;
+    }
+    
     const hideHeader = container.getAttribute('data-hide-header') === 'true';
 
     // إنشاء ترويسة النموذج إذا كانت غير مخفية
@@ -249,63 +330,71 @@
       formContainer.appendChild(form);
     } else {
       // إظهار رسالة خطأ إذا لم تكن هناك حقول
-      showError('لا توجد حقول في هذا النموذج. يرجى التحقق من إعدادات النموذج.', '', containerId);
+      const errorElement = document.createElement('div');
+      errorElement.className = 'codform-error-message';
+      errorElement.textContent = 'لا توجد حقول في هذا النموذج. يرجى التحقق من إعدادات النموذج.';
+      formContainer.appendChild(errorElement);
     }
   }
 
   /**
-   * Field creation functions
+   * Field creation functions - مع التحقق من الأخطاء
    */
   function createFieldElement(field, primaryColor) {
     if (!field || !field.type) return null;
     
-    const fieldContainer = document.createElement('div');
-    fieldContainer.className = 'codform-field';
-    fieldContainer.dataset.fieldId = field.id;
-    fieldContainer.dataset.fieldType = field.type;
-    
-    // معالجة أنواع الحقول المختلفة
-    switch (field.type) {
-      case 'text':
-      case 'email':
-      case 'phone':
-      case 'number':
-        return createInputField(field, primaryColor);
+    try {
+      const fieldContainer = document.createElement('div');
+      fieldContainer.className = 'codform-field';
+      fieldContainer.dataset.fieldId = field.id;
+      fieldContainer.dataset.fieldType = field.type;
       
-      case 'textarea':
-        return createTextareaField(field, primaryColor);
-      
-      case 'radio':
-        return createRadioField(field, primaryColor);
-      
-      case 'checkbox':
-        return createCheckboxField(field, primaryColor);
-      
-      case 'title':
-      case 'form-title':
-        return createTitleField(field, primaryColor);
-      
-      case 'text/html':
-        return createHtmlField(field);
-      
-      case 'submit':
-        return createSubmitButton(field, primaryColor);
-      
-      case 'cart-items':
-        return createCartItemsField(field);
-      
-      case 'cart-summary':
-        return createCartSummaryField(field);
-      
-      case 'whatsapp':
-        return createWhatsAppButton(field, primaryColor);
-      
-      case 'image':
-        return createImageField(field);
-      
-      default:
-        console.warn('Unsupported field type:', field.type);
-        return null;
+      // معالجة أنواع الحقول المختلفة
+      switch (field.type) {
+        case 'text':
+        case 'email':
+        case 'phone':
+        case 'number':
+          return createInputField(field, primaryColor);
+        
+        case 'textarea':
+          return createTextareaField(field, primaryColor);
+        
+        case 'radio':
+          return createRadioField(field, primaryColor);
+        
+        case 'checkbox':
+          return createCheckboxField(field, primaryColor);
+        
+        case 'title':
+        case 'form-title':
+          return createTitleField(field, primaryColor);
+        
+        case 'text/html':
+          return createHtmlField(field);
+        
+        case 'submit':
+          return createSubmitButton(field, primaryColor);
+        
+        case 'cart-items':
+          return createCartItemsField(field);
+        
+        case 'cart-summary':
+          return createCartSummaryField(field);
+        
+        case 'whatsapp':
+          return createWhatsAppButton(field, primaryColor);
+        
+        case 'image':
+          return createImageField(field);
+        
+        default:
+          console.warn('Unsupported field type:', field.type);
+          return null;
+      }
+    } catch (error) {
+      console.error('Error creating field element:', error);
+      return null;
     }
   }
 
@@ -635,15 +724,36 @@
   }
 
   /**
-   * Handle form submission
+   * Handle form submission - مع تحسينات للتعامل مع الأخطاء
    */
   function handleFormSubmit(form, containerId) {
-    // Get form container elements
+    if (!form) {
+      console.error('Form element is null');
+      return;
+    }
+    
+    if (!containerId) {
+      console.error('Container ID is required');
+      return;
+    }
+    
+    // Get form container elements - مع التحقق من وجودها
     const formContainer = document.getElementById(`codform-form-${containerId}`);
     const successMessage = document.getElementById(`codform-success-${containerId}`);
     const container = document.getElementById(containerId);
+    
+    if (!container) {
+      console.error(`Container with ID "${containerId}" not found`);
+      return;
+    }
+    
     const formId = container.getAttribute('data-form-id');
     const productId = container.getAttribute('data-product-id');
+    
+    if (!formId) {
+      console.error('Form ID is required');
+      return;
+    }
     
     // تجميع بيانات النموذج
     const formData = new FormData(form);
@@ -667,8 +777,6 @@
       
       // محاولة استخراج معلومات المنتج من صفحة المنتج في Shopify
       try {
-        // We'll need to replace these with Liquid tags in the template
-        // These will be handled by the Liquid template
         data.product_details = 'Product details will be populated by Shopify';
       } catch (e) {
         console.warn('Could not extract product details from Shopify page');
@@ -679,10 +787,12 @@
     data.shop_id = window.Shopify?.shop || '';
     data.form_id = formId;
     
-    // إظهار حالة التحميل
-    form.classList.add('codform-loading');
+    // تحقق من وجود زر الإرسال
     const submitButton = form.querySelector('button[type="submit"]');
     const originalText = submitButton ? submitButton.textContent : '';
+    
+    // إظهار حالة التحميل
+    form.classList.add('codform-loading');
     
     if (submitButton) {
       submitButton.textContent = 'جاري الإرسال...';
@@ -714,8 +824,8 @@
       })
       .then(result => {
         // إظهار رسالة النجاح
-        formContainer.style.display = 'none';
-        successMessage.style.display = 'block';
+        if (formContainer) formContainer.style.display = 'none';
+        if (successMessage) successMessage.style.display = 'block';
         
         // محاولة تتبع التحويل في Shopify (اختياري)
         try {
@@ -732,12 +842,26 @@
       .catch(error => {
         console.error('Error submitting form:', error);
         
-        // Show error using the unified error display function
-        showError(
-          'حدث خطأ أثناء إرسال النموذج، يرجى المحاولة مرة أخرى.',
-          error.message,
-          containerId
-        );
+        // إظهار رسالة خطأ للمستخدم
+        const errorContainer = document.getElementById(`codform-error-${containerId}`);
+        const errorMessage = document.getElementById(`codform-error-message-${containerId}`);
+        const errorDetails = document.getElementById(`codform-error-details-${containerId}`);
+        
+        if (errorMessage) {
+          errorMessage.textContent = 'حدث خطأ أثناء إرسال النموذج، يرجى المحاولة مرة أخرى.';
+        }
+        
+        if (errorDetails) {
+          errorDetails.textContent = error.message || 'خطأ غير معروف';
+        }
+        
+        if (errorContainer) {
+          errorContainer.style.display = 'block';
+        }
+        
+        if (formContainer) {
+          formContainer.style.display = 'none';
+        }
         
         // إعادة تمكين الزر
         if (submitButton) {
@@ -749,3 +873,5 @@
       });
   }
 })();
+
+</edits_to_apply>
