@@ -1,3 +1,4 @@
+
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
@@ -26,736 +27,294 @@
     <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
       <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <p id="codform-error-message-{{ block.id }}">حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <small id="codform-error-details-{{ block.id }}" class="codform-error-details" style="display: none;"></small>
       <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
     </div>
   </div>
 </div>
 
-<style>
-  /* Basic container configuration */
-  .codform-container {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #f9fafb;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-    width: 100%;
-  }
-
-  /* Form header */
-  .codform-header {
-    margin-bottom: 20px;
-    text-align: right;
-    padding: 15px;
-    border-radius: 8px;
-  }
-
-  .codform-header h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #ffffff;
-    line-height: 1.3;
-  }
-
-  .codform-header p {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  /* Main form container */
-  .codform-form {
-    margin-top: 20px;
-  }
-
-  /* Field formatting */
-  .codform-field {
-    margin-bottom: 20px;
-  }
-
-  .codform-field label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #374151;
-    font-size: 1rem;
-  }
-
-  .codform-field input[type="text"],
-  .codform-field input[type="email"],
-  .codform-field input[type="tel"],
-  .codform-field input[type="number"],
-  .codform-field textarea,
-  .codform-field select {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.2s ease-in-out;
-    font-family: 'Cairo', sans-serif;
-    background-color: #ffffff;
-    color: #1f2937;
-    box-sizing: border-box;
-  }
-
-  .codform-field input:focus,
-  .codform-field textarea:focus,
-  .codform-field select:focus {
-    outline: none;
-    border-color: #9b87f5;
-    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
-  }
-
-  /* Checkboxes */
-  .codform-checkbox-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-  }
-
-  .codform-checkbox-container input[type="checkbox"] {
-    margin-left: 8px;
-    width: 18px;
-    height: 18px;
-    accent-color: #9b87f5;
-  }
-
-  /* Radio button group */
-  .codform-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .codform-radio-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-  }
-
-  .codform-radio-container input[type="radio"] {
-    margin-left: 8px;
-    width: 18px;
-    height: 18px;
-    accent-color: #9b87f5;
-  }
-
-  /* Help text */
-  .codform-help-text {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 4px;
-  }
-
-  /* Required field marker */
-  .codform-required {
-    color: #ef4444;
-    margin-right: 3px;
-  }
-
-  /* Submit and navigation buttons */
-  .codform-submit-button,
-  .codform-next-button,
-  .codform-prev-button {
-    background-color: #9b87f5;
-    color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    width: 100%;
-    margin-top: 20px;
-    font-family: 'Cairo', sans-serif;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .codform-submit-button:hover,
-  .codform-next-button:hover {
-    background-color: #8a76e5;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .codform-prev-button {
-    background-color: #9ca3af;
-  }
-
-  .codform-prev-button:hover {
-    background-color: #8b8f96;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .codform-submit-button:disabled,
-  .codform-next-button:disabled,
-  .codform-prev-button:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.7;
-    transform: none;
-    box-shadow: none;
-  }
-
-  /* Loading state */
-  .codform-loading {
-    opacity: 0.7;
-    pointer-events: none;
-  }
-
-  /* Success and error messages */
-  .codform-success, .codform-error {
-    text-align: center;
-    padding: 30px 20px;
-  }
-
-  .codform-success-icon {
-    background-color: #10b981;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  .codform-error-icon {
-    background-color: #ef4444;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  /* Loading indicator */
-  .codform-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 0;
-  }
-
-  .codform-spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top: 4px solid #9b87f5;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .codform-button {
-    background-color: #9b87f5;
-    color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 16px;
-    transition: all 0.2s ease-in-out;
-    font-family: 'Cairo', sans-serif;
-  }
-
-  .codform-button:hover {
-    background-color: #8a76e5;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Multi-step form formatting */
-  .codform-steps-nav {
-    margin-bottom: 25px;
-  }
-
-  .codform-step-indicators {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .codform-step-indicator {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    background-color: #e5e7eb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #6b7280;
-    position: relative;
-    transition: all 0.3s ease;
-  }
-
-  .codform-step-indicator::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: 100%;
-    height: 3px;
-    width: 100%;
-    background-color: #e5e7eb;
-    transform: translateY(-50%);
-    transition: background-color 0.3s ease;
-  }
-
-  .codform-step-indicator:first-child::after {
-    display: none;
-  }
-
-  .codform-step-active {
-    background-color: #9b87f5;
-    color: white;
-    transform: scale(1.1);
-  }
-
-  .codform-step-completed {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .codform-step-completed::after,
-  .codform-step-active::after {
-    background-color: #10b981;
-  }
-
-  .codform-steps-container {
-    min-height: 200px;
-  }
-
-  .codform-nav-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-  }
-
-  .codform-prev-button,
-  .codform-next-button {
-    flex: 1;
-  }
-
-  /* Validation messages */
-  .codform-validation-message {
-    color: #ef4444;
-    margin-top: 10px;
-    text-align: center;
-    font-weight: bold;
-  }
-
-  .codform-field-error {
-    border-color: #ef4444 !important;
-    background-color: rgba(254, 226, 226, 0.3);
-  }
-
-  /* Special formatting for different field types */
-  .codform-field h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.25rem;
-    color: #374151;
-  }
-
-  /* Step title */
-  .codform-step-title {
-    font-weight: 600;
-    font-size: 1.2rem;
-    color: #374151;
-    margin-bottom: 20px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #e5e7eb;
-  }
-
-  /* Improve spacing and layout for better readability */
-  .codform-step {
-    padding: 15px 0;
-  }
-
-  /* Improve focus styles for better accessibility */
-  .codform-field input:focus,
-  .codform-field select:focus,
-  .codform-field textarea:focus {
-    outline: none;
-    border-color: #9b87f5;
-    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
-  }
-
-  /* Ensure radio and checkbox options are spaced correctly */
-  .codform-radio-container,
-  .codform-checkbox-container {
-    margin-bottom: 8px;
-  }
-
-  .codform-radio-container:last-child,
-  .codform-checkbox-container:last-child {
-    margin-bottom: 0;
-  }
-
-  /* Image field formatting */
-  .codform-image-field {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .codform-image-container {
-    max-width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-
-  .codform-image {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  .codform-image-placeholder {
-    min-height: 150px;
-    background-color: #f3f4f6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px dashed #d1d5db;
-    border-radius: 8px;
-    color: #6b7280;
-    padding: 20px;
-    transition: all 0.2s ease;
-  }
-
-  .codform-image-placeholder:hover {
-    background-color: #e5e7eb;
-    border-color: #9b87f5;
-  }
-
-  .codform-image-upload-input {
-    display: none;
-  }
-
-  .codform-image-upload-label {
-    display: inline-block;
-    background-color: #9b87f5;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    margin-top: 10px;
-    transition: background-color 0.2s ease;
-  }
-
-  .codform-image-upload-label:hover {
-    background-color: #8a76e5;
-  }
-
-  /* WhatsApp button formatting */
-  .codform-whatsapp-button {
-    background-color: #25D366;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    text-decoration: none;
-    width: 100%;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    font-family: 'Cairo', sans-serif;
-  }
-
-  .codform-whatsapp-button:hover {
-    background-color: #20bd5a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .codform-whatsapp-icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  /* HTML content formatting */
-  .codform-html-content {
-    margin-bottom: 20px;
-  }
-
-  /* Cart items formatting */
-  .codform-cart-items {
-    margin-bottom: 20px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #ffffff;
-  }
-
-  .codform-cart-item {
-    display: flex;
-    padding: 15px;
-    border-bottom: 1px solid #e5e7eb;
-    align-items: center;
-  }
-
-  .codform-cart-item:last-child {
-    border-bottom: none;
-  }
-
-  .codform-cart-item-image {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-left: 15px;
-  }
-
-  .codform-cart-item-details {
-    flex: 1;
-  }
-
-  .codform-cart-item-title {
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #1f2937;
-    font-size: 1rem;
-  }
-
-  .codform-cart-item-variant {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 5px;
-  }
-
-  .codform-cart-item-price {
-    font-weight: 600;
-    color: #1f2937;
-  }
-
-  .codform-cart-item-quantity {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
-  }
-
-  .codform-cart-item-quantity-label {
-    margin-left: 5px;
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-
-  /* Cart summary formatting */
-  .codform-cart-summary {
-    margin-bottom: 20px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 15px;
-    background-color: #f9fafb;
-  }
-
-  .codform-cart-summary-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-
-  .codform-cart-summary-row:last-child {
-    margin-bottom: 0;
-    padding-top: 10px;
-    border-top: 1px solid #e5e7eb;
-    font-weight: 700;
-  }
-
-  .codform-cart-summary-label {
-    color: #6b7280;
-  }
-
-  .codform-cart-summary-value {
-    font-weight: 600;
-    color: #1f2937;
-  }
-
-  /* Animation Effects - Improve animation definitions */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
+<!-- تحسين كود جافا سكريبت لتجنب أخطاء العناصر غير الموجودة وضمان التحميل الصحيح -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // تعريف المتغيرات باستخدام معرف البلوك
+    const blockId = '{{ block.id }}';
+    const formId = '{{ block.settings.form_id }}';
+    const productId = '{{ product.id }}';
+    
+    // تعريف المعرفات الكاملة للعناصر
+    const containerId = 'codform-container-' + blockId;
+    const loaderId = 'codform-form-loader-' + blockId;
+    const formContainerId = 'codform-form-' + blockId;
+    const errorContainerId = 'codform-error-' + blockId;
+    const errorMessageId = 'codform-error-message-' + blockId;
+    const errorDetailsId = 'codform-error-details-' + blockId;
+    const retryButtonId = 'codform-retry-' + blockId;
+    const successContainerId = 'codform-success-' + blockId;
+    
+    // البحث عن العناصر مع التحقق من وجودها
+    const container = document.getElementById(containerId);
+    const loader = document.getElementById(loaderId);
+    const formContainer = document.getElementById(formContainerId);
+    const errorContainer = document.getElementById(errorContainerId);
+    const errorMessage = document.getElementById(errorMessageId);
+    const errorDetails = document.getElementById(errorDetailsId);
+    const successContainer = document.getElementById(successContainerId);
+    
+    // وظيفة لإضافة معلومات التصحيح إلى وحدة التحكم
+    function logDebug(message, data) {
+      console.log('CODFORM [' + blockId + ']: ' + message, data || '');
     }
-    50% {
-      transform: scale(1.05);
+    
+    // وظيفة للتحقق من وجود عنصر
+    function ensureElement(element, id) {
+      if (!element) {
+        logDebug('عنصر غير موجود: ' + id);
+        return false;
+      }
+      return true;
     }
-    100% {
-      transform: scale(1);
+    
+    // التحقق من وجود العنصر الرئيسي
+    if (!ensureElement(container, containerId)) {
+      console.error('CODFORM: فشل العثور على عنصر الحاوية الرئيسية، توقف التنفيذ');
+      return;
     }
-  }
-
-  .pulse-animation {
-    animation: pulse 2s infinite !important;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-  }
-
-  .shake-animation {
-    animation: shake 0.8s infinite !important;
-  }
-
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-
-  .bounce-animation {
-    animation: bounce 2s infinite !important;
-  }
-
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0); }
-    75% { transform: rotate(5deg); }
-  }
-
-  .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
-  }
-
-  @keyframes flash {
-    0%, 50%, 100% {
-      opacity: 1;
+    
+    // متابعة إنشاء بقية العناصر والتحقق من وجودها
+    const retryButton = document.getElementById(retryButtonId) || createRetryButton();
+    
+    // إنشاء زر إعادة المحاولة إذا لم يكن موجودًا
+    function createRetryButton() {
+      logDebug('إنشاء زر إعادة المحاولة لأنه غير موجود');
+      
+      if (!errorContainer) {
+        logDebug('لا يمكن إنشاء زر إعادة المحاولة لأن حاوية الخطأ غير موجودة');
+        return null;
+      }
+      
+      const button = document.createElement('button');
+      button.id = retryButtonId;
+      button.className = 'codform-button';
+      button.textContent = 'إعادة المحاولة';
+      errorContainer.appendChild(button);
+      
+      return button;
     }
-    25%, 75% {
-      opacity: 0.7;
+    
+    // التحقق من معرف النموذج
+    logDebug('بدء تهيئة النموذج', { formId, productId });
+    
+    if (!formId || formId.trim() === '') {
+      logDebug('معرف النموذج مفقود في إعدادات البلوك');
+      handleFormError('لم يتم تعيين معرف النموذج. يرجى إضافة معرف النموذج في إعدادات البلوك.');
+      return;
     }
-  }
 
-  .flash-animation {
-    animation: flash 3s infinite !important;
-  }
-  
-  /* Floating button container styles */
-  .codform-floating-button-container {
-    position: fixed;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 999;
-  }
-  
-  /* Floating button styles */
-  .codform-floating-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease;
-    min-width: 180px;
-    padding: 12px 24px;
-  }
-  
-  .codform-floating-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  .codform-floating-button-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Updated Submit Button Styles */
-  .codform-submit-button {
-    width: 100%;
-    padding: 16px 20px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    border: none;
-    margin-top: 20px;
-    margin-bottom: 20px;
-  }
-
-  .codform-submit-btn {
-    width: 100% !important;
-    padding: 16px 20px !important;
-    font-weight: bold !important;
-    transition: all 0.3s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    cursor: pointer !important;
-    border: none !important;
-    margin-top: 20px !important;
-    margin-bottom: 20px !important;
-  }
-</style>
-
-{% endif %}
+    // التحقق من صحة تنسيق معرف النموذج
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(formId)) {
+      logDebug('تنسيق معرف النموذج غير صالح: ' + formId);
+      handleFormError('صيغة معرف النموذج غير صحيحة. يجب أن يكون المعرف بتنسيق UUID.',
+                     'المعرف المستخدم: ' + formId);
+      return;
+    }
+    
+    // تتبع محاولات تحميل النموذج للتصحيح
+    let loadAttempts = parseInt(localStorage.getItem('codform_load_attempts_' + blockId) || '0');
+    const maxAttempts = 3;
+    
+    // تحديث عداد المحاولات
+    loadAttempts++;
+    localStorage.setItem('codform_load_attempts_' + blockId, loadAttempts.toString());
+    
+    logDebug('محاولة تحميل النموذج رقم ' + loadAttempts);
+    
+    // إعادة ضبط عداد المحاولات بعد ساعة
+    setTimeout(function() {
+      localStorage.removeItem('codform_load_attempts_' + blockId);
+    }, 60 * 60 * 1000);
+    
+    // التعامل مع خطأ تحميل النموذج
+    function handleFormError(message, details) {
+      logDebug('حدث خطأ: ' + message);
+      
+      if (ensureElement(loader, loaderId)) {
+        loader.style.display = 'none';
+      }
+      
+      if (ensureElement(errorContainer, errorContainerId)) {
+        errorContainer.style.display = 'block';
+        
+        if (ensureElement(errorMessage, errorMessageId)) {
+          errorMessage.textContent = message || 'حدث خطأ أثناء تحميل النموذج. يرجى المحاولة مرة أخرى.';
+        }
+        
+        if (ensureElement(errorDetails, errorDetailsId) && details) {
+          errorDetails.textContent = details;
+          errorDetails.style.display = 'block';
+        }
+      }
+      
+      // إظهار زر إعادة المحاولة أو تحديث الصفحة
+      if (retryButton) {
+        if (loadAttempts < maxAttempts) {
+          retryButton.textContent = 'إعادة المحاولة (' + loadAttempts + '/' + maxAttempts + ')';
+          retryButton.style.display = 'inline-block';
+        } else {
+          retryButton.textContent = 'تحديث الصفحة';
+        }
+      }
+    }
+    
+    // وظيفة لمحاولة تحميل النموذج
+    function attemptLoadForm() {
+      logDebug('بدء محاولة تحميل النموذج');
+      
+      // إظهار شاشة التحميل وإخفاء الأخطاء
+      if (ensureElement(errorContainer, errorContainerId)) {
+        errorContainer.style.display = 'none';
+      }
+      
+      if (ensureElement(loader, loaderId)) {
+        loader.style.display = 'flex';
+      }
+      
+      // الحصول على عنوان النموذج - تصحيح مسار التضمين
+      const formAppUrl = "https://codform-flow-forms.lovable.app";
+      
+      // إنشاء عنوان URL للنموذج بمسار تضمين صحيح
+      const formUrl = formAppUrl + "/embed/" + formId + "?productId=" + productId + "&embedded=true&hideHeader=true";
+      
+      // تسجيل معلومات URL النموذج للتصحيح
+      logDebug('رابط النموذج:', formUrl);
+      
+      // تعيين مهلة للكشف عن أخطاء التحميل
+      const timeoutDuration = 15000; // 15 ثانية
+      let loadTimeout = setTimeout(function() {
+        logDebug('تجاوز وقت تحميل النموذج بعد ' + (timeoutDuration/1000) + ' ثواني');
+        handleFormError('تجاوز وقت تحميل النموذج. قد تكون هناك مشكلة في الاتصال بالخادم.');
+      }, timeoutDuration);
+      
+      // وظيفة نجاح تحميل النموذج
+      function onFormLoaded() {
+        clearTimeout(loadTimeout);
+        logDebug('تم تحميل النموذج بنجاح');
+        
+        if (ensureElement(loader, loaderId)) {
+          loader.style.display = 'none';
+        }
+        
+        if (ensureElement(formContainer, formContainerId)) {
+          formContainer.style.display = 'block';
+        }
+        
+        // إعادة ضبط عداد المحاولات عند النجاح
+        localStorage.removeItem('codform_load_attempts_' + blockId);
+      }
+      
+      // محاولة تحميل النموذج
+      try {
+        // تحقق من وجود حاوية النموذج
+        if (!ensureElement(formContainer, formContainerId)) {
+          throw new Error('حاوية النموذج غير موجودة');
+        }
+        
+        // إنشاء إطار iframe للنموذج
+        const iframe = document.createElement('iframe');
+        iframe.src = formUrl;
+        iframe.style.width = '100%';
+        iframe.style.height = '600px';
+        iframe.style.border = 'none';
+        iframe.style.overflowY = 'auto';
+        iframe.setAttribute('title', 'نموذج الدفع عند الاستلام');
+        iframe.setAttribute('id', 'codform-iframe-' + blockId);
+        iframe.onload = onFormLoaded;
+        
+        // مسح المحتوى السابق وإضافة الإطار الجديد
+        formContainer.innerHTML = '';
+        formContainer.appendChild(iframe);
+        
+        // تسجيل معلومات التصحيح
+        logDebug('تم إنشاء iframe للنموذج', formUrl);
+      } catch (e) {
+        clearTimeout(loadTimeout);
+        logDebug('خطأ أثناء تهيئة النموذج:', e);
+        handleFormError(e.message || 'حدث خطأ أثناء تهيئة النموذج');
+      }
+    }
+    
+    // إضافة مستمع أحداث لزر إعادة المحاولة
+    if (retryButton) {
+      retryButton.addEventListener('click', function() {
+        logDebug('تم النقر على زر إعادة المحاولة');
+        
+        // إذا وصلنا للحد الأقصى من المحاولات، قم بتحديث الصفحة
+        if (loadAttempts >= maxAttempts) {
+          logDebug('تم الوصول إلى الحد الأقصى من المحاولات، جاري تحديث الصفحة');
+          window.location.reload();
+          return;
+        }
+        
+        // محاولة إعادة تحميل النموذج
+        attemptLoadForm();
+      });
+    }
+    
+    // إضافة مستمع لرسائل من النموذج
+    window.addEventListener('message', function(event) {
+      // التحقق من أمان المصدر - معالجة الرسائل فقط من مصادر موثوقة
+      if (event.origin !== 'https://codform-flow-forms.lovable.app' && 
+          event.origin !== 'https://mtyfuwdsshlzqwjujavp.supabase.co') {
+        return;
+      }
+      
+      logDebug('تم استلام رسالة من النموذج:', event.data);
+      
+      // معالجة أحداث النموذج
+      if (event.data && event.data.type) {
+        switch (event.data.type) {
+          case 'codform:loaded':
+            onFormLoaded();
+            break;
+            
+          case 'codform:submitted':
+            logDebug('تم إرسال النموذج بنجاح');
+            
+            if (ensureElement(formContainer, formContainerId)) {
+              formContainer.style.display = 'none';
+            }
+            
+            if (ensureElement(successContainer, successContainerId)) {
+              successContainer.style.display = 'block';
+            }
+            break;
+            
+          case 'codform:error':
+            logDebug('تم استلام خطأ من النموذج:', event.data.error);
+            handleFormError(event.data.error || 'حدث خطأ في النموذج');
+            break;
+        }
+      }
+    });
+    
+    // ابدأ تحميل النموذج تلقائيًا
+    attemptLoadForm();
+  });
+</script>
 
 {% schema %}
 {
   "name": "نموذج الدفع عند الاستلام",
   "target": "section",
-  "stylesheet": "codform.css",
-  "javascript": "codform.js",
+  "stylesheet": "codform-styles.css",
+  "javascript": "codform-core.js",
   "settings": [
     {
       "type": "text",
       "id": "form_id",
       "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه"
+      "info": "أدخل معرف النموذج بالتنسيق UUID الكامل مثل: 6942b35d-ad06-40fb-8f70-86230d20b0fd"
     }
   ]
 }

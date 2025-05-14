@@ -1,19 +1,32 @@
 
 import { useLocation, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, Store, RefreshCcw, ExternalLink } from "lucide-react";
+import { ArrowLeft, Home, Store, RefreshCcw, ExternalLink, Info } from "lucide-react";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const NotFound = () => {
   const location = useLocation();
+  const [isEmbedError, setIsEmbedError] = useState(false);
+  const [formId, setFormId] = useState<string | null>(null);
 
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
+    
+    // Check if this is an embed error
+    if (location.pathname.includes('/embed/')) {
+      setIsEmbedError(true);
+      // Extract the form ID from the URL
+      const embedPathMatch = location.pathname.match(/\/embed\/([a-f0-9-]+)/i);
+      if (embedPathMatch && embedPathMatch[1]) {
+        setFormId(embedPathMatch[1]);
+      }
+    }
   }, [location.pathname]);
   
   const handleResetConnection = async () => {
@@ -43,6 +56,25 @@ const NotFound = () => {
           لم يتم العثور على الصفحة التي تبحث عنها: <span className="font-mono">{location.pathname}</span>
         </p>
         
+        {isEmbedError && (
+          <Alert variant="destructive" className="mb-6">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium">خطأ في تحميل النموذج</p>
+              <p className="text-sm mt-1">
+                لا يمكن تحميل النموذج بالمعرف: {formId || 'غير معروف'}. 
+                تأكد من أن معرف النموذج صحيح وأن النموذج منشور.
+              </p>
+              <p className="text-sm mt-2 font-bold">
+                يجب استخدام الرابط بصيغة: 
+                <span className="block font-mono mt-1 text-xs bg-gray-50 p-1 rounded">
+                  codform-flow-forms.lovable.app/embed/{formId || 'form-id'}
+                </span>
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {location.pathname.includes('shopify') && (
           <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-md">
             <p className="text-amber-800 text-sm">
@@ -52,6 +84,19 @@ const NotFound = () => {
         )}
         
         <div className="space-y-3">
+          {isEmbedError && (
+            <Button 
+              asChild
+              variant="default" 
+              size="lg"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              <a href="https://codform-flow-forms.lovable.app/forms" target="_blank" rel="noopener noreferrer">
+                <Store className="mr-2 h-4 w-4" /> الذهاب إلى صفحة النماذج
+              </a>
+            </Button>
+          )}
+          
           <Button 
             onClick={navigateToDirectConnect}
             variant="default" 
@@ -73,11 +118,10 @@ const NotFound = () => {
             asChild 
             variant="outline" 
             className="w-full" 
-            onClick={() => window.open("https://codform-flow-forms.lovable.app/shopify-connect", "_blank")}
           >
-            <div>
+            <a href="https://codform-flow-forms.lovable.app/shopify-connect" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" /> فتح اتصال شوبيفاي في نافذة جديدة
-            </div>
+            </a>
           </Button>
           
           <Button variant="outline" className="w-full" onClick={handleResetConnection}>
