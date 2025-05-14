@@ -4,4 +4,13 @@ import App from './App.tsx'
 import './index.css'
 import './styles/form-builder.css'
 
-createRoot(document.getElementById("root")!).render(<App />);
+// تأكد من وجود العنصر الجذر قبل التحميل
+document.addEventListener('DOMContentLoaded', () => {
+  const rootElement = document.getElementById("root");
+  
+  if (rootElement) {
+    createRoot(rootElement).render(<App />);
+  } else {
+    console.error("لم يتم العثور على عنصر الجذر #root");
+  }
+});
