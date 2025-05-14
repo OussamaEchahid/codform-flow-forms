@@ -14,6 +14,7 @@ import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import ShopifyProductSelection from '@/components/form/builder/ShopifyProductSelection';
 import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import { useShopify } from '@/hooks/useShopify';
 import { 
@@ -25,6 +26,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -90,7 +92,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
-  // ��لتغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
+  // ���لتغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -108,7 +110,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
-
+  
+  // Add state for selected products
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  
   // تحسين وظيفة البحث عن حقل عنوان النموذج
   const getFormTitleField = (): FormField | undefined => {
     return formElements.find(f => f.type === 'form-title');
@@ -332,6 +337,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           if (formData) {
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
+            
+            // Load selected products if they exist
+            try {
+              const { data: productSettings } = await supabase
+                .from('shopify_product_settings')
+                .select('product_id')
+                .eq('form_id', id);
+                
+              if (productSettings && productSettings.length > 0) {
+                const productIds = productSettings.map(p => p.product_id);
+                setSelectedProducts(productIds);
+                console.log('Loaded associated products:', productIds);
+              }
+            } catch (error) {
+              console.error('Error loading product settings:', error);
+            }
             
             // تأكد من أن النموذج يحتوي على كل العناصر المطلوبة
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
@@ -696,10 +717,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }
     
     try {
+      // Include selected products in the sync settings
+      const syncSettings = {
+        ...settings,
+        products: selectedProducts
+      };
+      
       await shopifyIntegration.syncForm({ 
         formId: currentFormId,
         shopDomain: shopifyIntegration.shop,
-        settings
+        settings: syncSettings
       });
       
       toast.success(
@@ -773,6 +800,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setIsFloatingButtonDialogOpen(false);
   };
 
+  // Handle product selection change
+  const handleProductSelectionChange = (products: string[]) => {
+    setSelectedProducts(products);
+    console.log('Selected products updated:', products);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <FormHeader 
@@ -794,41 +827,76 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         </div>
         
         <div className="col-span-6 bg-gray-50 p-6">
-          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
-          </h2>
-          
-          {/* Add the form title editor at top */}
-          <FormTitleEditor
-            formTitle={formTitle}
-            formDescription={formDescription}
-            onFormTitleChange={(title) => setFormTitle(title)}
-            onFormDescriptionChange={(desc) => setFormDescription(desc)}
-            formTitleField={getFormTitleField()}
-            onAddTitleField={addFormTitleField}
-            onUpdateTitleField={updateFormTitleField}
-          />
-          
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext 
-              items={formElements.map(el => el.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <FormElementEditor
-                elements={formElements}
-                selectedIndex={selectedElementIndex}
-                onSelectElement={setSelectedElementIndex}
-                onEditElement={editElement}
-                onDeleteElement={deleteElement}
-                onDuplicateElement={duplicateElement}
-                onReorderElements={handleReorderElements}
+          <Tabs defaultValue="elements">
+            <TabsList className="mb-6">
+              <TabsTrigger value="elements">
+                {language === 'ar' ? 'عناصر النموذج' : 'Form Elements'}
+              </TabsTrigger>
+              <TabsTrigger value="products">
+                {language === 'ar' ? 'المنتجات' : 'Products'}
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="elements">
+              <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+                {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+              </h2>
+              
+              {/* Add the form title editor at top */}
+              <FormTitleEditor
+                formTitle={formTitle}
+                formDescription={formDescription}
+                onFormTitleChange={(title) => setFormTitle(title)}
+                onFormDescriptionChange={(desc) => setFormDescription(desc)}
+                formTitleField={getFormTitleField()}
+                onAddTitleField={addFormTitleField}
+                onUpdateTitleField={updateFormTitleField}
               />
-            </SortableContext>
-          </DndContext>
+              
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={formElements.map(el => el.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <FormElementEditor
+                    elements={formElements}
+                    selectedIndex={selectedElementIndex}
+                    onSelectElement={setSelectedElementIndex}
+                    onEditElement={editElement}
+                    onDeleteElement={deleteElement}
+                    onDuplicateElement={duplicateElement}
+                    onReorderElements={handleReorderElements}
+                  />
+                </SortableContext>
+              </DndContext>
+            </TabsContent>
+            
+            <TabsContent value="products">
+              <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+                {language === 'ar' ? 'ربط النموذج بالمنتجات' : 'Link Form to Products'}
+              </h2>
+              
+              <ShopifyProductSelection 
+                selectedProducts={selectedProducts}
+                onChange={handleProductSelectionChange}
+                formId={currentFormId}
+              />
+              
+              <div className="mt-4">
+                <Alert>
+                  <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' 
+                      ? 'سيظهر هذا النموذج في صفحات المنتجات المحددة. اضغط حفظ بعد الانتهاء من التحديد.'
+                      : 'This form will appear on the selected product pages. Click Save after selection.'}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
         
         <div className="col-span-4 border-l bg-white p-6">
