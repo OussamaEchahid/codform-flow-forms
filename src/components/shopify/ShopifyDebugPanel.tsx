@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
@@ -93,14 +92,19 @@ export const ShopifyDebugPanel = () => {
     }
   };
   
-  // التحقق من حالة امتداد المتجر
+  // التحقق من حالة امتداد المتجر بشكل أكثر تفصيلاً
   const checkExtensionStatus = async (shopDomain: string, token: string) => {
     try {
       setExtensionStatus('loading');
       
       // استخدم وظيفة supabase للتحقق من حالة الامتداد
       const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { shop: shopDomain, accessToken: token, checkExtensions: true }
+        body: { 
+          shop: shopDomain, 
+          accessToken: token, 
+          checkExtensions: true,
+          forceExtensionCheck: true // إضافة معلمة جديدة للتحقق القوي
+        }
       });
       
       if (error || !data.success) {
@@ -109,9 +113,13 @@ export const ShopifyDebugPanel = () => {
         return;
       }
       
-      // تحليل نتيجة التحقق من الامتداد
-      if (data.extensions && data.extensions.theme) {
+      // تحليل نتيجة التحقق من الامتداد بشكل أفضل
+      if (data.extensions && data.extensions.theme && data.extensions.theme.active) {
         setExtensionStatus('ok');
+      } else if (data.extensions && data.extensions.theme && !data.extensions.theme.active) {
+        // الامتداد موجود ولكن غير نشط
+        console.warn("Theme extension is installed but not active:", data.extensions);
+        setExtensionStatus('error');
       } else {
         setExtensionStatus('error');
       }
@@ -148,6 +156,33 @@ export const ShopifyDebugPanel = () => {
     }
   };
   
+  const handleFixExtension = async () => {
+    if (!shop) return;
+    
+    try {
+      // تحديث حالة الامتداد في المتجر
+      const { data, error } = await shopifySupabase.functions.invoke('shopify-theme-update', {
+        body: { shop: shop, force: true }
+      });
+      
+      if (error) {
+        throw new Error(`فشل في تحديث الامتداد: ${error.message}`);
+      }
+      
+      if (!data.success) {
+        throw new Error(data.message || 'فشل في تحديث الامتداد لسبب غير معروف');
+      }
+      
+      toast.success('تم تحديث الامتداد بنجاح، يرجى إعادة التحقق');
+      
+      // إعادة التحقق بعد مهلة قصيرة
+      setTimeout(() => loadTokenInfo(), 1500);
+    } catch (err) {
+      console.error("Error fixing extension:", err);
+      toast.error('فشل في تحديث الامتداد، يرجى المحاولة مرة أخرى');
+    }
+  };
+  
   // جلب معلومات الرمز عند تحميل المكون
   useEffect(() => {
     loadTokenInfo();
@@ -174,7 +209,8 @@ export const ShopifyDebugPanel = () => {
         {tokenInfo.details && (
           <p className="text-sm text-gray-500">{tokenInfo.details}</p>
         )}
-        <Button onClick={handleRefresh} variant="outline" size="sm">
+        <Button onClick={loadTokenInfo} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-1" />
           إعادة التحقق
         </Button>
       </div>
@@ -201,7 +237,7 @@ export const ShopifyDebugPanel = () => {
             </Badge>
           )}
         </div>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
+        <Button onClick={loadTokenInfo} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-1" />
           تحديث
         </Button>
@@ -262,6 +298,12 @@ export const ShopifyDebugPanel = () => {
       </Card>
       
       <div className="flex flex-col gap-2">
+        {connectionStatus === 'connected' && extensionStatus === 'error' && (
+          <Button onClick={handleFixExtension} variant="default" size="sm" className="w-full bg-amber-500 hover:bg-amber-600">
+            إصلاح الامتداد
+          </Button>
+        )}
+        
         <Button onClick={handleClearCache} variant="outline" size="sm" className="w-full">
           مسح ذاكرة التخزين المؤقت
         </Button>
