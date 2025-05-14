@@ -106,13 +106,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleDeleteForm = async (formId: string) => {
     try {
       await deleteForm(formId);
-      toast({ description: language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully' });
+      // Using toast from sonner correctly
+      toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
     } catch (error) {
       console.error('Error deleting form:', error);
-      toast({ 
-        variant: "destructive", 
-        description: language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form' 
-      });
+      toast.error(language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form');
     }
   };
   
@@ -132,13 +130,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       delete formData.id;
       
       await fetchForms(); // Refresh the list after duplication
-      toast({ description: language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully' });
+      // Using toast from sonner correctly
+      toast.success(language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully');
     } catch (error) {
       console.error('Error duplicating form:', error);
-      toast({ 
-        variant: "destructive", 
-        description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form' 
-      });
+      toast.error(language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form');
     }
   };
   
