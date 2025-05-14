@@ -1,6 +1,6 @@
 
 // Re-export the toast functions from sonner and our custom hook
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 
 // Re-export with the same interface

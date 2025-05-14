@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
-  // الترويسة مخفية افتراضيًا الآن
   const [hideHeader] = useState(true);
   
   // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
@@ -139,7 +137,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <Switch 
                 id="hide-header"
                 checked={hideHeader}
-                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
+                disabled={true}
               />
             </div>
             
