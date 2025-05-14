@@ -206,6 +206,31 @@ serve(async (req) => {
       console.error(`[${requestId}] Error creating create_form_with_shop function:`, error)
     }
 
+    // Ensure shopify_form_insertion table exists
+    try {
+      console.log(`[${requestId}] Ensuring shopify_form_insertion table exists`)
+      
+      await supabaseClient.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.shopify_form_insertion (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            form_id UUID NOT NULL REFERENCES public.forms(id) ON DELETE CASCADE,
+            shop_id TEXT NOT NULL,
+            position TEXT DEFAULT 'product-page',
+            block_id TEXT,
+            theme_type TEXT DEFAULT 'auto-detect',
+            insertion_method TEXT DEFAULT 'auto',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            UNIQUE(form_id, shop_id)
+          );
+        `
+      })
+      console.log(`[${requestId}] Successfully created/checked shopify_form_insertion table`)
+    } catch (error) {
+      console.error(`[${requestId}] Error checking/creating shopify_form_insertion table:`, error)
+    }
+
     // Ensure single active store
     try {
       console.log(`[${requestId}] Ensuring single active store record`)

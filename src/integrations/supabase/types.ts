@@ -255,6 +255,50 @@ export type Database = {
           },
         ]
       }
+      shopify_form_insertion: {
+        Row: {
+          block_id: string | null
+          created_at: string | null
+          form_id: string
+          id: string
+          insertion_method: string | null
+          position: string | null
+          shop_id: string
+          theme_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string | null
+          form_id: string
+          id?: string
+          insertion_method?: string | null
+          position?: string | null
+          shop_id: string
+          theme_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          insertion_method?: string | null
+          position?: string | null
+          shop_id?: string
+          theme_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_form_insertion_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopify_page_syncs: {
         Row: {
           created_at: string

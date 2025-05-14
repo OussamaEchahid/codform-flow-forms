@@ -23,6 +23,18 @@ export interface ShopifyProductSettings {
   updated_at: string;
 }
 
+export interface ShopifyFormInsertion {
+  id: string;
+  form_id: string;
+  shop_id: string;
+  position: string;
+  block_id: string | null;
+  theme_type: string;
+  insertion_method: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Custom Database type that includes our tables
 export interface Database {
   public: {
@@ -36,6 +48,11 @@ export interface Database {
         Row: ShopifyProductSettings;
         Insert: Omit<ShopifyProductSettings, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ShopifyProductSettings, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      shopify_form_insertion: {
+        Row: ShopifyFormInsertion;
+        Insert: Omit<ShopifyFormInsertion, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<ShopifyFormInsertion, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
     Views: {};

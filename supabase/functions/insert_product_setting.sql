@@ -13,7 +13,7 @@ SECURITY INVOKER
 AS $$
 BEGIN
   -- Insert or update product settings
-  INSERT INTO product_settings (
+  INSERT INTO shopify_product_settings (
     shop_id,
     product_id,
     form_id,
@@ -33,7 +33,7 @@ BEGIN
   DO UPDATE SET
     form_id = p_form_id,
     enabled = p_enabled,
-    block_id = COALESCE(p_block_id, product_settings.block_id),
+    block_id = COALESCE(p_block_id, shopify_product_settings.block_id),
     updated_at = now();
 END;
 $$;

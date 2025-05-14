@@ -103,15 +103,16 @@ serve(async (req: Request) => {
 
     // Store insertion preferences if provided
     if (settings) {
+      // First, ensure we have a valid block_id
+      const blockId = settings.blockId || `codform-${Date.now().toString(36)}`;
+      
       const insertionSettings = {
         form_id: formId,
         shop_id: shop,
         insertion_method: settings.insertionMethod || 'auto',
         theme_type: settings.themeType || 'auto-detect',
         position: settings.position || 'product-page',
-        block_id: settings.blockId || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        block_id: blockId
       };
 
       // Store insertion preferences
@@ -126,47 +127,52 @@ serve(async (req: Request) => {
       } else {
         console.log("Insertion settings saved successfully:", insertionSettings);
       }
-    }
 
-    // If we have product settings
-    if (settings?.products && settings.products.length > 0) {
-      // Delete existing product settings for this form
-      const { error: deleteError } = await supabase
-        .from('shopify_product_settings')
-        .delete()
-        .eq('form_id', formId);
-      
-      if (deleteError) {
-        console.error("Error deleting existing product settings:", deleteError);
+      // If we have product settings and it's a new form
+      if (settings.products && settings.products.length > 0) {
+        // First delete existing product settings for this form to avoid conflicts
+        const { error: deleteError } = await supabase
+          .from('shopify_product_settings')
+          .delete()
+          .eq('form_id', formId)
+          .eq('shop_id', shop);
+        
+        if (deleteError) {
+          console.error("Error deleting existing product settings:", deleteError);
+        }
+        
+        // Insert new product settings
+        const productSettings = settings.products.map(productId => ({
+          form_id: formId,
+          product_id: productId,
+          shop_id: shop,
+          block_id: blockId,
+          enabled: true
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('shopify_product_settings')
+          .insert(productSettings);
+        
+        if (insertError) {
+          console.error("Error inserting product settings:", insertError);
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'Failed to save product settings'
+          }), { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        console.log(`Synced ${productSettings.length} products with form ${formId}`);
+      } else if (!settings.products || settings.products.length === 0) {
+        // If no products specified, we'll create a default entry that can be used globally
+        console.log("No specific products provided - form will be available for all products");
+        
+        // This is optional - you may want to create a "default" product setting
+        // or just rely on the form_insertion record
       }
-      
-      // Insert new product settings
-      const productSettings = settings.products.map(productId => ({
-        form_id: formId,
-        product_id: productId,
-        shop_id: shop,
-        block_id: settings.blockId || null,
-        enabled: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-      
-      const { error: insertError } = await supabase
-        .from('shopify_product_settings')
-        .insert(productSettings);
-      
-      if (insertError) {
-        console.error("Error inserting product settings:", insertError);
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Failed to save product settings'
-        }), { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      
-      console.log(`Synced ${productSettings.length} products with form ${formId}`);
     }
     
     return new Response(JSON.stringify({
