@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ShopifyDebugPanel } from '@/components/shopify/ShopifyDebugPanel';
-import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
+import ShopifyTokenUpdater from '@/components/shopify/ShopifyTokenUpdater';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';

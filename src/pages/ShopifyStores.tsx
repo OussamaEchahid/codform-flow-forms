@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ShopifyStoresManager } from '@/components/shopify/ShopifyStoresManager';
-import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
+import ShopifyTokenUpdater from '@/components/shopify/ShopifyTokenUpdater';
 import { useI18n } from '@/lib/i18n';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 

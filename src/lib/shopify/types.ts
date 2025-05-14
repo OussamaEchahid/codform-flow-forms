@@ -1,9 +1,11 @@
+
 export interface ShopifyProduct {
   id: string;
   title: string;
   handle: string;
   vendor?: string;
   product_type?: string;
+  price?: string;
   image?: {
     src: string;
     alt?: string;
@@ -17,7 +19,15 @@ export interface ShopifyProduct {
     title: string;
     price: string;
     compare_at_price?: string;
+    available?: boolean;
   }>;
+}
+
+export interface ShopifyStoreConnection {
+  domain: string;
+  shop: string;
+  isActive: boolean;
+  lastConnected?: string;
 }
 
 export interface ProductSettingsRequest {
@@ -42,4 +52,37 @@ export interface ShopifyStore {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ShopifyOrder {
+  id: string;
+  order_number: number;
+  total_price: string;
+  customer?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+}
+
+export interface ShopifyFormData {
+  formId: string;
+  shopDomain: string;
+  settings?: Record<string, any>;
+}
+
+// Function to clean Shopify domain (remove https://, trailing slashes, etc)
+export function cleanShopifyDomain(domain: string): string {
+  if (!domain) return '';
+  
+  // Remove protocol
+  let clean = domain.replace(/^https?:\/\//, '');
+  
+  // Remove trailing slashes
+  clean = clean.replace(/\/+$/, '');
+  
+  // Remove path if any
+  clean = clean.split('/')[0];
+  
+  return clean;
 }

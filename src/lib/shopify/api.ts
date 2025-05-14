@@ -1,4 +1,4 @@
-import { ShopifyProduct, ShopifyOrder, ShopifyFormData } from './types';
+import { ShopifyProduct, ShopifyStore, ShopifyOrder, ShopifyFormData } from './types';
 
 class ShopifyAPI {
   private accessToken: string;
@@ -337,7 +337,7 @@ class ShopifyAPI {
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
         console.error('HTML Error Response:', responseText.substring(0, 200));
-        throw new Error('Authentication error: Received HTML instead of JSON. Your access token is likely invalid or expired.');
+        throw new Error('Authentication error: Received HTML instead of JSON. This usually means your access token is invalid or expired.');
       }
 
       if (!response.ok) {

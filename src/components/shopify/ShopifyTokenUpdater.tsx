@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Wrench } from 'lucide-react'; // Changed from Tool to Wrench
+import { Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminRoute } from '@/lib/shopify/admin-routes';
 import { useAuth } from '@/lib/auth';
@@ -67,7 +67,7 @@ const ShopifyTokenUpdater = () => {
         className="mr-2"
         onClick={() => setOpen(true)}
       >
-        <Wrench className="h-4 w-4 mr-2" /> {/* Changed from Tool to Wrench */}
+        <Wrench className="h-4 w-4 mr-2" />
         تحديث الاتصال
       </Button>
       

@@ -53,7 +53,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
                 <TableCell>
                   {product.images && product.images.length > 0 ? (
                     <img 
-                      src={product.images[0]} 
+                      src={product.images[0].src} 
                       alt={product.title} 
                       className="w-16 h-16 object-cover rounded"
                       onError={(e) => {
@@ -78,8 +78,8 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
                 <TableCell className="text-right">
                   {product.variants && product.variants.length > 0 ? (
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={product.variants.some(v => v.available) ? "success" : "destructive"}>
-                        {product.variants.some(v => v.available) ? "متوفر" : "غير متوفر"}
+                      <Badge variant={product.variants.some(v => v.available === true) ? "success" : "destructive"}>
+                        {product.variants.some(v => v.available === true) ? "متوفر" : "غير متوفر"}
                       </Badge>
                       <span className="text-xs text-gray-500">{product.variants.length} متغير</span>
                     </div>
