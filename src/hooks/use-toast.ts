@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast, type ToastT, type ExternalToast } from "sonner";
 import { toast as enhancedToast } from "@/components/ui/toaster";
 
 // Re-export the enhanced toast
@@ -23,38 +23,38 @@ export default toast;
 
 // Add variants as methods to the toast function if not already added in the enhanced toast
 if (!toast.success) {
-  toast.success = (props: string | ToastProps) => {
-    if (typeof props === "string") {
-      return sonnerToast.success(props);
+  toast.success = (message: React.ReactNode, data?: ExternalToast) => {
+    if (typeof message === "string") {
+      return sonnerToast.success(message, data);
     }
-    return sonnerToast.success(props as any);
+    return sonnerToast.success(message as any, data);
   };
 }
 
 if (!toast.error) {
-  toast.error = (props: string | ToastProps) => {
-    if (typeof props === "string") {
-      return sonnerToast.error(props);
+  toast.error = (message: React.ReactNode | string, options?: any) => {
+    if (typeof message === "string") {
+      return sonnerToast.error(message, options);
     }
-    return sonnerToast.error(props as any);
+    return sonnerToast.error(message as any, options);
   };
 }
 
 if (!toast.warning) {
-  toast.warning = (props: string | ToastProps) => {
-    if (typeof props === "string") {
-      return sonnerToast.warning(props);
+  toast.warning = (message: React.ReactNode, data?: ExternalToast) => {
+    if (typeof message === "string") {
+      return sonnerToast.warning(message, data);
     }
-    return sonnerToast.warning(props as any);
+    return sonnerToast.warning(message as any, data);
   };
 }
 
 if (!toast.info) {
-  toast.info = (props: string | ToastProps) => {
-    if (typeof props === "string") {
-      return sonnerToast.info(props);
+  toast.info = (message: React.ReactNode, data?: ExternalToast) => {
+    if (typeof message === "string") {
+      return sonnerToast.info(message, data);
     }
-    return sonnerToast.info(props as any);
+    return sonnerToast.info(message as any, data);
   };
 }
 

@@ -1,5 +1,6 @@
 
-import { Toaster as SonnerToaster, toast } from "sonner";
+import { Toaster as SonnerToaster, toast, type ExternalToast } from "sonner";
+import * as React from "react";
 
 export function Toaster() {
   return <SonnerToaster richColors closeButton position="top-right" />;
