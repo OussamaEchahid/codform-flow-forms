@@ -54,6 +54,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     );
   };
 
+  // Check if the form ID is in the correct UUID format
+  const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
+
   const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
@@ -111,6 +114,17 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
+            
+            {!isValidUuid && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {language === 'ar' 
+                    ? 'تنبيه: معرّف النموذج غير بالتنسيق الصحيح. يجب أن يكون بتنسيق UUID كامل مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd"' 
+                    : 'Warning: Form ID is not in the correct format. It must be a full UUID format like: "6942b35d-ad06-40fb-8f70-86230d20b0fd"'}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="flex items-center justify-between py-2 border-t">
               <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
@@ -176,12 +190,11 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
-                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
-                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
+                ? 'ملاحظة: يجب استخدام معرف النموذج بالتنسيق الكامل (UUID)، مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd". استخدام تنسيق آخر سيؤدي إلى عدم ظهور النموذج.' 
+                : 'Note: You must use the complete form ID format (UUID), such as: "6942b35d-ad06-40fb-8f70-86230d20b0fd". Using any other format will cause the form not to appear.'}
             </AlertDescription>
           </Alert>
           
-          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
           <Alert variant="default" className="bg-green-50 border-green-200">
             <Info className="h-4 w-4 text-green-600" />
             <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>

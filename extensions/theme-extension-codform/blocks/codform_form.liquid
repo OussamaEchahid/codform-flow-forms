@@ -26,11 +26,121 @@
     <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
       <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <p id="codform-error-message-{{ block.id }}">حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <small id="codform-error-details-{{ block.id }}" class="codform-error-details" style="display: none;"></small>
       <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('codform-container-{{ block.id }}');
+    const formLoader = document.getElementById('codform-form-loader-{{ block.id }}');
+    const formContainer = document.getElementById('codform-form-{{ block.id }}');
+    const successMessage = document.getElementById('codform-success-{{ block.id }}');
+    const errorContainer = document.getElementById('codform-error-{{ block.id }}');
+    const errorMessage = document.getElementById('codform-error-message-{{ block.id }}');
+    const errorDetails = document.getElementById('codform-error-details-{{ block.id }}');
+    const retryButton = document.getElementById('codform-retry-{{ block.id }}');
+    
+    if (!container) return;
+    
+    // Get form ID and product ID from data attributes
+    const formId = container.getAttribute('data-form-id');
+    const productId = container.getAttribute('data-product-id');
+    
+    // Validate form ID format (UUID format)
+    const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
+    
+    if (!formId || formId.trim() === '') {
+      showError('لم يتم تحديد معرّف النموذج. الرجاء إضافة معرّف النموذج في إعدادات البلوك.');
+      return;
+    }
+    
+    if (!isValidUuid) {
+      showError(
+        'تنسيق معرّف النموذج غير صحيح. يجب أن يكون بتنسيق UUID كامل.', 
+        `معرّف النموذج الحالي "${formId}" ليس بالتنسيق الصحيح. يجب أن يكون معرّف النموذج مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd".`
+      );
+      return;
+    }
+    
+    function loadForm() {
+      formLoader.style.display = 'flex';
+      errorContainer.style.display = 'none';
+      formContainer.style.display = 'none';
+      successMessage.style.display = 'none';
+      
+      // Construct API URL with form ID
+      let apiUrl = `https://mtyfuwdsshlzqwjujavp.lovable.app/api/forms/${formId}`;
+      
+      // Append product ID if available
+      if (productId) {
+        apiUrl += `?product_id=${productId}&shop_id={{ shop.permanent_domain }}`;
+      }
+      
+      // Fetch form data from API
+      fetch(apiUrl)
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || `Server responded with status: ${response.status}`);
+            });
+          }
+          return response.json();
+        })
+        .then(formData => {
+          if (!formData || !formData.fields) {
+            throw new Error('معلومات النموذج غير مكتملة أو تالفة');
+          }
+          
+          // Check if form is empty
+          if (formData.fields.length === 0) {
+            throw new Error('النموذج فارغ، لا توجد حقول لعرضها');
+          }
+          
+          // Render form fields
+          renderForm(formData);
+          
+          // Hide loader and show form
+          formLoader.style.display = 'none';
+          formContainer.style.display = 'block';
+        })
+        .catch(error => {
+          console.error('Error loading form:', error);
+          showError(
+            'تعذر تحميل النموذج', 
+            `رسالة الخطأ: ${error.message || 'خطأ غير معروف'}`
+          );
+        });
+    }
+    
+    function showError(message, details = null) {
+      formLoader.style.display = 'none';
+      formContainer.style.display = 'none';
+      errorContainer.style.display = 'block';
+      errorMessage.textContent = message;
+      
+      if (details) {
+        errorDetails.textContent = details;
+        errorDetails.style.display = 'block';
+      } else {
+        errorDetails.style.display = 'none';
+      }
+    }
+    
+    function renderForm(formData) {
+      // ... keep existing code (form rendering implementation)
+    }
+    
+    // Add event listener for retry button
+    retryButton.addEventListener('click', loadForm);
+    
+    // Initial form load
+    loadForm();
+  });
+</script>
 
 <style>
   /* Basic container configuration */
@@ -740,6 +850,20 @@
     margin-top: 20px !important;
     margin-bottom: 20px !important;
   }
+
+  /* Error details display */
+  .codform-error-details {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #666;
+    background-color: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+    word-break: break-all;
+    max-width: 100%;
+    overflow: auto;
+  }
 </style>
 
 {% endif %}
@@ -755,7 +879,7 @@
       "type": "text",
       "id": "form_id",
       "label": "معرّف النموذج",
-      "info": "أدخل معرف النموذج الذي تريد عرضه"
+      "info": "أدخل معرف النموذج بالتنسيق UUID الكامل مثل: 6942b35d-ad06-40fb-8f70-86230d20b0fd"
     }
   ]
 }

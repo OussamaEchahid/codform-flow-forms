@@ -92,6 +92,22 @@ serve(async (req) => {
       shopId
     });
 
+    // Validate form ID format (must be UUID)
+    if (!formId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId)) {
+      console.error('Invalid form ID format:', formId);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid form ID format. Please use a valid UUID format.',
+        formId: formId,
+        invalidFormat: true
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 400,
+      });
+    }
+
     // If we have both a product ID and shop ID, try to get a product-specific form first
     if (productId && shopId) {
       console.log(`Looking for product-specific form for product: ${productId}, shop: ${shopId}`);
@@ -133,14 +149,9 @@ serve(async (req) => {
       console.log('No product-specific form found, trying default form');
     }
 
-    // If no product-specific form is found, or if formId is provided directly, get the requested form
-    if (!formId) {
-      throw new Error('No form ID provided')
-    }
-
+    // Get form from database using the validated form ID
     console.log('Fetching form with ID:', formId);
-
-    // Get form from database
+    
     const { data: formData, error } = await supabase
       .from('forms')
       .select('*')
@@ -149,18 +160,46 @@ serve(async (req) => {
 
     if (error) {
       console.error('Database error:', error);
-      throw error;
+      return new Response(JSON.stringify({ 
+        error: `Database error: ${error.message}`,
+        details: error
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: error.code === 'PGRST116' ? 404 : 500,
+      });
     }
 
     if (!formData) {
       console.error('Form not found:', formId);
-      throw new Error(`Form with ID ${formId} not found`);
+      return new Response(JSON.stringify({ 
+        error: `Form with ID ${formId} not found`,
+        notFound: true
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 404,
+      });
     }
 
     // Verify the form is published
     if (formData.is_published !== true) {
       console.error('Form is not published:', formId);
-      throw new Error(`Form with ID ${formId} is not published`);
+      return new Response(JSON.stringify({ 
+        error: `Form with ID ${formId} is not published`,
+        formId: formId,
+        notPublished: true
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 403,
+      });
     }
 
     console.log('Successfully fetched form:', formData.title, 'ID:', formId);

@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 interface FormData {
   id: string;
@@ -30,6 +31,12 @@ export default function FormAPI() {
         }
 
         console.log('Fetching form data for ID:', id);
+        
+        // Validate the form ID format first
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          console.error('Invalid form ID format:', id);
+          throw new Error('Invalid form ID format. Please use a valid UUID format.');
+        }
         
         // Call the Supabase Edge Function directly
         const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
