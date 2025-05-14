@@ -56,6 +56,9 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 
   // Check if the form ID is in the correct UUID format
   const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
+  
+  // Generate correct form preview URL
+  const formPreviewUrl = `https://codform-flow-forms.lovable.app/embed/${formId}`;
 
   return (
     <Card className="mt-4">
@@ -138,6 +141,28 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 checked={hideHeader}
                 disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
               />
+            </div>
+            
+            {/* إضافة معاينة الرابط */}
+            <div className="mt-2 p-3 bg-gray-50 rounded-md">
+              <p className={`text-sm font-medium mb-2 ${language === 'ar' ? 'text-right' : ''}`}>
+                {language === 'ar' ? 'رابط معاينة النموذج:' : 'Form Preview URL:'}
+              </p>
+              <div className="flex items-center justify-between">
+                <code className="p-2 bg-white border rounded text-xs flex-1 overflow-x-auto">
+                  {formPreviewUrl}
+                </code>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-2"
+                  onClick={() => {
+                    window.open(formPreviewUrl, '_blank');
+                  }}
+                >
+                  <ExternalLink size={14} />
+                </Button>
+              </div>
             </div>
             
             {formTitleElement && (

@@ -180,11 +180,14 @@
         loader.style.display = 'flex';
       }
       
-      // الحصول على عنوان النموذج
-      const formAppUrl = "https://codform-flow-forms.lovable.app/embed";
+      // الحصول على عنوان النموذج - تصحيح مسار التضمين
+      const formAppUrl = "https://codform-flow-forms.lovable.app";
       
-      // إنشاء عنوان URL للنموذج
-      const formUrl = formAppUrl + "/" + formId + "?productId=" + productId + "&embedded=true&hideHeader=true";
+      // إنشاء عنوان URL للنموذج بمسار تضمين صحيح
+      const formUrl = formAppUrl + "/embed/" + formId + "?productId=" + productId + "&embedded=true&hideHeader=true";
+      
+      // تسجيل معلومات URL النموذج للتصحيح
+      logDebug('رابط النموذج:', formUrl);
       
       // تعيين مهلة للكشف عن أخطاء التحميل
       const timeoutDuration = 15000; // 15 ثانية
