@@ -29,6 +29,13 @@ export default function FormAPI() {
           throw new Error('Form ID is required');
         }
 
+        // Skip API call if id is 'new' since it's a placeholder
+        if (id === 'new') {
+          setError('Cannot fetch form with id "new"');
+          setIsLoading(false);
+          return;
+        }
+
         console.log('Fetching form data for ID:', id);
         
         // Call the Supabase Edge Function directly
