@@ -37,23 +37,6 @@ export const useShopify = () => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
 
-  // Function to filter test products
-  const filterTestProducts = (products: ShopifyProduct[]): ShopifyProduct[] => {
-    return products.filter(product => {
-      const title = (product.title || '').toLowerCase();
-      const handle = (product.handle || '').toLowerCase();
-      
-      return !(
-        title.includes('test') || 
-        handle.includes('test') ||
-        title.includes('demo') ||
-        handle.includes('demo') ||
-        title.includes('sample') ||
-        handle.includes('sample')
-      );
-    });
-  };
-
   // Initialize connection state
   useEffect(() => {
     const checkConnection = async () => {
@@ -95,8 +78,8 @@ export const useShopify = () => {
   }, [shop]);
 
   // Load products when connected
-  const loadProducts = useCallback(async (includeTestProducts = false) => {
-    if (!isConnected || !shop) {
+  const loadProducts = useCallback(async (forceRefresh = false) => {
+    if (!shop) {
       return [];
     }
 
@@ -120,7 +103,8 @@ export const useShopify = () => {
         body: { 
           shop, 
           accessToken: token,
-          includeTestProducts: includeTestProducts 
+          forceRefresh: forceRefresh,
+          includeTestProducts: false // Always filter test products 
         }
       });
 
@@ -128,25 +112,33 @@ export const useShopify = () => {
         throw error;
       }
 
-      // Store all products for potential future filtering
+      // Store all products
       const fetchedProducts = data?.products || [];
-      setAllProducts(fetchedProducts);
       
-      // Filter out test products unless explicitly requested
-      const productList = includeTestProducts ? fetchedProducts : filterTestProducts(fetchedProducts);
-      setProducts(productList);
-      
-      console.log(`Loaded ${productList.length} products (${includeTestProducts ? 'including' : 'excluding'} test products)`);
+      if (Array.isArray(fetchedProducts)) {
+        setAllProducts(fetchedProducts);
+        setProducts(fetchedProducts);
+        
+        console.log(`Loaded ${fetchedProducts.length} products from Shopify`);
+        
+        if (fetchedProducts.length === 0) {
+          console.warn('No products returned from Shopify API');
+        }
+      } else {
+        console.error('Invalid product data returned:', fetchedProducts);
+        throw new Error('Invalid product data structure returned');
+      }
       
       setIsLoading(false);
-      return productList;
+      return fetchedProducts;
     } catch (error) {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
+      toast.error('فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى');
       return [];
     }
-  }, [isConnected, shop]);
+  }, [shop]);
 
   // Test connection
   const testConnection = useCallback(async (withRetry = false) => {
@@ -345,11 +337,6 @@ export const useShopify = () => {
     return true;
   }, []);
 
-  // Get real products (without test products)
-  const getRealProducts = useCallback(() => {
-    return filterTestProducts(allProducts);
-  }, [allProducts]);
-
   return {
     isLoading,
     isSyncing,
@@ -373,6 +360,5 @@ export const useShopify = () => {
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
     emergencyReset,
-    getRealProducts // New function to get real products
   };
 };

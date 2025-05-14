@@ -37,16 +37,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   const [copied, setCopied] = useState(false);
   const [hideHeader] = useState(true);
   
-  // Use an actual UUID if formId is "new" or invalid
+  // استخدام معرف UUID فعلي إذا كان formId هو "new" أو غير صالح
   const displayFormId = useMemo(() => {
     if (!formId || formId === 'new' || formId === 'undefined') {
-      // Generate a temporary UUID for display (not the actual form ID)
-      return urlFormId && urlFormId !== 'new' ? urlFormId : uuidv4();
+      // التحقق من وجود معرف صالح في الرابط
+      if (urlFormId && urlFormId !== 'new' && urlFormId !== 'undefined') {
+        return urlFormId;
+      }
+      // إنشاء معرف مؤقت للعرض فقط
+      return uuidv4();
     }
     return formId;
   }, [formId, urlFormId]);
   
-  // Reset copy status after 3 seconds
+  // إعادة ضبط حالة النسخ بعد 3 ثوان
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (copied) {
@@ -64,8 +68,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         : 'Form ID copied successfully'
     );
   };
-
-  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
     <Card className="mt-4">

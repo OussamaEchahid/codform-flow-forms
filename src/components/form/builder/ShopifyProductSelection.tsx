@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,6 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // Set forceRefresh to true to force fetch from API
         await loadProducts(false);
         console.log("Products loaded successfully");
       } catch (error) {
@@ -55,48 +54,35 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     };
     
     fetchProducts();
-  }, [loadProducts, forceRefresh]);
+  }, [loadProducts]);
   
   // تحديث المنتجات المحلية عندما تتغير القيمة في الخاصية
   useEffect(() => {
     setLocalSelectedProducts(selectedProducts);
   }, [selectedProducts]);
   
-  // تصفية المنتجات وإزالة منتجات الاختبار
+  // تصفية المنتجات بناءً على البحث
   useEffect(() => {
     if (!products || products.length === 0) {
       setFilteredProducts([]);
       return;
     }
 
-    // تصفية المنتجات التجريبية بناءً على عنوان المنتج، المعرف، والوسوم
+    // تصفية بناءً على البحث فقط
     const filtered = products.filter(product => {
       const title = product.title?.toLowerCase() || '';
       const handle = product.handle?.toLowerCase() || '';
-      // Access tags safely using optional chaining and type checking
-      const tags = product.tags ? 
-        (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
-        '';
       
-      // التحقق من البحث أولاً
+      // التحقق من البحث إذا كان موجودًا
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        if (!title.includes(searchLower) && !handle.includes(searchLower)) {
-          return false;
-        }
+        return title.includes(searchLower) || handle.includes(searchLower);
       }
       
-      // نحن لا نريد تصفية المنتجات الحقيقية بشكل مفرط
-      // لذلك نستخدم قائمة محدودة من الكلمات المفتاحية للمنتجات التجريبية
-      if (title === 'test' || title === 'demo' || handle === 'test' || handle === 'demo' ||
-          title === 'sample product' || title === 'test product') {
-        return false;
-      }
-
       return true;
     });
     
-    console.log(`تمت تصفية ${products.length - filtered.length} منتج تجريبي من إجمالي ${products.length} منتج`);
+    console.log(`عرض ${filtered.length} منتج من إجمالي ${products.length} منتج`);
     setFilteredProducts(filtered);
   }, [products, searchTerm]);
   
@@ -141,8 +127,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
       : 'Reloading products from store...');
     
     try {
-      // Force refresh from API by setting forceRefresh to true in hook call
-      await loadProducts(false);
+      // إعادة تحميل المنتجات مع تحديث إجباري
+      await loadProducts(true);
       toast.success(language === 'ar' 
         ? 'تم تحديث المنتجات بنجاح' 
         : 'Products refreshed successfully');
@@ -232,8 +218,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
               {language === 'ar' 
-                ? 'لم يتم العثور على منتجات في متجرك. قد تحتاج إلى إضافة منتجات إلى متجر Shopify الخاص بك أولاً.' 
-                : 'No products found in your store. You may need to add products to your Shopify store first.'}
+                ? 'لم يتم العثور على منتجات في متجرك. قد تحتاج إلى إضافة منتجات إلى متجر Shopify الخاص بك أولاً أو قم بتحديث المنتجات.' 
+                : 'No products found in your store. You may need to add products to your Shopify store first or refresh the products.'}
             </AlertDescription>
           </Alert>
           
@@ -335,7 +321,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                   <div>
                     <p className="font-medium">{product.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      {product.price ? `${product.price}` : '-'}
+                      {product.price ? `$${product.price}` : '-'}
                     </p>
                   </div>
                 </div>

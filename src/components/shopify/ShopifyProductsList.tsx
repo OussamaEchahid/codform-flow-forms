@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShopifyProduct } from '@/lib/shopify/types';
@@ -14,38 +14,8 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
   products,
   hideTestProducts = true
 }) => {
-  // تحسين الدالة لتصفية المنتجات التجريبية بشكل أفضل
-  const filteredProducts = useMemo(() => {
-    if (!hideTestProducts || !products || products.length === 0) {
-      return products;
-    }
-    
-    return products.filter(product => {
-      const title = product.title?.toLowerCase() || '';
-      const handle = product.handle?.toLowerCase() || '';
-      // Access tags safely using optional chaining
-      const tags = product.tags ? 
-        (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
-        '';
-      
-      // توسيع نطاق التصفية لتشمل المزيد من الكلمات الدالة على المنتجات التجريبية
-      const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
-      
-      // حالات خاصة - نتجنب تصفية المنتجات ذات الأسماء العادية
-      // مثلا منتج باسم "Premium Testing Kit" ليس بالضرورة منتج تجريبي
-      if (title === 'test' || title.startsWith('test ') || handle === 'test') {
-        return false;
-      }
-      
-      // التحقق من وجود أي من الكلمات المفتاحية في العنوان أو المعرف أو الوسوم
-      return !testKeywords.some(keyword => 
-        title === keyword || 
-        handle === keyword
-      );
-    });
-  }, [products, hideTestProducts]);
   
-  if (!filteredProducts || filteredProducts.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
         لا توجد منتجات لعرضها
@@ -83,7 +53,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.map((product) => (
+            {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
                   {product.images && product.images.length > 0 ? (
@@ -129,7 +99,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
       </div>
       
       <div className="bg-gray-50 p-3 rounded border text-sm text-gray-600">
-        <p className="text-right">إجمالي المنتجات: {filteredProducts.length}</p>
+        <p className="text-right">إجمالي المنتجات: {products.length}</p>
       </div>
     </div>
   );
