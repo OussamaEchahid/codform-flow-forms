@@ -48,47 +48,58 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) =
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  {product.images && product.images.length > 0 ? (
-                    <img 
-                      src={product.images[0].src} 
-                      alt={product.title} 
-                      className="w-16 h-16 object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                      <span className="text-xs text-gray-400">لا توجد صورة</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">{product.title}</TableCell>
-                <TableCell className="text-xs text-gray-500 font-mono">
-                  {product.id.includes('/') 
-                    ? product.id.split('/').pop() 
-                    : product.id}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatPrice(product.price)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {product.variants && product.variants.length > 0 ? (
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={product.variants.some(v => v.available === true) ? "success" : "destructive"}>
-                        {product.variants.some(v => v.available === true) ? "متوفر" : "غير متوفر"}
-                      </Badge>
-                      <span className="text-xs text-gray-500">{product.variants.length} متغير</span>
-                    </div>
-                  ) : (
-                    <Badge variant="outline">غير معروف</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            {products.map((product) => {
+              // Get the first variant's price or default to 0
+              const variantPrice = product.variants && product.variants.length > 0 
+                ? product.variants[0].price 
+                : undefined;
+                
+              // Get the image from either image or images array
+              const imageUrl = product.image?.src || 
+                (product.images && product.images.length > 0 ? product.images[0].src : undefined);
+                
+              return (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt={product.title} 
+                        className="w-16 h-16 object-cover rounded"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                        <span className="text-xs text-gray-400">لا توجد صورة</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">{product.title}</TableCell>
+                  <TableCell className="text-xs text-gray-500 font-mono">
+                    {product.id.includes('/') 
+                      ? product.id.split('/').pop() 
+                      : product.id}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatPrice(variantPrice)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {product.variants && product.variants.length > 0 ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={product.variants.some(v => v.inventory_quantity > 0) ? "success" : "destructive"}>
+                          {product.variants.some(v => v.inventory_quantity > 0) ? "متوفر" : "غير متوفر"}
+                        </Badge>
+                        <span className="text-xs text-gray-500">{product.variants.length} متغير</span>
+                      </div>
+                    ) : (
+                      <Badge variant="outline">غير معروف</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

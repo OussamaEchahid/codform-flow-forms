@@ -19,6 +19,7 @@ export interface ShopifyProduct {
     title: string;
     price: string;
     compare_at_price?: string;
+    inventory_quantity?: number;
     available?: boolean;
   }>;
 }

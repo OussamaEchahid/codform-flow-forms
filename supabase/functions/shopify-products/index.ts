@@ -78,40 +78,6 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}`);
 
-    // For development/test stores, return mock data
-    if (shop.includes('test') || shop.includes('example') || shop.includes('development') || shop.includes('myshopify')) {
-      console.log(`[${requestId}] Test store detected, returning mock data`);
-      
-      // Generate mock products
-      const mockProducts = Array.from({ length: 10 }, (_, i) => ({
-        id: `gid://shopify/Product/${1000000 + i}`,
-        title: `Test Product ${i + 1}`,
-        handle: `test-product-${i + 1}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        published_at: new Date().toISOString(),
-        status: 'active',
-        image: {
-          src: `https://via.placeholder.com/500x500.png?text=Product+${i + 1}`
-        },
-        variants: [
-          {
-            id: `gid://shopify/ProductVariant/${2000000 + i}`,
-            price: `${Math.floor(10 + Math.random() * 90)}.99`,
-            title: 'Default Title'
-          }
-        ]
-      }));
-      
-      return new Response(JSON.stringify({
-        success: true,
-        products: mockProducts,
-        count: mockProducts.length
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
     // Setup Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
