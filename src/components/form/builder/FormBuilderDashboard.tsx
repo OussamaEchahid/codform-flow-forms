@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormList from '@/components/form/FormList';
 import { toast } from 'sonner';
+import ProductSelectionDialog from '@/components/products/ProductSelectionDialog';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -23,6 +24,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const { forms, isLoading, fetchForms, createFormFromTemplate, createDefaultForm } = useFormTemplates();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [localForms, setLocalForms] = useState(initialForms || []);
   const [hasLoadedForms, setHasLoadedForms] = useState(false);
 
@@ -57,8 +59,14 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   }, [forms, hasLoadedForms]);
 
   const handleCreateForm = async () => {
+    // Open product selection dialog instead of directly creating a form
+    setIsProductDialogOpen(true);
+  };
+
+  const handleCreateFormForProduct = async (productId: string, productTitle: string) => {
     try {
-      const newForm = await createDefaultForm();
+      // Create a form with product information
+      const newForm = await createDefaultForm(productId, productTitle);
       if (newForm) {
         // Navigate to form builder with the new form ID
         navigate(`/form-builder/${newForm.id}`);
@@ -129,6 +137,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         open={isTemplateDialogOpen}
         onSelect={handleSelectTemplate}
         onClose={() => setIsTemplateDialogOpen(false)}
+      />
+
+      <ProductSelectionDialog
+        open={isProductDialogOpen}
+        onClose={() => setIsProductDialogOpen(false)}
+        onSelect={handleCreateFormForProduct}
       />
     </div>
   );

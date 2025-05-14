@@ -16,6 +16,7 @@ export interface FormData {
   isPublished?: boolean;
   is_published?: boolean;
   shop_id?: string;
+  product_id?: string;
   created_at?: string;
   style?: FormStyle;
 }
@@ -149,7 +150,7 @@ export const useFormTemplates = () => {
   };
 
   // Create a default form
-  const createDefaultForm = async () => {
+  const createDefaultForm = async (productId?: string, productTitle?: string) => {
     try {
       setIsLoading(true);
       const defaultTemplate = formTemplates[0]; // Use first template as default
@@ -162,14 +163,22 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Create form title based on product if available
+      const formTitle = productTitle ? `نموذج طلب ${productTitle}` : 'نموذج جديد';
+      const formDescription = productTitle ? `نموذج طلب المنتج ${productTitle}` : 'نموذج جديد';
+
+      // Create default form fields for product form
+      const defaultFormData = createProductFormTemplate(formTitle, formDescription);
+
       const newFormId = uuidv4();
       const formData: FormData = {
         id: newFormId,
-        title: 'نموذج جديد',
-        description: 'نموذج جديد',
-        data: defaultTemplate.data,
+        title: formTitle,
+        description: formDescription,
+        data: defaultFormData,
         isPublished: false,
         shop_id: shopId,
+        product_id: productId,
       };
 
       // Insert into Supabase
@@ -177,11 +186,12 @@ export const useFormTemplates = () => {
         .from('forms')
         .insert({
           id: newFormId,
-          title: 'نموذج جديد',
-          description: 'نموذج جديد',
-          data: defaultTemplate.data,
+          title: formTitle,
+          description: formDescription,
+          data: defaultFormData,
           is_published: false,
           shop_id: shopId,
+          product_id: productId,
           user_id: user?.id
         });
         
@@ -192,8 +202,30 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // If product ID is provided, create a product settings entry
+      if (productId) {
+        try {
+          const { error: settingsError } = await supabase
+            .from('shopify_product_settings')
+            .insert({
+              shop_id: shopId,
+              product_id: productId,
+              form_id: newFormId,
+              enabled: true,
+              block_id: `codform-${Math.random().toString(36).substring(2, 10)}`
+            });
+
+          if (settingsError) {
+            console.error('Error creating product settings:', settingsError);
+            toast.error('تم إنشاء النموذج ولكن فشل في ربطه بالمنتج');
+          }
+        } catch (settingsError) {
+          console.error('Exception creating product settings:', settingsError);
+        }
+      }
+
       setFormState(formData);
-      toast.success('تم إنشاء نموذج جديد');
+      toast.success(productId ? `تم إنشاء نموذج للمنتج بنجاح` : 'تم إنشاء نموذج جديد');
       
       // Refresh forms list
       fetchForms();
@@ -206,6 +238,66 @@ export const useFormTemplates = () => {
       setIsLoading(false);
       return null;
     }
+  };
+
+  // Helper function to create a product form template
+  const createProductFormTemplate = (title: string, description: string): FormStep[] => {
+    return [
+      {
+        id: '1',
+        title: 'معلومات العميل',
+        fields: [
+          {
+            id: 'form-title',
+            type: 'form-title',
+            label: title,
+            helpText: description,
+            style: {
+              color: '#ffffff',
+              textAlign: 'right',
+              fontWeight: 'bold',
+              fontSize: '1.5rem',
+              descriptionColor: '#ffffff',
+              descriptionFontSize: '0.875rem',
+              backgroundColor: '#9b87f5',
+            }
+          },
+          {
+            id: 'customer-name',
+            type: 'text',
+            label: 'الاسم الكامل',
+            required: true,
+            placeholder: 'أدخل اسمك الكامل'
+          },
+          {
+            id: 'phone',
+            type: 'phone',
+            label: 'رقم الهاتف',
+            required: true,
+            placeholder: 'أدخل رقم هاتفك'
+          },
+          {
+            id: 'address',
+            type: 'textarea',
+            label: 'العنوان',
+            required: true,
+            placeholder: 'أدخل عنوانك بالكامل'
+          },
+          {
+            id: 'submit-button',
+            type: 'submit',
+            label: 'إرسال الطلب',
+            style: {
+              backgroundColor: '#9b87f5',
+              color: '#ffffff',
+              fontSize: '1.2rem',
+              animation: true,
+              animationType: 'pulse',
+            },
+          }
+        ]
+      }
+    ];
   };
 
   // Save form changes
