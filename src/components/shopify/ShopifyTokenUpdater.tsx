@@ -96,7 +96,11 @@ export const ShopifyTokenUpdater = () => {
       
       setIsSuccess(true);
       setHasPlaceholderToken(false);
-      toast.success("تم التحديث بنجاح. تم تحديث رمز وصول Shopify بنجاح.");
+      toast({
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث رمز وصول Shopify بنجاح.",
+        variant: "success",
+      });
       
       // مسح الحقول
       setAccessToken('');
@@ -104,7 +108,11 @@ export const ShopifyTokenUpdater = () => {
       console.error('Error updating token:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
-      toast.error(`فشل التحديث. ${err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز'}`);
+      toast({
+        title: "فشل التحديث",
+        description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

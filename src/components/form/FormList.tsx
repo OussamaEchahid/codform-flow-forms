@@ -30,7 +30,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { toast } from "sonner";
 
 interface FormListProps {
   forms: FormData[];
@@ -43,23 +42,13 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
   const { publishForm, deleteForm } = useFormTemplates();
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    try {
-      await publishForm(formId, !currentStatus);
-    } catch (error) {
-      console.error("Error toggling publish status:", error);
-      toast.error('خطأ في تغيير حالة النشر');
-    }
+    await publishForm(formId, !currentStatus);
   };
 
   const handleDelete = async () => {
     if (formToDelete) {
-      try {
-        await deleteForm(formToDelete);
-        setFormToDelete(null);
-      } catch (error) {
-        console.error("Error deleting form:", error);
-        toast.error('خطأ في حذف النموذج');
-      }
+      await deleteForm(formToDelete);
+      setFormToDelete(null);
     }
   };
 

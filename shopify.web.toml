@@ -6,8 +6,3 @@ webhooks_path = "/webhooks"
 [commands]
 predev = "npx prisma generate"
 dev = "npx prisma migrate deploy && npm exec remix vite:dev"
-
-# Add Shopify extension cache control
-[cache]
-clear_on_deploy = true
-

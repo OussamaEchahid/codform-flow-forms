@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
-import { toast } from 'sonner';
 
 interface FormData {
   id: string;
@@ -32,67 +31,28 @@ export default function FormAPI() {
 
         console.log('Fetching form data for ID:', id);
         
-        // Validate the form ID format first
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-          console.error('Invalid form ID format:', id);
-          throw new Error('Invalid form ID format. Please use a valid UUID format like: "6942b35d-ad06-40fb-8f70-86230d20b0fd"');
+        // Call the Supabase Edge Function directly
+        const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
+          body: { id }
+        });
+
+        if (error) {
+          console.error('Error calling api-forms function:', error);
+          throw new Error(error.message || 'Error fetching form');
         }
-        
-        // Try to fetch using edge function with improved error handling
-        try {
-          // Call the Supabase Edge Function directly
-          const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
-            body: { id }
-          });
 
-          if (error) {
-            console.error('Error calling api-forms function:', error);
-            throw new Error(error.message || 'Error fetching form');
-          }
-
-          if (!data) {
-            throw new Error('Form not found or not published');
-          }
-
-          // Properly cast the data to FormData with correct type for the 'data' field
-          const formData: FormData = {
-            ...data,
-            data: data.data as unknown as FormStep[]
-          };
-
-          // Return the form data as JSON
-          setForm(formData);
-        } catch (funcError: any) {
-          console.error('Edge function error:', funcError);
-          
-          // Try direct database access as fallback
-          const { data, error: dbError } = await shopifySupabase
-            .from('forms')
-            .select('*')
-            .eq('id', id)
-            .eq('is_published', true)
-            .single();
-            
-          if (dbError) {
-            console.error('Database error:', dbError);
-            if (dbError.code === 'PGRST116') {
-              throw new Error(`Form with ID ${id} not found or not published`);
-            }
-            throw new Error(dbError.message || 'Error fetching form from database');
-          }
-          
-          if (!data) {
-            throw new Error('Form not found or not published');
-          }
-          
-          // Format the data
-          const formData: FormData = {
-            ...data,
-            data: data.data as unknown as FormStep[]
-          };
-          
-          setForm(formData);
+        if (!data) {
+          throw new Error('Form not found');
         }
+
+        // Properly cast the data to FormData with correct type for the 'data' field
+        const formData: FormData = {
+          ...data,
+          data: data.data as unknown as FormStep[]
+        };
+
+        // Return the form data as JSON
+        setForm(formData);
       } catch (error: any) {
         console.error('Error in fetchForm:', error);
         setError(error.message || 'Error fetching form');
@@ -108,17 +68,12 @@ export default function FormAPI() {
   useEffect(() => {
     if (!isLoading) {
       if (error) {
-        document.body.innerHTML = JSON.stringify({ 
-          error, 
-          formId: id,
-          timestamp: new Date().toISOString(),
-          message: 'تأكد من أن معرف النموذج بالتنسيق الصحيح (UUID) وأن النموذج منشور'
-        }, null, 2);
+        document.body.innerHTML = JSON.stringify({ error }, null, 2);
       } else if (form) {
         document.body.innerHTML = JSON.stringify(form, null, 2);
       }
     }
-  }, [isLoading, error, form, id]);
+  }, [isLoading, error, form]);
 
   return null;
 }

@@ -1,62 +1,68 @@
 
 #!/usr/bin/env node
 
-/**
- * JavaScript optimization script for Shopify theme extensions
- * This script minifies and optimizes JavaScript files for use in Shopify themes
- */
-
-console.log('Optimizing JavaScript files for Shopify theme...');
-
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// Configuration
-const themeExtensionDir = path.join(__dirname, 'extensions', 'theme-extension-codform');
-const assetsDir = path.join(themeExtensionDir, 'assets');
-const jsInputFile = path.join(assetsDir, 'codform-core.js');
-const jsOutputFile = path.join(assetsDir, 'codform.js');
+console.log('Optimizing theme extension JavaScript...');
 
-// Check if directories exist
-if (!fs.existsSync(themeExtensionDir)) {
-  console.error(`Error: Theme extension directory not found at ${themeExtensionDir}`);
+// Path to the JavaScript file
+const jsFilePath = path.join(__dirname, 'extensions/theme-extension-codform/assets/codform.js');
+
+if (!fs.existsSync(jsFilePath)) {
+  console.error('Error: codform.js file not found');
   process.exit(1);
 }
 
-if (!fs.existsSync(assetsDir)) {
-  console.log(`Creating assets directory at ${assetsDir}`);
-  fs.mkdirSync(assetsDir, { recursive: true });
-}
+console.log('Reading original file...');
+const originalContent = fs.readFileSync(jsFilePath, 'utf8');
+const originalSize = Buffer.byteLength(originalContent, 'utf8');
+console.log(`Original size: ${originalSize} bytes (${(originalSize / 1024).toFixed(2)} KB)`);
 
-// Simple optimization (for now just copies the file)
-// In the future this can be expanded to properly minify and bundle the JS
-try {
-  // Read the input file
-  if (fs.existsSync(jsInputFile)) {
-    const jsContent = fs.readFileSync(jsInputFile, 'utf8');
-    
-    // Write to the output file
-    fs.writeFileSync(jsOutputFile, jsContent);
-    console.log(`Optimized JavaScript written to ${jsOutputFile}`);
-  } else {
-    console.error(`Error: Input JavaScript file not found at ${jsInputFile}`);
-    process.exit(1);
-  }
-  
-  // Copy CSS file
-  const cssInputFile = path.join(assetsDir, 'codform-styles.css');
-  const cssOutputFile = path.join(assetsDir, 'codform.css');
-  
-  if (fs.existsSync(cssInputFile)) {
-    const cssContent = fs.readFileSync(cssInputFile, 'utf8');
-    fs.writeFileSync(cssOutputFile, cssContent);
-    console.log(`CSS file copied to ${cssOutputFile}`);
-  } else {
-    console.error(`Error: Input CSS file not found at ${cssInputFile}`);
-  }
-  
-  console.log('JavaScript optimization completed successfully!');
-} catch (error) {
-  console.error('Error during JavaScript optimization:', error.message);
-  process.exit(1);
+// Simple optimizations (in a real app, you would use a proper minifier like Terser)
+console.log('Applying optimizations...');
+
+// Remove comments
+let optimizedContent = originalContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+
+// Remove console.logs
+optimizedContent = optimizedContent.replace(/console\.log\([^)]*\);?/g, '');
+
+// Remove extra whitespace
+optimizedContent = optimizedContent.replace(/\s+/g, ' ');
+
+// Basic minification
+optimizedContent = optimizedContent
+  .replace(/\s*{\s*/g, '{')
+  .replace(/\s*}\s*/g, '}')
+  .replace(/\s*:\s*/g, ':')
+  .replace(/\s*;\s*/g, ';')
+  .replace(/\s*,\s*/g, ',');
+
+const optimizedSize = Buffer.byteLength(optimizedContent, 'utf8');
+console.log(`Optimized size: ${optimizedSize} bytes (${(optimizedSize / 1024).toFixed(2)} KB)`);
+
+// Calculate reduction
+const reduction = originalSize - optimizedSize;
+const reductionPercent = (reduction / originalSize * 100).toFixed(2);
+console.log(`Size reduction: ${reduction} bytes (${reductionPercent}%)`);
+
+// Create backup of original file
+const backupPath = jsFilePath + '.backup';
+fs.writeFileSync(backupPath, originalContent);
+console.log(`Original file backed up to ${backupPath}`);
+
+// Write optimized file
+fs.writeFileSync(jsFilePath, optimizedContent);
+console.log(`Optimized file written to ${jsFilePath}`);
+
+console.log('Optimization complete!');
+
+// Check if still exceeds Shopify's limit
+if (optimizedSize > 10000) {
+  console.warn('\x1b[33m%s\x1b[0m', 'WARNING: Even after optimization, file still exceeds Shopify\'s 10KB limit');
+  console.log('Consider splitting functionality or further reducing code size.');
+} else {
+  console.log('\x1b[32m%s\x1b[0m', 'File size is now within Shopify\'s limits. Good to go!');
 }
