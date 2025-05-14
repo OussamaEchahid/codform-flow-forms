@@ -1,6 +1,4 @@
 
-"use client"
-
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
 
@@ -35,5 +33,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
+// Re-export toast from sonner without conflicts
 export { Toaster }
 export { toast } from "sonner"

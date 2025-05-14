@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +18,6 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
-  product_id?: string;
 }
 
 export interface FormTemplate {
@@ -35,12 +35,12 @@ export const useFormTemplates = () => {
   const [forms, setForms] = useState<FormData[]>([]);
 
   // Get current active shop ID from localStorage if not available in context
-  const getActiveShopId = useCallback(() => {
+  const getActiveShopId = () => {
     return shop || localStorage.getItem('shopify_store');
-  }, [shop]);
+  };
 
   // Fetch all forms
-  const fetchForms = useCallback(async () => {
+  const fetchForms = async () => {
     try {
       setIsLoading(true);
       const shopId = getActiveShopId();
@@ -49,7 +49,7 @@ export const useFormTemplates = () => {
         console.error('No active shop ID found');
         toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
-        return Promise.reject('No active shop ID found');
+        return;
       }
       
       // Fetch forms from Supabase where shop_id matches
@@ -63,26 +63,23 @@ export const useFormTemplates = () => {
         console.error('Error fetching forms:', error);
         toast.error('خطأ في جلب النماذج');
         setIsLoading(false);
-        return Promise.reject(error);
+        return;
       }
       
       // Transform data to match FormData interface
-      const formattedData = (data || []).map(form => ({
+      const formattedData = data.map(form => ({
         ...form,
         isPublished: form.is_published
       }));
       
-      console.log(`Found ${formattedData.length} forms for shop ${shopId}`);
       setForms(formattedData);
       setIsLoading(false);
-      return formattedData;
     } catch (error) {
       console.error('Error fetching forms', error);
       toast.error('خطأ في جلب النماذج');
       setIsLoading(false);
-      return Promise.reject(error);
     }
-  }, [getActiveShopId]);
+  };
 
   // Create a form from template
   const createFormFromTemplate = async (templateId: number) => {
@@ -139,7 +136,7 @@ export const useFormTemplates = () => {
       toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
       // Refresh forms list
-      await fetchForms();
+      fetchForms();
       
       setIsLoading(false);
       return formData;
@@ -199,7 +196,7 @@ export const useFormTemplates = () => {
       toast.success('تم إنشاء نموذج جديد');
       
       // Refresh forms list
-      await fetchForms();
+      fetchForms();
       
       setIsLoading(false);
       return formData;
@@ -376,7 +373,7 @@ export const useFormTemplates = () => {
   };
 };
 
-// Export form templates data
+// Update the template data to use id as string instead of number
 export const formTemplates: FormTemplate[] = [
   {
     id: 1,

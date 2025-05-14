@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle, Info, ExternalLink } from 'lucide-react';
+import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -32,6 +32,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
 }) => {
   const { t, language } = useI18n();
   const [copied, setCopied] = useState(false);
+  // الترويسة مخفية افتراضيًا الآن
   const [hideHeader] = useState(true);
   
   // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
@@ -53,11 +54,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
     );
   };
 
-  // Check if the form ID is in the correct UUID format
-  const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
-  
-  // Generate correct form preview URL
-  const formPreviewUrl = `https://codform-flow-forms.lovable.app/embed/${formId}`;
+  const unsupportedFieldTypes = ['countdown', 'cart-summary'];
 
   return (
     <Card className="mt-4">
@@ -74,8 +71,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
       
       <CardContent>
         <div className="space-y-4">
-          <Alert variant={isValidUuid ? "default" : "destructive"} className={isValidUuid ? "bg-blue-50 border-blue-200" : ""}>
-            <AlertDescription className={`${isValidUuid ? "text-blue-800" : ""} ${language === 'ar' ? 'text-right' : ''}`}>
+          <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar' 
                 ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
                 : 'To add this form to your store, follow these steps:'}
@@ -104,7 +101,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
                 {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
               </span>
-              <code className={`p-2 ${!isValidUuid ? 'bg-red-50 border-red-200 border' : 'bg-gray-100'} rounded text-sm flex-1`}>{formId}</code>
+              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{formId}</code>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -114,17 +111,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </Button>
             </div>
-            
-            {!isValidUuid && (
-              <Alert variant="destructive" className="mt-2">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {language === 'ar' 
-                    ? 'تنبيه: معرّف النموذج غير بالتنسيق الصحيح. يجب أن يكون بتنسيق UUID كامل مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd"' 
-                    : 'Warning: Form ID is not in the correct format. It must be a full UUID format like: "6942b35d-ad06-40fb-8f70-86230d20b0fd"'}
-                </AlertDescription>
-              </Alert>
-            )}
             
             <div className="flex items-center justify-between py-2 border-t">
               <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
@@ -138,30 +124,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <Switch 
                 id="hide-header"
                 checked={hideHeader}
-                disabled={true}
+                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
               />
-            </div>
-            
-            {/* إضافة معاينة الرابط */}
-            <div className="mt-2 p-3 bg-gray-50 rounded-md">
-              <p className={`text-sm font-medium mb-2 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'رابط معاينة النموذج:' : 'Form Preview URL:'}
-              </p>
-              <div className="flex items-center justify-between">
-                <code className="p-2 bg-white border rounded text-xs flex-1 overflow-x-auto">
-                  {formPreviewUrl}
-                </code>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-2"
-                  onClick={() => {
-                    window.open(formPreviewUrl, '_blank');
-                  }}
-                >
-                  <ExternalLink size={14} />
-                </Button>
-              </div>
             </div>
             
             {formTitleElement && (
@@ -211,32 +175,19 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
           <Alert variant="default" className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              <div className="font-bold mb-2">
-                {language === 'ar' 
-                  ? 'هام: معرف النموذج بتنسيق UUID الكامل' 
-                  : 'IMPORTANT: Full UUID format required'}
-              </div>
               {language === 'ar' 
-                ? 'يجب استخدام معرف النموذج بالتنسيق الكامل (UUID)، مثل: "6942b35d-ad06-40fb-8f70-86230d20b0fd". استخدام تنسيق آخر سيؤدي إلى عدم ظهور النموذج.' 
-                : 'You must use the complete form ID format (UUID), such as: "6942b35d-ad06-40fb-8f70-86230d20b0fd". Using any other format will cause the form not to appear.'}
+                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
+                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
             </AlertDescription>
           </Alert>
           
+          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
           <Alert variant="default" className="bg-green-50 border-green-200">
             <Info className="h-4 w-4 text-green-600" />
             <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
               {language === 'ar'
                 ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
                 : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
-            </AlertDescription>
-          </Alert>
-          
-          <Alert variant="default" className="bg-orange-50 border-orange-200">
-            <ExternalLink className="h-4 w-4 text-orange-600" />
-            <AlertDescription className={`text-orange-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar'
-                ? 'عند مواجهة خطأ "Failed to fetch" في متجرك، تأكد من أن متصفحك يسمح بالاتصال بـ Supabase، وأن النموذج بالتنسيق الصحيح ومنشور.'
-                : 'If you encounter a "Failed to fetch" error in your store, ensure your browser allows connections to Supabase, and that your form has the correct format and is published.'}
             </AlertDescription>
           </Alert>
         </div>

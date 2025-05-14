@@ -30,90 +30,6 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
-// فحص حالة الامتداد في متجر Shopify
-async function checkExtensionStatus(shop: string, accessToken: string): Promise<any> {
-  try {
-    console.log(`Checking extension status for shop: ${shop}`);
-    
-    // التحقق من وجود الامتداد في قائمة المتجر المثبتة
-    const themesUrl = `https://${shop}/admin/api/2023-07/themes.json`;
-    
-    const themesResponse = await fetch(themesUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!themesResponse.ok) {
-      const errorText = await themesResponse.text();
-      console.error(`Failed to fetch themes. Status: ${themesResponse.status}, Response: ${errorText}`);
-      return { theme: false, error: `Error fetching themes: ${themesResponse.status}` };
-    }
-    
-    const themesData = await themesResponse.json();
-    const activeTheme = themesData.themes.find((theme: any) => theme.role === 'main');
-    
-    if (!activeTheme) {
-      console.error(`No active theme found for shop: ${shop}`);
-      return { theme: false, error: "No active theme found" };
-    }
-    
-    console.log(`Active theme ID: ${activeTheme.id}`);
-    
-    // التحقق من وجود ملفات الامتداد في السمة النشطة
-    const assetsUrl = `https://${shop}/admin/api/2023-07/themes/${activeTheme.id}/assets.json`;
-    
-    const assetsResponse = await fetch(assetsUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!assetsResponse.ok) {
-      const errorText = await assetsResponse.text();
-      console.error(`Failed to fetch assets. Status: ${assetsResponse.status}, Response: ${errorText}`);
-      return { theme: false, error: `Error fetching assets: ${assetsResponse.status}` };
-    }
-    
-    const assetsData = await assetsResponse.json();
-    
-    // البحث عن ملفات الامتداد المهمة
-    const hasCodeformJs = assetsData.assets.some((asset: any) => 
-      asset.key.includes('codform-core.js'));
-    
-    const hasLiquidSnippet = assetsData.assets.some((asset: any) => 
-      asset.key.includes('codform') && asset.key.endsWith('.liquid'));
-    
-    const themeSectionFound = assetsData.assets.some((asset: any) => 
-      asset.key.includes('codform') && asset.key.includes('section'));
-    
-    const extensionStatus = {
-      theme: true,
-      assets: {
-        js: hasCodeformJs,
-        liquid: hasLiquidSnippet,
-        section: themeSectionFound
-      },
-      active: hasCodeformJs && hasLiquidSnippet,
-      themeId: activeTheme.id
-    };
-    
-    console.log(`Extension check results:`, extensionStatus);
-    return extensionStatus;
-  } catch (error) {
-    console.error(`Error checking extension status: ${error instanceof Error ? error.message : String(error)}`);
-    return { 
-      theme: false, 
-      active: false, 
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
-
 // خدمة الطلبات
 serve(async (req) => {
   // التعامل مع طلبات OPTIONS لـ CORS
@@ -134,8 +50,6 @@ serve(async (req) => {
     // تنظيف نطاق المتجر
     const shop = cleanShopDomain(requestData.shop);
     const accessToken = requestData.accessToken;
-    const checkExtensions = requestData.checkExtensions === true;
-    const forceExtensionCheck = requestData.forceExtensionCheck === true;
     
     console.log(`Testing connection for shop: ${shop}`);
     
@@ -169,13 +83,6 @@ serve(async (req) => {
       throw new Error('تنسيق استجابة غير صالح من API متجر Shopify');
     }
     
-    let extensionsStatus = null;
-    
-    // التحقق من حالة الامتدادات إذا تم طلب ذلك
-    if (checkExtensions || forceExtensionCheck) {
-      extensionsStatus = await checkExtensionStatus(shop, accessToken);
-    }
-    
     // ارجع استجابة ناجحة
     return new Response(
       JSON.stringify({
@@ -187,8 +94,7 @@ serve(async (req) => {
           email: data.shop.email,
           domain: data.shop.domain,
           myshopify_domain: data.shop.myshopify_domain
-        },
-        extensions: extensionsStatus
+        }
       }),
       {
         headers: {

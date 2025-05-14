@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, CheckCircle, RefreshCw, Wrench } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export const ShopifyTokenUpdater = () => {
@@ -17,7 +16,6 @@ export const ShopifyTokenUpdater = () => {
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPlaceholderToken, setHasPlaceholderToken] = useState<boolean>(false);
-  const [isFixingExtension, setIsFixingExtension] = useState<boolean>(false);
   const { toast } = useToast();
   const { shop } = useAuth();
 
@@ -98,10 +96,11 @@ export const ShopifyTokenUpdater = () => {
       
       setIsSuccess(true);
       setHasPlaceholderToken(false);
-      toast.success("تم التحديث بنجاح. تم تحديث رمز وصول Shopify بنجاح.");
-      
-      // إصلاح الامتداد تلقائيًا
-      await fixExtensionAutomatically(shopDomain, accessToken);
+      toast({
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث رمز وصول Shopify بنجاح.",
+        variant: "success",
+      });
       
       // مسح الحقول
       setAccessToken('');
@@ -109,77 +108,13 @@ export const ShopifyTokenUpdater = () => {
       console.error('Error updating token:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز');
       
-      toast.error(`فشل التحديث. ${err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز'}`);
+      toast({
+        title: "فشل التحديث",
+        description: err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الرمز',
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fixExtensionAutomatically = async (shopDomain: string, token: string) => {
-    try {
-      setIsFixingExtension(true);
-      
-      // استدعاء وظيفة تحديث الامتداد
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-theme-update', {
-        body: { 
-          shop: shopDomain, 
-          accessToken: token,
-          force: true
-        }
-      });
-      
-      if (error) {
-        console.error('Error fixing extension:', error);
-        toast.error('فشل في تحديث ملفات الامتداد');
-        return;
-      }
-      
-      if (!data.success) {
-        console.error('Extension update failed:', data);
-        toast.error('فشل في تحديث ملفات الامتداد: ' + (data.message || 'خطأ غير معروف'));
-        return;
-      }
-      
-      toast.success('تم تحديث ملفات الامتداد بنجاح');
-    } catch (err) {
-      console.error('Error in fixExtensionAutomatically:', err);
-      toast.error('حدث خطأ أثناء محاولة تحديث الامتداد');
-    } finally {
-      setIsFixingExtension(false);
-    }
-  };
-
-  const handleFixExtension = async () => {
-    if (!shop) {
-      toast.error('يجب تحديد متجر أولاً');
-      return;
-    }
-    
-    try {
-      setIsFixingExtension(true);
-      
-      // استدعاء وظيفة تحديث الامتداد
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-theme-update', {
-        body: { 
-          shop: shop,
-          force: true 
-        }
-      });
-      
-      if (error) {
-        throw new Error(`فشل في تحديث الامتداد: ${error.message || "خطأ غير معروف"}`);
-      }
-      
-      if (!data.success) {
-        throw new Error(data.message || 'فشل في تحديث ملفات الامتداد');
-      }
-      
-      toast.success('تم تحديث ملفات الامتداد بنجاح');
-    } catch (err) {
-      console.error('Error fixing extension:', err);
-      toast.error(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الامتداد');
-    } finally {
-      setIsFixingExtension(false);
     }
   };
 
@@ -240,8 +175,8 @@ export const ShopifyTokenUpdater = () => {
           </p>
         </div>
         
-        <div className="flex flex-col gap-2">
-          <Button type="submit" disabled={isLoading || !shopDomain || !accessToken} className="w-full">
+        <div className="flex items-center space-x-2">
+          <Button type="submit" disabled={isLoading || !shopDomain || !accessToken}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -254,28 +189,6 @@ export const ShopifyTokenUpdater = () => {
               </>
             )}
           </Button>
-          
-          {shop && (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleFixExtension} 
-              disabled={isFixingExtension} 
-              className="w-full"
-            >
-              {isFixingExtension ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري تحديث الامتداد...
-                </>
-              ) : (
-                <>
-                  <Wrench className="mr-2 h-4 w-4" />
-                  إصلاح امتداد المتجر
-                </>
-              )}
-            </Button>
-          )}
         </div>
       </form>
       
