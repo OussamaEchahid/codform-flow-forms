@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, ShoppingBag, AlertCircle, RefreshCw } from 'lucide-react';
 import { ShopifyProduct } from '@/lib/shopify/types';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface ShopifyProductSelectionProps {
   selectedProducts: string[];
@@ -34,44 +36,65 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   
   const [localSelectedProducts, setLocalSelectedProducts] = useState<string[]>(selectedProducts);
   const [filteredProducts, setFilteredProducts] = useState<ShopifyProduct[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [forceRefresh, setForceRefresh] = useState(false);
   
+  // تحميل المنتجات عند تحميل المكون
   useEffect(() => {
-    // Load products when component mounts
-    loadProducts();
-  }, [loadProducts]);
+    const fetchProducts = async () => {
+      try {
+        await loadProducts(false, forceRefresh);
+        console.log("Products loaded successfully");
+      } catch (error) {
+        console.error("Error loading products:", error);
+        toast.error(language === 'ar' 
+          ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
+          : 'Failed to load products. Please try again');
+      }
+    };
+    
+    fetchProducts();
+  }, [loadProducts, forceRefresh]);
   
+  // تحديث المنتجات المحلية عندما تتغير القيمة في الخاصية
   useEffect(() => {
-    // Update local state when prop changes
     setLocalSelectedProducts(selectedProducts);
   }, [selectedProducts]);
   
-  // Filter out test products
+  // تصفية المنتجات وإزالة منتجات الاختبار
   useEffect(() => {
     if (!products || products.length === 0) {
       setFilteredProducts([]);
       return;
     }
 
-    // Filter out test products based on title, handle, or other properties
+    // تصفية المنتجات التجريبية بناءً على عنوان المنتج، المعرف، والوسوم
     const filtered = products.filter(product => {
       const title = product.title?.toLowerCase() || '';
       const handle = product.handle?.toLowerCase() || '';
+      const tags = product.tags ? (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : product.tags.toLowerCase()) : '';
       
-      // Filter out products with "test" in the title or handle
-      const isTestProduct = 
-        title.includes('test') || 
-        handle.includes('test') ||
-        title.includes('demo') ||
-        handle.includes('demo') ||
-        title.includes('sample') ||
-        handle.includes('sample');
+      // قائمة الكلمات الرئيسية للمنتجات التجريبية
+      const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
       
-      return !isTestProduct;
+      // التحقق من وجود أي من الكلمات المفتاحية
+      const isTestProduct = testKeywords.some(keyword => 
+        title.includes(keyword) || 
+        handle.includes(keyword) || 
+        tags.includes(keyword)
+      );
+      
+      // البحث في المنتجات (فقط إذا كان هناك كلمة بحث)
+      const matchesSearch = searchTerm ? 
+        title.includes(searchTerm.toLowerCase()) || handle.includes(searchTerm.toLowerCase()) : 
+        true;
+      
+      return !isTestProduct && matchesSearch;
     });
     
-    console.log(`Filtered ${products.length - filtered.length} test products from total ${products.length} products`);
+    console.log(`تمت تصفية ${products.length - filtered.length} منتج تجريبي من إجمالي ${products.length} منتج`);
     setFilteredProducts(filtered);
-  }, [products]);
+  }, [products, searchTerm]);
   
   const handleProductToggle = (productId: string) => {
     setLocalSelectedProducts(prev => {
@@ -80,7 +103,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         ? prev.filter(id => id !== productId)
         : [...prev, productId];
         
-      // Propagate changes to parent
+      // نقل التغييرات إلى المكون الأب
       onChange(updated);
       return updated;
     });
@@ -92,11 +115,31 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     const allProductIds = filteredProducts.map(product => product.id);
     setLocalSelectedProducts(allProductIds);
     onChange(allProductIds);
+    
+    toast.success(language === 'ar' 
+      ? 'تم تحديد جميع المنتجات' 
+      : 'All products selected');
   };
   
   const handleClearAll = () => {
     setLocalSelectedProducts([]);
     onChange([]);
+    
+    toast.success(language === 'ar' 
+      ? 'تم إلغاء تحديد جميع المنتجات' 
+      : 'All products deselected');
+  };
+  
+  const handleForceRefresh = () => {
+    setForceRefresh(true);
+    toast.info(language === 'ar' 
+      ? 'جاري إعادة تحميل المنتجات من المتجر...' 
+      : 'Reloading products from store...');
+    
+    // إعادة تعيين متغير forceRefresh بعد التحميل
+    setTimeout(() => {
+      setForceRefresh(false);
+    }, 3000);
   };
   
   if (isLoading) {
@@ -145,14 +188,60 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   
   if (!filteredProducts || filteredProducts.length === 0) {
     return (
-      <Alert className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {language === 'ar' 
-            ? 'لم يتم العثور على منتجات في متجرك. يرجى إضافة منتجات إلى متجر Shopify الخاص بك أولاً.' 
-            : 'No products found in your store. Please add products to your Shopify store first.'}
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'منتجات متجر Shopify' : 'Shopify Products'}
+          </CardTitle>
+          
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleForceRefresh}
+              disabled={isLoading || forceRefresh}
+            >
+              {forceRefresh ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-2">
+                {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
+              </span>
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+              {language === 'ar' 
+                ? 'لم يتم العثور على منتجات حقيقية في متجرك. المنتجات التجريبية تم استبعادها تلقائيًا. يرجى إضافة منتجات حقيقية إلى متجر Shopify الخاص بك أولاً.' 
+                : 'No real products found in your store. Test products have been automatically excluded. Please add real products to your Shopify store first.'}
+            </AlertDescription>
+          </Alert>
+          
+          <Button 
+            onClick={handleForceRefresh}
+            disabled={isLoading || forceRefresh}
+            className="w-full"
+          >
+            {forceRefresh ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' ? 'جاري التحديث...' : 'Refreshing...'}
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'تحديث المنتجات من المتجر' : 'Refresh Products from Store'}
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
   
@@ -168,13 +257,40 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
             : 'Select products you want to associate this form with'}
         </CardDescription>
         
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" size="sm" onClick={handleClearAll}>
-            {language === 'ar' ? 'إلغاء تحديد الكل' : 'Clear All'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleSelectAll}>
-            {language === 'ar' ? 'تحديد الكل' : 'Select All'}
-          </Button>
+        <div className="flex flex-col gap-2 mt-2">
+          <Input
+            placeholder={language === 'ar' ? 'البحث عن المنتجات...' : 'Search products...'}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-2"
+          />
+          
+          <div className="flex justify-between gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleForceRefresh}
+              disabled={isLoading || forceRefresh}
+            >
+              {forceRefresh ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-2">
+                {language === 'ar' ? 'تحديث' : 'Refresh'}
+              </span>
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleClearAll}>
+                {language === 'ar' ? 'إلغاء تحديد الكل' : 'Clear All'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                {language === 'ar' ? 'تحديد الكل' : 'Select All'}
+              </Button>
+            </div>
+          </div>
         </div>
       </CardHeader>
       

@@ -19,6 +19,7 @@ type ShopifyProduct = {
     src: string;
   } | null;
   status: string;
+  tags?: string[] | string;
   variants: {
     id: string;
     price: string;
@@ -38,20 +39,24 @@ function handleOptions() {
 interface RequestParams {
   shop: string;
   forceRefresh?: boolean;
-  includeTestProducts?: boolean; // New parameter to control including test products
+  includeTestProducts?: boolean; // Parameter to control including test products
 }
 
-// Function to check if a product is a test product
+// Enhanced function to check if a product is a test product
 function isTestProduct(product: any): boolean {
   const title = (product.title || '').toLowerCase();
   const handle = (product.handle || '').toLowerCase();
+  const tags = product.tags ? (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : product.tags.toLowerCase()) : '';
   
-  return title.includes('test') || 
-    handle.includes('test') ||
-    title.includes('demo') ||
-    handle.includes('demo') ||
-    title.includes('sample') ||
-    handle.includes('sample');
+  // Extended list of test-related keywords
+  const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
+  
+  // Check if any test keyword exists in title, handle or tags
+  return testKeywords.some(keyword => 
+    title.includes(keyword) || 
+    handle.includes(keyword) || 
+    tags.includes(keyword)
+  );
 }
 
 serve(async (req: Request) => {
@@ -94,27 +99,49 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}`);
 
-    // For development/test stores, return mock data
+    // For development/test stores, return mock data with improved real-looking products
     if (shop.includes('test') || shop.includes('example') || shop.includes('development') || shop.includes('myshopify')) {
       console.log(`[${requestId}] Test store detected, returning mock data`);
       
-      // Generate mock products
+      // Generate mock products with better real vs test distinction
       const mockProducts = Array.from({ length: 10 }, (_, i) => {
-        // Create a mix of regular and test products
-        const isTest = i < 3; // First 3 are test products
-        const productName = isTest ? `Test Product ${i + 1}` : `Real Product ${i + 1}`;
-        const productHandle = isTest ? `test-product-${i + 1}` : `real-product-${i + 1}`;
+        // First 3 are test products, others are real-looking products
+        const isTest = i < 3;
+        
+        const productName = isTest 
+          ? `Test Product ${i + 1}` 
+          : [
+              'Premium T-Shirt', 
+              'Designer Jeans', 
+              'Wireless Headphones', 
+              'Leather Wallet', 
+              'Fitness Tracker', 
+              'Coffee Mug', 
+              'Phone Case'
+            ][i % 7];
+            
+        const productHandle = isTest 
+          ? `test-product-${i + 1}` 
+          : productName.toLowerCase().replace(/\s+/g, '-');
+        
+        // Add real-looking tags to non-test products
+        const tags = isTest 
+          ? ['test', 'demo', 'sample'] 
+          : ['bestseller', 'featured', 'new-arrival', 'limited-edition', 'sale'][Math.floor(Math.random() * 5)];
         
         return {
           id: `gid://shopify/Product/${1000000 + i}`,
-          title: productName,
+          title: isTest ? `Test Product ${i + 1}` : `${productName} - ${['Black', 'Red', 'Blue', 'Green'][i % 4]}`,
           handle: productHandle,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           published_at: new Date().toISOString(),
           status: 'active',
+          tags: tags,
           images: [
-            `https://via.placeholder.com/500x500.png?text=${encodeURIComponent(productName)}`
+            isTest 
+              ? `https://via.placeholder.com/500x500.png?text=${encodeURIComponent(productName)}`
+              : `https://source.unsplash.com/random/500x500/?${productName.toLowerCase().split(' ')[0]}`
           ],
           variants: [
             {
@@ -127,10 +154,15 @@ serve(async (req: Request) => {
         };
       });
       
+      // Filter test products if requested
+      const filteredProducts = includeTestProducts 
+        ? mockProducts 
+        : mockProducts.filter(product => !isTestProduct(product));
+      
       return new Response(JSON.stringify({
         success: true,
-        products: mockProducts,
-        count: mockProducts.length
+        products: filteredProducts,
+        count: filteredProducts.length
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -157,6 +189,7 @@ serve(async (req: Request) => {
         // Filter out test products if needed
         if (!includeTestProducts) {
           productsData = productsData.filter((product: any) => !isTestProduct(product));
+          console.log(`[${requestId}] Filtered ${cachedProducts[0].products.length - productsData.length} test products from cache`);
         }
         
         return new Response(JSON.stringify({
@@ -225,7 +258,9 @@ serve(async (req: Request) => {
       
       // Filter out test products if needed
       if (!includeTestProducts) {
+        const originalCount = products.length;
         products = products.filter((product: any) => !isTestProduct(product));
+        console.log(`[${requestId}] Filtered ${originalCount - products.length} test products from API response`);
       }
       
       return new Response(JSON.stringify({

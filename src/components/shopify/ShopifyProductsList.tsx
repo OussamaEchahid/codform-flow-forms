@@ -14,7 +14,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
   products,
   hideTestProducts = true
 }) => {
-  // Filter out test products if requested
+  // تحسين الدالة لتصفية المنتجات التجريبية بشكل أفضل
   const filteredProducts = useMemo(() => {
     if (!hideTestProducts || !products || products.length === 0) {
       return products;
@@ -23,17 +23,17 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
     return products.filter(product => {
       const title = product.title?.toLowerCase() || '';
       const handle = product.handle?.toLowerCase() || '';
+      const tags = product.tags ? (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : product.tags.toLowerCase()) : '';
       
-      // Filter out products with "test" in the title or handle
-      const isTestProduct = 
-        title.includes('test') || 
-        handle.includes('test') ||
-        title.includes('demo') ||
-        handle.includes('demo') ||
-        title.includes('sample') ||
-        handle.includes('sample');
+      // توسيع نطاق التصفية لتشمل المزيد من الكلمات الدالة على المنتجات التجريبية
+      const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
       
-      return !isTestProduct;
+      // التحقق من وجود أي من الكلمات المفتاحية في العنوان أو المعرف أو الوسوم
+      return !testKeywords.some(keyword => 
+        title.includes(keyword) || 
+        handle.includes(keyword) || 
+        tags.includes(keyword)
+      );
     });
   }, [products, hideTestProducts]);
   

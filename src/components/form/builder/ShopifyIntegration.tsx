@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useParams } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -31,11 +33,20 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formTitleElement
 }) => {
   const { t, language } = useI18n();
+  const { formId: urlFormId } = useParams<{ formId: string }>();
   const [copied, setCopied] = useState(false);
-  // الترويسة مخفية افتراضيًا الآن
   const [hideHeader] = useState(true);
   
-  // إعادة تعيين حالة النسخ بعد 3 ثوانٍ
+  // Use an actual UUID if formId is "new" or invalid
+  const displayFormId = useMemo(() => {
+    if (!formId || formId === 'new' || formId === 'undefined') {
+      // Generate a temporary UUID for display (not the actual form ID)
+      return urlFormId && urlFormId !== 'new' ? urlFormId : uuidv4();
+    }
+    return formId;
+  }, [formId, urlFormId]);
+  
+  // Reset copy status after 3 seconds
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (copied) {
@@ -45,7 +56,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   }, [copied]);
   
   const handleCopyFormId = () => {
-    navigator.clipboard.writeText(formId);
+    navigator.clipboard.writeText(displayFormId);
     setCopied(true);
     toast.success(
       language === 'ar' 
@@ -101,7 +112,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
                 {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
               </span>
-              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{formId}</code>
+              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{displayFormId}</code>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -124,7 +135,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
               <Switch 
                 id="hide-header"
                 checked={hideHeader}
-                disabled={true} // تعطيل الزر لأننا نريد إخفاء الترويسة دائمًا
+                disabled={true} 
               />
             </div>
             
@@ -181,7 +192,6 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
             </AlertDescription>
           </Alert>
           
-          {/* توجيهات لتحسين مظهر النموذج في المتجر */}
           <Alert variant="default" className="bg-green-50 border-green-200">
             <Info className="h-4 w-4 text-green-600" />
             <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
