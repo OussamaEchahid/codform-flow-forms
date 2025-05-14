@@ -1,270 +1,48 @@
 
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+/**
+ * Shopify Theme Extension deployment script
+ * This script deploys the theme extension files to the Shopify theme
+ */
 
-// Find the root directory where shopify.app.toml exists
-function findRootDirectory() {
-  let currentDir = process.cwd();
-  
-  // Check if shopify.app.toml exists in current directory
-  if (fs.existsSync(path.join(currentDir, 'shopify.app.toml'))) {
-    return currentDir;
-  }
-  
-  // Check if it exists in parent directory (for cases where script is run from a subdirectory)
-  const parentDir = path.resolve(currentDir, '..');
-  if (fs.existsSync(path.join(parentDir, 'shopify.app.toml'))) {
-    return parentDir;
-  }
-  
-  // Look for the file in subdirectories (one level deep)
-  try {
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const subdirPath = path.join(currentDir, entry.name);
-        if (fs.existsSync(path.join(subdirPath, 'shopify.app.toml'))) {
-          return subdirPath;
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error searching subdirectories:', err.message);
-  }
-  
-  console.log('Could not find shopify.app.toml in the current directory or immediate subdirectories.');
-  console.log('Please run this script from the root directory of your Shopify app project.');
+console.log('Starting Shopify theme extension deployment...');
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Configuration
+const extensionsDir = path.join(__dirname, 'extensions');
+const themeExtension = 'theme-extension-codform';
+const themeExtensionDir = path.join(extensionsDir, themeExtension);
+
+// Check if theme extension directory exists
+if (!fs.existsSync(themeExtensionDir)) {
+  console.error(`Error: Theme extension directory '${themeExtension}' not found in ${extensionsDir}`);
   process.exit(1);
 }
 
-// Validate extension files
-function validateExtensions(rootDir) {
-  console.log('Validating extensions structure...');
-  
-  // Run the separate validation script
-  try {
-    require('./validate-shopify-extensions');
-  } catch (error) {
-    console.error('Error running validation script:', error.message);
-  }
-  
-  // Check if the app has the extensions section in shopify.app.toml
-  const appConfigPath = path.join(rootDir, 'shopify.app.toml');
-  if (fs.existsSync(appConfigPath)) {
-    const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-    if (!appConfig.includes('[extensions]')) {
-      console.warn('⚠️ Warning: Missing [extensions] section in shopify.app.toml');
-      console.warn('This might cause the "Expected array, received object" error');
-    }
-  }
-  
-  // Validate theme extension
-  const themeExtPath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'shopify.extension.toml');
-  if (fs.existsSync(themeExtPath)) {
-    console.log('✓ Found theme extension: theme-extension-codform');
-    
-    // Check if block files exist
-    const blocksDir = path.join(rootDir, 'extensions', 'theme-extension-codform', 'blocks');
-    if (fs.existsSync(blocksDir)) {
-      const blockFiles = fs.readdirSync(blocksDir);
-      console.log(`✓ Found ${blockFiles.length} blocks in theme extension`);
-    }
-    
-    // Check JS file size
-    const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
-    if (fs.existsSync(jsFilePath)) {
-      const stats = fs.statSync(jsFilePath);
-      const fileSizeInBytes = stats.size;
-      if (fileSizeInBytes > 10000) {
-        console.warn(`⚠️ Warning: codform.js is ${fileSizeInBytes} bytes, which exceeds the 10KB limit`);
-        console.warn('Consider running the optimize-theme-js.js script before deployment');
-      } else {
-        console.log(`✓ codform.js size is ${fileSizeInBytes} bytes (within limits)`);
-      }
-    }
-  } else {
-    console.warn('⚠️ Warning: theme-extension-codform not found or missing configuration file');
-  }
-  
-  // Validate UI extension
-  const uiExtPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'shopify.extension.toml');
-  if (fs.existsSync(uiExtPath)) {
-    console.log('✓ Found UI extension: admin-action-extension');
-    
-    // Check for package.json
-    const pkgPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'package.json');
-    if (!fs.existsSync(pkgPath)) {
-      console.warn('⚠️ Warning: admin-action-extension is missing package.json file');
-    } else {
-      console.log('✓ admin-action-extension has package.json file');
-    }
-    
-    // Check for extension_points vs. extensions.targeting
-    const uiExtConfig = fs.readFileSync(uiExtPath, 'utf8');
-    if (!uiExtConfig.includes('[extension_points]') && uiExtConfig.includes('[[extensions.targeting]]')) {
-      console.warn('⚠️ Warning: UI extension is using [[extensions.targeting]] which may be outdated');
-      console.warn('Consider updating to [extension_points] format');
-    }
-  } else {
-    console.warn('⚠️ Warning: admin-action-extension not found or missing configuration file');
-  }
-  
-  console.log('Extension validation complete');
+// Optimize and prepare JavaScript files
+try {
+  console.log('Optimizing JavaScript files...');
+  execSync('node optimize-theme-js.js', { stdio: 'inherit' });
+} catch (error) {
+  console.error('Error optimizing JavaScript files:', error.message);
+  process.exit(1);
 }
 
-// Optimize JS if needed
-function optimizeThemeJs(rootDir, force = false) {
-  const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
+// Deploy theme extension
+try {
+  console.log(`Deploying theme extension: ${themeExtension}`);
   
-  if (!fs.existsSync(jsFilePath)) {
-    console.log('No codform.js file found to optimize');
-    return;
-  }
+  // Use Shopify CLI to push the theme extension
+  execSync(`cd ${themeExtensionDir} && shopify app deploy extension`, { stdio: 'inherit' });
   
-  const stats = fs.statSync(jsFilePath);
-  const fileSizeInBytes = stats.size;
-  
-  if (fileSizeInBytes > 10000 || force) {
-    console.log(`codform.js size is ${fileSizeInBytes} bytes, running optimization...`);
-    try {
-      // Run the optimization script
-      require('./optimize-theme-js');
-    } catch (error) {
-      console.error('Error running optimization script:', error.message);
-    }
-  } else {
-    console.log(`codform.js size is ${fileSizeInBytes} bytes (within limits), skipping optimization`);
-  }
+  console.log('Theme extension deployed successfully!');
+} catch (error) {
+  console.error('Error deploying theme extension:', error.message);
+  process.exit(1);
 }
 
-// Main function
-function main() {
-  try {
-    // First check if path was provided as an argument
-    const args = process.argv.slice(2);
-    let rootDir;
-    let command = 'deploy';
-    let skipOptimize = false;
-    let forceOptimize = false;
-    
-    // Check for --path argument
-    const pathArgIndex = args.findIndex(arg => arg === '--path' || arg === '-p');
-    if (pathArgIndex !== -1 && args.length > pathArgIndex + 1) {
-      rootDir = path.resolve(args[pathArgIndex + 1]);
-      // Remove path arguments from args
-      args.splice(pathArgIndex, 2);
-    } else {
-      // Auto-detect path
-      rootDir = findRootDirectory();
-    }
-    
-    // Check for --skip-optimize argument
-    const skipOptimizeIndex = args.findIndex(arg => arg === '--skip-optimize');
-    if (skipOptimizeIndex !== -1) {
-      skipOptimize = true;
-      args.splice(skipOptimizeIndex, 1);
-    }
-    
-    // Check for --force-optimize argument
-    const forceOptimizeIndex = args.findIndex(arg => arg === '--force-optimize');
-    if (forceOptimizeIndex !== -1) {
-      forceOptimize = true;
-      args.splice(forceOptimizeIndex, 1);
-    }
-    
-    // Check if the app config file exists in the detected directory
-    if (!fs.existsSync(path.join(rootDir, 'shopify.app.toml'))) {
-      console.error(`Error: shopify.app.toml not found in ${rootDir}`);
-      process.exit(1);
-    }
-    
-    console.log(`Found Shopify app root at: ${rootDir}`);
-    
-    // Get command from remaining arguments
-    if (args.length > 0) {
-      command = args[0];
-    }
-    
-    // Build the complete command with any additional arguments
-    let shopifyCommand;
-    const additionalArgs = args.slice(1).join(' ');
-    
-    // Validate extensions before deployment
-    if (command === 'deploy' || command === 'deploy-extensions') {
-      validateExtensions(rootDir);
-      
-      // Optimize JS files if needed and not skipped
-      if (!skipOptimize) {
-        optimizeThemeJs(rootDir, forceOptimize);
-      }
-    }
-    
-    // Execute the appropriate Shopify command
-    switch(command) {
-      case 'build':
-        console.log('Building Shopify app...');
-        shopifyCommand = `shopify app build ${additionalArgs}`;
-        break;
-        
-      case 'deploy':
-        console.log('Deploying Shopify app...');
-        shopifyCommand = `shopify app deploy ${additionalArgs}`;
-        break;
-      
-      case 'deploy-extensions':
-        console.log('Deploying Shopify extensions...');
-        shopifyCommand = `shopify app deploy --only-extensions ${additionalArgs}`;
-        break;
-        
-      case 'dev':
-        console.log('Starting Shopify app in development mode...');
-        shopifyCommand = `shopify app dev ${additionalArgs}`;
-        break;
-        
-      case 'info':
-        console.log('Getting app information...');
-        shopifyCommand = `shopify app info ${additionalArgs}`;
-        break;
-      
-      case 'env':
-        console.log('Showing environment information...');
-        shopifyCommand = `shopify app env ${additionalArgs}`;
-        break;
-      
-      case 'validate':
-        console.log('Validating extension structure without deployment...');
-        validateExtensions(rootDir);
-        console.log('Validation complete - fix any warnings before deploying');
-        return;
-        
-      case 'optimize':
-        console.log('Optimizing theme JS files...');
-        optimizeThemeJs(rootDir, true);
-        return;
-        
-      default:
-        // Pass through any other commands directly to Shopify CLI
-        console.log(`Executing command: shopify app ${command} ${additionalArgs}`);
-        shopifyCommand = `shopify app ${command} ${additionalArgs}`;
-    }
-    
-    // Execute the command
-    console.log(`Executing in directory: ${rootDir}`);
-    console.log(`Running: ${shopifyCommand}`);
-    execSync(shopifyCommand, { 
-      cwd: rootDir, 
-      stdio: 'inherit'
-    });
-    
-    console.log('Command executed successfully!');
-  } catch (error) {
-    console.error('Error executing command:', error.message);
-    process.exit(1);
-  }
-}
-
-// Run the main function
-main();
+console.log('Deployment completed successfully!');
