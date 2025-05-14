@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, RefreshCw, ShieldAlert } from 'lucide-react';
-import { ShopifyTokenUpdater } from '@/components/shopify/ShopifyTokenUpdater';
+import ShopifyTokenUpdater from '@/components/shopify/ShopifyTokenUpdater';
 import { ShopifyStore } from '@/lib/shopify/database-types';
 
 const ShopifyTest: React.FC = () => {
