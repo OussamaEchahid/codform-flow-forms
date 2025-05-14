@@ -34,7 +34,7 @@
   </div>
 </div>
 
-<!-- Inline JavaScript fallback to ensure form loading works even if external script fails -->
+<!-- Enhanced inline JavaScript with better debugging and error handling -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const containerId = 'codform-container-{{ block.id }}';
@@ -47,6 +47,10 @@
     const errorMessage = document.getElementById('codform-error-message-{{ block.id }}');
     const errorDetails = document.getElementById('codform-error-details-{{ block.id }}');
     const retryButton = document.getElementById('codform-retry-{{ block.id }}');
+    const successContainer = document.getElementById('codform-success-{{ block.id }}');
+    
+    // Debug info for tracking loading issues
+    console.log(`CODFORM: Initializing form in container ${containerId} with formId: ${formId} for product: ${productId}`);
     
     // Display debug information if the form ID is missing
     if (!formId || formId.trim() === '') {
@@ -59,7 +63,7 @@
       return;
     }
 
-    // Check if the form ID format is valid (UUID)
+    // Enhanced form ID validation with clearer error message
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(formId)) {
       console.error(`CODFORM: Invalid form ID format: ${formId}`);
@@ -75,57 +79,145 @@
       return;
     }
 
-    // Check if the codformCore library is loaded
-    if (typeof window.codformCore === 'undefined' || !window.codformCore.loadForm) {
-      console.error('CODFORM: Core library not loaded');
-      // Wait 2 seconds and try to load the script manually as fallback
-      setTimeout(() => {
+    // Track form loading attempts for debugging
+    let loadAttempts = 0;
+    const maxAttempts = 3;
+    
+    // Function to attempt form loading with retry mechanism
+    function attemptLoadForm() {
+      loadAttempts++;
+      console.log(`CODFORM: Loading attempt ${loadAttempts} for form ${formId}`);
+      
+      if (loadAttempts > 1) {
+        console.log('CODFORM: Retrying form load after previous failure');
+      }
+      
+      // Show loader
+      if (errorContainer) errorContainer.style.display = 'none';
+      if (loader) loader.style.display = 'flex';
+      
+      // Set a timeout to detect if form loading takes too long
+      const loadTimeout = setTimeout(() => {
+        console.error('CODFORM: Form loading timed out after 10 seconds');
+        handleLoadError('تجاوز وقت تحميل النموذج. قد تكون هناك مشكلة في الاتصال بالخادم.');
+      }, 10000);
+      
+      // Try loading the form
+      try {
+        // Check if the codformCore library is loaded
         if (typeof window.codformCore === 'undefined' || !window.codformCore.loadForm) {
-          console.log('CODFORM: Attempting to load core script manually...');
+          console.error('CODFORM: Core library not loaded');
+          
+          // Try to load the script manually as fallback
           const script = document.createElement('script');
           script.src = '{{ "codform-core.js" | asset_url }}';
           script.onload = function() {
-            console.log('CODFORM: Successfully loaded core script');
+            console.log('CODFORM: Successfully loaded core script manually');
+            clearTimeout(loadTimeout); // Clear the timeout since script loaded
+            
             if (window.codformCore && window.codformCore.loadForm) {
               window.codformCore.loadForm(containerId, formId, productId);
+            } else {
+              handleLoadError('فشل تهيئة مكتبة النماذج بعد التحميل اليدوي.');
             }
           };
           script.onerror = function() {
             console.error('CODFORM: Failed to load core script manually');
-            if (loader) loader.style.display = 'none';
-            if (errorContainer) {
-              errorContainer.style.display = 'block';
-              if (errorMessage) errorMessage.textContent = 'فشل تحميل ملفات النموذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.';
-            }
+            clearTimeout(loadTimeout); // Clear the timeout since we know it failed
+            handleLoadError('فشل تحميل ملفات النموذج. يرجى تحديث الصفحة أو المحاولة لاحقًا.');
           };
           document.head.appendChild(script);
+          
+          // Don't proceed with normal loading since we're trying manual loading
+          return;
         }
-      }, 2000);
-      
-      return;
-    }
-
-    // Initialize form
-    console.log(`CODFORM: Loading form ${formId} for product ${productId} in container ${containerId}`);
-    try {
-      window.codformCore.loadForm(containerId, formId, productId);
-      
-      // Add retry button functionality
-      if (retryButton) {
-        retryButton.addEventListener('click', function() {
-          if (errorContainer) errorContainer.style.display = 'none';
-          if (loader) loader.style.display = 'flex';
-          window.codformCore.loadForm(containerId, formId, productId);
-        });
+        
+        // Normal loading path when library exists
+        console.log(`CODFORM: Loading form ${formId} for product ${productId} in container ${containerId}`);
+        window.codformCore.loadForm(containerId, formId, productId);
+        clearTimeout(loadTimeout); // Clear timeout since we started loading
+      } catch (e) {
+        console.error('CODFORM: Error during form initialization:', e);
+        clearTimeout(loadTimeout); // Clear timeout since we have an error
+        handleLoadError(e.message || 'حدث خطأ أثناء تهيئة النموذج. يرجى تحديث الصفحة.');
       }
-    } catch (e) {
-      console.error('CODFORM: Error initializing form:', e);
+    }
+    
+    // Function to handle load errors with details
+    function handleLoadError(message) {
+      console.error(`CODFORM: Load error: ${message}`);
+      
       if (loader) loader.style.display = 'none';
       if (errorContainer) {
         errorContainer.style.display = 'block';
-        if (errorMessage) errorMessage.textContent = 'حدث خطأ أثناء تهيئة النموذج. يرجى تحديث الصفحة.';
+        
+        if (errorMessage) {
+          errorMessage.textContent = message || 'حدث خطأ أثناء تحميل النموذج. يرجى المحاولة مرة أخرى.';
+        }
+        
+        // Show technical details if this isn't the first attempt
+        if (errorDetails && loadAttempts > 1) {
+          errorDetails.textContent = `محاولة التحميل رقم ${loadAttempts}/${maxAttempts}. معرف النموذج: ${formId}`;
+          errorDetails.style.display = 'block';
+        }
+        
+        // Only show retry button if we haven't reached max attempts
+        if (retryButton) {
+          if (loadAttempts < maxAttempts) {
+            retryButton.style.display = 'block';
+            retryButton.textContent = `إعادة المحاولة (${loadAttempts}/${maxAttempts})`;
+          } else {
+            retryButton.textContent = 'تحديث الصفحة';
+            retryButton.onclick = function() {
+              window.location.reload();
+            };
+          }
+        }
       }
     }
+    
+    // Add retry button functionality
+    if (retryButton) {
+      retryButton.addEventListener('click', function() {
+        // If we've reached max attempts, reload the page instead
+        if (loadAttempts >= maxAttempts) {
+          window.location.reload();
+          return;
+        }
+        
+        attemptLoadForm();
+      });
+    }
+    
+    // Set up message listeners for form events
+    window.addEventListener('message', function(event) {
+      // Security check - only process messages from the form app origin
+      if (event.origin !== 'https://codform-flow-forms.lovable.app' && 
+          event.origin !== 'https://mtyfuwdsshlzqwjujavp.supabase.co') {
+        return;
+      }
+      
+      console.log('CODFORM: Received message from form:', event.data);
+      
+      // Process form events
+      if (event.data.type === 'codform:loaded') {
+        console.log('CODFORM: Form loaded successfully');
+        if (loader) loader.style.display = 'none';
+        if (formContainer) formContainer.style.display = 'block';
+      }
+      else if (event.data.type === 'codform:submitted') {
+        console.log('CODFORM: Form submitted successfully');
+        if (formContainer) formContainer.style.display = 'none';
+        if (successContainer) successContainer.style.display = 'block';
+      }
+      else if (event.data.type === 'codform:error') {
+        console.error('CODFORM: Form error received:', event.data.error);
+        handleLoadError(event.data.error || 'حدث خطأ في النموذج');
+      }
+    });
+    
+    // Start initial form loading
+    attemptLoadForm();
   });
 </script>
 
@@ -145,4 +237,3 @@
   ]
 }
 {% endschema %}
-
