@@ -317,9 +317,17 @@ export const useFormTemplates = () => {
   };
   
   // Load a specific form by ID
-  const loadForm = async (formId: string) => {
+  const loadForm = async (formId: string | undefined) => {
     try {
       setIsLoading(true);
+      
+      // If formId is undefined, we're creating a new form
+      if (!formId) {
+        console.log('No form ID provided, creating a new form');
+        const newForm = await createDefaultForm();
+        setIsLoading(false);
+        return newForm;
+      }
       
       // Fetch form from Supabase
       const { data, error } = await supabase

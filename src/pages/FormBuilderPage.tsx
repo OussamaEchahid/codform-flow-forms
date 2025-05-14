@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -46,7 +47,12 @@ const FormBuilderPage = () => {
   
   useEffect(() => {
     if (formId) {
-      setActiveTab('editor');
+      // Handle creating a new form when "new" is in the URL
+      if (formId === 'new') {
+        setActiveTab('editor');
+      } else {
+        setActiveTab('editor');
+      }
     } else {
       fetchForms();
       setActiveTab('dashboard');
@@ -106,6 +112,9 @@ const FormBuilderPage = () => {
     );
   }
 
+  // Generate a proper form ID if the URL contains "new"
+  const actualFormId = formId === 'new' ? undefined : formId;
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
@@ -131,7 +140,7 @@ const FormBuilderPage = () => {
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          <FormBuilderEditor formId={formId} />
+          <FormBuilderEditor formId={actualFormId} />
         )}
       </div>
     </div>

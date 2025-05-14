@@ -269,7 +269,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // أضف إعدادات النمط الخاصة بالنموذج الجديد
+      // Add form style settings for the new form
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
         borderRadius: '0.5rem',
@@ -317,6 +317,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         shop_id: shopId,
         style: defaultStyle
       });
+
+      // Update URL to use the real UUID instead of "new"
+      navigate(`/form-builder/${newId}`, { replace: true });
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
     } catch (error) {
@@ -424,18 +427,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             
             console.log("تم تحميل بيانات النموذج:", formData);
           } else {
-            // إذا لم يتم العثور على النموذج، ت��يئة نموذج افتراضي
-            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
-            setFormElements(createDefaultForm());
+            // If the form wasn't found, initialize a new form
+            await initializeNewForm();
           }
         } catch (error) {
           console.error("خطأ في تحميل النموذج:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-          // في حالة وجود خطأ، إنشاء نموذج افتراضي
-          setFormElements(createDefaultForm());
+          // Create a default form in case of error
+          await initializeNewForm();
         }
       } else {
-        // إذا لم يكن هناك معرف للنموذج، تهيئة نموذج جديد
+        // If no form ID, initialize a new form
         await initializeNewForm();
       }
     };
