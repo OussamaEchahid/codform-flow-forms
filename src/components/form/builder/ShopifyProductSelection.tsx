@@ -158,9 +158,9 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                 className="flex items-center justify-between space-x-4 rtl:space-x-reverse border rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                  {product.image ? (
+                  {product.images && product.images.length > 0 ? (
                     <img 
-                      src={product.image} 
+                      src={product.images[0]} 
                       alt={product.title}
                       className="h-14 w-14 rounded-md object-contain border p-1"
                     />

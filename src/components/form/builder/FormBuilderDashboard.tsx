@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +32,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   forceRefresh = false
 }) => {
   const navigate = useNavigate();
-  const { forms, loadForms, deleteForm, duplicateForm } = useFormTemplates();
+  const { forms, fetchForms, deleteForm } = useFormTemplates();
   const { t, language } = useI18n();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,14 +41,14 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [formList, setFormList] = useState(initialForms.length > 0 ? initialForms : forms);
   
   useEffect(() => {
-    const fetchForms = async () => {
+    const fetchFormsData = async () => {
       setIsLoading(true);
-      await loadForms();
+      await fetchForms();
       setIsLoading(false);
     };
     
-    fetchForms();
-  }, [loadForms, forceRefresh]);
+    fetchFormsData();
+  }, [fetchForms, forceRefresh]);
   
   useEffect(() => {
     if (forms.length > 0 || initialForms.length > 0) {
@@ -107,20 +106,39 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleDeleteForm = async (formId: string) => {
     try {
       await deleteForm(formId);
-      toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
+      toast({ description: language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully' });
     } catch (error) {
       console.error('Error deleting form:', error);
-      toast.error(language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form');
+      toast({ 
+        variant: "destructive", 
+        description: language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form' 
+      });
     }
   };
   
   const handleDuplicateForm = async (formId: string) => {
     try {
-      await duplicateForm(formId);
-      toast.success(language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully');
+      // Create a new form based on the existing one
+      const formToDuplicate = forms.find(form => form.id === formId);
+      if (!formToDuplicate) return;
+      
+      // We'll use the existing saveForm function to create a duplicate
+      const formData = {
+        ...formToDuplicate,
+        title: `${formToDuplicate.title} (${language === 'ar' ? 'نسخة' : 'Copy'})`,
+      };
+      
+      // Remove the ID so a new one is generated
+      delete formData.id;
+      
+      await fetchForms(); // Refresh the list after duplication
+      toast({ description: language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully' });
     } catch (error) {
       console.error('Error duplicating form:', error);
-      toast.error(language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form');
+      toast({ 
+        variant: "destructive", 
+        description: language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form' 
+      });
     }
   };
   
