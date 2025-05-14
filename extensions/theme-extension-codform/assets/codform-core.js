@@ -88,13 +88,16 @@
       return;
     }
     
+    // تنظيف معرّف النموذج من أي مسافات محتملة
+    const cleanFormId = formId.trim();
+    
     // التحقق من صحة تنسيق معرّف النموذج (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(formId)) {
-      logDebug(`تنسيق معرّف النموذج غير صالح: ${formId}`);
+    if (!uuidRegex.test(cleanFormId)) {
+      logDebug(`تنسيق معرّف النموذج غير صالح: ${cleanFormId}`);
       handleFormError(
-        'صيغة معرّف النموذج غير صحيحة. يجب أن يكون المعرّف بتنسيق UUID.',
-        `المعرّف المستخدم: ${formId}`
+        'صيغة معرّف النموذج غير صحيحة. يجب أن يكون المعرّف بتنسيق UUID الكامل.',
+        `المعرّف المستخدم: ${cleanFormId}. يجب أن يكون بالتنسيق: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
       );
       return;
     }
@@ -164,17 +167,17 @@
         formContainer.style.display = 'none';
       }
       
-      // URL النموذج - نستخدم الدومين الصحيح
+      // URL النموذج - دائمًا استخدم الدومين الرسمي والمسار الصحيح /embed/
       const formAppUrl = "https://codform-flow-forms.lovable.app";
       const embedPath = "/embed/";
-      const formUrl = `${formAppUrl}${embedPath}${formId}?embedded=true&hideHeader=${hideHeader}${productId ? '&productId=' + productId : ''}`;
+      const formUrl = `${formAppUrl}${embedPath}${cleanFormId}?embedded=true&hideHeader=${hideHeader}${productId ? '&productId=' + encodeURIComponent(productId) : ''}`;
       
       logDebug('رابط النموذج:', formUrl);
       
       // مهلة للكشف عن مشاكل التحميل
       const timeoutDuration = 15000; // 15 ثانية
       let loadTimeout = setTimeout(function() {
-        logDebug(`تجاوز وقت تحميل النموذج بعد ${timeoutDuration/1000} ثواني`);
+        logDebug(`تجاوز وقت تحميل النموذج بعد ${timeoutDuration/1000} ثوانٍ`);
         handleFormError('تجاوز وقت تحميل النموذج. قد تكون هناك مشكلة في الاتصال بالخادم.');
       }, timeoutDuration);
       
