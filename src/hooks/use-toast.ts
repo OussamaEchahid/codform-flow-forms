@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { toast as sonnerToast, type ToastT } from "sonner";
-import { enhancedToast } from "@/components/ui/toaster";
+import { toast as enhancedToast } from "@/components/ui/toaster";
 
 // Re-export the enhanced toast
 export const toast = enhancedToast;
