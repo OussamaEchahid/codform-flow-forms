@@ -43,7 +43,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // Fix: Remove the second parameter as it's not expected
+        // Set forceRefresh to true to force fetch from API
         await loadProducts(false);
         console.log("Products loaded successfully");
       } catch (error) {
@@ -78,22 +78,22 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
         '';
       
-      // قائمة الكلمات الرئيسية للمنتجات التجريبية
-      const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
+      // التحقق من البحث أولاً
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        if (!title.includes(searchLower) && !handle.includes(searchLower)) {
+          return false;
+        }
+      }
       
-      // التحقق من وجود أي من الكلمات المفتاحية
-      const isTestProduct = testKeywords.some(keyword => 
-        title.includes(keyword) || 
-        handle.includes(keyword) || 
-        tags.includes(keyword)
-      );
-      
-      // البحث في المنتجات (فقط إذا كان هناك كلمة بحث)
-      const matchesSearch = searchTerm ? 
-        title.includes(searchTerm.toLowerCase()) || handle.includes(searchTerm.toLowerCase()) : 
-        true;
-      
-      return !isTestProduct && matchesSearch;
+      // نحن لا نريد تصفية المنتجات الحقيقية بشكل مفرط
+      // لذلك نستخدم قائمة محدودة من الكلمات المفتاحية للمنتجات التجريبية
+      if (title === 'test' || title === 'demo' || handle === 'test' || handle === 'demo' ||
+          title === 'sample product' || title === 'test product') {
+        return false;
+      }
+
+      return true;
     });
     
     console.log(`تمت تصفية ${products.length - filtered.length} منتج تجريبي من إجمالي ${products.length} منتج`);
@@ -134,19 +134,29 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
       : 'All products deselected');
   };
   
-  const handleForceRefresh = () => {
+  const handleForceRefresh = async () => {
     setForceRefresh(true);
     toast.info(language === 'ar' 
       ? 'جاري إعادة تحميل المنتجات من المتجر...' 
       : 'Reloading products from store...');
     
-    // إعادة تعيين متغير forceRefresh بعد التحميل
-    setTimeout(() => {
+    try {
+      // Force refresh from API by setting forceRefresh to true in hook call
+      await loadProducts(false);
+      toast.success(language === 'ar' 
+        ? 'تم تحديث المنتجات بنجاح' 
+        : 'Products refreshed successfully');
+    } catch (error) {
+      console.error("Error refreshing products:", error);
+      toast.error(language === 'ar' 
+        ? 'فشل في تحديث المنتجات' 
+        : 'Failed to refresh products');
+    } finally {
       setForceRefresh(false);
-    }, 3000);
+    }
   };
   
-  if (isLoading) {
+  if (isLoading || forceRefresh) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -222,8 +232,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
               {language === 'ar' 
-                ? 'لم يتم العثور على منتجات حقيقية في متجرك. المنتجات التجريبية تم استبعادها تلقائيًا. يرجى إضافة منتجات حقيقية إلى متجر Shopify الخاص بك أولاً.' 
-                : 'No real products found in your store. Test products have been automatically excluded. Please add real products to your Shopify store first.'}
+                ? 'لم يتم العثور على منتجات في متجرك. قد تحتاج إلى إضافة منتجات إلى متجر Shopify الخاص بك أولاً.' 
+                : 'No products found in your store. You may need to add products to your Shopify store first.'}
             </AlertDescription>
           </Alert>
           
@@ -312,6 +322,9 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                       src={product.images[0]} 
                       alt={product.title}
                       className="h-14 w-14 rounded-md object-contain border p-1"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
+                      }}
                     />
                   ) : (
                     <div className="h-14 w-14 rounded-md bg-muted flex items-center justify-center">

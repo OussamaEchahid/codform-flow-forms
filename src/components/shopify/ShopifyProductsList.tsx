@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,11 +31,16 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
       // توسيع نطاق التصفية لتشمل المزيد من الكلمات الدالة على المنتجات التجريبية
       const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
       
+      // حالات خاصة - نتجنب تصفية المنتجات ذات الأسماء العادية
+      // مثلا منتج باسم "Premium Testing Kit" ليس بالضرورة منتج تجريبي
+      if (title === 'test' || title.startsWith('test ') || handle === 'test') {
+        return false;
+      }
+      
       // التحقق من وجود أي من الكلمات المفتاحية في العنوان أو المعرف أو الوسوم
       return !testKeywords.some(keyword => 
-        title.includes(keyword) || 
-        handle.includes(keyword) || 
-        tags.includes(keyword)
+        title === keyword || 
+        handle === keyword
       );
     });
   }, [products, hideTestProducts]);
