@@ -87,6 +87,8 @@ export interface ShopifyProduct {
   handle: string;
   price: string;
   images: string[];
+  // Adding tags property to fix TypeScript errors
+  tags?: string[] | string;
   variants: Array<{
     id: string;
     title: string;

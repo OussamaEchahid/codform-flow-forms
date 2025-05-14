@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,7 +22,10 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
     return products.filter(product => {
       const title = product.title?.toLowerCase() || '';
       const handle = product.handle?.toLowerCase() || '';
-      const tags = product.tags ? (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : product.tags.toLowerCase()) : '';
+      // Access tags safely using optional chaining
+      const tags = product.tags ? 
+        (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
+        '';
       
       // توسيع نطاق التصفية لتشمل المزيد من الكلمات الدالة على المنتجات التجريبية
       const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];

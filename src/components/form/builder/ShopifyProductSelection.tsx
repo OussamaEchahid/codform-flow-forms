@@ -43,7 +43,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        await loadProducts(false, forceRefresh);
+        // Fix: Remove the second parameter as it's not expected
+        await loadProducts(false);
         console.log("Products loaded successfully");
       } catch (error) {
         console.error("Error loading products:", error);
@@ -72,7 +73,10 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     const filtered = products.filter(product => {
       const title = product.title?.toLowerCase() || '';
       const handle = product.handle?.toLowerCase() || '';
-      const tags = product.tags ? (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : product.tags.toLowerCase()) : '';
+      // Access tags safely using optional chaining and type checking
+      const tags = product.tags ? 
+        (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
+        '';
       
       // قائمة الكلمات الرئيسية للمنتجات التجريبية
       const testKeywords = ['test', 'demo', 'sample', 'example', 'dummy', 'trial'];
