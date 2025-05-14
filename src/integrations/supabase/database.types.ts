@@ -6,8 +6,9 @@ import { Json } from './types';
 export interface Database extends ShopifyDatabase {
   public: {
     Tables: {
-      shopify_stores: ShopifyDatabase['public']['Tables']['shopify_stores'];
+      shopify_shops: ShopifyDatabase['public']['Tables']['shopify_shops'];
       shopify_product_settings: ShopifyDatabase['public']['Tables']['shopify_product_settings'];
+      shopify_cached_products: ShopifyDatabase['public']['Tables']['shopify_cached_products'];
       
       // Add other tables used in the main application
       forms: {
