@@ -19,7 +19,7 @@ const FormBuilderPage = () => {
   const navigate = useNavigate();
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
-  const { fetchForms } = useFormTemplates();
+  const { fetchForms, createDefaultForm } = useFormTemplates();
   const { tokenError, failSafeMode, toggleFailSafeMode } = useShopify();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
@@ -46,18 +46,38 @@ const FormBuilderPage = () => {
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
   useEffect(() => {
-    if (formId) {
-      // Handle creating a new form when "new" is in the URL
-      if (formId === 'new') {
-        setActiveTab('editor');
+    async function handleFormInit() {
+      if (formId) {
+        // Handle creating a new form when "new" is in the URL
+        if (formId === 'new') {
+          try {
+            // Create a new form with default template
+            const newForm = await createDefaultForm();
+            if (newForm && newForm.id) {
+              // Redirect to the newly created form's edit page
+              navigate(`/form-builder/${newForm.id}`, { replace: true });
+            } else {
+              toast.error(language === 'ar' 
+                ? 'حدث خطأ أثناء إنشاء النموذج الجديد' 
+                : 'Error creating new form');
+            }
+          } catch (error) {
+            console.error('Error creating new form:', error);
+            toast.error(language === 'ar' 
+              ? 'حدث خطأ أثناء إنشاء النموذج الجديد' 
+              : 'Error creating new form');
+          }
+        } else {
+          setActiveTab('editor');
+        }
       } else {
-        setActiveTab('editor');
+        fetchForms();
+        setActiveTab('dashboard');
       }
-    } else {
-      fetchForms();
-      setActiveTab('dashboard');
     }
-  }, [formId, fetchForms]);
+    
+    handleFormInit();
+  }, [formId, fetchForms, createDefaultForm, navigate, language]);
 
   // Always enable bypass access in development mode
   useEffect(() => {
@@ -113,6 +133,7 @@ const FormBuilderPage = () => {
   }
 
   // Generate a proper form ID if the URL contains "new"
+  // No longer needed as we now handle this with redirection
   const actualFormId = formId === 'new' ? undefined : formId;
 
   return (
@@ -140,7 +161,7 @@ const FormBuilderPage = () => {
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          <FormBuilderEditor formId={actualFormId} />
+          formId && formId !== 'new' && <FormBuilderEditor formId={formId} />
         )}
       </div>
     </div>

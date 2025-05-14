@@ -162,7 +162,10 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Create a UUID immediately for the new form instead of using 'new'
       const newFormId = uuidv4();
+      
+      // Prepare default form data
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
@@ -172,6 +175,8 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
+      console.log('Creating new form with ID:', newFormId);
+      
       // Insert into Supabase
       const { error } = await supabase
         .from('forms')
@@ -321,12 +326,21 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // If formId is undefined, we're creating a new form
-      if (!formId) {
-        console.log('No form ID provided, creating a new form');
+      // If formId is undefined or 'new', we're creating a new form
+      if (!formId || formId === 'new') {
+        console.log('No form ID provided or ID is "new", creating a new form');
         const newForm = await createDefaultForm();
         setIsLoading(false);
         return newForm;
+      }
+      
+      // Validate UUID format before querying
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(formId)) {
+        console.error(`Invalid UUID format: "${formId}"`);
+        toast.error('معرف النموذج غير صالح');
+        setIsLoading(false);
+        return null;
       }
       
       // Fetch form from Supabase
