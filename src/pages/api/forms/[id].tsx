@@ -31,7 +31,8 @@ export default function FormAPI() {
 
         // Skip API call if id is 'new' since it's a placeholder
         if (id === 'new') {
-          setError('Cannot fetch form with id "new"');
+          console.log('Cannot fetch form with id "new", it will be redirected');
+          setError('Form with ID "new" is being redirected to create a new form');
           setIsLoading(false);
           return;
         }
@@ -42,6 +43,7 @@ export default function FormAPI() {
           // Try to validate if the ID is a valid UUID format
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(id)) {
+            console.error(`Invalid UUID format: "${id}"`);
             throw new Error(`Invalid UUID format: "${id}"`);
           }
           

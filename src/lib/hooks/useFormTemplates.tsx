@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -33,6 +32,7 @@ export const useFormTemplates = () => {
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
+  const [isCreatingForm, setIsCreatingForm] = useState(false); // مؤشر جديد لمنع الإنشاء المتكرر
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
@@ -151,7 +151,15 @@ export const useFormTemplates = () => {
   // Create a default form
   const createDefaultForm = async () => {
     try {
+      // منع الإنشاءات المتكررة
+      if (isCreatingForm) {
+        console.log('Already creating a form, preventing duplicate creation');
+        return null;
+      }
+      
+      setIsCreatingForm(true);
       setIsLoading(true);
+      
       const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
@@ -159,11 +167,13 @@ export const useFormTemplates = () => {
         console.error('No active shop ID found');
         toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
+        setIsCreatingForm(false);
         return null;
       }
 
       // Create a UUID immediately for the new form instead of using 'new'
       const newFormId = uuidv4();
+      console.log('Creating new form with ID:', newFormId);
       
       // Prepare default form data
       const formData: FormData = {
@@ -174,8 +184,6 @@ export const useFormTemplates = () => {
         isPublished: false,
         shop_id: shopId,
       };
-
-      console.log('Creating new form with ID:', newFormId);
       
       // Insert into Supabase
       const { error } = await supabase
@@ -194,6 +202,7 @@ export const useFormTemplates = () => {
         console.error('Error saving form to database:', error);
         toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
         setIsLoading(false);
+        setIsCreatingForm(false);
         return null;
       }
 
@@ -204,11 +213,13 @@ export const useFormTemplates = () => {
       fetchForms();
       
       setIsLoading(false);
+      setIsCreatingForm(false);
       return formData;
     } catch (error) {
       console.error('Error creating default form', error);
       toast.error('خطأ في إنشاء نموذج جديد');
       setIsLoading(false);
+      setIsCreatingForm(false);
       return null;
     }
   };

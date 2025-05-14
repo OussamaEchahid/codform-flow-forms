@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -12,7 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -24,6 +22,7 @@ const FormBuilderPage = () => {
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [isCreatingForm, setIsCreatingForm] = useState(false); // مؤشر لمنع الإنشاء المتعدد
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -51,9 +50,19 @@ const FormBuilderPage = () => {
         // Handle creating a new form when "new" is in the URL
         if (formId === 'new') {
           try {
+            // إضافة تحقق لمنع الإنشاء المتعدد للنماذج
+            if (isCreatingForm) {
+              console.log('Already creating a form, preventing duplicate creation');
+              return;
+            }
+            
+            setIsCreatingForm(true);
+            console.log('Starting form creation process');
+            
             // Create a new form with default template
             const newForm = await createDefaultForm();
             if (newForm && newForm.id) {
+              console.log('New form created successfully with ID:', newForm.id);
               // Redirect to the newly created form's edit page
               navigate(`/form-builder/${newForm.id}`, { replace: true });
             } else {
@@ -66,6 +75,8 @@ const FormBuilderPage = () => {
             toast.error(language === 'ar' 
               ? 'حدث خطأ أثناء إنشاء النموذج الجديد' 
               : 'Error creating new form');
+          } finally {
+            setIsCreatingForm(false);
           }
         } else {
           setActiveTab('editor');
@@ -77,7 +88,7 @@ const FormBuilderPage = () => {
     }
     
     handleFormInit();
-  }, [formId, fetchForms, createDefaultForm, navigate, language]);
+  }, [formId, fetchForms, createDefaultForm, navigate, language, isCreatingForm]);
 
   // Always enable bypass access in development mode
   useEffect(() => {
@@ -131,10 +142,6 @@ const FormBuilderPage = () => {
       </div>
     );
   }
-
-  // Generate a proper form ID if the URL contains "new"
-  // No longer needed as we now handle this with redirection
-  const actualFormId = formId === 'new' ? undefined : formId;
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
