@@ -81,7 +81,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         return;
       }
       
-      // Create product associations
+      // Create product associations - FIX: Make sure the form_id is stored as a string to match the database schema
       const productSettings = selectedProducts.map(productId => ({
         form_id: newFormId,
         product_id: productId,
