@@ -1,3 +1,4 @@
+
 // This function is responsible for updating the Shopify theme to insert the form
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -34,17 +35,17 @@ serve(async (req: Request) => {
     // Parse request body
     const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
 
-    if (!shop || !accessToken || !formId) {
+    if (!shop || !accessToken) {
       return new Response(JSON.stringify({
         success: false,
-        message: 'Missing required parameters: shop, accessToken, and formId are required'
+        message: 'Missing required parameters: shop and accessToken are required'
       }), { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`Updating theme for shop ${shop} with form ${formId}`);
+    console.log(`Updating theme for shop ${shop}`);
 
     try {
       // First, get theme info to determine if we're dealing with OS2.0 or traditional theme
@@ -73,22 +74,22 @@ serve(async (req: Request) => {
       if (themeType === 'OS2.0') {
         // Update OS2.0 theme
         console.log('Updating OS2.0 theme');
-        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, formId, blockId);
+        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, blockId);
       } else {
         // Update traditional theme
         console.log('Updating traditional theme');
-        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, formId, blockId);
+        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, blockId);
       }
 
       // Store insertion information in the database for reference
-      const formIdShort = formId.substring(0, 8);
+      const formIdShort = formId ? formId.substring(0, 8) : '';
       try {
         // Store insertion meta in a separate table for reference
         const { error: insertionError } = await supabase
           .from('shopify_form_insertion')
           .upsert({
             shop_id: shop,
-            form_id: formId,
+            form_id: formId || null,
             theme_id: targetThemeId,
             theme_type: themeType,
             insertion_method: insertionMethod,
@@ -111,7 +112,7 @@ serve(async (req: Request) => {
         success: true,
         theme_id: targetThemeId,
         theme_type: themeType,
-        message: `Form has been added to the theme successfully`,
+        message: `Form block has been added to the theme successfully`,
         details: updateResult
       }), { 
         status: 200,
@@ -190,7 +191,7 @@ async function getShopifyThemes(shop: string, accessToken: string): Promise<any[
 }
 
 // OS2.0 Theme update function
-async function updateOS2Theme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
+async function updateOS2Theme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For OS2.0 themes, we need to update the product.json template to insert our app block
   // First, get the template
   const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
@@ -222,9 +223,8 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
   
   console.log('Found main product section: main');
   
-  // Form block ID (ensure it's unique)
-  const formIdShort = formId.substring(0, 8);
-  const actualBlockId = blockId || `codform_${formIdShort}`;
+  // Generate a unique block ID if not provided
+  const actualBlockId = blockId || `codform_${Date.now()}`;
   
   // For OS2.0 themes, the block type should be the extension handle followed by the block handle
   // This is the correct format for theme app extensions with the branding domain prefix
@@ -255,12 +255,10 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Simplified settings - only include form_id
+  // Block definition without form_id
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
-    settings: {
-      form_id: formId
-    }
+    settings: {}
   };
   
   // Update the template
@@ -294,7 +292,7 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
 }
 
 // Traditional Theme update function
-async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
+async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For traditional themes, we need to update the product template to include our snippet
   
   // First, get the product template
@@ -326,7 +324,7 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
     }
     
     // Continue with the alternative template
-    return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', altData.asset.value);
+    return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', altData.asset.value);
   }
   
   const data = await response.json();
@@ -335,17 +333,16 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
   }
   
   // Process the template
-  return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', data.asset.value);
+  return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', data.asset.value);
 }
 
 // Helper function to process the traditional liquid template
-async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, formId: string, blockId: string, templateKey: string, templateContent: string): Promise<any> {
+async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, blockId: string, templateKey: string, templateContent: string): Promise<any> {
   // Generate a block ID if not provided
-  const formIdShort = formId.substring(0, 8);
-  const actualBlockId = blockId || `codform_${formIdShort}`;
+  const actualBlockId = blockId || `codform_${Date.now()}`;
   
-  // Check if our snippet is already included
-  const snippetIncludeString = `{% render 'codform', product: product, form_id: '${formId}', block_id: '${actualBlockId}' %}`;
+  // Check if our snippet is already included - now without form_id parameter
+  const snippetIncludeString = `{% render 'codform', product: product, block_id: '${actualBlockId}' %}`;
   
   if (templateContent.includes(snippetIncludeString)) {
     console.log('Snippet already included in template');
@@ -401,7 +398,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     }
   }
   
-  // Create the snippet
+  // Create the snippet - now without form_id parameter
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -409,16 +406,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ form_id }}">
-  <div class="codform-header">
-    <h3>{{ block.settings.title | default: "اطلب المنتج الآن - الدفع عند الاستلام" }}</h3>
-    {% if block.settings.description != blank %}
-      <p>{{ block.settings.description }}</p>
-    {% else %}
-      <p>املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج.</p>
-    {% endif %}
-  </div>
-
+<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true">
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block_id }}" class="codform-loader">
       <div class="codform-spinner"></div>
