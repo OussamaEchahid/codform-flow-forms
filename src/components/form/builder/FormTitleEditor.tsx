@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -37,6 +38,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
   const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
   // Remove descriptionFontWeight usage and use a fixed value
+  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
   // Update local state when formTitleField changes
@@ -49,6 +51,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
       // Remove descriptionFontWeight reference here
+      setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
   }, [formTitleField, language]);
 
