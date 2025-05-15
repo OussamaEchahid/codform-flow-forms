@@ -1,4 +1,3 @@
-
 export interface ShopifyStore {
   id: string;
   shop: string;

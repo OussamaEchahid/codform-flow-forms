@@ -41,17 +41,18 @@ interface FormListProps {
   onSelectForm: (formId: string) => void;
 }
 
-interface FormWithProducts extends FormData {
-  associatedProducts?: {
-    id: string;
-    title: string;
-  }[];
-}
+// This interface is no longer needed since we've updated FormData to include associatedProducts
+// interface FormWithProducts extends FormData {
+//   associatedProducts?: {
+//     id: string;
+//     title: string;
+//   }[];
+// }
 
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [enhancedForms, setEnhancedForms] = useState<FormWithProducts[]>([]);
+  const [enhancedForms, setEnhancedForms] = useState<FormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   // Fetch associated products for each form

@@ -17,6 +17,10 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
+  associatedProducts?: Array<{
+    id: string;
+    title: string;
+  }>;
 }
 
 export interface FormTemplate {
