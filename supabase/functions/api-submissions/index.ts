@@ -1,95 +1,70 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-serve(async (req) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: corsHeaders }
-      );
-    }
-
-    // Parse the request body
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (e) {
-      console.error('Error parsing JSON:', e);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    const { formId, data } = requestData;
-    
-    console.log('Processing submission for form:', formId);
-    console.log('Submission data:', JSON.stringify(data));
-    
-    if (!formId || !data) {
-      console.error('Missing required fields:', { formId, hasData: !!data });
-      return new Response(
-        JSON.stringify({ error: 'Form ID and data are required' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-    
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://mtyfuwdsshlzqwjujavp.supabase.co';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Extract Shopify-related information from submission data
-    const shopDomain = data.shopDomain || null;
-    const productId = data.productId || null;
+    // Get form ID from query param
+    const url = new URL(req.url);
+    const formId = url.searchParams.get('formId');
     
-    console.log('Shopify info:', { shopDomain, productId });
+    if (!formId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameter: formId' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Parse request body
+    const requestData = await req.json();
+    const shopDomain = requestData.shopDomain || '';
     
-    // Save submission to the database
-    const { data: submissionData, error } = await supabase
+    // Store submission in database
+    const { data, error } = await supabase
       .from('form_submissions')
       .insert({
         form_id: formId,
-        data: data,
         shop_id: shopDomain,
-        status: 'new'
-      })
-      .select()
-      .single();
-    
+        data: requestData,
+        status: 'submitted'
+      });
+
     if (error) {
-      console.error('Error saving submission:', error);
+      console.error('Error storing submission:', error);
       return new Response(
-        JSON.stringify({ error: 'Error saving submission', details: error.message }),
-        { status: 500, headers: corsHeaders }
+        JSON.stringify({ error: 'Failed to store submission', details: error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('Successfully saved submission:', submissionData.id);
-
-    // Return success response with CORS headers
+    // Return success
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Form submitted successfully', 
-        submissionId: submissionData.id 
+        message: 'Submission received successfully' 
       }),
-      { headers: corsHeaders }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
-    console.error('Unexpected error:', error.message);
+    console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: `Unexpected error: ${error.message}` }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

@@ -40,23 +40,27 @@
     // Get the shop domain from the current URL
     const shopDomain = window.location.hostname;
     
-    // API endpoint to get form for product
-    const apiUrl = `https://codform-flow-forms.lovable.dev/api/forms/product?shop=${encodeURIComponent(shopDomain)}&productId=${encodeURIComponent(productId)}`;
+    // API endpoint to get form for product - use the Supabase edge function URL directly
+    const apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-product?shop=${encodeURIComponent(shopDomain)}&productId=${encodeURIComponent(productId)}`;
     
     // Show loader
     formLoader.style.display = 'flex';
     formContainer.style.display = 'none';
     errorContainer.style.display = 'none';
     
+    console.log(`CODFORM: Fetching form for product ${productId} from shop ${shopDomain} using URL: ${apiUrl}`);
+    
     // Fetch form data
     fetch(apiUrl)
       .then(response => {
+        console.log(`CODFORM: Response status: ${response.status}`);
         if (!response.ok) {
           throw new Error(`Network response was not ok: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
+        console.log('CODFORM: Received data:', data);
         if (data && data.form) {
           // Form data retrieved successfully
           console.log(`CODFORM: Successfully loaded form ID: ${data.form.id}`);
@@ -252,8 +256,8 @@
       formDataJson.shopDomain = window.location.hostname;
     }
     
-    // API endpoint for form submission
-    const apiUrl = `https://codform-flow-forms.lovable.dev/api/submissions/${formId}`;
+    // API endpoint for form submission - use Supabase edge function directly
+    const apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/api-submissions?formId=${formId}`;
     
     // Disable form inputs during submission
     const formElements = form.elements;
