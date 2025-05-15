@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/hooks/useShopify';
 import { useI18n } from '@/lib/i18n';
@@ -107,7 +106,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     onChange(allProductIds);
     
     toast.success(language === 'ar' 
-      ? 'تم تحديد جميع المنتجات' 
+      ? 'تم تحديد جميع المنت��ات' 
       : 'All products selected');
   };
   
@@ -303,9 +302,18 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                 className="flex items-center justify-between space-x-4 rtl:space-x-reverse border rounded-md p-3 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                  {product.images && product.images.length > 0 ? (
+                  {product.image ? (
                     <img 
-                      src={product.images[0]} 
+                      src={typeof product.image === 'string' ? product.image : product.image.src} 
+                      alt={typeof product.image === 'string' ? product.title : product.image.alt || product.title}
+                      className="h-14 w-14 rounded-md object-contain border p-1"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
+                      }}
+                    />
+                  ) : product.images && product.images.length > 0 ? (
+                    <img 
+                      src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0].src} 
                       alt={product.title}
                       className="h-14 w-14 rounded-md object-contain border p-1"
                       onError={(e) => {

@@ -1,106 +1,59 @@
-
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShopifyProduct } from '@/lib/shopify/types';
-import { Badge } from '@/components/ui/badge';
 
 interface ShopifyProductsListProps {
   products: ShopifyProduct[];
-  hideTestProducts?: boolean;
 }
 
-const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ 
-  products,
-  hideTestProducts = true
-}) => {
-  
-  if (!products || products.length === 0) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        لا توجد منتجات لعرضها
-      </div>
-    );
-  }
-
-  // Helper function to format price safely
-  const formatPrice = (price: string | number | undefined): string => {
-    if (price === undefined) return '$0.00';
-    
-    if (typeof price === 'string') {
-      const numPrice = parseFloat(price);
-      return isNaN(numPrice) ? '$0.00' : `$${numPrice.toFixed(2)}`;
-    }
-    
-    if (typeof price === 'number') {
-      return `$${price.toFixed(2)}`;
-    }
-    
-    return '$0.00';
-  };
-
+const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) => {
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">الصورة</TableHead>
-              <TableHead>اسم المنتج</TableHead>
-              <TableHead>المعرف</TableHead>
-              <TableHead className="text-right">السعر</TableHead>
-              <TableHead className="text-right">المخزون</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  {product.images && product.images.length > 0 ? (
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.title} 
-                      className="w-16 h-16 object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                      <span className="text-xs text-gray-400">لا توجد صورة</span>
-                    </div>
+    <div>
+      {products.map(product => (
+        <div key={product.id} className="mb-4 p-4 border rounded-md">
+          <div className="flex items-start">
+            {product.image ? (
+              <img 
+                src={typeof product.image === 'string' ? product.image : product.image.src}
+                alt={typeof product.image === 'string' ? product.title : product.image.alt || product.title}
+                className="w-20 h-20 object-contain mr-4"
+              />
+            ) : product.images && product.images.length > 0 ? (
+              <img 
+                src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0].src}
+                alt={product.title}
+                className="w-20 h-20 object-contain mr-4"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-gray-200 flex items-center justify-center mr-4">
+                <span className="text-gray-500">No Image</span>
+              </div>
+            )}
+            
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold">{product.title}</h3>
+              <p className="text-gray-600">{product.price ? `$${product.price}` : 'No price'}</p>
+              
+              {/* Handle variants section conditionally */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium">Variants: {product.variants.length}</h4>
+                  {product.variants.slice(0, 1).map(variant => (
+                    <p key={variant.id} className="text-sm text-gray-500">
+                      {variant.title}: ${variant.price} 
+                      {variant.inventory_quantity !== undefined && (
+                        <span className="ml-2">{variant.inventory_quantity} in stock</span>
+                      )}
+                    </p>
+                  ))}
+                  {product.variants.length > 1 && (
+                    <p className="text-xs text-gray-400">{product.variants.length - 1} more variants...</p>
                   )}
-                </TableCell>
-                <TableCell className="font-medium">{product.title}</TableCell>
-                <TableCell className="text-xs text-gray-500 font-mono">
-                  {product.id.includes('/') 
-                    ? product.id.split('/').pop() 
-                    : product.id}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatPrice(product.price)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {product.variants && product.variants.length > 0 ? (
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={product.variants.some(v => v.available) ? "success" : "destructive"}>
-                        {product.variants.some(v => v.available) ? "متوفر" : "غير متوفر"}
-                      </Badge>
-                      <span className="text-xs text-gray-500">{product.variants.length} متغير</span>
-                    </div>
-                  ) : (
-                    <Badge variant="outline">غير معروف</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      
-      <div className="bg-gray-50 p-3 rounded border text-sm text-gray-600">
-        <p className="text-right">إجمالي المنتجات: {products.length}</p>
-      </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

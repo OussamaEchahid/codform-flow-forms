@@ -10,6 +10,13 @@ export interface ShopifyStore {
   updated_at: string;
 }
 
+export interface ShopifyStoreConnection {
+  domain: string;
+  shop: string;
+  isActive: boolean;
+  lastConnected: string;
+}
+
 export interface ShopifyProductSettings {
   id: string;
   form_id: string;
@@ -64,4 +71,58 @@ export interface ShopifyProduct {
     alt?: string;
   }>;
   status: 'active' | 'draft' | 'archived';
+  variants?: Array<{
+    id: string;
+    title: string;
+    price: string;
+    available: boolean;
+    inventory_quantity: number;
+  }>;
+}
+
+export interface ShopifyOrder {
+  id: string;
+  order_number: string;
+  created_at: string;
+  total_price: string;
+  line_items: any[];
+  customer: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+export interface ShopifyFormData {
+  id: string;
+  title: string;
+  fields: any[];
+  settings: any;
+}
+
+// Move the function from shopify-helpers.ts to types.ts
+export function cleanShopifyDomain(shop: string): string {
+  if (!shop) return "";
+  
+  let cleanedShop = shop.trim();
+  
+  // Remove protocol if present
+  if (cleanedShop.startsWith('http')) {
+    try {
+      const url = new URL(cleanedShop);
+      cleanedShop = url.hostname;
+    } catch (e) {
+      console.error("Error cleaning shop URL:", e);
+    }
+  }
+  
+  // Ensure it ends with myshopify.com
+  if (!cleanedShop.endsWith('myshopify.com')) {
+    if (!cleanedShop.includes('.')) {
+      cleanedShop = `${cleanedShop}.myshopify.com`;
+    }
+  }
+  
+  return cleanedShop;
 }
