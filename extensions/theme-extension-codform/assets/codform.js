@@ -56,11 +56,29 @@
     // Add timestamp to avoid caching issues
     const timestampedUrl = `${apiUrl}&_t=${Date.now()}`;
     
+    // Enhanced fetch request with custom headers
+    const fetchOptions = {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Shop': shopDomain, // Add shop header for debugging
+        'Origin': window.location.origin
+      },
+      cache: 'no-store'
+    };
+    
     // Fetch form data with retry logic
-    fetchWithRetry(timestampedUrl, 3)
+    fetchWithRetry(timestampedUrl, 3, fetchOptions)
       .then(response => {
         console.log(`CODFORM: Response status: ${response.status}`);
         if (!response.ok) {
+          console.error('CODFORM: Network response error details:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url
+          });
           throw new Error(`Network response was not ok: ${response.status}`);
         }
         return response.json();
@@ -79,40 +97,98 @@
         console.error('CODFORM Error:', error);
         showErrorMessage(blockId, 'فشل تحميل النموذج. تأكد من إعداد النموذج لهذا المنتج في لوحة التحكم.');
         
-        // After error, try to load default form as fallback
+        // After error, try to load default form as fallback with different headers
         tryLoadDefaultForm(shopDomain, blockId);
       });
   }
   
-  // Fetch with retry logic
-  function fetchWithRetry(url, maxRetries, retryCount = 0) {
-    return fetch(url)
+  // Enhanced fetch with retry logic and diagnostics
+  function fetchWithRetry(url, maxRetries, options, retryCount = 0) {
+    console.log(`CODFORM: Fetch attempt ${retryCount + 1}/${maxRetries + 1} for ${url}`);
+    console.log('CODFORM: Fetch options:', options);
+    
+    return fetch(url, options)
       .then(response => {
-        if (response.ok) return response;
+        if (response.ok) {
+          console.log(`CODFORM: Successful fetch on attempt ${retryCount + 1}`);
+          return response;
+        }
         
         // If we've reached max retries, throw error
         if (retryCount >= maxRetries) {
+          console.error(`CODFORM: Max retries reached (${maxRetries}) with status ${response.status}`);
           throw new Error(`Max retries reached (${maxRetries})`);
         }
+        
+        // Log response for debugging
+        console.log(`CODFORM: Fetch attempt ${retryCount + 1} failed:`, {
+          status: response.status,
+          statusText: response.statusText
+        });
         
         // Exponential backoff with jitter
         const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
         console.log(`CODFORM: Retrying fetch (${retryCount + 1}/${maxRetries}) after ${delay.toFixed(0)}ms`);
         
+        // For 401/403 errors, modify headers to try different auth approach
+        const newOptions = { ...options };
+        if (response.status === 401 || response.status === 403) {
+          console.log('CODFORM: Modifying headers for auth error retry');
+          // Try without some headers that might be causing issues
+          newOptions.headers = { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          };
+        }
+        
         // Retry after delay
         return new Promise(resolve => setTimeout(resolve, delay))
-          .then(() => fetchWithRetry(url, maxRetries, retryCount + 1));
+          .then(() => fetchWithRetry(url, maxRetries, newOptions, retryCount + 1));
+      })
+      .catch(err => {
+        // For network errors, also implement retry
+        if (retryCount >= maxRetries) {
+          console.error('CODFORM: Network error after all retries:', err);
+          throw err;
+        }
+        
+        console.log(`CODFORM: Network error (${err.message}), will retry`);
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
+        
+        return new Promise(resolve => setTimeout(resolve, delay))
+          .then(() => fetchWithRetry(url, maxRetries, options, retryCount + 1));
       });
   }
   
-  // Try to load default form as fallback
+  // Try to load default form as fallback with enhanced error handling
   function tryLoadDefaultForm(shopDomain, blockId) {
     console.log('CODFORM: Trying to load default form as fallback');
     
-    // API endpoint for default form
+    // Show "trying fallback" message
+    const errorContainer = document.getElementById(`codform-error-${blockId}`);
+    if (errorContainer) {
+      const errorText = errorContainer.querySelector('p');
+      if (errorText) errorText.innerText = 'جاري محاولة تحميل النموذج الافتراضي...';
+      errorContainer.style.display = 'block';
+    }
+    
+    // API endpoint for default form with direct URL
     const defaultFormUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-default?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
     
-    fetchWithRetry(defaultFormUrl, 2)
+    // Enhanced fetch options for fallback
+    const fetchOptions = {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Shop': shopDomain,
+        'Origin': window.location.origin
+      },
+      cache: 'no-store'
+    };
+    
+    fetchWithRetry(defaultFormUrl, 2, fetchOptions)
       .then(response => {
         if (!response.ok) throw new Error(`Default form fetch failed: ${response.status}`);
         return response.json();
@@ -127,7 +203,8 @@
       })
       .catch(error => {
         console.error('CODFORM: Failed to load default form:', error);
-        // Keep the error message displayed from the original attempt
+        // Show final error message
+        showErrorMessage(blockId, 'تعذر تحميل النموذج. يرجى المحاولة مرة أخرى لاحقًا أو الاتصال بالدعم الفني.');
       });
   }
   
@@ -426,7 +503,7 @@
       });
   }
   
-  // Function to show error message
+  // Function to show error message with enhanced diagnostics
   function showErrorMessage(blockId, message) {
     const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
     const formContainer = document.getElementById(`codform-form-${blockId}`);
@@ -437,6 +514,16 @@
     if (formContainer) formContainer.style.display = 'none';
     if (errorContainer) errorContainer.style.display = 'block';
     if (errorText) errorText.innerText = message;
+    
+    // Diagnostic information - log to console
+    console.log('CODFORM Error Diagnostics:', {
+      timestamp: new Date().toISOString(),
+      shopDomain: window.location.hostname,
+      pageUrl: window.location.href,
+      blockId: blockId,
+      errorMessage: message,
+      userAgent: navigator.userAgent
+    });
     
     // Add retry button functionality
     const retryButton = document.getElementById(`codform-retry-${blockId}`);
