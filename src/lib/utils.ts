@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -7,50 +6,36 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Ensures the value is a string
- * @param value - The value to ensure is a string
- * @returns A string value
+ * Ensures a value is a string
+ * @param value - The value to convert to a string
+ * @returns The string representation of the value
  */
 export function ensureString(value: any): string {
-  if (typeof value === 'string') {
-    return value;
+  if (value === undefined || value === null) {
+    return '';
   }
-  
-  // Convert boolean to string or return empty string
-  if (value === true) {
-    return 'true';
-  } else if (value === false) {
-    return 'false';
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
   }
-  
-  // Handle undefined, null, or other types
-  return value ? String(value) : '';
+  return String(value);
 }
 
 /**
- * Ensures the value is a valid CSS color string
- * @param value - The value to ensure is a color
- * @returns A color value string or empty string
+ * Ensures a value is a valid color string
+ * @param value - The color value
+ * @returns A valid color string or fallback
  */
-export function ensureColor(value: any): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  
-  // Return empty string for boolean, null, undefined, or other types
-  return '';
+export function ensureColor(value: any, fallback: string = '#000000'): string {
+  if (!value) return fallback;
+  return ensureString(value);
 }
 
 /**
- * Ensures the value is a valid CSS size string (px, rem, em, %, etc.)
- * @param value - The value to ensure is a size
- * @returns A size value string or empty string
+ * Ensures a value is a valid CSS size (px, rem, em, %, etc)
+ * @param value - The size value
+ * @returns A valid size string or fallback
  */
-export function ensureSize(value: any): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  
-  // Return empty string for boolean, null, undefined, or other types
-  return '';
+export function ensureSize(value: any, fallback: string = '1rem'): string {
+  if (!value) return fallback;
+  return ensureString(value);
 }
