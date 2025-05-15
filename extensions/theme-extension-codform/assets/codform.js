@@ -1,4 +1,3 @@
-
 // CODFORM - نماذج الدفع عند الاستلام
 // نموذج الدفع عند الاستلام - برمجة وتطوير CODFORM
 
@@ -11,13 +10,17 @@
   function initializeCodforms() {
     // Find all form containers
     const containers = document.querySelectorAll('.codform-container');
+    console.log(`CODFORM: Found ${containers.length} containers to initialize`);
     
     containers.forEach(container => {
       const blockId = container.id.split('-').pop();
       const productId = container.getAttribute('data-product-id');
       
+      console.log(`CODFORM: Initializing container with blockId: ${blockId}, productId: ${productId}`);
+      
       if (!productId) {
         showErrorMessage(blockId, 'لم يتم العثور على معرف المنتج');
+        console.error('CODFORM Error: No product ID found for block', blockId);
         return;
       }
       
@@ -33,7 +36,7 @@
     const errorContainer = document.getElementById(`codform-error-${blockId}`);
     
     if (!formLoader || !formContainer || !errorContainer) {
-      console.error('CODFORM: Required containers not found');
+      console.error('CODFORM: Required containers not found for blockId', blockId);
       return;
     }
     
@@ -50,8 +53,11 @@
     
     console.log(`CODFORM: Fetching form for product ${productId} from shop ${shopDomain} using URL: ${apiUrl}`);
     
-    // Fetch form data
-    fetch(apiUrl)
+    // Add timestamp to avoid caching issues
+    const timestampedUrl = `${apiUrl}&_t=${Date.now()}`;
+    
+    // Fetch form data with retry logic
+    fetchWithRetry(timestampedUrl, 3)
       .then(response => {
         console.log(`CODFORM: Response status: ${response.status}`);
         if (!response.ok) {
@@ -72,6 +78,56 @@
       .catch(error => {
         console.error('CODFORM Error:', error);
         showErrorMessage(blockId, 'فشل تحميل النموذج. تأكد من إعداد النموذج لهذا المنتج في لوحة التحكم.');
+        
+        // After error, try to load default form as fallback
+        tryLoadDefaultForm(shopDomain, blockId);
+      });
+  }
+  
+  // Fetch with retry logic
+  function fetchWithRetry(url, maxRetries, retryCount = 0) {
+    return fetch(url)
+      .then(response => {
+        if (response.ok) return response;
+        
+        // If we've reached max retries, throw error
+        if (retryCount >= maxRetries) {
+          throw new Error(`Max retries reached (${maxRetries})`);
+        }
+        
+        // Exponential backoff with jitter
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
+        console.log(`CODFORM: Retrying fetch (${retryCount + 1}/${maxRetries}) after ${delay.toFixed(0)}ms`);
+        
+        // Retry after delay
+        return new Promise(resolve => setTimeout(resolve, delay))
+          .then(() => fetchWithRetry(url, maxRetries, retryCount + 1));
+      });
+  }
+  
+  // Try to load default form as fallback
+  function tryLoadDefaultForm(shopDomain, blockId) {
+    console.log('CODFORM: Trying to load default form as fallback');
+    
+    // API endpoint for default form
+    const defaultFormUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-default?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
+    
+    fetchWithRetry(defaultFormUrl, 2)
+      .then(response => {
+        if (!response.ok) throw new Error(`Default form fetch failed: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.form) {
+          console.log('CODFORM: Successfully loaded default form:', data.form.id);
+          renderForm(data.form, blockId);
+          return;
+        }
+        throw new Error('No default form available');
+      })
+      .catch(error => {
+        console.error('CODFORM: Failed to load default form:', error);
+        // Keep the error message displayed from the original attempt
       });
   }
   
@@ -95,7 +151,56 @@
     const hideHeader = document.querySelector(`#codform-container-${blockId}`).getAttribute('data-hide-header') === 'true';
     
     // Get form fields
-    const formFields = formData.data && formData.data[0] && formData.data[0].fields ? formData.data[0].fields : [];
+    let formFields = [];
+    try {
+      // Handle different data structures that might be returned
+      if (formData.data && Array.isArray(formData.data)) {
+        // If data is an array of steps
+        formFields = formData.data[0]?.fields || [];
+      } else if (formData.data && formData.data[0] && formData.data[0].fields) {
+        // Legacy format
+        formFields = formData.data[0].fields;
+      } else if (typeof formData.data === 'object') {
+        // Direct fields object
+        formFields = formData.data.fields || [];
+      }
+    } catch (e) {
+      console.error('CODFORM Error: Failed to parse form fields', e);
+      formFields = [];
+    }
+    
+    // If no fields found, create default ones
+    if (!formFields || formFields.length === 0) {
+      console.warn('CODFORM: No form fields found, using defaults');
+      formFields = [
+        {
+          id: 'name',
+          type: 'text',
+          label: 'الاسم الكامل',
+          required: true,
+          placeholder: 'أدخل اسمك الكامل'
+        },
+        {
+          id: 'phone',
+          type: 'phone',
+          label: 'رقم الهاتف',
+          required: true,
+          placeholder: 'أدخل رقم هاتفك'
+        },
+        {
+          id: 'address',
+          type: 'textarea',
+          label: 'العنوان',
+          required: true,
+          placeholder: 'أدخل عنوانك بالتفصيل'
+        },
+        {
+          id: 'submit',
+          type: 'submit',
+          label: 'إرسال الطلب'
+        }
+      ];
+    }
     
     // Get form style
     const style = formData.style || {
@@ -150,6 +255,12 @@
   
   // Function to render individual form field
   function renderField(field, style) {
+    // Safely check field exists
+    if (!field || !field.type) {
+      console.error('CODFORM: Invalid field object', field);
+      return '';
+    }
+    
     // Implement field rendering based on field type
     // This is a simplified version - you'll need to expand it
     switch (field.type) {
@@ -216,6 +327,7 @@
       // Add other field types as needed
         
       default:
+        console.warn('CODFORM: Unknown field type', field.type);
         return '';
     }
   }
@@ -329,12 +441,17 @@
     // Add retry button functionality
     const retryButton = document.getElementById(`codform-retry-${blockId}`);
     if (retryButton) {
-      retryButton.addEventListener('click', () => {
+      // Remove any existing event listeners
+      retryButton.replaceWith(retryButton.cloneNode(true));
+      
+      // Add new event listener
+      document.getElementById(`codform-retry-${blockId}`).addEventListener('click', () => {
         // Get the product ID and try loading the form again
         const container = document.getElementById(`codform-container-${blockId}`);
         if (container) {
           const productId = container.getAttribute('data-product-id');
           if (productId) {
+            console.log('CODFORM: Retrying form load for product', productId);
             loadFormByProductId(productId, blockId);
           }
         }

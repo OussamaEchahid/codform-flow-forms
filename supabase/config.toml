@@ -76,6 +76,9 @@ verify_jwt = false
 [experimental.functions.api-submissions]
 verify_jwt = false
 
+[experimental.functions.forms-default]
+verify_jwt = false
+
 [experimental.functions.forms-product]
 verify_jwt = false
 

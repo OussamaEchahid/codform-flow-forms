@@ -25,40 +25,44 @@ serve(async (req: Request) => {
 
     if (!shop) {
       return new Response(
-        JSON.stringify({ error: 'Missing shop parameter' }),
+        JSON.stringify({ error: 'Missing required parameter: shop' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Get the default form for the shop (most recently updated published form)
-    const { data: formData, error: formError } = await supabase
+    console.log(`Fetching default form for shop ${shop}`);
+
+    // Get the default form for this shop (most recently updated published form)
+    const { data: defaultForms, error: defaultError } = await supabase
       .from('forms')
       .select('*')
       .eq('shop_id', shop)
       .eq('is_published', true)
       .order('updated_at', { ascending: false })
       .limit(1);
-
-    if (formError) {
-      console.error('Error fetching default form:', formError);
+    
+    if (defaultError) {
+      console.error('Error fetching default form:', defaultError);
       return new Response(
-        JSON.stringify({ error: 'Failed to retrieve default form', details: formError }),
+        JSON.stringify({ error: 'Failed to retrieve default form', details: defaultError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    if (!formData || formData.length === 0) {
+    // Return form data or error
+    if (defaultForms && defaultForms.length > 0) {
       return new Response(
-        JSON.stringify({ error: 'No default form found for this shop' }),
+        JSON.stringify({ form: defaultForms[0] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    } else {
+      // No form found
+      console.log('No default form found for this shop');
+      return new Response(
+        JSON.stringify({ message: 'No default form found for this shop' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
-
-    // Return the default form
-    return new Response(
-      JSON.stringify({ form: formData[0] }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
