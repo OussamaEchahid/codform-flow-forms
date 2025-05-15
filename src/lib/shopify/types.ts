@@ -150,7 +150,7 @@ export interface ProductFormConflict {
   productImage?: string;
 }
 
-// Add utility function to convert form ID strings to valid UUIDs when needed
+// Improved utility function to convert form ID strings to valid UUIDs when needed
 export function ensureUUID(id: string | undefined): string | undefined {
   if (!id) return undefined;
   
@@ -160,7 +160,18 @@ export function ensureUUID(id: string | undefined): string | undefined {
     return id;
   }
   
-  // If it's not a valid UUID, log a warning
-  console.warn(`Invalid UUID format detected: ${id}`);
+  // Only log warnings in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`Invalid UUID format detected: ${id}`);
+  }
+  
   return id;
+}
+
+// Function to check if a string is a valid UUID
+export function isValidUUID(id: string | undefined): boolean {
+  if (!id) return false;
+  
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }

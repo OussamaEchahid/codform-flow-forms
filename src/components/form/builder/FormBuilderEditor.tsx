@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -91,6 +90,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
@@ -251,12 +251,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     return fields;
   };
 
-  // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج
+  // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج - تم تحسينه للأداء
   const initializeNewForm = async () => {
     try {
+      // Show loading state immediately
+      setIsLoading(true);
+      
       const shopId = getActiveShopId();
       if (!shopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
+        setIsLoading(false);
         return;
       }
 
@@ -264,7 +268,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Add form style settings for the new form
+      // Set initial form style
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
         borderRadius: '0.5rem',
@@ -285,7 +289,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fields: defaultFields
       };
 
-      // Create new form in database with style info
+      // Start with bare minimum fields for faster creation
       const { data, error } = await supabase.from('forms').insert({
         id: newId,
         title: formTitle,
@@ -293,12 +297,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-        style: defaultStyle
-      }).select();
+      }).select('id').single();
 
       if (error) {
         console.error("Error creating new form:", error);
         toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
+        setIsLoading(false);
         return;
       }
 
@@ -316,21 +320,38 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       // Update URL to use the real UUID instead of "new"
       navigate(`/form-builder/${newId}`, { replace: true });
 
+      // Update rest of the form data in the background
+      setTimeout(async () => {
+        await supabase.from('forms').update({
+          style: defaultStyle,
+          user_id: shopifyIntegration.user?.id
+        }).eq('id', newId);
+      }, 500);
+
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
+      setIsLoading(false);
     } catch (error) {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
+      setIsLoading(false);
     }
   };
 
-  // تحميل بيانات النموذج عند تغيير معرف النموذج
+  // تحميل بيانات النموذج عند تغيير معرف النموذج - تم تحسينه للأداء
   useEffect(() => {
     const loadFormData = async () => {
+      setIsLoading(true);
       const id = formId || params.formId;
       
       if (id) {
         setCurrentFormId(id);
         try {
+          // For new forms, create a default one immediately
+          if (id === 'new') {
+            await initializeNewForm();
+            return;
+          }
+          
           const formData = await loadForm(id);
           
           if (formData) {
@@ -403,8 +424,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 buttonStyle: 'rounded',
               });
             }
-            
-            console.log("تم تحميل بيانات النموذج:", formData);
           } else {
             // If the form wasn't found, initialize a new form
             await initializeNewForm();
@@ -414,6 +433,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
           // Create a default form in case of error
           await initializeNewForm();
+        } finally {
+          setIsLoading(false);
         }
       } else {
         // If no form ID, initialize a new form
@@ -743,6 +764,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const handleFloatingButtonClose = () => {
     setIsFloatingButtonDialogOpen(false);
   };
+
+  // Show a loading screen during slow operations
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-700">
+            {language === 'ar' ? 'جاري تحميل النموذج...' : 'Loading form...'}
+          </h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

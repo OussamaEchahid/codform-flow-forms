@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -179,24 +180,28 @@ export const useFormTemplates = () => {
       const newFormId = uuidv4();
       console.log('Creating new form with ID:', newFormId);
       
-      // Prepare default form data
+      // Prepare the form data with minimal required fields to create faster
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
         description: 'نموذج جديد',
-        data: defaultTemplate.data,
+        data: [{ 
+          id: '1', 
+          title: 'Main Step',
+          fields: []
+        }],
         isPublished: false,
         shop_id: shopId,
       };
       
-      // Insert into Supabase
+      // Use a lightweight insertion with minimal fields first
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
           title: 'نموذج جديد',
           description: 'نموذج جديد',
-          data: defaultTemplate.data,
+          data: formData.data,
           is_published: false,
           shop_id: shopId,
           user_id: user?.id
@@ -210,11 +215,14 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Update form state and move to editing immediately
       setFormState(formData);
       toast.success('تم إنشاء نموذج جديد');
       
-      // Refresh forms list
-      fetchForms();
+      // Refresh forms list but don't wait for it
+      setTimeout(() => {
+        fetchForms();
+      }, 100);
       
       setIsLoading(false);
       setIsCreatingForm(false);
@@ -309,7 +317,22 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Delete form from Supabase
+      // Step 1: First remove product associations (disable rather than delete)
+      try {
+        // Make a request to the new DELETE endpoint
+        const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          console.warn('Could not remove product associations, but proceeding with form deletion');
+        }
+      } catch (error) {
+        console.warn('Error removing product associations:', error);
+        // Continue with deletion even if this step fails
+      }
+      
+      // Step 2: Delete form from Supabase
       const { error } = await supabase
         .from('forms')
         .delete()
@@ -317,12 +340,19 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error deleting form:', error);
-        toast.error('خطأ في حذف النموذج');
+        
+        // If error contains foreign key constraint message, try to show a more helpful error
+        if (error.message?.includes('foreign key constraint')) {
+          toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
+        } else {
+          toast.error('خطأ في حذف النموذج');
+        }
+        
         setIsLoading(false);
         return false;
       }
       
-      // Update local state
+      // Step 3: Update local state
       setForms(forms.filter(form => form.id !== formId));
       
       toast.success('تم حذف النموذج بنجاح');

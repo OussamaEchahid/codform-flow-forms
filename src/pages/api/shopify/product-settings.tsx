@@ -1,6 +1,6 @@
 
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
-import type { ProductSettingsRequest, ProductSettingsResponse, ensureUUID } from '@/lib/shopify/types';
+import { ensureUUID } from '@/lib/shopify/types';
 
 // Helper function to ensure UUID type for formId
 function ensureFormUUID(formId: string): string {
@@ -74,6 +74,30 @@ export async function checkProductAssociation(shopId: string, productId: string)
   }
 }
 
+// Function to remove product associations for a form
+export async function removeFormProductAssociations(formId: string) {
+  try {
+    // Convert formId to proper UUID format if needed
+    const validFormId = ensureFormUUID(formId);
+    
+    // Update the associations to disabled rather than deleting them
+    const { error } = await shopifySupabase
+      .from('shopify_product_settings')
+      .update({ enabled: false })
+      .eq('form_id', validFormId);
+    
+    if (error) {
+      console.error("Error removing form product associations:", error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in removeFormProductAssociations:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 // API handler
 export default async function handler(req: Request) {
   // Extract request body
@@ -126,6 +150,21 @@ export default async function handler(req: Request) {
     // Return an error for other GET requests
     return new Response(
       JSON.stringify({ success: false, error: 'Invalid request' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  } else if (method === 'DELETE') {
+    const formId = url.searchParams.get('formId');
+    
+    if (formId) {
+      const result = await removeFormProductAssociations(formId);
+      return new Response(
+        JSON.stringify(result),
+        { status: result.success ? 200 : 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    return new Response(
+      JSON.stringify({ success: false, error: 'Missing formId parameter' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } else {
