@@ -19,12 +19,11 @@ const FormBuilderPage = () => {
   const navigate = useNavigate();
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
-  const { fetchForms, createDefaultForm } = useFormTemplates();
+  const { fetchForms } = useFormTemplates();
   const { tokenError, failSafeMode, toggleFailSafeMode, getDefaultForm } = useShopify();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
-  const [isCreatingForm, setIsCreatingForm] = useState(false);
   const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
   const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
   
@@ -126,40 +125,16 @@ const FormBuilderPage = () => {
   useEffect(() => {
     async function handleFormInit() {
       if (formId) {
-        // Handle creating a new form when "new" is in the URL
+        // Handle the "new" form ID case - redirect to dashboard instead of creating a form
         if (formId === 'new') {
-          try {
-            // prevent duplicate creation
-            if (isCreatingForm) {
-              console.log('Already creating a form, preventing duplicate creation');
-              return;
-            }
-            
-            setIsCreatingForm(true);
-            console.log('Starting form creation process');
-            
-            // Create a new form with default template
-            const newForm = await createDefaultForm();
-            if (newForm && newForm.id) {
-              console.log('New form created successfully with ID:', newForm.id);
-              // Redirect to the newly created form's edit page
-              navigate(`/form-builder/${newForm.id}`, { replace: true });
-            } else {
-              toast.error(language === 'ar' 
-                ? 'حدث خطأ أثناء إنشاء النموذج الجديد' 
-                : 'Error creating new form');
-            }
-          } catch (error) {
-            console.error('Error creating new form:', error);
-            toast.error(language === 'ar' 
-              ? 'حدث خطأ أثناء إنشاء النموذج الجديد' 
-              : 'Error creating new form');
-          } finally {
-            setIsCreatingForm(false);
-          }
-        } else {
-          setActiveTab('editor');
+          console.log('New form requested, redirecting to dashboard');
+          navigate('/form-builder', { replace: true });
+          return;
         }
+        
+        // For existing forms, set to editor mode
+        setActiveTab('editor');
+        fetchForms();
       } else {
         fetchForms();
         setActiveTab('dashboard');
@@ -167,7 +142,7 @@ const FormBuilderPage = () => {
     }
     
     handleFormInit();
-  }, [formId, fetchForms, createDefaultForm, navigate, language, isCreatingForm]);
+  }, [formId, fetchForms, navigate, language]);
 
   // Always enable bypass access in development mode
   useEffect(() => {
