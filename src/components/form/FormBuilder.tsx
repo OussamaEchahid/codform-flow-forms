@@ -24,7 +24,7 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep, FormFieldType, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
 const availableFieldTypes: Array<{
-  type: FormField['type'];
+  type: FormFieldType;
   label: string;
   icon: React.ReactNode;
 }> = [
@@ -77,6 +77,81 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     buttonStyle: 'rounded',
   });
   
+  useEffect(() => {
+    // If the data is empty, we create a default form
+    if (initialFormData.data.length === 0) {
+      setFormSteps(createDefaultForm());
+      setPreviewRefresh(prev => prev + 1);
+    }
+  }, [initialFormData]);
+
+  const createEmptyFormField = (type: FormFieldType): FormField => {
+    let newField: FormField = {
+      id: uuidv4(), // Use UUID from imported library
+      type,
+      label: '',
+      required: false,
+    };
+  
+    // Add field-specific configuration
+    switch (type) {
+      case 'form-title':
+        newField.label = 'عنوان النموذج المخصص';
+        newField.helpText = 'وصف النموذج (اختياري)';
+        newField.style = {
+          textAlign: 'center',
+          color: '#1A1F2C',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          descriptionColor: '#6b7280',
+          descriptionFontSize: '1rem',
+          backgroundColor: '',
+        };
+        break;
+      case 'text':
+        newField.label = 'حقل نص';
+        break;
+      case 'email':
+        newField.label = 'بريد إلكتروني';
+        break;
+      case 'phone':
+        newField.label = 'رقم هاتف';
+        break;
+      case 'textarea':
+        newField.label = 'نص متعدد الأسطر';
+        break;
+      case 'select':
+        newField.label = 'قائمة منسدلة';
+        break;
+      case 'checkbox':
+        newField.label = 'خانة اختيار';
+        break;
+      case 'radio':
+        newField.label = 'زر راديو';
+        break;
+      case 'cart-items':
+        newField.label = 'المنتج المختار';
+        break;
+      case 'cart-summary':
+        newField.label = 'ملخص الطلب';
+        break;
+      case 'submit':
+        newField.label = 'زر إرسال الطلب';
+        break;
+      case 'text/html':
+        newField.label = 'نص/HTML';
+        break;
+      case 'title':
+        newField.label = 'عنوان قسم';
+        break;
+      default:
+        newField.label = 'حقل جديد';
+        break;
+    }
+  
+    return newField;
+  };
+  
   const handleSaveForm = async () => {
     setIsSaving(true);
     const saved = await saveForm(initialFormData.id, {
@@ -115,7 +190,16 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      setFormSteps(template.data);
+      // Ensure all template field types are valid FormFieldType
+      const typeSafeData = template.data.map(step => ({
+        ...step,
+        fields: step.fields.map(field => ({
+          ...field,
+          type: field.type as FormFieldType
+        }))
+      }));
+      
+      setFormSteps(typeSafeData);
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -124,8 +208,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     }
   };
 
-  const addFieldToStep = (type: FormField['type']) => {
-    const newField = createEmptyField(type);
+  const addFieldToStep = (type: FormFieldType) => {
+    const newField = createEmptyFormField(type);
     const updatedSteps = [...formSteps];
     updatedSteps[currentEditStep].fields.push(newField);
     setFormSteps(updatedSteps);
@@ -220,81 +304,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       [key]: value
     });
     setPreviewRefresh(prev => prev + 1);
-  };
-
-  useEffect(() => {
-    // If the data is empty, we create a default form
-    if (initialFormData.data.length === 0) {
-      setFormSteps(createDefaultForm());
-      setPreviewRefresh(prev => prev + 1);
-    }
-  }, [initialFormData]);
-
-  const createEmptyField = (type: FormField['type']) => {
-    let newField: FormField = {
-      id: uuidv4(), // Use UUID from imported library
-      type,
-      label: '',
-      required: false,
-    };
-  
-    // Add field-specific configuration
-    switch (type) {
-      case 'form-title':
-        newField.label = 'عنوان النموذج المخصص';
-        newField.helpText = 'وصف النموذج (اختياري)';
-        newField.style = {
-          textAlign: 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '',
-        };
-        break;
-      case 'text':
-        newField.label = 'حقل نص';
-        break;
-      case 'email':
-        newField.label = 'بريد إلكتروني';
-        break;
-      case 'phone':
-        newField.label = 'رقم هاتف';
-        break;
-      case 'textarea':
-        newField.label = 'نص متعدد الأسطر';
-        break;
-      case 'select':
-        newField.label = 'قائمة منسدلة';
-        break;
-      case 'checkbox':
-        newField.label = 'خانة اختيار';
-        break;
-      case 'radio':
-        newField.label = 'زر راديو';
-        break;
-      case 'cart-items':
-        newField.label = 'المنتج المختار';
-        break;
-      case 'cart-summary':
-        newField.label = 'ملخص الطلب';
-        break;
-      case 'submit':
-        newField.label = 'زر إرسال الطلب';
-        break;
-      case 'text/html':
-        newField.label = 'نص/HTML';
-        break;
-      case 'title':
-        newField.label = 'عنوان قسم';
-        break;
-      default:
-        newField.label = 'حقل جديد';
-        break;
-    }
-  
-    return newField;
   };
 
   return (

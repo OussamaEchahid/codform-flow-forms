@@ -37,7 +37,8 @@ export type FormFieldType =
   | "subtotal" 
   | "phone" 
   | "form-title" 
-  | "text/html";
+  | "text/html"
+  | "whatsapp"; // Adding whatsapp type for compatibility
 
 // Define the form field structure
 export interface FormField {
@@ -65,7 +66,7 @@ export interface FormField {
   rows?: number;
   className?: string;
   style?: {
-    [key: string]: string;
+    [key: string]: string | boolean; // Allow boolean values for style properties
   };
   conditionalDisplay?: {
     dependsOn: string;
@@ -80,6 +81,14 @@ export interface FormField {
   stepIndex?: number;
   stepId?: string;
   stepTitle?: string;
+  // Additional properties for specific field types
+  whatsappNumber?: string; // For WhatsApp button
+  message?: string; // For WhatsApp button
+  content?: string; // For HTML content
+  src?: string; // For image field
+  alt?: string; // For image field
+  width?: string; // For image field
+  icon?: React.ReactNode; // For icon display
 }
 
 // Define the form step structure

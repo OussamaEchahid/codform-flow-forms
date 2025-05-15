@@ -28,7 +28,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
       {field.content ? (
         <div 
           className="html-content"
-          dangerouslySetInnerHTML={{ __html: field.content }} 
+          dangerouslySetInnerHTML={{ __html: field.content as string }} 
         />
       ) : (
         <p className={language === 'ar' ? 'text-right' : 'text-left'}>
