@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -22,6 +21,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import NewFormProductDialog from './NewFormProductDialog';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -41,6 +41,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [formList, setFormList] = useState(initialForms.length > 0 ? initialForms : forms);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isNewFormDialogOpen, setIsNewFormDialogOpen] = useState(false);
   
   // Fetch forms data only once on initial load or when forceRefresh changes
   const initializeData = useCallback(async () => {
@@ -107,7 +108,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   );
   
   const handleCreateForm = () => {
-    navigate('/form-builder/new');
+    setIsNewFormDialogOpen(true);
   };
   
   const handleDeleteForm = async (formId: string) => {
@@ -339,6 +340,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           </Table>
         </CardContent>
       </Card>
+
+      {/* New Form Product Dialog */}
+      <NewFormProductDialog 
+        open={isNewFormDialogOpen} 
+        onClose={() => setIsNewFormDialogOpen(false)} 
+      />
     </div>
   );
 };

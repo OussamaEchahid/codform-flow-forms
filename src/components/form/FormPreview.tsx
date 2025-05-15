@@ -44,7 +44,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
+  // Clean up fields and properly display form title
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
@@ -54,12 +54,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return field;
     });
     
-    // إذا كان هناك form-title موجود، نستخدمه
+    // If there's already a form-title, use it
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
+    // If there's no form-title, add one at the beginning
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -72,16 +72,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: '1.5rem',
         descriptionColor: '#ffffff',
         descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
+        backgroundColor: '#9b87f5', // Primary background color
       }
     };
     
-    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
+    // Check if there's already a submit button
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
+    // If there's no submit button, add one
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
