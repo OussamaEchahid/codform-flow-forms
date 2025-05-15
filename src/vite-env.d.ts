@@ -12,6 +12,6 @@ interface ShopifyProductSelectionProps {
 
 interface ShopifyIntegrationProps {
   formId: string;
-  onSave: (settings: any) => Promise<void>;
+  onSave?: (settings: any) => Promise<void>;
   isSyncing?: boolean;
 }
