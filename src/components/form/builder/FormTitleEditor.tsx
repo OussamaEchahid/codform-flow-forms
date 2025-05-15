@@ -134,7 +134,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </Label>
                 <Input
                   id="form-title"
-                  value={formTitleField ? formTitleField.label : formTitle}
+                  value={formTitleField ? formTitleField.label || '' : formTitle || ''}
                   onChange={(e) => handleUpdateLabel(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
                   className={language === 'ar' ? 'text-right' : ''}
@@ -147,7 +147,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </Label>
                 <Textarea
                   id="form-desc"
-                  value={formTitleField ? formTitleField.helpText : formDescription}
+                  value={formTitleField ? formTitleField.helpText || '' : formDescription || ''}
                   onChange={(e) => handleUpdateDescription(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
                   className={`${language === 'ar' ? 'text-right' : ''} h-20`}
@@ -173,12 +173,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       <Input
                         id="title-color"
                         type="color"
-                        value={titleColor}
+                        value={titleColor || '#ffffff'}
                         onChange={(e) => handleUpdateStyle('color', e.target.value)}
                         className="w-12 h-8 p-1"
                       />
                       <Input
-                        value={titleColor}
+                        value={titleColor || '#ffffff'}
                         onChange={(e) => handleUpdateStyle('color', e.target.value)}
                         className="ml-2 flex-1"
                       />
@@ -193,12 +193,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       <Input
                         id="bg-color"
                         type="color"
-                        value={backgroundColor}
+                        value={backgroundColor || '#9b87f5'}
                         onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
                         className="w-12 h-8 p-1"
                       />
                       <Input
-                        value={backgroundColor}
+                        value={backgroundColor || '#9b87f5'}
                         onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
                         className="ml-2 flex-1"
                       />
@@ -217,7 +217,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="title-size"
-                        value={titleSize}
+                        value={titleSize || '1.5rem'}
                         onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
@@ -234,7 +234,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="title-weight"
-                        value={titleWeight}
+                        value={titleWeight || 'bold'}
                         onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
@@ -291,12 +291,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         <Input
                           id="desc-color"
                           type="color"
-                          value={descColor}
+                          value={descColor || '#ffffff'}
                           onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
                           className="w-12 h-8 p-1"
                         />
                         <Input
-                          value={descColor}
+                          value={descColor || '#ffffff'}
                           onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
                           className="ml-2 flex-1"
                         />
@@ -309,7 +309,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="desc-size"
-                        value={descSize}
+                        value={descSize || '0.875rem'}
                         onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
@@ -326,7 +326,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="desc-weight"
-                        value={descWeight}
+                        value={descWeight || 'normal'}
                         onChange={(e) => handleUpdateStyle('descriptionFontWeight', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
