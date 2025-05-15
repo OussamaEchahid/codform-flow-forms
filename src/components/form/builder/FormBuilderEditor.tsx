@@ -804,17 +804,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
           </h2>
           
-          {/* Add the form title editor at top */}
-          <FormTitleEditor
-            formTitle={formTitle}
-            formDescription={formDescription}
-            onFormTitleChange={(title) => setFormTitle(title)}
-            onFormDescriptionChange={(desc) => setFormDescription(desc)}
-            formTitleField={getFormTitleField()}
-            onAddTitleField={addFormTitleField}
-            onUpdateTitleField={updateFormTitleField}
-          />
-          
           <DndContext 
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -824,8 +813,36 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               items={formElements.map(el => el.id)}
               strategy={verticalListSortingStrategy}
             >
+              {/* إضافة محرر العنوان كعنصر قابل للسحب والإفلات */}
+              {getFormTitleField() && (
+                <FormTitleEditor
+                  formTitle={formTitle}
+                  formDescription={formDescription}
+                  onFormTitleChange={(title) => setFormTitle(title)}
+                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
+                  formTitleField={getFormTitleField()}
+                  onAddTitleField={addFormTitleField}
+                  onUpdateTitleField={updateFormTitleField}
+                  isDraggable={true}
+                />
+              )}
+              
+              {/* إذا لم يكن هناك حقل عنوان، عرض محرر العنوان العادي */}
+              {!getFormTitleField() && (
+                <FormTitleEditor
+                  formTitle={formTitle}
+                  formDescription={formDescription}
+                  onFormTitleChange={(title) => setFormTitle(title)}
+                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
+                  formTitleField={undefined}
+                  onAddTitleField={addFormTitleField}
+                  onUpdateTitleField={updateFormTitleField}
+                  isDraggable={false}
+                />
+              )}
+              
               <FormElementEditor
-                elements={formElements}
+                elements={formElements.filter(field => field.type !== 'form-title')}
                 selectedIndex={selectedElementIndex}
                 onSelectElement={setSelectedElementIndex}
                 onEditElement={editElement}

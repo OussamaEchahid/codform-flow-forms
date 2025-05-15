@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FormTitleEditorProps {
   formTitle: string;
@@ -17,6 +19,7 @@ interface FormTitleEditorProps {
   onAddTitleField: () => void;
   formTitleField: FormField | undefined;
   onUpdateTitleField: (field: FormField) => void;
+  isDraggable?: boolean;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -26,7 +29,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onFormDescriptionChange,
   onAddTitleField,
   formTitleField,
-  onUpdateTitleField
+  onUpdateTitleField,
+  isDraggable = true
 }) => {
   const { language } = useI18n();
   const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
@@ -40,6 +44,30 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   // Remove descriptionFontWeight usage and use a fixed value
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
+
+  // Set up sortable functionality if the component is draggable
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ 
+    id: formTitleField?.id || 'title-editor',
+    disabled: !isDraggable || !formTitleField,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
+  });
+
+  const style = isDraggable ? {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  } : {};
 
   // Update local state when formTitleField changes
   useEffect(() => {
@@ -109,12 +137,27 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   return (
-    <div className="mb-4 border p-3 rounded-md bg-white">
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`mb-4 border p-3 rounded-md bg-white ${isDragging ? 'shadow-lg' : ''}`}
+    >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between">
-          <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+          {isDraggable && formTitleField && (
+            <div 
+              {...attributes} 
+              {...listeners} 
+              className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded mr-2"
+            >
+              <GripVertical size={16} className="text-gray-500" />
+            </div>
+          )}
+          
+          <h3 className={`text-lg font-medium flex-1 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
           </h3>
+          
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               {isOpen ? 

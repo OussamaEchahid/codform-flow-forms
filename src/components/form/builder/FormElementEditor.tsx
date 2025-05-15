@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface FormElementEditorProps {
   elements: FormField[];
