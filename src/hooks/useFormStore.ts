@@ -88,6 +88,14 @@ export const useFormStore = create<FormStore>((set) => ({
     position: 'bottom',
     showOnMobile: true,
     showOnDesktop: true,
+    fontFamily: 'inherit',
+    fontSize: '16px',
+    fontWeight: '500',
+    borderColor: '#000000',
+    borderWidth: '0px',
+    paddingY: '12px',
+    marginBottom: '20px',
+    animation: 'none',
   },
   
   // Add method to update floating button

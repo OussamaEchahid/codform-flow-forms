@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -59,6 +60,7 @@ export interface FormFieldStyle {
   // Border properties
   borderRadius?: string;
   borderColor?: string;
+  borderWidth?: string;
   
   // Animation properties
   animation?: boolean;
@@ -66,6 +68,9 @@ export interface FormFieldStyle {
   
   // Icon properties
   iconPosition?: string;
+  icon?: string;
+  fullWidth?: boolean;
+  fontFamily?: string;
   
   // Cart item and summary specific properties
   priceFontSize?: string;
@@ -100,6 +105,11 @@ export interface FormField {
   src?: string;
   alt?: string;
   width?: string | number;
+  className?: string;
+  content?: string;
+  whatsappNumber?: string;
+  message?: string;
+  rows?: number;
 }
 
 export interface FormStep {

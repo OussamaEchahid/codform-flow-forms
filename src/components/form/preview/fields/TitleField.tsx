@@ -77,7 +77,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0',
     textAlign: alignment,
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: fieldStyle.descriptionFontWeight || 'normal',
+    fontWeight: 'normal', // Changed from descriptionFontWeight to a fixed value
     lineHeight: '1.5', // Consistent line height for description
   };
 
@@ -95,7 +95,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-font-size={fieldStyle.fontSize || fontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
-      data-desc-font-weight={fieldStyle.descriptionFontWeight || 'normal'}
+      data-desc-font-weight='normal' // Changed from descriptionFontWeight to a fixed value
     >
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
