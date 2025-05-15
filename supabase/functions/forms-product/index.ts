@@ -51,8 +51,7 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
 
-    // IMPORTANT FIX: First, check if there's a specific form for this product
-    // We need to ensure the UUID is properly typed when querying
+    // First, check if there's a specific form for this product
     const { data: productSettings, error: settingsError } = await supabase
       .from('shopify_product_settings')
       .select('form_id, block_id, enabled')
@@ -79,8 +78,7 @@ serve(async (req: Request) => {
     if (productSettings && productSettings.form_id) {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
       
-      // FIX: Ensure the UUID is properly formatted and query the correct form
-      // For some reason, form_id in shopify_product_settings might be stored as string instead of UUID
+      // Fetch the specific form directly, handling potential UUID/string type issues
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')

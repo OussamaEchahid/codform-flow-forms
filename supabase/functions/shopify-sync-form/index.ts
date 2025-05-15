@@ -98,22 +98,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // FIX: If specific products are specified, associate the form with those products
-    // This ensures each form is correctly linked to specific products
+    // If specific products are specified, associate the form with those products
     if (settings?.products && settings.products.length > 0) {
       console.log(`Associating form ${formId} with ${settings.products.length} products`);
       
-      // First, clear previous associations for this form to prevent orphaned links
-      const { error: clearError } = await supabase
-        .from('shopify_product_settings')
-        .delete()
-        .eq('form_id', formId);
-      
-      if (clearError) {
-        console.error('Error clearing previous product associations:', clearError);
-      }
-      
-      // Now create the new associations
       const productSettings = settings.products.map(productId => ({
         shop_id: shop,
         form_id: formId,
