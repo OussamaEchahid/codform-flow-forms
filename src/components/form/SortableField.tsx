@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -67,6 +67,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
   
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
+    // When expanding, automatically trigger edit
+    if (!isExpanded) {
+      onEdit();
+    }
   };
 
   return (
@@ -98,7 +102,17 @@ const SortableField: React.FC<SortableFieldProps> = ({
               </div>
             </div>
             
-            <AccordionTrigger onClick={toggleExpand} className="ml-auto py-0">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleEdit}
+              className="mx-2"
+            >
+              <Edit size={16} />
+              <span className="sr-only">{language === 'ar' ? 'تعديل' : 'Edit'}</span>
+            </Button>
+            
+            <AccordionTrigger onClick={toggleExpand} className="py-0">
               {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </AccordionTrigger>
           </div>
@@ -111,6 +125,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                 onClick={handleEdit}
                 className="flex items-center gap-1"
               >
+                <Edit size={16} />
                 {language === 'ar' ? 'تعديل' : 'Edit'}
               </Button>
               <Button 

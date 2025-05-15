@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical, Edit } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSortable } from '@dnd-kit/sortable';
@@ -41,7 +41,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
   const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
-  // Remove descriptionFontWeight usage and use a fixed value
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
@@ -78,7 +77,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
-      // Remove descriptionFontWeight reference here
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
   }, [formTitleField, language]);
@@ -100,7 +98,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'fontWeight') setTitleWeight(value);
     if (property === 'descriptionColor') setDescColor(value);
     if (property === 'descriptionFontSize') setDescSize(value);
-    // Remove descriptionFontWeight reference here
     if (property === 'backgroundColor') setBackgroundColor(value);
     
     onUpdateTitleField(updatedField);
@@ -157,6 +154,14 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
           <h3 className={`text-lg font-medium flex-1 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
           </h3>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mx-2"
+          >
+            <Edit size={16} />
+          </Button>
           
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -369,13 +374,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="desc-weight"
-                        value="normal" // Use fixed value 'normal' instead of descWeight
-                        onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
+                        value="normal"
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                        disabled
                       >
                         <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
-                        <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
                       </select>
                     </div>
                   </div>
