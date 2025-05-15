@@ -1,208 +1,299 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ShopifyProductSelection from './ShopifyProductSelection';
+import { useShopify } from '@/hooks/useShopify';
+import { ClipboardCheck, Loader2, Settings2 } from 'lucide-react';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useParams } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ShopifyIntegrationProps {
   formId: string;
-  formTitle?: string;
-  formDescription?: string;
-  formStyle?: {
-    primaryColor?: string;
-  };
-  onSave?: (settings: any) => void;
-  isSyncing?: boolean;
-  formTitleElement?: any;
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
-  formId,
-  formTitle,
-  formDescription,
-  formStyle = { primaryColor: '#9b87f5' },
-  isSyncing = false,
-  formTitleElement
-}) => {
-  const { t, language } = useI18n();
-  const { formId: urlFormId } = useParams<{ formId: string }>();
-  const [copied, setCopied] = useState(false);
-  const [hideHeader] = useState(true);
-  
-  // استخدام معرف UUID فعلي إذا كان formId هو "new" أو غير صالح
-  const displayFormId = useMemo(() => {
-    if (!formId || formId === 'new' || formId === 'undefined') {
-      // التحقق من وجود معرف صالح في الرابط
-      if (urlFormId && urlFormId !== 'new' && urlFormId !== 'undefined') {
-        return urlFormId;
-      }
-      // إنشاء معرف مؤقت للعرض فقط
-      return uuidv4();
-    }
-    return formId;
-  }, [formId, urlFormId]);
-  
-  // إعادة ضبط حالة النسخ بعد 3 ثوان
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
+  const { shop, isConnected, syncFormWithShopify, isSyncing } = useShopify();
+  const { saveForm } = useFormTemplates();
+  const [activeTab, setActiveTab] = useState<string>('products');
+  const [isDefault, setIsDefault] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [formData, setFormData] = useState<any>(null);
+
+  // Load form data
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (copied) {
-      timeout = setTimeout(() => setCopied(false), 3000);
+    const loadFormData = async () => {
+      if (formId) {
+        const { data, error } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('id', formId)
+          .single();
+          
+        if (!error && data) {
+          setFormData(data);
+          setIsDefault(data.is_default || false);
+        }
+      }
+    };
+    
+    loadFormData();
+  }, [formId]);
+
+  // Handle default form toggle
+  const handleDefaultToggle = async (checked: boolean) => {
+    if (!formId || !shop) return;
+    
+    setIsUpdating(true);
+    
+    try {
+      // If making this form default, unset default for all other forms first
+      if (checked) {
+        await supabase
+          .from('forms')
+          .update({ is_default: false })
+          .eq('shop_id', shop);
+      }
+      
+      // Update this form's default status
+      const { error } = await supabase
+        .from('forms')
+        .update({ is_default: checked })
+        .eq('id', formId);
+        
+      if (error) throw error;
+      
+      setIsDefault(checked);
+      toast.success(checked 
+        ? 'تم تعيين هذا النموذج كنموذج افتراضي للمتجر' 
+        : 'تم إلغاء تعيين هذا النموذج كنموذج افتراضي');
+    } catch (error) {
+      console.error('Error updating default form status:', error);
+      toast.error('حدث خطأ أثناء تحديث حالة النموذج الافتراضي');
+    } finally {
+      setIsUpdating(false);
     }
-    return () => clearTimeout(timeout);
-  }, [copied]);
-  
-  const handleCopyFormId = () => {
-    navigator.clipboard.writeText(displayFormId);
-    setCopied(true);
-    toast.success(
-      language === 'ar' 
-        ? 'تم نسخ معرّف النموذج بنجاح' 
-        : 'Form ID copied successfully'
-    );
   };
 
-  return (
-    <Card className="mt-4">
-      <CardHeader className="pb-3">
-        <CardTitle className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'دمج النموذج في متجرك' : 'Integrate Form in Your Store'}
-        </CardTitle>
-        <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' 
-            ? 'لاستخدام هذا النموذج في متجرك، قم بنسخ معرّف النموذج واستخدامه في إعدادات البلوك داخل متجرك' 
-            : 'To use this form in your store, copy the form ID and use it in the block settings in your store'}
-        </CardDescription>
-      </CardHeader>
+  // Handle form publishing
+  const handlePublish = async () => {
+    if (!formId) return;
+    
+    setIsUpdating(true);
+    
+    try {
+      await saveForm(formId, { 
+        is_published: true,
+        isPublished: true 
+      });
       
-      <CardContent>
-        <div className="space-y-4">
-          <Alert variant="default" className="bg-blue-50 border-blue-200">
-            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? 'لإضافة هذا النموذج في متجرك، اتبع هذه الخطوات:' 
-                : 'To add this form to your store, follow these steps:'}
-              <ol className={`mt-2 list-decimal ${language === 'ar' ? 'mr-4' : 'ml-4'} space-y-1`}>
-                <li>
-                  {language === 'ar' 
-                    ? 'اذهب إلى "تخصيص المتجر" ثم انتقل إلى صفحة المنتج' 
-                    : 'Go to "Customize Store" then navigate to the product page'}
-                </li>
-                <li>
-                  {language === 'ar' 
-                    ? 'انقر على "إضافة كتلة" واختر "نموذج الدفع عند الاستلام"' 
-                    : 'Click "Add Block" and choose "Cash On Delivery Form"'}
-                </li>
-                <li>
-                  {language === 'ar' 
-                    ? 'الصق معرّف النموذج في حقل "معرّف النموذج" في الإعدادات' 
-                    : 'Paste the form ID in the "Form ID" field in settings'}
-                </li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex flex-col space-y-4">
-            <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-              <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
-              </span>
-              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{displayFormId}</code>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="ml-2" 
-                onClick={handleCopyFormId}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between py-2 border-t">
-              <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
-                {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر (مفعل افتراضيًا)' : 'Hide form header in store (enabled by default)'}
-                <p className="text-sm text-gray-500 mt-1">
-                  {language === 'ar' 
-                    ? 'الترويسة مخفية تلقائيًا لتجنب العناوين المكررة في صفحة المنتج' 
-                    : 'The header is hidden automatically to avoid duplicate titles in the product page'}
-                </p>
-              </Label>
-              <Switch 
-                id="hide-header"
-                checked={hideHeader}
-                disabled={true} 
-              />
-            </div>
-            
-            {formTitleElement && (
-              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                  {language === 'ar' ? 'عنوان النموذج المخصص:' : 'Custom Form Title:'}
-                </span>
-                <div className="p-2 bg-gray-100 rounded text-sm flex-1">
-                  <span className="font-semibold">✓</span> {language === 'ar' ? 'تم تعيين عنوان مخصص' : 'Custom title configured'}
-                </div>
-              </div>
-            )}
-            
-            {formTitle && !formTitleElement && (
-              <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-                <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                  {language === 'ar' ? 'عنوان النموذج:' : 'Form Title:'}
-                </span>
-                <span className="p-2 bg-gray-100 rounded text-sm flex-1">{formTitle}</span>
-              </div>
-            )}
-            
-            <div className={`flex flex-col ${language === 'ar' ? 'items-end' : 'items-start'}`}>
-              <span className="text-sm font-medium mb-2">
-                {language === 'ar' ? 'إعدادات التنسيق:' : 'Styling Settings:'}
-              </span>
-              <div className="flex flex-wrap gap-2 w-full">
-                {formStyle.primaryColor && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: formStyle.primaryColor }}></div>
-                    {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
-                  </Badge>
-                )}
-              </div>
-            </div>
+      toast.success('تم نشر النموذج بنجاح');
+      
+      if (formData) {
+        setFormData({
+          ...formData,
+          is_published: true
+        });
+      }
+    } catch (error) {
+      console.error('Error publishing form:', error);
+      toast.error('حدث خطأ أثناء نشر النموذج');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  // Handle form unpublishing
+  const handleUnpublish = async () => {
+    if (!formId) return;
+    
+    setIsUpdating(true);
+    
+    try {
+      await saveForm(formId, { 
+        is_published: false,
+        isPublished: false 
+      });
+      
+      toast.success('تم إلغاء نشر النموذج');
+      
+      if (formData) {
+        setFormData({
+          ...formData,
+          is_published: false
+        });
+      }
+    } catch (error) {
+      console.error('Error unpublishing form:', error);
+      toast.error('حدث خطأ أثناء إلغاء نشر النموذج');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  // Sync form with Shopify
+  const handleSync = async () => {
+    if (!formId || !shop) return;
+    
+    try {
+      await syncFormWithShopify({
+        formId,
+        shopDomain: shop,
+        settings: {
+          position: 'product-page',
+          insertionMethod: 'auto',
+          themeType: 'auto-detect'
+        }
+      });
+      
+      toast.success('تم مزامنة النموذج مع شوبيفاي بنجاح');
+    } catch (error) {
+      console.error('Error syncing form with Shopify:', error);
+      toast.error('حدث خطأ أثناء مزامنة النموذج مع شوبيفاي');
+    }
+  };
+  
+  if (!isConnected) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>تكامل شوبيفاي</CardTitle>
+          <CardDescription>
+            لاستخدام هذا النموذج مع شوبيفاي، يجب عليك الاتصال بمتجر شوبيفاي الخاص بك أولاً.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button variant="secondary" onClick={() => window.location.href = '/shopify'}>
+            اتصل بمتجر شوبيفاي
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>تكامل شوبيفاي</CardTitle>
+            <CardDescription>
+              قم بتكوين كيفية عرض النموذج في متجر شوبيفاي الخاص بك.
+            </CardDescription>
           </div>
-
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className={`text-amber-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? 'تأكد من نشر النموذج قبل استخدامه في متجرك. النماذج غير المنشورة لن تظهر للعملاء.' 
-                : 'Make sure to publish the form before using it in your store. Unpublished forms will not appear to customers.'}
-            </AlertDescription>
-          </Alert>
-          
-          <Alert variant="default" className="bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className={`text-blue-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar' 
-                ? 'ملاحظة: بعض أنواع الحقول قد تظهر مختلفة أو لا تعمل بشكل كامل في المتجر مقارنة بالمعاينة. الحقول المدعومة بشكل كامل هي: الحقول النصية، مربعات الاختيار، أزرار الراديو، العناوين، وأزرار الإرسال.' 
-                : 'Note: Some field types may appear differently or not work fully in the store compared to the preview. Fully supported fields are: text fields, checkboxes, radio buttons, titles, and submit buttons.'}
-            </AlertDescription>
-          </Alert>
-          
-          <Alert variant="default" className="bg-green-50 border-green-200">
-            <Info className="h-4 w-4 text-green-600" />
-            <AlertDescription className={`text-green-800 ${language === 'ar' ? 'text-right' : ''}`}>
-              {language === 'ar'
-                ? 'نصيحة: أضف حقل "عنوان نموذج" (form-title) لتحسين شكل النموذج في المتجر وتجنب العناوين المكررة.'
-                : 'Tip: Add a "Form Title" field to improve the form appearance in your store and avoid duplicate headings.'}
-            </AlertDescription>
-          </Alert>
+          {formData && (
+            <Badge variant={formData.is_published ? "success" : "secondary"}>
+              {formData.is_published ? 'منشور' : 'غير منشور'}
+            </Badge>
+          )}
         </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Default form setting */}
+        <div className="flex items-center justify-between p-2 border rounded-md">
+          <div>
+            <h4 className="font-medium">نموذج افتراضي</h4>
+            <p className="text-sm text-gray-500">
+              استخدم هذا النموذج للمنتجات التي ليس لها نموذج مخصص
+            </p>
+          </div>
+          <Switch
+            checked={isDefault}
+            onCheckedChange={handleDefaultToggle}
+            disabled={isUpdating}
+          />
+        </div>
+        
+        {/* Published state */}
+        <div className="flex items-center justify-between p-2 border rounded-md">
+          <div>
+            <h4 className="font-medium">حالة النشر</h4>
+            <p className="text-sm text-gray-500">
+              {formData?.is_published 
+                ? 'هذا النموذج منشور حالياً ويمكن عرضه للعملاء'
+                : 'لن يتم عرض هذا النموذج للعملاء حتى تقوم بنشره'
+              }
+            </p>
+          </div>
+          <div>
+            {formData?.is_published ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleUnpublish}
+                disabled={isUpdating}
+              >
+                {isUpdating ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
+                إلغاء النشر
+              </Button>
+            ) : (
+              <Button 
+                size="sm" 
+                onClick={handlePublish}
+                disabled={isUpdating}
+              >
+                {isUpdating ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
+                نشر
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="products" className="flex-1">
+              <ClipboardCheck className="ml-2 h-4 w-4" />
+              المنتجات
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex-1">
+              <Settings2 className="ml-2 h-4 w-4" />
+              الإعدادات
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="products" className="py-4">
+            <ShopifyProductSelection
+              formId={formId}
+              onComplete={() => {
+                toast.success('تم حفظ إعدادات المنتجات بنجاح');
+              }}
+            />
+          </TabsContent>
+          
+          <TabsContent value="settings" className="py-4">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>إعدادات متقدمة</CardTitle>
+                  <CardDescription>
+                    قم بتكوين إعدادات متقدمة لكيفية عرض النموذج في متجرك.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm">
+                      يمكنك مزامنة هذا النموذج مع متجر شوبيفاي الخاص بك يدوياً عن طريق الضغط على الزر أدناه.
+                      هذا مفيد إذا قمت بإجراء تغييرات على النموذج وتريد تحديث متجرك بسرعة.
+                    </p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    onClick={handleSync} 
+                    disabled={isSyncing}
+                  >
+                    {isSyncing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    مزامنة مع شوبيفاي
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
