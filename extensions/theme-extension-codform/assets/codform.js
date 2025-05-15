@@ -52,53 +52,22 @@
     fetch(apiUrl)
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error(`Network response was not ok: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
-        if (!data || !data.form) {
-          // If no form for this product, try to get the default form
-          return getDefaultForm(shopDomain);
+        if (data && data.form) {
+          // Form data retrieved successfully
+          console.log(`CODFORM: Successfully loaded form ID: ${data.form.id}`);
+          renderForm(data.form, blockId);
+        } else {
+          throw new Error('No form data returned from API');
         }
-        
-        // Form data retrieved successfully
-        return { form: data.form, isDefault: false };
-      })
-      .then(data => {
-        if (!data || !data.form || !data.form.id) {
-          throw new Error('No form available for this product');
-        }
-        
-        const formSource = data.isDefault ? 'default' : 'product-specific';
-        console.log(`CODFORM: Rendering ${formSource} form ID: ${data.form.id}`);
-        
-        // Render the form (either product-specific or default)
-        renderForm(data.form, blockId);
       })
       .catch(error => {
         console.error('CODFORM Error:', error);
         showErrorMessage(blockId, 'فشل تحميل النموذج. تأكد من إعداد النموذج لهذا المنتج في لوحة التحكم.');
-      });
-  }
-  
-  // Function to get the default form if no product-specific form exists
-  function getDefaultForm(shopDomain) {
-    const defaultFormUrl = `https://codform-flow-forms.lovable.dev/api/forms/default?shop=${encodeURIComponent(shopDomain)}`;
-    
-    return fetch(defaultFormUrl)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Default form not available');
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (!data || !data.form) {
-          throw new Error('No default form available');
-        }
-        
-        return { form: data.form, isDefault: true };
       });
   }
   

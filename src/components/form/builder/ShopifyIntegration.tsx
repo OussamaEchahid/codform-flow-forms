@@ -15,7 +15,7 @@ interface ShopifyIntegrationProps {
   formStyle?: {
     primaryColor?: string;
   };
-  onSave?: (settings: any) => void; // Re-added the onSave prop
+  onSave?: (settings: any) => void;
   isSyncing?: boolean;
   formTitleElement?: any;
 }

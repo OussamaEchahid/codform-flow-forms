@@ -71,6 +71,29 @@ serve(async (req: Request) => {
       }
     } 
 
+    // If no product-specific form was found, get the default form
+    if (!form) {
+      console.log('No product-specific form found, trying default form');
+      
+      // Get the default form for this shop
+      const { data: defaultForms, error: defaultError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', shop)
+        .eq('is_published', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      
+      if (!defaultError && defaultForms && defaultForms.length > 0) {
+        form = defaultForms[0];
+        console.log(`Using default form: ${form.id}`);
+      } else if (defaultError) {
+        console.error('Error fetching default form:', defaultError);
+      } else {
+        console.log('No default form found');
+      }
+    }
+
     // Return form data
     if (form) {
       return new Response(
@@ -78,10 +101,10 @@ serve(async (req: Request) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     } else {
-      // No product-specific form found
-      console.log('No product-specific form found, frontend will try the default form');
+      // No form found at all
+      console.log('No form found for this shop');
       return new Response(
-        JSON.stringify({ message: 'No product-specific form found' }),
+        JSON.stringify({ message: 'No form found for this shop' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
