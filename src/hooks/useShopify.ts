@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -393,4 +394,4 @@ export const useShopify = () => {
   };
 };
 
-export { useShopify };
+// Removed the duplicate export at the end that was causing conflicts

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import {
   Form,
   FormControl,
@@ -17,7 +18,7 @@ import { useI18n } from '@/lib/i18n';
 interface WhatsAppFieldEditorProps {
   field: any;
   onSave: (field: any) => void;
-  onClose: () => void;
+  onClose: () => void; // This was previously causing issues with onCancel
 }
 
 const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave, onClose }) => {
