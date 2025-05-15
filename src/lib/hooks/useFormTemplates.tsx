@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -153,6 +152,73 @@ export const useFormTemplates = () => {
     }
   };
 
+  // Helper function to create default form fields with all required fields
+  const createCompleteDefaultFormFields = (language = 'ar'): FormField[] => {
+    const defaultFields: FormField[] = [];
+    
+    // Add form title field
+    defaultFields.push({
+      type: 'form-title',
+      id: uuidv4(),
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: '#9b87f5',
+      }
+    });
+    
+    // Add name field
+    defaultFields.push({
+      type: 'text',
+      id: uuidv4(),
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    // Add phone field
+    defaultFields.push({
+      type: 'phone',
+      id: uuidv4(),
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    // Add address field
+    defaultFields.push({
+      type: 'textarea',
+      id: uuidv4(),
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      required: true,
+    });
+    
+    // Add submit button
+    defaultFields.push({
+      type: 'submit',
+      id: uuidv4(),
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
+      },
+    });
+    
+    return defaultFields;
+  };
+
   // Create a default form
   const createDefaultForm = async () => {
     try {
@@ -165,7 +231,6 @@ export const useFormTemplates = () => {
       setIsCreatingForm(true);
       setIsLoading(true);
       
-      const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
       if (!shopId) {
@@ -180,27 +245,33 @@ export const useFormTemplates = () => {
       const newFormId = uuidv4();
       console.log('Creating new form with ID:', newFormId);
       
-      // Prepare the form data with minimal required fields to create faster
+      // Get the current UI language
+      const currentLanguage = document.documentElement.lang || 'ar';
+      
+      // Create complete form fields with all required fields
+      const completeFields = createCompleteDefaultFormFields(currentLanguage);
+      
+      // Prepare the form data with all required fields
       const formData: FormData = {
         id: newFormId,
-        title: 'نموذج جديد',
-        description: 'نموذج جديد',
+        title: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
+        description: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
         data: [{ 
           id: '1', 
           title: 'Main Step',
-          fields: []
+          fields: completeFields
         }],
         isPublished: false,
         shop_id: shopId,
       };
       
-      // Use a lightweight insertion with minimal fields first
+      // Insert the complete form with all required fields
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
-          title: 'نموذج جديد',
-          description: 'نموذج جديد',
+          title: formData.title,
+          description: formData.description,
           data: formData.data,
           is_published: false,
           shop_id: shopId,

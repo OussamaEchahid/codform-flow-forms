@@ -30,6 +30,7 @@ import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useI18n } from '@/lib/i18n';
 
 const availableFieldTypes: Array<{
   type: FormField['type'];
@@ -57,6 +58,7 @@ interface FormBuilderProps {
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const navigate = useNavigate();
+  const { language } = useI18n();
   const { saveForm, publishForm } = useFormTemplates();
   const [formTitle, setFormTitle] = useState(initialFormData.title);
   const [formDescription, setFormDescription] = useState(initialFormData.description || '');
@@ -123,7 +125,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       toast.success(`تم تطبيق قالب ${template.title} بنجاح`);
     }
   };
-
+  
   const addFieldToStep = (type: FormField['type']) => {
     const newField = createEmptyField(type);
     const updatedSteps = [...formSteps];
@@ -222,11 +224,101 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setPreviewRefresh(prev => prev + 1);
   };
 
+  // Create default form fields with all required fields
+  const createCompleteDefaultForm = (): FormStep[] => {
+    const defaultFields: FormField[] = [];
+    
+    // Add form title field
+    defaultFields.push({
+      type: 'form-title',
+      id: uuidv4(),
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: '#9b87f5',
+      }
+    });
+    
+    // Add name field
+    defaultFields.push({
+      type: 'text',
+      id: uuidv4(),
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    // Add phone field
+    defaultFields.push({
+      type: 'phone',
+      id: uuidv4(),
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    // Add address field
+    defaultFields.push({
+      type: 'textarea',
+      id: uuidv4(),
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      required: true,
+    });
+    
+    // Add submit button
+    defaultFields.push({
+      type: 'submit',
+      id: uuidv4(),
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
+      },
+    });
+    
+    const defaultStep: FormStep = {
+      id: '1',
+      title: 'Main Step',
+      fields: defaultFields
+    };
+    
+    return [defaultStep];
+  };
+  
+  // Replace the useEffect that creates default forms
   useEffect(() => {
-    // If the data is empty, we create a default form
+    // If the data is empty, we create a default form with all required fields
     if (initialFormData.data.length === 0) {
-      setFormSteps(createDefaultForm());
+      const completeDefaultForm = createCompleteDefaultForm();
+      setFormSteps(completeDefaultForm);
       setPreviewRefresh(prev => prev + 1);
+    } else if (initialFormData.data.length > 0) {
+      // Check if the form has all required fields
+      const allFields = initialFormData.data.flatMap(step => step.fields);
+      const hasName = allFields.some(f => f.type === 'text' && f.label.includes('اسم'));
+      const hasPhone = allFields.some(f => f.type === 'phone');
+      const hasAddress = allFields.some(f => f.type === 'textarea' && f.label.includes('عنوان'));
+      const hasSubmit = allFields.some(f => f.type === 'submit');
+      const hasTitle = allFields.some(f => f.type === 'form-title');
+      
+      // If missing any required field, add the complete default form
+      if (!hasName || !hasPhone || !hasAddress || !hasSubmit || !hasTitle) {
+        const completeDefaultForm = createCompleteDefaultForm();
+        setFormSteps(completeDefaultForm);
+        setPreviewRefresh(prev => prev + 1);
+      }
     }
   }, [initialFormData]);
 

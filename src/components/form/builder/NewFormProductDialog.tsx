@@ -10,6 +10,7 @@ import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { FormField } from '@/lib/form-utils';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -29,6 +30,74 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       setSelectedProducts([]);
     }
   }, [open]);
+  
+  // Generate default fields for new form
+  const createDefaultFormFields = (): FormField[] => {
+    const fields: FormField[] = [];
+    
+    // إضافة حقل عنوان النموذج
+    fields.push({
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: '#9b87f5',
+      }
+    });
+    
+    // إضافة حقل الاسم الكامل
+    fields.push({
+      type: 'text',
+      id: `text-${Date.now()}-1`,
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    // إضافة حقل رقم الهاتف
+    fields.push({
+      type: 'phone',
+      id: `phone-${Date.now()}-2`,
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    // إضافة حقل العنوان
+    fields.push({
+      type: 'textarea',
+      id: `textarea-${Date.now()}`,
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      required: true,
+    });
+    
+    // إضافة زر الطلب
+    fields.push({
+      type: 'submit',
+      id: `submit-${Date.now()}`,
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
+        iconPosition: 'left',
+      },
+    });
+    
+    return fields;
+  };
   
   // Handle creating a new form with the selected products
   const handleCreateForm = async () => {
@@ -54,6 +123,9 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         return;
       }
       
+      // Generate default form fields
+      const defaultFields = createDefaultFormFields();
+      
       // Create default form in database
       const { error: formError } = await supabase.from('forms').insert({
         id: newFormId,
@@ -64,7 +136,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         data: [{
           id: '1',
           title: 'Main Step',
-          fields: []
+          fields: defaultFields
         }],
         style: {
           primaryColor: '#9b87f5',

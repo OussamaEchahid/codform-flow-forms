@@ -183,7 +183,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع ال��ناصر المطلوبة
+  // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -278,7 +278,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       setFormStyle(defaultStyle);
 
-      // Create default fields
+      // Create default fields with ALL required fields
       const defaultFields = createDefaultForm();
       setFormElements(defaultFields);
 

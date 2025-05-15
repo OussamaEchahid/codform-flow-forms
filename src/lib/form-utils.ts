@@ -1,4 +1,4 @@
-
+import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -39,20 +39,39 @@ export type FormFieldType =
   'form-title' |  // Added form-title type
   'text/html';  // Added text/html type
 
+export interface FormFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface FormFieldStyle {
+  backgroundColor?: string;
+  color?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  textAlign?: string;
+  fontFamily?: string;
+  animation?: boolean;
+  animationType?: string;
+  fullWidth?: boolean;
+  icon?: string;
+  iconPosition?: 'left' | 'right';
+  descriptionColor?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+}
+
 export interface FormField {
   id: string;
   type: FormFieldType;
-  label?: string;
-  placeholder?: string;
+  label: string;
   required?: boolean;
-  options?: { label: string; value: string }[];
-  defaultValue?: string;
+  placeholder?: string;
   helpText?: string;
-  name?: string;
-  isStep?: boolean;
-  stepId?: string;
-  stepIndex?: number;
-  [key: string]: any;
+  options?: FormFieldOption[];
+  content?: string;
+  style?: FormFieldStyle;
+  icon?: string;
 }
 
 export interface FormStep {
@@ -82,22 +101,14 @@ export interface FormData {
 }
 
 export interface FloatingButtonConfig {
-  enabled?: boolean;
-  text?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  fontSize?: string;
-  fontWeight?: string;
-  borderRadius?: string;
-  paddingY?: string;
-  marginBottom?: string;
-  showIcon?: boolean;
+  enabled: boolean;
+  text: string;
+  position: 'bottom-left' | 'bottom-right';
+  backgroundColor: string;
+  textColor: string;
   icon?: string;
-  animation?: string;
-  animationType?: string;
-  borderWidth?: string;  // Added missing property
-  borderColor?: string;  // Added missing property
-  fontFamily?: string;   // Added missing property
+  showOnMobile: boolean;
+  showOnDesktop: boolean;
 }
 
 export const formatCurrency = (amount: number, locale = 'ar-SA', currency = 'SAR') => {
@@ -164,119 +175,180 @@ export const extractFormSections = (form: FormData): Array<{ title: string; fiel
 
 // Function to create an empty field based on type
 export const createEmptyField = (type: FormFieldType): FormField => {
-  const newId = `${type}-${Date.now()}`;
   let newField: FormField = {
-    id: newId,
-    type: type,
-    required: false
+    id: uuidv4(),
+    type,
+    label: '',
+    required: false,
   };
-  
-  switch(type) {
+
+  // Add field-specific configuration
+  switch (type) {
+    case 'form-title':
+      newField.label = 'عنوان النموذج المخصص';
+      newField.helpText = 'وصف النموذج (اختياري)';
+      newField.style = {
+        textAlign: 'center',
+        color: '#1A1F2C',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        descriptionColor: '#6b7280',
+        descriptionFontSize: '14px',
+        backgroundColor: '',
+      };
+      break;
     case 'text':
-      newField.label = 'Text Field';
-      newField.placeholder = 'Enter text here';
+      newField.label = 'حقل نص';
+      newField.placeholder = 'أدخل نصًا هنا';
       break;
     case 'email':
-      newField.label = 'Email';
-      newField.placeholder = 'Enter your email';
+      newField.label = 'بريد إلكتروني';
+      newField.placeholder = 'أدخل البريد الإلكتروني';
       break;
     case 'phone':
-      newField.label = 'Phone Number';
-      newField.placeholder = 'Enter your phone number';
+      newField.label = 'رقم هاتف';
+      newField.placeholder = 'أدخل رقم الهاتف';
       break;
     case 'textarea':
-      newField.label = 'Text Area';
-      newField.placeholder = 'Enter your message here';
+      newField.label = 'نص متعدد الأسطر';
+      newField.placeholder = 'أدخل نصًا هنا';
       break;
     case 'select':
-      newField.label = 'Select Option';
+      newField.label = 'قائمة منسدلة';
       newField.options = [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' },
-        { label: 'Option 3', value: 'option3' }
+        { value: 'option1', label: 'الخيار الأول' },
+        { value: 'option2', label: 'الخيار الثاني' },
+        { value: 'option3', label: 'الخيار الثالث' }
       ];
       break;
     case 'checkbox':
-      newField.label = 'Checkbox Option';
+      newField.label = 'خانة اختيار';
       newField.options = [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' }
+        { value: 'option1', label: 'الخيار الأول' },
+        { value: 'option2', label: 'الخيار الثاني' },
+        { value: 'option3', label: 'الخيار الثالث' }
       ];
       break;
     case 'radio':
-      newField.label = 'Radio Option';
+      newField.label = 'زر راديو';
       newField.options = [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' }
+        { value: 'option1', label: 'الخيار الأول' },
+        { value: 'option2', label: 'الخيار الثاني' },
+        { value: 'option3', label: 'الخيار الثالث' }
       ];
       break;
-    case 'submit':
-      newField.label = 'Submit Form';
-      newField.style = {
-        backgroundColor: '#3b82f6',
-        color: '#ffffff',
-        fontSize: '1rem',
-        animation: false
-      };
+    case 'cart-items':
+      newField.label = 'المنتج المختار';
       break;
-    case 'form-title':
-      newField.label = 'Form Title';
-      newField.helpText = 'Form description goes here';
+    case 'cart-summary':
+      newField.label = 'ملخص الطلب';
+      break;
+    case 'submit':
+      newField.label = 'إرسال الطلب';
       newField.style = {
-        textAlign: 'center',
-        color: '#1a202c',
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
-        backgroundColor: '#f7fafc'
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
       };
       break;
     case 'text/html':
-      newField.label = 'HTML Content';
-      newField.content = '<p>Enter your HTML content here</p>';
-      break;
-    case 'cart-items':
-      newField.label = 'Cart Items';
-      break;
-    case 'cart-summary':
-      newField.label = 'Order Summary';
-      break;
-    case 'whatsapp':
-      newField.label = 'WhatsApp Contact';
-      newField.phoneNumber = '';
-      newField.message = 'Hello, I would like to inquire about...';
+      newField.label = 'نص/HTML';
+      newField.content = '<p>محتوى HTML</p>';
       break;
     case 'title':
-      newField.label = 'Section Title';
+      newField.label = 'عنوان قسم';
       newField.style = {
-        textAlign: 'center',
-        fontSize: '1.25rem',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        fontSize: '20px',
       };
       break;
+    case 'whatsapp':
+      newField.label = 'طلب عبر الواتساب';
+      break;
+    case 'image':
+      newField.label = 'صورة';
+      break;
     default:
-      newField.label = 'New Field';
+      newField.label = 'حقل جديد';
       break;
   }
-  
+
   return newField;
 };
 
-// Function to create a default form
+// Create a complete default form with all required fields
 export const createDefaultForm = (): FormStep[] => {
-  return [
-    {
-      id: '1',
-      title: 'Customer Information',
-      fields: [
-        createEmptyField('form-title'),
-        createEmptyField('text'),
-        createEmptyField('email'),
-        createEmptyField('phone'),
-        createEmptyField('textarea'),
-        createEmptyField('submit')
-      ]
+  const defaultFields: FormField[] = [];
+  
+  // Add form title field
+  defaultFields.push({
+    type: 'form-title',
+    id: uuidv4(),
+    label: 'نموذج جديد',
+    helpText: 'نموذج جديد',
+    style: {
+      color: '#ffffff',
+      textAlign: 'right',
+      fontWeight: 'bold',
+      fontSize: '24px',
+      descriptionColor: '#ffffff',
+      descriptionFontSize: '14px',
+      backgroundColor: '#9b87f5',
     }
-  ];
+  });
+  
+  // Add name field
+  defaultFields.push({
+    type: 'text',
+    id: uuidv4(),
+    label: 'الاسم الكامل',
+    placeholder: 'أدخل الاسم الكامل',
+    required: true,
+    icon: 'user',
+  });
+  
+  // Add phone field
+  defaultFields.push({
+    type: 'phone',
+    id: uuidv4(),
+    label: 'رقم الهاتف',
+    placeholder: 'أدخل رقم الهاتف',
+    required: true,
+    icon: 'phone',
+  });
+  
+  // Add address field
+  defaultFields.push({
+    type: 'textarea',
+    id: uuidv4(),
+    label: 'العنوان',
+    placeholder: 'أدخل العنوان الكامل',
+    required: true,
+  });
+  
+  // Add submit button
+  defaultFields.push({
+    type: 'submit',
+    id: uuidv4(),
+    label: 'إرسال الطلب',
+    style: {
+      backgroundColor: '#9b87f5',
+      color: '#ffffff',
+      fontSize: '18px',
+      animation: true,
+      animationType: 'pulse',
+    },
+  });
+  
+  const defaultStep: FormStep = {
+    id: '1',
+    title: 'Main Step',
+    fields: defaultFields
+  };
+  
+  return [defaultStep];
 };
 
 // Form templates
