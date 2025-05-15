@@ -56,7 +56,6 @@ export interface FormFieldStyle {
   // Description properties
   descriptionColor?: string;
   descriptionFontSize?: string;
-  // Note: descriptionFontWeight is removed as it's not needed
   
   // Border properties
   borderRadius?: string;
@@ -72,6 +71,16 @@ export interface FormFieldStyle {
   icon?: string;
   fullWidth?: boolean;
   fontFamily?: string;
+  
+  // Label specific properties
+  labelColor?: string;
+  labelFontSize?: string;
+  labelFontWeight?: string;
+  
+  // Additional properties needed
+  showLabel?: boolean;
+  showIcon?: boolean;
+  paddingY?: string;
   
   // Cart item and summary specific properties
   priceFontSize?: string;
@@ -99,6 +108,10 @@ export interface FormField {
     value: string;
     label: string;
   }>;
+  
+  // Additional properties needed
+  inputFor?: string;
+  errorMessage?: string;
   
   // Additional properties
   defaultValue?: string | string[];
