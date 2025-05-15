@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -37,8 +36,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
   const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
-  const [descWeight, setDescWeight] = useState(formTitleField?.style?.descriptionFontWeight || 'normal');
-  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
+  // Remove descriptionFontWeight usage and use a fixed value
   const [isOpen, setIsOpen] = useState(true);
 
   // Update local state when formTitleField changes
@@ -50,8 +48,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
-      setDescWeight(formTitleField.style?.descriptionFontWeight || 'normal');
-      setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
+      // Remove descriptionFontWeight reference here
     }
   }, [formTitleField, language]);
 
@@ -72,7 +69,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'fontWeight') setTitleWeight(value);
     if (property === 'descriptionColor') setDescColor(value);
     if (property === 'descriptionFontSize') setDescSize(value);
-    if (property === 'descriptionFontWeight') setDescWeight(value);
+    // Remove descriptionFontWeight reference here
     if (property === 'backgroundColor') setBackgroundColor(value);
     
     onUpdateTitleField(updatedField);
@@ -326,8 +323,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       </Label>
                       <select
                         id="desc-weight"
-                        value={descWeight}
-                        onChange={(e) => handleUpdateStyle('descriptionFontWeight', e.target.value)}
+                        value="normal" // Use fixed value 'normal' instead of descWeight
+                        onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
                         <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>

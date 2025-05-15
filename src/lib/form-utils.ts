@@ -56,6 +56,7 @@ export interface FormFieldStyle {
   // Description properties
   descriptionColor?: string;
   descriptionFontSize?: string;
+  // Note: descriptionFontWeight is removed as it's not needed
   
   // Border properties
   borderRadius?: string;
