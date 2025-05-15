@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -13,8 +14,6 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
-import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
-import ShopifyProductSelection from '@/components/form/builder/ShopifyProductSelection';
 import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import { useShopify } from '@/hooks/useShopify';
 import { 
@@ -93,7 +92,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
-  // ���لتغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -111,9 +109,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
-  
-  // Add state for selected products
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
   // تحسين وظيفة البحث عن حقل عنوان النموذج
   const getFormTitleField = (): FormField | undefined => {
@@ -188,7 +183,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع ال��ناصر المطلوبة
+  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -341,22 +336,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           if (formData) {
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
-            
-            // Load selected products if they exist
-            try {
-              const { data: productSettings } = await supabase
-                .from('shopify_product_settings')
-                .select('product_id')
-                .eq('form_id', id);
-                
-              if (productSettings && productSettings.length > 0) {
-                const productIds = productSettings.map(p => p.product_id);
-                setSelectedProducts(productIds);
-                console.log('Loaded associated products:', productIds);
-              }
-            } catch (error) {
-              console.error('Error loading product settings:', error);
-            }
             
             // تأكد من أن النموذج يحتوي على كل العناصر المطلوبة
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
@@ -578,7 +557,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         
         if (error) {
           console.error("Direct database update for publishing failed:", error);
-          toast.error(language === 'ar' ? 'فشل تغيير ��الة النشر' : 'Failed to change publish status');
+          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
         } else {
           setIsPublished(newPublishState);
           toast.success(
@@ -705,49 +684,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const handleSaveStyle = () => {
     setIsStyleDialogOpen(false);
     // لا تحفظ إعدادات النمط في localStorage بل اجعلها خاصة بالنموذج الحالي فقط
-    // localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
     
     // حفظ النموذج مع إعدادات النمط الجديدة
     handleSave();
     
     toast.success(language === 'ar' ? 'تم حفظ تخصيص النمط بنجاح' : 'Style customization saved successfully');
-  };
-
-  const handleShopifyIntegration = async (settings: any) => {
-    if (!currentFormId) {
-      toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
-      return;
-    }
-    
-    try {
-      // Include selected products in the sync settings
-      const syncSettings = {
-        ...settings,
-        products: selectedProducts
-      };
-      
-      await shopifyIntegration.syncForm({ 
-        formId: currentFormId,
-        shopDomain: shopifyIntegration.shop,
-        settings: syncSettings
-      });
-      
-      toast.success(
-        language === 'ar' 
-          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
-          : 'Shopify settings saved successfully'
-      );
-      
-      // Save form after Shopify integration
-      handleSave();
-    } catch (error) {
-      console.error("Error saving Shopify settings:", error);
-      toast.error(
-        language === 'ar'
-          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
-          : 'Error saving Shopify settings'
-      );
-    }
   };
 
   const sensors = useSensors(
@@ -803,12 +744,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setIsFloatingButtonDialogOpen(false);
   };
 
-  // Handle product selection change
-  const handleProductSelectionChange = (products: string[]) => {
-    setSelectedProducts(products);
-    console.log('Selected products updated:', products);
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <FormHeader 
@@ -830,76 +765,41 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         </div>
         
         <div className="col-span-6 bg-gray-50 p-6">
-          <Tabs defaultValue="elements">
-            <TabsList className="mb-6">
-              <TabsTrigger value="elements">
-                {language === 'ar' ? 'عناصر النموذج' : 'Form Elements'}
-              </TabsTrigger>
-              <TabsTrigger value="products">
-                {language === 'ar' ? 'المنتجات' : 'Products'}
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="elements">
-              <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
-              </h2>
-              
-              {/* Add the form title editor at top */}
-              <FormTitleEditor
-                formTitle={formTitle}
-                formDescription={formDescription}
-                onFormTitleChange={(title) => setFormTitle(title)}
-                onFormDescriptionChange={(desc) => setFormDescription(desc)}
-                formTitleField={getFormTitleField()}
-                onAddTitleField={addFormTitleField}
-                onUpdateTitleField={updateFormTitleField}
+          <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
+          </h2>
+          
+          {/* Add the form title editor at top */}
+          <FormTitleEditor
+            formTitle={formTitle}
+            formDescription={formDescription}
+            onFormTitleChange={(title) => setFormTitle(title)}
+            onFormDescriptionChange={(desc) => setFormDescription(desc)}
+            formTitleField={getFormTitleField()}
+            onAddTitleField={addFormTitleField}
+            onUpdateTitleField={updateFormTitleField}
+          />
+          
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={formElements.map(el => el.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <FormElementEditor
+                elements={formElements}
+                selectedIndex={selectedElementIndex}
+                onSelectElement={setSelectedElementIndex}
+                onEditElement={editElement}
+                onDeleteElement={deleteElement}
+                onDuplicateElement={duplicateElement}
+                onReorderElements={handleReorderElements}
               />
-              
-              <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext 
-                  items={formElements.map(el => el.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <FormElementEditor
-                    elements={formElements}
-                    selectedIndex={selectedElementIndex}
-                    onSelectElement={setSelectedElementIndex}
-                    onEditElement={editElement}
-                    onDeleteElement={deleteElement}
-                    onDuplicateElement={duplicateElement}
-                    onReorderElements={handleReorderElements}
-                  />
-                </SortableContext>
-              </DndContext>
-            </TabsContent>
-            
-            <TabsContent value="products">
-              <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'ربط النموذج بالمنتجات' : 'Link Form to Products'}
-              </h2>
-              
-              <ShopifyProductSelection 
-                selectedProducts={selectedProducts}
-                onChange={handleProductSelectionChange}
-                formId={currentFormId}
-              />
-              
-              <div className="mt-4">
-                <Alert>
-                  <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
-                    {language === 'ar' 
-                      ? 'سيظهر هذا النموذج في صفحات المنتجات المحددة. اضغط حفظ بعد الانتهاء من التحديد.'
-                      : 'This form will appear on the selected product pages. Click Save after selection.'}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </TabsContent>
-          </Tabs>
+            </SortableContext>
+          </DndContext>
         </div>
         
         <div className="col-span-4 border-l bg-white p-6">
@@ -987,16 +887,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           onSave={saveField}
           onClose={() => setIsFieldEditorOpen(false)}
         />
-      )}
-
-      {currentFormId && (
-        <div className="mt-6">
-          <ShopifyIntegration
-            formId={currentFormId}
-            onSave={handleShopifyIntegration}
-            isSyncing={shopifyIntegration.isSyncing}
-          />
-        </div>
       )}
     </div>
   );
