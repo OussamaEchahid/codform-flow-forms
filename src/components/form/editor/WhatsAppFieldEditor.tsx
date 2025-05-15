@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -146,7 +147,7 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
           
           <div className="flex justify-end pt-4 gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-              {language === 'ar' ? '��لغاء' : 'Cancel'}
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
             </Button>
             <Button type="submit">
               {language === 'ar' ? 'حفظ' : 'Save'}
