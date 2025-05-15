@@ -1,15 +1,12 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
 import { Info, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useParams } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -18,7 +15,6 @@ interface ShopifyIntegrationProps {
   formStyle?: {
     primaryColor?: string;
   };
-  onSave?: (settings: any) => void;
   isSyncing?: boolean;
   formTitleElement?: any;
 }
