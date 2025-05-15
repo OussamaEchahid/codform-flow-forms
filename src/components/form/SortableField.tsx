@@ -47,24 +47,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
     zIndex: isDragging ? 999 : 1,
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onEdit();
-  };
-
-  const handleDuplicate = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDuplicate();
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDelete();
-  };
-  
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
     // When expanding, automatically trigger edit
@@ -105,7 +87,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handleEdit}
+              onClick={onEdit}
               className="mx-2"
             >
               <Edit size={16} />
@@ -118,34 +100,62 @@ const SortableField: React.FC<SortableFieldProps> = ({
           </div>
           
           <AccordionContent className="border-t pt-2">
-            <div className="p-3 flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleEdit}
-                className="flex items-center gap-1"
-              >
-                <Edit size={16} />
-                {language === 'ar' ? 'تعديل' : 'Edit'}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDuplicate}
-                className="flex items-center gap-1"
-              >
-                <Copy size={14} />
-                {language === 'ar' ? 'نسخ' : 'Duplicate'}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDelete}
-                className="flex items-center gap-1 hover:text-red-500 hover:border-red-200"
-              >
-                <Trash size={14} />
-                {language === 'ar' ? 'حذف' : 'Delete'}
-              </Button>
+            <div className="p-3">
+              <div className="flex flex-col gap-3 mb-3">
+                <h4 className="font-medium text-sm">
+                  {language === 'ar' ? 'إعدادات الحقل' : 'Field Settings'}
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="px-2 py-1 bg-gray-50 rounded text-sm">
+                    <span className="text-gray-500">{language === 'ar' ? 'النوع:' : 'Type:'}</span> {field.type}
+                  </div>
+                  <div className="px-2 py-1 bg-gray-50 rounded text-sm">
+                    <span className="text-gray-500">{language === 'ar' ? 'مطلوب:' : 'Required:'}</span> {field.required ? (language === 'ar' ? 'نعم' : 'Yes') : (language === 'ar' ? 'لا' : 'No')}
+                  </div>
+                </div>
+              </div>
+              
+              {field.placeholder && (
+                <div className="mb-3 text-sm">
+                  <span className="font-medium">{language === 'ar' ? 'النص التوضيحي:' : 'Placeholder:'}</span> {field.placeholder}
+                </div>
+              )}
+              
+              {field.helpText && (
+                <div className="mb-3 text-sm">
+                  <span className="font-medium">{language === 'ar' ? 'النص المساعد:' : 'Help Text:'}</span> {field.helpText}
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-2 pt-2 border-t mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onEdit}
+                  className="flex items-center gap-1"
+                >
+                  <Edit size={16} />
+                  {language === 'ar' ? 'تعديل' : 'Edit'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onDuplicate}
+                  className="flex items-center gap-1"
+                >
+                  <Copy size={14} />
+                  {language === 'ar' ? 'نسخ' : 'Duplicate'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onDelete}
+                  className="flex items-center gap-1 hover:text-red-500 hover:border-red-200"
+                >
+                  <Trash size={14} />
+                  {language === 'ar' ? 'حذف' : 'Delete'}
+                </Button>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
