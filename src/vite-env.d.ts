@@ -15,4 +15,3 @@ interface ShopifyIntegrationProps {
   onSave?: (settings: any) => Promise<void>;
   isSyncing?: boolean;
 }
-
