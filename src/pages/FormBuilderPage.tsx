@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -18,11 +19,12 @@ const FormBuilderPage = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms, createDefaultForm } = useFormTemplates();
-  const { tokenError, failSafeMode, toggleFailSafeMode } = useShopify();
+  const { tokenError, failSafeMode, toggleFailSafeMode, getDefaultForm } = useShopify();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
-  const [isCreatingForm, setIsCreatingForm] = useState(false); // مؤشر لمنع الإنشاء المتعدد
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -44,13 +46,37 @@ const FormBuilderPage = () => {
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
+  // Check for default form
+  useEffect(() => {
+    async function checkForDefaultForm() {
+      if (!shop || isCheckingDefaultForm) return;
+      
+      setIsCheckingDefaultForm(true);
+      try {
+        const defaultForm = await getDefaultForm(shop);
+        
+        if (!defaultForm) {
+          console.log('No default form found, will create one when needed');
+        } else {
+          console.log('Default form found:', defaultForm.id);
+        }
+      } catch (error) {
+        console.error('Error checking for default form:', error);
+      } finally {
+        setIsCheckingDefaultForm(false);
+      }
+    }
+    
+    checkForDefaultForm();
+  }, [shop, getDefaultForm]);
+  
   useEffect(() => {
     async function handleFormInit() {
       if (formId) {
         // Handle creating a new form when "new" is in the URL
         if (formId === 'new') {
           try {
-            // إضافة تحقق لمنع الإنشاء المتعدد للنماذج
+            // prevent duplicate creation
             if (isCreatingForm) {
               console.log('Already creating a form, preventing duplicate creation');
               return;

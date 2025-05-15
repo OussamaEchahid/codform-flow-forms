@@ -1,159 +1,93 @@
-
-import React, { useState } from 'react';
-import { FormField } from '@/lib/form-utils';
+import React, { useState, useEffect } from 'react';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { useI18n } from '@/lib/i18n';
-import { Form, FormField as UIFormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
 
 interface WhatsAppFieldEditorProps {
-  field: FormField;
-  onSave: (field: FormField) => void;
-  onCancel: () => void;
+  field: any;
+  onSave: (field: any) => void;
+  onClose: () => void;
 }
 
-interface FieldFormValues {
-  label: string;
-  phoneNumber: string;
-  message: string;
-  backgroundColor: string;
-  textColor: string;
-}
+const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave, onClose }) => {
+  const { t, language } = useI18n();
+  const [messageTitle, setMessageTitle] = useState(field.messageTitle || '');
+  const [messageText, setMessageText] = useState(field.messageText || '');
+  const [buttonText, setButtonText] = useState(field.buttonText || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(field.whatsappNumber || '');
+  const [isRequired, setIsRequired] = useState(field.required || false);
 
-const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave, onCancel }) => {
-  const { language } = useI18n();
-  
-  const form = useForm<FieldFormValues>({
-    defaultValues: {
-      label: field.label || (language === 'ar' ? 'التواصل عبر واتساب' : 'Contact via WhatsApp'),
-      phoneNumber: field.whatsappNumber || '',
-      message: field.message || '',
-      backgroundColor: field.style?.backgroundColor || '#25D366',
-      textColor: field.style?.color || '#FFFFFF',
-    },
-  });
-  
-  const handleSubmit = (values: FieldFormValues) => {
-    const updatedField: FormField = {
+  const handleSave = () => {
+    const updatedField = {
       ...field,
-      label: values.label,
-      whatsappNumber: values.phoneNumber,
-      message: values.message,
-      style: {
-        ...(field.style || {}),
-        backgroundColor: values.backgroundColor,
-        color: values.textColor,
-      },
+      messageTitle: messageTitle || '',
+      messageText: messageText || '',
+      buttonText: buttonText || '',
+      whatsappNumber: whatsappNumber || '',
+      required: isRequired,
     };
-    
+
     onSave(updatedField);
+    onClose();
   };
-  
+
   return (
-    <div className="p-4">
-      <h3 className="text-lg font-medium mb-4">
-        {language === 'ar' ? 'تعديل زر واتساب' : 'Edit WhatsApp Button'}
-      </h3>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <UIFormField
-            control={form.control}
-            name="label"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{language === 'ar' ? 'عنوان الزر' : 'Button Label'}</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          
-          <UIFormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{language === 'ar' ? 'رقم الواتساب' : 'WhatsApp Number'}</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder={language === 'ar' ? 'مثال: 966500000000' : 'Example: 15551234567'} />
-                </FormControl>
-                <FormDescription>
-                  {language === 'ar' 
-                    ? 'أدخل رقم الواتساب متضمنًا رمز الدولة بدون + أو مسافات' 
-                    : 'Enter WhatsApp number with country code, without + or spaces'}
-                </FormDescription>
-              </FormItem>
-            )}
-          />
-          
-          <UIFormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{language === 'ar' ? 'الرسالة الافتراضية' : 'Default Message'}</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder={language === 'ar' ? 'أدخل الرسالة الافتراضية' : 'Enter default message'} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          
-          <UIFormField
-            control={form.control}
-            name="backgroundColor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{language === 'ar' ? 'لون الخلفية' : 'Background Color'}</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <Input
-                    type="color"
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="w-12 h-9 p-1"
-                  />
-                </div>
-              </FormItem>
-            )}
-          />
-          
-          <UIFormField
-            control={form.control}
-            name="textColor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{language === 'ar' ? 'لون النص' : 'Text Color'}</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <Input
-                    type="color"
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="w-12 h-9 p-1"
-                  />
-                </div>
-              </FormItem>
-            )}
-          />
-          
-          <div className="flex justify-end pt-4 gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
-            </Button>
-            <Button type="submit">
-              {language === 'ar' ? 'حفظ' : 'Save'}
-            </Button>
-          </div>
-        </form>
-      </Form>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="messageTitle">{t('Message Title')}</Label>
+        <Input
+          id="messageTitle"
+          value={messageTitle}
+          onChange={(e) => setMessageTitle(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="messageText">{t('Message Text')}</Label>
+        <Input
+          id="messageText"
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="buttonText">{t('Button Text')}</Label>
+        <Input
+          id="buttonText"
+          value={buttonText}
+          onChange={(e) => setButtonText(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="whatsappNumber">{t('WhatsApp Number')}</Label>
+        <Input
+          id="whatsappNumber"
+          value={whatsappNumber}
+          onChange={(e) => setWhatsappNumber(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch id="required" checked={isRequired} onCheckedChange={setIsRequired} />
+        <Label htmlFor="required">{t('Required')}</Label>
+      </div>
+      <div className="flex justify-end space-x-2">
+        <Button variant="ghost" onClick={onClose}>
+          {t('Cancel')}
+        </Button>
+        <Button onClick={handleSave}>
+          {t('Save')}
+        </Button>
+      </div>
     </div>
   );
 };

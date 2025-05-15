@@ -4,13 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/lib/i18n';
-import { Check, Copy, AlertTriangle, Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useParams } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -33,41 +32,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formTitleElement
 }) => {
   const { t, language } = useI18n();
-  const { formId: urlFormId } = useParams<{ formId: string }>();
-  const [copied, setCopied] = useState(false);
   const [hideHeader] = useState(true);
-  
-  // استخدام معرف UUID فعلي إذا كان formId هو "new" أو غير صالح
-  const displayFormId = useMemo(() => {
-    if (!formId || formId === 'new' || formId === 'undefined') {
-      // التحقق من وجود معرف صالح في الرابط
-      if (urlFormId && urlFormId !== 'new' && urlFormId !== 'undefined') {
-        return urlFormId;
-      }
-      // إنشاء معرف مؤقت للعرض فقط
-      return uuidv4();
-    }
-    return formId;
-  }, [formId, urlFormId]);
-  
-  // إعادة ضبط حالة النسخ بعد 3 ثوان
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (copied) {
-      timeout = setTimeout(() => setCopied(false), 3000);
-    }
-    return () => clearTimeout(timeout);
-  }, [copied]);
-  
-  const handleCopyFormId = () => {
-    navigator.clipboard.writeText(displayFormId);
-    setCopied(true);
-    toast.success(
-      language === 'ar' 
-        ? 'تم نسخ معرّف النموذج بنجاح' 
-        : 'Form ID copied successfully'
-    );
-  };
 
   return (
     <Card className="mt-4">
@@ -77,8 +42,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
         </CardTitle>
         <CardDescription className={language === 'ar' ? 'text-right' : ''}>
           {language === 'ar' 
-            ? 'لاستخدام هذا النموذج في متجرك، قم بنسخ معرّف النموذج واستخدامه في إعدادات البلوك داخل متجرك' 
-            : 'To use this form in your store, copy the form ID and use it in the block settings in your store'}
+            ? 'سيتم استخدام هذا النموذج تلقائياً في متجرك عند إضافة البلوك إلى صفحة المنتج' 
+            : 'This form will be used automatically in your store when adding the block to the product page'}
         </CardDescription>
       </CardHeader>
       
@@ -102,29 +67,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
                 </li>
                 <li>
                   {language === 'ar' 
-                    ? 'الصق معرّف النموذج في حقل "معرّف النموذج" في الإعدادات' 
-                    : 'Paste the form ID in the "Form ID" field in settings'}
+                    ? 'سيظهر النموذج تلقائياً دون الحاجة لإعدادات إضافية' 
+                    : 'The form will appear automatically without needing additional settings'}
                 </li>
               </ol>
             </AlertDescription>
           </Alert>
           
           <div className="flex flex-col space-y-4">
-            <div className={`flex flex-row items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-              <span className={`text-sm font-medium ${language === 'ar' ? 'ml-2' : 'mr-2'}`}>
-                {language === 'ar' ? 'معرّف النموذج:' : 'Form ID:'}
-              </span>
-              <code className="p-2 bg-gray-100 rounded text-sm flex-1">{displayFormId}</code>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="ml-2" 
-                onClick={handleCopyFormId}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-              </Button>
-            </div>
-            
             <div className="flex items-center justify-between py-2 border-t">
               <Label htmlFor="hide-header" className={language === 'ar' ? 'text-right' : 'text-left'}>
                 {language === 'ar' ? 'إخفاء ترويسة النموذج في المتجر (مفعل افتراضيًا)' : 'Hide form header in store (enabled by default)'}
