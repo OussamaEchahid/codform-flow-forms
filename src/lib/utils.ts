@@ -1,32 +1,27 @@
-
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Helper function to ensure string values
+/**
+ * Ensures the value is a string
+ * @param value - The value to ensure is a string
+ * @returns A string value
+ */
 export function ensureString(value: any): string {
-  if (typeof value === 'boolean') {
-    return '';
+  if (typeof value === 'string') {
+    return value;
   }
-  return typeof value === 'string' ? value : '';
-}
-
-// Helper for CSS color values
-export function ensureColor(value: any): string {
-  if (typeof value === 'boolean') {
-    return '';
+  
+  // Convert boolean to string or return empty string
+  if (value === true) {
+    return 'true';
+  } else if (value === false) {
+    return 'false';
   }
-  return typeof value === 'string' ? value : '';
+  
+  // Handle undefined, null, or other types
+  return value ? String(value) : '';
 }
-
-// Helper for numeric values like fontSize, borderRadius, etc.
-export function ensureSize(value: any): string {
-  if (typeof value === 'boolean') {
-    return '';
-  }
-  return typeof value === 'string' ? value : '';
-}
-

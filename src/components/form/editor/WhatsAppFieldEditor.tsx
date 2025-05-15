@@ -28,8 +28,8 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
   const form = useForm<FieldFormValues>({
     defaultValues: {
       label: field.label || (language === 'ar' ? 'التواصل عبر واتساب' : 'Contact via WhatsApp'),
-      phoneNumber: typeof field.whatsappNumber === 'string' ? field.whatsappNumber : '',
-      message: typeof field.message === 'string' ? field.message : '',
+      phoneNumber: ensureString(field.whatsappNumber),
+      message: ensureString(field.message),
       backgroundColor: field.style?.backgroundColor || '#25D366',
       textColor: field.style?.color || '#FFFFFF',
     },
