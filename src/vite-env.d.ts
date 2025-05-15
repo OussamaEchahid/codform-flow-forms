@@ -9,16 +9,16 @@ interface ShopifyIntegrationProps {
   formStyle?: {
     primaryColor?: string;
   };
-  onSave?: (settings: any) => void; // Added missing prop
-  isSyncing?: boolean; // Added missing prop
+  onSave?: (settings: any) => void; // Added back the onSave prop
+  isSyncing?: boolean; 
   formTitleElement?: any;
 }
 
 // Shopify product selection component props
 interface ShopifyProductSelectionProps {
   formId: string;
-  selectedProducts: string[]; // Added missing prop
-  onChange: (products: string[]) => void; // Added missing prop
+  selectedProducts: string[]; 
+  onChange: (products: string[]) => void; 
   onComplete?: () => void;
   onCancel?: () => void;
 }

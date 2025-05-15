@@ -15,6 +15,7 @@ interface ShopifyIntegrationProps {
   formStyle?: {
     primaryColor?: string;
   };
+  onSave?: (settings: any) => void; // Re-added the onSave prop
   isSyncing?: boolean;
   formTitleElement?: any;
 }
@@ -25,7 +26,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({
   formDescription,
   formStyle = { primaryColor: '#9b87f5' },
   isSyncing = false,
-  formTitleElement
+  formTitleElement,
+  onSave
 }) => {
   const { t, language } = useI18n();
   const [hideHeader] = useState(true);
