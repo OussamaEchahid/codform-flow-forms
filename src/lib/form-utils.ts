@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -85,8 +84,6 @@ export interface FormFieldStyle {
   // Cart item and summary specific properties
   priceFontSize?: string;
   priceColor?: string;
-  labelFontSize?: string;
-  labelColor?: string;
   valueFontSize?: string;
   valueColor?: string;
   totalLabelFontSize?: string;
