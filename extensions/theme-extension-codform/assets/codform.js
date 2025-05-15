@@ -1,3 +1,4 @@
+
 // CODFORM - نماذج الدفع عند الاستلام
 // نموذج الدفع عند الاستلام - برمجة وتطوير CODFORM
 
@@ -60,17 +61,19 @@
     const fetchOptions = {
       method: 'GET',
       mode: 'cors',
+      credentials: 'omit', // Don't send cookies
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Shop': shopDomain, // Add shop header for debugging
-        'Origin': window.location.origin
+        'Shop': shopDomain,
+        'Origin': window.location.origin,
+        'Cache-Control': 'no-store, no-cache'
       },
       cache: 'no-store'
     };
     
     // Fetch form data with retry logic
-    fetchWithRetry(timestampedUrl, 3, fetchOptions)
+    fetchWithRetry(timestampedUrl, 5, fetchOptions)
       .then(response => {
         console.log(`CODFORM: Response status: ${response.status}`);
         if (!response.ok) {
@@ -95,9 +98,9 @@
       })
       .catch(error => {
         console.error('CODFORM Error:', error);
-        showErrorMessage(blockId, 'فشل تحميل النموذج. تأكد من إعداد النموذج لهذا المنتج في لوحة التحكم.');
+        showErrorMessage(blockId, 'فشل تحميل النموذج. يرجى تحديث الصفحة أو الاتصال بالدعم الفني.');
         
-        // After error, try to load default form as fallback with different headers
+        // After error, try to load default form as fallback
         tryLoadDefaultForm(shopDomain, blockId);
       });
   }
@@ -105,9 +108,40 @@
   // Enhanced fetch with retry logic and diagnostics
   function fetchWithRetry(url, maxRetries, options, retryCount = 0) {
     console.log(`CODFORM: Fetch attempt ${retryCount + 1}/${maxRetries + 1} for ${url}`);
-    console.log('CODFORM: Fetch options:', options);
     
-    return fetch(url, options)
+    // For each retry, slightly modify the options to try different configurations
+    const currentOptions = {...options};
+    
+    if (retryCount > 0) {
+      // Add a cache buster for each retry
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}_retry=${retryCount}_${Date.now()}`;
+      
+      // Try different variations of headers with each retry
+      if (retryCount === 1) {
+        // Try removing some headers
+        const simpleHeaders = {
+          'Accept': 'application/json', 
+          'Content-Type': 'application/json'
+        };
+        currentOptions.headers = simpleHeaders;
+      } else if (retryCount === 2) {
+        // Try with almost no headers
+        currentOptions.headers = {'Accept': 'application/json'};
+      } else if (retryCount >= 3) {
+        // For desperate attempts, try with no custom headers at all and force no-cors mode
+        currentOptions.headers = {};
+        if (retryCount === 4) {
+          // Last resort: try with a completely different mode
+          currentOptions.mode = 'no-cors';
+          console.log('CODFORM: Trying no-cors mode as last resort');
+        }
+      }
+    }
+    
+    console.log('CODFORM: Fetch options:', currentOptions);
+    
+    return fetch(url, currentOptions)
       .then(response => {
         if (response.ok) {
           console.log(`CODFORM: Successful fetch on attempt ${retryCount + 1}`);
@@ -117,7 +151,7 @@
         // If we've reached max retries, throw error
         if (retryCount >= maxRetries) {
           console.error(`CODFORM: Max retries reached (${maxRetries}) with status ${response.status}`);
-          throw new Error(`Max retries reached (${maxRetries})`);
+          throw new Error(`Max retries reached (${maxRetries}): ${response.status}`);
         }
         
         // Log response for debugging
@@ -130,20 +164,9 @@
         const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
         console.log(`CODFORM: Retrying fetch (${retryCount + 1}/${maxRetries}) after ${delay.toFixed(0)}ms`);
         
-        // For 401/403 errors, modify headers to try different auth approach
-        const newOptions = { ...options };
-        if (response.status === 401 || response.status === 403) {
-          console.log('CODFORM: Modifying headers for auth error retry');
-          // Try without some headers that might be causing issues
-          newOptions.headers = { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          };
-        }
-        
         // Retry after delay
         return new Promise(resolve => setTimeout(resolve, delay))
-          .then(() => fetchWithRetry(url, maxRetries, newOptions, retryCount + 1));
+          .then(() => fetchWithRetry(url, maxRetries, currentOptions, retryCount + 1));
       })
       .catch(err => {
         // For network errors, also implement retry
@@ -156,7 +179,7 @@
         const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
         
         return new Promise(resolve => setTimeout(resolve, delay))
-          .then(() => fetchWithRetry(url, maxRetries, options, retryCount + 1));
+          .then(() => fetchWithRetry(url, maxRetries, currentOptions, retryCount + 1));
       });
   }
   
@@ -175,20 +198,18 @@
     // API endpoint for default form with direct URL
     const defaultFormUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-default?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
     
-    // Enhanced fetch options for fallback
+    // Enhanced fetch options for fallback - use minimal headers
     const fetchOptions = {
       method: 'GET',
       mode: 'cors',
+      credentials: 'omit', // Don't send cookies
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Shop': shopDomain,
-        'Origin': window.location.origin
+        'Accept': 'application/json'
       },
       cache: 'no-store'
     };
     
-    fetchWithRetry(defaultFormUrl, 2, fetchOptions)
+    fetchWithRetry(defaultFormUrl, 3, fetchOptions)
       .then(response => {
         if (!response.ok) throw new Error(`Default form fetch failed: ${response.status}`);
         return response.json();
@@ -203,9 +224,69 @@
       })
       .catch(error => {
         console.error('CODFORM: Failed to load default form:', error);
-        // Show final error message
-        showErrorMessage(blockId, 'تعذر تحميل النموذج. يرجى المحاولة مرة أخرى لاحقًا أو الاتصال بالدعم الفني.');
+        
+        // If everything fails, create a basic fallback form
+        console.log('CODFORM: Creating basic fallback form');
+        createFallbackForm(blockId);
       });
+  }
+  
+  // Function to create a very basic form as ultimate fallback
+  function createFallbackForm(blockId) {
+    const formContainer = document.getElementById(`codform-form-${blockId}`);
+    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
+    const errorContainer = document.getElementById(`codform-error-${blockId}`);
+    
+    if (!formContainer) return;
+    
+    // Hide loader and error container
+    if (formLoader) formLoader.style.display = 'none';
+    if (errorContainer) errorContainer.style.display = 'none';
+    
+    // Basic form HTML 
+    const formHTML = `
+      <div class="codform-header" style="background-color: #9b87f5;">
+        <h3>طلب المنتج</h3>
+        <p>يرجى تعبئة النموذج للطلب</p>
+      </div>
+      <form id="codform-form-elements-${blockId}" class="codform-form-elements" data-form-id="fallback">
+        <div class="codform-field">
+          <label for="name-${blockId}">
+            <span class="codform-required">*</span>
+            الاسم الكامل
+          </label>
+          <input type="text" id="name-${blockId}" name="name" required>
+        </div>
+        <div class="codform-field">
+          <label for="phone-${blockId}">
+            <span class="codform-required">*</span>
+            رقم الهاتف
+          </label>
+          <input type="tel" id="phone-${blockId}" name="phone" required>
+        </div>
+        <div class="codform-field">
+          <label for="address-${blockId}">
+            <span class="codform-required">*</span>
+            العنوان
+          </label>
+          <textarea id="address-${blockId}" name="address" rows="4" required></textarea>
+        </div>
+        <div class="codform-field">
+          <button type="submit" class="codform-submit-button" style="background-color: #9b87f5;">
+            إرسال الطلب
+          </button>
+        </div>
+      </form>
+    `;
+    
+    formContainer.innerHTML = formHTML;
+    formContainer.style.display = 'block';
+    
+    // Add submission handler
+    const form = document.getElementById(`codform-form-elements-${blockId}`);
+    if (form) {
+      form.addEventListener('submit', event => handleFormSubmission(event, blockId));
+    }
   }
   
   // Function to render the form

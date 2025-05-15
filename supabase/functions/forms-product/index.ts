@@ -25,19 +25,25 @@ serve(async (req: Request) => {
       console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: shop or productId' }),
-        { headers: corsHeaders, status: 400 }
+        { 
+          headers: corsHeaders,
+          status: 400 
+        }
       );
     }
 
-    // Create Supabase client
+    // Create Supabase client - with PUBLIC ANON KEY
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
     
     if (!supabaseUrl || !supabaseKey) {
       console.error(`[${requestId}] Missing Supabase configuration`);
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
-        { headers: corsHeaders, status: 500 }
+        { 
+          headers: corsHeaders, 
+          status: 500 
+        }
       );
     }
     
@@ -59,7 +65,10 @@ serve(async (req: Request) => {
       console.error(`[${requestId}] Error fetching product settings:`, settingsError);
       return new Response(
         JSON.stringify({ error: 'Failed to retrieve product settings', details: settingsError }),
-        { headers: corsHeaders, status: 500 }
+        { 
+          headers: corsHeaders, 
+          status: 500 
+        }
       );
     }
 
@@ -73,8 +82,8 @@ serve(async (req: Request) => {
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
-        .or(`id.eq.${productSettings.form_id},id::text.eq.${productSettings.form_id}`)
         .eq('is_published', true)
+        .or(`id.eq.${productSettings.form_id},id::text.eq.${productSettings.form_id}`)
         .limit(1);
         
       if (!formError && formData && formData.length > 0) {
@@ -114,23 +123,38 @@ serve(async (req: Request) => {
 
     // Return form data
     if (form) {
+      console.log(`[${requestId}] Successfully sending form data to client`);
       return new Response(
         JSON.stringify({ form }),
-        { headers: corsHeaders, status: 200 }
+        { 
+          headers: {
+            ...corsHeaders,
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          status: 200 
+        }
       );
     } else {
       // No form found at all
       console.log(`[${requestId}] No form found for shop ${shop}`);
       return new Response(
         JSON.stringify({ message: 'No form found for this shop' }),
-        { headers: corsHeaders, status: 404 }
+        { 
+          headers: corsHeaders, 
+          status: 404 
+        }
       );
     }
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { headers: corsHeaders, status: 500 }
+      { 
+        headers: corsHeaders, 
+        status: 500 
+      }
     );
   }
 });
