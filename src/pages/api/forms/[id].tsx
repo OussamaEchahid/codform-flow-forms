@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
@@ -18,6 +18,7 @@ interface FormData {
 
 export default function FormAPI() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [form, setForm] = useState<FormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,11 @@ export default function FormAPI() {
           return;
         }
 
-        console.log('Fetching form data for ID:', id);
+        // Extract product ID from URL parameters if available
+        const searchParams = new URLSearchParams(location.search);
+        const productId = searchParams.get('productId');
+
+        console.log('Fetching form data for ID:', id, productId ? `and product: ${productId}` : '');
         
         try {
           // Try to validate if the ID is a valid UUID format
@@ -47,9 +52,15 @@ export default function FormAPI() {
             throw new Error(`Invalid UUID format: "${id}"`);
           }
           
+          // Prepare the request body with optional productId
+          const requestBody: Record<string, any> = { id };
+          if (productId) {
+            requestBody.productId = productId;
+          }
+          
           // Call the Supabase Edge Function directly
           const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
-            body: { id }
+            body: requestBody
           });
 
           if (error) {
@@ -82,7 +93,7 @@ export default function FormAPI() {
     }
 
     fetchForm();
-  }, [id]);
+  }, [id, location.search]);
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {

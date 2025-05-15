@@ -128,7 +128,7 @@ serve(async (req: Request) => {
         console.log("Insertion settings saved successfully:", insertionSettings);
       }
 
-      // If we have product settings and it's a new form
+      // If we have product settings and it's a product-specific form
       if (settings.products && settings.products.length > 0) {
         // First delete existing product settings for this form to avoid conflicts
         const { error: deleteError } = await supabase
@@ -169,9 +169,6 @@ serve(async (req: Request) => {
       } else if (!settings.products || settings.products.length === 0) {
         // If no products specified, we'll create a default entry that can be used globally
         console.log("No specific products provided - form will be available for all products");
-        
-        // This is optional - you may want to create a "default" product setting
-        // or just rely on the form_insertion record
       }
     }
     

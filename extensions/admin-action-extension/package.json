@@ -3,5 +3,9 @@
   "name": "admin-action-extension",
   "version": "1.0.0",
   "main": "src/ActionExtension.jsx",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
 }

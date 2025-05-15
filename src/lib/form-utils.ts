@@ -1,100 +1,51 @@
-import { v4 as uuidv4 } from 'uuid';
+
+import { cn } from '@/lib/utils';
+
+export type FormFieldType = 
+  'text' | 
+  'email' | 
+  'tel' | 
+  'number' | 
+  'textarea' | 
+  'select' | 
+  'checkbox' | 
+  'radio' | 
+  'date' | 
+  'time' | 
+  'datetime-local' | 
+  'file' | 
+  'hidden' | 
+  'image' | 
+  'color' | 
+  'range' | 
+  'url' | 
+  'month' | 
+  'week' | 
+  'password' |
+  'title' |
+  'html' |
+  'step' |
+  'submit' |
+  'whatsapp' |
+  'cart-items' |
+  'cart-summary' |
+  'shipping-options';
 
 export interface FormField {
   id: string;
   type: FormFieldType;
   label?: string;
-  required?: boolean;
   placeholder?: string;
-  helpText?: string;
-  options?: { value: string; label: string }[];
-  validation?: string;
-  rows?: number;
-  content?: string;
-  src?: string;
-  alt?: string;
-  width?: string;
-  phoneNumber?: string;
-  message?: string;
-  whatsappNumber?: string;
-  showImage?: boolean;
-  showPrice?: boolean;
-  showShipping?: boolean;
-  showTax?: boolean;
-  icon?: string; 
+  required?: boolean;
+  options?: { label: string; value: string }[];
   defaultValue?: string;
-  style?: {
-    backgroundColor?: string;
-    color?: string;
-    fontSize?: string;
-    textAlign?: string;
-    fontWeight?: string;
-    fontFamily?: string;
-    descriptionColor?: string;
-    descriptionFontSize?: string;
-    descriptionFontWeight?: string;
-    titleColor?: string; // Added for backward compatibility
-    titleFontSize?: string; // Added for backward compatibility
-    priceColor?: string;
-    priceFontSize?: string;
-    labelColor?: string;
-    labelFontSize?: string;
-    valueColor?: string;
-    valueFontSize?: string;
-    totalLabelColor?: string;
-    totalLabelFontSize?: string;
-    totalValueColor?: string;
-    totalValueFontSize?: string;
-    borderColor?: string;
-    borderRadius?: string;
-    borderWidth?: string;
-    animation?: boolean;
-    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash';
-    iconPosition?: 'left' | 'right';
-    icon?: boolean;
-    paddingY?: string;
-    marginBottom?: string;
-  };
-  disabled?: boolean;
+  helpText?: string;
+  name?: string;
+  isStep?: boolean;
+  stepId?: string;
+  stepIndex?: number;
+  [key: string]: any;
 }
-
-// Add floating button configuration interface
-export interface FloatingButtonConfig {
-  enabled: boolean;
-  text: string;
-  fontFamily?: string;
-  fontSize?: string;
-  fontWeight?: string;
-  textColor?: string;
-  backgroundColor?: string;
-  borderColor?: string;
-  borderRadius?: string;
-  borderWidth?: string;
-  paddingY?: string;
-  marginBottom?: string;
-  showIcon?: boolean;
-  icon?: string;
-  animation?: string;
-}
-
-export type FormFieldType =
-  | 'text'
-  | 'email'
-  | 'phone'
-  | 'textarea'
-  | 'select'
-  | 'checkbox'
-  | 'radio'
-  | 'text/html'
-  | 'cart-items'
-  | 'cart-summary'
-  | 'submit'
-  | 'shipping'
-  | 'countdown'
-  | 'whatsapp'
-  | 'image'
-  | 'title'
-  | 'form-title'; // Added form-title type
 
 export interface FormStep {
   id: string;
@@ -102,357 +53,78 @@ export interface FormStep {
   fields: FormField[];
 }
 
-export interface FormTemplate {
-  id: number;
+export interface FormData {
+  id: string;
   title: string;
-  description: string;
+  description?: string | null;
   data: FormStep[];
-  primaryColor?: string; // Added this property
-  fields?: number; // Added this property for FormTemplatesDialog
-  steps?: number; // Added this property for FormTemplatesDialog
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
+  is_published?: boolean;
+  shop_id?: string | null;
+  product_id?: string | null;
 }
 
-/**
- * Mock form templates for demonstration
- */
-export const formTemplates: FormTemplate[] = [
-  {
-    id: 1,
-    title: 'نموذج تسجيل بسيط',
-    description: 'نموذج أساسي لجمع معلومات المستخدمين.',
-    data: [
-      {
-        id: '1',
-        title: 'معلومات شخصية',
-        fields: [
-          {
-            id: 'name',
-            type: 'text',
-            label: 'الاسم',
-            required: true,
-            placeholder: 'أدخل اسمك'
-          },
-          {
-            id: 'email',
-            type: 'email',
-            label: 'البريد الإلكتروني',
-            required: true,
-            placeholder: 'أدخل بريدك الإلكتروني'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: 'نموذج طلب منتج',
-    description: 'نموذج لطلب منتج مع تفاصيل الشحن.',
-    data: [
-      {
-        id: '1',
-        title: 'معلومات المنتج',
-        fields: [
-          {
-            id: 'product_name',
-            type: 'text',
-            label: 'اسم المنتج',
-            required: true,
-            placeholder: 'أدخل اسم المنتج'
-          },
-          {
-            id: 'quantity',
-            type: 'text',
-            label: 'الكمية',
-            required: true,
-            placeholder: 'أدخل الكمية المطلوبة'
-          }
-        ]
-      },
-      {
-        id: '2',
-        title: 'معلومات الشحن',
-        fields: [
-          {
-            id: 'address',
-            type: 'textarea',
-            label: 'عنوان الشحن',
-            required: true,
-            placeholder: 'أدخل عنوان الشحن بالتفصيل'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    title: 'نموذج استبيان',
-    description: 'نموذج لجمع آراء العملاء.',
-    data: [
-      {
-        id: '1',
-        title: 'الآراء',
-        fields: [
-          {
-            id: 'satisfaction',
-            type: 'radio',
-            label: 'ما مدى رضاك عن المنتج؟',
-            required: true,
-            options: [
-              { value: 'satisfied', label: 'راض جداً' },
-              { value: 'neutral', label: 'محايد' },
-              { value: 'dissatisfied', label: 'غير راض' }
-            ]
-          },
-          {
-            id: 'comments',
-            type: 'textarea',
-            label: 'تعليقات إضافية',
-            placeholder: 'أدخل تعليقاتك هنا'
-          }
-        ]
-      }
-    ]
-  }
-];
-
-/**
- * Creates a default form template with standard fields
- */
-export const createDefaultForm = (): FormStep[] => {
-  return [
-    {
-      id: "1",
-      title: "معلومات الطلب",
-      fields: [
-        {
-          id: "full_name",
-          type: "text",
-          label: "الاسم الكامل",
-          placeholder: "أدخل اسمك الكامل",
-          required: true,
-          helpText: "يرجى إدخال الاسم الثلاثي"
-        },
-        {
-          id: "phone",
-          type: "phone",
-          label: "رقم الهاتف",
-          placeholder: "05xxxxxxxx",
-          required: true,
-          validation: "^(05)\\d{8}$",
-          helpText: "يرجى إدخال رقم هاتف صحيح يبدأ بـ 05"
-        },
-        {
-          id: "city",
-          type: "text",
-          label: "المدينة",
-          placeholder: "أدخل اسم المدينة",
-          required: true
-        },
-        {
-          id: "address",
-          type: "textarea",
-          label: "العنوان",
-          placeholder: "أدخل عنوان التوصيل بالتفصيل",
-          required: true
-        },
-        {
-          id: "cart_items",
-          type: "cart-items",
-          label: "", // Empty label to hide the title
-          required: false
-        },
-        {
-          id: "cart_summary",
-          type: "cart-summary",
-          label: "", // Empty label to hide the title
-          required: false
-        },
-        {
-          id: "submit",
-          type: "submit",
-          label: "إرسال الطلب الآن",
-          required: false
-        }
-      ]
-    }
-  ];
+export const formatCurrency = (amount: number, locale = 'ar-SA', currency = 'SAR') => {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+  }).format(amount);
 };
 
-/**
- * Creates a new empty form
- * @param title The title of the form
- * @returns The new form state
- */
-export const createNewForm = (title: string = 'نموذج جديد'): FormStep[] => {
-  const formTitleField: FormField = {
-    id: `form-title-${Date.now()}`,
-    type: 'form-title',
-    label: 'نموذج جديد',
-    helpText: 'وصف النموذج (اختياري)',
-    style: {
-      textAlign: 'center',
-      color: '#1A1F2C',
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      descriptionColor: '#6b7280',
-      descriptionFontSize: '1rem',
-      backgroundColor: '#F59E0B',
-    }
-  };
-
-  return [
-    {
-      id: uuidv4(),
-      title: 'الخطوة الأولى',
-      fields: [formTitleField]
-    }
-  ];
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
-export const createEmptyField = (type: string): FormField => {
-  const baseField: FormField = {
-    id: `field-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    type: type as any,
-    label: getDefaultLabelForType(type),
-    required: false,
-  };
+export const validatePhone = (phone: string): boolean => {
+  // Basic validation: at least 8 digits, can include +, -, (), and spaces
+  const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+  return phoneRegex.test(phone);
+};
 
-  // Add type-specific properties
-  switch (type) {
-    case 'form-title':
-      return {
-        ...baseField,
-        label: 'عنوان النموذج المخصص',
-        helpText: 'وصف النموذج (اختياري)',
-        style: {
-          textAlign: 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '#F59E0B',
-        }
-      };
-    case 'text':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '',
-      };
-    case 'email':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
-      };
-    case 'phone':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '',
-      };
-    case 'textarea':
-      return {
-        ...baseField,
-        placeholder: '',
-        rows: 4,
-      };
-    case 'select':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-        placeholder: 'اختر من القائمة',
-      };
-    case 'checkbox':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-      };
-    case 'radio':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-      };
-    case 'text/html':
-      return {
-        ...baseField,
-        content: '<p>أدخل المحتوى هنا</p>',
-      };
-    case 'submit':
-      return {
-        ...baseField,
-        label: 'إرسال الطلب الآن',
-        style: {
-          backgroundColor: '#9b87f5',
-          color: 'white',
-          fontSize: '1.1rem',
-        }
-      };
-    case 'whatsapp':
-      return {
-        ...baseField,
-        label: 'تواصل عبر واتساب',
-        phoneNumber: '966500000000',
-        message: 'أرغب في التواصل بخصوص طلب المنتج',
-      };
-    case 'image':
-      return {
-        ...baseField,
-        src: '',
-        alt: '',
-        width: '100%',
-      };
-    case 'cart-items':
-      return {
-        ...baseField,
-        label: '', // Empty label to hide the title
-        showImage: true,
-        showPrice: true,
-      };
-    case 'cart-summary':
-      return {
-        ...baseField,
-        label: '', // Empty label to hide the title
-        showShipping: true,
-        showTax: false,
-      };
-    default:
-      return baseField;
+export const generateFormFieldClassName = (field: FormField) => {
+  return cn(
+    "codform-field",
+    field.className,
+    field.type === 'hidden' && "hidden"
+  );
+};
+
+export const loadForm = async (formId: string, productId?: string): Promise<FormData> => {
+  try {
+    // Build the URL with the optional productId parameter
+    let url = `/api/forms/${formId}`;
+    if (productId) {
+      url += `?productId=${encodeURIComponent(productId)}`;
+    }
+    
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      throw new Error(`Failed to load form: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error loading form:", error);
+    throw error;
   }
 };
 
-/**
- * Gets default label based on field type
- */
-const getDefaultLabelForType = (type: string): string => {
-  switch (type) {
-    case 'text': return 'حقل نصي';
-    case 'email': return 'البريد الإلكتروني';
-    case 'phone': return 'رقم الهاتف';
-    case 'textarea': return 'ملاحظات إضافية';
-    case 'select': return 'اختر من القائمة';
-    case 'checkbox': return 'اختيارات متعددة';
-    case 'radio': return 'اختيار واحد';
-    case 'submit': return 'إرسال الطلب الآن';
-    case 'text/html': return 'نص/HTML';
-    case 'whatsapp': return 'تواصل عبر واتساب';
-    case 'image': return 'صورة';
-    case 'title': return 'عنوان قسم';
-    case 'form-title': return 'عنوان النموذج المخصص';
-    case 'cart-items': return 'المنتج المختار';
-    case 'cart-summary': return 'ملخص الطلب';
-    case 'shipping': return 'خيارات الشحن';
-    case 'countdown': return 'العد التنازلي';
-    default: return 'حقل جديد';
+export const extractFormSections = (form: FormData): Array<{ title: string; fields: FormField[] }> => {
+  // If there's no data or data is not an array with fields property, return empty array
+  if (!form || !form.data || !Array.isArray(form.data)) {
+    return [];
   }
+
+  // Map each step in the form data to a section
+  return form.data.map(step => ({
+    title: step.title || '',
+    fields: step.fields || []
+  }));
 };
