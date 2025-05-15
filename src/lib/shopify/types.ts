@@ -1,3 +1,4 @@
+
 export interface ShopifyStore {
   id: string;
   shop: string;
@@ -127,15 +128,18 @@ export function cleanShopifyDomain(shop: string): string {
   return cleanedShop;
 }
 
-// Add a new interface for product associations
+// Enhanced product association interface with more details
 export interface ProductAssociation {
   productId: string;
   productTitle: string;
   formId: string;
   formTitle: string;
+  productImage?: string;
+  status?: 'active' | 'draft' | 'archived';
+  lastUpdated?: string;
 }
 
-// Add a type for product conflict detection
+// Enhanced type for product conflict detection 
 export interface ProductFormConflict {
   productId: string;
   productTitle: string;
@@ -143,4 +147,5 @@ export interface ProductFormConflict {
   existingFormTitle: string;
   newFormId: string;
   newFormTitle: string;
+  productImage?: string;
 }
