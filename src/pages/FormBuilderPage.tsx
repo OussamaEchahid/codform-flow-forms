@@ -10,9 +10,8 @@ import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard
 import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ShoppingBag } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -26,7 +25,6 @@ const FormBuilderPage = () => {
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [isCreatingForm, setIsCreatingForm] = useState(false);
   const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
-  const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -71,57 +69,6 @@ const FormBuilderPage = () => {
     
     checkForDefaultForm();
   }, [shop, getDefaultForm]);
-
-  // Fetch associated products for current form
-  useEffect(() => {
-    async function fetchAssociatedProducts() {
-      if (!formId || formId === 'new' || !shop) return;
-      
-      try {
-        // Get product settings for this form
-        const { data: productSettings, error } = await shopifySupabase
-          .from('shopify_product_settings')
-          .select('*')
-          .eq('form_id', formId);
-          
-        if (error) {
-          console.error('Error fetching product settings:', error);
-          return;
-        }
-        
-        // If no associated products, exit early
-        if (!productSettings || productSettings.length === 0) {
-          setAssociatedProducts([]);
-          return;
-        }
-        
-        const productIds = productSettings.map(s => s.product_id);
-        
-        // Fetch product details from cached products table
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shop)
-          .single();
-          
-        if (cachedProducts?.products) {
-          const shopifyProducts = cachedProducts.products;
-          const matchedProducts = shopifyProducts
-            .filter((product: any) => productIds.includes(product.id))
-            .map((product: any) => ({ 
-              id: product.id, 
-              title: product.title 
-            }));
-            
-          setAssociatedProducts(matchedProducts);
-        }
-      } catch (error) {
-        console.error('Error fetching associated products:', error);
-      }
-    }
-    
-    fetchAssociatedProducts();
-  }, [formId, shop]);
   
   useEffect(() => {
     async function handleFormInit() {
@@ -238,23 +185,6 @@ const FormBuilderPage = () => {
               {language === 'ar' 
                 ? 'هناك مشكلة في اتصال Shopify، تم تفعيل وضع الدعم الاحتياطي. يمكنك الاستمرار في إدارة النماذج ولكن بعض الوظائف قد لا تعمل بشكل صحيح.' 
                 : 'There is an issue with the Shopify connection. Fail-safe mode has been activated. You can continue managing forms but some features may not work properly.'}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
-      {/* Display associated products banner when editing an existing form */}
-      {activeTab === 'editor' && associatedProducts.length > 0 && (
-        <div className="absolute top-0 left-0 right-0 z-40 px-4 py-2 mt-16">
-          <Alert className="bg-blue-50 border-blue-200">
-            <ShoppingBag className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">
-              {language === 'ar' ? 'منتجات مرتبطة' : 'Associated Products'}
-            </AlertTitle>
-            <AlertDescription className="text-blue-700">
-              {language === 'ar' 
-                ? `هذا النموذج مرتبط بـ ${associatedProducts.length} منتج: ${associatedProducts.map(p => p.title).join(', ')}` 
-                : `This form is associated with ${associatedProducts.length} product(s): ${associatedProducts.map(p => p.title).join(', ')}`}
             </AlertDescription>
           </Alert>
         </div>
