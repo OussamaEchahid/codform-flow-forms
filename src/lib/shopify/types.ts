@@ -65,18 +65,18 @@ export interface ShopifyProduct {
   image?: {
     src: string;
     alt?: string;
-  };
+  } | string;
   images?: Array<{
     src: string;
     alt?: string;
-  }>;
+  } | string>;
   status: 'active' | 'draft' | 'archived';
   variants?: Array<{
     id: string;
     title: string;
     price: string;
     available: boolean;
-    inventory_quantity: number;
+    inventory_quantity?: number;
   }>;
 }
 
@@ -99,9 +99,10 @@ export interface ShopifyFormData {
   title: string;
   fields: any[];
   settings: any;
+  formId?: string;
 }
 
-// Move the function from shopify-helpers.ts to types.ts
+// Export the function directly
 export function cleanShopifyDomain(shop: string): string {
   if (!shop) return "";
   
@@ -125,4 +126,22 @@ export function cleanShopifyDomain(shop: string): string {
   }
   
   return cleanedShop;
+}
+
+// Add a new interface for product associations
+export interface ProductAssociation {
+  productId: string;
+  productTitle: string;
+  formId: string;
+  formTitle: string;
+}
+
+// Add a type for product conflict detection
+export interface ProductFormConflict {
+  productId: string;
+  productTitle: string;
+  existingFormId: string;
+  existingFormTitle: string;
+  newFormId: string;
+  newFormTitle: string;
 }

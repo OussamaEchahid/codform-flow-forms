@@ -166,16 +166,21 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!hideHeader && form.title) {
       const headerDiv = document.createElement('div');
       headerDiv.className = 'codform-header';
-      headerDiv.style.backgroundColor = style.primaryColor;
+      headerDiv.style.backgroundColor = style.primaryColor || '#9b87f5';
       
       const title = document.createElement('h3');
       title.innerText = form.title;
       
-      const description = document.createElement('p');
-      description.innerText = form.description || '';
-      
       headerDiv.appendChild(title);
-      if (form.description) headerDiv.appendChild(description);
+      
+      // Add description if it exists
+      if (form.description) {
+        const description = document.createElement('p');
+        description.innerText = form.description;
+        description.className = 'codform-description';
+        headerDiv.appendChild(description);
+      }
+      
       formElement.appendChild(headerDiv);
     }
     
@@ -201,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
       submitButton.type = 'submit';
       submitButton.className = 'codform-submit-button codform-submit-btn';
       submitButton.innerText = form.submitbuttontext || 'إرسال الطلب';
-      submitButton.style.backgroundColor = style.primaryColor;
+      submitButton.style.backgroundColor = style.primaryColor || '#9b87f5';
       
       formEl.appendChild(submitButton);
       
@@ -226,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const fieldDiv = document.createElement('div');
     fieldDiv.className = 'codform-field';
     
-    if (field.type === 'text' || field.type === 'email' || field.type === 'tel' || field.type === 'number') {
+    if (field.type === 'text' || field.type === 'email' || field.type === 'tel' || field.type === 'number' || field.type === 'phone') {
       // Text, email, phone, number inputs
       const label = document.createElement('label');
       label.htmlFor = field.id;
@@ -240,14 +245,42 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       const input = document.createElement('input');
-      input.type = field.type === 'tel' ? 'tel' : field.type;
+      // Convert 'phone' type to 'tel' for better mobile handling
+      input.type = field.type === 'phone' || field.type === 'tel' ? 'tel' : field.type;
       input.id = field.id;
       input.name = field.id;
       input.placeholder = field.placeholder || '';
       input.required = field.required === true;
       
-      if (field.type === 'tel') {
+      // Add special pattern for phone fields
+      if (field.type === 'phone' || field.type === 'tel') {
         input.pattern = field.pattern || '[0-9]{9,15}';
+        input.className = 'codform-phone-input';
+        
+        // Add phone icon if not present
+        if (field.icon !== false) {
+          const phoneWrapper = document.createElement('div');
+          phoneWrapper.className = 'codform-phone-wrapper';
+          
+          const phoneIcon = document.createElement('span');
+          phoneIcon.className = 'codform-phone-icon';
+          phoneIcon.innerHTML = '📱'; // Simple phone icon
+          
+          phoneWrapper.appendChild(phoneIcon);
+          phoneWrapper.appendChild(input);
+          fieldDiv.appendChild(label);
+          fieldDiv.appendChild(phoneWrapper);
+          
+          // Skip the normal append below
+          if (field.help) {
+            const helpText = document.createElement('div');
+            helpText.className = 'codform-help-text';
+            helpText.innerText = field.help;
+            fieldDiv.appendChild(helpText);
+          }
+          
+          return fieldDiv;
+        }
       }
       
       fieldDiv.appendChild(label);
@@ -415,11 +448,42 @@ document.addEventListener('DOMContentLoaded', function() {
         fieldDiv.appendChild(helpText);
       }
     } else if (field.type === 'title' || field.type === 'form-title') {
-      // Title field
+      // Title field with proper styling including background color
+      const titleContainer = document.createElement('div');
+      titleContainer.className = field.type === 'form-title' ? 'codform-title-container' : 'codform-subtitle-container';
+      
+      // Apply background color if specified in field.style
+      if (field.style && field.style.backgroundColor) {
+        titleContainer.style.backgroundColor = field.style.backgroundColor;
+        titleContainer.style.color = field.style.color || '#ffffff';
+        titleContainer.style.padding = '10px';
+        titleContainer.style.borderRadius = '5px';
+      }
+      
       const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
-      title.innerText = field.text || field.label || '';
-      title.style.color = style.primaryColor;
-      fieldDiv.appendChild(title);
+      title.innerText = field.label || field.text || '';
+      title.style.color = field.style && field.style.color ? field.style.color : (field.type === 'form-title' ? '#ffffff' : style.primaryColor);
+      
+      titleContainer.appendChild(title);
+      
+      // Add description if provided
+      if (field.helpText) {
+        const description = document.createElement('p');
+        description.innerText = field.helpText;
+        description.className = 'codform-field-description';
+        
+        // Apply styling to the description
+        if (field.style && field.style.descriptionColor) {
+          description.style.color = field.style.descriptionColor;
+        }
+        if (field.style && field.style.descriptionFontSize) {
+          description.style.fontSize = field.style.descriptionFontSize;
+        }
+        
+        titleContainer.appendChild(description);
+      }
+      
+      fieldDiv.appendChild(titleContainer);
     }
     
     return fieldDiv;
