@@ -13,9 +13,17 @@ import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 interface ShopifyIntegrationProps {
   formId: string;
+  formTitle?: string;
+  formDescription?: string;
+  formStyle?: {
+    primaryColor?: string;
+  };
+  onSave?: (settings: any) => void; // Added the onSave prop to match what's in vite-env.d.ts
+  isSyncing?: boolean; 
+  formTitleElement?: any;
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave, isSyncing }) => {
   const { language } = useI18n();
   const { shop } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -79,6 +87,10 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId }) => {
         console.error('Error saving product associations:', error);
       } else {
         console.log('Product associations saved successfully');
+        // Call the onSave callback if provided
+        if (onSave) {
+          onSave({ products: selectedProducts });
+        }
       }
     } catch (error) {
       console.error('Error saving product associations:', error);
