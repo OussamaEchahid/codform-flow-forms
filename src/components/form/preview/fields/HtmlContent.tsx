@@ -16,12 +16,17 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Helper function to ensure we have a string value
+  const ensureStringValue = (value: any): string => {
+    return typeof value === 'string' ? value : '';
+  };
+  
   return (
     <div 
       className="mb-4"
       style={{
-        color: fieldStyle.color || 'inherit',
-        fontSize: fieldStyle.fontSize || formStyle.fontSize,
+        color: ensureStringValue(fieldStyle.color) || 'inherit',
+        fontSize: ensureStringValue(fieldStyle.fontSize) || formStyle.fontSize,
       }}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >

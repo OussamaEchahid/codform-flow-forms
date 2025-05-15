@@ -17,11 +17,11 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   const fieldStyle = field.style || {};
   
   // Use image source or placeholder
-  const imageSrc = field.src || 'https://via.placeholder.com/800x400?text=Image';
-  const imageAlt = field.alt || (language === 'ar' ? 'صورة' : 'Image');
+  const imageSrc = (field.src as string) || 'https://via.placeholder.com/800x400?text=Image';
+  const imageAlt = (field.alt as string) || (language === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
-  const imageWidth = field.width || '100%';
+  const imageWidth = (field.width as string) || '100%';
   
   // Set border radius for the image
   const imageBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';

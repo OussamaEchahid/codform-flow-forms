@@ -19,10 +19,10 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   const fieldStyle = field.style || {};
   
   // Get WhatsApp number from the field
-  const whatsappNumber = field.whatsappNumber || '';
+  const whatsappNumber = (field.whatsappNumber as string) || '';
   
   // Default message
-  const message = field.message || '';
+  const message = (field.message as string) || '';
   
   // Create WhatsApp URL
   const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;

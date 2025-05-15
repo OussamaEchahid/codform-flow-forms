@@ -16,13 +16,18 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Helper function to ensure string values
+  const ensureStringValue = (value: any): string => {
+    return typeof value === 'string' ? value : (typeof value === 'boolean' ? '' : (value || ''));
+  };
+  
   return (
     <div className="mb-6">
       <div 
         className="p-4 border rounded-md text-center"
         style={{
-          backgroundColor: fieldStyle.backgroundColor || 'rgba(155, 135, 245, 0.1)',
-          borderColor: fieldStyle.borderColor || formStyle.primaryColor || '#9b87f5',
+          backgroundColor: ensureStringValue(fieldStyle.backgroundColor) || 'rgba(155, 135, 245, 0.1)',
+          borderColor: ensureStringValue(fieldStyle.borderColor) || formStyle.primaryColor || '#9b87f5',
         }}
       >
         <h3 className="text-lg font-medium mb-2">
