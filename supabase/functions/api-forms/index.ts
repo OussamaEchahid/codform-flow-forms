@@ -77,25 +77,11 @@ serve(async (req) => {
       });
     }
 
-    // Parse the request body for POST or PUT requests
-    let requestData = {};
-    if (req.method === 'POST' || req.method === 'PUT') {
-      requestData = await req.json();
-    }
-
-    // Get URL parameters or form ID from request body
+    // Get URL parameters
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
-    const formId = pathParts[pathParts.length - 1] || (requestData as any).id;
-    const productId = url.searchParams.get('productId') || (requestData as any).productId;
-    const shopDomain = url.searchParams.get('shop') || (requestData as any).shop;
-
-    console.log('Request data:', { formId, productId, shopDomain });
-
-    // If we have both product ID and shop domain but no form ID, we need to find the right form
-    if (!formId && productId && shopDomain) {
-      return await handleProductFormResolution(supabase, shopDomain, productId, corsHeaders);
-    }
+    const formId = pathParts[pathParts.length - 1];
+    const productId = url.searchParams.get('productId');
 
     if (!formId) {
       throw new Error('No form ID provided')
@@ -175,118 +161,6 @@ serve(async (req) => {
     })
   }
 })
-
-// New function to handle resolving which form to use for a product
-async function handleProductFormResolution(supabase: any, shopDomain: string, productId: string, corsHeaders: any) {
-  try {
-    console.log(`Finding form for product ${productId} in shop ${shopDomain}`);
-    
-    // First try to find a product-specific form
-    const { data: productSettings, error: productError } = await supabase
-      .from('shopify_product_settings')
-      .select('form_id')
-      .eq('shop_id', shopDomain)
-      .eq('product_id', productId)
-      .eq('enabled', true)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-    
-    // If we found a specific form for this product, fetch it
-    if (!productError && productSettings && productSettings.length > 0) {
-      const formId = productSettings[0].form_id;
-      console.log(`Found product-specific form ${formId} for product ${productId}`);
-      
-      // Get the form data
-      const { data: formData, error: formError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('id', formId)
-        .eq('is_published', true)
-        .single();
-      
-      if (!formError && formData) {
-        console.log(`Successfully fetched product-specific form: ${formData.title}`);
-        const transformedData = transformFormData(formData);
-        return new Response(JSON.stringify(transformedData), {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          status: 200,
-        });
-      }
-    }
-    
-    // If no product-specific form or it failed, try to get the shop's default form
-    console.log(`No product-specific form found, looking for default form for shop ${shopDomain}`);
-    
-    const { data: defaultForms, error: defaultFormError } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('shop_id', shopDomain)
-      .eq('is_published', true)
-      .eq('is_default', true)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-    
-    if (!defaultFormError && defaultForms && defaultForms.length > 0) {
-      const defaultForm = defaultForms[0];
-      console.log(`Found default form: ${defaultForm.title} for shop ${shopDomain}`);
-      
-      // Return the default form
-      const transformedData = transformFormData(defaultForm);
-      return new Response(JSON.stringify(transformedData), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      });
-    }
-    
-    // If no default form either, get any published form for this shop
-    console.log(`No default form found, looking for any published form for shop ${shopDomain}`);
-    
-    const { data: anyForms, error: anyFormError } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('shop_id', shopDomain)
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-    
-    if (!anyFormError && anyForms && anyForms.length > 0) {
-      const anyForm = anyForms[0];
-      console.log(`Using fallback published form: ${anyForm.title} for shop ${shopDomain}`);
-      
-      // Return any published form
-      const transformedData = transformFormData(anyForm);
-      return new Response(JSON.stringify(transformedData), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      });
-    }
-    
-    // If we get here, no forms are available
-    throw new Error(`No available forms found for shop ${shopDomain}`);
-  } catch (error) {
-    console.error('Error finding form for product:', error);
-    
-    return new Response(JSON.stringify({
-      error: error.message || 'Error finding form for product',
-      timestamp: new Date().toISOString()
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      status: 404,
-    });
-  }
-}
 
 // Function to transform form data into a structure that's easier to use in the frontend
 function transformFormData(formData) {

@@ -1,367 +1,348 @@
 
 import React, { useState, useEffect } from 'react';
 import { useShopify } from '@/hooks/useShopify';
-import { Button } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, ShoppingBag, AlertCircle, RefreshCw } from 'lucide-react';
+import { ShopifyProduct } from '@/lib/shopify/types';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, TerminalSquare } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 
 interface ShopifyProductSelectionProps {
-  formId: string;
-  onComplete?: () => void;
-  onCancel?: () => void;
+  selectedProducts: string[];
+  onChange: (products: string[]) => void;
+  formId?: string;
 }
 
-const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({ formId, onComplete, onCancel }) => {
-  const { products, loadProducts, isLoading, shop } = useShopify();
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [associatedProducts, setAssociatedProducts] = useState<Record<string, string>>({});
-  const [makeDefault, setMakeDefault] = useState<boolean>(false);
-  const [isCurrentlyDefault, setIsCurrentlyDefault] = useState<boolean>(false);
+const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
+  selectedProducts = [],
+  onChange,
+  formId
+}) => {
+  const { t, language } = useI18n();
+  const { 
+    loadProducts, 
+    products, 
+    isLoading, 
+    refreshConnection, 
+    isRetrying, 
+    tokenError, 
+    shop 
+  } = useShopify();
   
-  // Load product settings
+  const [localSelectedProducts, setLocalSelectedProducts] = useState<string[]>(selectedProducts);
+  const [filteredProducts, setFilteredProducts] = useState<ShopifyProduct[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [forceRefresh, setForceRefresh] = useState(false);
+  
+  // تحميل المنتجات عند تحميل المكون
   useEffect(() => {
-    const loadProductSettings = async () => {
-      if (formId && shop) {
-        try {
-          // Check if form is default
-          const { data: formData, error: formError } = await supabase
-            .from('forms')
-            .select('is_default')
-            .eq('id', formId)
-            .single();
-            
-          if (!formError && formData) {
-            setIsCurrentlyDefault(formData.is_default || false);
-          }
-          
-          // Load associated products
-          const { data, error } = await supabase
-            .from('shopify_product_settings')
-            .select('product_id, form_id')
-            .eq('shop_id', shop)
-            .eq('enabled', true);
-            
-          if (error) {
-            console.error('Error fetching product settings:', error);
-            return;
-          }
-          
-          // Create a map of product ID to form ID
-          const productFormMap: Record<string, string> = {};
-          const productsWithThisForm = new Set<string>();
-          
-          data.forEach(record => {
-            productFormMap[record.product_id] = record.form_id;
-            if (record.form_id === formId) {
-              productsWithThisForm.add(record.product_id);
-            }
-          });
-          
-          setAssociatedProducts(productFormMap);
-          setSelectedProducts(productsWithThisForm);
-        } catch (error) {
-          console.error('Error loading product settings:', error);
-        }
+    const fetchProducts = async () => {
+      try {
+        await loadProducts(false);
+        console.log("Products loaded successfully");
+      } catch (error) {
+        console.error("Error loading products:", error);
+        toast.error(language === 'ar' 
+          ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
+          : 'Failed to load products. Please try again');
       }
     };
     
-    loadProductSettings();
-  }, [formId, shop]);
+    fetchProducts();
+  }, [loadProducts]);
   
-  // Load products on initial render
+  // تحديث المنتجات المحلية عندما تتغير القيمة في الخاصية
   useEffect(() => {
-    if (products.length === 0) {
-      loadProducts();
-    }
-  }, [loadProducts, products.length]);
+    setLocalSelectedProducts(selectedProducts);
+  }, [selectedProducts]);
   
-  // Filter products based on search query
-  const filteredProducts = products.filter(product => 
-    product.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  // Toggle product selection
-  const toggleProductSelection = (productId: string) => {
-    const newSelection = new Set(selectedProducts);
-    if (newSelection.has(productId)) {
-      newSelection.delete(productId);
-    } else {
-      newSelection.add(productId);
-    }
-    setSelectedProducts(newSelection);
-  };
-  
-  // Select all visible products
-  const selectAllVisible = () => {
-    const newSelection = new Set(selectedProducts);
-    filteredProducts.forEach(product => newSelection.add(product.id));
-    setSelectedProducts(newSelection);
-  };
-  
-  // Deselect all products
-  const deselectAll = () => {
-    setSelectedProducts(new Set());
-  };
-  
-  // Is a product association changed?
-  const isProductChanged = (productId: string) => {
-    const currentlyAssociated = associatedProducts[productId] === formId;
-    const nowSelected = selectedProducts.has(productId);
-    return currentlyAssociated !== nowSelected;
-  };
-  
-  // Handle form submission
-  const handleSubmit = async () => {
-    if (!formId || !shop) {
-      toast.error('ناقص معلومات النموذج أو المتجر');
+  // تصفية المنتجات بناءً على البحث
+  useEffect(() => {
+    if (!products || products.length === 0) {
+      setFilteredProducts([]);
       return;
     }
+
+    // تصفية بناءً على البحث فقط
+    const filtered = products.filter(product => {
+      const title = product.title?.toLowerCase() || '';
+      const handle = product.handle?.toLowerCase() || '';
+      
+      // التحقق من البحث إذا كان موجودًا
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return title.includes(searchLower) || handle.includes(searchLower);
+      }
+      
+      return true;
+    });
     
-    setIsSubmitting(true);
+    console.log(`عرض ${filtered.length} منتج من إجمالي ${products.length} منتج`);
+    setFilteredProducts(filtered);
+  }, [products, searchTerm]);
+  
+  const handleProductToggle = (productId: string) => {
+    setLocalSelectedProducts(prev => {
+      const isSelected = prev.includes(productId);
+      const updated = isSelected
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId];
+        
+      // نقل التغييرات إلى المكون الأب
+      onChange(updated);
+      return updated;
+    });
+  };
+  
+  const handleSelectAll = () => {
+    if (filteredProducts.length === 0) return;
+    
+    const allProductIds = filteredProducts.map(product => product.id);
+    setLocalSelectedProducts(allProductIds);
+    onChange(allProductIds);
+    
+    toast.success(language === 'ar' 
+      ? 'تم تحديد جميع المنتجات' 
+      : 'All products selected');
+  };
+  
+  const handleClearAll = () => {
+    setLocalSelectedProducts([]);
+    onChange([]);
+    
+    toast.success(language === 'ar' 
+      ? 'تم إلغاء تحديد جميع المنتجات' 
+      : 'All products deselected');
+  };
+  
+  const handleForceRefresh = async () => {
+    setForceRefresh(true);
+    toast.info(language === 'ar' 
+      ? 'جاري إعادة تحميل المنتجات من المتجر...' 
+      : 'Reloading products from store...');
     
     try {
-      // First, update the default flag for the form
-      if (makeDefault !== isCurrentlyDefault) {
-        // If making this form default, unset default from all other forms for this shop
-        if (makeDefault) {
-          await supabase
-            .from('forms')
-            .update({ is_default: false })
-            .eq('shop_id', shop);
-        }
-        
-        // Update this form's default status
-        await supabase
-          .from('forms')
-          .update({ is_default: makeDefault })
-          .eq('id', formId);
-          
-        setIsCurrentlyDefault(makeDefault);
-      }
-      
-      // Handle product associations
-      const updates = [];
-      
-      // Products to associate with this form
-      for (const productId of selectedProducts) {
-        if (associatedProducts[productId] !== formId) {
-          updates.push(supabase
-            .from('shopify_product_settings')
-            .upsert({
-              shop_id: shop,
-              product_id: productId,
-              form_id: formId,
-              enabled: true,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'shop_id,product_id' })
-          );
-        }
-      }
-      
-      // Products to disassociate from this form
-      for (const [productId, associatedFormId] of Object.entries(associatedProducts)) {
-        if (associatedFormId === formId && !selectedProducts.has(productId)) {
-          updates.push(supabase
-            .from('shopify_product_settings')
-            .update({ enabled: false })
-            .eq('shop_id', shop)
-            .eq('product_id', productId)
-            .eq('form_id', formId)
-          );
-        }
-      }
-      
-      // Execute all updates
-      await Promise.all(updates);
-      
-      toast.success('تم حفظ إعدادات المنتجات بنجاح');
-      
-      if (onComplete) {
-        onComplete();
-      }
+      // إعادة تحميل المنتجات مع تحديث إجباري
+      await loadProducts(true);
+      toast.success(language === 'ar' 
+        ? 'تم تحديث المنتجات بنجاح' 
+        : 'Products refreshed successfully');
     } catch (error) {
-      console.error('Error updating product settings:', error);
-      toast.error('حدث خطأ أثناء حفظ الإعدادات');
+      console.error("Error refreshing products:", error);
+      toast.error(language === 'ar' 
+        ? 'فشل في تحديث المنتجات' 
+        : 'Failed to refresh products');
     } finally {
-      setIsSubmitting(false);
+      setForceRefresh(false);
     }
   };
   
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>ضبط إعدادات النموذج للمنتجات</CardTitle>
-          <CardDescription>
-            حدد المنتجات التي تريد عرض هذا النموذج فيها. يمكنك البحث وتحديد منتجات متعددة.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Default form toggle */}
-          <div className="flex flex-row items-center justify-between px-2 py-4 border rounded-md">
-            <div>
-              <h4 className="font-medium">جعل هذا النموذج افتراضي للمتجر</h4>
-              <p className="text-sm text-gray-500">
-                سيستخدم هذا النموذج لجميع المنتجات التي لم يتم تخصيص نموذج لها
-              </p>
-            </div>
-            <Switch 
-              checked={makeDefault}
-              onCheckedChange={setMakeDefault}
-              disabled={isSubmitting}
-            />
-          </div>
+  if (isLoading || forceRefresh) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2 text-muted-foreground">
+          {language === 'ar' ? 'جاري تحميل المنتجات...' : 'Loading products...'}
+        </p>
+      </div>
+    );
+  }
+  
+  if (tokenError) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {language === 'ar' 
+            ? 'حدث خطأ في الاتصال بمتجر Shopify. يرجى التحقق من الإعدادات وإعادة المحاولة.' 
+            : 'There was an error connecting to your Shopify store. Please check your settings and try again.'}
           
-          {/* Search and bulk selection */}
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="relative flex-grow">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="text"
-                placeholder="بحث في المنتجات"
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={selectAllVisible}
-                disabled={filteredProducts.length === 0 || isSubmitting}
-              >
-                تحديد الكل
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={deselectAll}
-                disabled={selectedProducts.size === 0 || isSubmitting}
-              >
-                إلغاء التحديد
-              </Button>
-            </div>
-          </div>
-          
-          {/* Status display */}
-          <div className="text-sm text-gray-500">
-            تم تحديد {selectedProducts.size} من أصل {products.length} منتج
-          </div>
-          
-          {/* Product list */}
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-10">
-              <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
-              <p className="mt-4 text-gray-500">جاري تحميل المنتجات...</p>
-            </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="border rounded-md divide-y max-h-96 overflow-y-auto">
-              {filteredProducts.map(product => {
-                const isSelected = selectedProducts.has(product.id);
-                const hasChanged = isProductChanged(product.id);
-                const currentFormId = associatedProducts[product.id];
-                const differentFormSelected = currentFormId && currentFormId !== formId;
-                
-                return (
-                  <div 
-                    key={product.id}
-                    className={`flex items-center px-4 py-3 hover:bg-gray-50 ${hasChanged ? 'bg-blue-50' : ''}`}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleProductSelection(product.id)}
-                      disabled={isSubmitting}
-                      className="ml-2"
-                    />
-                    
-                    <div className="flex items-center flex-1 min-w-0">
-                      {product.images && product.images.length > 0 ? (
-                        <img 
-                          src={product.images[0]} 
-                          alt={product.title}
-                          className="h-10 w-10 object-cover rounded ml-2"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center ml-2">
-                          <TerminalSquare className="h-5 w-5 text-gray-400" />
-                        </div>
-                      )}
-                      
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{product.title}</div>
-                        <div className="text-sm text-gray-500 truncate">
-                          {product.variants && product.variants.length > 0 
-                            ? `${product.variants.length} متغير` 
-                            : 'منتج أساسي'
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="ml-auto flex items-center">
-                      {differentFormSelected ? (
-                        <Badge variant="outline" className="border-orange-500 text-orange-500">
-                          مرتبط بنموذج آخر
-                        </Badge>
-                      ) : currentFormId === formId ? (
-                        <Badge variant="outline" className="border-green-500 text-green-500">
-                          مرتبط بهذا النموذج
-                        </Badge>
-                      ) : null}
-                      
-                      {hasChanged && (
-                        <Badge className="mr-2 bg-blue-500">سيتغير</Badge>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <Alert>
-              <AlertTitle>لا توجد منتجات</AlertTitle>
-              <AlertDescription>
-                {searchQuery 
-                  ? 'لا توجد منتجات تطابق البحث. جرب كلمات بحث أخرى.'
-                  : 'لم يتم العثور على منتجات في هذا المتجر. أضف منتجات أولاً.'}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            disabled={isSubmitting}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2"
+            onClick={() => refreshConnection()}
+            disabled={isRetrying}
           >
-            إلغاء
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
+            {isRetrying ? (
               <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                جاري الحفظ...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' ? 'جاري إعادة الاتصال...' : 'Reconnecting...'}
               </>
             ) : (
-              'حفظ إعدادات المنتجات'
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
+              </>
             )}
           </Button>
-        </CardFooter>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (!filteredProducts || filteredProducts.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'منتجات متجر Shopify' : 'Shopify Products'}
+          </CardTitle>
+          
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleForceRefresh}
+              disabled={isLoading || forceRefresh}
+            >
+              {forceRefresh ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-2">
+                {language === 'ar' ? 'تحديث المنتجات' : 'Refresh Products'}
+              </span>
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+              {language === 'ar' 
+                ? 'لم يتم العثور على منتجات في متجرك. قد تحتاج إلى إضافة منتجات إلى متجر Shopify الخاص بك أولاً أو قم بتحديث المنتجات.' 
+                : 'No products found in your store. You may need to add products to your Shopify store first or refresh the products.'}
+            </AlertDescription>
+          </Alert>
+          
+          <Button 
+            onClick={handleForceRefresh}
+            disabled={isLoading || forceRefresh}
+            className="w-full"
+          >
+            {forceRefresh ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' ? 'جاري التحديث...' : 'Refreshing...'}
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {language === 'ar' ? 'تحديث المنتجات من المتجر' : 'Refresh Products from Store'}
+              </>
+            )}
+          </Button>
+        </CardContent>
       </Card>
-    </div>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+          {language === 'ar' ? 'منتجات متجر Shopify' : 'Shopify Products'}
+        </CardTitle>
+        <CardDescription className={language === 'ar' ? 'text-right' : ''}>
+          {language === 'ar' 
+            ? 'حدد المنتجات التي تريد ربط هذا النموذج بها' 
+            : 'Select products you want to associate this form with'}
+        </CardDescription>
+        
+        <div className="flex flex-col gap-2 mt-2">
+          <Input
+            placeholder={language === 'ar' ? 'البحث عن المنتجات...' : 'Search products...'}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-2"
+          />
+          
+          <div className="flex justify-between gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleForceRefresh}
+              disabled={isLoading || forceRefresh}
+            >
+              {forceRefresh ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-2">
+                {language === 'ar' ? 'تحديث' : 'Refresh'}
+              </span>
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleClearAll}>
+                {language === 'ar' ? 'إلغاء تحديد الكل' : 'Clear All'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                {language === 'ar' ? 'تحديد الكل' : 'Select All'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <ScrollArea className="h-[300px] pr-4">
+          <div className="space-y-4">
+            {filteredProducts.map((product) => (
+              <div 
+                key={product.id} 
+                className="flex items-center justify-between space-x-4 rtl:space-x-reverse border rounded-md p-3 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                  {product.images && product.images.length > 0 ? (
+                    <img 
+                      src={product.images[0]} 
+                      alt={product.title}
+                      className="h-14 w-14 rounded-md object-contain border p-1"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
+                      }}
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-md bg-muted flex items-center justify-center">
+                      <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  <div>
+                    <p className="font-medium">{product.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.price ? `$${product.price}` : '-'}
+                    </p>
+                  </div>
+                </div>
+                
+                <Checkbox
+                  checked={localSelectedProducts.includes(product.id)}
+                  onCheckedChange={() => handleProductToggle(product.id)}
+                  aria-label={`Select ${product.title}`}
+                />
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        
+        <div className="mt-4 text-sm text-muted-foreground">
+          {language === 'ar' 
+            ? `تم تحديد ${localSelectedProducts.length} من المنتجات من إجمالي ${filteredProducts.length}` 
+            : `${localSelectedProducts.length} of ${filteredProducts.length} products selected`}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

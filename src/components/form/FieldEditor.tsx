@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { FormField, FormFieldType } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { Form, FormField as UIFormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -75,7 +74,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   };
 
   const renderEditorByType = () => {
-    switch (currentField.type as FormFieldType) {
+    switch (currentField.type) {
       case 'text':
       case 'email':
       case 'phone':
@@ -156,7 +155,6 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           </div>
         );
       
-      case 'whatsapp-button':
       case 'whatsapp':
         return (
           <WhatsAppFieldEditor
@@ -361,7 +359,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Checkbox
                       id="animation"
-                      checked={!!currentField.style?.animation}
+                      checked={currentField.style?.animation || false}
                       onCheckedChange={handleAnimationChange}
                     />
                     <label htmlFor="animation" className="text-sm font-medium cursor-pointer">
@@ -373,7 +371,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     <div className="pt-2">
                       <FormLabel>{language === 'ar' ? 'نوع التأثير' : 'Animation Type'}</FormLabel>
                       <Select
-                        value={currentField.style?.animationType as string || 'pulse'}
+                        value={currentField.style?.animationType || 'pulse'}
                         onValueChange={(value) => handleAnimationTypeChange(value as "pulse" | "shake" | "bounce" | "wiggle" | "flash")}
                       >
                         <SelectTrigger className="w-full">

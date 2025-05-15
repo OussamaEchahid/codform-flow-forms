@@ -11,7 +11,6 @@ interface FormData {
   description: string | null;
   data: FormStep[];
   is_published: boolean;
-  is_default?: boolean;
   created_at: string;
   user_id: string;
   shop_id?: string | null;
@@ -27,42 +26,7 @@ export default function FormAPI() {
   useEffect(() => {
     async function fetchForm() {
       try {
-        // Extract parameters for form lookup
-        const searchParams = new URLSearchParams(location.search);
-        const productId = searchParams.get('productId');
-        const shopId = searchParams.get('shopId') || searchParams.get('shop');
-
-        // If product ID and shop ID are provided but no form ID, we need to find the appropriate form
-        if (!id && productId && shopId) {
-          console.log(`Looking up appropriate form for product ${productId} in shop ${shopId}`);
-          
-          try {
-            // Call the API to resolve the form
-            const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
-              body: { 
-                productId, 
-                shop: shopId 
-              }
-            });
-
-            if (error) {
-              console.error('Error resolving form for product:', error);
-              throw new Error(error.message || 'Error resolving form for product');
-            }
-
-            if (!data) {
-              throw new Error('No suitable form found');
-            }
-
-            // Return the resolved form data
-            setForm(data as FormData);
-            setIsLoading(false);
-            return;
-          } catch (e: any) {
-            console.error('Error in form resolution:', e);
-            throw new Error(e.message || 'Error finding suitable form');
-          }
-        } else if (!id) {
+        if (!id) {
           throw new Error('Form ID is required');
         }
 
@@ -73,7 +37,11 @@ export default function FormAPI() {
           setIsLoading(false);
           return;
         }
-        
+
+        // Extract product ID from URL parameters if available
+        const searchParams = new URLSearchParams(location.search);
+        const productId = searchParams.get('productId');
+
         console.log('Fetching form data for ID:', id, productId ? `and product: ${productId}` : '');
         
         try {
@@ -84,13 +52,10 @@ export default function FormAPI() {
             throw new Error(`Invalid UUID format: "${id}"`);
           }
           
-          // Prepare the request body with optional productId and shopId
+          // Prepare the request body with optional productId
           const requestBody: Record<string, any> = { id };
           if (productId) {
             requestBody.productId = productId;
-          }
-          if (shopId) {
-            requestBody.shop = shopId;
           }
           
           // Call the Supabase Edge Function directly

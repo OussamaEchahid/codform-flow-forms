@@ -1,13 +1,12 @@
-
 {% comment %}
   CODFORM - نماذج الدفع عند الاستلام
 
   هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
-  لاستخدام هذا النموذج، قم فقط بإضافة معرّف النموذج في إعدادات البلوك (اختياري)
+  لاستخدام هذا النموذج، قم فقط بإضافة معرّف النموذج في إعدادات البلوك
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-shop-domain="{{ shop.permanent_domain | escape }}" data-hide-header="true">
+<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-hide-header="true">
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
       <div class="codform-spinner"></div>
@@ -755,8 +754,8 @@
     {
       "type": "text",
       "id": "form_id",
-      "label": "معرّف النموذج (اختياري)",
-      "info": "أدخل معرف النموذج الذي تريد عرضه، أو اتركه فارغًا لاستخدام النموذج الافتراضي أو المخصص للمنتج"
+      "label": "معرّف النموذج",
+      "info": "أدخل معرف النموذج الذي تريد عرضه"
     }
   ]
 }

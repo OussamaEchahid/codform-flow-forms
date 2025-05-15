@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { ensureColor, ensureSize } from '@/lib/utils';
 
 interface CheckboxGroupProps {
   field: FormField;
@@ -29,8 +28,8 @@ const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
     <div className="mb-6">
       {field.label && (
         <label className="block font-medium mb-2" style={{ 
-          color: ensureColor(fieldStyle.labelColor) || '#374151',
-          fontSize: ensureSize(fieldStyle.fontSize) || formStyle.fontSize || '1rem',
+          color: fieldStyle.labelColor || '#374151',
+          fontSize: fieldStyle.labelFontSize || formStyle.fontSize,
         }}>
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -56,8 +55,8 @@ const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
               htmlFor={`${field.id}-option-${index}`}
               className="ml-2 block"
               style={{
-                color: ensureColor(fieldStyle.color) || '#374151',
-                fontSize: ensureSize(fieldStyle.fontSize) || formStyle.fontSize || '1rem',
+                color: fieldStyle.color || '#374151',
+                fontSize: fieldStyle.fontSize || formStyle.fontSize,
               }}
             >
               {typeof option === 'string' ? option : option.label}

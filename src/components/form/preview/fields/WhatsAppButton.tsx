@@ -3,7 +3,6 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { MessageSquare } from 'lucide-react';
-import { ensureString, ensureColor, ensureSize } from '@/lib/utils';
 
 interface WhatsAppButtonProps {
   field: FormField;
@@ -20,10 +19,10 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   const fieldStyle = field.style || {};
   
   // Get WhatsApp number from the field
-  const whatsappNumber = ensureString(field.whatsappNumber) || '';
+  const whatsappNumber = field.whatsappNumber || '';
   
   // Default message
-  const message = ensureString(field.message) || '';
+  const message = field.message || '';
   
   // Create WhatsApp URL
   const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
@@ -35,7 +34,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   } else if (formStyle.buttonStyle === 'square') {
     buttonRadius = '0';
   } else {
-    buttonRadius = ensureSize(formStyle.borderRadius) || '0.5rem';
+    buttonRadius = formStyle.borderRadius || '0.5rem';
   }
   
   return (
@@ -46,10 +45,10 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
         rel="noopener noreferrer"
         className="w-full py-3 px-4 flex items-center justify-center gap-2 text-white font-medium transition-all duration-200 hover:opacity-90"
         style={{
-          backgroundColor: ensureColor(fieldStyle.backgroundColor) || '#25D366',
-          color: ensureColor(fieldStyle.color) || 'white',
-          fontSize: ensureSize(fieldStyle.fontSize) || ensureSize(formStyle.fontSize) || '1.1rem',
-          borderRadius: ensureSize(fieldStyle.borderRadius) || buttonRadius,
+          backgroundColor: fieldStyle.backgroundColor || '#25D366',
+          color: fieldStyle.color || 'white',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.1rem',
+          borderRadius: fieldStyle.borderRadius || buttonRadius,
           textDecoration: 'none',
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         }}

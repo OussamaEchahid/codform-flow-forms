@@ -3,7 +3,6 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useI18n } from '@/lib/i18n';
-import { ensureColor } from '@/lib/utils';
 
 interface ShippingOptionsProps {
   field: FormField;
@@ -35,7 +34,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) =
   
   return (
     <div className="form-control mb-6">
-      <label className="form-label mb-2 block" style={{ color: ensureColor(fieldStyle.color) || undefined }}>
+      <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
       </label>

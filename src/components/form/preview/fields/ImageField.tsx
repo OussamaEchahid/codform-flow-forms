@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { ensureString, ensureColor, ensureSize } from '@/lib/utils';
 
 interface ImageFieldProps {
   field: FormField;
@@ -18,14 +17,14 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   const fieldStyle = field.style || {};
   
   // Use image source or placeholder
-  const imageSrc = ensureString(field.src) || 'https://via.placeholder.com/800x400?text=Image';
-  const imageAlt = ensureString(field.alt) || (language === 'ar' ? 'صورة' : 'Image');
+  const imageSrc = field.src || 'https://via.placeholder.com/800x400?text=Image';
+  const imageAlt = field.alt || (language === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
-  const imageWidth = ensureString(field.width) || '100%';
+  const imageWidth = field.width || '100%';
   
   // Set border radius for the image
-  const imageBorderRadius = ensureSize(fieldStyle.borderRadius) || ensureSize(formStyle.borderRadius) || '0.5rem';
+  const imageBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   
   return (
     <div className="mb-4">
@@ -33,8 +32,8 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
         <div 
           className="mb-2"
           style={{ 
-            color: ensureColor(fieldStyle.labelColor) || '#334155',
-            fontSize: ensureSize(fieldStyle.labelFontSize) || ensureSize(formStyle.fontSize) || '1rem',
+            color: fieldStyle.labelColor || '#334155',
+            fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
             fontWeight: 500
           }}
         >

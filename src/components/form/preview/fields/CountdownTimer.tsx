@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { ensureColor, ensureSize } from '@/lib/utils';
 
 interface CountdownTimerProps {
   field: FormField;
@@ -22,8 +21,8 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
       <div 
         className="p-4 border rounded-md text-center"
         style={{
-          backgroundColor: ensureColor(fieldStyle.backgroundColor) || 'rgba(155, 135, 245, 0.1)',
-          borderColor: ensureColor(fieldStyle.borderColor) || formStyle.primaryColor || '#9b87f5',
+          backgroundColor: fieldStyle.backgroundColor || 'rgba(155, 135, 245, 0.1)',
+          borderColor: fieldStyle.borderColor || formStyle.primaryColor || '#9b87f5',
         }}
       >
         <h3 className="text-lg font-medium mb-2">
