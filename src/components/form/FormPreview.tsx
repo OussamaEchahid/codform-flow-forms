@@ -33,7 +33,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   formStyle = {
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
-    fontSize: '1rem',
+    fontSize: '16px', // Use fixed pixel value (1rem = 16px)
     buttonStyle: 'rounded',
   },
   fields = [],
@@ -59,7 +59,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return updatedFields;
     }
     
-    // If there's no form-title, add one at the beginning
+    // If there's no form-title, add one at the beginning with specific pixel sizes
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -69,9 +69,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         color: '#ffffff',
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
-        fontSize: '1.5rem',
+        fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
-        descriptionFontSize: '0.875rem',
+        descriptionFontSize: '14px', // 0.875rem = 14px
         backgroundColor: '#9b87f5', // Primary background color
       }
     };
@@ -81,7 +81,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // If there's no submit button, add one
+    // If there's no submit button, add one with specific pixel sizes
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -90,7 +90,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '1.2rem',
+          fontSize: '18px', // 1.2rem = 18px
           animation: true,
           animationType: 'pulse',
         },
