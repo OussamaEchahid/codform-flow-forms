@@ -1,79 +1,38 @@
 
-// ShopifyProduct interface
-export interface ShopifyProduct {
+export interface ShopifyStore {
   id: string;
-  title: string;
-  handle: string;
-  price: string;
-  images: string[];
-  tags?: string[] | string;
-  variants: Array<{
-    id: string;
-    title: string;
-    price?: string;
-    available?: boolean;
-  }>;
-}
-
-// Order interface
-export interface ShopifyOrder {
-  id: string;
-  order_number: string;
-  customer?: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-  created_at: string;
-  total_price: string;
-  line_items: Array<{
-    id: string;
-    title: string;
-    quantity: number;
-    price: string;
-  }>;
-}
-
-// Form data for Shopify integration
-export interface ShopifyFormData {
-  formId: string;
-  shopDomain?: string;
-  settings: {
-    position?: 'product-page' | 'cart-page' | 'checkout';
-    blockId?: string;
-    products?: string[];
-    themeType?: 'os2' | 'traditional' | 'auto-detect';
-    insertionMethod?: 'auto' | 'manual';
-  };
-}
-
-// Store connection interface
-export interface ShopifyStoreConnection {
-  domain: string;
   shop: string;
-  isActive: boolean;
-  lastConnected?: string;
+  access_token: string | null;
+  token_type: string | null;
+  scope: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-// Helper function to clean Shopify domain
-export function cleanShopifyDomain(domain: string): string {
-  if (!domain) return '';
-  
-  // Remove protocol if present
-  let cleanDomain = domain.replace(/^https?:\/\//, '');
-  
-  // Remove trailing slash if present
-  cleanDomain = cleanDomain.replace(/\/$/, '');
-  
-  // Ensure domain includes myshopify.com
-  if (!cleanDomain.includes('myshopify.com')) {
-    cleanDomain = `${cleanDomain}.myshopify.com`;
-  }
-  
-  return cleanDomain;
+export interface ShopifyProductSettings {
+  id: string;
+  form_id: string;
+  product_id: string;
+  shop_id: string;
+  block_id: string | null;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-// Product settings request/response types
+export interface ShopifyFormInsertion {
+  id: string;
+  form_id: string;
+  shop_id: string;
+  position: string;
+  block_id: string | null;
+  theme_type: string;
+  insertion_method: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProductSettingsRequest {
   productId: string;
   formId: string;
@@ -87,4 +46,22 @@ export interface ProductSettingsResponse {
   productId?: string;
   formId?: string;
   blockId?: string;
+}
+
+export interface ShopifyProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description?: string;
+  price?: string;
+  compareAtPrice?: string;
+  image?: {
+    src: string;
+    alt?: string;
+  };
+  images?: Array<{
+    src: string;
+    alt?: string;
+  }>;
+  status: 'active' | 'draft' | 'archived';
 }

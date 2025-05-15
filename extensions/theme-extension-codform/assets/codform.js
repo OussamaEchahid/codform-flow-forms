@@ -1,629 +1,519 @@
 
-// CODFORM - نماذج الدفع عند الاستلام
-// نموذج الدفع عند الاستلام - برمجة وتطوير CODFORM
-
-// Use a self-executing function to avoid global scope pollution
-(function() {
-  // Initialize forms when DOM is loaded
-  document.addEventListener('DOMContentLoaded', initializeCodforms);
+document.addEventListener('DOMContentLoaded', function() {
+  // Configuration
+  const API_URL_BASE = 'https://mtyfuwdsshlzqwjujavp.functions.supabase.co';
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000; // milliseconds
   
-  // Function to initialize all form containers on the page
-  function initializeCodforms() {
-    // Find all form containers
+  // Log startup
+  console.log('COD Form Script loaded');
+  
+  // Initialize all form containers
+  initializeForms();
+  
+  // Main initialization function
+  function initializeForms() {
     const containers = document.querySelectorAll('.codform-container');
-    console.log(`CODFORM: Found ${containers.length} containers to initialize`);
-    
-    containers.forEach(container => {
-      const blockId = container.id.split('-').pop();
-      const productId = container.getAttribute('data-product-id');
-      
-      console.log(`CODFORM: Initializing container with blockId: ${blockId}, productId: ${productId}`);
-      
-      if (!productId) {
-        showErrorMessage(blockId, 'لم يتم العثور على معرف المنتج');
-        console.error('CODFORM Error: No product ID found for block', blockId);
-        return;
-      }
-      
-      // Load form based on product ID
-      loadFormByProductId(productId, blockId);
-    });
-  }
-  
-  // Function to load a form based on product ID
-  function loadFormByProductId(productId, blockId) {
-    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
-    const formContainer = document.getElementById(`codform-form-${blockId}`);
-    const errorContainer = document.getElementById(`codform-error-${blockId}`);
-    
-    if (!formLoader || !formContainer || !errorContainer) {
-      console.error('CODFORM: Required containers not found for blockId', blockId);
+    if (containers.length === 0) {
+      console.log('No COD form containers found on page');
       return;
     }
     
-    // Get the shop domain from the current URL
-    const shopDomain = window.location.hostname;
+    console.log(`Found ${containers.length} COD form containers`);
     
-    // API endpoint to get form for product - use the Supabase edge function URL directly
-    const apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-product?shop=${encodeURIComponent(shopDomain)}&productId=${encodeURIComponent(productId)}`;
+    containers.forEach(container => {
+      initializeFormContainer(container);
+    });
+  }
+  
+  // Initialize a single form container
+  function initializeFormContainer(container) {
+    const blockId = container.id.replace('codform-container-', '');
+    const productId = container.dataset.productId;
+    const shopDomain = Shopify ? Shopify.shop : window.location.hostname;
+    const hideHeader = container.dataset.hideHeader === 'true';
+    
+    console.log(`Initializing form block ${blockId} for product ${productId} on shop ${shopDomain}`);
+    
+    // Get the form loading, form display, success, and error elements
+    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
+    const formElement = document.getElementById(`codform-form-${blockId}`);
+    const successElement = document.getElementById(`codform-success-${blockId}`);
+    const errorElement = document.getElementById(`codform-error-${blockId}`);
+    const retryButton = document.getElementById(`codform-retry-${blockId}`);
+    
+    if (!formLoader || !formElement || !successElement || !errorElement) {
+      console.error('Required form elements not found for block', blockId);
+      return;
+    }
+    
+    // Add retry functionality
+    if (retryButton) {
+      retryButton.addEventListener('click', function() {
+        errorElement.style.display = 'none';
+        formLoader.style.display = 'flex';
+        loadForm(0);
+      });
+    }
     
     // Show loader
     formLoader.style.display = 'flex';
-    formContainer.style.display = 'none';
-    errorContainer.style.display = 'none';
+    formElement.style.display = 'none';
+    successElement.style.display = 'none';
+    errorElement.style.display = 'none';
     
-    console.log(`CODFORM: Fetching form for product ${productId} from shop ${shopDomain} using URL: ${apiUrl}`);
-    
-    // Add timestamp to avoid caching issues
-    const timestampedUrl = `${apiUrl}&_t=${Date.now()}`;
-    
-    // Enhanced fetch request with custom headers
-    const fetchOptions = {
-      method: 'GET',
-      mode: 'cors',
-      credentials: 'omit', // Don't send cookies
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Shop': shopDomain,
-        'Origin': window.location.origin,
-        'Cache-Control': 'no-store, no-cache'
-      },
-      cache: 'no-store'
-    };
-    
-    // Fetch form data with retry logic
-    fetchWithRetry(timestampedUrl, 5, fetchOptions)
-      .then(response => {
-        console.log(`CODFORM: Response status: ${response.status}`);
-        if (!response.ok) {
-          console.error('CODFORM: Network response error details:', {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url
-          });
-          throw new Error(`Network response was not ok: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('CODFORM: Received data:', data);
-        if (data && data.form) {
-          // Form data retrieved successfully
-          console.log(`CODFORM: Successfully loaded form ID: ${data.form.id}`);
-          renderForm(data.form, blockId);
-        } else {
-          throw new Error('No form data returned from API');
-        }
-      })
-      .catch(error => {
-        console.error('CODFORM Error:', error);
-        showErrorMessage(blockId, 'فشل تحميل النموذج. يرجى تحديث الصفحة أو الاتصال بالدعم الفني.');
-        
-        // After error, try to load default form as fallback
-        tryLoadDefaultForm(shopDomain, blockId);
-      });
-  }
-  
-  // Enhanced fetch with retry logic and diagnostics
-  function fetchWithRetry(url, maxRetries, options, retryCount = 0) {
-    console.log(`CODFORM: Fetch attempt ${retryCount + 1}/${maxRetries + 1} for ${url}`);
-    
-    // For each retry, slightly modify the options to try different configurations
-    const currentOptions = {...options};
-    
-    if (retryCount > 0) {
-      // Add a cache buster for each retry
-      const separator = url.includes('?') ? '&' : '?';
-      url = `${url}${separator}_retry=${retryCount}_${Date.now()}`;
-      
-      // Try different variations of headers with each retry
-      if (retryCount === 1) {
-        // Try removing some headers
-        const simpleHeaders = {
-          'Accept': 'application/json', 
-          'Content-Type': 'application/json'
-        };
-        currentOptions.headers = simpleHeaders;
-      } else if (retryCount === 2) {
-        // Try with almost no headers
-        currentOptions.headers = {'Accept': 'application/json'};
-      } else if (retryCount >= 3) {
-        // For desperate attempts, try with no custom headers at all and force no-cors mode
-        currentOptions.headers = {};
-        if (retryCount === 4) {
-          // Last resort: try with a completely different mode
-          currentOptions.mode = 'no-cors';
-          console.log('CODFORM: Trying no-cors mode as last resort');
-        }
-      }
-    }
-    
-    console.log('CODFORM: Fetch options:', currentOptions);
-    
-    return fetch(url, currentOptions)
-      .then(response => {
-        if (response.ok) {
-          console.log(`CODFORM: Successful fetch on attempt ${retryCount + 1}`);
-          return response;
-        }
-        
-        // If we've reached max retries, throw error
-        if (retryCount >= maxRetries) {
-          console.error(`CODFORM: Max retries reached (${maxRetries}) with status ${response.status}`);
-          throw new Error(`Max retries reached (${maxRetries}): ${response.status}`);
-        }
-        
-        // Log response for debugging
-        console.log(`CODFORM: Fetch attempt ${retryCount + 1} failed:`, {
-          status: response.status,
-          statusText: response.statusText
+    // Load the form with retry capability
+    function loadForm(retryCount = 0) {
+      fetchCodForm(shopDomain, productId, blockId, retryCount)
+        .then(data => {
+          if (data.error || (!data.form && !data)) {
+            throw new Error(data.error || 'Failed to fetch form data');
+          }
+          
+          const formData = data.form || data;
+          console.log(`Form data retrieved successfully for block ${blockId}`);
+          
+          // Render the form
+          renderForm(formData, formElement, hideHeader);
+          
+          // Show the form
+          formLoader.style.display = 'none';
+          formElement.style.display = 'block';
+        })
+        .catch(error => {
+          console.error(`Error loading form (attempt ${retryCount + 1}):`, error);
+          
+          if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying form fetch (${retryCount + 1}/${MAX_RETRIES})...`);
+            setTimeout(() => loadForm(retryCount + 1), RETRY_DELAY);
+          } else {
+            console.error('Maximum retry attempts reached, showing error message');
+            formLoader.style.display = 'none';
+            errorElement.style.display = 'block';
+          }
         });
-        
-        // Exponential backoff with jitter
-        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
-        console.log(`CODFORM: Retrying fetch (${retryCount + 1}/${maxRetries}) after ${delay.toFixed(0)}ms`);
-        
-        // Retry after delay
-        return new Promise(resolve => setTimeout(resolve, delay))
-          .then(() => fetchWithRetry(url, maxRetries, currentOptions, retryCount + 1));
-      })
-      .catch(err => {
-        // For network errors, also implement retry
-        if (retryCount >= maxRetries) {
-          console.error('CODFORM: Network error after all retries:', err);
-          throw err;
-        }
-        
-        console.log(`CODFORM: Network error (${err.message}), will retry`);
-        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) + Math.random() * 1000;
-        
-        return new Promise(resolve => setTimeout(resolve, delay))
-          .then(() => fetchWithRetry(url, maxRetries, currentOptions, retryCount + 1));
-      });
-  }
-  
-  // Try to load default form as fallback with enhanced error handling
-  function tryLoadDefaultForm(shopDomain, blockId) {
-    console.log('CODFORM: Trying to load default form as fallback');
-    
-    // Show "trying fallback" message
-    const errorContainer = document.getElementById(`codform-error-${blockId}`);
-    if (errorContainer) {
-      const errorText = errorContainer.querySelector('p');
-      if (errorText) errorText.innerText = 'جاري محاولة تحميل النموذج الافتراضي...';
-      errorContainer.style.display = 'block';
     }
     
-    // API endpoint for default form with direct URL
-    const defaultFormUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-default?shop=${encodeURIComponent(shopDomain)}&_t=${Date.now()}`;
+    // Start loading the form
+    loadForm();
+  }
+  
+  // Function to fetch form data
+  function fetchCodForm(shopDomain, productId, blockId, retryCount = 0) {
+    const timestamp = Date.now();
+    const apiUrl = productId 
+      ? `${API_URL_BASE}/forms-product?shop=${shopDomain}&productId=${productId}&_t=${timestamp}`
+      : `${API_URL_BASE}/forms-default?shop=${shopDomain}&_t=${timestamp}`;
     
-    // Enhanced fetch options for fallback - use minimal headers
+    console.log(`Fetching form from: ${apiUrl} (attempt ${retryCount + 1})`);
+    
     const fetchOptions = {
       method: 'GET',
-      mode: 'cors',
-      credentials: 'omit', // Don't send cookies
       headers: {
-        'Accept': 'application/json'
-      },
-      cache: 'no-store'
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache',
+        'Shop': shopDomain
+      }
     };
     
-    fetchWithRetry(defaultFormUrl, 3, fetchOptions)
+    // Add extra headers for retry attempts
+    if (retryCount > 0) {
+      fetchOptions.headers['X-Retry-Count'] = retryCount.toString();
+      fetchOptions.headers['X-Request-ID'] = `req_${Math.random().toString(36).substring(2, 10)}`;
+      fetchOptions.cache = 'no-store';
+    }
+    
+    return fetch(apiUrl, fetchOptions)
       .then(response => {
-        if (!response.ok) throw new Error(`Default form fetch failed: ${response.status}`);
+        if (!response.ok) {
+          console.error(`HTTP error ${response.status} fetching form data:`, response);
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
         return response.json();
       })
       .then(data => {
-        if (data && data.form) {
-          console.log('CODFORM: Successfully loaded default form:', data.form.id);
-          renderForm(data.form, blockId);
-          return;
+        if (!data) {
+          throw new Error('Empty response received');
         }
-        throw new Error('No default form available');
+        if (data.error) {
+          console.error('Error in form data:', data.error);
+          throw new Error(data.error);
+        }
+        return data;
       })
       .catch(error => {
-        console.error('CODFORM: Failed to load default form:', error);
-        
-        // If everything fails, create a basic fallback form
-        console.log('CODFORM: Creating basic fallback form');
-        createFallbackForm(blockId);
+        console.error('Error fetching form:', error);
+        throw error;
       });
-  }
-  
-  // Function to create a very basic form as ultimate fallback
-  function createFallbackForm(blockId) {
-    const formContainer = document.getElementById(`codform-form-${blockId}`);
-    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
-    const errorContainer = document.getElementById(`codform-error-${blockId}`);
-    
-    if (!formContainer) return;
-    
-    // Hide loader and error container
-    if (formLoader) formLoader.style.display = 'none';
-    if (errorContainer) errorContainer.style.display = 'none';
-    
-    // Basic form HTML 
-    const formHTML = `
-      <div class="codform-header" style="background-color: #9b87f5;">
-        <h3>طلب المنتج</h3>
-        <p>يرجى تعبئة النموذج للطلب</p>
-      </div>
-      <form id="codform-form-elements-${blockId}" class="codform-form-elements" data-form-id="fallback">
-        <div class="codform-field">
-          <label for="name-${blockId}">
-            <span class="codform-required">*</span>
-            الاسم الكامل
-          </label>
-          <input type="text" id="name-${blockId}" name="name" required>
-        </div>
-        <div class="codform-field">
-          <label for="phone-${blockId}">
-            <span class="codform-required">*</span>
-            رقم الهاتف
-          </label>
-          <input type="tel" id="phone-${blockId}" name="phone" required>
-        </div>
-        <div class="codform-field">
-          <label for="address-${blockId}">
-            <span class="codform-required">*</span>
-            العنوان
-          </label>
-          <textarea id="address-${blockId}" name="address" rows="4" required></textarea>
-        </div>
-        <div class="codform-field">
-          <button type="submit" class="codform-submit-button" style="background-color: #9b87f5;">
-            إرسال الطلب
-          </button>
-        </div>
-      </form>
-    `;
-    
-    formContainer.innerHTML = formHTML;
-    formContainer.style.display = 'block';
-    
-    // Add submission handler
-    const form = document.getElementById(`codform-form-elements-${blockId}`);
-    if (form) {
-      form.addEventListener('submit', event => handleFormSubmission(event, blockId));
-    }
   }
   
   // Function to render the form
-  function renderForm(formData, blockId) {
-    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
-    const formContainer = document.getElementById(`codform-form-${blockId}`);
+  function renderForm(formData, formElement, hideHeader) {
+    if (!formData || !formElement) return;
     
-    if (!formLoader || !formContainer) {
-      console.error('CODFORM: Required containers not found');
-      return;
-    }
-    
-    // Hide loader
-    formLoader.style.display = 'none';
-    
-    // Prepare form structure based on formData
-    const formId = formData.id;
-    const formTitle = formData.title || 'نموذج الدفع عند الاستلام';
-    const formDescription = formData.description || '';
-    const hideHeader = document.querySelector(`#codform-container-${blockId}`).getAttribute('data-hide-header') === 'true';
-    
-    // Get form fields
-    let formFields = [];
-    try {
-      // Handle different data structures that might be returned
-      if (formData.data && Array.isArray(formData.data)) {
-        // If data is an array of steps
-        formFields = formData.data[0]?.fields || [];
-      } else if (formData.data && formData.data[0] && formData.data[0].fields) {
-        // Legacy format
-        formFields = formData.data[0].fields;
-      } else if (typeof formData.data === 'object') {
-        // Direct fields object
-        formFields = formData.data.fields || [];
-      }
-    } catch (e) {
-      console.error('CODFORM Error: Failed to parse form fields', e);
-      formFields = [];
-    }
-    
-    // If no fields found, create default ones
-    if (!formFields || formFields.length === 0) {
-      console.warn('CODFORM: No form fields found, using defaults');
-      formFields = [
-        {
-          id: 'name',
-          type: 'text',
-          label: 'الاسم الكامل',
-          required: true,
-          placeholder: 'أدخل اسمك الكامل'
-        },
-        {
-          id: 'phone',
-          type: 'phone',
-          label: 'رقم الهاتف',
-          required: true,
-          placeholder: 'أدخل رقم هاتفك'
-        },
-        {
-          id: 'address',
-          type: 'textarea',
-          label: 'العنوان',
-          required: true,
-          placeholder: 'أدخل عنوانك بالتفصيل'
-        },
-        {
-          id: 'submit',
-          type: 'submit',
-          label: 'إرسال الطلب'
-        }
-      ];
-    }
-    
-    // Get form style
-    const style = formData.style || {
-      primaryColor: '#9b87f5',
-      borderRadius: '0.5rem',
-      fontSize: '1rem',
-      buttonStyle: 'rounded'
+    const form = formData;
+    const style = form.style || {
+      primaryColor: form.primaryColor || '#9b87f5',
+      fontSize: form.fontSize || '1rem',
+      borderRadius: form.borderRadius || '0.5rem',
+      buttonStyle: form.buttonStyle || 'rounded'
     };
     
-    // Create form HTML
-    let formHTML = '';
+    // Set form container styles
+    formElement.innerHTML = ''; // Clear previous content
     
-    // Add header if not hidden
-    if (!hideHeader) {
-      formHTML += `
-        <div class="codform-header" style="background-color: ${style.primaryColor};">
-          <h3>${formTitle}</h3>
-          <p>${formDescription}</p>
-        </div>
-      `;
+    // Create the form header if not hidden
+    if (!hideHeader && form.title) {
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'codform-header';
+      headerDiv.style.backgroundColor = style.primaryColor;
+      
+      const title = document.createElement('h3');
+      title.innerText = form.title;
+      
+      const description = document.createElement('p');
+      description.innerText = form.description || '';
+      
+      headerDiv.appendChild(title);
+      if (form.description) headerDiv.appendChild(description);
+      formElement.appendChild(headerDiv);
     }
     
-    // Add form fields
-    formHTML += `<form id="codform-form-elements-${blockId}" class="codform-form-elements" data-form-id="${formId}">`;
+    // Parse the form data
+    const formSteps = Array.isArray(form.data) ? form.data : [];
     
-    // Process form fields
-    formFields.forEach(field => {
-      // Skip form-title field if hideHeader is true
-      if (field.type === 'form-title' && hideHeader) {
-        return;
+    if (formSteps.length > 0) {
+      // Create form element
+      const formEl = document.createElement('form');
+      formEl.className = 'codform-form';
+      formEl.id = `form-${form.id}`;
+      
+      // Add the first step fields
+      const firstStep = formSteps[0];
+      if (firstStep && Array.isArray(firstStep.fields)) {
+        firstStep.fields.forEach(field => {
+          formEl.appendChild(createFormField(field, style));
+        });
       }
       
-      formHTML += renderField(field, style);
-    });
-    
-    // Close form
-    formHTML += '</form>';
-    
-    // Set form HTML
-    formContainer.innerHTML = formHTML;
-    formContainer.style.display = 'block';
-    
-    // Add form submission handler
-    const form = document.getElementById(`codform-form-elements-${blockId}`);
-    if (form) {
-      form.addEventListener('submit', event => handleFormSubmission(event, blockId));
-    }
-    
-    // Add event listeners for any special fields
-    setupFieldEventListeners(blockId);
-  }
-  
-  // Function to render individual form field
-  function renderField(field, style) {
-    // Safely check field exists
-    if (!field || !field.type) {
-      console.error('CODFORM: Invalid field object', field);
-      return '';
-    }
-    
-    // Implement field rendering based on field type
-    // This is a simplified version - you'll need to expand it
-    switch (field.type) {
-      case 'form-title':
-        return `
-          <div class="codform-field">
-            <h3 style="color: ${field.style?.color || '#333'};">${field.label}</h3>
-            ${field.helpText ? `<p class="codform-help-text">${field.helpText}</p>` : ''}
-          </div>
-        `;
-        
-      case 'text':
-      case 'email':
-      case 'phone':
-        return `
-          <div class="codform-field">
-            <label for="${field.id}">
-              ${field.required ? '<span class="codform-required">*</span>' : ''}
-              ${field.label}
-            </label>
-            <input 
-              type="${field.type === 'phone' ? 'tel' : field.type}" 
-              id="${field.id}" 
-              name="${field.id}" 
-              placeholder="${field.placeholder || ''}" 
-              ${field.required ? 'required' : ''}
-            >
-            ${field.helpText ? `<p class="codform-help-text">${field.helpText}</p>` : ''}
-          </div>
-        `;
-        
-      case 'textarea':
-        return `
-          <div class="codform-field">
-            <label for="${field.id}">
-              ${field.required ? '<span class="codform-required">*</span>' : ''}
-              ${field.label}
-            </label>
-            <textarea 
-              id="${field.id}" 
-              name="${field.id}" 
-              placeholder="${field.placeholder || ''}" 
-              rows="4"
-              ${field.required ? 'required' : ''}
-            ></textarea>
-            ${field.helpText ? `<p class="codform-help-text">${field.helpText}</p>` : ''}
-          </div>
-        `;
-        
-      case 'submit':
-        return `
-          <div class="codform-field">
-            <button 
-              type="submit" 
-              id="${field.id}" 
-              class="codform-submit-button codform-submit-btn"
-              style="background-color: ${field.style?.backgroundColor || style.primaryColor};"
-            >
-              ${field.label || 'إرسال'}
-            </button>
-          </div>
-        `;
-        
-      // Add other field types as needed
-        
-      default:
-        console.warn('CODFORM: Unknown field type', field.type);
-        return '';
+      // Add submit button
+      const submitButton = document.createElement('button');
+      submitButton.type = 'submit';
+      submitButton.className = 'codform-submit-button codform-submit-btn';
+      submitButton.innerText = form.submitbuttontext || 'إرسال الطلب';
+      submitButton.style.backgroundColor = style.primaryColor;
+      
+      formEl.appendChild(submitButton);
+      
+      // Handle form submission
+      formEl.addEventListener('submit', function(e) {
+        e.preventDefault();
+        handleFormSubmission(e.target, form, formElement.parentNode);
+      });
+      
+      formElement.appendChild(formEl);
+    } else {
+      // Display error if no form steps
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'codform-error';
+      errorDiv.innerText = 'لم يتم العثور على حقول في هذا النموذج';
+      formElement.appendChild(errorDiv);
     }
   }
   
-  // Function to set up event listeners for specific fields
-  function setupFieldEventListeners(blockId) {
-    // Implement any needed event listeners for special fields
+  // Create a form field based on its type
+  function createFormField(field, style) {
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'codform-field';
+    
+    if (field.type === 'text' || field.type === 'email' || field.type === 'tel' || field.type === 'number') {
+      // Text, email, phone, number inputs
+      const label = document.createElement('label');
+      label.htmlFor = field.id;
+      label.innerText = field.label || '';
+      
+      if (field.required) {
+        const requiredSpan = document.createElement('span');
+        requiredSpan.className = 'codform-required';
+        requiredSpan.innerText = '*';
+        label.appendChild(requiredSpan);
+      }
+      
+      const input = document.createElement('input');
+      input.type = field.type === 'tel' ? 'tel' : field.type;
+      input.id = field.id;
+      input.name = field.id;
+      input.placeholder = field.placeholder || '';
+      input.required = field.required === true;
+      
+      if (field.type === 'tel') {
+        input.pattern = field.pattern || '[0-9]{9,15}';
+      }
+      
+      fieldDiv.appendChild(label);
+      fieldDiv.appendChild(input);
+      
+      if (field.help) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.innerText = field.help;
+        fieldDiv.appendChild(helpText);
+      }
+    } else if (field.type === 'textarea') {
+      // Textarea
+      const label = document.createElement('label');
+      label.htmlFor = field.id;
+      label.innerText = field.label || '';
+      
+      if (field.required) {
+        const requiredSpan = document.createElement('span');
+        requiredSpan.className = 'codform-required';
+        requiredSpan.innerText = '*';
+        label.appendChild(requiredSpan);
+      }
+      
+      const textarea = document.createElement('textarea');
+      textarea.id = field.id;
+      textarea.name = field.id;
+      textarea.placeholder = field.placeholder || '';
+      textarea.required = field.required === true;
+      textarea.rows = field.rows || 4;
+      
+      fieldDiv.appendChild(label);
+      fieldDiv.appendChild(textarea);
+      
+      if (field.help) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.innerText = field.help;
+        fieldDiv.appendChild(helpText);
+      }
+    } else if (field.type === 'checkbox' && Array.isArray(field.options)) {
+      // Checkbox group
+      const label = document.createElement('label');
+      label.innerText = field.label || '';
+      
+      if (field.required) {
+        const requiredSpan = document.createElement('span');
+        requiredSpan.className = 'codform-required';
+        requiredSpan.innerText = '*';
+        label.appendChild(requiredSpan);
+      }
+      
+      fieldDiv.appendChild(label);
+      
+      field.options.forEach(option => {
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.className = 'codform-checkbox-container';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `${field.id}-${option.value}`;
+        checkbox.name = field.id;
+        checkbox.value = option.value;
+        checkbox.required = false; // Individual checkboxes are not required
+        
+        const checkboxLabel = document.createElement('label');
+        checkboxLabel.htmlFor = `${field.id}-${option.value}`;
+        checkboxLabel.innerText = option.label || option.value;
+        
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(checkboxLabel);
+        fieldDiv.appendChild(checkboxContainer);
+      });
+      
+      if (field.help) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.innerText = field.help;
+        fieldDiv.appendChild(helpText);
+      }
+    } else if (field.type === 'radio' && Array.isArray(field.options)) {
+      // Radio group
+      const label = document.createElement('label');
+      label.innerText = field.label || '';
+      
+      if (field.required) {
+        const requiredSpan = document.createElement('span');
+        requiredSpan.className = 'codform-required';
+        requiredSpan.innerText = '*';
+        label.appendChild(requiredSpan);
+      }
+      
+      fieldDiv.appendChild(label);
+      
+      const radioGroup = document.createElement('div');
+      radioGroup.className = 'codform-radio-group';
+      
+      field.options.forEach(option => {
+        const radioContainer = document.createElement('div');
+        radioContainer.className = 'codform-radio-container';
+        
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.id = `${field.id}-${option.value}`;
+        radio.name = field.id;
+        radio.value = option.value;
+        radio.required = field.required === true;
+        
+        const radioLabel = document.createElement('label');
+        radioLabel.htmlFor = `${field.id}-${option.value}`;
+        radioLabel.innerText = option.label || option.value;
+        
+        radioContainer.appendChild(radio);
+        radioContainer.appendChild(radioLabel);
+        radioGroup.appendChild(radioContainer);
+      });
+      
+      fieldDiv.appendChild(radioGroup);
+      
+      if (field.help) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.innerText = field.help;
+        fieldDiv.appendChild(helpText);
+      }
+    } else if (field.type === 'select' && Array.isArray(field.options)) {
+      // Select dropdown
+      const label = document.createElement('label');
+      label.htmlFor = field.id;
+      label.innerText = field.label || '';
+      
+      if (field.required) {
+        const requiredSpan = document.createElement('span');
+        requiredSpan.className = 'codform-required';
+        requiredSpan.innerText = '*';
+        label.appendChild(requiredSpan);
+      }
+      
+      const select = document.createElement('select');
+      select.id = field.id;
+      select.name = field.id;
+      select.required = field.required === true;
+      
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.innerText = field.placeholder || 'اختر...';
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      select.appendChild(defaultOption);
+      
+      field.options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value;
+        optionElement.innerText = option.label || option.value;
+        select.appendChild(optionElement);
+      });
+      
+      fieldDiv.appendChild(label);
+      fieldDiv.appendChild(select);
+      
+      if (field.help) {
+        const helpText = document.createElement('div');
+        helpText.className = 'codform-help-text';
+        helpText.innerText = field.help;
+        fieldDiv.appendChild(helpText);
+      }
+    } else if (field.type === 'title' || field.type === 'form-title') {
+      // Title field
+      const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
+      title.innerText = field.text || field.label || '';
+      title.style.color = style.primaryColor;
+      fieldDiv.appendChild(title);
+    }
+    
+    return fieldDiv;
   }
   
-  // Function to handle form submission
-  function handleFormSubmission(event, blockId) {
-    event.preventDefault();
+  // Handle form submission
+  function handleFormSubmission(form, formData, containerElement) {
+    if (!form || !formData || !containerElement) return;
     
-    const form = event.target;
-    const formId = form.getAttribute('data-form-id');
-    const formContainer = document.getElementById(`codform-form-${blockId}`);
-    const successContainer = document.getElementById(`codform-success-${blockId}`);
-    const errorContainer = document.getElementById(`codform-error-${blockId}`);
+    const formLoader = containerElement.querySelector('.codform-form-container .codform-loader');
+    const formElement = containerElement.querySelector('.codform-form-container .codform-form');
+    const successElement = containerElement.querySelector('.codform-form-container .codform-success');
+    const errorElement = containerElement.querySelector('.codform-form-container .codform-error');
     
-    if (!formId || !formContainer || !successContainer || !errorContainer) {
-      console.error('CODFORM: Required elements not found');
+    if (!formLoader || !formElement || !successElement || !errorElement) {
+      console.error('Required elements not found for form submission');
       return;
     }
     
-    // Get form data
-    const formData = new FormData(form);
-    const formDataJson = {};
-    
-    // Convert FormData to JSON
-    formData.forEach((value, key) => {
-      formDataJson[key] = value;
-    });
-    
-    // Add product ID and other metadata
-    const container = document.getElementById(`codform-container-${blockId}`);
-    if (container) {
-      formDataJson.productId = container.getAttribute('data-product-id');
-      formDataJson.shopDomain = window.location.hostname;
-    }
-    
-    // API endpoint for form submission - use Supabase edge function directly
-    const apiUrl = `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/api-submissions?formId=${formId}`;
-    
-    // Disable form inputs during submission
+    // Collect form data
+    const formValues = {};
     const formElements = form.elements;
+    
     for (let i = 0; i < formElements.length; i++) {
-      formElements[i].disabled = true;
+      const element = formElements[i];
+      if (element.name && element.name !== '') {
+        if (element.type === 'checkbox') {
+          if (element.checked) {
+            if (!formValues[element.name]) {
+              formValues[element.name] = [];
+            }
+            formValues[element.name].push(element.value);
+          }
+        } else if (element.type === 'radio') {
+          if (element.checked) {
+            formValues[element.name] = element.value;
+          }
+        } else if (element.name !== '') {
+          formValues[element.name] = element.value;
+        }
+      }
     }
     
-    // Add loading state to submit button
-    const submitButton = form.querySelector('button[type="submit"]');
-    if (submitButton) {
-      submitButton.classList.add('codform-loading');
-      submitButton.innerText = 'جاري الإرسال...';
-    }
+    // Add metadata to form submission
+    const metadata = {
+      shop: Shopify ? Shopify.shop : window.location.hostname,
+      submitted_at: new Date().toISOString(),
+      form_id: formData.id,
+      form_title: formData.title,
+      page_url: window.location.href,
+      product_id: containerElement.dataset.productId
+    };
     
-    // Submit form data
-    fetch(apiUrl, {
+    const submissionData = {
+      form_id: formData.id,
+      shop_id: metadata.shop,
+      data: {
+        values: formValues,
+        metadata
+      }
+    };
+    
+    console.log('Submitting form:', submissionData);
+    
+    // Show loading state
+    formElement.style.display = 'none';
+    formLoader.style.display = 'flex';
+    
+    // Send form data to backend
+    fetch(`${API_URL_BASE}/api-submissions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Shop': metadata.shop
       },
-      body: JSON.stringify(formDataJson)
+      body: JSON.stringify(submissionData)
     })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => {
-        // Show success message
-        formContainer.style.display = 'none';
-        successContainer.style.display = 'block';
-        errorContainer.style.display = 'none';
-        
-        // Scroll to success message
-        successContainer.scrollIntoView({ behavior: 'smooth' });
-      })
-      .catch(error => {
-        console.error('CODFORM Error:', error);
-        
-        // Re-enable form inputs
-        for (let i = 0; i < formElements.length; i++) {
-          formElements[i].disabled = false;
-        }
-        
-        // Reset submit button
-        if (submitButton) {
-          submitButton.classList.remove('codform-loading');
-          submitButton.innerText = 'إرسال';
-        }
-        
-        // Show error message
-        showErrorMessage(blockId, 'فشل إرسال النموذج. يرجى المحاولة مرة أخرى.');
-      });
-  }
-  
-  // Function to show error message with enhanced diagnostics
-  function showErrorMessage(blockId, message) {
-    const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
-    const formContainer = document.getElementById(`codform-form-${blockId}`);
-    const errorContainer = document.getElementById(`codform-error-${blockId}`);
-    const errorText = errorContainer ? errorContainer.querySelector('p') : null;
-    
-    if (formLoader) formLoader.style.display = 'none';
-    if (formContainer) formContainer.style.display = 'none';
-    if (errorContainer) errorContainer.style.display = 'block';
-    if (errorText) errorText.innerText = message;
-    
-    // Diagnostic information - log to console
-    console.log('CODFORM Error Diagnostics:', {
-      timestamp: new Date().toISOString(),
-      shopDomain: window.location.hostname,
-      pageUrl: window.location.href,
-      blockId: blockId,
-      errorMessage: message,
-      userAgent: navigator.userAgent
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(response => {
+      // Show success message
+      formLoader.style.display = 'none';
+      successElement.style.display = 'block';
+      console.log('Form submitted successfully:', response);
+    })
+    .catch(error => {
+      // Show error message
+      formLoader.style.display = 'none';
+      errorElement.style.display = 'block';
+      console.error('Error submitting form:', error);
     });
-    
-    // Add retry button functionality
-    const retryButton = document.getElementById(`codform-retry-${blockId}`);
-    if (retryButton) {
-      // Remove any existing event listeners
-      retryButton.replaceWith(retryButton.cloneNode(true));
-      
-      // Add new event listener
-      document.getElementById(`codform-retry-${blockId}`).addEventListener('click', () => {
-        // Get the product ID and try loading the form again
-        const container = document.getElementById(`codform-container-${blockId}`);
-        if (container) {
-          const productId = container.getAttribute('data-product-id');
-          if (productId) {
-            console.log('CODFORM: Retrying form load for product', productId);
-            loadFormByProductId(productId, blockId);
-          }
-        }
-      });
-    }
   }
-})();
+});

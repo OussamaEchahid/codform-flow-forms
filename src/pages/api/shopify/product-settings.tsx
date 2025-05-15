@@ -51,7 +51,7 @@ export async function saveProductSettings(
       console.log('Table structure verified successfully');
 
       // بناء كائن البيانات بعناية
-      const settingsData: any = {
+      const settingsData = {
         shop_id: shopId,
         product_id: requestBody.productId,
         form_id: requestBody.formId,

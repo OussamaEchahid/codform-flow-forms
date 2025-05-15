@@ -78,12 +78,12 @@ serve(async (req: Request) => {
     if (productSettings && productSettings.form_id) {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
       
-      // Query with explicit casting to handle UUID vs text
+      // Fetch the specific form directly, handling potential UUID/string type issues
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
+        .eq('id', productSettings.form_id)
         .eq('is_published', true)
-        .or(`id.eq.${productSettings.form_id},id::text.eq.${productSettings.form_id}`)
         .limit(1);
         
       if (!formError && formData && formData.length > 0) {

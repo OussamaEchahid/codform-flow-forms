@@ -91,12 +91,20 @@ verify_jwt = false
 [functions.forms-product]
 verify_jwt = false
 
-# Make the API forms endpoint public too
+# Make the API forms endpoint public as well
 [functions.api-forms]
 verify_jwt = false
 
 # Make the API submissions endpoint public as well
 [functions.api-submissions]
+verify_jwt = false
+
+# Make shopify products endpoint public
+[functions.shopify-products]
+verify_jwt = false
+
+# Make shopify sync form endpoint public
+[functions.shopify-sync-form]
 verify_jwt = false
 
 # Set up Postgres realtime.
