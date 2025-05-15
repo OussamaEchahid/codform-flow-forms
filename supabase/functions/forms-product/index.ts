@@ -18,15 +18,13 @@ serve(async (req: Request) => {
     const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
     
     console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}`);
-    console.log(`[${requestId}] Request headers:`, Object.fromEntries(req.headers.entries()));
-    console.log(`[${requestId}] Request URL:`, req.url);
 
     if (!shop || !productId) {
       console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: shop or productId' }),
         { 
-          headers: corsHeaders,
+          headers: {...corsHeaders, 'Content-Type': 'application/json'},
           status: 400 
         }
       );
@@ -51,8 +49,7 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
 
-    // IMPORTANT FIX: First, check if there's a specific form for this product
-    // We need to ensure the UUID is properly typed when querying
+    // First, check if there's a specific form for this product with proper UUID type handling
     const { data: productSettings, error: settingsError } = await supabase
       .from('shopify_product_settings')
       .select('form_id, block_id, enabled')
@@ -79,8 +76,7 @@ serve(async (req: Request) => {
     if (productSettings && productSettings.form_id) {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
       
-      // FIX: Ensure the UUID is properly formatted and query the correct form
-      // For some reason, form_id in shopify_product_settings might be stored as string instead of UUID
+      // We now know form_id is a UUID in the database
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
@@ -133,7 +129,8 @@ serve(async (req: Request) => {
             ...corsHeaders,
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
-            'Expires': '0'
+            'Expires': '0',
+            'Content-Type': 'application/json'
           },
           status: 200 
         }
@@ -144,7 +141,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ message: 'No form found for this shop' }),
         { 
-          headers: corsHeaders, 
+          headers: {...corsHeaders, 'Content-Type': 'application/json'}, 
           status: 404 
         }
       );
@@ -154,7 +151,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
       { 
-        headers: corsHeaders, 
+        headers: {...corsHeaders, 'Content-Type': 'application/json'}, 
         status: 500 
       }
     );

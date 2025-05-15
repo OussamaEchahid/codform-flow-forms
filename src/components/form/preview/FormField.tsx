@@ -96,16 +96,15 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
-  
-  console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
 
   // Log animation data if this is a submit button
   if (fieldType === 'submit' && field.style) {
-    console.log(`Submit button animation data:`, {
-      has_animation: field.style.animation || false,
-      animation_type: field.style.animationType || 'none',
-      style: field.style
-    });
+    const animationType = field.style.animationType || 'none';
+    const hasAnimation = !!field.style.animation;
+    
+    if (hasAnimation) {
+      console.log(`Submit button using animation: ${animationType}`);
+    }
   }
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {

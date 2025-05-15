@@ -42,7 +42,7 @@ export interface ShopifyFormInsertion {
 
 export interface ProductSettingsRequest {
   productId: string;
-  formId: string;
+  formId: string; // This is used as a string in requests but will be converted to UUID
   blockId?: string;
   enabled?: boolean;
 }
@@ -148,4 +148,19 @@ export interface ProductFormConflict {
   newFormId: string;
   newFormTitle: string;
   productImage?: string;
+}
+
+// Add utility function to convert form ID strings to valid UUIDs when needed
+export function ensureUUID(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  
+  // If it's already a valid UUID, return it
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    return id;
+  }
+  
+  // If it's not a valid UUID, log a warning
+  console.warn(`Invalid UUID format detected: ${id}`);
+  return id;
 }

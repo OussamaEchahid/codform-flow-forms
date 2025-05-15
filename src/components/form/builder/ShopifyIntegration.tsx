@@ -10,6 +10,7 @@ import { useI18n } from '@/lib/i18n';
 import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { ensureUUID } from '@/lib/shopify/types';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -18,8 +19,8 @@ interface ShopifyIntegrationProps {
   formStyle?: {
     primaryColor?: string;
   };
-  onSave?: (settings: any) => void; // Added the onSave prop to match what's in vite-env.d.ts
-  isSyncing?: boolean; 
+  onSave?: (settings: any) => void;
+  isSyncing?: boolean;
   formTitleElement?: any;
 }
 
@@ -42,10 +43,14 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
       if (formId === 'new') return;
       
       try {
+        // Ensure we're using a valid UUID for the query
+        const validFormId = ensureUUID(formId);
+        
         const { data } = await shopifySupabase
           .from('shopify_product_settings')
           .select('product_id')
-          .eq('form_id', formId);
+          .eq('form_id', validFormId)
+          .eq('enabled', true);
         
         if (data && data.length > 0) {
           // If there are already product associations, set to read-only mode
@@ -65,32 +70,29 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
     if (!shop || !formId || formId === 'new' || selectedProducts.length === 0) return;
     
     try {
-      // Delete existing associations first (to handle removals)
-      await shopifySupabase
-        .from('shopify_product_settings')
-        .delete()
-        .eq('form_id', formId);
+      // Use the ensureUUID helper to make sure we have a valid UUID
+      const validFormId = ensureUUID(formId);
       
-      // Create new associations for each selected product
-      const productSettings = selectedProducts.map(productId => ({
-        form_id: formId,
-        product_id: productId,
-        shop_id: shop,
-        enabled: true
-      }));
-      
-      const { error } = await shopifySupabase
-        .from('shopify_product_settings')
-        .insert(productSettings);
-      
-      if (error) {
-        console.error('Error saving product associations:', error);
-      } else {
-        console.log('Product associations saved successfully');
-        // Call the onSave callback if provided
-        if (onSave) {
-          onSave({ products: selectedProducts });
+      // Call the associate_product_with_form RPC function for each product
+      for (const productId of selectedProducts) {
+        const { data, error } = await shopifySupabase.rpc('associate_product_with_form', {
+          p_shop_id: shop,
+          p_product_id: productId,
+          p_form_id: validFormId,
+          p_block_id: `cod-form-${formId.substring(0, 8)}`,
+          p_enabled: true
+        });
+        
+        if (error) {
+          console.error(`Error associating product ${productId} with form:`, error);
+        } else {
+          console.log(`Successfully associated product ${productId} with form ${validFormId}`);
         }
+      }
+        
+      // Call the onSave callback if provided
+      if (onSave) {
+        onSave({ products: selectedProducts });
       }
     } catch (error) {
       console.error('Error saving product associations:', error);

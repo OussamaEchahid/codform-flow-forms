@@ -76,6 +76,31 @@ serve(async (req: Request) => {
     const themeType = settings?.themeType || 'auto-detect';
     const insertionMethod = settings?.insertionMethod || 'auto';
 
+    // Use the associate_product_with_form function for specific products
+    if (settings?.products && settings.products.length > 0) {
+      console.log(`Associating form ${formId} with ${settings.products.length} products`);
+      
+      // We've created the associate_product_with_form database function
+      // which handles clearing previous associations
+      for (const productId of settings.products) {
+        const { data: result, error: associationError } = await supabase
+          .rpc('associate_product_with_form', {
+            p_shop_id: shop,
+            p_product_id: productId,
+            p_form_id: formId,
+            p_block_id: blockId,
+            p_enabled: true
+          });
+          
+        if (associationError) {
+          console.error(`Error associating form with product ${productId}:`, associationError);
+        } else {
+          console.log(`Successfully associated form ${formId} with product ${productId}`);
+        }
+      }
+    }
+
+    // Always update the general form insertion settings
     const { error: insertError } = await supabase
       .from('shopify_form_insertion')
       .upsert({
@@ -96,49 +121,6 @@ serve(async (req: Request) => {
         JSON.stringify({ error: 'Failed to update form insertion settings', details: insertError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
-    }
-
-    // FIX: If specific products are specified, associate the form with those products
-    // This ensures each form is correctly linked to specific products
-    if (settings?.products && settings.products.length > 0) {
-      console.log(`Associating form ${formId} with ${settings.products.length} products`);
-      
-      // First, clear previous associations for this form to prevent orphaned links
-      const { error: clearError } = await supabase
-        .from('shopify_product_settings')
-        .delete()
-        .eq('form_id', formId);
-      
-      if (clearError) {
-        console.error('Error clearing previous product associations:', clearError);
-      }
-      
-      // Now create the new associations
-      const productSettings = settings.products.map(productId => ({
-        shop_id: shop,
-        form_id: formId,
-        product_id: productId,
-        block_id: blockId,
-        enabled: true,
-        updated_at: new Date().toISOString()
-      }));
-
-      const { error: productsError } = await supabase
-        .from('shopify_product_settings')
-        .upsert(productSettings, {
-          onConflict: 'shop_id,product_id'
-        });
-
-      if (productsError) {
-        console.error('Error associating form with products:', productsError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to associate form with products', details: productsError }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-    } else {
-      // If no specific products, mark this as the default form if needed
-      console.log(`No specific products provided, marking form ${formId} as candidate for default`);
     }
 
     // Return success response
