@@ -146,7 +146,7 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
           
           <div className="flex justify-end pt-4 gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              {language === 'ar' ? '��لغاء' : 'Cancel'}
             </Button>
             <Button type="submit">
               {language === 'ar' ? 'حفظ' : 'Save'}
