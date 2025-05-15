@@ -3,6 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { Image } from 'lucide-react';
+import { ensureColor, ensureSize } from '@/lib/utils';
 
 interface CartItemsProps {
   field: FormField;
@@ -17,11 +18,6 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Helper function to ensure string values
-  const ensureStringValue = (value: any): string => {
-    return typeof value === 'string' ? value : (typeof value === 'boolean' ? '' : (value || ''));
-  };
-  
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
@@ -32,8 +28,8 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
     <div className="mb-6 codform-cart-items">
       {showTitle && (
         <h3 className="text-lg font-medium mb-3" style={{
-          color: ensureStringValue(fieldStyle.color) || '#1f2937',
-          fontSize: ensureStringValue(fieldStyle.fontSize) || formStyle.fontSize || '1.2rem',
+          color: ensureColor(fieldStyle.color) || '#1f2937',
+          fontSize: ensureSize(fieldStyle.fontSize) || formStyle.fontSize || '1.2rem',
         }}>
           {field.label || (language === 'ar' ? 'المنتج المختار' : 'Selected Product')}
         </h3>
@@ -66,22 +62,22 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
           </div>
           <div className="flex-1">
             <h4 className="font-medium product-title" style={{
-              fontSize: ensureStringValue(fieldStyle.fontSize) || '1.1rem',
-              color: ensureStringValue(fieldStyle.color) || '#1f2937',
+              fontSize: ensureSize(fieldStyle.fontSize) || '1.1rem',
+              color: ensureColor(fieldStyle.color) || '#1f2937',
             }}>
               {language === 'ar' ? 'منتج تجريبي' : 'Sample Product'}
             </h4>
             <div className="text-sm text-gray-500 mt-1 product-quantity" style={{
-              fontSize: ensureStringValue(fieldStyle.descriptionFontSize) || '0.9rem',
-              color: ensureStringValue(fieldStyle.descriptionColor) || '#6b7280',
+              fontSize: ensureSize(fieldStyle.descriptionFontSize) || '0.9rem',
+              color: ensureColor(fieldStyle.descriptionColor) || '#6b7280',
             }}>
               {language === 'ar' ? 'الكمية: ١' : 'Quantity: 1'}
             </div>
           </div>
           <div className="text-right">
             <div className="font-medium product-price" style={{
-              fontSize: ensureStringValue(fieldStyle.priceFontSize) || '1rem',
-              color: ensureStringValue(fieldStyle.priceColor) || '#1f2937',
+              fontSize: ensureSize(fieldStyle.priceFontSize) || '1rem',
+              color: ensureColor(fieldStyle.priceColor) || '#1f2937',
             }}>$99.00</div>
           </div>
         </div>

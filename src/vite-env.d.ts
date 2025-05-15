@@ -3,13 +3,16 @@
 
 // Type definitions for React component props
 interface ShopifyProductSelectionProps {
-  selectedProducts: string[];
-  onChange: (products: string[]) => void;
+  selectedProducts?: string[];
+  onChange?: (products: string[]) => void;
   formId: string;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }
 
 interface ShopifyIntegrationProps {
   formId: string;
-  onSave: (settings: any) => Promise<void>;
-  isSyncing: boolean;
+  onSave?: (settings: any) => Promise<void>;
+  isSyncing?: boolean;
 }
+

@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { ensureString, ensureColor, ensureSize } from '@/lib/utils';
 
 interface HtmlContentProps {
   field: FormField;
@@ -16,24 +17,19 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Helper function to ensure we have a string value
-  const ensureStringValue = (value: any): string => {
-    return typeof value === 'string' ? value : '';
-  };
-  
   return (
     <div 
       className="mb-4"
       style={{
-        color: ensureStringValue(fieldStyle.color) || 'inherit',
-        fontSize: ensureStringValue(fieldStyle.fontSize) || formStyle.fontSize,
+        color: ensureColor(fieldStyle.color) || 'inherit',
+        fontSize: ensureSize(fieldStyle.fontSize) || ensureString(formStyle.fontSize),
       }}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {field.content ? (
         <div 
           className="html-content"
-          dangerouslySetInnerHTML={{ __html: field.content as string }} 
+          dangerouslySetInnerHTML={{ __html: ensureString(field.content) }} 
         />
       ) : (
         <p className={language === 'ar' ? 'text-right' : 'text-left'}>

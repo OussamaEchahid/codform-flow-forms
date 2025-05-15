@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { ensureColor, ensureSize } from '@/lib/utils';
 
 interface TextInputProps {
   field: FormField;
@@ -17,8 +18,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const fieldStyle = field.style || {};
   
   // Set default values for border styling
-  const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
-  const inputBorderWidth = fieldStyle.borderWidth || '1px';
+  const inputBorderRadius = ensureSize(fieldStyle.borderRadius) || ensureSize(formStyle.borderRadius) || '0.5rem';
+  const inputBorderWidth = ensureSize(fieldStyle.borderWidth) || '1px';
   
   return (
     <div className="mb-4">
@@ -26,8 +27,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         htmlFor={field.id} 
         className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
         style={{ 
-          color: fieldStyle.labelColor || '#334155',
-          fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
+          color: ensureColor(fieldStyle.labelColor) || '#334155',
+          fontSize: ensureSize(fieldStyle.labelFontSize) || ensureSize(formStyle.fontSize) || '1rem',
           fontWeight: 500
         }}
       >
@@ -43,9 +44,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         placeholder={field.placeholder || ''}
         className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
         style={{
-          color: fieldStyle.color || '#1f2937',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
-          borderColor: fieldStyle.borderColor || '#d1d5db',
+          color: ensureColor(fieldStyle.color) || '#1f2937',
+          fontSize: ensureSize(fieldStyle.fontSize) || ensureSize(formStyle.fontSize) || '1rem',
+          borderColor: ensureColor(fieldStyle.borderColor) || '#d1d5db',
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',

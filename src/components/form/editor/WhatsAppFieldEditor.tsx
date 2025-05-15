@@ -6,6 +6,7 @@ import { Form, FormField as UIFormField, FormItem, FormLabel, FormControl, FormD
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
+import { ensureString } from '@/lib/utils';
 
 interface WhatsAppFieldEditorProps {
   field: FormField;
@@ -27,8 +28,8 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
   const form = useForm<FieldFormValues>({
     defaultValues: {
       label: field.label || (language === 'ar' ? 'التواصل عبر واتساب' : 'Contact via WhatsApp'),
-      phoneNumber: (field.whatsappNumber as string) || '',
-      message: (field.message as string) || '',
+      phoneNumber: ensureString(field.whatsappNumber || ''),
+      message: ensureString(field.message || ''),
       backgroundColor: field.style?.backgroundColor || '#25D366',
       textColor: field.style?.color || '#FFFFFF',
     },

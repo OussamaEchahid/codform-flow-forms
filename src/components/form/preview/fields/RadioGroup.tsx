@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { ensureColor, ensureSize } from '@/lib/utils';
 
 interface RadioGroupProps {
   field: FormField;
@@ -24,8 +25,8 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
       <label 
         className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
         style={{ 
-          color: fieldStyle.labelColor || '#334155',
-          fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
+          color: ensureColor(fieldStyle.labelColor) || '#334155',
+          fontSize: ensureSize(fieldStyle.labelFontSize) || ensureSize(formStyle.fontSize) || '1rem',
           fontWeight: 500
         }}
       >
@@ -45,15 +46,15 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
               value={option.value}
               className="mr-2 h-4 w-4 text-blue-600"
               style={{
-                borderColor: fieldStyle.borderColor || '#d1d5db',
-                accentColor: fieldStyle.color || formStyle.primaryColor || '#9b87f5'
+                borderColor: ensureColor(fieldStyle.borderColor) || '#d1d5db',
+                accentColor: ensureColor(fieldStyle.color) || ensureColor(formStyle.primaryColor) || '#9b87f5'
               }}
             />
             <label
               htmlFor={`${field.id}-${index}`}
               style={{
-                color: fieldStyle.color || '#1f2937',
-                fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem'
+                color: ensureColor(fieldStyle.color) || '#1f2937',
+                fontSize: ensureSize(fieldStyle.fontSize) || ensureSize(formStyle.fontSize) || '1rem'
               }}
             >
               {option.label}
