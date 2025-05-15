@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface FormStyle {
@@ -41,6 +42,9 @@ interface FormStore {
     showIcon?: boolean;
     icon?: string;
     animation?: string;
+    position?: 'bottom' | 'top' | 'left' | 'right';
+    showOnMobile?: boolean;
+    showOnDesktop?: boolean;
   };
   
   // Add function to update floating button configuration
@@ -72,7 +76,7 @@ export const useFormStore = create<FormStore>((set) => ({
   })),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
-  // Initialize floating button configuration
+  // Initialize floating button configuration with all required properties
   floatingButton: {
     enabled: false,
     text: 'Order Now',
@@ -81,6 +85,9 @@ export const useFormStore = create<FormStore>((set) => ({
     borderRadius: '4px',
     showIcon: true,
     icon: 'shopping-cart',
+    position: 'bottom',
+    showOnMobile: true,
+    showOnDesktop: true,
   },
   
   // Add method to update floating button

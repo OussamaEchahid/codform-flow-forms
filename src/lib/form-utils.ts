@@ -45,33 +45,61 @@ export interface FormFieldOption {
 }
 
 export interface FormFieldStyle {
-  backgroundColor?: string;
+  // Base properties
   color?: string;
+  backgroundColor?: string;
   fontSize?: string;
   fontWeight?: string;
   textAlign?: string;
-  fontFamily?: string;
-  animation?: boolean;
-  animationType?: string;
-  fullWidth?: boolean;
-  icon?: string;
-  iconPosition?: 'left' | 'right';
+  
+  // Description properties
   descriptionColor?: string;
   descriptionFontSize?: string;
-  descriptionFontWeight?: string;
+  
+  // Border properties
+  borderRadius?: string;
+  borderColor?: string;
+  
+  // Animation properties
+  animation?: boolean;
+  animationType?: string;
+  
+  // Icon properties
+  iconPosition?: string;
+  
+  // Cart item and summary specific properties
+  priceFontSize?: string;
+  priceColor?: string;
+  labelFontSize?: string;
+  labelColor?: string;
+  valueFontSize?: string;
+  valueColor?: string;
+  totalLabelFontSize?: string;
+  totalLabelColor?: string;
+  totalValueFontSize?: string;
+  totalValueColor?: string;
 }
 
 export interface FormField {
+  type: string;
   id: string;
-  type: FormFieldType;
-  label: string;
-  required?: boolean;
+  label?: string;
   placeholder?: string;
   helpText?: string;
-  options?: FormFieldOption[];
-  content?: string;
-  style?: FormFieldStyle;
+  required?: boolean;
   icon?: string;
+  style?: FormFieldStyle;
+  options?: Array<{
+    value: string;
+    label: string;
+  }>;
+  
+  // Additional properties
+  defaultValue?: string | string[];
+  disabled?: boolean;
+  src?: string;
+  alt?: string;
+  width?: string | number;
 }
 
 export interface FormStep {
@@ -103,12 +131,30 @@ export interface FormData {
 export interface FloatingButtonConfig {
   enabled: boolean;
   text: string;
-  position: 'bottom-left' | 'bottom-right';
-  backgroundColor: string;
-  textColor: string;
+  textColor?: string;
+  backgroundColor?: string;
+  
+  // Position properties
+  position?: 'bottom' | 'top' | 'left' | 'right';
+  showOnMobile?: boolean;
+  showOnDesktop?: boolean;
+  
+  // Style properties
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  paddingY?: string;
+  marginBottom?: string;
+  
+  // Icon properties
+  showIcon?: boolean;
   icon?: string;
-  showOnMobile: boolean;
-  showOnDesktop: boolean;
+  
+  // Animation properties
+  animation?: string;
 }
 
 export const formatCurrency = (amount: number, locale = 'ar-SA', currency = 'SAR') => {
