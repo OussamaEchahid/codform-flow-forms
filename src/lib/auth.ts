@@ -1,7 +1,7 @@
 
 import React, { useContext } from 'react';
 
-// تحديث واجهة السياق لدعم المتاجر المتعددة
+// تحديث واجهة السياق لدعم المتاجر المتعددة والمستخدم
 export interface AuthContextType {
   shopifyConnected: boolean;
   shop?: string | null;

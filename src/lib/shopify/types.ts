@@ -1,4 +1,3 @@
-
 export interface ShopifyStore {
   id: string;
   shop: string;
@@ -102,7 +101,13 @@ export interface ShopifyFormData {
   formId?: string;
 }
 
-// Export the function directly
+export interface ShopifyUser {
+  id?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+}
+
 export function cleanShopifyDomain(shop: string): string {
   if (!shop) return "";
   
@@ -128,7 +133,6 @@ export function cleanShopifyDomain(shop: string): string {
   return cleanedShop;
 }
 
-// Enhanced product association interface with more details
 export interface ProductAssociation {
   productId: string;
   productTitle: string;
@@ -139,7 +143,6 @@ export interface ProductAssociation {
   lastUpdated?: string;
 }
 
-// Enhanced type for product conflict detection 
 export interface ProductFormConflict {
   productId: string;
   productTitle: string;
@@ -150,7 +153,6 @@ export interface ProductFormConflict {
   productImage?: string;
 }
 
-// Improved utility function to convert form ID strings to valid UUIDs when needed
 export function ensureUUID(id: string | undefined): string | undefined {
   if (!id) return undefined;
   
@@ -168,7 +170,6 @@ export function ensureUUID(id: string | undefined): string | undefined {
   return id;
 }
 
-// Function to check if a string is a valid UUID
 export function isValidUUID(id: string | undefined): boolean {
   if (!id) return false;
   

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ShopifyProduct } from '@/lib/shopify/types';
+import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ interface ShopifyFormSync {
 }
 
 export const useShopify = () => {
-  const { shop } = useAuth();
+  const { shop, user: authUser } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,11 +30,37 @@ export const useShopify = () => {
   const [accessToken, setAccessToken] = useState<string>('');
   const [shopifyAPI, setShopifyAPI] = useState<any>(null);
   const [pendingSyncForms, setPendingSyncForms] = useState<string[]>([]);
+  const [user, setUser] = useState<ShopifyUser | null>(null);
   
   // Recovery mode - for handling errors gracefully
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
+
+  // Set the user from auth context
+  useEffect(() => {
+    if (authUser) {
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.name,
+        role: authUser.user_metadata?.role || 'user'
+      });
+    } else {
+      // Try to get user from localStorage as fallback
+      const storedUser = localStorage.getItem('shopify_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error('Failed to parse stored user:', e);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    }
+  }, [authUser]);
 
   // Initialize connection state
   useEffect(() => {
@@ -378,6 +404,7 @@ export const useShopify = () => {
     products,
     allProducts,
     shop,
+    user,
     error: tokenError,
     failSafeMode,
     pendingSyncForms,

@@ -183,7 +183,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
+  // إنشاء نموذج افتراضي جديد مع ال��ناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -324,7 +324,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       setTimeout(async () => {
         await supabase.from('forms').update({
           style: defaultStyle,
-          user_id: shopifyIntegration.user?.id
+          user_id: shopifyIntegration.user?.id || null
         }).eq('id', newId);
       }, 500);
 
