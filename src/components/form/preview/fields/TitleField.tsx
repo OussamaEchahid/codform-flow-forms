@@ -16,8 +16,6 @@ interface TitleFieldProps {
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // تحديد قيم box-sizing الصالحة
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
-// تحديد قيم direction الصالحة
-type DirectionType = 'rtl' | 'ltr';
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
@@ -49,46 +47,38 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // تحديد الاتجاه النصي (RTL/LTR) بوضوح
-  const isRTL = language === 'ar';
-  // مباشرة استخدام قيم الاتجاه النصي المحددة بدلاً من السلاسل النصية
-  const textDirection: DirectionType = isRTL ? 'rtl' : 'ltr';
-  
-  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ والتأكيد بواسطة !important
+  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px',
-    borderRadius: (formStyle.borderRadius || '8px'),
+    padding: '16px', // قيمة بكسل دقيقة لبادينغ متسق
+    borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px',
-    display: 'block'
+    marginBottom: '16px', // هامش سفلي متسق
   };
 
-  // أنماط العنوان مع تأكيد !important
+  // أنماط العنوان
   const titleStyle = {
-    color: (fieldStyle.color || '#ffffff'),
-    fontSize: (fieldStyle.fontSize || fontSize),
+    color: fieldStyle.color || '#ffffff',
+    fontSize: fieldStyle.fontSize || fontSize,
     textAlign: alignment,
-    fontWeight: (fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')),
-    fontFamily: (fieldStyle.fontFamily || 'inherit'),
+    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3',
-    direction: textDirection
+    lineHeight: '1.3', // ارتفاع سطر متسق
   };
 
-  // أنماط الوصف مع تأكيد !important
+  // أنماط الوصف
   const descriptionStyle = {
-    color: (fieldStyle.descriptionColor || '#ffffff'),
-    fontSize: (fieldStyle.descriptionFontSize || descriptionFontSize),
-    margin: '8px 0 0 0',
+    color: fieldStyle.descriptionColor || '#ffffff',
+    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
+    margin: '8px 0 0 0', // هوامش متسقة
     padding: '0',
     textAlign: alignment,
-    fontFamily: (fieldStyle.fontFamily || 'inherit'),
-    fontWeight: 'normal',
-    lineHeight: '1.5',
-    direction: textDirection
+    fontFamily: fieldStyle.fontFamily || 'inherit',
+    fontWeight: 'normal', // تغيير من descriptionFontWeight إلى قيمة ثابتة
+    lineHeight: '1.5', // ارتفاع سطر متسق للوصف
   };
 
   // إنشاء معرف فريد لهذا الحقل
@@ -98,7 +88,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={isRTL ? 'rtl' : 'ltr'}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"
