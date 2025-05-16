@@ -158,7 +158,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   const fieldKey = getFieldKey(field);
   
   // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {

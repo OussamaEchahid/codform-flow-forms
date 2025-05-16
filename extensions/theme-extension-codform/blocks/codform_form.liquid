@@ -596,7 +596,7 @@
   }
 
   /* Animation Effects - Improve animation definitions */
-  @keyframes pulse {
+  @keyframes pulse-animation {
     0% {
       transform: scale(1);
     }
@@ -607,12 +607,12 @@
       transform: scale(1);
     }
   }
-
+  
   .pulse-animation {
-    animation: pulse 2s infinite !important;
+    animation: pulse-animation 2s infinite !important;
   }
 
-  @keyframes shake {
+  @keyframes shake-animation {
     0%, 100% { transform: translateX(0); }
     10%, 90% { transform: translateX(-2px); }
     20%, 80% { transform: translateX(4px); }
@@ -621,30 +621,30 @@
   }
 
   .shake-animation {
-    animation: shake 0.8s infinite !important;
+    animation: shake-animation 0.8s infinite !important;
   }
 
-  @keyframes bounce {
+  @keyframes bounce-animation {
     0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-10px); }
     60% { transform: translateY(-5px); }
   }
 
   .bounce-animation {
-    animation: bounce 2s infinite !important;
+    animation: bounce-animation 2s infinite !important;
   }
 
-  @keyframes wiggle {
+  @keyframes wiggle-animation {
     0%, 100% { transform: rotate(0); }
     25% { transform: rotate(-3deg); }
     75% { transform: rotate(5deg); }
   }
 
   .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
+    animation: wiggle-animation 0.7s ease-in-out infinite !important;
   }
 
-  @keyframes flash {
+  @keyframes flash-animation {
     0%, 50%, 100% {
       opacity: 1;
     }
@@ -654,7 +654,7 @@
   }
 
   .flash-animation {
-    animation: flash 3s infinite !important;
+    animation: flash-animation 3s infinite !important;
   }
   
   /* Floating button container styles */
@@ -727,6 +727,70 @@
     margin-top: 20px !important;
     margin-bottom: 20px !important;
     font-size: 18px !important;
+  }
+  
+  /* Estilos específicos para los iconos de campos de formulario */
+  .codform-field-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    z-index: 5;
+  }
+
+  /* Garantizamos que todos los SVG en el formulario sean visibles */
+  .codform-field-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    color: #6b7280 !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+  
+  /* Añadimos soporte para iconos SVG en los campos de formulario */
+  .codform-form input[type="text"],
+  .codform-form input[type="email"],
+  .codform-form input[type="tel"],
+  .codform-form input[type="number"] {
+    padding-left: 35px !important;
+    text-align: right !important;
+  }
+  
+  /* Aseguramos que los textos de las etiquetas respeten la alineación */
+  .codform-form [data-title-align="right"] {
+    text-align: right !important;
+  }
+  
+  .codform-form [data-title-align="center"] {
+    text-align: center !important;
+  }
+  
+  .codform-form [data-title-align="left"] {
+    text-align: left !important;
+  }
+  
+  /* Añadimos soporte para todos los tipos de iconos en campos y botones */
+  [data-has-icon="true"] .codform-field-icon,
+  [data-show-icon="true"] .codform-field-icon {
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  [data-has-icon="false"] .codform-field-icon,
+  [data-show-icon="false"] .codform-field-icon {
+    display: none !important;
+    visibility: hidden !important;
   }
 </style>
 

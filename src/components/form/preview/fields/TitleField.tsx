@@ -50,11 +50,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // قيمة بكسل دقيقة لبادينغ متسق
+    padding: '16px !important', // قيمة بكسل دقيقة لبادينغ متسق
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // هامش سفلي متسق
+    marginBottom: '16px !important', // هامش سفلي متسق
   };
 
   // أنماط العنوان
@@ -64,21 +64,21 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     textAlign: alignment,
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3', // ارتفاع سطر متسق
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important', // ارتفاع سطر متسق
   };
 
   // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
-    margin: '8px 0 0 0', // هوامش متسقة
-    padding: '0',
+    margin: '8px 0 0 0 !important', // هوامش متسقة
+    padding: '0 !important',
     textAlign: alignment,
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal', // تغيير من descriptionFontWeight إلى قيمة ثابتة
-    lineHeight: '1.5', // ارتفاع سطر متسق للوصف
+    fontWeight: 'normal !important', // تغيير من descriptionFontWeight إلى قيمة ثابتة
+    lineHeight: '1.5 !important', // ارتفاع سطر متسق للوصف
   };
 
   // إنشاء معرف فريد لهذا الحقل
