@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
@@ -18,12 +19,18 @@ import {
   PackageCheck,
   PackageOpen,
   FileDown,
-  ListFilter
+  ListFilter,
+  Eye,
+  Calendar,
+  User,
+  Phone,
+  ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Sample orders data (will be replaced with actual data from your API in production)
+// Enhanced sample orders data with more professional details
 const sampleOrders = [
   {
     id: 'ORD-001',
@@ -33,7 +40,12 @@ const sampleOrders = [
     status: 'pending',
     total: '320 SAR',
     paymentMethod: 'COD',
-    items: 3
+    items: 3,
+    address: 'الرياض، حي النزهة',
+    products: [
+      { name: 'سماعات بلوتوث', quantity: 1, price: '150 SAR' },
+      { name: 'حافظة هاتف', quantity: 2, price: '85 SAR' }
+    ]
   },
   {
     id: 'ORD-002',
@@ -43,7 +55,11 @@ const sampleOrders = [
     status: 'processing',
     total: '145 SAR',
     paymentMethod: 'COD',
-    items: 1
+    items: 1,
+    address: 'جدة، حي الروضة',
+    products: [
+      { name: 'ساعة ذكية', quantity: 1, price: '145 SAR' }
+    ]
   },
   {
     id: 'ORD-003',
@@ -53,7 +69,13 @@ const sampleOrders = [
     status: 'delivered',
     total: '560 SAR',
     paymentMethod: 'COD',
-    items: 4
+    items: 4,
+    address: 'الدمام، حي الشاطئ',
+    products: [
+      { name: 'جهاز لوحي', quantity: 1, price: '450 SAR' },
+      { name: 'حافظة جهاز', quantity: 1, price: '60 SAR' },
+      { name: 'واقي شاشة', quantity: 2, price: '25 SAR' }
+    ]
   },
   {
     id: 'ORD-004',
@@ -63,7 +85,26 @@ const sampleOrders = [
     status: 'cancelled',
     total: '99 SAR',
     paymentMethod: 'COD',
-    items: 1
+    items: 1,
+    address: 'المدينة المنورة، حي القبلتين',
+    products: [
+      { name: 'شاحن سريع', quantity: 1, price: '99 SAR' }
+    ]
+  },
+  {
+    id: 'ORD-005',
+    customerName: 'خالد الدوسري',
+    phone: '+966 50 567 8901',
+    date: '2025-05-12',
+    status: 'delivered',
+    total: '275 SAR',
+    paymentMethod: 'COD',
+    items: 2,
+    address: 'الرياض، حي الملز',
+    products: [
+      { name: 'سماعات سلكية', quantity: 1, price: '120 SAR' },
+      { name: 'مسكة هاتف', quantity: 1, price: '155 SAR' }
+    ]
   },
 ];
 
@@ -129,6 +170,12 @@ const OrdersList = () => {
     order.phone.includes(searchTerm)
   );
 
+  // Summary counts for status cards
+  const pendingCount = sampleOrders.filter(order => order.status === 'pending').length;
+  const processingCount = sampleOrders.filter(order => order.status === 'processing').length;
+  const deliveredCount = sampleOrders.filter(order => order.status === 'delivered').length;
+  const cancelledCount = sampleOrders.filter(order => order.status === 'cancelled').length;
+
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
@@ -148,6 +195,73 @@ const OrdersList = () => {
               {language === 'ar' ? 'تصفية' : 'Filter'}
             </Button>
           </div>
+        </div>
+
+        {/* Order status summary cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'قيد الانتظار' : 'Pending'}
+                  </p>
+                  <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+                </div>
+                <div className="p-2 bg-amber-50 rounded-full">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'قيد المعالجة' : 'Processing'}
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600">{processingCount}</p>
+                </div>
+                <div className="p-2 bg-blue-50 rounded-full">
+                  <PackageOpen className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'تم التوصيل' : 'Delivered'}
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">{deliveredCount}</p>
+                </div>
+                <div className="p-2 bg-green-50 rounded-full">
+                  <Check className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'ملغاة' : 'Cancelled'}
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">{cancelledCount}</p>
+                </div>
+                <div className="p-2 bg-red-50 rounded-full">
+                  <PackageCheck className="h-5 w-5 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Search and filters section */}
@@ -173,18 +287,39 @@ const OrdersList = () => {
             </h2>
           </div>
           
-          {/* Orders table */}
+          {/* Orders table with enhanced fields */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'اسم العميل' : 'Customer Name'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'الهاتف' : 'Phone'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'التاريخ' : 'Date'}</TableHead>
+                  <TableHead className="w-[100px]">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <User className="h-4 w-4" />
+                      {language === 'ar' ? 'اسم العميل' : 'Customer'}
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      {language === 'ar' ? 'الهاتف' : 'Phone'}
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {language === 'ar' ? 'التاريخ' : 'Date'}
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <ShoppingBag className="h-4 w-4" />
+                      {language === 'ar' ? 'المنتجات' : 'Items'}
+                    </div>
+                  </TableHead>
                   <TableHead>{language === 'ar' ? 'المبلغ' : 'Total'}</TableHead>
                   <TableHead>{language === 'ar' ? 'الحالة' : 'Status'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'خيارات' : 'Actions'}</TableHead>
+                  <TableHead className="text-right">{language === 'ar' ? 'خيارات' : 'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,18 +330,28 @@ const OrdersList = () => {
                       <TableCell>{order.customerName}</TableCell>
                       <TableCell>{order.phone}</TableCell>
                       <TableCell>{new Date(order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
-                      <TableCell>{order.total}</TableCell>
+                      <TableCell className="text-center">{order.items}</TableCell>
+                      <TableCell className="font-medium">{order.total}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
-                          {language === 'ar' ? 'عرض' : 'View'}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={language === 'ar' ? 'عرض التفاصيل' : 'View Details'}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="flex items-center gap-1 bg-[#9b87f5] hover:bg-[#8b77e5]"
+                          >
+                            {language === 'ar' ? 'عرض' : 'View'}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6">
+                    <TableCell colSpan={8} className="text-center py-6">
                       {searchTerm ? 
                         (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') : 
                         (language === 'ar' ? 'لا توجد طلبات حالياً' : 'No orders available yet')}

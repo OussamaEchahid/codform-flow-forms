@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +12,9 @@ import Index from "@/pages/Index";
 import FormBuilderPage from "@/pages/FormBuilderPage";
 import Forms from "@/pages/Forms"; 
 import Orders from "@/pages/Orders";
+import OrdersList from "@/pages/OrdersList";
+import AbandonedOrders from "@/pages/AbandonedOrders";
+import OrdersChannels from "@/pages/OrdersChannels";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
@@ -137,6 +139,9 @@ function AppRoutes() {
         <Route path="/forms" element={<Forms />} />
         <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/list" element={<OrdersList />} />
+        <Route path="/orders/abandoned" element={<AbandonedOrders />} />
+        <Route path="/orders/channels" element={<OrdersChannels />} />
       </Route>
       
       {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}

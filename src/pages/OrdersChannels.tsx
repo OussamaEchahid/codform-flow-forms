@@ -1,98 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import { Globe, MessageSquare, ShoppingBag, Phone, BarChart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-
-// Sample channel data
-const channelData = [
-  {
-    id: 'website',
-    name: {
-      en: 'Website',
-      ar: 'الموقع الإلكتروني'
-    },
-    description: {
-      en: 'Orders received through your website',
-      ar: 'الطلبات المستلمة من خلال الموقع الإلكتروني'
-    },
-    isActive: true,
-    icon: Globe,
-    color: 'bg-blue-100 text-blue-600',
-    stats: {
-      orders: 124,
-      revenue: '4,250 SAR',
-      conversionRate: '3.2%'
-    }
-  },
-  {
-    id: 'whatsapp',
-    name: {
-      en: 'WhatsApp',
-      ar: 'واتساب'
-    },
-    description: {
-      en: 'Orders received through WhatsApp messages',
-      ar: 'الطلبات المستلمة من خلال رسائل الواتساب'
-    },
-    isActive: true,
-    icon: MessageSquare,
-    color: 'bg-green-100 text-green-600',
-    stats: {
-      orders: 87,
-      revenue: '2,980 SAR',
-      conversionRate: '5.6%'
-    }
-  },
-  {
-    id: 'pos',
-    name: {
-      en: 'Point of Sale',
-      ar: 'نقاط البيع'
-    },
-    description: {
-      en: 'In-store orders through the POS system',
-      ar: 'الطلبات من داخل المتجر عبر نظام نقاط البيع'
-    },
-    isActive: false,
-    icon: ShoppingBag,
-    color: 'bg-purple-100 text-purple-600',
-    stats: {
-      orders: 0,
-      revenue: '0 SAR',
-      conversionRate: '0%'
-    }
-  },
-  {
-    id: 'phone',
-    name: {
-      en: 'Phone Orders',
-      ar: 'الطلبات الهاتفية'
-    },
-    description: {
-      en: 'Orders received through phone calls',
-      ar: 'الطلبات المستلمة من خلال المكالمات الهاتفية'
-    },
-    isActive: true,
-    icon: Phone,
-    color: 'bg-amber-100 text-amber-600',
-    stats: {
-      orders: 42,
-      revenue: '1,850 SAR',
-      conversionRate: '7.1%'
-    }
-  }
-];
+import { Layers, Settings } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const OrdersChannels = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
-  const [channels, setChannels] = useState(channelData);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -107,39 +23,12 @@ const OrdersChannels = () => {
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="text-center py-8">
           {language === 'ar' 
-            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قنوات الطلبات' 
+            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم قنوات الطلبات' 
             : 'Please login or connect a Shopify store to access order channels'}
         </div>
       </div>
     );
   }
-
-  // Toggle channel activation
-  const handleToggleChannel = (id) => {
-    setChannels(channels.map(channel => {
-      if (channel.id === id) {
-        const newState = !channel.isActive;
-        
-        // Show toast notification
-        if (newState) {
-          toast.success(
-            language === 'ar' 
-              ? `تم تفعيل قناة ${channel.name.ar} بنجاح` 
-              : `${channel.name.en} channel activated successfully`
-          );
-        } else {
-          toast.info(
-            language === 'ar' 
-              ? `تم إلغاء تفعيل قناة ${channel.name.ar}` 
-              : `${channel.name.en} channel deactivated`
-          );
-        }
-        
-        return { ...channel, isActive: newState };
-      }
-      return channel;
-    }));
-  };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -149,98 +38,63 @@ const OrdersChannels = () => {
           <h1 className="text-2xl font-bold">
             {language === 'ar' ? 'قنوات الطلبات' : 'Order Channels'}
           </h1>
-          
-          <Button variant="default" size="sm">
-            {language === 'ar' ? 'إضافة قناة جديدة' : 'Add New Channel'}
-          </Button>
         </div>
 
-        {/* Overview Card */}
-        <div className="bg-white p-5 rounded-lg shadow mb-6 flex items-center">
-          <div className="bg-primary/10 p-3 rounded-full mr-5">
-            <BarChart className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold mb-1">
-              {language === 'ar' ? 'نظرة عامة على القنوات' : 'Channels Overview'}
-            </h2>
-            <p className="text-gray-500">
-              {language === 'ar' 
-                ? 'قم بإدارة قنوات استقبال الطلبات وتتبع أدائها' 
-                : 'Manage your order receiving channels and track performance'}
-            </p>
-          </div>
-        </div>
-
-        {/* Channels Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {channels.map((channel) => (
-            <div key={channel.id} className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
-              <div className="p-5 flex justify-between items-center border-b">
-                <div className="flex items-center">
-                  <div className={`rounded-full p-2.5 mr-3 ${channel.color}`}>
-                    <channel.icon size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-lg">
-                      {language === 'ar' ? channel.name.ar : channel.name.en}
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      {language === 'ar' ? channel.description.ar : channel.description.en}
-                    </p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={channel.isActive} 
-                  onCheckedChange={() => handleToggleChannel(channel.id)}
-                  className="data-[state=checked]:bg-primary"
-                />
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {language === 'ar' ? 'قناة الويب' : 'Web Channel'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ar' ? 'إدارة الطلبات الواردة من موقعك الإلكتروني' : 'Manage orders coming from your website'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {language === 'ar' ? 'تفعيل' : 'Enabled'}
+                </span>
               </div>
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-600">
-                    {language === 'ar' ? 'الحالة:' : 'Status:'}
-                  </h4>
-                  {channel.isActive ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      {language === 'ar' ? 'نشط' : 'Active'}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                      {language === 'ar' ? 'غير نشط' : 'Inactive'}
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 mt-5">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">
-                      {language === 'ar' ? 'الطلبات' : 'Orders'}
-                    </p>
-                    <p className="font-semibold">{channel.stats.orders}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">
-                      {language === 'ar' ? 'الإيرادات' : 'Revenue'}
-                    </p>
-                    <p className="font-semibold">{channel.stats.revenue}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">
-                      {language === 'ar' ? 'معدل التحويل' : 'Conv. Rate'}
-                    </p>
-                    <p className="font-semibold">{channel.stats.conversionRate}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-right">
-                  <Button variant="outline" size="sm">
-                    {language === 'ar' ? 'إعدادات' : 'Settings'}
-                  </Button>
-                </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {language === 'ar' ? 'قناة شوبيفاي' : 'Shopify Channel'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ar' ? 'إدارة الطلبات الواردة من متجر شوبيفاي الخاص بك' : 'Manage orders coming from your Shopify store'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {language === 'ar' ? 'تفعيل' : 'Enabled'}
+                </span>
               </div>
-            </div>
-          ))}
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {language === 'ar' ? 'الإعدادات العامة لقنوات الطلبات' : 'General Order Channels Settings'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                {language === 'ar' 
+                  ? 'قريباً: ستتمكن من إضافة المزيد من قنوات الطلبات وإدارتها من هنا' 
+                  : 'Coming soon: You will be able to add more order channels and manage them from here'}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
