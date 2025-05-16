@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -90,25 +91,25 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       required: true,
     });
     
-    // إضافة زر الطلب مع الإعدادات الجديدة
+    // إضافة زر الطلب مع الإعدادات المحدثة
     fields.push({
       type: 'submit',
       id: `submit-${Date.now()}`,
       label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
-        backgroundColor: '#000000', // لون الخلفية الأسود
-        color: '#ffffff', // لون النص الأبيض
-        fontSize: '1.15rem', // حجم الخط
-        fontWeight: '500', // وزن النص
+        backgroundColor: '#000000',
+        color: '#ffffff', 
+        fontSize: '18px',
+        fontWeight: '500',
         animation: true,
-        animationType: 'shake', // نوع الحركة
-        borderColor: '#eaeaff', // لون الحدود
-        borderRadius: '6px', // انحناء الحدود
-        borderWidth: '0px', // عرض الحدود
-        paddingY: '12px', // المسافة العمودية
-        showIcon: true, // إظهار الأيقونة
-        icon: 'shopping-cart', // نوع الأيقونة
-        iconPosition: 'left', // موضع الأيقونة
+        animationType: 'shake',
+        borderColor: '#eaeaff',
+        borderRadius: '6px',
+        borderWidth: '0px',
+        paddingY: '12px',
+        showIcon: true,
+        icon: 'shopping-cart',
+        iconPosition: 'left',
       },
     });
     

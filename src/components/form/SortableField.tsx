@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -127,10 +127,27 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'Open Sans', label: 'Open Sans' },
   ];
   
-  // Available icons for fields - Using "none" for the "No Icon" option
+  // Icons mapping with components for visual display
   const fieldIcons = [
-    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null }
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
+    { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
+    { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
+    { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
+    { value: 'mail', label: language === 'ar' ? 'بريد' : 'Email', component: <Mail size={16} /> },
+    { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
+    { value: 'check-square', label: language === 'ar' ? 'تحقق' : 'Check', component: <CheckSquare size={16} /> },
+    { value: 'image', label: language === 'ar' ? 'صورة' : 'Image', component: <Image size={16} /> },
+    { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: <FileText size={16} /> },
   ];
+  
+  // Find the icon component for current value
+  const getIconComponent = (iconName: string) => {
+    const icon = fieldIcons.find(i => i.value === iconName);
+    return icon ? icon.component : null;
+  };
+
+  // Show different field settings based on field type
+  const shouldShowSubmitSpecificSettings = field.type === 'submit';
 
   return (
     <div
@@ -176,18 +193,20 @@ const SortableField: React.FC<SortableFieldProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 {/* Left column */}
                 <div className="space-y-4">
-                  {/* Placeholder */}
-                  <div className="space-y-1">
-                    <Label htmlFor={`field-placeholder-${field.id}`}>
-                      {language === 'ar' ? 'مكان النص' : 'Placeholder'}
-                    </Label>
-                    <Input
-                      id={`field-placeholder-${field.id}`}
-                      value={editedField.placeholder || ''}
-                      onChange={(e) => handleFieldChange('placeholder', e.target.value)}
-                      className={language === 'ar' ? 'text-right' : ''}
-                    />
-                  </div>
+                  {/* Placeholder - hide for submit button */}
+                  {!shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-placeholder-${field.id}`}>
+                        {language === 'ar' ? 'مكان النص' : 'Placeholder'}
+                      </Label>
+                      <Input
+                        id={`field-placeholder-${field.id}`}
+                        value={editedField.placeholder || ''}
+                        onChange={(e) => handleFieldChange('placeholder', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                      />
+                    </div>
+                  )}
                   
                   {/* Required field */}
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -258,67 +277,71 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Font size */}
+                  {/* Font size - using text input to fix the issue */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                      <span className="text-sm">{editedField.style?.fontSize || '1.1'}</span>
+                      <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
                     </div>
-                    <Slider
-                      defaultValue={[parseFloat(editedField.style?.fontSize || '1.1')]}
-                      value={[parseFloat(editedField.style?.fontSize || '1.1')]}
-                      min={0}
-                      max={3}
-                      step={0.1}
-                      onValueChange={(value) => handleStyleChange('fontSize', value[0].toString())}
+                    <Input
+                      type="number"
+                      min="8"
+                      max="72"
+                      value={parseFloat(editedField.style?.fontSize || '16')}
+                      onChange={(e) => handleStyleChange('fontSize', `${e.target.value}px`)}
+                      className="w-full"
                     />
                   </div>
                   
-                  {/* Padding-Y */}
+                  {/* Padding-Y - using text input to fix the issue */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
                       <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
                     </div>
-                    <Slider
-                      defaultValue={[parseInt(editedField.style?.paddingY || '8')]}
-                      value={[parseInt(editedField.style?.paddingY || '8')]}
-                      min={0}
-                      max={50}
-                      step={1}
-                      onValueChange={(value) => handleStyleChange('paddingY', value[0].toString())}
+                    <Input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={parseInt(editedField.style?.paddingY || '8')}
+                      onChange={(e) => handleStyleChange('paddingY', `${e.target.value}px`)}
+                      className="w-full"
                     />
                   </div>
                 </div>
                 
                 {/* Right column */}
                 <div className="space-y-4">
-                  {/* Input for */}
-                  <div className="space-y-1">
-                    <Label htmlFor={`field-input-for-${field.id}`}>
-                      {language === 'ar' ? 'حقل الإدخال المرتبط' : 'Input for'}
-                    </Label>
-                    <Input
-                      id={`field-input-for-${field.id}`}
-                      value={editedField.inputFor || ''}
-                      onChange={(e) => handleFieldChange('inputFor', e.target.value)}
-                      className={language === 'ar' ? 'text-right' : ''}
-                    />
-                  </div>
+                  {/* Input for - hide for submit button */}
+                  {!shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-input-for-${field.id}`}>
+                        {language === 'ar' ? 'حقل الإدخال المرتبط' : 'Input for'}
+                      </Label>
+                      <Input
+                        id={`field-input-for-${field.id}`}
+                        value={editedField.inputFor || ''}
+                        onChange={(e) => handleFieldChange('inputFor', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                      />
+                    </div>
+                  )}
                   
-                  {/* Error message */}
-                  <div className="space-y-1">
-                    <Label htmlFor={`field-error-message-${field.id}`}>
-                      {language === 'ar' ? 'رسالة الخطأ' : 'Error message'}
-                    </Label>
-                    <Input
-                      id={`field-error-message-${field.id}`}
-                      value={editedField.errorMessage || ''}
-                      onChange={(e) => handleFieldChange('errorMessage', e.target.value)}
-                      className={language === 'ar' ? 'text-right' : ''}
-                      placeholder={language === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required'}
-                    />
-                  </div>
+                  {/* Error message - hide for submit button */}
+                  {!shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-error-message-${field.id}`}>
+                        {language === 'ar' ? 'رسالة الخطأ' : 'Error message'}
+                      </Label>
+                      <Input
+                        id={`field-error-message-${field.id}`}
+                        value={editedField.errorMessage || ''}
+                        onChange={(e) => handleFieldChange('errorMessage', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                        placeholder={language === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required'}
+                      />
+                    </div>
+                  )}
                   
                   {/* Label text */}
                   <div className="space-y-1">
@@ -347,20 +370,31 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </Label>
                   </div>
                   
-                  {/* Label weight */}
+                  {/* Label weight - using text input to fix the issue */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'وزن خط التسمية' : 'Label weight'}</Label>
                       <span className="text-sm">{editedField.style?.labelFontWeight || '400'}</span>
                     </div>
-                    <Slider
-                      defaultValue={[parseInt(editedField.style?.labelFontWeight || '400')]}
-                      value={[parseInt(editedField.style?.labelFontWeight || '400')]}
-                      min={100}
-                      max={900}
-                      step={100}
-                      onValueChange={(value) => handleStyleChange('labelFontWeight', value[0].toString())}
-                    />
+                    <Select
+                      value={editedField.style?.labelFontWeight || '400'}
+                      onValueChange={(value) => handleStyleChange('labelFontWeight', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="100">100 (Thin)</SelectItem>
+                        <SelectItem value="200">200 (Extra Light)</SelectItem>
+                        <SelectItem value="300">300 (Light)</SelectItem>
+                        <SelectItem value="400">400 (Regular)</SelectItem>
+                        <SelectItem value="500">500 (Medium)</SelectItem>
+                        <SelectItem value="600">600 (Semi Bold)</SelectItem>
+                        <SelectItem value="700">700 (Bold)</SelectItem>
+                        <SelectItem value="800">800 (Extra Bold)</SelectItem>
+                        <SelectItem value="900">900 (Black)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   {/* Border color */}
@@ -381,19 +415,19 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Border width */}
+                  {/* Border width - using text input to fix the issue */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
                       <span className="text-sm">{editedField.style?.borderWidth || '1'}px</span>
                     </div>
-                    <Slider
-                      defaultValue={[parseInt(editedField.style?.borderWidth || '1')]}
-                      value={[parseInt(editedField.style?.borderWidth || '1')]}
-                      min={0}
-                      max={10}
-                      step={1}
-                      onValueChange={(value) => handleStyleChange('borderWidth', value[0].toString())}
+                    <Input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={parseInt(editedField.style?.borderWidth || '1')}
+                      onChange={(e) => handleStyleChange('borderWidth', `${e.target.value}px`)}
+                      className="w-full"
                     />
                   </div>
                   
@@ -411,7 +445,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </Label>
                   </div>
                   
-                  {/* Icon for Live Preview only */}
+                  {/* Icon for Live Preview with visual icons */}
                   <div className="space-y-1">
                     <Label>{language === 'ar' ? 'أيقونة المعاينة' : 'Preview icon'}</Label>
                     <Select
@@ -419,19 +453,22 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       onValueChange={(value) => handleFieldChange('icon', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة للمعاينة' : 'Select preview icon'} />
+                        <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة للمعاينة' : 'Select preview icon'}>
+                          <div className="flex items-center gap-2">
+                            {getIconComponent(editedField.icon || 'none')}
+                            <span>{fieldIcons.find(i => i.value === (editedField.icon || 'none'))?.label || ''}</span>
+                          </div>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">{language === 'ar' ? 'بدون أيقونة' : 'No Icon'}</SelectItem>
-                        <SelectItem value="user">{language === 'ar' ? 'مستخدم' : 'User'}</SelectItem>
-                        <SelectItem value="phone">{language === 'ar' ? 'هاتف' : 'Phone'}</SelectItem>
-                        <SelectItem value="map-pin">{language === 'ar' ? 'موقع' : 'Location'}</SelectItem>
-                        <SelectItem value="mail">{language === 'ar' ? 'بريد' : 'Email'}</SelectItem>
-                        <SelectItem value="message-square">{language === 'ar' ? 'رسالة' : 'Message'}</SelectItem>
-                        <SelectItem value="check-square">{language === 'ar' ? 'تحقق' : 'Check'}</SelectItem>
-                        <SelectItem value="circle-check">{language === 'ar' ? 'تحقق دائري' : 'Circle Check'}</SelectItem>
-                        <SelectItem value="image">{language === 'ar' ? 'صورة' : 'Image'}</SelectItem>
-                        <SelectItem value="file-text">{language === 'ar' ? 'ملف نصي' : 'Text File'}</SelectItem>
+                        {fieldIcons.map(icon => (
+                          <SelectItem key={icon.value} value={icon.value}>
+                            <div className="flex items-center gap-2">
+                              {icon.component}
+                              <span>{icon.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

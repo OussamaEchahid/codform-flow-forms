@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -36,7 +36,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling
+  // Default button styling - ensure proper handling of pixel values
   const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
@@ -61,37 +61,27 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     transition: 'all 0.2s ease',
   };
   
-  // Icon rendering with improved support for shopping cart
+  // Icon rendering with improved support for multiple icon types
   const renderIcon = () => {
     if (!style.showIcon) return null;
     
-    if (style.icon === 'shopping-cart') {
-      return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
-    }
-    
-    let iconElement = null;
-    
-    // Simple icon rendering using text characters
+    // Return Lucide React icon components based on icon name
     switch (style.icon?.toLowerCase()) {
+      case 'shopping-cart':
+        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
       case 'arrow-right':
-        iconElement = language === 'ar' ? '←' : '→';
-        break;
+        return language === 'ar' ? 
+          <ArrowRight size={16} color={style.color || '#ffffff'} style={{ transform: 'scaleX(-1)' }} /> : 
+          <ArrowRight size={16} color={style.color || '#ffffff'} />;
       case 'check':
-        iconElement = '✓';
-        break;
-      case 'cart':
-        iconElement = '🛒';
-        break;
+        return <Check size={16} color={style.color || '#ffffff'} />;
       case 'send':
-        iconElement = '📨';
-        break;
+        return <Send size={16} color={style.color || '#ffffff'} />;
+      case 'cart':
+        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
       default:
-        iconElement = null;
+        return null;
     }
-    
-    return iconElement ? (
-      <span className="inline-block">{iconElement}</span>
-    ) : null;
   };
 
   // Determine the content and order based on icon position
