@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
@@ -18,7 +17,6 @@ import {
   Search,
   PackageCheck,
   PackageOpen,
-  Filter,
   FileDown,
   ListFilter
 } from 'lucide-react';

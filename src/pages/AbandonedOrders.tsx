@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { 
   Search,
-  Filter,
   FileDown,
   ListFilter,
   Clock,
@@ -77,10 +75,10 @@ const AbandonedOrders = () => {
   }
 
   // Calculate time since last activity
-  const getTimeSince = (dateString) => {
+  const getTimeSince = (dateString: string) => {
     const lastDate = new Date(dateString);
     const now = new Date();
-    const diffMs = now - lastDate;
+    const diffMs = now.getTime() - lastDate.getTime(); // Fixed: Using getTime() to get timestamps in milliseconds
     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
     
     if (diffHrs < 1) {
