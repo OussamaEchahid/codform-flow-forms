@@ -43,12 +43,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // خصائص موحدة لجميع الأيقونات
+    // خصائص موحدة لجميع الأيقونات - إصلاح الخطأ باستخدام true كقيمة منطقية بدلاً من نص
     const iconProps = { 
       size: 18,
       className: "text-gray-400",
-      "aria-hidden": "true",
-      "data-icon": field.icon
+      "aria-hidden": true, // Fix: Use boolean true instead of string "true"
+      "data-testid": `icon-${field.icon}` // Use data-testid instead of data-icon for testing
     };
     
     switch(field.icon) {
