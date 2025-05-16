@@ -75,11 +75,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 
   return (
     <div>
-      <h3 className={`text-lg font-medium mb-4 ${language === 'ar' ? 'text-right' : ''}`}>
+      <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>
       
-      <div className="border rounded-lg p-4 bg-gray-50">
+      <div className="border rounded-lg p-3 bg-gray-50">
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
           formTitle={formTitle}

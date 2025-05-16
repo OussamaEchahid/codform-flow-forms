@@ -59,6 +59,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+    marginTop: '10px', // تقليل المساحة العليا للزر
   };
   
   // Icon rendering with improved support for multiple icon types

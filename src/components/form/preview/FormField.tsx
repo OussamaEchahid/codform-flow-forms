@@ -151,10 +151,13 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
 
   // Generate a unique key for this field instance to force re-render when props change
   const fieldKey = getFieldKey(field);
+  
+  // حساب هامش أصغر للحقول المتتالية غير زر الإرسال
+  const marginClass = fieldType === 'submit' ? '' : 'mb-3'; // تقليل المساحة بين الحقول
 
   if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (
-      <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md" key={fieldKey}>
+      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey}>
         <Component field={normalizedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
@@ -164,7 +167,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   }
 
   return (
-    <div key={fieldKey}>
+    <div className={marginClass} key={fieldKey}>
       <style>{animationStyles}</style>
       <Component field={normalizedField} formStyle={formStyle} />
     </div>

@@ -173,14 +173,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className="p-4" 
+        className="p-3" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}

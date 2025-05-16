@@ -73,11 +73,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}`;
   
   return (
-    <div className="mb-4" key={componentKey}>
+    <div className="mb-1" key={componentKey}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
-          className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
+          className={`block mb-1 ${field.required ? 'relative pr-2' : ''}`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
@@ -120,12 +120,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+            marginBottom: '2px', // تقليل المساحة السفلية
           }}
         />
       </div>
       
       {field.helpText && (
-        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
+        <p className="mt-1 text-xs text-gray-500">{field.helpText}</p>
       )}
       
       {field.errorMessage && field.required && (
