@@ -39,6 +39,17 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
+  
+  // Process fields to normalize icon values
+  const processedFields = React.useMemo(() => {
+    return fields.map(field => {
+      // Convert empty icon strings to 'none'
+      if (field.icon === '') {
+        return { ...field, icon: 'none' };
+      }
+      return field;
+    });
+  }, [fields]);
 
   return (
     <div>
@@ -54,7 +65,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           currentStep={currentStep}
           totalSteps={totalSteps}
           formStyle={formStyle}
-          fields={fields}
+          fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
         >

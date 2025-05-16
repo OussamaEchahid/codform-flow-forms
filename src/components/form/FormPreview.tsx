@@ -51,6 +51,23 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         return { ...field, label: '' };
       }
+      
+      // Convert empty icon to 'none' for consistent handling
+      if (field.icon === '') {
+        return { ...field, icon: 'none' };
+      }
+      
+      // Make sure style.showIcon is defined if icon is present
+      if (field.icon && field.icon !== 'none' && field.style) {
+        return { 
+          ...field, 
+          style: { 
+            ...field.style,
+            showIcon: field.style.showIcon !== undefined ? field.style.showIcon : true
+          }
+        };
+      }
+      
       return field;
     });
     
