@@ -34,19 +34,21 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // تطبيع معالجة الأيقونة - التحقق صراحة مما إذا كان showIcon محددًا أولاً
-  const showIcon = fieldStyle.showIcon !== undefined 
-    ? fieldStyle.showIcon 
-    : (field.icon && field.icon !== 'none');
-
-  // وظيفة لعرض أيقونة الحقل بناءً على اسم الأيقونة
+  // تحسين معالجة إظهار الأيقونة
+  // التحقق بشكل واضح مما إذا كان هناك أيقونة وما إذا كان يجب عرضها
+  const hasIcon = field.icon && field.icon !== 'none';
+  const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
+  
+  // وظيفة محسنة لعرض أيقونة الحقل بناءً على اسم الأيقونة
   const renderIcon = () => {
-    // لا تعرض إذا كانت الأيقونة معطلة أو تم تعيينها إلى 'none'
-    if (!field.icon || field.icon === 'none' || !showIcon) return null;
+    if (!hasIcon || !showIcon) return null;
     
+    // خصائص موحدة لجميع الأيقونات
     const iconProps = { 
-      size: 18, 
-      className: "text-gray-400"
+      size: 18,
+      className: "text-gray-400",
+      "aria-hidden": "true",
+      "data-icon": field.icon
     };
     
     switch(field.icon) {
@@ -69,9 +71,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // الحصول على نص العنصر البديل الفعلي للعرض - استخدام القيمة الأحدث
   const placeholderText = field.placeholder || '';
 
-  // فرض مفتاح المكون للتحديث عند تغيير البيانات
-  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(fieldStyle)}-${field.icon || 'none'}-${Date.now()}`;
-  
   // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
   const getInputType = () => {
     const originalType = field.type;
@@ -79,6 +78,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     if (originalType === 'phone') return 'tel';
     return 'text';
   };
+  
+  // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
+  const inputId = `${field.id}-${Date.now()}`;
   
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض
   const inputAttributes = {
@@ -89,14 +91,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     'data-font-family': fontFamily,
     'data-text-color': textColor,
     'data-font-size': fontSize,
-    'data-has-icon': showIcon && field.icon && field.icon !== 'none' ? 'true' : 'false',
+    'data-has-icon': hasIcon ? 'true' : 'false',
+    'data-show-icon': showIcon ? 'true' : 'false',
     'data-icon': field.icon || 'none',
     'data-border-radius': borderRadius,
     'data-required': field.required ? 'true' : 'false',
   };
   
   return (
-    <div className="mb-0" key={componentKey} {...inputAttributes}>
+    <div className="mb-0" data-component="TextInput" {...inputAttributes}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
@@ -107,6 +110,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontWeight: labelFontWeight,
             fontFamily: fontFamily
           }}
+          data-label-text={labelText}
         >
           {labelText}
           {field.required && (
@@ -116,8 +120,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       )}
       
       <div className="relative">
-        {showIcon && field.icon && field.icon !== 'none' && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon">
+        {showIcon && hasIcon && (
+          <div 
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon" 
+            data-icon-type={field.icon}
+          >
             {renderIcon()}
           </div>
         )}
@@ -140,11 +147,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
+            paddingLeft: (showIcon && hasIcon) ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             marginBottom: '0', // إزالة الهامش السفلي
           }}
+          data-input-id={inputId}
         />
       </div>
       
