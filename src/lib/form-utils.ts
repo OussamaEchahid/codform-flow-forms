@@ -386,6 +386,16 @@ export const createDefaultForm = (): FormStep[] => {
     icon: 'phone',
   });
   
+  // Add city field
+  defaultFields.push({
+    type: 'text',
+    id: uuidv4(),
+    label: 'المدينة',
+    placeholder: 'أدخل اسم المدينة',
+    required: true,
+    icon: 'map-pin',
+  });
+  
   // Add address field
   defaultFields.push({
     type: 'textarea',
@@ -395,17 +405,25 @@ export const createDefaultForm = (): FormStep[] => {
     required: true,
   });
   
-  // Add submit button
+  // Add submit button with updated configuration
   defaultFields.push({
     type: 'submit',
     id: uuidv4(),
-    label: 'إرسال الطلب',
+    label: 'الدفع عند الاستلام',
     style: {
-      backgroundColor: '#9b87f5',
+      backgroundColor: '#000000',
       color: '#ffffff',
-      fontSize: '18px',
+      fontSize: '1.15rem',
+      fontWeight: '500',
       animation: true,
-      animationType: 'pulse',
+      animationType: 'shake',
+      borderRadius: '6px',
+      borderColor: '#eaeaff',
+      borderWidth: '0px',
+      paddingY: '12px',
+      showIcon: true,
+      icon: 'shopping-cart',
+      iconPosition: 'left',
     },
   });
   

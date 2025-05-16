@@ -3,6 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { ShoppingCart } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -35,28 +36,43 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Use pixel values for font sizes to ensure consistent display
-  const fontSize = style.fontSize || '18px'; // Default is 1.2rem = 18px
-  
+  // Default button styling
   const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: fontSize,
-    borderRadius: formStyle.buttonStyle === 'pill' ? '9999px' : 
-                 formStyle.buttonStyle === 'sharp' ? '0' : 
-                 formStyle.borderRadius || '8px',
-    width: style.fullWidth === false ? 'auto' : '100%',
+    fontSize: style.fontSize || '18px',
     fontWeight: style.fontWeight || 'bold',
+    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
+    borderColor: style.borderColor || 'transparent',
+    borderWidth: style.borderWidth || '0px',
+    borderStyle: 'solid',
+    paddingTop: style.paddingY || '12px',
+    paddingBottom: style.paddingY || '12px',
+    paddingLeft: '20px',
+    paddingRight: '20px',
+    width: style.fullWidth === false ? 'auto' : '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: style.iconPosition === 'left' ? 'flex-start' : 
+                  style.iconPosition === 'right' ? 'flex-end' : 'center',
+    gap: '8px',
+    fontFamily: style.fontFamily || 'inherit',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
   };
   
-  // Icon rendering
+  // Icon rendering with improved support for shopping cart
   const renderIcon = () => {
-    if (!style.icon) return null;
+    if (!style.showIcon) return null;
+    
+    if (style.icon === 'shopping-cart') {
+      return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
+    }
     
     let iconElement = null;
     
     // Simple icon rendering using text characters
-    switch (style.icon.toLowerCase()) {
+    switch (style.icon?.toLowerCase()) {
       case 'arrow-right':
         iconElement = language === 'ar' ? '←' : '→';
         break;
@@ -74,12 +90,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     }
     
     return iconElement ? (
-      <span className="inline-block mx-1">{iconElement}</span>
+      <span className="inline-block">{iconElement}</span>
     ) : null;
   };
 
-  const icon = renderIcon();
+  // Determine the content and order based on icon position
   const iconPosition = style.iconPosition || 'right';
+  const icon = renderIcon();
   
   return (
     <button
@@ -88,7 +105,6 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       className={cn(
         "codform-submit-btn", 
         animationClass,
-        iconPosition === 'left' ? 'flex-row-reverse' : 'flex-row'
       )}
       style={buttonStyle}
       dir={language === 'ar' ? 'rtl' : 'ltr'}

@@ -224,6 +224,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       icon: 'phone',
     });
     
+    // إضافة حقل المدينة (City) بعد رقم الهاتف
+    fields.push({
+      type: 'text' as FormFieldType,
+      id: `city-${Date.now()}`,
+      label: language === 'ar' ? 'المدينة' : 'City',
+      placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name',
+      required: true,
+      icon: 'map-pin',
+    });
+    
     // إضافة حقل العنوان
     fields.push({
       type: 'textarea' as FormFieldType,
@@ -233,18 +243,25 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       required: true,
     });
     
-    // إضافة زر الطلب
+    // إضافة زر الطلب مع الإعدادات الجديدة
     fields.push({
       type: 'submit' as FormFieldType,
       id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '1.2rem',
+        backgroundColor: '#000000', // لون الخلفية الأسود
+        color: '#ffffff', // لون النص الأبيض
+        fontSize: '1.15rem', // حجم الخط
+        fontWeight: '500', // وزن النص
         animation: true,
-        animationType: 'pulse',
-        iconPosition: 'left',
+        animationType: 'shake', // نوع الحركة
+        borderColor: '#eaeaff', // لون الحدود
+        borderRadius: '6px', // انحناء الحدود
+        borderWidth: '0px', // عرض الحدود
+        paddingY: '12px', // المسافة العمودية
+        showIcon: true, // إظهار الأيقونة
+        icon: 'shopping-cart', // نوع الأيقونة
+        iconPosition: 'left', // موضع الأيقونة
       },
     });
     
@@ -390,13 +407,19 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 const submitButton: FormField = {
                   type: 'submit',
                   id: `submit-${Date.now()}`,
-                  label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+                  label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
                   style: {
-                    backgroundColor: '#9b87f5',
+                    backgroundColor: '#000000',
                     color: '#ffffff',
-                    fontSize: '1.2rem',
+                    fontSize: '1.15rem',
                     animation: true,
-                    animationType: 'pulse',
+                    animationType: 'shake',
+                    borderColor: '#eaeaff',
+                    borderRadius: '6px',
+                    borderWidth: '0px',
+                    paddingY: '12px',
+                    showIcon: true,
+                    icon: 'shopping-cart',
                     iconPosition: 'left',
                   },
                 };

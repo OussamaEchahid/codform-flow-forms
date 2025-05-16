@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -72,6 +71,16 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       icon: 'phone',
     });
     
+    // إضافة حقل المدينة بعد رقم الهاتف
+    fields.push({
+      type: 'text',
+      id: `city-${Date.now()}`,
+      label: language === 'ar' ? 'المدينة' : 'City',
+      placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name',
+      required: true,
+      icon: 'map-pin',
+    });
+    
     // إضافة حقل العنوان
     fields.push({
       type: 'textarea',
@@ -81,18 +90,25 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       required: true,
     });
     
-    // إضافة زر الطلب
+    // إضافة زر الطلب مع الإعدادات الجديدة
     fields.push({
       type: 'submit',
       id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '18px',
+        backgroundColor: '#000000', // لون الخلفية الأسود
+        color: '#ffffff', // لون النص الأبيض
+        fontSize: '1.15rem', // حجم الخط
+        fontWeight: '500', // وزن النص
         animation: true,
-        animationType: 'pulse',
-        iconPosition: 'left',
+        animationType: 'shake', // نوع الحركة
+        borderColor: '#eaeaff', // لون الحدود
+        borderRadius: '6px', // انحناء الحدود
+        borderWidth: '0px', // عرض الحدود
+        paddingY: '12px', // المسافة العمودية
+        showIcon: true, // إظهار الأيقونة
+        icon: 'shopping-cart', // نوع الأيقونة
+        iconPosition: 'left', // موضع الأيقونة
       },
     });
     
