@@ -109,7 +109,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               field={element} 
               onEdit={() => onEditElement(index)}
               onDuplicate={() => onDuplicateElement(index)} 
-              onDelete={() => onDeleteElement(index)} 
+              onDelete={() => onDeleteElement(index)}
+              onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
             />
           ))}
         </SortableContext>

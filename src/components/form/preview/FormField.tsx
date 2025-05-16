@@ -75,8 +75,13 @@ const animationStyles = `
   }
 `;
 
-// Memoize the form field component to avoid unnecessary re-renders
-const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
+// Generate a key for FormField to force re-render when field properties change
+const getFieldKey = (field: FormFieldType) => {
+  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
+};
+
+// Remove memo to ensure component always updates when props change
+const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
@@ -144,9 +149,12 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
     return null;
   }
 
+  // Generate a unique key for this field instance to force re-render when props change
+  const fieldKey = getFieldKey(field);
+
   if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (
-      <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
+      <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md" key={fieldKey}>
         <Component field={normalizedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
@@ -156,14 +164,12 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
   }
 
   return (
-    <>
+    <div key={fieldKey}>
       <style>{animationStyles}</style>
       <Component field={normalizedField} formStyle={formStyle} />
-    </>
+    </div>
   );
-});
+};
 
-// Add a display name for debugging purposes
-FormField.displayName = 'FormField';
-
+// Remove displayName since we're not using memo anymore
 export default FormField;

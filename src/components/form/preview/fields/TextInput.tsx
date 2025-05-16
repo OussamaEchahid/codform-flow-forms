@@ -63,14 +63,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // Get the actual label text to display
+  // Get the actual label text to display - use the most recent value
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // Get the actual placeholder text to display
+  // Get the actual placeholder text to display - use the most recent value
   const placeholderText = field.placeholder || '';
+
+  // Force component key to refresh when its data changes
+  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}`;
   
   return (
-    <div className="mb-4">
+    <div className="mb-4" key={componentKey}>
       {showLabel && (
         <label 
           htmlFor={field.id} 

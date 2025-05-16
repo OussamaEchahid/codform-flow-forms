@@ -39,11 +39,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
-  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
+  const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
   // Force refresh when any prop changes to ensure live preview updates immediately
   useEffect(() => {
-    setInternalRefreshKey(prevKey => prevKey + 1);
+    setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
   // Process fields to normalize icon values - critical for preview display
@@ -71,7 +71,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields]);
+  }, [fields, internalRefreshKey]); // Add internalRefreshKey to dependencies to ensure re-render
 
   return (
     <div>

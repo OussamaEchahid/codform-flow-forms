@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -19,13 +20,15 @@ interface SortableFieldProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onFieldUpdate?: (updatedField: FormField) => void;
 }
 
 const SortableField: React.FC<SortableFieldProps> = ({
   field,
   onEdit,
   onDuplicate,
-  onDelete
+  onDelete,
+  onFieldUpdate
 }) => {
   const { language } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -75,6 +78,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Apply changes immediately by updating the original field
     Object.assign(field, updatedField);
     
+    // Propagate changes to parent for immediate preview update
+    if (onFieldUpdate) {
+      onFieldUpdate({...updatedField});
+    }
+    
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
   };
@@ -97,6 +105,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
     
     // Apply changes immediately by updating the original field
     field.style = {...updatedStyle};
+    
+    // Propagate changes to parent for immediate preview update
+    if (onFieldUpdate) {
+      onFieldUpdate({...updatedField});
+    }
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
