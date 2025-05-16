@@ -50,7 +50,7 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
 
-    // First, check if there's a specific form for this product with proper UUID type handling
+    // First, check if there's a specific form for this product
     const { data: productSettings, error: settingsError } = await supabase
       .from('shopify_product_settings')
       .select('form_id, block_id, enabled')
@@ -79,7 +79,6 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
       formSource = 'product-specific';
       
-      // We now know form_id is a UUID in the database
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
@@ -121,6 +120,29 @@ serve(async (req: Request) => {
       } else {
         console.log(`[${requestId}] No default form found for shop ${shop}`);
       }
+    }
+
+    // Process form fields to ensure icons are correctly formatted
+    if (form && form.fields) {
+      form.fields = form.fields.map(field => {
+        // Make sure icon is properly defined and not empty string
+        if (field.icon === '') {
+          field.icon = 'none';
+        }
+        
+        // Ensure style object exists
+        if (!field.style) {
+          field.style = {};
+        }
+        
+        // Make sure showIcon is properly defined if an icon exists
+        if (field.icon && field.icon !== 'none') {
+          field.style.showIcon = field.style.showIcon !== undefined ? 
+            field.style.showIcon : true;
+        }
+        
+        return field;
+      });
     }
 
     // Add debug information if requested

@@ -2,7 +2,19 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { User, Phone, MapPin, Mail, MessageSquare, CheckSquare, CircleCheck, Image, FileText } from 'lucide-react';
+
+// استيراد الأيقونات مباشرة لتجنب مشاكل التحميل الديناميكي
+import {
+  User,
+  Phone,
+  MapPin,
+  Mail,
+  MessageSquare,
+  CheckSquare,
+  CircleCheck,
+  Image,
+  FileText
+} from 'lucide-react';
 
 interface TextInputProps {
   field: FormField;
@@ -34,22 +46,23 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // تحسين معالجة إظهار الأيقونة - تصحيح الأخطاء من الإصدار السابق
+  // تحسين معالجة إظهار الأيقونة
   const hasIcon = field.icon && field.icon !== 'none';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // وظيفة محسنة لعرض أيقونة الحقل بناءً على اسم الأيقونة
+  // تعديل طريقة عرض الأيقونات لمنع مشاكل التحميل
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // تصحيح خصائص الأيقونات لحل مشكلة TypeScript - تحويل aria-hidden من string إلى boolean
     const iconProps = { 
       size: 18,
-      className: "text-gray-400",
-      "aria-hidden": true,  // استخدام قيمة منطقية boolean بدلاً من سلسلة نصية "true"
-      "data-testid": `icon-${field.icon}` // استخدام data-testid للاختبارات
+      className: "text-gray-400 codform-icon",
+      "aria-hidden": true,
+      "data-testid": `icon-${field.icon}`,
+      "data-icon-name": field.icon
     };
     
+    // استخدام الأيقونات المستوردة مباشرة بدلاً من المعالجة الديناميكية
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
