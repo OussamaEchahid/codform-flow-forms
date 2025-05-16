@@ -1,3 +1,4 @@
+
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -20,14 +21,14 @@
   <div id="codform-form-{{ block.id }}" class="codform-form-container" style="display: none;"></div>
   
   <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none; text-align: center; padding: 20px;">
-    <h3>{{ 'codform.success_title' | t }}</h3>
-    <p>{{ 'codform.success_message' | t }}</p>
+    <h3>{{ 'codform.form.success_title' | t }}</h3>
+    <p>{{ 'codform.form.success_message' | t }}</p>
   </div>
   
   <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none; text-align: center; padding: 20px;">
-    <h3>{{ 'codform.error_title' | t }}</h3>
-    <p>{{ 'codform.error_message' | t }}</p>
-    <button id="codform-retry-{{ block.id }}" class="codform-retry-button">{{ 'codform.retry_button' | t }}</button>
+    <h3>{{ 'codform.form.error_title' | t }}</h3>
+    <p>{{ 'codform.form.error_message' | t }}</p>
+    <button id="codform-retry-{{ block.id }}" class="codform-retry-button">{{ 'codform.form.retry' | t }}</button>
   </div>
 </div>
 
@@ -171,6 +172,7 @@
     const loader = document.getElementById('codform-form-loader-{{ block.id }}');
     const formContainer = document.getElementById('codform-form-{{ block.id }}');
     const errorContainer = document.getElementById('codform-error-{{ block.id }}');
+    const successContainer = document.getElementById('codform-success-{{ block.id }}');
     
     if (container && loader) {
       loader.style.display = 'flex';
@@ -311,10 +313,13 @@
         iconSvg = getIconSvg(field.icon);
       }
       
+      const translatedLabel = field.label || '';
+      const translatedPlaceholder = field.placeholder || '';
+      
       return `
         <div class="${fieldClassContainer}" style="position: relative;">
           <label for="codform-field-${field.id}">
-            ${field.label || ''}
+            ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div style="position: relative;">
@@ -323,7 +328,7 @@
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
               name="${field.id}"
-              placeholder="${field.placeholder || ''}"
+              placeholder="${translatedPlaceholder}"
               ${field.required ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
             />
@@ -344,10 +349,13 @@
         iconSvg = getIconSvg(field.icon);
       }
       
+      const translatedLabel = field.label || '';
+      const translatedPlaceholder = field.placeholder || '';
+      
       return `
         <div class="${fieldClassContainer}" style="position: relative;">
           <label for="codform-field-${field.id}">
-            ${field.label || ''}
+            ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div style="position: relative;">
@@ -355,7 +363,7 @@
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
-              placeholder="${field.placeholder || ''}"
+              placeholder="${translatedPlaceholder}"
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
@@ -368,10 +376,12 @@
     
     // Function to create a radio button group
     function createRadioField(field) {
+      const translatedLabel = field.label || '';
+      
       let html = `
         <div class="codform-field">
           <label>
-            ${field.label || ''}
+            ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-radio-group">
@@ -379,6 +389,8 @@
       
       if (field.options && field.options.length) {
         field.options.forEach((option, index) => {
+          const translatedOptionLabel = option.label || '';
+          
           html += `
             <div class="codform-radio-option">
               <input
@@ -389,7 +401,7 @@
                 ${field.required && index === 0 ? 'required' : ''}
                 ${option.selected ? 'checked' : ''}
               />
-              <label for="codform-field-${field.id}-${index}">${option.label || ''}</label>
+              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
             </div>
           `;
         });
@@ -406,10 +418,12 @@
     
     // Function to create a checkbox group
     function createCheckboxField(field) {
+      const translatedLabel = field.label || '';
+      
       let html = `
         <div class="codform-field">
           <label>
-            ${field.label || ''}
+            ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-checkbox-group">
@@ -417,6 +431,8 @@
       
       if (field.options && field.options.length) {
         field.options.forEach((option, index) => {
+          const translatedOptionLabel = option.label || '';
+          
           html += `
             <div class="codform-checkbox-option">
               <input
@@ -426,7 +442,7 @@
                 value="${option.value || ''}"
                 ${option.selected ? 'checked' : ''}
               />
-              <label for="codform-field-${field.id}-${index}">${option.label || ''}</label>
+              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
             </div>
           `;
         });
@@ -466,6 +482,8 @@
         iconHtml = `<span class="codform-button-icon" style="display: inline-flex; align-items: center; margin-${buttonStyle.iconPosition === 'right' ? 'left' : 'right'}: 8px;">${iconSvg}</span>`;
       }
       
+      const translatedLabel = field.label || '{{ "codform.form.submit" | t }}';
+      
       return `
         <div class="codform-field">
           <button
@@ -485,7 +503,7 @@
             "
           >
             ${buttonStyle.iconPosition !== 'right' ? iconHtml : ''}
-            <span>${field.label || 'Submit'}</span>
+            <span>${translatedLabel}</span>
             ${buttonStyle.iconPosition === 'right' ? iconHtml : ''}
           </button>
         </div>
@@ -499,12 +517,15 @@
       const color = style.color || '#ffffff';
       const descriptionColor = style.descriptionColor || '#ffffff';
       
+      const translatedLabel = field.label || '';
+      const translatedHelp = field.helpText || '';
+      
       return `
         <div class="codform-field codform-title-field" style="background-color: ${backgroundColor}; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
           <h3 style="margin: 0; color: ${color}; font-size: ${style.fontSize || '1.25rem'}; font-weight: ${style.fontWeight || 'bold'}; text-align: ${style.textAlign || 'left'};">
-            ${field.label || ''}
+            ${translatedLabel}
           </h3>
-          ${field.helpText ? `<p style="margin: 5px 0 0 0; color: ${descriptionColor}; font-size: ${style.descriptionFontSize || '0.875rem'};">${field.helpText}</p>` : ''}
+          ${translatedHelp ? `<p style="margin: 5px 0 0 0; color: ${descriptionColor}; font-size: ${style.descriptionFontSize || '0.875rem'};">${translatedHelp}</p>` : ''}
         </div>
       `;
     }
@@ -526,6 +547,8 @@
       const borderRadius = style.borderRadius || '4px';
       const phone = field.phone || '';
       const message = encodeURIComponent(field.message || '');
+      
+      const translatedLabel = field.label || 'WhatsApp';
       
       // WhatsApp icon SVG
       const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
@@ -550,7 +573,7 @@
             "
           >
             <span style="display: inline-flex; align-items: center; margin-right: 8px;">${whatsappIcon}</span>
-            <span>${field.label || 'WhatsApp'}</span>
+            <span>${translatedLabel}</span>
           </a>
         </div>
       `;
@@ -572,15 +595,18 @@
         alignmentStyle = 'margin-left: auto;';
       }
       
+      const translatedLabel = field.label || '';
+      const translatedHelp = field.helpText || '';
+      
       return `
         <div class="codform-field codform-image-field" style="text-align: ${alignment};">
-          ${field.label ? `<label>${field.label}</label>` : ''}
+          ${translatedLabel ? `<label>${translatedLabel}</label>` : ''}
           <img 
             src="${imageUrl}" 
             alt="${altText}" 
             style="max-width: ${maxWidth}; ${alignmentStyle}" 
           />
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
+          ${translatedHelp ? `<div class="codform-help-text">${translatedHelp}</div>` : ''}
         </div>
       `;
     }
@@ -608,6 +634,7 @@
         form.addEventListener('submit', function(event) {
           event.preventDefault();
           
+          const formContainer = document.getElementById(`codform-form-${blockId}`);
           const successContainer = document.getElementById(`codform-success-${blockId}`);
           
           // Show success message
