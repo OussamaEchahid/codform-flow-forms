@@ -15,10 +15,11 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
     const productId = url.searchParams.get('productId');
+    const blockId = url.searchParams.get('blockId'); // Get blockId from URL params
     const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
     const debugMode = url.searchParams.get('debug') === 'true';
     
-    console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}, debug: ${debugMode}`);
+    console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}, blockId: ${blockId}, debug: ${debugMode}`);
 
     if (!shop || !productId) {
       console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
@@ -74,10 +75,16 @@ serve(async (req: Request) => {
     // If we have product-specific settings, get that form
     let form = null;
     let formSource = 'none';
+    let actualBlockId = blockId || ''; // Use provided blockId or empty string
     
     if (productSettings && productSettings.form_id) {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
       formSource = 'product-specific';
+      
+      // Use the product settings block_id if available and no blockId was provided
+      if (productSettings.block_id && !actualBlockId) {
+        actualBlockId = productSettings.block_id;
+      }
       
       const { data: formData, error: formError } = await supabase
         .from('forms')
@@ -122,6 +129,12 @@ serve(async (req: Request) => {
       }
     }
 
+    // If we still don't have a blockId, generate one
+    if (!actualBlockId) {
+      actualBlockId = `codform_${Date.now().toString(36)}`;
+      console.log(`[${requestId}] Generated new blockId: ${actualBlockId}`);
+    }
+
     // Ensure the settings object exists and process field data
     if (form) {
       // Make sure form has a settings object
@@ -136,6 +149,9 @@ serve(async (req: Request) => {
       if (!form.fields) {
         form.fields = [];
       }
+      
+      // Add block_id to the form for reference
+      form.block_id = actualBlockId;
       
       // Process form fields to ensure icons are correctly formatted
       form.fields = form.fields.map(field => {
@@ -181,6 +197,7 @@ serve(async (req: Request) => {
       formSource,
       shopId: shop,
       productId,
+      blockId: actualBlockId,
       hasForm: !!form,
       formId: form?.id || null,
       fieldsCount: form?.fields?.length || 0,
@@ -200,6 +217,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           form,
+          block_id: actualBlockId,
           debug: debugInfo 
         }),
         { 
@@ -219,6 +237,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           message: 'No form found for this shop',
+          block_id: actualBlockId,
           debug: debugInfo
         }),
         { 
