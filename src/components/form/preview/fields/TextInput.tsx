@@ -63,6 +63,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
+  // Get the actual label text to display
+  const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
+  
+  // Get the actual placeholder text to display
+  const placeholderText = field.placeholder || '';
+  
   return (
     <div className="mb-4">
       {showLabel && (
@@ -76,7 +82,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontFamily: fontFamily
           }}
         >
-          {field.label || (language === 'ar' ? 'حقل نصي' : 'Text field')}
+          {labelText}
           {field.required && (
             <span className="text-red-500 absolute right-0 top-0">*</span>
           )}
@@ -93,8 +99,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         <input
           type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
           id={field.id}
-          placeholder={field.placeholder || ''}
-          aria-label={field.inputFor || field.label}
+          placeholder={placeholderText}
+          aria-label={field.inputFor || labelText}
           className="w-full outline-none transition-all"
           style={{
             color: textColor,

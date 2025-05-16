@@ -21,7 +21,7 @@ interface FormPreviewProps {
   fields?: FormField[];
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
-  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
+  hideFloatingButtonPreview?: boolean;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -33,13 +33,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   formStyle = {
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
-    fontSize: '16px', // Use fixed pixel value (1rem = 16px)
+    fontSize: '16px',
     buttonStyle: 'rounded',
   },
   fields = [],
   hideHeader = false,
   floatingButton,
-  hideFloatingButtonPreview = false, // Default to false to show in preview
+  hideFloatingButtonPreview = false,
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
@@ -125,7 +125,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   return (
     <div 
-      key={key}
+      key={`form-preview-${Date.now()}`}
       className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
@@ -183,7 +183,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           <div className="space-y-4">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
-                key={field.id} 
+                key={`${field.id}-${Date.now()}`}
                 field={field} 
                 formStyle={formStyle}
               />

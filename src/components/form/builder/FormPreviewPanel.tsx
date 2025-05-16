@@ -41,10 +41,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Force refresh when any prop changes to ensure live preview updates
+  // Force refresh when any prop changes to ensure live preview updates immediately
   useEffect(() => {
     setInternalRefreshKey(prevKey => prevKey + 1);
-  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
   // Process fields to normalize icon values - critical for preview display
   const processedFields = React.useMemo(() => {
@@ -81,7 +81,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       <div className="border rounded-lg p-4 bg-gray-50">
         <FormPreview 
-          key={`preview-${internalRefreshKey}-${refreshKey}`}
+          key={`preview-${internalRefreshKey}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}

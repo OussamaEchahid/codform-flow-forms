@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -5,7 +6,6 @@ import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
-import FieldEditor from '@/components/form/FieldEditor';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -29,8 +29,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onUpdateElement
 }) => {
   const { language } = useI18n();
-  const [isFieldEditorOpen, setIsFieldEditorOpen] = React.useState(false);
-  const [editingField, setEditingField] = React.useState<{ field: FormField, index: number } | null>(null);
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -61,10 +59,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   };
   
   // Handle element updates when they are edited directly from the SortableField
-  const handleElementUpdate = (index: number) => {
-    // Get the current field being edited
-    const field = elements[index];
-    
+  const handleElementUpdate = (index: number, field: FormField) => {
     // Normalize icon value (convert empty string to 'none')
     if (field.icon === '') {
       field.icon = 'none';
@@ -91,12 +86,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     onSelectElement(index);
   };
   
-  // Close field editor
-  const closeEditor = () => {
-    setIsFieldEditorOpen(false);
-    setEditingField(null);
-  };
-  
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
@@ -118,27 +107,19 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             <SortableField 
               key={element.id} 
               field={element} 
-              onEdit={() => handleElementUpdate(index)} 
+              onEdit={(updatedField) => {
+                if (updatedField) {
+                  handleElementUpdate(index, updatedField);
+                } else {
+                  onEditElement(index);
+                }
+              }} 
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)} 
             />
           ))}
         </SortableContext>
       </DndContext>
-      
-      {/* Field Editor Modal */}
-      {isFieldEditorOpen && editingField && (
-        <FieldEditor
-          field={editingField.field}
-          onSave={(updatedField) => {
-            if (onUpdateElement) {
-              onUpdateElement(editingField.index, updatedField);
-            }
-            closeEditor();
-          }}
-          onClose={closeEditor}
-        />
-      )}
     </div>
   );
 };
