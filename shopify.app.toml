@@ -44,6 +44,10 @@ redirect_urls = [
 [pos]
 embedded = false
 
-[extensions]
-theme_app_extensions = ["extensions/theme-extension-codform"]
-ui_extensions = ["extensions/admin-action-extension"]
+[[extensions]]
+type = "theme_app_extension"
+handle = "theme-extension-codform"
+
+[[extensions]]
+type = "ui_extension"
+handle = "admin-action-extension"
