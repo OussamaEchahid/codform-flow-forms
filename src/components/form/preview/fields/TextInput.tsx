@@ -16,7 +16,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // القيم الافتراضية للتنسيق
+  // Default styling values
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
@@ -33,14 +33,14 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // تطبيع معالجة الأيقونة - التحقق صراحة مما إذا كان showIcon محددًا أولاً
+  // Normalized icon handling - explicitly check if showIcon is defined first
   const showIcon = fieldStyle.showIcon !== undefined 
     ? fieldStyle.showIcon 
     : (field.icon && field.icon !== 'none');
 
-  // وظيفة لعرض أيقونة الحقل بناءً على اسم الأيقونة
+  // Function to render the field icon based on icon name
   const renderIcon = () => {
-    // لا تعرض إذا كانت الأيقونة معطلة أو تم تعيينها إلى 'none'
+    // Don't display if icon is disabled or set to 'none'
     if (!field.icon || field.icon === 'none' || !showIcon) return null;
     
     const iconProps = { 
@@ -48,7 +48,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       className: "text-gray-400"
     };
 
-    // Using inline SVGs for consistent display
+    // Using inline SVGs for consistent display across preview and store
     switch(field.icon) {
       case 'user': 
         return (
@@ -119,16 +119,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // الحصول على نص التسمية الفعلي للعرض - استخدام القيمة الأحدث
+  // Get the actual label text to display - use most recent value
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر البديل الفعلي للعرض - استخدام القيمة الأحدث
+  // Get the actual placeholder text to display - use most recent value
   const placeholderText = field.placeholder || '';
 
-  // فرض مفتاح المكون للتحديث عند تغيير البيانات
-  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(fieldStyle)}-${field.icon || 'none'}-${Date.now()}`;
+  // Force component key for update when data changes
+  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(fieldStyle)}-${field.icon || 'none'}`;
   
-  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
+  // Get the correct input type based on field type
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -136,7 +136,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     return 'text';
   };
   
-  // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض
+  // Add data attributes to help ensure rendering matches between preview and store
   const inputAttributes = {
     'data-field-type': field.type,
     'data-show-label': showLabel.toString(),

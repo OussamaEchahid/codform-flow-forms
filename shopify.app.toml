@@ -44,7 +44,7 @@ redirect_urls = [
 [pos]
 embedded = false
 
-# تنسيق صحيح للامتدادات كمصفوفة وليس ككائن
+# Correct format for extensions as an array
 [[extensions]]
 type = "theme_app_extension"
 handle = "theme-extension-codform"

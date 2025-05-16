@@ -3,154 +3,91 @@
 
 const fs = require('fs');
 const path = require('path');
-const toml = require('toml');
+const TOML = require('toml');
 
-function validateShopifyAppConfig() {
-  console.log('Validating shopify.app.toml configuration...');
+// Colors for console output
+const colors = {
+  reset: "\x1b[0m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m"
+};
+
+console.log(`${colors.cyan}Validating Shopify extensions configuration...${colors.reset}`);
+
+// Validate main shopify.app.toml file
+try {
+  const appConfigPath = path.join(process.cwd(), 'shopify.app.toml');
   
+  if (!fs.existsSync(appConfigPath)) {
+    console.error(`${colors.red}Error: shopify.app.toml file not found${colors.reset}`);
+    process.exit(1);
+  }
+  
+  const appConfigContent = fs.readFileSync(appConfigPath, 'utf8');
+  
+  console.log(`${colors.blue}Parsing shopify.app.toml...${colors.reset}`);
+  
+  // First check if extensions section is properly formatted as an array
+  if (appConfigContent.includes('extensions = {')) {
+    console.error(`${colors.red}Error: extensions is defined as an object, but should be an array of objects${colors.reset}`);
+    console.log(`${colors.yellow}Fix: Replace 'extensions = {' with '[[extensions]]' for each extension${colors.reset}`);
+    process.exit(1);
+  }
+
+  // Attempt to parse the TOML file
+  let appConfig;
   try {
-    // قراءة ملف التكوين الرئيسي
-    const configPath = path.resolve('./shopify.app.toml');
-    if (!fs.existsSync(configPath)) {
-      console.error('❌ Error: shopify.app.toml not found!');
-      return false;
-    }
-    
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    
-    // محاولة تحليل الملف للتأكد من صحة التنسيق
-    try {
-      const parsed = toml.parse(configContent);
-      console.log('✅ shopify.app.toml is valid TOML syntax');
-      
-      // التحقق من قسم الامتدادات
-      if (parsed.extensions) {
-        if (!Array.isArray(parsed.extensions)) {
-          console.error('❌ Error: "extensions" section must be an array!');
-          console.log('Current value:', parsed.extensions);
-          console.log('Make sure to use [[extensions]] format (double brackets) for each extension');
-          return false;
-        } else {
-          console.log(`✅ Extensions section contains ${parsed.extensions.length} valid extensions`);
-        }
-      } else {
-        console.log('⚠️ Warning: No extensions section found in shopify.app.toml');
-      }
-      
-      return true;
-    } catch (parseError) {
-      console.error('❌ Error parsing shopify.app.toml:', parseError.message);
-      
-      // مساعدة إضافية للمستخدم في تحديد موقع الخطأ
-      if (parseError.line && parseError.column) {
-        console.log(`Error location: Line ${parseError.line}, Column ${parseError.column}`);
-        
-        // عرض السطر الذي يحتوي على الخطأ
-        const lines = configContent.split('\n');
-        if (lines[parseError.line - 1]) {
-          console.log('Problematic line:');
-          console.log(`${parseError.line}: ${lines[parseError.line - 1]}`);
-          console.log(' '.repeat(parseError.line.toString().length + parseError.column + 1) + '^');
-        }
-      }
-      
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Error reading shopify.app.toml:', error.message);
-    return false;
+    appConfig = TOML.parse(appConfigContent);
+    console.log(`${colors.green}✓ shopify.app.toml is valid TOML${colors.reset}`);
+  } catch (e) {
+    console.error(`${colors.red}Error parsing shopify.app.toml: ${e.message}${colors.reset}`);
+    process.exit(1);
   }
-}
 
-function validateExtensionConfigs() {
-  console.log('\nValidating extension configuration files...');
-  
-  const extensionsDir = path.resolve('./extensions');
-  if (!fs.existsSync(extensionsDir)) {
-    console.error('❌ Error: Extensions directory not found!');
-    return false;
+  // Check extensions section
+  if (!appConfig.extensions || !Array.isArray(appConfig.extensions)) {
+    console.error(`${colors.red}Error: 'extensions' section missing or not an array${colors.reset}`);
+    console.log(`${colors.yellow}Fix: Ensure extensions are defined using [[extensions]] syntax${colors.reset}`);
+    process.exit(1);
+  } else {
+    console.log(`${colors.green}✓ Extensions section is correctly defined as an array with ${appConfig.extensions.length} extensions${colors.reset}`);
   }
-  
-  let allValid = true;
-  
-  // قراءة محتويات دليل الامتدادات
-  const extensions = fs.readdirSync(extensionsDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
-  
-  console.log(`Found ${extensions.length} extension directories: ${extensions.join(', ')}`);
-  
-  // التحقق من كل امتداد
-  for (const extension of extensions) {
-    const extensionPath = path.join(extensionsDir, extension);
-    const configPath = path.join(extensionPath, 'shopify.extension.toml');
-    
-    if (!fs.existsSync(configPath)) {
-      console.error(`❌ Error: Configuration file not found for extension "${extension}"`);
-      allValid = false;
-      continue;
+
+  // Validate each extension
+  appConfig.extensions.forEach((ext, index) => {
+    if (!ext.type) {
+      console.error(`${colors.red}Error: Missing 'type' for extension at index ${index}${colors.reset}`);
     }
-    
-    try {
-      const configContent = fs.readFileSync(configPath, 'utf8');
+    if (!ext.handle) {
+      console.error(`${colors.red}Error: Missing 'handle' for extension at index ${index}${colors.reset}`);
+    }
+  });
+
+  // Validate individual extension TOML files
+  if (appConfig.extensions && Array.isArray(appConfig.extensions)) {
+    for (const ext of appConfig.extensions) {
+      const extPath = path.join(process.cwd(), 'extensions', ext.handle, 'shopify.extension.toml');
+      
+      if (!fs.existsSync(extPath)) {
+        console.warn(`${colors.yellow}Warning: Extension TOML file not found: ${extPath}${colors.reset}`);
+        continue;
+      }
       
       try {
-        const parsed = toml.parse(configContent);
-        console.log(`✅ ${extension}/shopify.extension.toml is valid TOML syntax`);
-        
-        // التحقق من الحقول المطلوبة
-        if (!parsed.name) {
-          console.warn(`⚠️ Warning: Missing "name" field in ${extension}/shopify.extension.toml`);
-        }
-        
-        if (!parsed.type) {
-          console.warn(`⚠️ Warning: Missing "type" field in ${extension}/shopify.extension.toml`);
-        }
-        
-        if (!parsed.handle) {
-          console.warn(`⚠️ Warning: Missing "handle" field in ${extension}/shopify.extension.toml`);
-        }
-        
-      } catch (parseError) {
-        console.error(`❌ Error parsing ${extension}/shopify.extension.toml:`, parseError.message);
-        
-        if (parseError.line && parseError.column) {
-          console.log(`Error location: Line ${parseError.line}, Column ${parseError.column}`);
-          
-          const lines = configContent.split('\n');
-          if (lines[parseError.line - 1]) {
-            console.log('Problematic line:');
-            console.log(`${parseError.line}: ${lines[parseError.line - 1]}`);
-            console.log(' '.repeat(parseError.line.toString().length + parseError.column + 1) + '^');
-          }
-        }
-        
-        allValid = false;
+        const extContent = fs.readFileSync(extPath, 'utf8');
+        const extConfig = TOML.parse(extContent);
+        console.log(`${colors.green}✓ Extension config valid for ${ext.handle}${colors.reset}`);
+      } catch (e) {
+        console.error(`${colors.red}Error parsing extension TOML for ${ext.handle}: ${e.message}${colors.reset}`);
       }
-    } catch (error) {
-      console.error(`❌ Error reading ${extension}/shopify.extension.toml:`, error.message);
-      allValid = false;
     }
   }
-  
-  return allValid;
+
+  console.log(`${colors.green}Validation complete!${colors.reset}`);
+} catch (error) {
+  console.error(`${colors.red}Unexpected error during validation: ${error.message}${colors.reset}`);
+  process.exit(1);
 }
-
-// تشغيل التحقق
-console.log('==================================================');
-console.log('      SHOPIFY EXTENSION CONFIGURATION VALIDATOR   ');
-console.log('==================================================');
-
-let appConfigValid = validateShopifyAppConfig();
-let extensionConfigsValid = validateExtensionConfigs();
-
-console.log('\n==================================================');
-if (appConfigValid && extensionConfigsValid) {
-  console.log('✅ All configuration files are valid!');
-  console.log('You can now run: npx shopify app deploy');
-} else {
-  console.log('❌ Some configuration files contain errors.');
-  console.log('Please fix the issues before deploying.');
-}
-console.log('==================================================');
-
