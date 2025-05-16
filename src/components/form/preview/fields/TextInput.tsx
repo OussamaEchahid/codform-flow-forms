@@ -34,8 +34,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // تحسين معالجة إظهار الأيقونة
-  // التحقق بشكل واضح مما إذا كان هناك أيقونة وما إذا كان يجب عرضها
+  // تحسين معالجة إظهار الأيقونة - تصحيح الأخطاء من الإصدار السابق
   const hasIcon = field.icon && field.icon !== 'none';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
@@ -43,12 +42,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // خصائص موحدة لجميع الأيقونات - إصلاح الخطأ باستخدام true كقيمة منطقية بدلاً من نص
+    // تحسين خصائص الأيقونات لحل مشكلة TypeScript
     const iconProps = { 
       size: 18,
       className: "text-gray-400",
-      "aria-hidden": true, // Fix: Use boolean true instead of string "true"
-      "data-testid": `icon-${field.icon}` // Use data-testid instead of data-icon for testing
+      "aria-hidden": true, // استخدام قيمة منطقية boolean بدلاً من سلسلة نصية string
+      "data-testid": `icon-${field.icon}` // استخدام data-testid للاختبارات
     };
     
     switch(field.icon) {
@@ -65,10 +64,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // الحصول على نص التسمية الفعلي للعرض - استخدام القيمة الأحدث
+  // الحصول على نص التسمية الفعلي للعرض
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر البديل الفعلي للعرض - استخدام القيمة الأحدث
+  // الحصول على نص العنصر البديل الفعلي للعرض
   const placeholderText = field.placeholder || '';
 
   // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
@@ -80,26 +79,26 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   };
   
   // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
-  const inputId = `${field.id}-${Date.now()}`;
+  const inputId = `${field.id}-input`;
   
-  // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض
-  const inputAttributes = {
+  // إضافة سمات البيانات تفصيلية لتحسين التوافق بين المعاينة والمتجر
+  const dataAttributes = {
     'data-field-type': field.type,
+    'data-field-id': field.id,
     'data-show-label': showLabel.toString(),
-    'data-label-color': labelColor,
-    'data-label-font-size': labelFontSize,
-    'data-font-family': fontFamily,
-    'data-text-color': textColor,
-    'data-font-size': fontSize,
+    'data-label-text': labelText,
     'data-has-icon': hasIcon ? 'true' : 'false',
     'data-show-icon': showIcon ? 'true' : 'false',
-    'data-icon': field.icon || 'none',
-    'data-border-radius': borderRadius,
+    'data-icon-type': field.icon || 'none',
     'data-required': field.required ? 'true' : 'false',
+    'data-font-family': fontFamily,
+    'data-font-size': fontSize,
+    'data-border-radius': borderRadius,
+    'data-input-id': inputId,
   };
   
   return (
-    <div className="mb-0" data-component="TextInput" {...inputAttributes}>
+    <div className="mb-0" data-component="TextInput" {...dataAttributes}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
@@ -124,6 +123,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
           <div 
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon" 
             data-icon-type={field.icon}
+            data-icon-visible="true"
           >
             {renderIcon()}
           </div>
@@ -131,7 +131,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         
         <input
           type={getInputType()}
-          id={field.id}
+          id={inputId}
+          name={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
           className="w-full outline-none transition-all codform-input"
@@ -150,9 +151,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             paddingLeft: (showIcon && hasIcon) ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            marginBottom: '0', // إزالة الهامش السفلي
+            marginBottom: '0',
           }}
-          data-input-id={inputId}
+          data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
+          required={field.required}
         />
       </div>
       

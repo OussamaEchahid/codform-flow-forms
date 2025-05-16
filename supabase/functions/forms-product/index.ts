@@ -16,8 +16,9 @@ serve(async (req: Request) => {
     const shop = url.searchParams.get('shop');
     const productId = url.searchParams.get('productId');
     const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
+    const debugMode = url.searchParams.get('debug') === 'true';
     
-    console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}`);
+    console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}, debug: ${debugMode}`);
 
     if (!shop || !productId) {
       console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
@@ -72,9 +73,11 @@ serve(async (req: Request) => {
 
     // If we have product-specific settings, get that form
     let form = null;
+    let formSource = 'none';
     
     if (productSettings && productSettings.form_id) {
       console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
+      formSource = 'product-specific';
       
       // We now know form_id is a UUID in the database
       const { data: formData, error: formError } = await supabase
@@ -99,6 +102,7 @@ serve(async (req: Request) => {
     // If no product-specific form was found, get the default form
     if (!form) {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
+      formSource = 'default';
       
       // Get the default form for this shop
       const { data: defaultForms, error: defaultError } = await supabase
@@ -119,11 +123,32 @@ serve(async (req: Request) => {
       }
     }
 
+    // Add debug information if requested
+    const debugInfo = debugMode ? {
+      requestId,
+      timestamp: new Date().toISOString(),
+      formSource,
+      shopId: shop,
+      productId,
+      hasForm: !!form,
+      formId: form?.id || null,
+      fieldsCount: form?.fields?.length || 0,
+    } : undefined;
+
     // Return form data
     if (form) {
-      console.log(`[${requestId}] Successfully sending form data to client`);
+      const fieldsWithIcons = form.fields?.filter(field => field.icon && field.icon !== 'none') || [];
+      console.log(`[${requestId}] Successfully sending form data to client. Form has ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
+      
+      if (fieldsWithIcons.length > 0) {
+        console.log(`[${requestId}] Icon types used: ${fieldsWithIcons.map(f => f.icon).join(', ')}`);
+      }
+      
       return new Response(
-        JSON.stringify({ form }),
+        JSON.stringify({ 
+          form,
+          debug: debugInfo 
+        }),
         { 
           headers: {
             ...corsHeaders,
@@ -139,7 +164,10 @@ serve(async (req: Request) => {
       // No form found at all
       console.log(`[${requestId}] No form found for shop ${shop}`);
       return new Response(
-        JSON.stringify({ message: 'No form found for this shop' }),
+        JSON.stringify({ 
+          message: 'No form found for this shop',
+          debug: debugInfo
+        }),
         { 
           headers: {...corsHeaders, 'Content-Type': 'application/json'}, 
           status: 404 
