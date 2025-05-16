@@ -152,8 +152,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // Generate a unique key for this field instance to force re-render when props change
   const fieldKey = getFieldKey(field);
   
-  // Adjust margins: use smaller margins for all fields, and no bottom margin for the last field
-  const marginClass = fieldType === 'submit' ? 'mt-2' : 'mb-2'; // Reduced spacing
+  // Adjust margins: use smaller margins for all fields, and make submit button very close
+  const marginClass = fieldType === 'submit' ? 'mt-1' : 'mb-1'; // Further reduced spacing
 
   if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -91,13 +90,13 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       required: true,
     });
     
-    // إضافة زر الطلب مع الإعدادات المحدثة
-    fields.push({
+    // Update the submit button default styling in the dialog
+    const submitButton: FormField = {
+      id: `submit-button-${Date.now()}`,
       type: 'submit',
-      id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      label: language === 'ar' ? 'الطلب مع الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
-        backgroundColor: '#000000',
+        backgroundColor: '#9b87f5', // Use our default purple color
         color: '#ffffff', 
         fontSize: '19px', // Updated to 19px
         fontWeight: '500',
@@ -110,8 +109,11 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         showIcon: true,
         icon: 'shopping-cart',
         iconPosition: 'left',
-      },
-    });
+      }
+    };
+    
+    // Add the submit button to the fields array
+    fields.push(submitButton);
     
     return fields;
   };

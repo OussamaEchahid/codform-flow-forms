@@ -148,6 +148,15 @@ const SortableField: React.FC<SortableFieldProps> = ({
 
   // Show different field settings based on field type
   const shouldShowSubmitSpecificSettings = field.type === 'submit';
+  
+  // Animation types for submit button
+  const animationTypes = [
+    { value: "pulse", label: language === 'ar' ? 'نبض' : 'Pulse' },
+    { value: "shake", label: language === 'ar' ? 'اهتزاز' : 'Shake' },
+    { value: "bounce", label: language === 'ar' ? 'ارتداد' : 'Bounce' },
+    { value: "wiggle", label: language === 'ar' ? 'تمايل' : 'Wiggle' },
+    { value: "flash", label: language === 'ar' ? 'وميض' : 'Flash' }
+  ];
 
   return (
     <div
@@ -229,12 +238,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="flex gap-2 items-center">
                       <Input
                         type="color"
-                        value={editedField.style?.labelColor || '#000000'}
+                        value={editedField.style?.labelColor || '#9b87f5'}
                         onChange={(e) => handleStyleChange('labelColor', e.target.value)}
                         className="w-9 h-9 p-1"
                       />
                       <Input
-                        value={editedField.style?.labelColor || '#000000'}
+                        value={editedField.style?.labelColor || '#9b87f5'}
                         onChange={(e) => handleStyleChange('labelColor', e.target.value)}
                         className="flex-1"
                       />
@@ -308,6 +317,43 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       className="w-full"
                     />
                   </div>
+                  
+                  {/* Animation settings for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-animation-${field.id}`}
+                          checked={editedField.style?.animation || false}
+                          onCheckedChange={(checked) => handleStyleChange('animation', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-animation-${field.id}`}
+                        >
+                          {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
+                        </Label>
+                      </div>
+                      
+                      {editedField.style?.animation && (
+                        <div className="mt-2">
+                          <Label>{language === 'ar' ? 'نوع الرسوم المتحركة' : 'Animation Type'}</Label>
+                          <Select
+                            value={editedField.style?.animationType || 'pulse'}
+                            onValueChange={(value) => handleStyleChange('animationType', value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {animationTypes.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Right column */}
@@ -403,12 +449,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="flex gap-2 items-center">
                       <Input
                         type="color"
-                        value={editedField.style?.borderColor || '#d1d5db'}
+                        value={editedField.style?.borderColor || '#9b87f5'}
                         onChange={(e) => handleStyleChange('borderColor', e.target.value)}
                         className="w-9 h-9 p-1"
                       />
                       <Input
-                        value={editedField.style?.borderColor || '#d1d5db'}
+                        value={editedField.style?.borderColor || '#9b87f5'}
                         onChange={(e) => handleStyleChange('borderColor', e.target.value)}
                         className="flex-1"
                       />

@@ -58,7 +58,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '5px', // Reduced from 10px to 5px to bring the button closer to the fields
+    marginTop: '2px', // Reduced from 5px to 2px to bring the button even closer to the fields
   };
   
   // Icon rendering with improved support for multiple icon types
