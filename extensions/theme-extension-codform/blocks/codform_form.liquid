@@ -178,32 +178,42 @@
 
 {% schema %}
 {
-  "name": {
-    "en": "COD Form",
-    "ar": "نموذج الدفع عند الاستلام"
-  },
+  "name": "COD Form",
   "target": "section",
   "settings": [
     {
       "type": "header",
-      "content": {
-        "en": "Form Display",
-        "ar": "عرض النموذج"
-      }
+      "content": "Form Display"
     },
     {
       "id": "hide_header",
       "type": "checkbox",
-      "label": {
-        "en": "Hide Form Header",
-        "ar": "إخفاء عنوان النموذج"
-      },
+      "label": "Hide Form Header",
       "default": false,
-      "info": {
-        "en": "Hide the title and description in the form header",
-        "ar": "إخفاء العنوان والوصف في رأس النموذج"
+      "info": "Hide the title and description in the form header"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "COD Form",
+      "settings": {
+        "content": "Form Display",
+        "hide_header": {
+          "label": "Hide Form Header",
+          "info": "Hide the title and description in the form header"
+        }
+      }
+    },
+    "ar": {
+      "name": "نموذج الدفع عند الاستلام",
+      "settings": {
+        "content": "عرض النموذج",
+        "hide_header": {
+          "label": "إخفاء عنوان النموذج",
+          "info": "إخفاء العنوان والوصف في رأس النموذج"
+        }
       }
     }
-  ]
+  }
 }
 {% endschema %}
