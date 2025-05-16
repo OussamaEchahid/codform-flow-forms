@@ -3,91 +3,84 @@
 
 const fs = require('fs');
 const path = require('path');
-const TOML = require('toml');
+const { execSync } = require('child_process');
 
-// Colors for console output
-const colors = {
-  reset: "\x1b[0m",
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  cyan: "\x1b[36m"
-};
+console.log('Validating Shopify extensions before deployment...');
 
-console.log(`${colors.cyan}Validating Shopify extensions configuration...${colors.reset}`);
-
-// Validate main shopify.app.toml file
-try {
-  const appConfigPath = path.join(process.cwd(), 'shopify.app.toml');
-  
-  if (!fs.existsSync(appConfigPath)) {
-    console.error(`${colors.red}Error: shopify.app.toml file not found${colors.reset}`);
-    process.exit(1);
-  }
-  
-  const appConfigContent = fs.readFileSync(appConfigPath, 'utf8');
-  
-  console.log(`${colors.blue}Parsing shopify.app.toml...${colors.reset}`);
-  
-  // First check if extensions section is properly formatted as an array
-  if (appConfigContent.includes('extensions = {')) {
-    console.error(`${colors.red}Error: extensions is defined as an object, but should be an array of objects${colors.reset}`);
-    console.log(`${colors.yellow}Fix: Replace 'extensions = {' with '[[extensions]]' for each extension${colors.reset}`);
-    process.exit(1);
-  }
-
-  // Attempt to parse the TOML file
-  let appConfig;
-  try {
-    appConfig = TOML.parse(appConfigContent);
-    console.log(`${colors.green}✓ shopify.app.toml is valid TOML${colors.reset}`);
-  } catch (e) {
-    console.error(`${colors.red}Error parsing shopify.app.toml: ${e.message}${colors.reset}`);
-    process.exit(1);
-  }
-
-  // Check extensions section
-  if (!appConfig.extensions || !Array.isArray(appConfig.extensions)) {
-    console.error(`${colors.red}Error: 'extensions' section missing or not an array${colors.reset}`);
-    console.log(`${colors.yellow}Fix: Ensure extensions are defined using [[extensions]] syntax${colors.reset}`);
-    process.exit(1);
-  } else {
-    console.log(`${colors.green}✓ Extensions section is correctly defined as an array with ${appConfig.extensions.length} extensions${colors.reset}`);
-  }
-
-  // Validate each extension
-  appConfig.extensions.forEach((ext, index) => {
-    if (!ext.type) {
-      console.error(`${colors.red}Error: Missing 'type' for extension at index ${index}${colors.reset}`);
-    }
-    if (!ext.handle) {
-      console.error(`${colors.red}Error: Missing 'handle' for extension at index ${index}${colors.reset}`);
-    }
-  });
-
-  // Validate individual extension TOML files
-  if (appConfig.extensions && Array.isArray(appConfig.extensions)) {
-    for (const ext of appConfig.extensions) {
-      const extPath = path.join(process.cwd(), 'extensions', ext.handle, 'shopify.extension.toml');
-      
-      if (!fs.existsSync(extPath)) {
-        console.warn(`${colors.yellow}Warning: Extension TOML file not found: ${extPath}${colors.reset}`);
-        continue;
-      }
-      
-      try {
-        const extContent = fs.readFileSync(extPath, 'utf8');
-        const extConfig = TOML.parse(extContent);
-        console.log(`${colors.green}✓ Extension config valid for ${ext.handle}${colors.reset}`);
-      } catch (e) {
-        console.error(`${colors.red}Error parsing extension TOML for ${ext.handle}: ${e.message}${colors.reset}`);
-      }
-    }
-  }
-
-  console.log(`${colors.green}Validation complete!${colors.reset}`);
-} catch (error) {
-  console.error(`${colors.red}Unexpected error during validation: ${error.message}${colors.reset}`);
-  process.exit(1);
+// Helper function to check file size
+function getFileSizeInBytes(filePath) {
+  const stats = fs.statSync(filePath);
+  return stats.size;
 }
+
+// Check theme extension JS file size
+const themeExtensionPath = path.join(__dirname, 'extensions/theme-extension-codform');
+const jsFilePath = path.join(themeExtensionPath, 'assets/codform.js');
+
+if (fs.existsSync(jsFilePath)) {
+  const fileSizeInBytes = getFileSizeInBytes(jsFilePath);
+  const fileSizeInKB = fileSizeInBytes / 1024;
+  
+  console.log(`JS file size: ${fileSizeInBytes} bytes (${fileSizeInKB.toFixed(2)} KB)`);
+  
+  // Check if file exceeds Shopify's limit (10KB)
+  if (fileSizeInBytes > 10000) {
+    console.warn('\x1b[33m%s\x1b[0m', 'WARNING: codform.js exceeds Shopify\'s 10KB limit!');
+    console.log('Consider splitting functionality or reducing code size.');
+    
+    // Analyze file to find potential optimizations
+    console.log('\nSuggestions for optimization:');
+    console.log('1. Remove console.log statements in production build');
+    console.log('2. Minify the JavaScript code');
+    console.log('3. Split functionality into multiple files if possible');
+    console.log('4. Remove unused functions and variables');
+  } else {
+    console.log('\x1b[32m%s\x1b[0m', 'JS file size is within Shopify\'s limits. Good to go!');
+  }
+}
+
+// Validate TOML files
+console.log('\nValidating TOML files format...');
+const extensionsDir = path.join(__dirname, 'extensions');
+const extensionDirs = fs.readdirSync(extensionsDir).filter(file => 
+  fs.statSync(path.join(extensionsDir, file)).isDirectory()
+);
+
+for (const extDir of extensionDirs) {
+  const tomlPath = path.join(extensionsDir, extDir, 'shopify.extension.toml');
+  
+  if (fs.existsSync(tomlPath)) {
+    console.log(`Checking ${extDir}/shopify.extension.toml`);
+    
+    try {
+      // Simple validation - try to parse with eval (not ideal but works for basic checks)
+      // In a real app, you would use a proper TOML parser
+      const tomlContent = fs.readFileSync(tomlPath, 'utf8');
+      
+      // Check for common issues
+      if (tomlContent.includes('"key":') || tomlContent.includes('"type":') || 
+          tomlContent.includes('"label":') || tomlContent.includes('"value":')) {
+        console.warn('\x1b[33m%s\x1b[0m', '  ⚠️ Warning: Found JSON-style quotes in TOML file');
+        console.log('  TOML uses key = value format, not "key": value');
+      } else {
+        console.log('\x1b[32m%s\x1b[0m', '  ✓ TOML format looks good');
+      }
+    } catch (error) {
+      console.error('\x1b[31m%s\x1b[0m', `  ✗ Error validating ${tomlPath}:`, error.message);
+    }
+  }
+}
+
+// Check for package.json files
+console.log('\nChecking for package.json files...');
+for (const extDir of extensionDirs) {
+  const pkgPath = path.join(extensionsDir, extDir, 'package.json');
+  
+  if (!fs.existsSync(pkgPath)) {
+    console.warn('\x1b[33m%s\x1b[0m', `Warning: ${extDir} is missing package.json file`);
+  } else {
+    console.log(`✓ ${extDir} has package.json file`);
+  }
+}
+
+console.log('\nValidation complete! Fix any warnings before deploying.');

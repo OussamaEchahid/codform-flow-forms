@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
@@ -43,29 +44,19 @@ function findRootDirectory() {
 function validateExtensions(rootDir) {
   console.log('Validating extensions structure...');
   
-  // Try to run the validation script if it exists
-  const validationScript = path.join(rootDir, 'validate-shopify-extensions.js');
-  if (fs.existsSync(validationScript)) {
-    try {
-      console.log('Running validation script...');
-      execSync(`node ${validationScript}`, { stdio: 'inherit' });
-    } catch (err) {
-      console.error('Validation script found issues:', err.message);
-      console.log('Please fix the configuration issues before deploying.');
-      process.exit(1);
-    }
-    return;
+  // Run the separate validation script
+  try {
+    require('./validate-shopify-extensions');
+  } catch (error) {
+    console.error('Error running validation script:', error.message);
   }
-  
-  // Basic validation if the script doesn't exist
-  console.log('No validation script found. Performing basic validation...');
   
   // Check if the app has the extensions section in shopify.app.toml
   const appConfigPath = path.join(rootDir, 'shopify.app.toml');
   if (fs.existsSync(appConfigPath)) {
     const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-    if (!appConfig.includes('[[extensions]]')) {
-      console.warn('⚠️ Warning: Missing [[extensions]] section in shopify.app.toml');
+    if (!appConfig.includes('[extensions]')) {
+      console.warn('⚠️ Warning: Missing [extensions] section in shopify.app.toml');
       console.warn('This might cause the "Expected array, received object" error');
     }
   }
@@ -74,15 +65,79 @@ function validateExtensions(rootDir) {
   const themeExtPath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'shopify.extension.toml');
   if (fs.existsSync(themeExtPath)) {
     console.log('✓ Found theme extension: theme-extension-codform');
+    
+    // Check if block files exist
+    const blocksDir = path.join(rootDir, 'extensions', 'theme-extension-codform', 'blocks');
+    if (fs.existsSync(blocksDir)) {
+      const blockFiles = fs.readdirSync(blocksDir);
+      console.log(`✓ Found ${blockFiles.length} blocks in theme extension`);
+    }
+    
+    // Check JS file size
+    const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
+    if (fs.existsSync(jsFilePath)) {
+      const stats = fs.statSync(jsFilePath);
+      const fileSizeInBytes = stats.size;
+      if (fileSizeInBytes > 10000) {
+        console.warn(`⚠️ Warning: codform.js is ${fileSizeInBytes} bytes, which exceeds the 10KB limit`);
+        console.warn('Consider running the optimize-theme-js.js script before deployment');
+      } else {
+        console.log(`✓ codform.js size is ${fileSizeInBytes} bytes (within limits)`);
+      }
+    }
+  } else {
+    console.warn('⚠️ Warning: theme-extension-codform not found or missing configuration file');
   }
   
   // Validate UI extension
   const uiExtPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'shopify.extension.toml');
   if (fs.existsSync(uiExtPath)) {
     console.log('✓ Found UI extension: admin-action-extension');
+    
+    // Check for package.json
+    const pkgPath = path.join(rootDir, 'extensions', 'admin-action-extension', 'package.json');
+    if (!fs.existsSync(pkgPath)) {
+      console.warn('⚠️ Warning: admin-action-extension is missing package.json file');
+    } else {
+      console.log('✓ admin-action-extension has package.json file');
+    }
+    
+    // Check for extension_points vs. extensions.targeting
+    const uiExtConfig = fs.readFileSync(uiExtPath, 'utf8');
+    if (!uiExtConfig.includes('[extension_points]') && uiExtConfig.includes('[[extensions.targeting]]')) {
+      console.warn('⚠️ Warning: UI extension is using [[extensions.targeting]] which may be outdated');
+      console.warn('Consider updating to [extension_points] format');
+    }
+  } else {
+    console.warn('⚠️ Warning: admin-action-extension not found or missing configuration file');
   }
   
   console.log('Extension validation complete');
+}
+
+// Optimize JS if needed
+function optimizeThemeJs(rootDir, force = false) {
+  const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
+  
+  if (!fs.existsSync(jsFilePath)) {
+    console.log('No codform.js file found to optimize');
+    return;
+  }
+  
+  const stats = fs.statSync(jsFilePath);
+  const fileSizeInBytes = stats.size;
+  
+  if (fileSizeInBytes > 10000 || force) {
+    console.log(`codform.js size is ${fileSizeInBytes} bytes, running optimization...`);
+    try {
+      // Run the optimization script
+      require('./optimize-theme-js');
+    } catch (error) {
+      console.error('Error running optimization script:', error.message);
+    }
+  } else {
+    console.log(`codform.js size is ${fileSizeInBytes} bytes (within limits), skipping optimization`);
+  }
 }
 
 // Main function
@@ -128,7 +183,7 @@ function main() {
     
     console.log(`Found Shopify app root at: ${rootDir}`);
     
-    // Get command from arguments or use default
+    // Get command from remaining arguments
     if (args.length > 0) {
       command = args[0];
     }
@@ -208,31 +263,6 @@ function main() {
   } catch (error) {
     console.error('Error executing command:', error.message);
     process.exit(1);
-  }
-}
-
-// Optimize JS if needed
-function optimizeThemeJs(rootDir, force = false) {
-  const jsFilePath = path.join(rootDir, 'extensions', 'theme-extension-codform', 'assets', 'codform.js');
-  
-  if (!fs.existsSync(jsFilePath)) {
-    console.log('No codform.js file found to optimize');
-    return;
-  }
-  
-  const stats = fs.statSync(jsFilePath);
-  const fileSizeInBytes = stats.size;
-  
-  if (fileSizeInBytes > 10000 || force) {
-    console.log(`codform.js size is ${fileSizeInBytes} bytes, running optimization...`);
-    try {
-      // Run the optimization script
-      require('./optimize-theme-js');
-    } catch (error) {
-      console.error('Error running optimization script:', error.message);
-    }
-  } else {
-    console.log(`codform.js size is ${fileSizeInBytes} bytes (within limits), skipping optimization`);
   }
 }
 

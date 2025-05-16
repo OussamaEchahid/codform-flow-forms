@@ -44,11 +44,6 @@ redirect_urls = [
 [pos]
 embedded = false
 
-# Correct format for extensions as an array
-[[extensions]]
-type = "theme_app_extension"
-handle = "theme-extension-codform"
-
-[[extensions]]
-type = "ui_extension"
-handle = "admin-action-extension"
+[extensions]
+theme_app_extensions = ["extensions/theme-extension-codform"]
+ui_extensions = ["extensions/admin-action-extension"]

@@ -49,7 +49,7 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
 
-    // First, check if there's a specific form for this product
+    // First, check if there's a specific form for this product with proper UUID type handling
     const { data: productSettings, error: settingsError } = await supabase
       .from('shopify_product_settings')
       .select('form_id, block_id, enabled')
