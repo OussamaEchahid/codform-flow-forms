@@ -49,42 +49,44 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   // تحديد الاتجاه النصي (RTL/LTR) بوضوح
   const isRTL = language === 'ar';
+  // مباشرة استخدام قيم الاتجاه النصي المحددة بدلاً من السلاسل النصية
+  const textDirection = isRTL ? 'rtl' as const : 'ltr' as const;
   
   // نمط الخلفية مع قيم بكسل ثابتة للبادينغ والتأكيد بواسطة !important
   const backgroundStyle = {
-    backgroundColor: backgroundColor + " !important",
-    padding: '16px !important', // قيمة بكسل دقيقة لبادينغ متسق
-    borderRadius: (formStyle.borderRadius || '8px') + " !important",
-    width: '100% !important',
+    backgroundColor: backgroundColor,
+    padding: '16px',
+    borderRadius: (formStyle.borderRadius || '8px'),
+    width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px !important', // هامش سفلي متسق
-    display: 'block !important'
+    marginBottom: '16px',
+    display: 'block'
   };
 
   // أنماط العنوان مع تأكيد !important
   const titleStyle = {
-    color: (fieldStyle.color || '#ffffff') + " !important",
-    fontSize: (fieldStyle.fontSize || fontSize) + " !important",
-    textAlign: alignment + " !important",
-    fontWeight: (fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')) + " !important",
-    fontFamily: (fieldStyle.fontFamily || 'inherit') + " !important",
-    margin: '0 !important',
-    padding: '0 !important',
-    lineHeight: '1.3 !important', // ارتفاع سطر متسق
-    direction: isRTL ? 'rtl' : 'ltr'
+    color: (fieldStyle.color || '#ffffff'),
+    fontSize: (fieldStyle.fontSize || fontSize),
+    textAlign: alignment,
+    fontWeight: (fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')),
+    fontFamily: (fieldStyle.fontFamily || 'inherit'),
+    margin: '0',
+    padding: '0',
+    lineHeight: '1.3',
+    direction: textDirection
   };
 
   // أنماط الوصف مع تأكيد !important
   const descriptionStyle = {
-    color: (fieldStyle.descriptionColor || '#ffffff') + " !important",
-    fontSize: (fieldStyle.descriptionFontSize || descriptionFontSize) + " !important",
-    margin: '8px 0 0 0 !important', // هوامش متسقة
-    padding: '0 !important',
-    textAlign: alignment + " !important",
-    fontFamily: (fieldStyle.fontFamily || 'inherit') + " !important",
-    fontWeight: 'normal !important', // تغيير من descriptionFontWeight إلى قيمة ثابتة
-    lineHeight: '1.5 !important', // ارتفاع سطر متسق للوصف
-    direction: isRTL ? 'rtl' : 'ltr'
+    color: (fieldStyle.descriptionColor || '#ffffff'),
+    fontSize: (fieldStyle.descriptionFontSize || descriptionFontSize),
+    margin: '8px 0 0 0',
+    padding: '0',
+    textAlign: alignment,
+    fontFamily: (fieldStyle.fontFamily || 'inherit'),
+    fontWeight: 'normal',
+    lineHeight: '1.5',
+    direction: textDirection
   };
 
   // إنشاء معرف فريد لهذا الحقل
