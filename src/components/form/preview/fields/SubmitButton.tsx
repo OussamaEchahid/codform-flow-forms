@@ -40,26 +40,25 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
+    fontSize: style.fontSize || '19px', // Updated default fontSize to 19px
     fontWeight: style.fontWeight || 'bold',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    paddingTop: style.paddingY || '12px',
-    paddingBottom: style.paddingY || '12px',
+    paddingTop: style.paddingY || '15px', // Updated default paddingY to 15px 
+    paddingBottom: style.paddingY || '15px', // Updated default paddingY to 15px
     paddingLeft: '20px',
     paddingRight: '20px',
     width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: style.iconPosition === 'left' ? 'flex-start' : 
-                  style.iconPosition === 'right' ? 'flex-end' : 'center',
+    justifyContent: 'center', // Always center the content regardless of icon position
     gap: '8px',
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '10px', // تقليل المساحة العليا للزر
+    marginTop: '5px', // Reduced from 10px to 5px to bring the button closer to the fields
   };
   
   // Icon rendering with improved support for multiple icon types

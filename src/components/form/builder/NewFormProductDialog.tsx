@@ -99,14 +99,14 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       style: {
         backgroundColor: '#000000',
         color: '#ffffff', 
-        fontSize: '18px',
+        fontSize: '19px', // Updated to 19px
         fontWeight: '500',
         animation: true,
         animationType: 'shake',
         borderColor: '#eaeaff',
         borderRadius: '6px',
         borderWidth: '0px',
-        paddingY: '12px',
+        paddingY: '15px', // Updated to 15px
         showIcon: true,
         icon: 'shopping-cart',
         iconPosition: 'left',

@@ -73,7 +73,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}`;
   
   return (
-    <div className="mb-1" key={componentKey}>
+    <div className="mb-0" key={componentKey}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
@@ -120,7 +120,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            marginBottom: '2px', // تقليل المساحة السفلية
+            marginBottom: '0', // Remove bottom margin
           }}
         />
       </div>
