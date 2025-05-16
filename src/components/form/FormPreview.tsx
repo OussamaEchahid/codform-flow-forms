@@ -48,27 +48,32 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
+      // Make a copy of the field to avoid mutation issues
+      const updatedField = { ...field };
+      
+      // Set default empty label for cart items and summary
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
-        return { ...field, label: '' };
+        updatedField.label = '';
       }
       
       // Convert empty icon to 'none' for consistent handling
       if (field.icon === '') {
-        return { ...field, icon: 'none' };
+        updatedField.icon = 'none';
       }
       
       // Make sure style.showIcon is defined if icon is present
-      if (field.icon && field.icon !== 'none' && field.style) {
-        return { 
-          ...field, 
-          style: { 
-            ...field.style,
-            showIcon: field.style.showIcon !== undefined ? field.style.showIcon : true
-          }
-        };
+      if (field.icon && field.icon !== 'none') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Default showIcon to true if icon exists and not explicitly set to false
+        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+          ? updatedField.style.showIcon 
+          : true;
       }
       
-      return field;
+      return updatedField;
     });
     
     // If there's already a form-title, use it

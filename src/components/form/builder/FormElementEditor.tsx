@@ -4,11 +4,8 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
-import { Button } from '@/components/ui/button';
-import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -65,13 +62,28 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle element updates when they are edited
   const handleElementUpdate = (index: number) => {
+    // Create a new element to ensure we're not mutating the original
+    const updatedElement = { ...elements[index] };
+    
     // Normalize icon values: convert empty strings to 'none'
-    if (elements[index].icon === '') {
-      elements[index].icon = 'none';
+    if (updatedElement.icon === '') {
+      updatedElement.icon = 'none';
+    }
+    
+    // Ensure proper icon settings are preserved
+    if (updatedElement.icon && updatedElement.icon !== 'none') {
+      if (!updatedElement.style) {
+        updatedElement.style = {};
+      }
+      
+      // Set showIcon to true by default unless explicitly set to false
+      updatedElement.style.showIcon = updatedElement.style.showIcon !== undefined 
+        ? updatedElement.style.showIcon 
+        : true;
     }
     
     if (onUpdateElement) {
-      onUpdateElement(index, elements[index]);
+      onUpdateElement(index, updatedElement);
       toast.success(language === 'ar' ? "تم تحديث العنصر بنجاح" : "Element updated successfully");
     } else {
       onEditElement(index);

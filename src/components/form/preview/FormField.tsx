@@ -82,8 +82,21 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
     return null;
   }
 
+  // Normalize field properties
+  const normalizedField = {
+    ...field,
+    icon: field.icon === '' ? 'none' : field.icon,
+    style: {
+      ...field.style,
+      // Set default showIcon to true if icon is present and not none
+      showIcon: field.style?.showIcon !== undefined ? 
+        field.style.showIcon : 
+        (field.icon && field.icon !== 'none' ? true : false)
+    }
+  };
+
   // Handle field type mapping
-  let fieldType = field.type;
+  let fieldType = normalizedField.type;
   
   // Map email and phone to text inputs
   if (fieldType === 'email' || fieldType === 'phone') {
@@ -99,9 +112,9 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
 
   // Log animation data if this is a submit button
-  if (fieldType === 'submit' && field.style) {
-    const animationType = field.style.animationType || 'none';
-    const hasAnimation = !!field.style.animation;
+  if (fieldType === 'submit' && normalizedField.style) {
+    const animationType = normalizedField.style.animationType || 'none';
+    const hasAnimation = !!normalizedField.style.animation;
     
     if (hasAnimation) {
       console.log(`Submit button using animation: ${animationType}`);
@@ -134,9 +147,9 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
   if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (
       <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
-        <Component field={field} formStyle={formStyle} />
+        <Component field={normalizedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
-          {field.label ? `حقل "${field.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
+          {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
         </div>
       </div>
     );
@@ -145,7 +158,7 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
   return (
     <>
       <style>{animationStyles}</style>
-      <Component field={field} formStyle={formStyle} />
+      <Component field={normalizedField} formStyle={formStyle} />
     </>
   );
 });

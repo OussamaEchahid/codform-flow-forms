@@ -40,14 +40,30 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Process fields to normalize icon values
+  // Process fields to normalize icon values - critical for preview display
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
+      // Create a new field object to avoid mutation issues
+      const updatedField = { ...field };
+      
       // Convert empty icon strings to 'none'
-      if (field.icon === '') {
-        return { ...field, icon: 'none' };
+      if (updatedField.icon === '') {
+        updatedField.icon = 'none';
       }
-      return field;
+      
+      // Ensure proper showIcon handling
+      if (updatedField.icon && updatedField.icon !== 'none') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Default showIcon to true unless explicitly set to false
+        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
+          ? updatedField.style.showIcon 
+          : true;
+      }
+      
+      return updatedField;
     });
   }, [fields]);
 
