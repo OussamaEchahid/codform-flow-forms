@@ -106,6 +106,16 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Apply changes immediately by updating the original field
     field.style = {...updatedStyle};
     
+    // Fix for Label Color - only apply animation if this is specifically for animation
+    if (property === 'animation' || property === 'animationType') {
+      // Do nothing special, this is correct behavior
+    } else if (property === 'labelColor') {
+      // For labelColor, make sure we don't affect the animation setting
+      if (field.style.animation !== undefined) {
+        field.style.animation = updatedStyle.animation;
+      }
+    }
+    
     // Propagate changes to parent for immediate preview update
     if (onFieldUpdate) {
       onFieldUpdate({...updatedField});

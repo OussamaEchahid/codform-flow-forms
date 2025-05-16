@@ -19,9 +19,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Get animation class if set
+  // Get animation class if set - Fixed animation functionality
   const getAnimationClass = () => {
-    if (!style.animation) return '';
+    if (style.animation !== true) return '';
     
     const animationType = style.animationType || 'pulse';
     switch (animationType) {
@@ -40,14 +40,14 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '19px', // Updated default fontSize to 19px
+    fontSize: style.fontSize || '19px', // Default fontSize is 19px
     fontWeight: style.fontWeight || 'bold',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    paddingTop: style.paddingY || '15px', // Updated default paddingY to 15px 
-    paddingBottom: style.paddingY || '15px', // Updated default paddingY to 15px
+    paddingTop: style.paddingY || '15px', // Default paddingY is 15px 
+    paddingBottom: style.paddingY || '15px', // Default paddingY is 15px
     paddingLeft: '20px',
     paddingRight: '20px',
     width: style.fullWidth === false ? 'auto' : '100%',
@@ -58,7 +58,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '2px', // Reduced from 5px to 2px to bring the button even closer to the fields
+    marginTop: '0px', // Removed margin completely to bring it closer to previous field
   };
   
   // Icon rendering with improved support for multiple icon types
