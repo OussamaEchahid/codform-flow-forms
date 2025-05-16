@@ -6,6 +6,7 @@ import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
+import FieldEditor from '@/components/form/FieldEditor';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -28,9 +29,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onReorderElements,
   onUpdateElement
 }) => {
-  const {
-    language
-  } = useI18n();
+  const { language } = useI18n();
+  const [isFieldEditorOpen, setIsFieldEditorOpen] = React.useState(false);
+  const [editingField, setEditingField] = React.useState<{ field: FormField, index: number } | null>(null);
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -62,32 +63,51 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle element updates when they are edited
   const handleElementUpdate = (index: number) => {
-    // Create a new element to ensure we're not mutating the original
-    const updatedElement = { ...elements[index] };
+    // Only open the editor if we have a valid field type to edit
+    const field = elements[index];
+    const supportedTypes = ['text', 'email', 'phone', 'textarea', 'select', 'checkbox', 'radio', 'cart-items', 'cart-summary', 'submit', 'whatsapp', 'image', 'form-title', 'title', 'text/html'];
     
-    // Normalize icon values: convert empty strings to 'none'
-    if (updatedElement.icon === '') {
-      updatedElement.icon = 'none';
+    if (supportedTypes.includes(field.type)) {
+      setEditingField({ field, index });
+      setIsFieldEditorOpen(true);
+    } else {
+      // For unsupported types, just call onEditElement directly
+      onEditElement(index);
+      toast.info(language === 'ar' ? "هذا النوع من الحقول لا يدعم التحرير المباشر" : "This field type doesn't support direct editing");
     }
-    
-    // Ensure proper icon settings are preserved
-    if (updatedElement.icon && updatedElement.icon !== 'none') {
-      if (!updatedElement.style) {
-        updatedElement.style = {};
+  };
+  
+  // Save field after editing
+  const handleSaveField = (updatedField: FormField) => {
+    if (editingField && onUpdateElement) {
+      // Normalize icon values: convert empty strings to 'none'
+      if (updatedField.icon === '') {
+        updatedField.icon = 'none';
       }
       
-      // Set showIcon to true by default unless explicitly set to false
-      updatedElement.style.showIcon = updatedElement.style.showIcon !== undefined 
-        ? updatedElement.style.showIcon 
-        : true;
-    }
-    
-    if (onUpdateElement) {
-      onUpdateElement(index, updatedElement);
+      // Ensure proper icon settings are preserved
+      if (updatedField.icon && updatedField.icon !== 'none') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Set showIcon to true by default unless explicitly set to false
+        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+          ? updatedField.style.showIcon 
+          : true;
+      }
+      
+      onUpdateElement(editingField.index, updatedField);
       toast.success(language === 'ar' ? "تم تحديث العنصر بنجاح" : "Element updated successfully");
-    } else {
-      onEditElement(index);
-    }
+    } 
+    
+    closeEditor();
+  };
+  
+  // Close field editor
+  const closeEditor = () => {
+    setIsFieldEditorOpen(false);
+    setEditingField(null);
   };
   
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
@@ -118,6 +138,15 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
           ))}
         </SortableContext>
       </DndContext>
+      
+      {/* Field Editor Modal */}
+      {isFieldEditorOpen && editingField && (
+        <FieldEditor
+          field={editingField.field}
+          onSave={handleSaveField}
+          onClose={closeEditor}
+        />
+      )}
     </div>
   );
 };

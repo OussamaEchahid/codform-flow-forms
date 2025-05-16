@@ -37,7 +37,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // Explicitly check for showIcon (default to true if icon is present and not none)
   const showIcon = fieldStyle.showIcon !== undefined 
     ? fieldStyle.showIcon 
-    : (field.icon && field.icon !== 'none' ? true : false);
+    : (field.icon && field.icon !== 'none');
 
   // Function to render the field icon based on the icon name
   const renderIcon = () => {
