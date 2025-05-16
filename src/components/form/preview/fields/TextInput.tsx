@@ -34,7 +34,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // Explicitly check for showIcon (default to true if icon is present and not none)
+  // Normalize icon handling - explicitly check if showIcon is defined first
   const showIcon = fieldStyle.showIcon !== undefined 
     ? fieldStyle.showIcon 
     : (field.icon && field.icon !== 'none');

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -61,47 +60,35 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   };
   
-  // Handle element updates when they are edited
+  // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = (index: number) => {
-    // Only open the editor if we have a valid field type to edit
+    // Get the current field being edited
     const field = elements[index];
-    const supportedTypes = ['text', 'email', 'phone', 'textarea', 'select', 'checkbox', 'radio', 'cart-items', 'cart-summary', 'submit', 'whatsapp', 'image', 'form-title', 'title', 'text/html'];
     
-    if (supportedTypes.includes(field.type)) {
-      setEditingField({ field, index });
-      setIsFieldEditorOpen(true);
-    } else {
-      // For unsupported types, just call onEditElement directly
-      onEditElement(index);
-      toast.info(language === 'ar' ? "هذا النوع من الحقول لا يدعم التحرير المباشر" : "This field type doesn't support direct editing");
+    // Normalize icon value (convert empty string to 'none')
+    if (field.icon === '') {
+      field.icon = 'none';
     }
-  };
-  
-  // Save field after editing
-  const handleSaveField = (updatedField: FormField) => {
-    if (editingField && onUpdateElement) {
-      // Normalize icon values: convert empty strings to 'none'
-      if (updatedField.icon === '') {
-        updatedField.icon = 'none';
-      }
-      
-      // Ensure proper icon settings are preserved
-      if (updatedField.icon && updatedField.icon !== 'none') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        // Set showIcon to true by default unless explicitly set to false
-        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
-          ? updatedField.style.showIcon 
-          : true;
-      }
-      
-      onUpdateElement(editingField.index, updatedField);
-      toast.success(language === 'ar' ? "تم تحديث العنصر بنجاح" : "Element updated successfully");
-    } 
     
-    closeEditor();
+    // Ensure proper icon settings
+    if (field.icon && field.icon !== 'none') {
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Set showIcon based on existing value or default to true if icon exists
+      field.style.showIcon = field.style.showIcon !== undefined 
+        ? field.style.showIcon 
+        : true;
+    }
+    
+    // Notify parent component about the update
+    if (onUpdateElement) {
+      onUpdateElement(index, field);
+    }
+    
+    // Force refresh the preview
+    onSelectElement(index);
   };
   
   // Close field editor
@@ -143,7 +130,12 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       {isFieldEditorOpen && editingField && (
         <FieldEditor
           field={editingField.field}
-          onSave={handleSaveField}
+          onSave={(updatedField) => {
+            if (onUpdateElement) {
+              onUpdateElement(editingField.index, updatedField);
+            }
+            closeEditor();
+          }}
           onClose={closeEditor}
         />
       )}

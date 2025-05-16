@@ -82,7 +82,7 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
     return null;
   }
 
-  // Normalize field properties
+  // Normalize field properties - ensure icon settings are properly applied
   const normalizedField = {
     ...field,
     icon: field.icon === '' ? 'none' : field.icon,
@@ -91,7 +91,7 @@ const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
       // Set default showIcon to true if icon is present and not none
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
-        (field.icon && field.icon !== 'none' ? true : false)
+        (field.icon && field.icon !== 'none')
     }
   };
 

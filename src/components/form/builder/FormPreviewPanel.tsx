@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
@@ -39,6 +39,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
+  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
+  
+  // Force refresh when any prop changes to ensure live preview updates
+  useEffect(() => {
+    setInternalRefreshKey(prevKey => prevKey + 1);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
   
   // Process fields to normalize icon values - critical for preview display
   const processedFields = React.useMemo(() => {
@@ -75,7 +81,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       <div className="border rounded-lg p-4 bg-gray-50">
         <FormPreview 
-          key={refreshKey}
+          key={`preview-${internalRefreshKey}-${refreshKey}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}
