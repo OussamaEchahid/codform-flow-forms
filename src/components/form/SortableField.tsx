@@ -107,7 +107,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'Open Sans', label: 'Open Sans' },
   ];
   
-  // Available icons for fields
+  // Available icons for fields - FIXED: Changed empty string to "none" for the "No Icon" option
   const fieldIcons = [
     { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: User },
     { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: Phone },
@@ -118,7 +118,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'circle-check', label: language === 'ar' ? 'تحقق دائري' : 'Circle Check', component: CircleCheck },
     { value: 'image', label: language === 'ar' ? 'صورة' : 'Image', component: Image },
     { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: FileText },
-    { value: '', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null }
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null }
   ];
 
   // Function to render the selected icon
@@ -156,7 +156,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
             
             <div className={`flex-1 ${language === 'ar' ? 'text-right mr-2' : 'text-left ml-2'}`}>
               <div className="font-medium flex items-center">
-                {field.icon && (
+                {field.icon && field.icon !== 'none' && (
                   <span className="mr-2">
                     {(() => {
                       const iconInfo = fieldIcons.find(icon => icon.value === field.icon);
@@ -257,7 +257,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-1">
                       <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field icon'}</Label>
                       <Select
-                        value={editedField.icon || ''}
+                        value={editedField.icon || 'none'}
                         onValueChange={(value) => handleFieldChange('icon', value)}
                       >
                         <SelectTrigger>
@@ -265,7 +265,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             <div className="flex items-center">
                               {renderSelectedIcon()}
                               <span>
-                                {editedField.icon ? fieldIcons.find(icon => icon.value === editedField.icon)?.label : 
+                                {editedField.icon && editedField.icon !== 'none' ? 
+                                  fieldIcons.find(icon => icon.value === editedField.icon)?.label : 
                                   (language === 'ar' ? 'اختر أيقونة' : 'Select icon')}
                               </span>
                             </div>

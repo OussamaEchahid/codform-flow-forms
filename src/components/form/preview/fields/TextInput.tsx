@@ -37,7 +37,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
 
   // Function to render the field icon based on the icon name
   const renderIcon = () => {
-    if (!field.icon || !showIcon) return null;
+    // Don't render if icon is disabled or is set to 'none'
+    if (!field.icon || field.icon === 'none' || !showIcon) return null;
     
     const iconProps = { 
       size: 18, 
@@ -79,7 +80,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       )}
       
       <div className="relative">
-        {showIcon && field.icon && (
+        {showIcon && field.icon && field.icon !== 'none' && (
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
             {renderIcon()}
           </div>
@@ -103,7 +104,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: showIcon ? '2.5rem' : '0.75rem',
+            paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           }}

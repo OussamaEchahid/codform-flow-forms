@@ -65,6 +65,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle element updates when they are edited
   const handleElementUpdate = (index: number) => {
+    // Normalize icon values: convert empty strings to 'none'
+    if (elements[index].icon === '') {
+      elements[index].icon = 'none';
+    }
+    
     if (onUpdateElement) {
       onUpdateElement(index, elements[index]);
       toast.success(language === 'ar' ? "تم تحديث العنصر بنجاح" : "Element updated successfully");
