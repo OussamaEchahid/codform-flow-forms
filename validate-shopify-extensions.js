@@ -1,86 +1,64 @@
 
-#!/usr/bin/env node
-
+// Validate Shopify extensions structure
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
-console.log('Validating Shopify extensions before deployment...');
-
-// Helper function to check file size
-function getFileSizeInBytes(filePath) {
-  const stats = fs.statSync(filePath);
-  return stats.size;
-}
-
-// Check theme extension JS file size
-const themeExtensionPath = path.join(__dirname, 'extensions/theme-extension-codform');
-const jsFilePath = path.join(themeExtensionPath, 'assets/codform.js');
-
-if (fs.existsSync(jsFilePath)) {
-  const fileSizeInBytes = getFileSizeInBytes(jsFilePath);
-  const fileSizeInKB = fileSizeInBytes / 1024;
+function validateExtensionsConfig() {
+  console.log('Validating Shopify app and extensions configuration...');
   
-  console.log(`JS file size: ${fileSizeInBytes} bytes (${fileSizeInKB.toFixed(2)} KB)`);
-  
-  // Check if file exceeds Shopify's limit (10KB)
-  if (fileSizeInBytes > 10000) {
-    console.warn('\x1b[33m%s\x1b[0m', 'WARNING: codform.js exceeds Shopify\'s 10KB limit!');
-    console.log('Consider splitting functionality or reducing code size.');
-    
-    // Analyze file to find potential optimizations
-    console.log('\nSuggestions for optimization:');
-    console.log('1. Remove console.log statements in production build');
-    console.log('2. Minify the JavaScript code');
-    console.log('3. Split functionality into multiple files if possible');
-    console.log('4. Remove unused functions and variables');
-  } else {
-    console.log('\x1b[32m%s\x1b[0m', 'JS file size is within Shopify\'s limits. Good to go!');
-  }
-}
-
-// Validate TOML files
-console.log('\nValidating TOML files format...');
-const extensionsDir = path.join(__dirname, 'extensions');
-const extensionDirs = fs.readdirSync(extensionsDir).filter(file => 
-  fs.statSync(path.join(extensionsDir, file)).isDirectory()
-);
-
-for (const extDir of extensionDirs) {
-  const tomlPath = path.join(extensionsDir, extDir, 'shopify.extension.toml');
-  
-  if (fs.existsSync(tomlPath)) {
-    console.log(`Checking ${extDir}/shopify.extension.toml`);
-    
-    try {
-      // Simple validation - try to parse with eval (not ideal but works for basic checks)
-      // In a real app, you would use a proper TOML parser
-      const tomlContent = fs.readFileSync(tomlPath, 'utf8');
-      
-      // Check for common issues
-      if (tomlContent.includes('"key":') || tomlContent.includes('"type":') || 
-          tomlContent.includes('"label":') || tomlContent.includes('"value":')) {
-        console.warn('\x1b[33m%s\x1b[0m', '  ⚠️ Warning: Found JSON-style quotes in TOML file');
-        console.log('  TOML uses key = value format, not "key": value');
-      } else {
-        console.log('\x1b[32m%s\x1b[0m', '  ✓ TOML format looks good');
-      }
-    } catch (error) {
-      console.error('\x1b[31m%s\x1b[0m', `  ✗ Error validating ${tomlPath}:`, error.message);
+  try {
+    // Check app config
+    const appConfigPath = path.resolve('./shopify.app.toml');
+    if (!fs.existsSync(appConfigPath)) {
+      console.error('❌ shopify.app.toml not found');
+      return false;
     }
+    
+    const appConfig = fs.readFileSync(appConfigPath, 'utf8');
+    
+    // Check extensions format
+    if (!appConfig.includes('[[extensions]]')) {
+      console.warn('⚠️ Warning: extensions section may not be formatted correctly');
+      console.warn('   Should use [[extensions]] array format instead of [extensions] object format');
+      
+      // Give detailed fix instructions
+      console.log('\nTo fix extensions format in shopify.app.toml, use this format:');
+      console.log(`
+[[extensions]]
+type = "theme_app_extension"
+handle = "theme-extension-codform"
+
+[[extensions]]
+type = "ui_extension" 
+handle = "admin-action-extension"
+`);
+      return false;
+    }
+    
+    // Check theme extension
+    const themeExtPath = path.resolve('./extensions/theme-extension-codform/shopify.extension.toml');
+    if (!fs.existsSync(themeExtPath)) {
+      console.warn('⚠️ Warning: theme-extension-codform configuration not found');
+      return false;
+    }
+    
+    // Check UI extension
+    const uiExtPath = path.resolve('./extensions/admin-action-extension/shopify.extension.toml');
+    if (!fs.existsSync(uiExtPath)) {
+      console.warn('⚠️ Warning: admin-action-extension configuration not found');
+      return false;
+    }
+    
+    console.log('✅ Shopify app and extensions configuration looks valid');
+    return true;
+  } catch (error) {
+    console.error('❌ Error validating extensions:', error.message);
+    return false;
   }
 }
 
-// Check for package.json files
-console.log('\nChecking for package.json files...');
-for (const extDir of extensionDirs) {
-  const pkgPath = path.join(extensionsDir, extDir, 'package.json');
-  
-  if (!fs.existsSync(pkgPath)) {
-    console.warn('\x1b[33m%s\x1b[0m', `Warning: ${extDir} is missing package.json file`);
-  } else {
-    console.log(`✓ ${extDir} has package.json file`);
-  }
-}
+// Run the validation
+validateExtensionsConfig();
 
-console.log('\nValidation complete! Fix any warnings before deploying.');
+// Export for use in other scripts
+module.exports = { validateExtensionsConfig };
