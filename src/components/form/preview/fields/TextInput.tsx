@@ -42,11 +42,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // تحسين خصائص الأيقونات لحل مشكلة TypeScript
+    // تصحيح خصائص الأيقونات لحل مشكلة TypeScript - تحويل aria-hidden من string إلى boolean
     const iconProps = { 
       size: 18,
       className: "text-gray-400",
-      "aria-hidden": true, // استخدام قيمة منطقية boolean بدلاً من سلسلة نصية string
+      "aria-hidden": true,  // استخدام قيمة منطقية boolean بدلاً من سلسلة نصية "true"
       "data-testid": `icon-${field.icon}` // استخدام data-testid للاختبارات
     };
     
