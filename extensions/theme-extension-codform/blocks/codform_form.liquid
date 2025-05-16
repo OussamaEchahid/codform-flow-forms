@@ -1,743 +1,209 @@
 
 {% comment %}
-  CODFORM - نماذج الدفع عند الاستلام
-
-  هذا البلوك يضيف نموذج الدفع عند الاستلام إلى صفحة المنتج
-  سيتم تحميل النموذج المناسب تلقائياً بناءً على إعدادات المتجر
+  @name: CODFORM Form Block
+  @description: Display a cash on delivery form for products
+  @supports: product
+  @by: OurTeam
 {% endcomment %}
 
-{% if product %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true">
-  <div class="codform-form-container">
-    <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
-      <div class="codform-spinner"></div>
-      <p>جاري تحميل النموذج...</p>
-    </div>
-
-    <div id="codform-form-{{ block.id }}" class="codform-form" style="display: none;">
-      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
-    </div>
-
-    <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none;">
-      <div class="codform-success-icon">✓</div>
-      <h4>تم إرسال الطلب بنجاح</h4>
-      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
-    </div>
-
-    <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
-      <div class="codform-error-icon">!</div>
-      <h4>حدث خطأ</h4>
-      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
-      <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
-    </div>
+<div 
+  id="codform-container-{{ block.id }}" 
+  class="codform-container" 
+  data-product-id="{{ product.id }}"
+  data-block-id="{{ block.id }}"
+  data-hide-header="{{ block.settings.hide_header }}"
+  data-enable-icons="{{ settings.enable_icons }}"
+>
+  <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: none; justify-content: center; padding: 20px;">
+    <div class="codform-loader-spinner"></div>
+  </div>
+  
+  <div id="codform-form-{{ block.id }}" class="codform-form-container" style="display: none;"></div>
+  
+  <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none; text-align: center; padding: 20px;">
+    <h3>{{ 'codform.success_title' | t }}</h3>
+    <p>{{ 'codform.success_message' | t }}</p>
+  </div>
+  
+  <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none; text-align: center; padding: 20px;">
+    <h3>{{ 'codform.error_title' | t }}</h3>
+    <p>{{ 'codform.error_message' | t }}</p>
+    <button id="codform-retry-{{ block.id }}" class="codform-retry-button">{{ 'codform.retry_button' | t }}</button>
   </div>
 </div>
 
 <style>
-  /* Basic container configuration */
-  .codform-container {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #f9fafb;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-    width: 100%;
-  }
-
-  /* Form header */
-  .codform-header {
-    margin-bottom: 20px;
-    text-align: right;
-    padding: 15px;
-    border-radius: 8px;
-  }
-
-  .codform-header h3 {
-    font-size: 24px !important; /* أحجام بكسل دقيقة مع !important */
-    font-weight: 700 !important;
-    margin-bottom: 8px !important;
-    color: #ffffff !important;
-    line-height: 1.3 !important;
-  }
-
-  .codform-header p {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-size: 14px !important; /* أحجام بكسل دقيقة مع !important */
-    line-height: 1.5 !important;
-    margin: 0 !important;
-  }
-
-  /* Main form container */
-  .codform-form {
-    margin-top: 20px;
-  }
-
-  /* Field formatting */
-  .codform-field {
-    margin-bottom: 20px;
-  }
-
-  .codform-field label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #374151;
-    font-size: 16px !important;
-  }
-
-  .codform-field input[type="text"],
-  .codform-field input[type="email"],
-  .codform-field input[type="tel"],
-  .codform-field input[type="number"],
-  .codform-field textarea,
-  .codform-field select {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 16px !important;
-    transition: all 0.2s ease-in-out;
-    font-family: 'Cairo', sans-serif;
-    background-color: #ffffff;
-    color: #1f2937;
-    box-sizing: border-box;
-  }
-
-  .codform-field input:focus,
-  .codform-field textarea:focus,
-  .codform-field select:focus {
-    outline: none;
-    border-color: #9b87f5;
-    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
-  }
-
-  /* Checkboxes */
-  .codform-checkbox-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-  }
-
-  .codform-checkbox-container input[type="checkbox"] {
-    margin-left: 8px;
-    width: 18px;
-    height: 18px;
-    accent-color: #9b87f5;
-  }
-
-  /* Radio button group */
-  .codform-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .codform-radio-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-  }
-
-  .codform-radio-container input[type="radio"] {
-    margin-left: 8px;
-    width: 18px;
-    height: 18px;
-    accent-color: #9b87f5;
-  }
-
-  /* Help text */
-  .codform-help-text {
-    font-size: 14px !important;
-    color: #6b7280;
-    margin-top: 4px;
-  }
-
-  /* Required field marker */
-  .codform-required {
-    color: #ef4444;
-    margin-right: 3px;
-  }
-
-  /* Submit and navigation buttons */
-  .codform-submit-button,
-  .codform-next-button,
-  .codform-prev-button {
-    background-color: #9b87f5;
-    color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 18px !important;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    width: 100%;
-    margin-top: 20px;
-    font-family: 'Cairo', sans-serif;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .codform-submit-button:hover,
-  .codform-next-button:hover {
-    background-color: #8a76e5;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .codform-prev-button {
-    background-color: #9ca3af;
-  }
-
-  .codform-prev-button:hover {
-    background-color: #8b8f96;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .codform-submit-button:disabled,
-  .codform-next-button:disabled,
-  .codform-prev-button:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.7;
-    transform: none;
-    box-shadow: none;
-  }
-
-  /* Loading state */
-  .codform-loading {
-    opacity: 0.7;
-    pointer-events: none;
-  }
-
-  /* Success and error messages */
-  .codform-success, .codform-error {
-    text-align: center;
-    padding: 30px 20px;
-  }
-
-  .codform-success-icon {
-    background-color: #10b981;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  .codform-error-icon {
-    background-color: #ef4444;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    margin: 0 auto 20px;
-  }
-
-  /* Loading indicator */
-  .codform-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 0;
-  }
-
-  .codform-spinner {
+  .codform-loader-spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border-top: 4px solid #9b87f5;
-    width: 40px;
-    height: 40px;
+    border-left-color: #09f;
     animation: spin 1s linear infinite;
-    margin-bottom: 16px;
   }
-
+  
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-
-  .codform-button {
-    background-color: #9b87f5;
+  
+  .codform-retry-button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: #09f;
     color: white;
     border: none;
-    padding: 14px 24px;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 4px;
     cursor: pointer;
-    margin-top: 16px;
-    transition: all 0.2s ease-in-out;
-    font-family: 'Cairo', sans-serif;
-    font-size: 18px !important;
   }
-
-  .codform-button:hover {
-    background-color: #8a76e5;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Multi-step form formatting */
-  .codform-steps-nav {
-    margin-bottom: 25px;
-  }
-
-  .codform-step-indicators {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .codform-step-indicator {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    background-color: #e5e7eb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #6b7280;
-    position: relative;
-    transition: all 0.3s ease;
-  }
-
-  .codform-step-indicator::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: 100%;
-    height: 3px;
+  
+  .codform-form textarea,
+  .codform-form input[type="text"],
+  .codform-form input[type="email"],
+  .codform-form input[type="tel"],
+  .codform-form input[type="number"] {
     width: 100%;
-    background-color: #e5e7eb;
-    transform: translateY(-50%);
-    transition: background-color 0.3s ease;
+    padding: 8px 12px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
   }
-
-  .codform-step-indicator:first-child::after {
-    display: none;
-  }
-
-  .codform-step-active {
-    background-color: #9b87f5;
-    color: white;
-    transform: scale(1.1);
-  }
-
-  .codform-step-completed {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .codform-step-completed::after,
-  .codform-step-active::after {
-    background-color: #10b981;
-  }
-
-  .codform-steps-container {
-    min-height: 200px;
-  }
-
-  .codform-nav-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-  }
-
-  .codform-prev-button,
-  .codform-next-button {
-    flex: 1;
-  }
-
-  /* Validation messages */
-  .codform-validation-message {
-    color: #ef4444;
-    margin-top: 10px;
-    text-align: center;
-    font-weight: bold;
-  }
-
-  .codform-field-error {
-    border-color: #ef4444 !important;
-    background-color: rgba(254, 226, 226, 0.3);
-  }
-
-  /* Special formatting for different field types */
-  .codform-field h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 20px !important;
-    color: #374151;
-  }
-
-  /* Step title */
-  .codform-step-title {
-    font-weight: 600;
-    font-size: 20px !important;
-    color: #374151;
-    margin-bottom: 20px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #e5e7eb;
-  }
-
-  /* Improve spacing and layout for better readability */
-  .codform-step {
-    padding: 15px 0;
-  }
-
-  /* Improve focus styles for better accessibility */
-  .codform-field input:focus,
-  .codform-field select:focus,
-  .codform-field textarea:focus {
-    outline: none;
-    border-color: #9b87f5;
-    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
-  }
-
-  /* Ensure radio and checkbox options are spaced correctly */
-  .codform-radio-container,
-  .codform-checkbox-container {
-    margin-bottom: 8px;
-  }
-
-  .codform-radio-container:last-child,
-  .codform-checkbox-container:last-child {
-    margin-bottom: 0;
-  }
-
-  /* Image field formatting */
-  .codform-image-field {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .codform-image-container {
-    max-width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-
-  .codform-image {
-    width: 100%;
-    height: auto;
+  
+  .codform-form label {
+    font-weight: 500;
     display: block;
+    margin-bottom: 5px;
   }
-
-  /* تنسيقات خاصة لعناصر العناوين الرئيسية في النموذج */
-  .codform-title-container {
-    padding: 16px !important; /* تأكيد مع !important */
-    margin: 0 0 16px 0 !important;
-    border-radius: 8px !important;
-  }
-
-  .codform-title-container h3 {
-    font-size: 24px !important; /* حجم ثابت للعنوان الرئيسي مع !important */
-    line-height: 1.3 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .codform-title-description {
-    font-size: 14px !important; /* حجم ثابت للوصف مع !important */
-    margin: 8px 0 0 0 !important;
-    padding: 0 !important;
-    line-height: 1.5 !important;
-  }
-
-  /* WhatsApp button formatting */
-  .codform-whatsapp-button {
-    background-color: #25D366;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 18px !important;
-    text-decoration: none;
+  
+  .codform-submit-button {
+    padding: 10px 20px;
+    margin-top: 15px;
     width: 100%;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    font-family: 'Cairo', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    color: white;
+  }
+  
+  .codform-required {
+    color: #e32;
+    margin-left: 4px;
   }
 
-  .codform-whatsapp-button:hover {
-    background-color: #20bd5a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  .codform-field {
+    margin-bottom: 15px;
   }
-
-  .codform-whatsapp-icon {
-    width: 24px;
-    height: 24px;
+  
+  .codform-field-with-icon input,
+  .codform-field-with-icon textarea {
+    padding-left: 36px !important;
   }
-
-  /* HTML content formatting */
-  .codform-html-content {
-    margin-bottom: 20px;
-    font-size: 16px !important;
+  
+  .codform-field-with-icon.rtl input,
+  .codform-field-with-icon.rtl textarea {
+    padding-left: 12px !important;
+    padding-right: 36px !important;
   }
-
-  /* Cart items formatting */
-  .codform-cart-items {
-    margin-bottom: 20px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #ffffff;
-  }
-
-  .codform-cart-item {
-    display: flex;
-    padding: 15px;
-    border-bottom: 1px solid #e5e7eb;
-    align-items: center;
-  }
-
-  .codform-cart-item:last-child {
-    border-bottom: none;
-  }
-
-  .codform-cart-item-image {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-left: 15px;
-  }
-
-  .codform-cart-item-details {
-    flex: 1;
-  }
-
-  .codform-cart-item-title {
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #1f2937;
-    font-size: 16px !important;
-  }
-
-  .codform-cart-item-variant {
-    font-size: 14px !important;
-    color: #6b7280;
-    margin-bottom: 5px;
-  }
-
-  .codform-cart-item-price {
-    font-weight: 600;
-    color: #1f2937;
-    font-size: 16px !important;
-  }
-
-  .codform-cart-item-quantity {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
-  }
-
-  .codform-cart-item-quantity-label {
-    margin-left: 5px;
-    font-size: 14px !important;
+  
+  .codform-field-with-icon .codform-field-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     color: #6b7280;
   }
-
-  /* Cart summary formatting */
-  .codform-cart-summary {
-    margin-bottom: 20px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 15px;
-    background-color: #f9fafb;
+  
+  .codform-field-with-icon.rtl .codform-field-icon {
+    left: auto;
+    right: 10px;
   }
-
-  .codform-cart-summary-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 16px !important;
-  }
-
-  .codform-cart-summary-row:last-child {
-    margin-bottom: 0;
-    padding-top: 10px;
-    border-top: 1px solid #e5e7eb;
-    font-weight: 700;
-  }
-
-  .codform-cart-summary-label {
+  
+  .codform-help-text {
+    font-size: 0.875rem;
     color: #6b7280;
+    margin-top: 4px;
   }
-
-  .codform-cart-summary-value {
-    font-weight: 600;
-    color: #1f2937;
+  
+  @keyframes pulse-animation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
   }
-
-  /* Animation Effects - Improve animation definitions */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-
+  
   .pulse-animation {
-    animation: pulse 2s infinite !important;
+    animation: pulse-animation 2s infinite ease-in-out;
   }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
+  
+  @keyframes shake-animation {
+    0% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
-
+  
   .shake-animation {
-    animation: shake 0.8s infinite !important;
+    animation: shake-animation 2s infinite ease-in-out;
   }
-
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
+  
+  @keyframes bounce-animation {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
   }
-
+  
   .bounce-animation {
-    animation: bounce 2s infinite !important;
+    animation: bounce-animation 2s infinite ease-in-out;
   }
-
-  @keyframes wiggle {
+  
+  @keyframes wiggle-animation {
     0%, 100% { transform: rotate(0); }
     25% { transform: rotate(-3deg); }
-    75% { transform: rotate(5deg); }
+    75% { transform: rotate(3deg); }
   }
-
+  
   .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
-  }
-
-  @keyframes flash {
-    0%, 50%, 100% {
-      opacity: 1;
-    }
-    25%, 75% {
-      opacity: 0.7;
-    }
-  }
-
-  .flash-animation {
-    animation: flash 3s infinite !important;
-  }
-  
-  /* Floating button container styles */
-  .codform-floating-button-container {
-    position: fixed;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 999;
-  }
-  
-  /* Floating button styles */
-  .codform-floating-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease;
-    min-width: 180px;
-    padding: 12px 24px;
-  }
-  
-  .codform-floating-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  .codform-floating-button-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Updated Submit Button Styles */
-  .codform-submit-button {
-    width: 100%;
-    padding: 16px 20px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    border: none;
-    margin-top: 20px;
-    margin-bottom: 20px;
-  }
-
-  .codform-submit-btn {
-    width: 100% !important;
-    padding: 16px 20px !important;
-    font-weight: bold !important;
-    transition: all 0.3s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    cursor: pointer !important;
-    border: none !important;
-    margin-top: 20px !important;
-    margin-bottom: 20px !important;
-    font-size: 18px !important;
+    animation: wiggle-animation 2s infinite ease-in-out;
   }
 </style>
 
-{% endif %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('codform-container-{{ block.id }}');
+    const loader = document.getElementById('codform-form-loader-{{ block.id }}');
+    
+    if (container && loader) {
+      loader.style.display = 'flex';
+    }
+  });
+</script>
 
 {% schema %}
 {
-  "name": "نموذج الدفع عند الاستلام",
+  "name": {
+    "en": "COD Form",
+    "ar": "نموذج الدفع عند الاستلام"
+  },
   "target": "section",
-  "stylesheet": "codform.css",
-  "javascript": "codform.js",
-  "settings": []
+  "settings": [
+    {
+      "type": "header",
+      "content": {
+        "en": "Form Display",
+        "ar": "عرض النموذج"
+      }
+    },
+    {
+      "id": "hide_header",
+      "type": "checkbox",
+      "label": {
+        "en": "Hide Form Header",
+        "ar": "إخفاء عنوان النموذج"
+      },
+      "default": false,
+      "info": {
+        "en": "Hide the title and description in the form header",
+        "ar": "إخفاء العنوان والوصف في رأس النموذج"
+      }
+    }
+  ]
 }
 {% endschema %}

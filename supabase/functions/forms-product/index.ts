@@ -122,33 +122,52 @@ serve(async (req: Request) => {
       }
     }
 
-    // Process form fields to ensure icons are correctly formatted
-    if (form && form.fields) {
+    // Ensure the settings object exists and process field data
+    if (form) {
+      // Make sure form has a settings object
+      if (!form.settings) {
+        form.settings = {};
+      }
+      
+      // Make sure enableIcons is set (default to true if not specified)
+      form.settings.enableIcons = form.settings.enableIcons !== false;
+      
+      // Add fields array if it doesn't exist
+      if (!form.fields) {
+        form.fields = [];
+      }
+      
+      // Process form fields to ensure icons are correctly formatted
       form.fields = form.fields.map(field => {
+        if (!field) return field;
+        
+        // Make a copy of the field to avoid modifying the original
+        const processedField = { ...field };
+        
         // Make sure icon is properly defined and not empty string
-        if (field.icon === '') {
-          field.icon = 'none';
+        if (processedField.icon === undefined || processedField.icon === '') {
+          processedField.icon = 'none';
         }
         
         // Ensure style object exists
-        if (!field.style) {
-          field.style = {};
+        if (!processedField.style) {
+          processedField.style = {};
         }
         
         // Make sure showIcon is properly defined if an icon exists
-        if (field.icon && field.icon !== 'none') {
-          field.style.showIcon = field.style.showIcon !== undefined ? 
-            field.style.showIcon : true;
+        if (processedField.icon && processedField.icon !== 'none') {
+          processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
+            processedField.style.showIcon : true;
         }
         
-        return field;
+        return processedField;
       });
 
       // Log all form fields with icon information for debugging
-      if (debugMode || form.fields.some(f => f.icon && f.icon !== 'none')) {
+      if (debugMode || (form.fields && form.fields.some(f => f && f.icon && f.icon !== 'none'))) {
         console.log(`[${requestId}] Form fields with icon information:`);
         form.fields.forEach(field => {
-          if (field.icon && field.icon !== 'none') {
+          if (field && field.icon && field.icon !== 'none') {
             console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
           }
         });
@@ -165,12 +184,13 @@ serve(async (req: Request) => {
       hasForm: !!form,
       formId: form?.id || null,
       fieldsCount: form?.fields?.length || 0,
-      fieldsWithIcons: form?.fields?.filter(f => f.icon && f.icon !== 'none').length || 0,
+      fieldsWithIcons: form?.fields?.filter(f => f && f.icon && f.icon !== 'none').length || 0,
+      iconsEnabled: form?.settings?.enableIcons !== false,
     } : undefined;
 
     // Return form data
     if (form) {
-      const fieldsWithIcons = form.fields?.filter(field => field.icon && field.icon !== 'none') || [];
+      const fieldsWithIcons = form.fields?.filter(field => field && field.icon && field.icon !== 'none') || [];
       console.log(`[${requestId}] Successfully sending form data to client. Form has ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
       
       if (fieldsWithIcons.length > 0) {
