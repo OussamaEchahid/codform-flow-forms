@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -76,9 +75,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Apply changes immediately by updating the original field
     Object.assign(field, updatedField);
     
-    // Call onEdit to notify parent components of the change
-    onEdit();
-    
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
   };
@@ -101,9 +97,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
     
     // Apply changes immediately by updating the original field
     field.style = {...updatedStyle};
-    
-    // Call onEdit to notify parent components of the change
-    onEdit();
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
