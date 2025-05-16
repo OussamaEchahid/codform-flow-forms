@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -56,6 +55,7 @@ const AppSidebar = () => {
     }
   };
 
+  // Reordered navigation items - Orders now comes right after Forms
   const mainNavItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
@@ -106,26 +106,43 @@ const AppSidebar = () => {
         </div>
         <nav>
           <ul className="space-y-2">
-            {mainNavItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
-                      isActive
-                        ? 'bg-[#2A2E36] text-[#9b87f5]'
-                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                    )
-                  }
-                >
-                  <item.icon size={20} />
-                  <span>{item.title}</span>
-                </NavLink>
-              </li>
-            ))}
+            {/* Dashboard */}
+            <li>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-[#2A2E36] text-[#9b87f5]'
+                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                  )
+                }
+              >
+                <LayoutDashboard size={20} />
+                <span>{t('dashboard')}</span>
+              </NavLink>
+            </li>
             
-            {/* Collapsible Orders Menu */}
+            {/* Forms */}
+            <li>
+              <NavLink
+                to="/forms"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-[#2A2E36] text-[#9b87f5]'
+                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                  )
+                }
+              >
+                <FileText size={20} />
+                <span>{t('forms')}</span>
+              </NavLink>
+            </li>
+            
+            {/* Orders Menu - Positioned right after Forms */}
             <li>
               <Collapsible 
                 open={isOrdersOpen} 
@@ -177,6 +194,26 @@ const AppSidebar = () => {
                 </CollapsibleContent>
               </Collapsible>
             </li>
+            
+            {/* Remaining navigation items */}
+            {mainNavItems.slice(2).map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                      isActive
+                        ? 'bg-[#2A2E36] text-[#9b87f5]'
+                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                    )
+                  }
+                >
+                  <item.icon size={20} />
+                  <span>{item.title}</span>
+                </NavLink>
+              </li>
+            ))}
             
             <li>
               <button
