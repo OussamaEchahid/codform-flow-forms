@@ -16,6 +16,8 @@ interface TitleFieldProps {
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // تحديد قيم box-sizing الصالحة
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
+// تحديد قيم direction الصالحة
+type DirectionType = 'rtl' | 'ltr';
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
@@ -50,7 +52,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // تحديد الاتجاه النصي (RTL/LTR) بوضوح
   const isRTL = language === 'ar';
   // مباشرة استخدام قيم الاتجاه النصي المحددة بدلاً من السلاسل النصية
-  const textDirection = isRTL ? 'rtl' as const : 'ltr' as const;
+  const textDirection: DirectionType = isRTL ? 'rtl' : 'ltr';
   
   // نمط الخلفية مع قيم بكسل ثابتة للبادينغ والتأكيد بواسطة !important
   const backgroundStyle = {
