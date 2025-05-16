@@ -17,31 +17,31 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Default values for styling
+  // القيم الافتراضية للتنسيق
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
-  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '1rem';
+  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
   const textColor = fieldStyle.color || '#1f2937';
-  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1rem';
+  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '16px';
   const fontWeight = fieldStyle.fontWeight || '400';
   
   const backgroundColor = fieldStyle.backgroundColor || '#ffffff';
   const borderColor = fieldStyle.borderColor || '#d1d5db';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
+  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // Normalize icon handling - explicitly check if showIcon is defined first
+  // تطبيع معالجة الأيقونة - التحقق صراحة مما إذا كان showIcon محددًا أولاً
   const showIcon = fieldStyle.showIcon !== undefined 
     ? fieldStyle.showIcon 
     : (field.icon && field.icon !== 'none');
 
-  // Function to render the field icon based on the icon name
+  // وظيفة لعرض أيقونة الحقل بناءً على اسم الأيقونة
   const renderIcon = () => {
-    // Don't render if icon is disabled or is set to 'none'
+    // لا تعرض إذا كانت الأيقونة معطلة أو تم تعيينها إلى 'none'
     if (!field.icon || field.icon === 'none' || !showIcon) return null;
     
     const iconProps = { 
@@ -63,17 +63,40 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // Get the actual label text to display - use the most recent value
+  // الحصول على نص التسمية الفعلي للعرض - استخدام القيمة الأحدث
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // Get the actual placeholder text to display - use the most recent value
+  // الحصول على نص العنصر البديل الفعلي للعرض - استخدام القيمة الأحدث
   const placeholderText = field.placeholder || '';
 
-  // Force component key to refresh when its data changes
-  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}`;
+  // فرض مفتاح المكون للتحديث عند تغيير البيانات
+  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(fieldStyle)}-${field.icon || 'none'}-${Date.now()}`;
+  
+  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
+  const getInputType = () => {
+    const originalType = field.type;
+    if (originalType === 'email') return 'email';
+    if (originalType === 'phone') return 'tel';
+    return 'text';
+  };
+  
+  // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض
+  const inputAttributes = {
+    'data-field-type': field.type,
+    'data-show-label': showLabel.toString(),
+    'data-label-color': labelColor,
+    'data-label-font-size': labelFontSize,
+    'data-font-family': fontFamily,
+    'data-text-color': textColor,
+    'data-font-size': fontSize,
+    'data-has-icon': showIcon && field.icon && field.icon !== 'none' ? 'true' : 'false',
+    'data-icon': field.icon || 'none',
+    'data-border-radius': borderRadius,
+    'data-required': field.required ? 'true' : 'false',
+  };
   
   return (
-    <div className="mb-0" key={componentKey}>
+    <div className="mb-0" key={componentKey} {...inputAttributes}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
@@ -94,17 +117,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       
       <div className="relative">
         {showIcon && field.icon && field.icon !== 'none' && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon">
             {renderIcon()}
           </div>
         )}
         
         <input
-          type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
+          type={getInputType()}
           id={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full outline-none transition-all"
+          className="w-full outline-none transition-all codform-input"
           style={{
             color: textColor,
             fontSize: fontSize,
@@ -120,17 +143,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
             paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            marginBottom: '0', // Remove bottom margin
+            marginBottom: '0', // إزالة الهامش السفلي
           }}
         />
       </div>
       
       {field.helpText && (
-        <p className="mt-1 text-xs text-gray-500">{field.helpText}</p>
+        <p className="mt-1 text-xs text-gray-500 codform-help-text">{field.helpText}</p>
       )}
       
       {field.errorMessage && field.required && (
-        <div className="hidden error-message text-sm text-red-500 mt-1">
+        <div className="hidden error-message text-sm text-red-500 mt-1 codform-error-message">
           {field.errorMessage}
         </div>
       )}

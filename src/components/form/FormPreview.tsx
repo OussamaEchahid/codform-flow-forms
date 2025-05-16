@@ -44,44 +44,61 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // Clean up fields and properly display form title
+  // تحسين معالجة الحقول وإعدادها بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
-    // Ensure cart-items and cart-summary have empty labels by default
+    // ضمان أن حقول عناصر السلة وملخص السلة لها تسميات فارغة افتراضيًا
     const updatedFields = fields.map(field => {
-      // Make a copy of the field to avoid mutation issues
+      // نسخ الحقل لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
       
-      // Set default empty label for cart items and summary
+      // تعيين تسمية فارغة افتراضية لعناصر السلة والملخص
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         updatedField.label = '';
       }
       
-      // Convert empty icon to 'none' for consistent handling
+      // تحويل الأيقونة الفارغة إلى 'none' لمعالجة متسقة
       if (field.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Make sure style.showIcon is defined if icon is present
+      // التأكد من تعريف style.showIcon إذا كانت الأيقونة موجودة
       if (field.icon && field.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Default showIcon to true if icon exists and not explicitly set to false
+        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحة إلى false
         updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
+      // ضمان وجود خصائص النمط الأساسية
+      if (!updatedField.style) {
+        updatedField.style = {};
+      }
+      
+      // تأكد من تحديد حجم الخط بشكل صريح بالبكسل
+      if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
+        // تحويل rem إلى px إذا لزم الأمر
+        if (updatedField.style.fontSize.includes('rem')) {
+          const remValue = parseFloat(updatedField.style.fontSize);
+          updatedField.style.fontSize = `${remValue * 16}px`;
+        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+        }
+      }
+      
       return updatedField;
     });
     
-    // If there's already a form-title, use it
+    // إذا كان هناك بالفعل عنوان للنموذج، استخدمه
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // If there's no form-title, add one at the beginning with specific pixel sizes
+    // إذا لم يكن هناك عنوان للنموذج، أضف واحدًا في البداية بأحجام بكسل محددة
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -94,16 +111,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
         descriptionFontSize: '14px', // 0.875rem = 14px
-        backgroundColor: '#9b87f5', // Primary background color
+        backgroundColor: formStyle.primaryColor || '#9b87f5', // لون خلفية أساسي
       }
     };
     
-    // Check if there's already a submit button
+    // التحقق مما إذا كان هناك زر إرسال بالفعل
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // If there's no submit button, add one with specific pixel sizes
+    // إذا لم يكن هناك زر إرسال، أضف واحدًا بأحجام بكسل محددة
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -123,15 +140,23 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return result;
   }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
+  // إنشاء معرف فريد لهذا النموذج لضمان التحديث الصحيح
+  const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
+  
   return (
     <div 
-      key={`form-preview-${Date.now()}`}
+      key={formId}
       className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
+      data-form-preview-id={formId}
+      data-primary-color={formStyle.primaryColor}
+      data-border-radius={formStyle.borderRadius}
+      data-font-size={formStyle.fontSize}
+      data-button-style={formStyle.buttonStyle}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -178,6 +203,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
         }}
+        data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
           <div className="space-y-2">
@@ -194,7 +220,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* Render floating button if enabled AND not hidden for preview purposes */}
+      {/* عرض الزر العائم إذا كان ممكّنًا وغير مخفي لأغراض المعاينة */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}

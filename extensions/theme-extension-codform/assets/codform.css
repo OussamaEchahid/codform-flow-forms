@@ -30,18 +30,18 @@
 }
 
 .codform-header h3 {
-  font-size: 24px; /* حجم ثابت للعناوين */
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #ffffff;
-  line-height: 1.3;
+  font-size: 24px !important; /* حجم ثابت للعناوين مع !important */
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+  color: #ffffff !important;
+  line-height: 1.3 !important;
 }
 
 .codform-header p {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 16px; /* حجم ثابت للوصف */
-  line-height: 1.5;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px !important; /* حجم ثابت للوصف مع !important */
+  line-height: 1.5 !important;
+  margin: 0 !important;
 }
 
 /* حاوية النموذج الرئيسية */
@@ -59,7 +59,7 @@
   margin-bottom: 6px;
   font-weight: 600;
   color: #374151;
-  font-size: 16px; /* حجم ثابت للتسميات */
+  font-size: 16px !important; /* حجم ثابت للتسميات مع !important */
 }
 
 .codform-field input[type="text"],
@@ -72,7 +72,7 @@
   padding: 12px 15px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 16px; /* حجم ثابت للإدخال */
+  font-size: 16px !important; /* حجم ثابت للإدخال مع !important */
   transition: all 0.2s ease-in-out;
   font-family: 'Cairo', sans-serif;
   background-color: #ffffff;
@@ -124,7 +124,7 @@
 
 /* نص المساعدة */
 .codform-help-text {
-  font-size: 14px; /* حجم ثابت لنص المساعدة */
+  font-size: 14px !important; /* حجم ثابت لنص المساعدة مع !important */
   color: #6b7280;
   margin-top: 4px;
 }
@@ -145,7 +145,7 @@
   padding: 14px 24px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 18px; /* حجم ثابت للأزرار */
+  font-size: 18px !important; /* حجم ثابت للأزرار مع !important */
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   width: 100%;
@@ -256,7 +256,7 @@
   margin-top: 14px;
   transition: all 0.2s ease-in-out;
   font-family: 'Cairo', sans-serif;
-  font-size: 18px; /* حجم ثابت للأزرار */
+  font-size: 18px !important; /* حجم ثابت للأزرار مع !important */
 }
 
 .codform-button:hover {
@@ -355,14 +355,14 @@
 .codform-field h3 {
   margin-top: 0;
   margin-bottom: 8px;
-  font-size: 20px; /* حجم ثابت للعناوين داخل الحقول */
+  font-size: 20px !important; /* حجم ثابت للعناوين داخل الحقول مع !important */
   color: #374151;
 }
 
 /* عنوان الخطوة */
 .codform-step-title {
   font-weight: 600;
-  font-size: 20px; /* حجم ثابت لعنوان الخطوة */
+  font-size: 20px !important; /* حجم ثابت لعنوان الخطوة مع !important */
   color: #374151;
   margin-bottom: 16px;
   padding-bottom: 6px;
@@ -462,7 +462,7 @@
   padding: 12px 20px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 18px; /* حجم ثابت لزر الواتساب */
+  font-size: 18px !important; /* حجم ثابت لزر الواتساب مع !important */
   text-decoration: none;
   width: 100%;
   border: none;
@@ -485,7 +485,7 @@
 /* تنسيقات المحتوى HTML */
 .codform-html-content {
   margin-bottom: 16px;
-  font-size: 16px; /* حجم ثابت للمحتوى HTML */
+  font-size: 16px !important; /* حجم ثابت للمحتوى HTML مع !important */
 }
 
 /* تنسيقات عناصر السلة */
@@ -524,11 +524,11 @@
   font-weight: 600;
   margin-bottom: 4px;
   color: #1f2937;
-  font-size: 16px; /* حجم ثابت لعنوان المنتج */
+  font-size: 16px !important; /* حجم ثابت لعنوان المنتج مع !important */
 }
 
 .codform-cart-item-variant {
-  font-size: 14px; /* حجم ثابت للمتغيرات */
+  font-size: 14px !important; /* حجم ثابت للمتغيرات مع !important */
   color: #6b7280;
   margin-bottom: 4px;
 }
@@ -536,7 +536,7 @@
 .codform-cart-item-price {
   font-weight: 600;
   color: #1f2937;
-  font-size: 16px; /* حجم ثابت للسعر */
+  font-size: 16px !important; /* حجم ثابت للسعر مع !important */
 }
 
 .codform-cart-item-quantity {
@@ -547,7 +547,7 @@
 
 .codform-cart-item-quantity-label {
   margin-left: 5px;
-  font-size: 14px; /* حجم ثابت للكمية */
+  font-size: 14px !important; /* حجم ثابت للكمية مع !important */
   color: #6b7280;
 }
 
@@ -564,7 +564,7 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 16px; /* حجم ثابت لملخص السلة */
+  font-size: 16px !important; /* حجم ثابت لملخص السلة مع !important */
 }
 
 .codform-cart-summary-row:last-child {
@@ -587,7 +587,7 @@
 .codform-title-container {
   padding: 14px !important; /* تأكيد مع !important */
   margin: 0 0 14px 0 !important;
-  border-radius: 8px;
+  border-radius: 8px !important;
 }
 
 .codform-title-container h3 {
@@ -680,11 +680,11 @@
   }
 
   .codform-header h3 {
-    font-size: 22px; /* تخفيض طفيف للأجهزة الصغيرة مع الحفاظ على التناسق */
+    font-size: 22px !important; /* تخفيض طفيف للأجهزة الصغيرة مع الحفاظ على التناسق */
   }
 
   .codform-field label {
-    font-size: 16px; /* الحفاظ على حجم التسميات */
+    font-size: 16px !important; /* الحفاظ على حجم التسميات */
   }
 
   .codform-step-indicators {
@@ -718,7 +718,7 @@
   .codform-prev-button,
   .codform-button {
     padding: 12px 20px;
-    font-size: 16px; /* تخفيض طفيف للأجهزة الصغيرة */
+    font-size: 16px !important; /* تخفيض طفيف للأجهزة الصغيرة */
   }
   
   /* تحسين المسافات بين عناصر النموذج */
@@ -795,4 +795,57 @@
 .codform-submit-btn {
   margin-top: 10px !important;
   margin-bottom: 4px !important;
+}
+
+/* إضافة تأثيرات حركية للزر العائم */
+@keyframes floating-button-pulse {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 12px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.codform-floating-button-container {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 999;
+}
+
+.codform-floating-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+  min-width: 180px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 18px !important;
+  font-weight: 600;
+  animation: floating-button-pulse 3s infinite ease-in-out;
+}
+
+.codform-floating-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.codform-floating-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
