@@ -143,6 +143,16 @@ serve(async (req: Request) => {
         
         return field;
       });
+
+      // Log all form fields with icon information for debugging
+      if (debugMode || form.fields.some(f => f.icon && f.icon !== 'none')) {
+        console.log(`[${requestId}] Form fields with icon information:`);
+        form.fields.forEach(field => {
+          if (field.icon && field.icon !== 'none') {
+            console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
+          }
+        });
+      }
     }
 
     // Add debug information if requested
@@ -155,6 +165,7 @@ serve(async (req: Request) => {
       hasForm: !!form,
       formId: form?.id || null,
       fieldsCount: form?.fields?.length || 0,
+      fieldsWithIcons: form?.fields?.filter(f => f.icon && f.icon !== 'none').length || 0,
     } : undefined;
 
     // Return form data

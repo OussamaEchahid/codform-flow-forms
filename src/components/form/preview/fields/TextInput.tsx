@@ -46,14 +46,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // تحسين معالجة إظهار الأيقونة
-  const hasIcon = field.icon && field.icon !== 'none';
+  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
+  const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تعديل طريقة عرض الأيقونات لمنع مشاكل التحميل
+  // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
+    // إضافة سمات إضافية للتشخيص
     const iconProps = { 
       size: 18,
       className: "text-gray-400 codform-icon",
@@ -62,7 +63,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       "data-icon-name": field.icon
     };
     
-    // استخدام الأيقونات المستوردة مباشرة بدلاً من المعالجة الديناميكية
+    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
+    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
+    
+    // استخدام switch للمطابقة الدقيقة وإرجاع عنصر React المناسب
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
@@ -73,7 +77,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       case 'circle-check': return <CircleCheck {...iconProps} />;
       case 'image': return <Image {...iconProps} />;
       case 'file-text': return <FileText {...iconProps} />;
-      default: return null;
+      default: 
+        console.warn(`Unknown icon type: ${field.icon}`);
+        return null;
     }
   };
   
@@ -94,24 +100,23 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
   const inputId = `${field.id}-input`;
   
-  // إضافة سمات البيانات تفصيلية لتحسين التوافق بين المعاينة والمتجر
-  const dataAttributes = {
-    'data-field-type': field.type,
-    'data-field-id': field.id,
-    'data-show-label': showLabel.toString(),
-    'data-label-text': labelText,
-    'data-has-icon': hasIcon ? 'true' : 'false',
-    'data-show-icon': showIcon ? 'true' : 'false',
-    'data-icon-type': field.icon || 'none',
-    'data-required': field.required ? 'true' : 'false',
-    'data-font-family': fontFamily,
-    'data-font-size': fontSize,
-    'data-border-radius': borderRadius,
-    'data-input-id': inputId,
-  };
-  
   return (
-    <div className="mb-0" data-component="TextInput" {...dataAttributes}>
+    <div 
+      className="mb-0" 
+      data-component="TextInput" 
+      data-field-type={field.type}
+      data-field-id={field.id}
+      data-show-label={showLabel.toString()}
+      data-label-text={labelText}
+      data-has-icon={hasIcon ? 'true' : 'false'}
+      data-show-icon={showIcon ? 'true' : 'false'}
+      data-icon-type={field.icon || 'none'}
+      data-required={field.required ? 'true' : 'false'}
+      data-font-family={fontFamily}
+      data-font-size={fontSize}
+      data-border-radius={borderRadius}
+      data-input-id={inputId}
+    >
       {showLabel && (
         <label 
           htmlFor={field.id} 
@@ -132,6 +137,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       )}
       
       <div className="relative">
+        {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon" 
