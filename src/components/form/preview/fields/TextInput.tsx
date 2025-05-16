@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { User, Phone, MapPin, Mail, MessageSquare, CheckSquare, CircleCheck, Image, FileText } from 'lucide-react';
 
 interface TextInputProps {
   field: FormField;
@@ -33,6 +34,29 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   const showIcon = fieldStyle.showIcon || false;
+
+  // Function to render the field icon based on the icon name
+  const renderIcon = () => {
+    if (!field.icon || !showIcon) return null;
+    
+    const iconProps = { 
+      size: 18, 
+      className: "text-gray-400"
+    };
+    
+    switch(field.icon) {
+      case 'user': return <User {...iconProps} />;
+      case 'phone': return <Phone {...iconProps} />;
+      case 'map-pin': return <MapPin {...iconProps} />;
+      case 'mail': return <Mail {...iconProps} />;
+      case 'message-square': return <MessageSquare {...iconProps} />;
+      case 'check-square': return <CheckSquare {...iconProps} />;
+      case 'circle-check': return <CircleCheck {...iconProps} />;
+      case 'image': return <Image {...iconProps} />;
+      case 'file-text': return <FileText {...iconProps} />;
+      default: return null;
+    }
+  };
   
   return (
     <div className="mb-4">
@@ -57,7 +81,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       <div className="relative">
         {showIcon && field.icon && (
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            <i className={`icon-${field.icon}`}></i>
+            {renderIcon()}
           </div>
         )}
         

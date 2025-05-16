@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
 import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, Edit } from 'lucide-react';
+import { User, Phone, MapPin, Mail, MessageSquare, CheckSquare, CircleCheck, Image, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -15,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface SortableFieldProps {
   field: FormField;
@@ -85,9 +87,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
   };
 
   const handleSaveChanges = () => {
-    // This would typically make an API call or update state in a parent component
-    // For now, we'll just close the editing mode
+    // Update the parent component with the edited field
+    onEdit();
+    // Apply the changes by updating the original field object
+    Object.assign(field, editedField);
     setIsEditing(false);
+    toast.success(language === 'ar' ? 'تم حفظ التغييرات بنجاح' : 'Changes saved successfully');
   };
 
   // Array of font family options
@@ -101,6 +106,30 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'Poppins', label: 'Poppins' },
     { value: 'Open Sans', label: 'Open Sans' },
   ];
+  
+  // Available icons for fields
+  const fieldIcons = [
+    { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: User },
+    { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: Phone },
+    { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: MapPin },
+    { value: 'mail', label: language === 'ar' ? 'بريد' : 'Email', component: Mail },
+    { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: MessageSquare },
+    { value: 'check-square', label: language === 'ar' ? 'تحقق' : 'Check', component: CheckSquare },
+    { value: 'circle-check', label: language === 'ar' ? 'تحقق دائري' : 'Circle Check', component: CircleCheck },
+    { value: 'image', label: language === 'ar' ? 'صورة' : 'Image', component: Image },
+    { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: FileText },
+    { value: '', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null }
+  ];
+
+  // Function to render the selected icon
+  const renderSelectedIcon = () => {
+    const selectedIcon = fieldIcons.find(icon => icon.value === editedField.icon);
+    if (selectedIcon && selectedIcon.component) {
+      const IconComponent = selectedIcon.component;
+      return <IconComponent size={18} className="mr-2" />;
+    }
+    return null;
+  };
 
   // Simplified editor UI with two columns layout
   return (
@@ -126,7 +155,21 @@ const SortableField: React.FC<SortableFieldProps> = ({
             </div>
             
             <div className={`flex-1 ${language === 'ar' ? 'text-right mr-2' : 'text-left ml-2'}`}>
-              <div className="font-medium">{field.label || (language === 'ar' ? "حقل بدون عنوان" : "Untitled field")}</div>
+              <div className="font-medium flex items-center">
+                {field.icon && (
+                  <span className="mr-2">
+                    {(() => {
+                      const iconInfo = fieldIcons.find(icon => icon.value === field.icon);
+                      if (iconInfo && iconInfo.component) {
+                        const IconComponent = iconInfo.component;
+                        return <IconComponent size={16} className="text-gray-500" />;
+                      }
+                      return null;
+                    })()}
+                  </span>
+                )}
+                {field.label || (language === 'ar' ? "حقل بدون عنوان" : "Untitled field")}
+              </div>
               <div className="text-sm text-gray-500">
                 {field.required ? (language === 'ar' ? 'مطلوب' : 'Required') : (language === 'ar' ? 'اختياري' : 'Optional')} | {field.type}
               </div>
@@ -142,7 +185,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
               <div className="p-3">
                 <h2 className="font-medium text-sm border-b pb-2 mb-4">{language === 'ar' ? 'إعدادات الحقل' : 'Field Settings'}</h2>
                 
-                {/* Basic Field Configuration in two columns like the image shows */}
+                {/* Basic Field Configuration in two columns */}
                 <div className="grid grid-cols-2 gap-4">
                   {/* Left column */}
                   <div className="space-y-4">
@@ -210,6 +253,37 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </Select>
                     </div>
                     
+                    {/* Icon selection */}
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field icon'}</Label>
+                      <Select
+                        value={editedField.icon || ''}
+                        onValueChange={(value) => handleFieldChange('icon', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'}>
+                            <div className="flex items-center">
+                              {renderSelectedIcon()}
+                              <span>
+                                {editedField.icon ? fieldIcons.find(icon => icon.value === editedField.icon)?.label : 
+                                  (language === 'ar' ? 'اختر أيقونة' : 'Select icon')}
+                              </span>
+                            </div>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {fieldIcons.map(icon => (
+                            <SelectItem key={icon.value} value={icon.value}>
+                              <div className="flex items-center">
+                                {icon.component && <icon.component size={16} className="mr-2" />}
+                                {icon.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
                     {/* Text color */}
                     <div className="space-y-1">
                       <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
@@ -236,6 +310,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseFloat(editedField.style?.fontSize || '1.1')]}
+                        value={[parseFloat(editedField.style?.fontSize || '1.1')]}
                         min={0}
                         max={3}
                         step={0.1}
@@ -251,6 +326,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseInt(editedField.style?.paddingY || '8')]}
+                        value={[parseInt(editedField.style?.paddingY || '8')]}
                         min={0}
                         max={50}
                         step={1}
@@ -266,6 +342,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseInt(editedField.style?.borderRadius || '6')]}
+                        value={[parseInt(editedField.style?.borderRadius || '6')]}
                         min={0}
                         max={30}
                         step={1}
@@ -338,6 +415,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseFloat(editedField.style?.labelFontSize || '1')]}
+                        value={[parseFloat(editedField.style?.labelFontSize || '1')]}
                         min={0}
                         max={3}
                         step={0.1}
@@ -353,6 +431,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseInt(editedField.style?.labelFontWeight || '400')]}
+                        value={[parseInt(editedField.style?.labelFontWeight || '400')]}
                         min={100}
                         max={900}
                         step={100}
@@ -404,6 +483,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                       <Slider
                         defaultValue={[parseInt(editedField.style?.borderWidth || '1')]}
+                        value={[parseInt(editedField.style?.borderWidth || '1')]}
                         min={0}
                         max={10}
                         step={1}

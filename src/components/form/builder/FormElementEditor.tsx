@@ -18,6 +18,7 @@ interface FormElementEditorProps {
   onDeleteElement: (index: number) => void;
   onDuplicateElement: (index: number) => void;
   onReorderElements?: (newOrder: FormField[]) => void;
+  onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
@@ -27,7 +28,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onEditElement,
   onDeleteElement,
   onDuplicateElement,
-  onReorderElements
+  onReorderElements,
+  onUpdateElement
 }) => {
   const {
     language
@@ -61,6 +63,16 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   };
   
+  // Handle element updates when they are edited
+  const handleElementUpdate = (index: number) => {
+    if (onUpdateElement) {
+      onUpdateElement(index, elements[index]);
+      toast.success(language === 'ar' ? "تم تحديث العنصر بنجاح" : "Element updated successfully");
+    } else {
+      onEditElement(index);
+    }
+  };
+  
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
@@ -82,7 +94,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             <SortableField 
               key={element.id} 
               field={element} 
-              onEdit={() => onEditElement(index)} 
+              onEdit={() => handleElementUpdate(index)} 
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)} 
             />
