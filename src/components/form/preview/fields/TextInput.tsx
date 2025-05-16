@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { User, Phone, MapPin, Mail, MessageSquare, CheckSquare, CircleCheck, Image, FileText } from 'lucide-react';
 
 interface TextInputProps {
   field: FormField;
@@ -12,6 +11,11 @@ interface TextInputProps {
     fontSize?: string;
   };
 }
+
+// تحديد خيارات محاذاة النص الصالحة
+type TextAlign = 'left' | 'center' | 'right' | 'justify';
+// تحديد قيم box-sizing الصالحة
+type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
 const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
@@ -35,25 +39,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
   // تطبيع معالجة الأيقونة - التحقق صراحة مما إذا كان showIcon محددًا أولاً
-  // Normalizamos el procesamiento de iconos - verificamos explícitamente si showIcon está definido primero
   const showIcon = fieldStyle.showIcon !== undefined 
     ? fieldStyle.showIcon 
     : (field.icon && field.icon !== 'none');
 
   // وظيفة لعرض أيقونة الحقل بناءً على اسم الأيقونة
-  // Función para mostrar el icono del campo según el nombre del icono
   const renderIcon = () => {
     // لا تعرض إذا كانت الأيقونة معطلة أو تم تعيينها إلى 'none'
-    // No mostrar si el icono está desactivado o está configurado como 'none'
     if (!field.icon || field.icon === 'none' || !showIcon) return null;
     
-    const iconProps = { 
-      size: 18, 
-      className: "text-gray-400"
-    };
-    
-    // Aseguramos que los iconos sean accesibles tanto en el preview como en la tienda
-    // Creamos SVGs inline para mayor compatibilidad
+    // استخدام SVG مباشرة بدلاً من مكونات Lucide لضمان عرضها في المتجر
     switch(field.icon) {
       case 'user': 
         return (
@@ -124,20 +119,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // الحصول على نص التسمية الفعلي للعرض - استخدام القيمة الأحدث
-  // Obtener el texto de la etiqueta actual para mostrar - usar el valor más reciente
+  // الحصول على نص التسمية الفعلي للعرض
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر البديل الفعلي للعرض - استخدام القيمة الأحدث
-  // Obtener el texto del marcador de posición actual para mostrar - usar el valor más reciente
+  // الحصول على نص العنصر البديل الفعلي للعرض
   const placeholderText = field.placeholder || '';
 
-  // فرض مفتاح المكون للتحديث عند تغيير البيانات
-  // Imponer una clave de componente para actualizar cuando los datos cambien
+  // إنشاء معرّف فريد لهذا الحقل
   const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(fieldStyle)}-${field.icon || 'none'}-${Date.now()}`;
   
   // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
-  // Determinar el tipo de entrada correcto según el tipo de campo
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -145,7 +136,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     return 'text';
   };
 
-  // Obtener la alineación del texto de la etiqueta basada en el idioma
+  // تحديد محاذاة نص التسمية بناءً على اللغة
   const labelAlign = language === 'ar' ? 'right' : 'left';
   
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض
@@ -217,7 +208,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             width: '100%',
             display: 'block',
             height: 'auto',
+            textAlign: 'right', // لضمان توافق اتجاه النص مع اللغة العربية
           }}
+          dir={language === 'ar' ? 'rtl' : 'ltr'} // تحديد اتجاه النص بشكل صريح
         />
       </div>
       
