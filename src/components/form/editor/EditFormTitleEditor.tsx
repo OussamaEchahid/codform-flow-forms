@@ -29,7 +29,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
   const [titleFontSize, setTitleFontSize] = useState(style.fontSize || '24px');
   const [descriptionFontSize, setDescriptionFontSize] = useState(style.descriptionFontSize || '14px');
   const [showDescription, setShowDescription] = useState(style.showDescription !== false);
-  const [titleAlignment, setTitleAlignment] = useState(style.titleAlignment || 'center');
+  const [titleAlignment, setTitleAlignment] = useState(style.textAlign || 'center');
   const [descriptionAlignment, setDescriptionAlignment] = useState(style.descriptionAlignment || 'center');
 
   // Function to update field whenever a value changes
@@ -47,7 +47,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
         fontSize: titleFontSize,
         descriptionFontSize,
         showDescription,
-        titleAlignment,
+        textAlign: titleAlignment,
         descriptionAlignment
       }
     };

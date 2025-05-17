@@ -92,21 +92,6 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   
   // Create a unique ID for this field
   const fieldId = `edit-form-title-${field.id}`;
-  
-  // Log rendering for debugging
-  console.log(`EditFormTitleField rendering: id=${fieldId}, bg=${backgroundColor}, direction=${textDirection}`);
-  console.log(`Title styles:`, titleStyle);
-  console.log(`Description styles:`, descriptionStyle);
-  console.log(`Show description:`, showDescription, `Description:`, description);
-
-  // Add useEffect to trigger a re-render with proper styles
-  useEffect(() => {
-    console.log(`EditFormTitleField mounted: id=${fieldId}, label=${field.label}, showDescription=${showDescription}`);
-    // Force any style recalculations
-    return () => {
-      console.log(`EditFormTitleField unmounted: id=${fieldId}`);
-    };
-  }, [fieldId, field.label, showDescription]);
 
   return (
     <div 
