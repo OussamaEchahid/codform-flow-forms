@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -27,6 +28,28 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// إسترجاع اتجاه النموذج من localStorage
+const getSavedDirection = (): 'ltr' | 'rtl' => {
+  try {
+    const savedDirection = localStorage.getItem('codform_direction');
+    if (savedDirection === 'ltr' || savedDirection === 'rtl') {
+      return savedDirection;
+    }
+  } catch (e) {
+    console.error("Error accessing localStorage:", e);
+  }
+  return 'ltr'; // توجيه افتراضي
+};
+
+// حفظ اتجاه النموذج في localStorage
+const saveDirection = (direction: 'ltr' | 'rtl'): void => {
+  try {
+    localStorage.setItem('codform_direction', direction);
+  } catch (e) {
+    console.error("Error saving direction to localStorage:", e);
+  }
+};
+
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
   formDescription,
@@ -41,63 +64,72 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
-  const [direction, setDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
+  
+  // استخدم القيمة المحفوظة في localStorage أو اعتمد على اللغة الحالية
+  const [direction, setDirection] = useState<'ltr' | 'rtl'>(() => {
+    const savedDir = getSavedDirection();
+    // إذا لم يتم تخزين قيمة، استخدم اللغة لتحديد الاتجاه
+    return savedDir || (language === 'ar' ? 'rtl' : 'ltr');
+  });
+  
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // Reset direction whenever language changes
+  // إعادة ضبط الاتجاه عند تغيير اللغة
   useEffect(() => {
-    setDirection(language === 'ar' ? 'rtl' : 'ltr');
+    const newDirection = language === 'ar' ? 'rtl' : 'ltr';
+    setDirection(newDirection);
+    saveDirection(newDirection);
   }, [language]);
   
-  // More aggressive refresh mechanism
+  // آلية إعادة التحميل الأكثر فعالية
   const forceRefresh = useCallback(() => {
-    // Generate a truly unique key by combining timestamp with a random value
+    // إنشاء مفتاح فريد حقًا من خلال دمج الطابع الزمني مع قيمة عشوائية
     const uniqueKey = Date.now() + Math.random() * 10000;
     setInternalRefreshKey(uniqueKey);
     
-    // Use a double refresh pattern to ensure complete component remounting
+    // استخدم نمط تحديث مزدوج لضمان إعادة تركيب المكون بالكامل
     setTimeout(() => {
       const secondUniqueKey = Date.now() + Math.random() * 10000;
       setInternalRefreshKey(secondUniqueKey);
     }, 50);
   }, []);
   
-  // Force refresh when any prop changes to ensure live preview updates immediately
+  // إجبار التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة على الفور
   useEffect(() => {
     forceRefresh();
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction, forceRefresh]);
   
-  // Process fields to normalize icon values - necessary for preview display
+  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // Create a new field object to avoid direct mutation issues
+      // إنشاء كائن حقل جديد لتجنب مشاكل التعديل المباشر
       const updatedField = { ...field };
       
-      // Convert empty icon strings to 'none'
+      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Ensure showIcon is properly handled
+      // التأكد من معالجة showIcon بشكل صحيح
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Set showIcon to true by default if icon exists and not explicitly set to false
+        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحةً إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Ensure font size uses consistent px units
+      // التأكد من أن حجم الخط يستخدم وحدات px متسقة
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // Convert rem to px for consistency
+        // تحويل rem إلى px للاتساق
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // If just a number without unit, assume it's px
+          // إذا كان مجرد رقم بدون وحدة، افترض أنه px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
@@ -106,25 +138,25 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     });
   }, [fields, internalRefreshKey]);
 
-  // Create a unique ID for this preview component
+  // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${internalRefreshKey}`;
   
-  // Use consistent background color for preview
+  // استخدام لون خلفية متسق للمعاينة
   const previewBackgroundColor = "#F9FAFB";
 
-  // Handle direction change with more aggressive refresh - IMPORTANT: REMOVED document.documentElement change
+  // معالجة تغيير الاتجاه مع تحديث أكثر فعالية
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
-      // Set new direction
+      // تعيين اتجاه جديد
       setDirection(value as 'ltr' | 'rtl');
       
-      // Force double refresh for complete component remounting
+      // حفظ الاتجاه في localStorage للاستمرارية
+      saveDirection(value as 'ltr' | 'rtl');
+      
+      // فرض تحديث مزدوج لإعادة تركيب المكون بالكامل
       forceRefresh();
       
-      // REMOVED: No longer setting document-level direction
-      // document.documentElement.setAttribute('dir', value);
-      
-      console.log(`Direction changed to ${value} (scoped to preview only)`);
+      console.log(`تم تغيير الاتجاه إلى ${value} (محدود للمعاينة فقط)`);
     }
   };
 
@@ -179,7 +211,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* Add small note about preview/store alignment */}
+      {/* ملاحظة صغيرة حول محاذاة المعاينة / المتجر */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'

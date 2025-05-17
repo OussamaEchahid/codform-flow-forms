@@ -16,7 +16,7 @@ interface UpdateThemeRequest {
   insertionMethod?: 'auto' | 'manual';
   blockId?: string;
   themeId?: number;
-  formDirection?: 'ltr' | 'rtl'; // Add direction parameter
+  formDirection?: 'ltr' | 'rtl'; // إضافة معلمة الاتجاه
 }
 
 serve(async (req: Request) => {
@@ -96,7 +96,7 @@ serve(async (req: Request) => {
             insertion_method: insertionMethod,
             block_id: blockId || `codform_${formIdShort}`,
             status: 'success',
-            form_direction: formDirection, // Store the form direction
+            form_direction: formDirection, // تخزين اتجاه النموذج
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'shop_id,form_id' 
