@@ -13,6 +13,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   
   // Define the available form elements with translations
   const availableElements = [
+    {
+      type: 'edit-form-title',
+      label: language === 'ar' ? 'عنوان النموذج المخصص' : 'Edit Form Title',
+      icon: 'H'
+    },
     { 
       type: 'text', 
       label: language === 'ar' ? 'حقل نص' : 'Text Input', 

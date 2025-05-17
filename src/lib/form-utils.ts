@@ -37,6 +37,7 @@ export type FormFieldType =
   'shipping-options' |
   'phone' |  // Added phone type
   'form-title' |  // Added form-title type
+  'edit-form-title' |  // Added edit-form-title type
   'text/html';  // Added text/html type
 
 export interface FormFieldOption {
@@ -90,6 +91,11 @@ export interface FormFieldStyle {
   totalLabelColor?: string;
   totalValueFontSize?: string;
   totalValueColor?: string;
+  
+  // Additional properties for edit-form-title
+  showDescription?: boolean; // Whether to show the description text
+  titleAlignment?: 'left' | 'center' | 'right'; // Text alignment for the title
+  descriptionAlignment?: 'left' | 'center' | 'right'; // Text alignment for the description
 }
 
 export interface FormField {
@@ -251,6 +257,21 @@ export const createEmptyField = (type: FormFieldType): FormField => {
 
   // Add field-specific configuration
   switch (type) {
+    case 'edit-form-title':
+      newField.label = 'عنوان النموذج';
+      newField.helpText = 'وصف النموذج';
+      newField.style = {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        titleAlignment: 'center',
+        descriptionAlignment: 'center',
+        showDescription: true,
+      };
+      break;
     case 'form-title':
       newField.label = 'عنوان النموذج المخصص';
       newField.helpText = 'وصف النموذج (اختياري)';
@@ -349,20 +370,22 @@ export const createEmptyField = (type: FormFieldType): FormField => {
 export const createDefaultForm = (): FormStep[] => {
   const defaultFields: FormField[] = [];
   
-  // Add form title field
+  // Use new edit-form-title instead of form-title
   defaultFields.push({
-    type: 'form-title',
+    type: 'edit-form-title',
     id: uuidv4(),
     label: 'نموذج جديد',
     helpText: 'نموذج جديد',
     style: {
+      backgroundColor: '#9b87f5',
       color: '#ffffff',
-      textAlign: 'right',
-      fontWeight: 'bold',
       fontSize: '24px',
+      fontWeight: 'bold',
       descriptionColor: '#ffffff',
       descriptionFontSize: '14px',
-      backgroundColor: '#9b87f5',
+      titleAlignment: 'center',
+      descriptionAlignment: 'center',
+      showDescription: true,
     }
   });
   

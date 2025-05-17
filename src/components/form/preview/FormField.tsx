@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -14,6 +13,7 @@ import HtmlContent from './fields/HtmlContent';
 import ShippingOptions from './fields/ShippingOptions';
 import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
+import EditFormTitleField from './fields/EditFormTitleField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -26,7 +26,7 @@ interface FormFieldProps {
   formDirection?: 'ltr' | 'rtl';
 }
 
-const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDirection }) => {
+const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, formDirection }) => {
   // Determine field class based on direction
   const directionClass = formDirection === 'rtl' ? 'rtl' : 'ltr';
   
@@ -75,6 +75,15 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
         
       case 'whatsapp-button':
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'edit-form-title':
+        return (
+          <EditFormTitleField
+            field={field}
+            formStyle={formStyle}
+            formDirection={formDirection}
+          />
+        );
         
       default:
         return (
