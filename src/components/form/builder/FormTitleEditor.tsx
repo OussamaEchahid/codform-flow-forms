@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
 interface FormTitleEditorProps {
   formTitle: string;
   formDescription: string;
@@ -19,6 +21,7 @@ interface FormTitleEditorProps {
   onUpdateTitleField: (field: FormField) => void;
   isDraggable?: boolean;
 }
+
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   formTitle,
   formDescription,
@@ -121,6 +124,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Log the update to help with debugging
     console.log(`Updated title field style: ${property} = ${value}`, updatedField);
   };
+  
   const handleUpdateLabel = (value: string) => {
     if (!formTitleField) {
       onFormTitleChange(value);
@@ -136,6 +140,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     onFormTitleChange(value);
     console.log(`Updated title field label: ${value}`);
   };
+  
   const handleUpdateDescription = (value: string) => {
     if (!formTitleField) {
       onFormDescriptionChange(value);
@@ -151,6 +156,250 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     onFormDescriptionChange(value);
     console.log(`Updated title field description: ${value}`);
   };
-  return;
+
+  // Return the JSX for the component
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`form-title-editor bg-white rounded-lg border border-border shadow-sm mb-4 ${isDragging ? 'z-50' : ''}`}
+    >
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            {isDraggable && formTitleField && (
+              <div 
+                className="cursor-grab flex items-center text-gray-400 hover:text-gray-600" 
+                {...attributes} 
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4" />
+              </div>
+            )}
+            <h3 className="text-sm font-medium">
+              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+            </h3>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {isOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </div>
+        
+        <CollapsibleContent>
+          <div className="p-4 space-y-4">
+            {/* Title Input */}
+            <div className="space-y-2">
+              <Label htmlFor="form-title" className={language === 'ar' ? 'text-right block' : ''}>
+                {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+              </Label>
+              <Input
+                id="form-title"
+                value={formTitle}
+                onChange={(e) => handleUpdateLabel(e.target.value)}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+                placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+              />
+            </div>
+            
+            {/* Description Input */}
+            <div className="space-y-2">
+              <Label htmlFor="form-description" className={language === 'ar' ? 'text-right block' : ''}>
+                {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+              </Label>
+              <Textarea
+                id="form-description"
+                value={formDescription}
+                onChange={(e) => handleUpdateDescription(e.target.value)}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+                placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+                rows={3}
+              />
+            </div>
+            
+            {/* Style Options */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">
+                {language === 'ar' ? 'خيارات التنسيق' : 'Style Options'}
+              </h4>
+              
+              {/* Background Color */}
+              <div className="space-y-2">
+                <Label htmlFor="bg-color" className="text-xs">
+                  {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="bg-color"
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                    className="h-8 w-12 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={backgroundColor}
+                    onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+              
+              {/* Title Color */}
+              <div className="space-y-2">
+                <Label htmlFor="title-color" className="text-xs">
+                  {language === 'ar' ? 'لون العنوان' : 'Title Color'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="title-color"
+                    type="color"
+                    value={titleColor}
+                    onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                    className="h-8 w-12 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={titleColor}
+                    onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+              
+              {/* Title Size */}
+              <div className="space-y-2">
+                <Label htmlFor="title-size" className="text-xs">
+                  {language === 'ar' ? 'حجم العنوان' : 'Title Size'}
+                </Label>
+                <Input
+                  id="title-size"
+                  type="text"
+                  value={titleSize}
+                  onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              
+              {/* Title Weight */}
+              <div className="space-y-2">
+                <Label htmlFor="title-weight" className="text-xs">
+                  {language === 'ar' ? 'سمك الخط' : 'Font Weight'}
+                </Label>
+                <select
+                  id="title-weight"
+                  value={titleWeight}
+                  onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
+                  className="w-full h-8 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="medium">Medium</option>
+                  <option value="bold">Bold</option>
+                </select>
+              </div>
+              
+              {/* Description Color */}
+              <div className="space-y-2">
+                <Label htmlFor="desc-color" className="text-xs">
+                  {language === 'ar' ? 'لون الوصف' : 'Description Color'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="desc-color"
+                    type="color"
+                    value={descColor}
+                    onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                    className="h-8 w-12 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={descColor}
+                    onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+              
+              {/* Description Size */}
+              <div className="space-y-2">
+                <Label htmlFor="desc-size" className="text-xs">
+                  {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
+                </Label>
+                <Input
+                  id="desc-size"
+                  type="text"
+                  value={descSize}
+                  onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              
+              {/* Text Alignment (Always center for titles) */}
+              <div className="space-y-2">
+                <Label className="text-xs">
+                  {language === 'ar' ? 'محاذاة النص' : 'Text Alignment'}
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 flex-1 ${titleAlignment === 'left' ? 'bg-primary/10' : ''}`}
+                    onClick={() => handleUpdateStyle('textAlign', 'left')}
+                    disabled={true} // Disabled to enforce center alignment
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 flex-1 ${titleAlignment === 'center' ? 'bg-primary/10' : ''}`}
+                    onClick={() => handleUpdateStyle('textAlign', 'center')}
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 flex-1 ${titleAlignment === 'right' ? 'bg-primary/10' : ''}`}
+                    onClick={() => handleUpdateStyle('textAlign', 'right')}
+                    disabled={true} // Disabled to enforce center alignment
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' ? 'المحاذاة المركزية مطلوبة للعناوين' : 'Center alignment is required for titles'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Add title field button */}
+            {!formTitleField && (
+              <Button 
+                type="button" 
+                onClick={onAddTitleField}
+                className="w-full"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'إضافة حقل عنوان' : 'Add Title Field'}
+              </Button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
 };
+
 export default FormTitleEditor;
