@@ -17,6 +17,8 @@ interface TitleFieldProps {
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // Define valid box-sizing options
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
+// Define valid direction options for TypeScript CSSProperties
+type Direction = 'ltr' | 'rtl' | 'initial' | 'inherit';
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
@@ -65,7 +67,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     padding: '0 !important',
     lineHeight: '1.3 !important', // Consistent line height
     display: 'block !important',
-    direction: textDirection,
+    // Fix: Use the properly typed direction property
+    dir: textDirection, // Using dir attribute instead of direction CSS property
   };
 
   // Description styles
@@ -79,7 +82,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     fontWeight: 'normal !important',
     lineHeight: '1.5 !important', // Consistent line height
     opacity: '0.9 !important',
-    direction: textDirection,
+    // Fix: Use the properly typed direction property
+    dir: textDirection, // Using dir attribute instead of direction CSS property
   };
 
   // Create a unique ID for this field
@@ -101,11 +105,13 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
       data-desc-font-weight='normal'
       data-direction={textDirection}
+      dir={textDirection} // Add dir attribute to the container
     >
       <div className="codform-title-container" style={backgroundStyle}>
         <h3 
           className={isFormTitle ? "codform-form-title" : ""}
           style={titleStyle}
+          dir={textDirection} // Add dir attribute instead of using direction in style
         >
           {field.label}
         </h3>
@@ -114,6 +120,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
           <p 
             className="codform-title-description"
             style={descriptionStyle}
+            dir={textDirection} // Add dir attribute instead of using direction in style
           >
             {description}
           </p>
