@@ -58,6 +58,8 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
         
       case 'form-title':
       case 'title':
+        // We intentionally pass formDirection to TitleField but it will ignore it internally
+        // as per client's request to keep title always centered
         return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'html':

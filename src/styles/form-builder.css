@@ -457,13 +457,23 @@
   left: auto !important;
 }
 
-/* محاذاة تسميات الحقول بشكل صحيح */
-[dir="ltr"] .codform-field label {
+/* محاذاة تسميات الحقول بشكل صحيح - باستثناء العنوان */
+[dir="ltr"] .codform-field:not([data-field-type="form-title"]) label, 
+[dir="ltr"] .codform-field:not([data-field-type="title"]) label {
   text-align: left !important;
 }
 
-[dir="rtl"] .codform-field label {
+[dir="rtl"] .codform-field:not([data-field-type="form-title"]) label,
+[dir="rtl"] .codform-field:not([data-field-type="title"]) label {
   text-align: right !important;
+}
+
+/* العنوان دائما في الوسط بغض النظر عن الاتجاه */
+[data-field-type="form-title"] label,
+[data-field-type="title"] label,
+.codform-form-title,
+.codform-title-description {
+  text-align: center !important;
 }
 
 /* إزالة الخلفية البيضاء من داخل النموذج */
@@ -476,15 +486,6 @@
 /* تصحيح الهوامش بين الحقول */
 .codform-field {
   margin-bottom: 12px !important;
-}
-
-/* تحسين محاذاة التسميات والحقول للدعم الكامل لـ RTL */
-[dir="rtl"] .codform-field label {
-  text-align: right !important;
-}
-
-[dir="ltr"] .codform-field label {
-  text-align: left !important;
 }
 
 /* ضمان أن خلفية العنوان تظهر دائمًا */
@@ -502,17 +503,17 @@
 }
 
 /* تصحيح اتجاه النص في العناصر الأخرى وفقًا للقيمة dir */
-[data-direction="rtl"] .codform-field,
-[data-direction="rtl"] .codform-field-wrapper,
-[data-direction="rtl"] .codform-input,
-[data-direction="rtl"] .codform-textarea {
+[data-direction="rtl"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="rtl"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="rtl"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="rtl"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
   direction: rtl !important;
 }
 
-[data-direction="ltr"] .codform-field,
-[data-direction="ltr"] .codform-field-wrapper,
-[data-direction="ltr"] .codform-input,
-[data-direction="ltr"] .codform-textarea {
+[data-direction="ltr"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="ltr"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="ltr"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[data-direction="ltr"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
   direction: ltr !important;
 }
 
@@ -546,19 +547,48 @@
 .codform-form-title, .codform-title-description {
   color: #ffffff !important;
   display: block !important;
+  text-align: center !important;
 }
 
 /* ضمان أن النص في الإدخالات يتم محاذاته بشكل صحيح */
-[dir="rtl"] input, 
-[dir="rtl"] textarea, 
-[dir="rtl"] .codform-input, 
-[dir="rtl"] .codform-textarea {
+[dir="rtl"] input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="rtl"] textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="rtl"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="rtl"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
   text-align: right !important;
 }
 
-[dir="ltr"] input, 
-[dir="ltr"] textarea, 
-[dir="ltr"] .codform-input, 
-[dir="ltr"] .codform-textarea {
+[dir="ltr"] input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="ltr"] textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="ltr"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]), 
+[dir="ltr"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
   text-align: left !important;
+}
+
+/* Ensure address field stays left aligned in RTL */
+[dir="rtl"] [data-field-type="textarea"] textarea {
+  text-align: right !important;
+}
+
+/* Make sure submit button text stays centered and doesn't change with RTL */
+.codform-submit-btn {
+  text-align: center !important;
+}
+
+/* Force center alignment for title field regardless of direction */
+[data-field-type="form-title"],
+[data-field-type="title"] {
+  text-align: center !important;
+}
+
+[data-field-type="form-title"] *,
+[data-field-type="title"] * {
+  text-align: center !important;
+}
+
+/* Keep title centered regardless of direction */
+.codform-title-container,
+.codform-form-title, 
+.codform-title-description {
+  text-align: center !important;
 }
