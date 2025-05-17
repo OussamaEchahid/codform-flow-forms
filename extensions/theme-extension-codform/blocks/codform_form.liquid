@@ -196,13 +196,16 @@
       // Log debugging info
       console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop);
       
-      // Construct the API URL with blockId as a parameter
-      const apiUrl = `https://amlwhnhxbvdrfswjzkoa.supabase.co/functions/v1/forms-product?shop=${shop}&productId=${productId}&blockId=${blockId}`;
+      // Use the correct Supabase URL with https - fixing the DNS resolution error
+      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+      
+      console.log('Request URL:', apiUrl);
       
       // Fetch the form configuration
       fetch(apiUrl)
         .then(response => {
           if (!response.ok) {
+            console.error('HTTP error:', response.status, response.statusText);
             throw new Error(`HTTP error ${response.status}`);
           }
           return response.json();
