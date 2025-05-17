@@ -10,6 +10,7 @@ import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Switch } from '@/components/ui/switch';
 
 interface FormTitleEditorProps {
   formTitle: string;
@@ -37,13 +38,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   } = useI18n();
   const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
-  // Force center alignment for titles (to match store behavior)
-  'center');
+    formTitleField?.style?.textAlign || 'center');
   const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
   const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
+  const [showDescription, setShowDescription] = useState(formTitleField?.style?.showDescription !== false);
   const [isOpen, setIsOpen] = useState(true);
 
   // Set up sortable functionality if the component is draggable
@@ -74,22 +75,24 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (formTitleField) {
       // Important: Use field values if they exist, otherwise use defaults
       setTitleColor(formTitleField.style?.color || '#ffffff');
-      setTitleAlignment('center'); // Always center for consistency with store
+      setTitleAlignment(formTitleField.style?.textAlign || 'center');
       setTitleSize(formTitleField.style?.fontSize || '1.5rem');
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
+      setShowDescription(formTitleField.style?.showDescription !== false);
 
       // Critical: Use field's backgroundColor if it exists, don't overwrite with default
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
 
       // Log state for debugging
       console.log("FormTitleEditor initialized with background color:", formTitleField.style?.backgroundColor || '#9b87f5');
+      console.log("FormTitleEditor showDescription:", formTitleField.style?.showDescription !== false);
     }
   }, [formTitleField]);
 
   // Enhanced update style function that ensures immediate updates
-  const handleUpdateStyle = (property: string, value: string) => {
+  const handleUpdateStyle = (property: string, value: string | boolean) => {
     if (!formTitleField) return;
 
     // Create a deep copy of the field to avoid mutation issues
@@ -104,19 +107,20 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     updatedField.style[property] = value;
 
     // Update local state for UI reflection
-    if (property === 'color') setTitleColor(value);
-    if (property === 'textAlign') setTitleAlignment(value);
-    if (property === 'fontSize') setTitleSize(value);
-    if (property === 'fontWeight') setTitleWeight(value);
-    if (property === 'descriptionColor') setDescColor(value);
-    if (property === 'descriptionFontSize') setDescSize(value);
+    if (property === 'color') setTitleColor(value as string);
+    if (property === 'textAlign') setTitleAlignment(value as string);
+    if (property === 'fontSize') setTitleSize(value as string);
+    if (property === 'fontWeight') setTitleWeight(value as string);
+    if (property === 'descriptionColor') setDescColor(value as string);
+    if (property === 'descriptionFontSize') setDescSize(value as string);
     if (property === 'backgroundColor') {
-      setBackgroundColor(value);
+      setBackgroundColor(value as string);
       console.log(`Background color updated to: ${value}`);
     }
-
-    // Force textAlign to center for consistency with store display
-    updatedField.style.textAlign = 'center';
+    if (property === 'showDescription') {
+      setShowDescription(value as boolean);
+      console.log(`Show description updated to: ${value}`);
+    }
 
     // Update parent component with new field data
     onUpdateTitleField(updatedField);
@@ -210,20 +214,34 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
               />
             </div>
             
-            {/* Description Input */}
-            <div className="space-y-2">
-              <Label htmlFor="form-description" className={language === 'ar' ? 'text-right block' : ''}>
-                {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+            {/* Show Description Toggle */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-description" className={language === 'ar' ? 'text-right block' : ''}>
+                {language === 'ar' ? 'إظهار الوصف' : 'Show Description'}
               </Label>
-              <Textarea
-                id="form-description"
-                value={formDescription}
-                onChange={(e) => handleUpdateDescription(e.target.value)}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-                placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
-                rows={3}
+              <Switch
+                id="show-description"
+                checked={showDescription}
+                onCheckedChange={(checked) => handleUpdateStyle('showDescription', checked)}
               />
             </div>
+            
+            {/* Description Input - Only shown if showDescription is true */}
+            {showDescription && (
+              <div className="space-y-2">
+                <Label htmlFor="form-description" className={language === 'ar' ? 'text-right block' : ''}>
+                  {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+                </Label>
+                <Textarea
+                  id="form-description"
+                  value={formDescription}
+                  onChange={(e) => handleUpdateDescription(e.target.value)}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                  placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+                  rows={3}
+                />
+              </div>
+            )}
             
             {/* Style Options */}
             <div className="space-y-3">
@@ -306,43 +324,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </select>
               </div>
               
-              {/* Description Color */}
-              <div className="space-y-2">
-                <Label htmlFor="desc-color" className="text-xs">
-                  {language === 'ar' ? 'لون الوصف' : 'Description Color'}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="desc-color"
-                    type="color"
-                    value={descColor}
-                    onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                    className="h-8 w-12 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={descColor}
-                    onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-              </div>
-              
-              {/* Description Size */}
-              <div className="space-y-2">
-                <Label htmlFor="desc-size" className="text-xs">
-                  {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
-                </Label>
-                <Input
-                  id="desc-size"
-                  type="text"
-                  value={descSize}
-                  onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
-                  className="h-8"
-                />
-              </div>
-              
-              {/* Text Alignment (Always center for titles) */}
+              {/* Text Alignment */}
               <div className="space-y-2">
                 <Label className="text-xs">
                   {language === 'ar' ? 'محاذاة النص' : 'Text Alignment'}
@@ -350,17 +332,16 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 <div className="flex items-center gap-1">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant={titleAlignment === 'left' ? "default" : "outline"}
                     size="sm"
                     className={`h-8 flex-1 ${titleAlignment === 'left' ? 'bg-primary/10' : ''}`}
                     onClick={() => handleUpdateStyle('textAlign', 'left')}
-                    disabled={true} // Disabled to enforce center alignment
                   >
                     <AlignLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant={titleAlignment === 'center' ? "default" : "outline"}
                     size="sm"
                     className={`h-8 flex-1 ${titleAlignment === 'center' ? 'bg-primary/10' : ''}`}
                     onClick={() => handleUpdateStyle('textAlign', 'center')}
@@ -369,19 +350,56 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant={titleAlignment === 'right' ? "default" : "outline"}
                     size="sm"
                     className={`h-8 flex-1 ${titleAlignment === 'right' ? 'bg-primary/10' : ''}`}
                     onClick={() => handleUpdateStyle('textAlign', 'right')}
-                    disabled={true} // Disabled to enforce center alignment
                   >
                     <AlignRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'المحاذاة المركزية مطلوبة للعناوين' : 'Center alignment is required for titles'}
-                </p>
               </div>
+              
+              {/* Description Options - Only shown if showDescription is true */}
+              {showDescription && (
+                <>
+                  {/* Description Color */}
+                  <div className="space-y-2">
+                    <Label htmlFor="desc-color" className="text-xs">
+                      {language === 'ar' ? 'لون الوصف' : 'Description Color'}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="desc-color"
+                        type="color"
+                        value={descColor}
+                        onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                        className="h-8 w-12 p-1"
+                      />
+                      <Input
+                        type="text"
+                        value={descColor}
+                        onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Description Size */}
+                  <div className="space-y-2">
+                    <Label htmlFor="desc-size" className="text-xs">
+                      {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
+                    </Label>
+                    <Input
+                      id="desc-size"
+                      type="text"
+                      value={descSize}
+                      onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                </>
+              )}
             </div>
             
             {/* Add title field button */}

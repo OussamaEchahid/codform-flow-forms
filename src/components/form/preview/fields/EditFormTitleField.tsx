@@ -28,13 +28,13 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Title alignment (default to center)
-  const titleAlignment = fieldStyle.titleAlignment || 'center';
+  // Title alignment (use from field style or default to center)
+  const titleAlignment = fieldStyle.textAlign || 'center';
   
-  // Description alignment (default to center)
-  const descriptionAlignment = fieldStyle.descriptionAlignment || 'center';
+  // Description alignment (use the same as title alignment by default)
+  const descriptionAlignment = fieldStyle.descriptionAlignment || titleAlignment || 'center';
   
-  // Show description flag (default to true)
+  // Show description flag (default to true unless explicitly set to false)
   const showDescription = fieldStyle.showDescription !== false;
   
   // Font sizes with consistent pixel values
@@ -87,7 +87,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
     lineHeight: '1.5',
     opacity: '0.9',
     width: '100%',
-    display: showDescription ? 'block' : 'none',
+    display: showDescription && description ? 'block' : 'none',
   };
   
   // Create a unique ID for this field
@@ -97,15 +97,16 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   console.log(`EditFormTitleField rendering: id=${fieldId}, bg=${backgroundColor}, direction=${textDirection}`);
   console.log(`Title styles:`, titleStyle);
   console.log(`Description styles:`, descriptionStyle);
+  console.log(`Show description:`, showDescription, `Description:`, description);
 
   // Add useEffect to trigger a re-render with proper styles
   useEffect(() => {
-    console.log(`EditFormTitleField mounted: id=${fieldId}, label=${field.label}`);
+    console.log(`EditFormTitleField mounted: id=${fieldId}, label=${field.label}, showDescription=${showDescription}`);
     // Force any style recalculations
     return () => {
       console.log(`EditFormTitleField unmounted: id=${fieldId}`);
     };
-  }, [fieldId, field.label]);
+  }, [fieldId, field.label, showDescription]);
 
   return (
     <div 
