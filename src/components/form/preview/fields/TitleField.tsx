@@ -25,7 +25,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const description = field.helpText || '';
   
   // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
-  const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'center';
+  const defaultAlignment: TextAlign = language === 'ar' ? 'center' : 'center';
   
   // تحويل محاذاة السلسلة إلى نوع TextAlign مع التحقق
   const getValidAlignment = (align?: string): TextAlign => {

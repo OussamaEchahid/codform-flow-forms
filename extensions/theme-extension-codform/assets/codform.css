@@ -48,13 +48,14 @@
   margin: 0 !important;
 }
 
-/* حاوية النموذج الرئيسية */
+/* حاوية النموذج الرئيسية - إزالة الخلفية البيضاء */
 .codform-form {
   margin-top: 14px;
-  background-color: #F9FAFB !important;
+  background-color: transparent !important;
   border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* تنسيق الحقول - مطابقة تماما للمعاينة */
@@ -62,6 +63,7 @@
   margin-bottom: 16px !important;
   display: block !important;
   position: relative !important;
+  background-color: transparent !important;
 }
 
 .codform-field label {
@@ -105,7 +107,7 @@
 /* تنسيق الحقول مع الأيقونات - مطابق للمعاينة تماما */
 .codform-field-with-icon input,
 .codform-field-with-icon textarea {
-  padding-left: 36px !important;
+  padding-left: 12px !important;
 }
 
 /* محاذاة للغة العربية */
@@ -158,6 +160,7 @@
 .codform-field-wrapper {
   position: relative !important;
   display: block !important;
+  background-color: transparent !important;
 }
 
 /* مربعات الاختيار */
@@ -447,10 +450,10 @@
 
 /* تأكيد على أن الحقول والأزرار تظهر بشكل جيد */
 .codform-form {
-  padding: 16px !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  background-color: #F9FAFB !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
 }
 
 /* تحسين عرض العلامة النجمية للحقول المطلوبة */
@@ -461,12 +464,25 @@
 
 /* Fix form background color - remove the white background */
 .codform-form, 
-.codform-form > div {
+.codform-form > div,
+.codform-form-container,
+.codform-form-element,
+.codform-container {
   background-color: #F9FAFB !important;
 }
 
+.codform-form .space-y-2 {
+  background-color: transparent !important;
+}
+
+/* إزالة الخلفية البيضاء التي تظهر تحت النموذج */
+.codform-form-container {
+  background-color: transparent !important;
+}
+
 /* Ensure white background only for input fields */
-.codform-input {
+.codform-input,
+.codform-textarea {
   background-color: #ffffff !important;
 }
 
@@ -479,9 +495,8 @@
 .codform-container,
 .codform-container > div,
 .codform-form-container,
-.codform-form-element,
-.codform-form {
-  background-color: #F9FAFB !important;
+.codform-form-element {
+  background-color: transparent !important;
 }
 
 /* Make sure labels are properly aligned */
@@ -514,22 +529,18 @@
   margin-bottom: 16px !important;
 }
 
-/* Fix for form contents */
-.codform-form {
+/* All form wrappers should be transparent */
+.codform-container > div:not(.codform-title-container),
+.codform-form-container > div:not(.codform-title-container),
+.codform-form > div:not(.codform-title-container) {
   background-color: transparent !important;
 }
 
-.codform-form > * {
+/* Remove any white background from the form itself */
+.codform-form-element,
+.codform-form-container .codform-form,
+#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
   background-color: transparent !important;
-}
-
-.codform-form .space-y-2 {
-  background-color: transparent !important;
-}
-
-/* Remove any white background */
-.codform-title,
-.codform-field,
-.codform-field-wrapper {
-  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }

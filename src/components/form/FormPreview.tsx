@@ -106,7 +106,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       helpText: formDescription,
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'center',
+        textAlign: language === 'ar' ? 'center' : 'center',
         fontWeight: 'bold',
         fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
