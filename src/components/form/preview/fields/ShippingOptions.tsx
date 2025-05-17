@@ -39,8 +39,9 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
   return (
     <div 
       className="form-control mb-6"
-      dir={textDirection}
-      data-direction={textDirection}
+      style={{
+        direction: textDirection
+      }}
     >
       <label 
         className="form-label mb-2 block" 
@@ -48,7 +49,6 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
           color: fieldStyle.color,
           textAlign: textDirection === 'rtl' ? 'right' : 'left'
         }}
-        dir={textDirection}
       >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
@@ -56,7 +56,6 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       <RadioGroup 
         defaultValue="standard"
         className="space-y-3"
-        dir={textDirection}
         disabled
       >
         {shippingOptions.map((option) => (
@@ -67,7 +66,6 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
               gap: '8px'
             }}
-            dir={textDirection}
           >
             <RadioGroupItem value={option.id} />
             <div 
@@ -75,7 +73,6 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
               style={{
                 flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
               }}
-              dir={textDirection}
             >
               <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>
                 <div className="font-medium">{option.name}</div>

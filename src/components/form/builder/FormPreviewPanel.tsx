@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -113,7 +112,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
-  // Handle direction change with more aggressive refresh
+  // Handle direction change with more aggressive refresh - IMPORTANT: REMOVED document.documentElement change
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
       // Set new direction
@@ -122,10 +121,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       // Force double refresh for complete component remounting
       forceRefresh();
       
-      // Add class to document for global direction
-      document.documentElement.setAttribute('dir', value);
+      // REMOVED: No longer setting document-level direction
+      // document.documentElement.setAttribute('dir', value);
       
-      console.log(`Direction changed to ${value}`);
+      console.log(`Direction changed to ${value} (scoped to preview only)`);
     }
   };
 
@@ -133,9 +132,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     <div 
       id={previewPanelId} 
       style={{backgroundColor: previewBackgroundColor}} 
-      className={`bg-gray-50 ${direction}`}
-      data-direction={direction}
-      dir={direction}
+      className="bg-gray-50"
     >
       <div className="flex justify-between items-center mb-3">
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
@@ -163,10 +160,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       </div>
       
       <div 
-        className={`border rounded-lg p-3 bg-gray-50 ${direction}`}
+        className="border rounded-lg p-3 bg-gray-50"
         style={{backgroundColor: previewBackgroundColor}}
-        data-direction={direction}
-        dir={direction}
       >
         <FormPreview 
           key={`preview-${internalRefreshKey}-${direction}`}

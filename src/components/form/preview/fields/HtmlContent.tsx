@@ -26,21 +26,24 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
+        direction: textDirection
       }}
-      dir={textDirection}
-      data-direction={textDirection}
     >
       {field.content ? (
         <div 
           className="html-content"
           dangerouslySetInnerHTML={{ __html: field.content }} 
-          dir={textDirection}
+          style={{
+            direction: textDirection
+          }}
         />
       ) : (
         <p 
           className="text-gray-500"
-          style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}
-          dir={textDirection}
+          style={{ 
+            textAlign: textDirection === 'rtl' ? 'right' : 'left',
+            direction: textDirection
+          }}
         >
           {language === 'ar' 
             ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
