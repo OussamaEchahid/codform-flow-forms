@@ -1,4 +1,3 @@
-
 /* CODFORM - نماذج الدفع عند الاستلام */
 
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
@@ -125,7 +124,7 @@
   padding-left: 12px !important;
 }
 
-/* محاذاة للغة العربية - تعزيز المحاذاة بمساحات مناسبة */
+/* تحسين محاذاة للغة العربية - تعزيز المحاذاة بمساحات مناسبة */
 [dir="rtl"] .codform-field-with-icon input,
 [dir="rtl"] .codform-field-with-icon textarea,
 .rtl .codform-field-with-icon input,
@@ -165,7 +164,7 @@
   z-index: 2 !important;
 }
 
-/* Fix icon positioning for RTL and LTR - تحسينات محاذاة الأيقونات */
+/* تحسين محاذاة الأيقونات لـ RTL و LTR */
 [dir="rtl"] .codform-field-icon,
 .rtl .codform-field-icon {
   right: 12px !important;
@@ -258,33 +257,16 @@
   text-align: center !important;
 }
 
-.codform-submit-button:hover,
-.codform-next-button:hover,
-.codform-submit-btn:hover {
-  background-color: #8a76e5 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-}
-
-.codform-prev-button {
-  background-color: #9ca3af;
-}
-
-.codform-prev-button:hover {
-  background-color: #8b8f96;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.codform-submit-button:disabled,
-.codform-next-button:disabled,
-.codform-prev-button:disabled,
-.codform-submit-btn:disabled {
-  background-color: #9ca3af !important;
-  cursor: not-allowed !important;
-  opacity: 0.7 !important;
-  transform: none !important;
-  box-shadow: none !important;
+/* ضمان دائماً ظهور عناوين النماذج بخلفية بنفسجية (هذا هو المهم جداً) */
+.codform-title-container,
+div[data-testid="title-field"] .codform-title-container,
+div[data-field-type="form-title"] .codform-title-container,
+div[data-field-type="title"] .codform-title-container {
+  background-color: #9b87f5 !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 16px !important;
+  display: block !important;
 }
 
 /* تنسيقات حقول العناوين - تطابق تام مع المعاينة */
@@ -313,6 +295,346 @@
   margin-bottom: 0 !important;
   line-height: 1.5 !important;
   text-align: center !important;
+}
+
+/* دائماً تأكد من أن عناوين النماذج لها خلفية بنفسجية - دائماً لاحظ هذا ضروري */
+.codform-title-container,
+.codform-form-title-container,
+.codform-header,
+div[class*='codform-title-container'] {
+  background-color: #9b87f5 !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+}
+
+/* اجبار محاذاة تسميات الحقول بشكل صحيح */
+.codform-field label {
+  display: block !important;
+}
+
+/* تحسين محاذاة التسميات بناءً على الصنف أو السمة */
+[dir="rtl"] .codform-field label,
+.rtl .codform-field label {
+  text-align: right !important;
+}
+
+[dir="ltr"] .codform-field label,
+.ltr .codform-field label {
+  text-align: left !important;
+}
+
+/* تعديل الهوامش بين الحقول */
+.codform-field {
+  margin-bottom: 14px !important;
+}
+
+/* تحسين تنسيق نص المساعدة والرسائل الخطأ في RTL و LTR */
+[dir="rtl"] .codform-help-text,
+.rtl .codform-help-text {
+  text-align: right !important;
+}
+
+[dir="ltr"] .codform-help-text,
+.ltr .codform-help-text {
+  text-align: left !important;
+}
+
+[dir="rtl"] .codform-error-message,
+.rtl .codform-error-message {
+  text-align: right !important;
+}
+
+[dir="ltr"] .codform-error-message,
+.ltr .codform-error-message {
+  text-align: left !important;
+}
+
+/* تحسين عرض العلامة النجمية للحقول المطلوبة */
+[dir="rtl"] .codform-field label .text-red-500,
+[dir="rtl"] .codform-field label .codform-required,
+.rtl .codform-field label .text-red-500,
+.rtl .codform-field label .codform-required {
+  margin-right: 4px !important;
+  margin-left: 0 !important;
+}
+
+[dir="ltr"] .codform-field label .text-red-500,
+[dir="ltr"] .codform-field label .codform-required,
+.ltr .codform-field label .text-red-500,
+.ltr .codform-field label .codform-required {
+  margin-left: 4px !important;
+  margin-right: 0 !important;
+}
+
+/* كل ما يتبقى من الملف الأصلي بدون تغيير */
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Button animations - Enhanced for consistent behavior */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
+  }
+  
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+  }
+  
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.5; }
+}
+
+/* Apply animations to button in preview mode */
+.pulse-animation {
+  animation: pulse 2s infinite !important;
+}
+
+.shake-animation {
+  animation: shake 0.8s infinite !important;
+}
+
+.bounce-animation {
+  animation: bounce 2s infinite !important;
+}
+
+.wiggle-animation {
+  animation: wiggle 0.7s ease-in-out infinite !important;
+}
+
+.flash-animation {
+  animation: flash 3s infinite !important;
+}
+
+/* Animation Preview Section */
+.animation-preview-section {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.animation-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.animation-preview-item {
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  border-radius: 0.25rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.animation-preview-item:hover {
+  background-color: #f3f4f6;
+}
+
+.animation-preview-item.selected {
+  border: 2px solid var(--form-primary-color, #9b87f5);
+}
+
+/* Animation examples */
+.animation-example {
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--form-primary-color, #9b87f5);
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+/* Fixed animation for buttons in preview */
+.pulse-animation, .shake-animation, .bounce-animation, .wiggle-animation, .flash-animation {
+  animation-duration: 2s !important;
+  animation-iteration-count: infinite !important;
+  animation-timing-function: ease-in-out !important;
+  animation-fill-mode: both !important;
+  display: inline-flex !important;
+}
+
+/* تحسين محاذاة أيقونة وزر الإرسال */
+.codform-submit-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.codform-submit-button svg {
+  flex-shrink: 0;
+}
+
+/* محاذاة عناصر RTL بشكل صحيح */
+[dir="rtl"] .codform-submit-button {
+  flex-direction: row-reverse;
+}
+
+/* تحسين أنماط زر الإرسال لتتوافق مع المتجر */
+.codform-submit-btn {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  margin: 14px 0 4px 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-color: #9b87f5;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.codform-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0.95;
+}
+
+/* محاذاة عناصر RTL بشكل صحيح */
+[dir="rtl"] .codform-submit-btn {
+  flex-direction: row-reverse;
+}
+
+.codform-submit-btn span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fixed animation for buttons in preview */
+.pulse-animation, .shake-animation, .bounce-animation, .wiggle-animation, .flash-animation {
+  animation-duration: 2s !important;
+  animation-iteration-count: infinite !important;
+  animation-timing-function: ease-in-out !important;
+  animation-fill-mode: both !important;
+}
+
+/* تحسين المسافات بين حقول النموذج في المعاينة */
+.space-y-4 {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+
+.space-y-4 > * {
+  margin-bottom: 8px;
+}
+
+.space-y-4 > *:last-child {
+  margin-bottom: 0;
+}
+
+.space-y-2 {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+
+.space-y-2 > * {
+  margin-bottom: 6px;
+}
+
+.space-y-2 > *:last-child {
+  margin-bottom: 0;
+}
+
+/* تحسين تنسيق النموذج لتطابق تماما مع المعاينة */
+.codform-form {
+  background-color: #F9FAFB !important;
+  border-radius: 8px;
+  margin: 0;
+}
+
+/* تصحيح موضع الأيقونات ومحاذاة حقول الإدخال */
+.codform-field-icon {
+  top: 50% !important;
+}
+
+[dir="ltr"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
+}
+
+[dir="rtl"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+/* محاذاة تسميات الحقول بشكل صحيح */
+.codform-field label {
+  text-align: left !important;
+}
+
+[dir="rtl"] .codform-field label {
+  text-align: right !important;
+}
+
+/* إزالة الخلفية البيضاء من داخل النموذج */
+.codform-container,
+.codform-form,
+.codform-form > div {
+  background-color: #F9FAFB !important;
+}
+
+/* تصحيح الهوامش بين الحقول */
+.codform-field {
+  margin-bottom: 12px !important;
 }
 
 /* تنسيقات زر الواتساب - مطابقة تماما للمعاينة */
@@ -350,59 +672,6 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-}
-
-/* تأثيرات حركية متطابقة تماما مع المعاينة */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.pulse-animation {
-  animation: pulse 2s infinite ease-in-out !important;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-6px); }
-  40%, 60% { transform: translateX(6px); }
-}
-
-.shake-animation {
-  animation: shake 0.8s infinite ease-in-out !important;
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
-}
-
-.bounce-animation {
-  animation: bounce 2s infinite ease-in-out !important;
-}
-
-@keyframes wiggle {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-5deg); }
-  50% { transform: rotate(0); }
-  75% { transform: rotate(5deg); }
-}
-
-.wiggle-animation {
-  animation: wiggle 0.7s ease-in-out infinite !important;
-}
-
-@keyframes flash {
-  0%, 50%, 100% { opacity: 1; }
-  25%, 75% { opacity: 0.7; }
-}
-
-.flash-animation {
-  animation: flash 3s infinite ease-in-out !important;
 }
 
 /* تعديلات للتوافق مع المعاينة والشاشات الصغيرة */
@@ -591,4 +860,3 @@ div[class*='codform-title-container'] {
 .codform-form-container {
   background-color: #F9FAFB !important;
 }
-

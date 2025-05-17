@@ -30,7 +30,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // تحديد الاتجاه بناءً على formDirection المحدد وليس لغة النظام - هذا هو التغيير المهم
+  // تحديد الاتجاه بناءً على formDirection المحدد مباشرة
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Default styling values
@@ -54,7 +54,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // Improve icon rendering function with additional diagnostics
+  // تحسين وظيفة عرض الأيقونات
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
@@ -91,13 +91,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
     }
   };
   
-  // Get actual label text to display
+  // الحصول على النص الفعلي للتسمية
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // Get actual placeholder text to display
+  // الحصول على نص العنصر النائب
   const placeholderText = field.placeholder || '';
 
-  // Determine correct input type based on field type
+  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -105,17 +105,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
     return 'text';
   };
   
-  // Add a unique ID to help ensure display and updates match
+  // إضافة معرف فريد للمساعدة في ضمان العرض والتحديثات
   const inputId = `${field.id}-input`;
   
-  // Adjust icon position based on direction
-  // In RTL form Arabic, icon is on the right; in LTR form English, icon is on the left
+  // تعديل موضع الأيقونة بناءً على الاتجاه
   const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
   
-  // Adjust label and input alignment based on direction - تحديث مهم لضمان محاذاة الحقول بشكل صحيح
+  // تعديل محاذاة التسمية والإدخال بناءً على الاتجاه
   const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
   
-  // Add a field CSS class based on direction - تحديث تصنيف CSS
+  // إضافة تصنيف CSS للحقل بناءً على الاتجاه
   const directionClass = textDirection === 'rtl' ? 'rtl' : 'ltr';
   
   return (
@@ -158,7 +157,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       )}
       
       <div className="codform-field-wrapper relative">
-        {/* Render the icon if it should be shown */}
+        {/* عرض الأيقونة إذا كان يجب عرضها */}
         {showIcon && hasIcon && (
           <div 
             className="codform-field-icon" 
@@ -214,34 +213,36 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         />
       </div>
       
-      {field.helpText && (
-        <p 
-          className="mt-1 text-xs text-gray-500 codform-help-text" 
-          style={{
-            marginTop: '4px',
-            fontSize: '14px',
-            color: '#6b7280',
-            textAlign: labelAlignment
-          }}
-        >
-          {field.helpText}
-        </p>
-      )}
-      
-      {field.errorMessage && field.required && (
-        <div 
-          className="hidden error-message text-sm text-red-500 mt-1 codform-error-message"
-          style={{
-            display: 'none',
-            color: '#ef4444',
-            fontSize: '14px',
-            marginTop: '4px',
-            textAlign: labelAlignment
-          }}
-        >
-          {field.errorMessage}
-        </div>
-      )}
+      <div className="codform-field-help">
+        {field.helpText && (
+          <p 
+            className="mt-1 text-xs text-gray-500 codform-help-text" 
+            style={{
+              marginTop: '4px',
+              fontSize: '14px',
+              color: '#6b7280',
+              textAlign: labelAlignment
+            }}
+          >
+            {field.helpText}
+          </p>
+        )}
+        
+        {field.errorMessage && field.required && (
+          <div 
+            className="hidden error-message text-sm text-red-500 mt-1 codform-error-message"
+            style={{
+              display: 'none',
+              color: '#ef4444',
+              fontSize: '14px',
+              marginTop: '4px',
+              textAlign: labelAlignment
+            }}
+          >
+            {field.errorMessage}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
