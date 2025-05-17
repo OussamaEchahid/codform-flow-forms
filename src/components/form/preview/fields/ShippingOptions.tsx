@@ -11,11 +11,15 @@ interface ShippingOptionsProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) => {
+const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   const shippingOptions = [
     {
@@ -33,22 +37,47 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle }) =
   ];
   
   return (
-    <div className="form-control mb-6">
-      <label className="form-label mb-2 block" style={{ color: fieldStyle.color }}>
+    <div 
+      className="form-control mb-6"
+      dir={textDirection}
+      data-direction={textDirection}
+    >
+      <label 
+        className="form-label mb-2 block" 
+        style={{ 
+          color: fieldStyle.color,
+          textAlign: textDirection === 'rtl' ? 'right' : 'left'
+        }}
+        dir={textDirection}
+      >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
       </label>
       <RadioGroup 
         defaultValue="standard"
         className="space-y-3"
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        dir={textDirection}
         disabled
       >
         {shippingOptions.map((option) => (
-          <div key={option.id} className="flex items-center space-x-2">
+          <div 
+            key={option.id} 
+            className="flex items-center space-x-2"
+            style={{
+              flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
+              gap: '8px'
+            }}
+            dir={textDirection}
+          >
             <RadioGroupItem value={option.id} />
-            <div className="flex flex-1 justify-between items-center">
-              <div>
+            <div 
+              className="flex flex-1 justify-between items-center"
+              style={{
+                flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
+              }}
+              dir={textDirection}
+            >
+              <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>
                 <div className="font-medium">{option.name}</div>
                 <div className="text-sm text-gray-500">{option.time}</div>
               </div>

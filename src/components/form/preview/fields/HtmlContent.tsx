@@ -10,11 +10,15 @@ interface HtmlContentProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
+const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   return (
     <div 
@@ -23,15 +27,21 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
       }}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={textDirection}
+      data-direction={textDirection}
     >
       {field.content ? (
         <div 
           className="html-content"
           dangerouslySetInnerHTML={{ __html: field.content }} 
+          dir={textDirection}
         />
       ) : (
-        <p className={language === 'ar' ? 'text-right' : 'text-left'}>
+        <p 
+          className="text-gray-500"
+          style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}
+          dir={textDirection}
+        >
           {language === 'ar' 
             ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
             : 'Add HTML content here. You can add paragraphs, images, links and more.'}

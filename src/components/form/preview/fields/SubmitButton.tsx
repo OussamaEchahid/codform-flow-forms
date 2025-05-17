@@ -13,11 +13,15 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const style = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Get animation class if set
   const getAnimationClass = () => {
@@ -84,7 +88,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'arrow-right':
-        return language === 'ar' ? 
+        return textDir === 'rtl' ? 
           <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
           <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'check':
@@ -102,11 +106,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   };
 
   // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || (language === 'ar' ? 'left' : 'right');
+  const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
   const icon = renderIcon();
-  
-  // Set text direction based on language
-  const textDir = language === 'ar' ? 'rtl' : 'ltr';
   
   return (
     <button
@@ -123,6 +124,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       data-has-animation={style.animation ? 'true' : 'false'}
       data-icon-position={iconPosition}
       data-has-icon={style.showIcon ? 'true' : 'false'}
+      data-direction={textDir}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

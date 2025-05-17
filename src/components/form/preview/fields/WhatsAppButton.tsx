@@ -12,11 +12,15 @@ interface WhatsAppButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => {
+const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Get WhatsApp number from the field
   const whatsappNumber = field.whatsappNumber || '';
@@ -48,7 +52,11 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   };
   
   return (
-    <div className="mb-4">
+    <div 
+      className="mb-4"
+      dir={textDirection}
+      data-direction={textDirection}
+    >
       <a 
         href={whatsappUrl}
         target="_blank"
@@ -78,6 +86,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
         }}
         data-button-type="whatsapp"
         data-whatsapp-number={whatsappNumber}
+        dir={textDirection}
       >
         <MessageSquare style={iconStyle} className="codform-whatsapp-icon" />
         {field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp')}
