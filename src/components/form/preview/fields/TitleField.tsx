@@ -25,21 +25,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Extract description from the field itself
   const description = field.helpText || '';
   
-  // Get text direction from formDirection prop or fall back to language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  // Get language-based direction (ignoring formDirection as titles always have fixed alignment)
+  const textDirection = language === 'ar' ? 'rtl' : 'ltr';
   
-  // Get alignment from field style or default based on direction
-  const defaultAlignment: TextAlign = textDirection === 'rtl' ? 'right' : 'left';
-  
-  // Convert string alignment to TextAlign type with validation
-  const getValidAlignment = (align?: string): TextAlign => {
-    if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
-      return align as TextAlign;
-    }
-    return defaultAlignment;
-  };
-  
-  const alignment = getValidAlignment(fieldStyle.textAlign);
+  // Force center alignment for title regardless of direction
+  const alignment: TextAlign = 'center';
   
   // Use precise pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
@@ -99,7 +89,6 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={textDirection}
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"

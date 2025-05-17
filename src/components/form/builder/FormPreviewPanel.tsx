@@ -99,6 +99,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
       setDirection(value);
+      // Force more aggressive refresh when direction changes
+      setInternalRefreshKey(Date.now() + 1000);
     }
   };
 

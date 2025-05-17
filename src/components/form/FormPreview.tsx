@@ -111,7 +111,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       helpText: formDescription,
       style: {
         color: '#ffffff',
-        textAlign: direction === 'rtl' ? 'center' : 'center',
+        textAlign: 'center',
         fontWeight: 'bold',
         fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
@@ -143,7 +143,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor, direction]);
+  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
   // Create unique ID for this form to ensure proper updates
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
