@@ -44,11 +44,14 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Default to purple (#9b87f5) if no backgroundColor or primaryColor is defined
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
+  // Remove borderRadius calculation and use raw value to ensure consistency
+  const borderRadiusValue = formStyle.borderRadius || '0.5rem';
+  
   // Background style with fixed pixel values for padding
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     padding: '16px',
-    borderRadius: formStyle.borderRadius || '8px',
+    borderRadius: borderRadiusValue,
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
     marginBottom: '16px',
@@ -56,7 +59,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     display: 'block',
   };
 
-  // Title styles
+  // Title styles with zero margin to match preview
   const titleStyle: React.CSSProperties = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fieldStyle.fontSize || fontSize,
@@ -71,7 +74,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     width: '100%',
   };
 
-  // Description styles
+  // Description styles with exactly 6px top margin to match preview
   const descriptionStyle: React.CSSProperties = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
