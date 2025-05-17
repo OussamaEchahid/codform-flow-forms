@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -34,7 +35,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const { language } = useI18n();
   const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
-    formTitleField?.style?.textAlign || 'center' // Default to center alignment for titles
+    // Force center alignment for titles (to match store behavior)
+    'center'
   );
   const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
@@ -70,13 +72,20 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   // Update local state when formTitleField changes
   useEffect(() => {
     if (formTitleField) {
+      // Important: Use field values if they exist, otherwise use defaults
       setTitleColor(formTitleField.style?.color || '#ffffff');
-      setTitleAlignment(formTitleField.style?.textAlign || 'center'); // Default to center
+      setTitleAlignment('center'); // Always center for consistency with store
       setTitleSize(formTitleField.style?.fontSize || '1.5rem');
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
+      
+      // Critical: Use field's backgroundColor if it exists, don't overwrite with default
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
+      
+      // Log state for debugging
+      console.log("FormTitleEditor initialized with background color:", 
+                  formTitleField.style?.backgroundColor || '#9b87f5');
     }
   }, [formTitleField]);
 
@@ -102,12 +111,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'fontWeight') setTitleWeight(value);
     if (property === 'descriptionColor') setDescColor(value);
     if (property === 'descriptionFontSize') setDescSize(value);
-    if (property === 'backgroundColor') setBackgroundColor(value);
+    if (property === 'backgroundColor') {
+      setBackgroundColor(value);
+      console.log(`Background color updated to: ${value}`);
+    }
     
     // Force textAlign to center for consistency with store display
-    if (property !== 'textAlign') {
-      updatedField.style.textAlign = 'center';
-    }
+    updatedField.style.textAlign = 'center';
     
     // Update parent component with new field data
     onUpdateTitleField(updatedField);
@@ -155,6 +165,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       ref={setNodeRef} 
       style={style}
       className={`mb-4 border p-3 rounded-md bg-white ${isDragging ? 'shadow-lg' : ''}`}
+      data-title-editor="true"
+      data-bg-color={backgroundColor}
     >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between">
@@ -261,6 +273,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         value={backgroundColor}
                         onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
                         className="w-12 h-8 p-1"
+                        data-bg-color-picker="true"
                       />
                       <Input
                         value={backgroundColor}
@@ -322,6 +335,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       size="sm"
                       onClick={() => handleUpdateStyle('textAlign', 'left')}
                       disabled={true} 
+                      className="opacity-50"
                     >
                       <AlignLeft className="h-4 w-4" />
                     </Button>
@@ -339,6 +353,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       size="sm"
                       onClick={() => handleUpdateStyle('textAlign', 'right')}
                       disabled={true}
+                      className="opacity-50"
                     >
                       <AlignRight className="h-4 w-4" />
                     </Button>

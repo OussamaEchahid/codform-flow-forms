@@ -48,6 +48,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Use the formDirection prop if provided, otherwise fall back to language-based direction
   const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
+  // Log direction for debugging
+  console.log(`FormPreview using direction: ${direction}, provided formDirection: ${formDirection}, language: ${language}`);
+  
   // Improve field processing for consistent display
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart items and cart summary fields have empty labels by default
@@ -97,6 +100,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           updatedField.style = {};
         }
         updatedField.style.textAlign = 'center';
+        
+        // Log the background color for debugging
+        console.log(`Title field ${updatedField.id} background color: ${updatedField.style.backgroundColor || 'not set'}`);
       }
       
       return updatedField;
@@ -157,9 +163,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Direction class for the form
   const dirClass = direction === 'rtl' ? 'rtl' : 'ltr';
-  
-  // Log current form direction
-  console.log(`FormPreview rendering with direction: ${direction}`);
   
   return (
     <div 

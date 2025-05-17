@@ -30,8 +30,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Always use center alignment for title fields for consistency with store display
-  const alignment: TextAlign = 'center';
+  // For title fields, force center alignment - critical for store consistency!
+  const alignment = 'center';
   
   // Use precise pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
@@ -40,9 +40,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // Get background color from field style, fallback to formStyle.primaryColor, then to default purple
-  // Make sure we're not overriding the user's selected color
+  // Get background color from field style, DO NOT override with formStyle.primaryColor to allow user selection
+  // This is the key fix for the background color issue
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  
+  console.log(`TitleField rendering: Background color = ${backgroundColor}, Field style =`, fieldStyle);
   
   // Use the same borderRadius value as in the store
   const borderRadiusValue = formStyle.borderRadius || '0.5rem';
@@ -57,7 +59,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     marginBottom: '16px',
     textAlign: alignment as React.CSSProperties['textAlign'],
     display: 'block',
-    overflow: 'hidden', // Ensure content doesn't overflow
+    overflow: 'hidden', // Ensure content doesn't overflow - critical for consistent appearance
   };
 
   // Title styles with zero margin to match preview

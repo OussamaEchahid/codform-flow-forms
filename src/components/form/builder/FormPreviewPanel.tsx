@@ -119,6 +119,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
+      // For title fields, make sure the background color is preserved
+      if ((updatedField.type === 'form-title' || updatedField.type === 'title') && updatedField.style) {
+        // Log the background color for debugging
+        console.log(`Title field ${updatedField.id} background in panel: ${updatedField.style.backgroundColor || 'not set'}`);
+      }
+      
       // Make sure font size uses consistent px units
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
         // Convert rem to px for consistency
@@ -137,11 +143,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           updatedField.style = {};
         }
         updatedField.style.textAlign = 'center';
-      }
-      
-      // Log background color changes for debugging
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        console.log(`Title field background color: ${updatedField.style?.backgroundColor || 'not set'}`);
       }
       
       return updatedField;
@@ -230,13 +231,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             ? `الاتجاه الحالي: ${direction} - مفتاح التحديث: ${internalRefreshKey.toString().substring(0, 8)}`
             : `Current direction: ${direction} - Refresh key: ${internalRefreshKey.toString().substring(0, 8)}`}
         </p>
-      </div>
-      
-      {/* Small note about preview/store alignment */}
-      <div className="mt-2 text-xs text-gray-500 p-2 rounded">
-        {language === 'ar' 
-          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
-          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
       </div>
     </div>
   );
