@@ -1,4 +1,3 @@
-
 .form-control {
   margin-bottom: 0.8rem;
 }
@@ -476,4 +475,77 @@
 /* تصحيح الهوامش بين الحقول */
 .codform-field {
   margin-bottom: 12px !important;
+}
+
+/* تحسين محاذاة التسميات والحقول للدعم الكامل لـ RTL */
+[dir="rtl"] .codform-field label {
+  text-align: right !important;
+}
+
+[dir="ltr"] .codform-field label {
+  text-align: left !important;
+}
+
+/* ضمان أن خلفية العنوان تظهر دائمًا */
+.codform-title-container {
+  background-color: var(--form-primary-color, #9b87f5) !important;
+  display: block !important;
+  width: 100% !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+.codform-form-title, .codform-title-description {
+  color: #ffffff !important;
+}
+
+/* تحسين اتجاه النص للعناصر */
+[dir="rtl"] .codform-input,
+[dir="rtl"] .codform-textarea,
+[dir="rtl"] .codform-field label,
+[dir="rtl"] .codform-help-text {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="ltr"] .codform-input,
+[dir="ltr"] .codform-textarea,
+[dir="ltr"] .codform-field label,
+[dir="ltr"] .codform-help-text {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* تصحيح موضع الأيقونات في الاتجاهين */
+[dir="rtl"] .codform-field-with-icon .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+[dir="ltr"] .codform-field-with-icon .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
+}
+
+/* ضمان تطبيق الاتجاه بشكل صحيح على جميع العناصر */
+.codform-form[dir="rtl"],
+.codform-form[data-direction="rtl"] {
+  direction: rtl !important;
+}
+
+.codform-form[dir="ltr"],
+.codform-form[data-direction="ltr"] {
+  direction: ltr !important;
+}
+
+/* تأكيد أن المسافة الداخلية للحقول النصية صحيحة */
+[dir="rtl"] .codform-input.with-icon {
+  padding-right: 36px !important;
+  padding-left: 12px !important;
+}
+
+[dir="ltr"] .codform-input.with-icon {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
 }

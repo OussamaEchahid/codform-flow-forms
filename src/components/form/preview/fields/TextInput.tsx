@@ -86,7 +86,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       case 'image': return <Image {...iconProps} />;
       case 'file-text': return <FileText {...iconProps} />;
       default: 
-        console.warn(`Unknown icon type: ${field.icon}`);
+        console.log(`Unknown icon type: ${field.icon}`);
         return null;
     }
   };
@@ -106,7 +106,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   };
   
   // إضافة معرف فريد للمساعدة في ضمان العرض والتحديثات
-  const inputId = `${field.id}-input`;
+  const inputId = `${field.id}-input-${Date.now()}`;
   
   // تعديل موضع الأيقونة بناءً على الاتجاه
   const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
@@ -134,6 +134,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       data-border-radius={borderRadius}
       data-input-id={inputId}
       dir={textDirection}
+      style={{ direction: textDirection }}
     >
       {showLabel && (
         <label 
@@ -145,9 +146,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
             marginBottom: '8px',
-            textAlign: labelAlignment
+            textAlign: labelAlignment,
+            direction: textDirection
           }}
           data-label-text={labelText}
+          dir={textDirection}
         >
           {labelText}
           {field.required && (
@@ -156,7 +159,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         </label>
       )}
       
-      <div className="codform-field-wrapper relative">
+      <div className="codform-field-wrapper relative" dir={textDirection}>
         {/* عرض الأيقونة إذا كان يجب عرضها */}
         {showIcon && hasIcon && (
           <div 
@@ -204,7 +207,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             width: '100%',
             height: 'auto',
             lineHeight: 1.5,
-            direction: textDirection
+            direction: textDirection,
+            textAlign: textDirection === 'rtl' ? 'right' : 'left'
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           data-icon-position={iconPosition}
@@ -213,7 +217,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         />
       </div>
       
-      <div className="codform-field-help">
+      <div className="codform-field-help" dir={textDirection}>
         {field.helpText && (
           <p 
             className="mt-1 text-xs text-gray-500 codform-help-text" 
@@ -221,8 +225,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
               marginTop: '4px',
               fontSize: '14px',
               color: '#6b7280',
-              textAlign: labelAlignment
+              textAlign: labelAlignment,
+              direction: textDirection
             }}
+            dir={textDirection}
           >
             {field.helpText}
           </p>
@@ -236,8 +242,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
               color: '#ef4444',
               fontSize: '14px',
               marginTop: '4px',
-              textAlign: labelAlignment
+              textAlign: labelAlignment,
+              direction: textDirection
             }}
+            dir={textDirection}
           >
             {field.errorMessage}
           </div>

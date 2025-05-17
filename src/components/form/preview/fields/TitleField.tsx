@@ -29,7 +29,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Get alignment from field style or default based on direction
-  const defaultAlignment: TextAlign = textDirection === 'rtl' ? 'center' : 'center';
+  const defaultAlignment: TextAlign = textDirection === 'rtl' ? 'right' : 'left';
   
   // Convert string alignment to TextAlign type with validation
   const getValidAlignment = (align?: string): TextAlign => {
@@ -48,7 +48,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // CRITICAL FIX: Always ensure we have a background color
+  // CRITICAL FIX: ENSURE WE ALWAYS HAVE A PURPLE BACKGROUND
   // Default to purple (#9b87f5) if no backgroundColor or primaryColor is defined
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
@@ -61,6 +61,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     boxSizing: 'border-box' as BoxSizing,
     marginBottom: '16px !important', // Exact margin to match between preview and store
     textAlign: alignment as React.CSSProperties['textAlign'],
+    display: 'block !important', // Ensure block display
   };
 
   // Title styles
@@ -74,6 +75,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     padding: '0 !important',
     lineHeight: '1.3 !important', // Consistent line height
     display: 'block !important',
+    direction: textDirection,
   };
 
   // Description styles
@@ -87,6 +89,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     fontWeight: 'normal !important',
     lineHeight: '1.5 !important', // Consistent line height
     opacity: '0.9 !important',
+    direction: textDirection,
   };
 
   // Create a unique ID for this field
@@ -108,6 +111,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
       data-desc-font-weight='normal'
+      data-direction={textDirection}
     >
       <div className="codform-title-container" style={backgroundStyle}>
         <h3 
