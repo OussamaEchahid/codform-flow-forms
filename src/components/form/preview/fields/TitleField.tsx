@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-
 interface TitleFieldProps {
   field: FormField;
   formStyle: {
@@ -19,36 +17,40 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 // Define valid direction options for TypeScript CSSProperties
 type Direction = 'ltr' | 'rtl' | 'initial' | 'inherit';
-
-const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection }) => {
-  const { language } = useI18n();
+const TitleField: React.FC<TitleFieldProps> = ({
+  field,
+  formStyle,
+  formDirection
+}) => {
+  const {
+    language
+  } = useI18n();
   const fieldStyle = field.style || {};
-  
+
   // Extract description from the field itself
   const description = field.helpText || '';
-  
+
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
+
   // For title fields, force center alignment - critical for store consistency!
   const alignment = 'center';
-  
+
   // Use precise pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
-  
+
   // Use consistent pixel values to ensure exact size match
-  const fontSize = isFormTitle ? '24px' : '20px'; 
+  const fontSize = isFormTitle ? '24px' : '20px';
   const descriptionFontSize = '14px';
-  
+
   // Get background color from field style, DO NOT override with formStyle.primaryColor to allow user selection
   // This is the key fix for the background color issue
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
-  
   console.log(`TitleField rendering: Background color = ${backgroundColor}, Field style =`, fieldStyle);
-  
+
   // Use the same borderRadius value as in the store
   const borderRadiusValue = formStyle.borderRadius || '0.5rem';
-  
+
   // Background style with consistent values for store and preview
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
@@ -59,7 +61,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     marginBottom: '16px',
     textAlign: alignment as React.CSSProperties['textAlign'],
     display: 'block',
-    overflow: 'hidden', // Ensure content doesn't overflow - critical for consistent appearance
+    overflow: 'hidden' // Ensure content doesn't overflow - critical for consistent appearance
   };
 
   // Title styles with zero margin to match preview
@@ -74,7 +76,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.3',
     display: 'block',
     direction: textDirection as Direction,
-    width: '100%',
+    width: '100%'
   };
 
   // Description styles with exactly 6px top margin to match preview
@@ -90,46 +92,13 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     opacity: '0.9',
     direction: textDirection as Direction,
     width: '100%',
-    display: 'block',
+    display: 'block'
   };
 
   // Create a unique ID for this field to avoid conflicts
   const titleFieldId = `title-field-${field.id}`;
-
-  return (
-    <div 
-      id={titleFieldId}
-      className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      data-testid="title-field"
-      data-title-align={alignment}
-      data-has-bg="true"
-      data-title-color={fieldStyle.color || '#ffffff'}
-      data-bg-color={backgroundColor}
-      data-field-type={field.type}
-      data-direction={textDirection}
-      dir={textDirection}
-    >
-      <div className="codform-title-container" style={backgroundStyle} dir={textDirection}>
-        <h3 
-          className={isFormTitle ? "codform-form-title" : ""}
-          style={titleStyle}
-          dir={textDirection}
-        >
-          {field.label}
-        </h3>
-        
-        {description && (
-          <p 
-            className="codform-title-description"
-            style={descriptionStyle}
-            dir={textDirection}
-          >
-            {description}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  return <div id={titleFieldId} className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`} data-testid="title-field" data-title-align={alignment} data-has-bg="true" data-title-color={fieldStyle.color || '#ffffff'} data-bg-color={backgroundColor} data-field-type={field.type} data-direction={textDirection} dir={textDirection}>
+      
+    </div>;
 };
-
 export default TitleField;
