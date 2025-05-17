@@ -40,9 +40,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
     <div 
       className="form-control mb-6 shipping-options-container"
       style={{
-        direction: textDirection,
-        width: '100%', // Ensure full width
-        textAlign: textDirection === 'rtl' ? 'right' : 'left',
+        direction: textDirection
       }}
       dir={textDirection}
       data-direction={textDirection}
@@ -51,18 +49,15 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
         className="form-label mb-2 block font-medium" 
         style={{ 
           color: fieldStyle.color,
-          textAlign: textDirection === 'rtl' ? 'right' : 'left',
-          width: '100%', // Ensure full width
-          direction: textDirection,
+          textAlign: textDirection === 'rtl' ? 'right' : 'left'
         }}
-        dir={textDirection}
       >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
       </label>
       <RadioGroup 
         defaultValue="standard"
-        className="space-y-3 w-full" // Add full width
+        className="space-y-3"
         dir={textDirection}
         disabled
       >
@@ -72,21 +67,16 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
             className="flex items-center space-x-2"
             style={{
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              gap: '8px',
-              width: '100%', // Ensure full width
-              direction: textDirection,
+              gap: '8px'
             }}
-            dir={textDirection}
           >
             <RadioGroupItem value={option.id} />
             <div 
               className="flex flex-1 justify-between items-center"
               style={{
                 flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-                direction: textDirection,
-                width: '100%' // Ensure full width
+                direction: textDirection
               }}
-              dir={textDirection}
             >
               <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>
                 <div className="font-medium">{option.name}</div>

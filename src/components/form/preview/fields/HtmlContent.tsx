@@ -26,9 +26,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
-        direction: textDirection,
-        width: '100%', // Ensure full width
-        textAlign: textDirection === 'rtl' ? 'right' : 'left',
+        direction: textDirection
       }}
       dir={textDirection}
       data-direction={textDirection}
@@ -39,9 +37,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
           dangerouslySetInnerHTML={{ __html: field.content }} 
           style={{
             direction: textDirection,
-            textAlign: textDirection === 'rtl' ? 'right' : 'left',
-            width: '100%', // Ensure full width
-            boxSizing: 'border-box'
+            textAlign: textDirection === 'rtl' ? 'right' : 'left'
           }}
           dir={textDirection}
         />
@@ -50,8 +46,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
           className="text-gray-500"
           style={{ 
             textAlign: textDirection === 'rtl' ? 'right' : 'left',
-            direction: textDirection,
-            width: '100%' // Ensure full width
+            direction: textDirection
           }}
           dir={textDirection}
         >

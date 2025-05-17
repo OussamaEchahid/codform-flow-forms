@@ -49,16 +49,3 @@ ar = "تفعيل أيقونات الحقول"
 [settings.fields.info]
 en = "Show icons in form fields when available"
 ar = "عرض الأيقونات في حقول النموذج عند توفرها"
-
-[[settings.fields]]
-key = "is_rtl"
-type = "checkbox"
-default = false
-
-[settings.fields.label]
-en = "Enable Right-to-Left (RTL) Direction"
-ar = "تفعيل الاتجاه من اليمين إلى اليسار (RTL)"
-
-[settings.fields.info]
-en = "Display form in right-to-left direction (for Arabic and other RTL languages)"
-ar = "عرض النموذج باتجاه من اليمين إلى اليسار (للغة العربية واللغات الأخرى RTL)"

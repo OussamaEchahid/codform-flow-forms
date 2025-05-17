@@ -682,8 +682,6 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     box-sizing: border-box;
     display: block;
     overflow: hidden; /* تأكد من عدم خروج المحتوى عن الحدود */
-    padding: 16px !important;
-    margin-bottom: 16px;
   }
 
   /* تحسين مظهر العناوين */
@@ -693,9 +691,6 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     padding: 0 !important;
     line-height: 1.4 !important;
     font-weight: bold !important;
-    width: 100% !important;
-    display: block !important;
-    text-align: center !important;
   }
 
   /* تحسينات للتوافق مع RTL */
@@ -714,23 +709,9 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   /* ضمان ظهور العنوان والوصف بشكل صحيح في الإطار بغض النظر عن الاتجاه */
   .codform-title-container h3,
   .codform-title-container p {
-    width: 100% !important;
-    display: block !important;
-    box-sizing: border-box !important;
-    text-align: center !important;
-  }
-
-  /* تصحيح لون خلفية العنوان */
-  .codform-title-container {
-    background-color: #9b87f5 !important; /* ضمان تحديد اللون بوضوح */
-  }
-  
-  /* تحسين محاذاة المحتوى */
-  .codform-title-description {
-    margin-top: 6px !important;
-    margin-bottom: 0 !important;
-    line-height: 1.5 !important;
-    text-align: center !important;
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
   }
 </style>
 {% endif %}`;

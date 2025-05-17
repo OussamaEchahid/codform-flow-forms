@@ -54,11 +54,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     marginBottom: '16px',
     textAlign: alignment as React.CSSProperties['textAlign'],
     display: 'block',
-    overflow: 'hidden', // Ensure content doesn't overflow
-    position: 'relative', // Ensure positioning context
   };
 
-  // Title styles with !important added to critical properties
+  // Title styles
   const titleStyle: React.CSSProperties = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fieldStyle.fontSize || fontSize,
@@ -70,10 +68,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.3',
     display: 'block',
     direction: textDirection as Direction,
-    width: '100%', // Ensure title takes full width
   };
 
-  // Description styles with !important added to critical properties
+  // Description styles
   const descriptionStyle: React.CSSProperties = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
@@ -85,11 +82,10 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.5',
     opacity: '0.9',
     direction: textDirection as Direction,
-    width: '100%', // Ensure description takes full width
   };
 
   // Create a unique ID for this field
-  const titleFieldId = `title-field-${field.id || Date.now()}`;
+  const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
   return (
     <div 

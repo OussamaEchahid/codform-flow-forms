@@ -1,122 +1,1042 @@
 
 {% comment %}
-  CODFORM - نماذج الدفع عند الاستلام
-  
-  تضمين نموذج الدفع عند الاستلام في صفحة المنتج
+  @name: CODFORM Form Block
+  @description: Display a cash on delivery form for products
+  @supports: product
+  @by: OurTeam
 {% endcomment %}
-
-<div
-  id="codform-container"
-  class="codform-container"
-  data-product-id="{{ product.id }}"
-  data-shop-domain="{{ shop.permanent_domain }}"
-  data-block-id="{{ block.id }}"
-  data-is-rtl="{{ block.settings.is_rtl }}"
-  {% if block.settings.is_rtl %}dir="rtl"{% else %}dir="ltr"{% endif %}
->
-  <div class="codform-loading" style="display: block; text-align: center; padding: 30px;">
-    <div class="codform-spinner"></div>
-    <p style="{% if block.settings.is_rtl %}text-align: right;{% else %}text-align: left;{% endif %}">
-      {{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}
-    </p>
-  </div>
-  <div id="codform-form" style="display: none;">
-    <!-- سيتم تحميل النموذج هنا -->
-  </div>
-</div>
-
-<style>
-  /* أساسيات النموذج */
-  .codform-container {
-    margin: 20px 0;
-    font-family: inherit;
-  }
-  
-  /* مؤشر التحميل */
-  .codform-spinner {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top-color: #9b87f5;
-    animation: codform-spin 1s ease-in-out infinite;
-    margin-bottom: 10px;
-  }
-  
-  @keyframes codform-spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  /* إصلاح خلفية العنوان */
-  .codform-title-container {
-    background-color: #9b87f5 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 16px !important;
-    margin-bottom: 16px !important;
-    overflow: hidden !important;
-    border-radius: 8px !important;
-  }
-  
-  /* تحسين نمط العنوان */
-  .codform-form-title {
-    color: white !important;
-    font-size: 24px !important;
-    text-align: center !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    display: block !important;
-  }
-  
-  .codform-title-description {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-size: 14px !important;
-    text-align: center !important;
-    margin: 6px 0 0 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-  }
-  
-  /* دعم RTL */
-  [dir="rtl"] .codform-form input,
-  [dir="rtl"] .codform-form textarea {
-    text-align: right !important;
-  }
-  
-  [dir="rtl"] .codform-form label,
-  [dir="rtl"] .codform-form .form-label,
-  [dir="rtl"] .codform-form .form-help-text {
-    text-align: right !important;
-    display: block !important;
-  }
-
-  /* تأكد من أن العنوان يظهر بشكل صحيح */
-  .codform-title-container h3,
-  .codform-title-container p {
-    width: 100% !important;
-    display: block !important;
-  }
-</style>
 
 {% schema %}
 {
-  "name": "COD Form نموذج",
+  "name": "نموذج الدفع عند الاستلام",
   "target": "section",
   "settings": [
     {
       "type": "checkbox",
-      "id": "is_rtl",
-      "label": "Right-to-left (RTL) Direction | اتجاه من اليمين إلى اليسار",
+      "id": "hide_header",
+      "label": "إخفاء عنوان النموذج",
       "default": false
     },
     {
       "type": "text",
       "id": "loading_text",
-      "label": "Loading Text | نص التحميل",
-      "default": "Loading form... | جاري تحميل النموذج..."
+      "label": "نص التحميل",
+      "default": "جاري تحميل النموذج..."
+    },
+    {
+      "type": "text",
+      "id": "success_title",
+      "label": "عنوان نجاح الإرسال",
+      "default": "تم إرسال الطلب بنجاح"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "رسالة نجاح الإرسال",
+      "default": "شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام."
+    },
+    {
+      "type": "text",
+      "id": "error_title",
+      "label": "عنوان رسالة الخطأ",
+      "default": "حدث خطأ"
+    },
+    {
+      "type": "text",
+      "id": "error_message",
+      "label": "رسالة الخطأ",
+      "default": "حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى."
+    },
+    {
+      "type": "text",
+      "id": "retry_button",
+      "label": "نص زر إعادة المحاولة",
+      "default": "إعادة المحاولة"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تفعيل الزر العائم",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "أيقونة الزر العائم",
+      "options": [
+        { "value": "shopping-cart", "label": "عربة تسوق" },
+        { "value": "package", "label": "طرد" },
+        { "value": "truck", "label": "شاحنة" },
+        { "value": "send", "label": "إرسال" },
+        { "value": "none", "label": "بدون أيقونة" }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "إظهار الأيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي للزر العائم",
+      "options": [
+        { "value": "none", "label": "بدون" },
+        { "value": "pulse", "label": "نبض" },
+        { "value": "shake", "label": "اهتزاز" },
+        { "value": "bounce", "label": "قفز" },
+        { "value": "wiggle", "label": "تمايل" },
+        { "value": "flash", "label": "وميض" }
+      ],
+      "default": "pulse"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون خلفية الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون نص الزر العائم",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "انحناء حواف الزر العائم",
+      "default": "4px"
+    },
+    {
+      "type": "text",
+      "id": "floating_padding_y",
+      "label": "تباعد عمودي للزر العائم",
+      "default": "10px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_size",
+      "label": "حجم خط الزر العائم",
+      "default": "16px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_weight",
+      "label": "وزن خط الزر العائم",
+      "default": "500"
+    },
+    {
+      "type": "text",
+      "id": "floating_margin_bottom",
+      "label": "هامش سفلي للزر العائم",
+      "default": "20px"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_width",
+      "label": "عرض حدود الزر العائم",
+      "default": "0px"
+    },
+    {
+      "type": "color",
+      "id": "floating_border_color",
+      "label": "لون حدود الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
+      "id": "is_rtl",
+      "label": "اتجاه النص من اليمين لليسار",
+      "default": true
     }
   ]
 }
 {% endschema %}
+
+<link rel="stylesheet" href="{{ 'codform.css' | asset_url }}" type="text/css" media="all">
+
+<div 
+  id="codform-container-{{ block.id }}" 
+  class="codform-container" 
+  data-product-id="{{ product.id }}"
+  data-block-id="{{ block.id }}"
+  data-hide-header="{{ block.settings.hide_header }}"
+  data-enable-icons="true"
+  data-direction="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+>
+  <div 
+    id="codform-form-loader-{{ block.id }}" 
+    class="codform-loader" 
+    style="display: flex; justify-content: center; padding: 20px;" 
+    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  >
+    <div class="codform-spinner"></div>
+    <div style="margin-top: 10px; font-weight: 500;">{{ block.settings.loading_text }}</div>
+  </div>
+  
+  <div 
+    id="codform-form-{{ block.id }}" 
+    class="codform-form-container" 
+    style="display: none;" 
+    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  ></div>
+  
+  <div 
+    id="codform-success-{{ block.id }}" 
+    class="codform-success" 
+    style="display: none; text-align: center; padding: 20px;"
+    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  >
+    <div class="codform-success-icon">✓</div>
+    <h3>{{ block.settings.success_title }}</h3>
+    <p>{{ block.settings.success_message }}</p>
+  </div>
+  
+  <div 
+    id="codform-error-{{ block.id }}" 
+    class="codform-error" 
+    style="display: none; text-align: center; padding: 20px;"
+    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  >
+    <div class="codform-error-icon">!</div>
+    <h3>{{ block.settings.error_title }}</h3>
+    <p>{{ block.settings.error_message }}</p>
+    <button id="codform-retry-{{ block.id }}" class="codform-button">{{ block.settings.retry_button }}</button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('codform-container-{{ block.id }}');
+    const loader = document.getElementById('codform-form-loader-{{ block.id }}');
+    const formContainer = document.getElementById('codform-form-{{ block.id }}');
+    const errorContainer = document.getElementById('codform-error-{{ block.id }}');
+    const successContainer = document.getElementById('codform-success-{{ block.id }}');
+    const retryButton = document.getElementById('codform-retry-{{ block.id }}');
+    
+    if (container && loader) {
+      loader.style.display = 'flex';
+      
+      // Get form direction from container data attribute
+      const formDirection = container.getAttribute('data-direction') || '{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}';
+      console.log('Form direction:', formDirection);
+      
+      // إضافة معالج حدث إعادة المحاولة
+      if (retryButton) {
+        retryButton.addEventListener('click', function() {
+          errorContainer.style.display = 'none';
+          loader.style.display = 'flex';
+          fetchForm();
+        });
+      }
+      
+      // بدء تحميل النموذج
+      fetchForm();
+    }
+    
+    // وظيفة لجلب النموذج بناءً على معرف المنتج
+    function fetchForm() {
+      const productId = container.getAttribute('data-product-id');
+      const blockId = container.getAttribute('data-block-id');
+      const shop = Shopify.shop || window.location.hostname;
+      const formDirection = container.getAttribute('data-direction') || '{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}';
+      
+      if (!productId || !shop) {
+        showError("بيانات المنتج أو المتجر غير متوفرة");
+        console.error('Missing product ID or shop information');
+        return;
+      }
+      
+      // طباعة معلومات التصحيح
+      console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop, 'direction:', formDirection);
+      
+      // استخدام عنوان URL الكامل مع https - إصلاح خطأ حل DNS
+      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}&direction=${encodeURIComponent(formDirection)}`;
+      
+      console.log('Request URL:', apiUrl);
+      
+      // جلب تكوين النموذج
+      fetch(apiUrl)
+        .then(response => {
+          if (!response.ok) {
+            console.error('HTTP error:', response.status, response.statusText);
+            throw new Error(`HTTP error ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data && data.form) {
+            console.log('Form data received successfully:', data);
+            renderForm(data.form, blockId, formDirection);
+          } else {
+            console.error('No form data received:', data);
+            showError("لا يوجد نموذج متوفر لهذا المنتج");
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching form:', error);
+          showError("حدث خطأ أثناء تحميل النموذج");
+        });
+    }
+    
+    // وظيفة لعرض النموذج
+    function renderForm(formData, blockId, formDirection) {
+      if (!formContainer) {
+        console.error('Form container not found');
+        return;
+      }
+      
+      // إخفاء التحميل
+      if (loader) {
+        loader.style.display = 'none';
+      }
+      
+      // إنشاء HTML للنموذج
+      const formHtml = createFormHtml(formData, blockId, formDirection);
+      
+      // عرض النموذج
+      formContainer.innerHTML = formHtml;
+      formContainer.style.display = 'block';
+      
+      // إعداد معالجات الأحداث
+      setupFormHandlers(formData, blockId);
+    }
+    
+    // وظيفة لإظهار رسالة الخطأ
+    function showError(message) {
+      if (loader) loader.style.display = 'none';
+      if (formContainer) formContainer.style.display = 'none';
+      if (successContainer) successContainer.style.display = 'none';
+      
+      if (errorContainer) {
+        const errorMessage = errorContainer.querySelector('p');
+        if (errorMessage && message) {
+          errorMessage.textContent = message;
+        }
+        errorContainer.style.display = 'block';
+      }
+    }
+    
+    // وظيفة لإنشاء HTML للنموذج
+    function createFormHtml(formData, blockId, formDirection) {
+      const hideHeader = container.getAttribute('data-hide-header') === 'true';
+      const enableIcons = container.getAttribute('data-enable-icons') === 'true';
+      const isRTL = formDirection === 'rtl';
+      let html = '';
+      
+      // بداية النموذج
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #F9FAFB;" dir="${isRTL ? 'rtl' : 'ltr'}">`;
+      
+      // إضافة الحقول
+      if (formData.fields && formData.fields.length) {
+        formData.fields.forEach(field => {
+          if (field && field.type) {
+            // إضافة حقل عنوان النموذج في الأعلى
+            if (field.type === 'form-title') {
+              html += createTitleField(field, formDirection);
+              return;
+            }
+            
+            if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
+              html += createInputField(field, isRTL, enableIcons);
+            } else if (field.type === 'textarea') {
+              html += createTextareaField(field, isRTL, enableIcons);
+            } else if (field.type === 'radio') {
+              html += createRadioField(field, isRTL);
+            } else if (field.type === 'checkbox') {
+              html += createCheckboxField(field, isRTL);
+            } else if (field.type === 'submit') {
+              html += createSubmitButton(field, formData.style, isRTL);
+            } else if (field.type === 'text/html' || field.type === 'html') {
+              html += createHtmlContent(field, isRTL);
+            } else if (field.type === 'whatsapp' || field.type === 'whatsapp-button') {
+              html += createWhatsAppButton(field, isRTL);
+            } else if (field.type === 'image') {
+              html += createImageField(field);
+            } else if (field.type === 'countdown-timer') {
+              html += createCountdownTimer(field, formData.style, isRTL);
+            } else if (field.type === 'shipping-options') {
+              html += createShippingOptions(field, formData.style, isRTL);
+            }
+          }
+        });
+      } else {
+        console.error('No fields found in form data', formData);
+        html += `<div style="padding: 15px; text-align: center; color: #e32; direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">لا توجد حقول في هذا النموذج</div>`;
+      }
+      
+      // نهاية النموذج
+      html += '</form>';
+      
+      return html;
+    }
+    
+    // وظيفة لإعداد معالجات الأحداث للنموذج
+    function setupFormHandlers(formData, blockId) {
+      const form = document.getElementById(`codform-form-element-${blockId}`);
+      
+      if (form) {
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          // معالجة إرسال النموذج - يمكن إضافة المزيد من المنطق هنا
+          console.log('Form submitted');
+          
+          // هنا يمكن إضافة منطق إرسال البيانات إلى الخلفية
+          
+          // إظهار رسالة النجاح
+          if (formContainer) formContainer.style.display = 'none';
+          if (successContainer) successContainer.style.display = 'block';
+        });
+      }
+    }
+    
+    // وظيفة لإنشاء حقل إدخال
+    function createInputField(field, isRTL, enableIcons) {
+      const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
+      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''}`;
+      let iconSvg = '';
+      
+      // الحصول على SVG للأيقونة إذا لزم الأمر
+      if (hasIcon) {
+        iconSvg = getIconSvg(field.icon);
+      }
+      
+      const translatedLabel = field.label || '';
+      const translatedPlaceholder = field.placeholder || '';
+      const isRequired = field.required ? true : false;
+      
+      const iconPosition = isRTL ? 'right' : 'left';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
+      return `
+        <div class="${fieldClassContainer}" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+            ${translatedLabel}
+            ${isRequired ? '<span class="codform-required">*</span>' : ''}
+          </label>
+          <div class="codform-field-wrapper">
+            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
+            <input 
+              type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
+              id="codform-field-${field.id}"
+              name="${field.id}"
+              placeholder="${translatedPlaceholder}"
+              ${isRequired ? 'required' : ''}
+              class="codform-input ${hasIcon ? 'with-icon' : ''}"
+              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
+              dir="${isRTL ? 'rtl' : 'ltr'}"
+            />
+          </div>
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء منطقة نص
+    function createTextareaField(field, isRTL, enableIcons) {
+      const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
+      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''}`;
+      let iconSvg = '';
+      
+      // الحصول على SVG للأيقونة إذا لزم الأمر
+      if (hasIcon) {
+        iconSvg = getIconSvg(field.icon);
+      }
+      
+      const translatedLabel = field.label || '';
+      const translatedPlaceholder = field.placeholder || '';
+      
+      const iconPosition = isRTL ? 'right' : 'left';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
+      return `
+        <div class="${fieldClassContainer}" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+            ${translatedLabel}
+            ${field.required ? '<span class="codform-required">*</span>' : ''}
+          </label>
+          <div class="codform-field-wrapper">
+            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
+            <textarea
+              id="codform-field-${field.id}"
+              name="${field.id}"
+              placeholder="${translatedPlaceholder}"
+              ${field.required ? 'required' : ''}
+              rows="${field.rows || 4}"
+              class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
+              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
+              dir="${isRTL ? 'rtl' : 'ltr'}"
+            ></textarea>
+          </div>
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء مجموعة أزرار راديو
+    function createRadioField(field, isRTL) {
+      const translatedLabel = field.label || '';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
+      let html = `
+        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <label style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+            ${translatedLabel}
+            ${field.required ? '<span class="codform-required">*</span>' : ''}
+          </label>
+          <div class="codform-radio-group" style="direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">
+      `;
+      
+      if (field.options && field.options.length) {
+        field.options.forEach((option, index) => {
+          const translatedOptionLabel = option.label || '';
+          
+          html += `
+            <div class="codform-radio-option" dir="${isRTL ? 'rtl' : 'ltr'}">
+              <input
+                type="radio"
+                id="codform-field-${field.id}-${index}"
+                name="${field.id}"
+                value="${option.value || ''}"
+                ${field.required && index === 0 ? 'required' : ''}
+                ${option.selected ? 'checked' : ''}
+              />
+              <label for="codform-field-${field.id}-${index}" dir="${isRTL ? 'rtl' : 'ltr'}">${translatedOptionLabel}</label>
+            </div>
+          `;
+        });
+      }
+      
+      html += `
+          </div>
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+        </div>
+      `;
+      
+      return html;
+    }
+    
+    // وظيفة لإنشاء مجموعة مربعات اختيار
+    function createCheckboxField(field, isRTL) {
+      const translatedLabel = field.label || '';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
+      let html = `
+        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <label style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+            ${translatedLabel}
+            ${field.required ? '<span class="codform-required">*</span>' : ''}
+          </label>
+          <div class="codform-checkbox-group" style="direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">
+      `;
+      
+      if (field.options && field.options.length) {
+        field.options.forEach((option, index) => {
+          const translatedOptionLabel = option.label || '';
+          
+          html += `
+            <div class="codform-checkbox-option" dir="${isRTL ? 'rtl' : 'ltr'}">
+              <input
+                type="checkbox"
+                id="codform-field-${field.id}-${index}"
+                name="${field.id}[]"
+                value="${option.value || ''}"
+                ${option.selected ? 'checked' : ''}
+              />
+              <label for="codform-field-${field.id}-${index}" dir="${isRTL ? 'rtl' : 'ltr'}">${translatedOptionLabel}</label>
+            </div>
+          `;
+        });
+      }
+      
+      html += `
+          </div>
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+        </div>
+      `;
+      
+      return html;
+    }
+    
+    // وظيفة لإنشاء زر إرسال
+    function createSubmitButton(field, formStyle, isRTL) {
+      const buttonStyle = field.style || {};
+      const backgroundColor = buttonStyle.backgroundColor || formStyle?.primaryColor || '#9b87f5';
+      const color = buttonStyle.color || '#ffffff';
+      const fontSize = buttonStyle.fontSize || '18px';
+      const fontWeight = buttonStyle.fontWeight || '600';
+      const borderRadius = buttonStyle.borderRadius || '8px';
+      const borderWidth = buttonStyle.borderWidth || '0px';
+      const borderColor = buttonStyle.borderColor || backgroundColor;
+      const paddingY = buttonStyle.paddingY || '14px';
+      
+      // فئة الرسوم المتحركة
+      const animationType = buttonStyle.animation ? buttonStyle.animationType || 'pulse' : 'none';
+      const animationClass = animationType !== 'none' ? `${animationType}-animation` : '';
+      
+      // معالجة الأيقونة
+      let iconSvg = '';
+      const showIcon = buttonStyle.showIcon !== undefined ? buttonStyle.showIcon : true;
+      const iconPosition = buttonStyle.iconPosition || (isRTL ? 'right' : 'left');
+      
+      if (showIcon) {
+        let iconName = buttonStyle.icon || 'shopping-cart';
+        iconSvg = getIconSvg(iconName);
+        
+        // إذا لم يتم العثور على الأيقونة، استخدم أيقونة عربة التسوق الافتراضية
+        if (!iconSvg) {
+          iconSvg = getIconSvg('shopping-cart');
+        }
+      }
+      
+      const translatedLabel = field.label || (isRTL ? 'إرسال الطلب' : 'Submit Order');
+      
+      return `
+        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <button
+            type="submit"
+            class="codform-submit-btn ${animationClass}"
+            style="
+              background-color: ${backgroundColor};
+              color: ${color};
+              font-size: ${fontSize};
+              font-weight: ${fontWeight};
+              border-radius: ${borderRadius};
+              border: ${borderWidth} solid ${borderColor};
+              padding-top: ${paddingY};
+              padding-bottom: ${paddingY};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              width: 100%;
+              text-align: center;
+              margin-top: 14px;
+              direction: ${isRTL ? 'rtl' : 'ltr'};
+            "
+            data-animation-type="${animationType}"
+            data-icon-position="${iconPosition}"
+            data-has-icon="${showIcon ? 'true' : 'false'}"
+            dir="${isRTL ? 'rtl' : 'ltr'}"
+          >
+            ${iconPosition === 'left' && showIcon ? `<span class="codform-icon">${iconSvg}</span>` : ''}
+            <span>${translatedLabel}</span>
+            ${iconPosition === 'right' && showIcon ? `<span class="codform-icon">${iconSvg}</span>` : ''}
+          </button>
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء حقل العنوان
+    function createTitleField(field, formDirection) {
+      const style = field.style || {};
+      const backgroundColor = style.backgroundColor || '#9b87f5';
+      const color = style.color || '#ffffff';
+      const descriptionColor = style.descriptionColor || '#ffffff';
+      const fontSize = style.fontSize || '24px';
+      const descriptionFontSize = style.descriptionFontSize || '14px';
+      const textAlign = 'center'; // Always center for title
+      const isRTL = formDirection === 'rtl';
+      
+      const translatedLabel = field.label || (isRTL ? 'نموذج جديد' : 'New Form');
+      const translatedHelp = field.helpText || '';
+      
+      return `
+        <div class="codform-title-container" style="
+          background-color: ${backgroundColor};
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          text-align: ${textAlign};
+          width: 100%;
+          box-sizing: border-box;
+          display: block;
+        " dir="${isRTL ? 'rtl' : 'ltr'}">
+          <h3 class="codform-form-title" style="
+            color: ${color};
+            font-size: ${fontSize};
+            font-weight: bold;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+            text-align: ${textAlign};
+            width: 100%;
+            display: block;
+          " dir="${isRTL ? 'rtl' : 'ltr'}">
+            ${translatedLabel}
+          </h3>
+          ${translatedHelp ? `<p class="codform-title-description" style="
+            color: ${descriptionColor};
+            font-size: ${descriptionFontSize};
+            margin: 6px 0 0 0;
+            line-height: 1.5;
+            opacity: 0.9;
+            text-align: ${textAlign};
+            width: 100%;
+            display: block;
+          " dir="${isRTL ? 'rtl' : 'ltr'}">${translatedHelp}</p>` : ''}
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء محتوى HTML
+    function createHtmlContent(field, isRTL) {
+      return `
+        <div class="codform-field codform-html-content" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'}; text-align: ${isRTL ? 'right' : 'left'};">
+          ${field.content || ''}
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء زر واتساب
+    function createWhatsAppButton(field, isRTL) {
+      const style = field.style || {};
+      const backgroundColor = style.backgroundColor || '#25D366';
+      const color = style.color || '#ffffff';
+      const borderRadius = style.borderRadius || '8px';
+      const fontSize = style.fontSize || '18px';
+      const phone = field.whatsappNumber || '';
+      const message = encodeURIComponent(field.message || '');
+      
+      const translatedLabel = field.label || (isRTL ? 'تواصل عبر واتساب' : 'Contact via WhatsApp');
+      
+      // أيقونة واتساب SVG
+      const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+      
+      return `
+        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <a 
+            href="https://wa.me/${phone}${message ? `?text=${message}` : ''}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="codform-whatsapp-button"
+            style="
+              background-color: ${backgroundColor};
+              color: ${color};
+              font-size: ${fontSize};
+              border-radius: ${borderRadius};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              padding: 14px 20px;
+              text-decoration: none;
+              font-weight: 600;
+              margin-top: 14px;
+              margin-bottom: 8px;
+              width: 100%;
+              text-align: center;
+              direction: ${isRTL ? 'rtl' : 'ltr'};
+            "
+            dir="${isRTL ? 'rtl' : 'ltr'}"
+          >
+            <span class="codform-whatsapp-icon" style="
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 18px;
+              height: 18px;
+            ">${whatsappIcon}</span>
+            <span>${translatedLabel}</span>
+          </a>
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء حقل صورة
+    function createImageField(field) {
+      const style = field.style || {};
+      const imageUrl = field.imageUrl || '';
+      const altText = field.altText || field.label || 'صورة';
+      const maxWidth = style.maxWidth || '100%';
+      const borderRadius = style.borderRadius || '8px';
+      
+      return `
+        <div class="codform-field codform-image-field">
+          <div class="codform-image-container" style="max-width: ${maxWidth}; border-radius: ${borderRadius};">
+            <img 
+              src="${imageUrl}" 
+              alt="${altText}" 
+              class="codform-image" 
+              style="border-radius: ${borderRadius}; width: 100%; height: auto;"
+            />
+          </div>
+          ${field.label ? `<div class="codform-image-caption">${field.label}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء عداد تنازلي
+    function createCountdownTimer(field, formStyle, isRTL) {
+      const fieldStyle = field.style || {};
+      const defaultBgColor = formStyle?.primaryColor 
+        ? `${formStyle.primaryColor}1A` // Add 10% opacity suffix
+        : 'rgba(155, 135, 245, 0.1)';
+      
+      const translatedLabel = field.label || (isRTL ? 'الوقت المتبقي للعرض' : 'Offer ends in');
+      
+      return `
+        <div class="codform-field mb-6 countdown-timer-wrapper" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'};">
+          <div 
+            class="p-4 border rounded-md"
+            style="
+              background-color: ${fieldStyle.backgroundColor || defaultBgColor};
+              border-color: ${fieldStyle.borderColor || formStyle?.primaryColor || '#9b87f5'};
+              text-align: center;
+            "
+          >
+            <h3 
+              class="text-lg font-medium mb-2"
+              style="
+                text-align: center;
+                direction: ${isRTL ? 'rtl' : 'ltr'};
+              "
+              dir="${isRTL ? 'rtl' : 'ltr'}"
+            >
+              ${translatedLabel}
+            </h3>
+            <div 
+              class="flex justify-center gap-4 mt-3"
+              style="
+                direction: ${isRTL ? 'rtl' : 'ltr'};
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 0.75rem;
+              "
+              dir="${isRTL ? 'rtl' : 'ltr'}"
+            >
+              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
+                <div class="text-2xl font-bold">24</div>
+                <div class="text-xs text-gray-500">
+                  ${isRTL ? 'ساعة' : 'Hours'}
+                </div>
+              </div>
+              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
+                <div class="text-2xl font-bold">00</div>
+                <div class="text-xs text-gray-500">
+                  ${isRTL ? 'دقيقة' : 'Minutes'}
+                </div>
+              </div>
+              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
+                <div class="text-2xl font-bold">00</div>
+                <div class="text-xs text-gray-500">
+                  ${isRTL ? 'ثانية' : 'Seconds'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // وظيفة لإنشاء خيارات الشحن
+    function createShippingOptions(field, formStyle, isRTL) {
+      const fieldStyle = field.style || {};
+      
+      const translatedLabel = field.label || (isRTL ? 'خيارات التوصيل' : 'Shipping Options');
+      
+      const shippingOptions = [
+        {
+          id: 'standard',
+          name: isRTL ? 'توصيل قياسي' : 'Standard Delivery',
+          price: '$5.00',
+          time: isRTL ? '3-5 أيام' : '3-5 days',
+        },
+        {
+          id: 'express',
+          name: isRTL ? 'توصيل سريع' : 'Express Delivery',
+          price: '$15.00',
+          time: isRTL ? '1-2 أيام' : '1-2 days',
+        }
+      ];
+      
+      let html = `
+        <div class="form-control mb-6 shipping-options-container" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'}; margin-bottom: 1.5rem;">
+          <label 
+            class="form-label mb-2 block font-medium" 
+            style="
+              color: ${fieldStyle.color || 'inherit'};
+              text-align: ${isRTL ? 'right' : 'left'};
+              display: block;
+              margin-bottom: 0.5rem;
+              font-weight: 500;
+            "
+            dir="${isRTL ? 'rtl' : 'ltr'}"
+          >
+            ${translatedLabel}
+            ${field.required ? '<span class="text-red-500 mr-1" style="color: #f56565; margin-right: 0.25rem;">*</span>' : ''}
+          </label>
+          <div class="space-y-3" style="display: flex; flex-direction: column; gap: 0.75rem;" dir="${isRTL ? 'rtl' : 'ltr'}">
+      `;
+      
+      shippingOptions.forEach((option) => {
+        html += `
+          <div 
+            class="flex items-center space-x-2"
+            style="
+              display: flex;
+              align-items: center;
+              flex-direction: ${isRTL ? 'row-reverse' : 'row'};
+              gap: 8px;
+            "
+            dir="${isRTL ? 'rtl' : 'ltr'}"
+          >
+            <div style="
+              width: 16px;
+              height: 16px;
+              border: 2px solid ${formStyle?.primaryColor || '#9b87f5'};
+              border-radius: 50%;
+              position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="
+                width: 8px;
+                height: 8px;
+                background-color: ${option.id === 'standard' ? (formStyle?.primaryColor || '#9b87f5') : 'transparent'};
+                border-radius: 50%;
+              "></div>
+            </div>
+            <div 
+              class="flex flex-1 justify-between items-center"
+              style="
+                display: flex;
+                flex: 1;
+                justify-content: space-between;
+                align-items: center;
+                flex-direction: ${isRTL ? 'row-reverse' : 'row'};
+                direction: ${isRTL ? 'rtl' : 'ltr'};
+              "
+              dir="${isRTL ? 'rtl' : 'ltr'}"
+            >
+              <div style="text-align: ${isRTL ? 'right' : 'left'};">
+                <div class="font-medium" style="font-weight: 500;">${option.name}</div>
+                <div class="text-sm text-gray-500" style="font-size: 0.875rem; color: #6b7280;">${option.time}</div>
+              </div>
+              <div class="font-medium" style="font-weight: 500;">${option.price}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+      
+      return html;
+    }
+    
+    // الحصول على رمز SVG للأيقونة بناءً على نوعها
+    function getIconSvg(iconType) {
+      // مجموعة من الأيقونات المتاحة كرموز SVG
+      const icons = {
+        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'message-square': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+        'check-square': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
+        'circle-check': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+        'image': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
+        'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+        'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>'
+      };
+      
+      return icons[iconType] || ''; // إرجاع سلسلة فارغة إذا لم يتم العثور على الأيقونة
+    }
+  });
+</script>
+
+<style>
+  /* إضافة نمط لتحسين مظهر النماذج */
+  .codform-container {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+  }
+  
+  /* تحسين مظهر العناوين */
+  .codform-title-container {
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100% !important;
+    box-sizing: border-box;
+    display: block;
+  }
+  
+  /* تأكد من أن العنوان يمتد بالكامل */
+  .codform-form-title {
+    font-size: 24px !important;
+    line-height: 1.4 !important;
+    font-weight: bold !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* تحسين الأيقونات */
+  .codform-field-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #555;
+    display: flex;
+  }
+  
+  /* تحسين الحقول في حالة RTL */
+  [dir="rtl"] .codform-field label,
+  [dir="rtl"] .codform-help-text {
+    text-align: right !important;
+  }
+  
+  [dir="ltr"] .codform-field label,
+  [dir="ltr"] .codform-help-text {
+    text-align: left !important;
+  }
+  
+  /* تحسين مظهر المدخلات */
+  .codform-field-wrapper {
+    position: relative;
+  }
+
+  .codform-input,
+  .codform-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* تصحيح تحديد الخيارات */
+  .codform-radio-option,
+  .codform-checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  
+  /* تحسين مظهر HTML المخصص */
+  .codform-html-content {
+    margin: 1rem 0;
+  }
+</style>
