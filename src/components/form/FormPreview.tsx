@@ -91,6 +91,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }
       }
       
+      // For title fields, ensure text-align is center
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        updatedField.style.textAlign = 'center';
+      }
+      
       return updatedField;
     });
     

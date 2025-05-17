@@ -81,17 +81,22 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     }
   }, [formTitleField, language]);
 
+  // Improved update style function that ensures immediate updates
   const handleUpdateStyle = (property: string, value: string) => {
     if (!formTitleField) return;
     
-    const updatedField = {
-      ...formTitleField,
-      style: {
-        ...formTitleField.style,
-        [property]: value
-      }
-    };
+    // Create a deep copy of the field to avoid mutation issues
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
     
+    // Ensure style object exists
+    if (!updatedField.style) {
+      updatedField.style = {};
+    }
+    
+    // Update the style property
+    updatedField.style[property] = value;
+    
+    // Update local state for UI reflection
     if (property === 'color') setTitleColor(value);
     if (property === 'textAlign') setTitleAlignment(value);
     if (property === 'fontSize') setTitleSize(value);
@@ -100,7 +105,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionFontSize') setDescSize(value);
     if (property === 'backgroundColor') setBackgroundColor(value);
     
+    // Update parent component with new field data
     onUpdateTitleField(updatedField);
+    
+    // Log the update to help with debugging
+    console.log(`Updated title field style: ${property} = ${value}`, updatedField);
   };
 
   const handleUpdateLabel = (value: string) => {
@@ -109,11 +118,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       return;
     }
     
-    const updatedField = {
-      ...formTitleField,
-      label: value
-    };
+    // Create a deep copy to avoid mutation issues
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
+    updatedField.label = value;
     
+    // Update parent component
     onUpdateTitleField(updatedField);
     onFormTitleChange(value);
   };
@@ -124,11 +133,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       return;
     }
     
-    const updatedField = {
-      ...formTitleField,
-      helpText: value
-    };
+    // Create a deep copy to avoid mutation issues
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
+    updatedField.helpText = value;
     
+    // Update parent component
     onUpdateTitleField(updatedField);
     onFormDescriptionChange(value);
   };
