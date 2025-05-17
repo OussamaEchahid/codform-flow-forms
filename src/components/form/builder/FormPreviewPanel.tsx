@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
@@ -45,10 +45,28 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const [direction, setDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
+  // Reset direction whenever language changes
+  useEffect(() => {
+    setDirection(language === 'ar' ? 'rtl' : 'ltr');
+  }, [language]);
+  
+  // More aggressive refresh mechanism
+  const forceRefresh = useCallback(() => {
+    // Generate a truly unique key by combining timestamp with a random value
+    const uniqueKey = Date.now() + Math.random() * 10000;
+    setInternalRefreshKey(uniqueKey);
+    
+    // Use a double refresh pattern to ensure complete component remounting
+    setTimeout(() => {
+      const secondUniqueKey = Date.now() + Math.random() * 10000;
+      setInternalRefreshKey(secondUniqueKey);
+    }, 50);
+  }, []);
+  
   // Force refresh when any prop changes to ensure live preview updates immediately
   useEffect(() => {
-    setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction]);
+    forceRefresh();
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction, forceRefresh]);
   
   // Process fields to normalize icon values - necessary for preview display
   const processedFields = React.useMemo(() => {
@@ -90,22 +108,35 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   }, [fields, internalRefreshKey]);
 
   // Create a unique ID for this preview component
-  const previewPanelId = `preview-panel-${Date.now()}`;
+  const previewPanelId = `preview-panel-${internalRefreshKey}`;
   
   // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
-  // Handle direction change without changing language
+  // Handle direction change with more aggressive refresh
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
-      setDirection(value);
-      // Force more aggressive refresh when direction changes
-      setInternalRefreshKey(Date.now() + 1000);
+      // Set new direction
+      setDirection(value as 'ltr' | 'rtl');
+      
+      // Force double refresh for complete component remounting
+      forceRefresh();
+      
+      // Add class to document for global direction
+      document.documentElement.setAttribute('dir', value);
+      
+      console.log(`Direction changed to ${value}`);
     }
   };
 
   return (
-    <div id={previewPanelId} style={{backgroundColor: previewBackgroundColor}} className="bg-gray-50">
+    <div 
+      id={previewPanelId} 
+      style={{backgroundColor: previewBackgroundColor}} 
+      className={`bg-gray-50 ${direction}`}
+      data-direction={direction}
+      dir={direction}
+    >
       <div className="flex justify-between items-center mb-3">
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
           {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
@@ -131,7 +162,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </div>
       </div>
       
-      <div className="border rounded-lg p-3 bg-gray-50" style={{backgroundColor: previewBackgroundColor}}>
+      <div 
+        className={`border rounded-lg p-3 bg-gray-50 ${direction}`}
+        style={{backgroundColor: previewBackgroundColor}}
+        data-direction={direction}
+        dir={direction}
+      >
         <FormPreview 
           key={`preview-${internalRefreshKey}-${direction}`}
           formTitle={formTitle}

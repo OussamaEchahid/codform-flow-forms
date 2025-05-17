@@ -30,7 +30,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // تحديد الاتجاه بناءً على formDirection المحدد مباشرة
+  // Get direction from props or fallback to language-based
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Default styling values
@@ -54,14 +54,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تحسين وظيفة عرض الأيقونات
+  // Enhanced icon rendering function
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // Add extra attributes for diagnostics
+    // Icon positioning based on text direction
+    const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
+    
+    // Common icon props
     const iconProps = { 
       size: 18,
-      className: "text-gray-500 codform-icon",
+      className: `text-gray-500 codform-icon ${textDirection === 'rtl' ? 'rtl-icon' : 'ltr-icon'}`,
       style: {
         width: '18px',
         height: '18px',
@@ -71,10 +74,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       },
       "aria-hidden": "true" as React.AriaAttributes["aria-hidden"],
       "data-testid": `icon-${field.icon}`,
-      "data-icon-name": field.icon
+      "data-icon-name": field.icon,
+      "data-icon-direction": textDirection
     };
     
-    // Switch for choosing the right icon component
+    // Render appropriate icon
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
@@ -91,13 +95,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
     }
   };
   
-  // الحصول على النص الفعلي للتسمية
+  // Get actual label text
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر النائب
+  // Get placeholder text
   const placeholderText = field.placeholder || '';
 
-  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
+  // Determine correct input type
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -105,16 +109,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
     return 'text';
   };
   
-  // إضافة معرف فريد للمساعدة في ضمان العرض والتحديثات
+  // Generate a unique ID
   const inputId = `${field.id}-input-${Date.now()}`;
   
-  // تعديل موضع الأيقونة بناءً على الاتجاه
+  // Determine icon position based on direction
   const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
   
-  // تعديل محاذاة التسمية والإدخال بناءً على الاتجاه
+  // Determine text alignment based on direction
   const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
   
-  // إضافة تصنيف CSS للحقل بناءً على الاتجاه
+  // Get direction class
   const directionClass = textDirection === 'rtl' ? 'rtl' : 'ltr';
   
   return (
@@ -133,12 +137,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
+      data-direction={textDirection}
       dir={textDirection}
     >
       {showLabel && (
         <label 
           htmlFor={field.id} 
-          className={`block mb-2`}
+          className={`block mb-2 codform-field-label`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
@@ -152,16 +157,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 ml-1 codform-required">*</span>
+            <span className={`text-red-500 ml-1 codform-required ${textDirection === 'rtl' ? 'mr-1 ml-0' : ''}`}>*</span>
           )}
         </label>
       )}
       
-      <div className="codform-field-wrapper relative">
-        {/* عرض الأيقونة إذا كان يجب عرضها */}
+      <div className={`codform-field-wrapper relative ${directionClass}`} dir={textDirection}>
+        {/* Render icon with explicit positioning */}
         {showIcon && hasIcon && (
           <div 
-            className="codform-field-icon" 
+            className={`codform-field-icon ${textDirection === 'rtl' ? 'rtl-icon' : 'ltr-icon'}`}
             style={{
               position: 'absolute',
               [iconPosition]: '12px',
@@ -175,6 +180,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             data-icon-type={field.icon}
             data-icon-visible="true"
             data-icon-position={iconPosition}
+            dir={textDirection}
           >
             {renderIcon()}
           </div>
@@ -186,7 +192,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
           name={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
-          className={`w-full outline-none transition-all codform-input ${showIcon && hasIcon ? 'with-icon' : ''}`}
+          className={`w-full outline-none transition-all codform-input ${directionClass} ${showIcon && hasIcon ? 'with-icon' : ''}`}
           style={{
             color: textColor,
             fontSize: fontSize,
@@ -209,15 +215,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           data-icon-position={iconPosition}
+          data-direction={textDirection}
           required={field.required}
           dir={textDirection}
         />
       </div>
       
-      <div className="codform-field-help">
+      <div className={`codform-field-help ${directionClass}`} dir={textDirection}>
         {field.helpText && (
           <p 
-            className="mt-1 text-xs text-gray-500 codform-help-text" 
+            className={`mt-1 text-xs text-gray-500 codform-help-text ${directionClass}`}
             style={{
               marginTop: '4px',
               fontSize: '14px',
@@ -232,7 +239,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         
         {field.errorMessage && field.required && (
           <div 
-            className="hidden error-message text-sm text-red-500 mt-1 codform-error-message"
+            className={`hidden error-message text-sm text-red-500 mt-1 codform-error-message ${directionClass}`}
             style={{
               display: 'none',
               color: '#ef4444',

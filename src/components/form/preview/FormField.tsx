@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -26,7 +27,10 @@ interface FormFieldProps {
 }
 
 const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDirection }) => {
-  // Only pass formDirection to components that accept it
+  // Determine field class based on direction
+  const directionClass = formDirection === 'rtl' ? 'rtl' : 'ltr';
+  
+  // Get the field component based on type
   const getFieldComponent = () => {
     switch (field.type) {
       case 'text':
@@ -48,39 +52,47 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
         return <ImageField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'submit':
-        return <SubmitButton field={field} formStyle={formStyle} />;
+        return <SubmitButton field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'cart-items':
-        return <CartItems field={field} formStyle={formStyle} />;
+        return <CartItems field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'cart-summary':
-        return <CartSummary field={field} formStyle={formStyle} />;
+        return <CartSummary field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'form-title':
       case 'title':
-        // We intentionally pass formDirection to TitleField but it will ignore it internally
-        // as per client's request to keep title always centered
+        // Title should be centered regardless, but we still pass formDirection for consistency
         return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'html':
-        return <HtmlContent field={field} formStyle={formStyle} />;
+        return <HtmlContent field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'shipping-options':
-        return <ShippingOptions field={field} formStyle={formStyle} />;
+        return <ShippingOptions field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'countdown-timer':
-        return <CountdownTimer field={field} formStyle={formStyle} />;
+        return <CountdownTimer field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'whatsapp-button':
-        return <WhatsAppButton field={field} formStyle={formStyle} />;
+        return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       default:
-        return <div>Unsupported field type: {field.type}</div>;
+        return (
+          <div dir={formDirection} className={directionClass}>
+            Unsupported field type: {field.type}
+          </div>
+        );
     }
   };
 
   return (
-    <div className="form-field-wrapper" dir={formDirection}>
+    <div 
+      className={`form-field-wrapper ${directionClass}`} 
+      data-field-type={field.type}
+      data-direction={formDirection}
+      dir={formDirection}
+    >
       {getFieldComponent()}
     </div>
   );
