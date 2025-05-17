@@ -146,7 +146,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   return (
     <div 
       key={formId}
-      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
+      className="rounded-lg border shadow-sm overflow-hidden bg-[#F9FAFB] codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
@@ -202,6 +202,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
+          backgroundColor: "#F9FAFB"
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >

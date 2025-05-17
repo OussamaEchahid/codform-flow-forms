@@ -65,7 +65,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         alignItems: 'center',
         justifyContent: 'center'
       },
-      "aria-hidden": true,
+      "aria-hidden": "true" as React.AriaAttributes["aria-hidden"],
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };
@@ -107,6 +107,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
   const inputId = `${field.id}-input`;
   
+  // تعديل موضع الأيقونة بناءً على لغة النموذج
+  const iconPosition = language === 'ar' ? 'right' : 'left';
+  
   return (
     <div 
       className="mb-4" 
@@ -127,19 +130,20 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       {showLabel && (
         <label 
           htmlFor={field.id} 
-          className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
+          className={`block mb-2`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
-            marginBottom: '8px'
+            marginBottom: '8px',
+            textAlign: 'left'
           }}
           data-label-text={labelText}
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 absolute right-0 top-0">*</span>
+            <span className="text-red-500 ml-1">*</span>
           )}
         </label>
       )}
@@ -148,10 +152,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            className="absolute transform -translate-y-1/2 text-gray-500 codform-field-icon" 
             style={{
               position: 'absolute',
-              left: '12px',
+              [iconPosition]: '12px',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -161,6 +165,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             }}
             data-icon-type={field.icon}
             data-icon-visible="true"
+            data-icon-position={iconPosition}
           >
             {renderIcon()}
           </div>
@@ -185,14 +190,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px',
-            paddingRight: '12px',
+            paddingLeft: (showIcon && hasIcon && iconPosition === 'left') ? '36px' : '12px',
+            paddingRight: (showIcon && hasIcon && iconPosition === 'right') ? '36px' : '12px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',
             lineHeight: 1.5
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
+          data-icon-position={iconPosition}
           required={field.required}
         />
       </div>
@@ -203,7 +209,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
           style={{
             marginTop: '4px',
             fontSize: '14px',
-            color: '#6b7280'
+            color: '#6b7280',
+            textAlign: 'left'
           }}
         >
           {field.helpText}
@@ -217,7 +224,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             display: 'none', // Initially hidden until validation fails
             color: '#ef4444',
             fontSize: '14px',
-            marginTop: '4px'
+            marginTop: '4px',
+            textAlign: 'left'
           }}
         >
           {field.errorMessage}

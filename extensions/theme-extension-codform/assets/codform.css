@@ -11,7 +11,7 @@
   padding: 15px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: #fff;
+  background-color: #F9FAFB;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -52,7 +52,7 @@
 /* حاوية النموذج الرئيسية */
 .codform-form {
   margin-top: 14px;
-  background-color: #fff;
+  background-color: #F9FAFB;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -71,6 +71,12 @@
   font-weight: 500 !important;
   color: #374151 !important;
   font-size: 16px !important;
+  text-align: left !important;
+}
+
+/* محاذاة للغة العربية */
+[dir="rtl"] .codform-field label {
+  text-align: right !important;
 }
 
 .codform-field input[type="text"],
@@ -98,7 +104,13 @@
 .codform-field-with-icon input,
 .codform-field-with-icon textarea {
   padding-right: 36px !important;
-  padding-left: 12px !important;
+}
+
+/* محاذاة للغة الإنجليزية */
+[dir="ltr"] .codform-field-with-icon input,
+[dir="ltr"] .codform-field-with-icon textarea {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
 }
 
 .codform-field input:focus,
@@ -123,7 +135,12 @@
   justify-content: center !important;
   pointer-events: none !important;
   z-index: 2 !important;
-  margin-top: 16px !important;
+}
+
+/* تصحيح موضع الأيقونات للغة الإنجليزية */
+[dir="ltr"] .codform-field-icon {
+  right: auto !important;
+  left: 12px !important;
 }
 
 .codform-field-wrapper {
@@ -645,10 +662,41 @@
   padding-right: 36px !important;
 }
 
+[dir="ltr"] .codform-input.with-icon {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
+}
+
 /* تأكيد على أن الحقول والأزرار تظهر بشكل جيد */
 .codform-form {
   padding: 16px !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 8px !important;
-  background-color: #f9fafb !important;
+  background-color: #F9FAFB !important;
+}
+
+/* تحسين عرض العلامة النجمية للحقول المطلوبة */
+.codform-field label .text-red-500 {
+  color: #ef4444 !important;
+  margin-left: 4px !important;
+}
+
+/* محاذاة الحقول ونموذج الإدخال */
+.codform-field {
+  text-align: left !important;
+}
+
+[dir="rtl"] .codform-field {
+  text-align: right !important;
+}
+
+/* تصحيح دقيق لمحاذاة الأيقونات مع حقول الإدخال */
+.codform-input[data-icon-position="right"] {
+  padding-right: 36px !important;
+  padding-left: 12px !important;
+}
+
+.codform-input[data-icon-position="left"] {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
 }

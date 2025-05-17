@@ -71,7 +71,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
           border: 'none',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
-          fontFamily: 'Cairo, sans-serif',
+          fontFamily: 'inherit',
           marginTop: '14px',
           marginBottom: '8px',
           textAlign: 'center'

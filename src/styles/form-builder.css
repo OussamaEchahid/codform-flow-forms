@@ -434,3 +434,46 @@
 .space-y-2 > *:last-child {
   margin-bottom: 0;
 }
+
+/* تحسين تنسيق النموذج لتطابق تماما مع المعاينة */
+.codform-form {
+  background-color: #F9FAFB !important;
+  border-radius: 8px;
+  margin: 0;
+}
+
+/* تصحيح موضع الأيقونات ومحاذاة حقول الإدخال */
+.codform-field-icon {
+  top: 50% !important;
+}
+
+[dir="ltr"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
+}
+
+[dir="rtl"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+/* محاذاة تسميات الحقول بشكل صحيح */
+.codform-field label {
+  text-align: left !important;
+}
+
+[dir="rtl"] .codform-field label {
+  text-align: right !important;
+}
+
+/* إزالة الخلفية البيضاء من داخل النموذج */
+.codform-container,
+.codform-form,
+.codform-form > div {
+  background-color: #F9FAFB !important;
+}
+
+/* تصحيح الهوامش بين الحقول */
+.codform-field {
+  margin-bottom: 12px !important;
+}
