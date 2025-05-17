@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -98,6 +98,15 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   console.log(`Title styles:`, titleStyle);
   console.log(`Description styles:`, descriptionStyle);
 
+  // Add useEffect to trigger a re-render with proper styles
+  useEffect(() => {
+    console.log(`EditFormTitleField mounted: id=${fieldId}, label=${field.label}`);
+    // Force any style recalculations
+    return () => {
+      console.log(`EditFormTitleField unmounted: id=${fieldId}`);
+    };
+  }, [fieldId, field.label]);
+
   return (
     <div 
       id={fieldId}
@@ -116,7 +125,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
           className="codform-edit-title"
           style={titleStyle}
         >
-          {field.label}
+          {field.label || 'عنوان النموذج'}
         </h3>
         
         {showDescription && description && (

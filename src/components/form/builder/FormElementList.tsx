@@ -100,12 +100,16 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
         <div 
           key={element.type}
           className={`flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+          onClick={() => onAddElement(element.type)}
         >
           <Button 
             variant="ghost" 
             size="sm"
             className="p-1" 
-            onClick={() => onAddElement(element.type)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the parent onClick
+              onAddElement(element.type);
+            }}
           >
             <Plus size={16} />
           </Button>
