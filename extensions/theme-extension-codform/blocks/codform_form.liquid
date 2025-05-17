@@ -162,6 +162,8 @@
 }
 {% endschema %}
 
+<link rel="stylesheet" href="{{ 'codform.css' | asset_url }}" type="text/css" media="all">
+
 <div 
   id="codform-container-{{ block.id }}" 
   class="codform-container" 
@@ -541,18 +543,18 @@
       const animationClass = animationType !== 'none' ? `${animationType}-animation` : '';
       
       // معالجة الأيقونة
-      const showIcon = buttonStyle.showIcon !== false && buttonStyle.icon;
-      let iconHtml = '';
+      let iconSvg = '';
+      const showIcon = buttonStyle.showIcon !== undefined ? buttonStyle.showIcon : true;
+      const iconPosition = buttonStyle.iconPosition || 'right';
       
-      if (showIcon && buttonStyle.icon) {
-        const iconSvg = getIconSvg(buttonStyle.icon);
-        iconHtml = `<span class="codform-button-icon" style="display: inline-flex; align-items: center; margin-${buttonStyle.iconPosition === 'right' ? 'right' : 'left'}: 8px;">${iconSvg}</span>`;
-      }
-      
-      // إضافة أيقونة افتراضية للتسوق إذا لم يتم تحديد أيقونة
-      if (!iconHtml) {
-        const cartIcon = getIconSvg('shopping-cart');
-        iconHtml = `<span class="codform-button-icon" style="display: inline-flex; align-items: center; margin-left: 8px;">${cartIcon}</span>`;
+      if (showIcon) {
+        let iconName = buttonStyle.icon || 'shopping-cart';
+        iconSvg = getIconSvg(iconName);
+        
+        // إذا لم يتم العثور على الأيقونة، استخدم أيقونة عربة التسوق الافتراضية
+        if (!iconSvg) {
+          iconSvg = getIconSvg('shopping-cart');
+        }
       }
       
       const translatedLabel = field.label || 'إرسال الطلب';
@@ -571,10 +573,21 @@
               border: ${borderWidth} solid ${borderColor};
               padding-top: ${paddingY};
               padding-bottom: ${paddingY};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              width: 100%;
+              text-align: center;
+              margin-top: 14px;
             "
+            data-animation-type="${animationType}"
+            data-icon-position="${iconPosition}"
+            data-has-icon="${showIcon ? 'true' : 'false'}"
           >
-            ${iconHtml}
+            ${iconPosition === 'left' && showIcon ? `<span class="codform-icon">${iconSvg}</span>` : ''}
             <span>${translatedLabel}</span>
+            ${iconPosition === 'right' && showIcon ? `<span class="codform-icon">${iconSvg}</span>` : ''}
           </button>
         </div>
       `;
@@ -594,11 +607,31 @@
       const translatedHelp = field.helpText || '';
       
       return `
-        <div class="codform-title-container" style="background-color: ${backgroundColor};">
-          <h3 class="codform-form-title" style="color: ${color}; font-size: ${fontSize}; text-align: ${textAlign};">
+        <div class="codform-title-container" style="
+          background-color: ${backgroundColor};
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          text-align: ${textAlign};
+        ">
+          <h3 class="codform-form-title" style="
+            color: ${color};
+            font-size: ${fontSize};
+            font-weight: bold;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+            text-align: ${textAlign};
+          ">
             ${translatedLabel}
           </h3>
-          ${translatedHelp ? `<p class="codform-title-description" style="color: ${descriptionColor}; font-size: ${descriptionFontSize};">${translatedHelp}</p>` : ''}
+          ${translatedHelp ? `<p class="codform-title-description" style="
+            color: ${descriptionColor};
+            font-size: ${descriptionFontSize};
+            margin: 6px 0 0 0;
+            line-height: 1.5;
+            opacity: 0.9;
+            text-align: ${textAlign};
+          ">${translatedHelp}</p>` : ''}
         </div>
       `;
     }
@@ -639,9 +672,26 @@
               color: ${color};
               font-size: ${fontSize};
               border-radius: ${borderRadius};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              padding: 14px 20px;
+              text-decoration: none;
+              font-weight: 600;
+              margin-top: 14px;
+              margin-bottom: 8px;
+              width: 100%;
+              text-align: center;
             "
           >
-            <span class="codform-whatsapp-icon">${whatsappIcon}</span>
+            <span class="codform-whatsapp-icon" style="
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 18px;
+              height: 18px;
+            ">${whatsappIcon}</span>
             <span>${translatedLabel}</span>
           </a>
         </div>
@@ -663,7 +713,7 @@
               src="${imageUrl}" 
               alt="${altText}" 
               class="codform-image" 
-              style="border-radius: ${borderRadius};"
+              style="border-radius: ${borderRadius}; width: 100%; height: auto;"
             />
           </div>
           ${field.label ? `<div class="codform-image-caption">${field.label}</div>` : ''}
@@ -690,7 +740,7 @@
         'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>'
       };
       
-      return icons[iconType] || icons['circle-check']; // إرجاع أيقونة افتراضية إذا لم يتم العثور على النوع
+      return icons[iconType] || ''; // إرجاع سلسلة فارغة إذا لم يتم العثور على الأيقونة
     }
   });
 </script>

@@ -19,7 +19,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Get animation class if set - Fixed animation functionality
+  // Get animation class if set
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -36,11 +36,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling - ensure proper handling of pixel values
+  // Default button styling with exact pixel values matching preview
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px', // Default fontSize is 18px
+    fontSize: style.fontSize || '18px',
     fontWeight: style.fontWeight || '600',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
@@ -66,11 +66,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     textAlign: 'center'
   };
   
-  // Icon rendering with improved support for multiple icon types
+  // Icon rendering with consistent sizing and positioning
   const renderIcon = () => {
     if (!style.showIcon) return null;
     
-    // Add specific styling for the icon
+    // Add specific styling for the icon to match preview exactly
     const iconStyle = {
       width: '18px',
       height: '18px',
