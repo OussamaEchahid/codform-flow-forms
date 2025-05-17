@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { AlignLeft, AlignRight } from 'lucide-react'; 
 
 interface FormStyle {
   primaryColor: string;
@@ -38,13 +41,23 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   floatingButton,
   hideFloatingButtonPreview = false
 }) => {
-  const { language } = useI18n();
+  const { language, setLanguage } = useI18n();
+  const [direction, setDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
   // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
     setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction]);
+
+  // Update language when direction changes
+  useEffect(() => {
+    if (direction === 'rtl' && language !== 'ar') {
+      setLanguage('ar');
+    } else if (direction === 'ltr' && language !== 'en') {
+      setLanguage('en');
+    }
+  }, [direction, language, setLanguage]);
   
   // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
@@ -91,15 +104,43 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
+  // Handle direction change
+  const handleDirectionChange = (value: string) => {
+    if (value === 'ltr' || value === 'rtl') {
+      setDirection(value);
+    }
+  };
+
   return (
     <div id={previewPanelId} style={{backgroundColor: previewBackgroundColor}} className="bg-gray-50">
-      <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
-        {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
-      </h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+          {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+        </h3>
+        
+        <div className="direction-controls">
+          <ToggleGroup 
+            type="single" 
+            value={direction} 
+            onValueChange={handleDirectionChange} 
+            variant="outline"
+            className="border rounded"
+          >
+            <ToggleGroupItem value="ltr" aria-label="Left to right">
+              <AlignLeft className="h-4 w-4" />
+              <span className="sr-only">LTR</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="rtl" aria-label="Right to left">
+              <AlignRight className="h-4 w-4" />
+              <span className="sr-only">RTL</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </div>
       
       <div className="border rounded-lg p-3 bg-gray-50" style={{backgroundColor: previewBackgroundColor}}>
         <FormPreview 
-          key={`preview-${internalRefreshKey}`}
+          key={`preview-${internalRefreshKey}-${direction}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}

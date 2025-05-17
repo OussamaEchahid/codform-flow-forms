@@ -10,7 +10,7 @@
   padding: 15px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: #F9FAFB;
+  background-color: #F9FAFB !important;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -58,6 +58,19 @@
   border: none !important;
 }
 
+/* Ensure truly transparent background */
+.codform-form * {
+  background-color: transparent;
+}
+
+.codform-form > div {
+  background-color: transparent !important;
+}
+
+.codform-form .space-y-2 {
+  background-color: transparent !important;
+}
+
 /* تنسيق الحقول - مطابقة تماما للمعاينة */
 .codform-field {
   margin-bottom: 16px !important;
@@ -75,11 +88,13 @@
 }
 
 /* محاذاة للغة العربية */
-[dir="rtl"] .codform-field label {
+[dir="rtl"] .codform-field label,
+.rtl .codform-field label {
   text-align: right !important;
 }
 
-[dir="ltr"] .codform-field label {
+[dir="ltr"] .codform-field label,
+.ltr .codform-field label {
   text-align: left !important;
 }
 
@@ -112,13 +127,17 @@
 
 /* محاذاة للغة العربية */
 [dir="rtl"] .codform-field-with-icon input,
-[dir="rtl"] .codform-field-with-icon textarea {
+[dir="rtl"] .codform-field-with-icon textarea,
+.rtl .codform-field-with-icon input,
+.rtl .codform-field-with-icon textarea {
   padding-right: 36px !important;
   padding-left: 12px !important;
 }
 
 [dir="ltr"] .codform-field-with-icon input,
-[dir="ltr"] .codform-field-with-icon textarea {
+[dir="ltr"] .codform-field-with-icon textarea,
+.ltr .codform-field-with-icon input,
+.ltr .codform-field-with-icon textarea {
   padding-left: 36px !important;
   padding-right: 12px !important;
 }
@@ -147,12 +166,14 @@
 }
 
 /* Fix icon positioning for RTL and LTR */
-[dir="rtl"] .codform-field-icon {
+[dir="rtl"] .codform-field-icon,
+.rtl .codform-field-icon {
   right: 12px !important;
   left: auto !important;
 }
 
-[dir="ltr"] .codform-field-icon {
+[dir="ltr"] .codform-field-icon,
+.ltr .codform-field-icon {
   left: 12px !important; 
   right: auto !important;
 }
@@ -401,7 +422,8 @@
 }
 
 /* ضبط box-sizing للتناسق */
-.codform-container * {
+.codform-container *,
+.codform-form * {
   box-sizing: border-box !important;
 }
 
@@ -438,12 +460,14 @@
 }
 
 /* Ensure that inputs with icons have proper padding */
-.codform-input[data-icon-position="left"] {
+.codform-input[data-icon-position="left"],
+.ltr .codform-input.with-icon {
   padding-left: 36px !important;
   padding-right: 12px !important;
 }
 
-.codform-input[data-icon-position="right"] {
+.codform-input[data-icon-position="right"],
+.rtl .codform-input.with-icon {
   padding-left: 12px !important;
   padding-right: 36px !important;
 }
@@ -457,30 +481,30 @@
 }
 
 /* تحسين عرض العلامة النجمية للحقول المطلوبة */
-.codform-field label .text-red-500 {
+.codform-field label .text-red-500,
+.codform-field label .codform-required {
   color: #ef4444 !important;
   margin-left: 4px !important;
 }
 
-/* Fix form background color - remove the white background */
+/* Fix form background color - remove ALL white backgrounds */
 .codform-form, 
 .codform-form > div,
 .codform-form-container,
 .codform-form-element,
-.codform-container {
-  background-color: #F9FAFB !important;
-}
-
-.codform-form .space-y-2 {
+.codform-container,
+.codform-form .space-y-2,
+.codform-container > div:not(.codform-title-container),
+.codform-form-container > div:not(.codform-title-container),
+.codform-form > div:not(.codform-title-container),
+.codform-form-element,
+.codform-form-container .codform-form,
+#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
   background-color: transparent !important;
+  box-shadow: none !important;
 }
 
-/* إزالة الخلفية البيضاء التي تظهر تحت النموذج */
-.codform-form-container {
-  background-color: transparent !important;
-}
-
-/* Ensure white background only for input fields */
+/* Ensure white background ONLY for specific input elements */
 .codform-input,
 .codform-textarea {
   background-color: #ffffff !important;
@@ -491,28 +515,23 @@
   margin-bottom: 8px !important;
 }
 
-/* Ensure no double backgrounds */
-.codform-container,
-.codform-container > div,
-.codform-form-container,
-.codform-form-element {
-  background-color: transparent !important;
-}
-
 /* Make sure labels are properly aligned */
 .codform-field label {
   display: block !important;
 }
 
-[dir="rtl"] .codform-field label {
+/* Fix label alignment based on class or attribute */
+[dir="rtl"] .codform-field label,
+.rtl .codform-field label {
   text-align: right !important;
 }
 
-[dir="ltr"] .codform-field label {
+[dir="ltr"] .codform-field label,
+.ltr .codform-field label {
   text-align: left !important;
 }
 
-/* Fix form header style - ensure the purple background is always there */
+/* Fix form header style - ensure the purple background */
 .codform-form-title,
 .codform-title-container,
 .codform-title h3,
@@ -521,7 +540,7 @@
   color: #ffffff !important;
 }
 
-/* Fix for the title fields too */
+/* Fix for the title fields */
 .codform-title-container {
   background-color: #9b87f5 !important;
   padding: 16px !important;
@@ -529,18 +548,27 @@
   margin-bottom: 16px !important;
 }
 
-/* All form wrappers should be transparent */
-.codform-container > div:not(.codform-title-container),
-.codform-form-container > div:not(.codform-title-container),
-.codform-form > div:not(.codform-title-container) {
-  background-color: transparent !important;
+/* Form container background */
+.codform-form-container, 
+#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
+  background-color: #F9FAFB !important;
 }
 
-/* Remove any white background from the form itself */
-.codform-form-element,
-.codform-form-container .codform-form,
-#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
+/* Additional direction specific CSS */
+.codform-form.rtl,
+.codform-form-container[dir="rtl"],
+.codform-form[dir="rtl"] {
+  direction: rtl !important;
+}
+
+.codform-form.ltr,
+.codform-form-container[dir="ltr"],
+.codform-form[dir="ltr"] {
+  direction: ltr !important;
+}
+
+/* Fix again the background color for the root element */
+#codform-form-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem,
+.codform-form-container {
+  background-color: #F9FAFB !important;
 }

@@ -47,41 +47,41 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
+  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ - إضافة !important لضمان التطبيق
   const backgroundStyle = {
-    backgroundColor: backgroundColor,
-    padding: '16px', // Exact padding to match between preview and store
-    borderRadius: formStyle.borderRadius || '8px',
-    width: '100%',
+    backgroundColor: `${backgroundColor} !important`,
+    padding: '16px !important', // Exact padding to match between preview and store
+    borderRadius: `${formStyle.borderRadius || '8px'} !important`,
+    width: '100% !important',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // Exact margin to match between preview and store
+    marginBottom: '16px !important', // Exact margin to match between preview and store
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
   // أنماط العنوان
   const titleStyle = {
-    color: fieldStyle.color || '#ffffff',
-    fontSize: fieldStyle.fontSize || fontSize,
+    color: `${fieldStyle.color || '#ffffff'} !important`,
+    fontSize: `${fieldStyle.fontSize || fontSize} !important`,
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3', // Consistent line height
-    display: 'block',
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important', // Consistent line height
+    display: 'block !important',
   };
 
   // أنماط الوصف
   const descriptionStyle = {
-    color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
-    margin: '6px 0 0 0', // Consistent margin
-    padding: '0',
+    color: `${fieldStyle.descriptionColor || '#ffffff'} !important`,
+    fontSize: `${fieldStyle.descriptionFontSize || descriptionFontSize} !important`,
+    margin: '6px 0 0 0 !important', // Consistent margin
+    padding: '0 !important',
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal',
-    lineHeight: '1.5', // Consistent line height
-    opacity: '0.9',
+    fontWeight: 'normal !important',
+    lineHeight: '1.5 !important', // Consistent line height
+    opacity: '0.9 !important',
   };
 
   // إنشاء معرف فريد لهذا الحقل

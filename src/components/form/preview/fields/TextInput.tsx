@@ -114,9 +114,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // Adjust label and input alignment based on language
   const labelAlignment = language === 'ar' ? 'right' : 'left';
   
+  // Add a field CSS class based on direction
+  const directionClass = language === 'ar' ? 'rtl' : 'ltr';
+  
   return (
     <div 
-      className="mb-4" 
+      className={`mb-4 codform-field codform-field-with-icon ${directionClass}`}
       data-component="TextInput" 
       data-field-type={field.type}
       data-field-id={field.id}
@@ -148,16 +151,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 ml-1">*</span>
+            <span className="text-red-500 ml-1 codform-required">*</span>
           )}
         </label>
       )}
       
-      <div className="relative">
+      <div className="codform-field-wrapper relative">
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            className="codform-field-icon" 
             style={{
               position: 'absolute',
               [iconPosition]: '12px',
@@ -182,7 +185,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
           name={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full outline-none transition-all codform-input"
+          className={`w-full outline-none transition-all codform-input ${showIcon && hasIcon ? 'with-icon' : ''}`}
           style={{
             color: textColor,
             fontSize: fontSize,

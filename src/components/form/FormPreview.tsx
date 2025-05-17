@@ -146,10 +146,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Use consistent background color #F9FAFB for form background
   const formBackgroundColor = "#F9FAFB";
   
+  // Direction class for the form
+  const dirClass = language === 'ar' ? 'rtl' : 'ltr';
+  
   return (
     <div 
       key={formId}
-      className="rounded-lg border shadow-sm overflow-hidden codform-form"
+      className={`rounded-lg border shadow-sm overflow-hidden codform-form ${dirClass}`}
       style={{
         fontSize: formStyle.fontSize,
         backgroundColor: formBackgroundColor,
@@ -162,6 +165,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-font-size={formStyle.fontSize}
       data-button-style={formStyle.buttonStyle}
       data-background-color={formBackgroundColor}
+      data-direction={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -203,7 +207,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className="p-3" 
+        className={`p-3 ${dirClass}`} 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
@@ -212,7 +216,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2" style={{backgroundColor: formBackgroundColor}}>
+          <div className="space-y-2" style={{backgroundColor: 'transparent'}}>
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}
