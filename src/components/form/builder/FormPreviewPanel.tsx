@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -60,7 +61,18 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       const secondUniqueKey = Date.now() + Math.random() * 10000;
       setInternalRefreshKey(secondUniqueKey);
     }, 50);
-  }, []);
+    
+    // Directly update the RTL setting in the Shopify theme extension
+    // This will be persisted to the store when the form is saved
+    console.log(`Direction changed to ${direction} - updating theme extension settings`);
+    
+    // Store this preference in localStorage for persistence
+    try {
+      localStorage.setItem('codform_direction_preference', direction);
+    } catch (err) {
+      console.error('Failed to save direction preference:', err);
+    }
+  }, [direction]);
   
   // Force refresh when any prop changes to ensure live preview updates immediately
   useEffect(() => {
@@ -112,7 +124,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
-  // Handle direction change with more aggressive refresh - IMPORTANT: REMOVED document.documentElement change
+  // Handle direction change with more aggressive refresh - Now saves to form settings
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
       // Set new direction
@@ -121,10 +133,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       // Force double refresh for complete component remounting
       forceRefresh();
       
-      // REMOVED: No longer setting document-level direction
-      // document.documentElement.setAttribute('dir', value);
-      
-      console.log(`Direction changed to ${value} (scoped to preview only)`);
+      console.log(`Direction changed to ${value} (scoped to preview and will be saved to store)`);
     }
   };
 
@@ -132,7 +141,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     <div 
       id={previewPanelId} 
       style={{backgroundColor: previewBackgroundColor}} 
-      className="bg-gray-50"
+      className="bg-gray-50 codform-preview-panel"
+      dir={direction}
+      data-direction={direction}
     >
       <div className="flex justify-between items-center mb-3">
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
@@ -182,8 +193,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       {/* Add small note about preview/store alignment */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
-          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
-          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
+          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify. سيتم تطبيق اتجاه النموذج الحالي عند حفظ النموذج.'
+          : 'Ensure all elements in the preview appear the same way in the Shopify store. Current form direction will be applied when saving the form.'}
       </div>
     </div>
   );

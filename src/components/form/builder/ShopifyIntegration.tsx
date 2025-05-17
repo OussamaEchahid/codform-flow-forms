@@ -11,6 +11,8 @@ import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { ensureUUID } from '@/lib/shopify/types';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -22,15 +24,40 @@ interface ShopifyIntegrationProps {
   onSave?: (settings: any) => void;
   isSyncing?: boolean;
   formTitleElement?: any;
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave, isSyncing }) => {
+const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ 
+  formId, 
+  onSave, 
+  isSyncing,
+  formDirection = 'ltr' 
+}) => {
   const { language } = useI18n();
   const { shop } = useShopify();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isExistingForm, setIsExistingForm] = useState(false);
+  const [isRTL, setIsRTL] = useState(formDirection === 'rtl');
   const params = useParams();
+  
+  // Load stored direction preference from localStorage
+  useEffect(() => {
+    try {
+      const savedDirection = localStorage.getItem('codform_direction_preference');
+      if (savedDirection === 'rtl') {
+        setIsRTL(true);
+      } else if (savedDirection === 'ltr') {
+        setIsRTL(false);
+      } else {
+        // Default based on language if no preference stored
+        setIsRTL(language === 'ar');
+      }
+    } catch (err) {
+      console.error('Failed to load direction preference:', err);
+      setIsRTL(language === 'ar');
+    }
+  }, [language]);
   
   // Check if this is an existing form or a new one
   useEffect(() => {
@@ -80,19 +107,43 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
           p_product_id: productId,
           p_form_id: validFormId,
           p_block_id: `cod-form-${formId.substring(0, 8)}`,
-          p_enabled: true
+          p_enabled: true,
+          p_is_rtl: isRTL // Save RTL setting with product association
         });
         
         if (error) {
           console.error(`Error associating product ${productId} with form:`, error);
         } else {
-          console.log(`Successfully associated product ${productId} with form ${validFormId}`);
+          console.log(`Successfully associated product ${productId} with form ${validFormId}, RTL: ${isRTL}`);
         }
+      }
+      
+      // Update the form_direction in the shopify_form_insertion table
+      try {
+        const { error } = await shopifySupabase
+          .from('shopify_form_insertion')
+          .upsert({
+            shop_id: shop,
+            form_id: validFormId,
+            form_direction: isRTL ? 'rtl' : 'ltr',
+            updated_at: new Date().toISOString()
+          }, { 
+            onConflict: 'shop_id,form_id' 
+          });
+          
+        if (error) {
+          console.error('Error updating form direction:', error);
+        }
+      } catch (updateError) {
+        console.error('Error updating form direction:', updateError);
       }
         
       // Call the onSave callback if provided
       if (onSave) {
-        onSave({ products: selectedProducts });
+        onSave({ 
+          products: selectedProducts,
+          formDirection: isRTL ? 'rtl' : 'ltr'
+        });
       }
     } catch (error) {
       console.error('Error saving product associations:', error);
@@ -104,7 +155,24 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
     if (isExistingForm && selectedProducts.length > 0 && !isReadOnly) {
       saveProductAssociations();
     }
-  }, [selectedProducts, isExistingForm, isReadOnly]);
+  }, [selectedProducts, isExistingForm, isReadOnly, isRTL]);
+  
+  // Handle RTL toggle
+  const handleRTLToggle = (checked: boolean) => {
+    setIsRTL(checked);
+    
+    // Save preference to localStorage
+    try {
+      localStorage.setItem('codform_direction_preference', checked ? 'rtl' : 'ltr');
+    } catch (err) {
+      console.error('Failed to save direction preference:', err);
+    }
+    
+    // If we have an existing form and products, update the RTL setting
+    if (isExistingForm && selectedProducts.length > 0) {
+      saveProductAssociations();
+    }
+  };
   
   return (
     <Card>
@@ -141,6 +209,19 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
             </AlertDescription>
           </Alert>
         )}
+
+        <div className="mb-4 flex items-center space-x-4">
+          <Switch 
+            id="rtl-toggle" 
+            checked={isRTL} 
+            onCheckedChange={handleRTLToggle} 
+          />
+          <Label htmlFor="rtl-toggle" className={language === 'ar' ? 'mr-2' : 'ml-2'}>
+            {language === 'ar' 
+              ? 'عرض النموذج من اليمين إلى اليسار (RTL)' 
+              : 'Display form in Right-to-Left (RTL) mode'}
+          </Label>
+        </div>
 
         <Tabs defaultValue="products" className="w-full">
           <TabsList className="mb-4 w-full grid grid-cols-1">

@@ -27,7 +27,8 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
         direction: textDirection,
-        width: '100%' // Ensure full width
+        width: '100%', // Ensure full width
+        textAlign: textDirection === 'rtl' ? 'right' : 'left',
       }}
       dir={textDirection}
       data-direction={textDirection}

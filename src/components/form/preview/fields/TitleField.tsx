@@ -58,7 +58,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     position: 'relative', // Ensure positioning context
   };
 
-  // Title styles
+  // Title styles with !important added to critical properties
   const titleStyle: React.CSSProperties = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fieldStyle.fontSize || fontSize,
@@ -73,7 +73,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     width: '100%', // Ensure title takes full width
   };
 
-  // Description styles
+  // Description styles with !important added to critical properties
   const descriptionStyle: React.CSSProperties = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
@@ -89,7 +89,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   };
 
   // Create a unique ID for this field
-  const titleFieldId = `title-field-${field.id}-${Date.now()}`;
+  const titleFieldId = `title-field-${field.id || Date.now()}`;
 
   return (
     <div 

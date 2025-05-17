@@ -30,7 +30,8 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle, formD
       className="mb-6 countdown-timer-wrapper"
       style={{
         direction: textDirection,
-        width: '100%' // Ensure full width
+        width: '100%', // Ensure full width
+        textAlign: textDirection === 'rtl' ? 'right' : 'left',
       }}
       dir={textDirection}
       data-direction={textDirection}
@@ -42,8 +43,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle, formD
           borderColor: fieldStyle.borderColor || formStyle.primaryColor || '#9b87f5',
           textAlign: 'center',
           width: '100%', // Ensure full width
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          direction: textDirection,
         }}
+        dir={textDirection}
       >
         <h3 
           className="text-lg font-medium mb-2"

@@ -41,7 +41,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       className="form-control mb-6 shipping-options-container"
       style={{
         direction: textDirection,
-        width: '100%' // Ensure full width
+        width: '100%', // Ensure full width
+        textAlign: textDirection === 'rtl' ? 'right' : 'left',
       }}
       dir={textDirection}
       data-direction={textDirection}
@@ -51,8 +52,10 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
         style={{ 
           color: fieldStyle.color,
           textAlign: textDirection === 'rtl' ? 'right' : 'left',
-          width: '100%' // Ensure full width
+          width: '100%', // Ensure full width
+          direction: textDirection,
         }}
+        dir={textDirection}
       >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
         {field.required && <span className="text-red-500 mr-1">*</span>}
@@ -70,8 +73,10 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
             style={{
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
               gap: '8px',
-              width: '100%' // Ensure full width
+              width: '100%', // Ensure full width
+              direction: textDirection,
             }}
+            dir={textDirection}
           >
             <RadioGroupItem value={option.id} />
             <div 
@@ -81,6 +86,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
                 direction: textDirection,
                 width: '100%' // Ensure full width
               }}
+              dir={textDirection}
             >
               <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>
                 <div className="font-medium">{option.name}</div>
