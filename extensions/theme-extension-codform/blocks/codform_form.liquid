@@ -309,7 +309,7 @@
       let html = '';
       
       // بداية النموذج
-      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'};">`;
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #F9FAFB;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
@@ -385,14 +385,17 @@
       const translatedPlaceholder = field.placeholder || '';
       const isRequired = field.required ? true : false;
       
+      const iconPosition = isRTL ? 'right' : 'left';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
       return `
         <div class="${fieldClassContainer}">
-          <label for="codform-field-${field.id}">
+          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};">
             ${translatedLabel}
             ${isRequired ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
@@ -400,9 +403,11 @@
               placeholder="${translatedPlaceholder}"
               ${isRequired ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
+              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
+              dir="${isRTL ? 'rtl' : 'ltr'}"
             />
           </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};">${field.helpText}</div>` : ''}
         </div>
       `;
     }
@@ -421,14 +426,17 @@
       const translatedLabel = field.label || '';
       const translatedPlaceholder = field.placeholder || '';
       
+      const iconPosition = isRTL ? 'right' : 'left';
+      const labelAlignment = isRTL ? 'right' : 'left';
+      
       return `
         <div class="${fieldClassContainer}">
-          <label for="codform-field-${field.id}">
+          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
@@ -436,9 +444,11 @@
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
+              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
+              dir="${isRTL ? 'rtl' : 'ltr'}"
             ></textarea>
           </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};">${field.helpText}</div>` : ''}
         </div>
       `;
     }
@@ -446,10 +456,12 @@
     // وظيفة لإنشاء مجموعة أزرار راديو
     function createRadioField(field) {
       const translatedLabel = field.label || '';
+      const isRTL = true; // Defaulting to RTL
+      const labelAlignment = isRTL ? 'right' : 'left';
       
       let html = `
         <div class="codform-field">
-          <label>
+          <label style="text-align: ${labelAlignment};">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
@@ -478,7 +490,7 @@
       
       html += `
           </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};">${field.helpText}</div>` : ''}
         </div>
       `;
       
@@ -488,10 +500,12 @@
     // وظيفة لإنشاء مجموعة مربعات اختيار
     function createCheckboxField(field) {
       const translatedLabel = field.label || '';
+      const isRTL = true; // Defaulting to RTL
+      const labelAlignment = isRTL ? 'right' : 'left';
       
       let html = `
         <div class="codform-field">
-          <label>
+          <label style="text-align: ${labelAlignment};">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
@@ -519,7 +533,7 @@
       
       html += `
           </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};">${field.helpText}</div>` : ''}
         </div>
       `;
       
@@ -601,7 +615,7 @@
       const descriptionColor = style.descriptionColor || '#ffffff';
       const fontSize = style.fontSize || '24px';
       const descriptionFontSize = style.descriptionFontSize || '14px';
-      const textAlign = style.textAlign || 'right';
+      const textAlign = style.textAlign || 'center';
       
       const translatedLabel = field.label || 'نموذج جديد';
       const translatedHelp = field.helpText || '';

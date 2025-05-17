@@ -92,12 +92,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const previewBackgroundColor = "#F9FAFB";
 
   return (
-    <div id={previewPanelId}>
+    <div id={previewPanelId} style={{backgroundColor: previewBackgroundColor}} className="bg-gray-50">
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>
       
-      <div className="border rounded-lg p-3 bg-gray-50">
+      <div className="border rounded-lg p-3 bg-gray-50" style={{backgroundColor: previewBackgroundColor}}>
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
           formTitle={formTitle}

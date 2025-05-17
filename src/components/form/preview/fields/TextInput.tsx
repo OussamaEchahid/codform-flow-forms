@@ -105,12 +105,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const inputId = `${field.id}-input`;
   
   // تعديل موضع الأيقونة بناءً على لغة النموذج
+  // تغيير للتأكد أنها في الطرف المناسب بناءً على الصورة
+  // في النموذج العربي تكون الأيقونة في اليمين وفي الإنجليزي في اليسار
   const iconPosition = language === 'ar' ? 'right' : 'left';
   
   // Force RTL alignment for Arabic language, LTR for others
   const textDirection = language === 'ar' ? 'rtl' : 'ltr';
   
   // Adjust label and input alignment based on language
+  // تغيير المحاذاة للمطابقة مع الصورة
   const labelAlignment = language === 'ar' ? 'right' : 'left';
   
   return (

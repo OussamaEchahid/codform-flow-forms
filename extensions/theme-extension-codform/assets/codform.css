@@ -70,12 +70,15 @@
   font-weight: 500 !important;
   color: #374151 !important;
   font-size: 16px !important;
-  text-align: left !important;
 }
 
 /* محاذاة للغة العربية */
 [dir="rtl"] .codform-field label {
   text-align: right !important;
+}
+
+[dir="ltr"] .codform-field label {
+  text-align: left !important;
 }
 
 .codform-field input[type="text"],
@@ -112,6 +115,12 @@
   padding-left: 12px !important;
 }
 
+[dir="ltr"] .codform-field-with-icon input,
+[dir="ltr"] .codform-field-with-icon textarea {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
+}
+
 .codform-field input:focus,
 .codform-field textarea:focus,
 .codform-field select:focus {
@@ -123,7 +132,6 @@
 /* تحسين موضع الأيقونات داخل الحقول - مطابق للمعاينة بدقة */
 .codform-field-icon {
   position: absolute !important;
-  left: 12px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   color: #6b7280 !important;
@@ -136,10 +144,15 @@
   z-index: 2 !important;
 }
 
-/* تصحيح موضع الأيقونات للغة العربية */
+/* Fix icon positioning for RTL and LTR */
 [dir="rtl"] .codform-field-icon {
-  left: auto !important;
   right: 12px !important;
+  left: auto !important;
+}
+
+[dir="ltr"] .codform-field-icon {
+  left: 12px !important; 
+  right: auto !important;
 }
 
 .codform-field-wrapper {
@@ -382,20 +395,6 @@
   .codform-form-title {
     font-size: 22px !important;
   }
-
-  /* أحجام ثابتة للشاشات الصغيرة */
-  .codform-field label {
-    font-size: 16px !important;
-  }
-
-  .codform-field input[type="text"],
-  .codform-field input[type="email"],
-  .codform-field input[type="tel"],
-  .codform-field input[type="number"],
-  .codform-field textarea,
-  .codform-field select {
-    font-size: 16px !important;
-  }
 }
 
 /* ضبط box-sizing للتناسق */
@@ -424,7 +423,7 @@
   flex-shrink: 0 !important;
 }
 
-/* تحسين أيقونات الإدخال */
+/* تحسين أيقونات الإدخال - إزالة الخلفية البيضاء */
 .codform-input {
   width: 100% !important;
   padding: 10px 12px !important;
@@ -460,28 +459,7 @@
   margin-left: 4px !important;
 }
 
-/* محاذاة الحقول ونموذج الإدخال */
-.codform-field {
-  text-align: left !important;
-}
-
-/* Fix direction for RTL languages */
-[dir="rtl"] .codform-field {
-  text-align: right !important;
-}
-
-/* Ensure RTL icons are properly positioned */
-[dir="rtl"] .codform-field-icon {
-  right: 12px !important;
-  left: auto !important;
-}
-
-[dir="ltr"] .codform-field-icon {
-  left: 12px !important;
-  right: auto !important;
-}
-
-/* Fix form background color */
+/* Fix form background color - remove the white background */
 .codform-form, 
 .codform-form > div {
   background-color: #F9FAFB !important;
@@ -498,29 +476,60 @@
 }
 
 /* Ensure no double backgrounds */
-.codform-container {
+.codform-container,
+.codform-container > div,
+.codform-form-container,
+.codform-form-element,
+.codform-form {
   background-color: #F9FAFB !important;
-}
-
-/* Fix icon alignment inside inputs */
-.codform-field-icon svg {
-  stroke-width: 2px !important;
-  width: 18px !important;
-  height: 18px !important;
 }
 
 /* Make sure labels are properly aligned */
 .codform-field label {
   display: block !important;
-  text-align: left !important;
 }
 
 [dir="rtl"] .codform-field label {
   text-align: right !important;
 }
 
-/* Fix form header style */
-.codform-form-title {
-  font-size: 24px !important;
-  text-align: center !important;
+[dir="ltr"] .codform-field label {
+  text-align: left !important;
+}
+
+/* Fix form header style - ensure the purple background is always there */
+.codform-form-title,
+.codform-title-container,
+.codform-title h3,
+.codform-header {
+  background-color: #9b87f5 !important;
+  color: #ffffff !important;
+}
+
+/* Fix for the title fields too */
+.codform-title-container {
+  background-color: #9b87f5 !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Fix for form contents */
+.codform-form {
+  background-color: transparent !important;
+}
+
+.codform-form > * {
+  background-color: transparent !important;
+}
+
+.codform-form .space-y-2 {
+  background-color: transparent !important;
+}
+
+/* Remove any white background */
+.codform-title,
+.codform-field,
+.codform-field-wrapper {
+  background-color: transparent !important;
 }

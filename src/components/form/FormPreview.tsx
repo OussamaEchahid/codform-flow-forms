@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -105,7 +106,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       helpText: formDescription,
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: language === 'ar' ? 'right' : 'center',
         fontWeight: 'bold',
         fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
@@ -211,7 +212,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2" style={{backgroundColor: formBackgroundColor}}>
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}
