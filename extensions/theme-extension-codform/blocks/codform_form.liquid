@@ -102,32 +102,20 @@
 
 {% schema %}
 {
-  "name": {
-    "en": "COD Form",
-    "ar": "نموذج الدفع عند الاستلام"
-  },
+  "name": "COD Form | نموذج الدفع عند الاستلام",
   "target": "section",
   "settings": [
     {
       "type": "checkbox",
       "id": "is_rtl",
-      "label": {
-        "en": "Right-to-left (RTL) Direction",
-        "ar": "اتجاه من اليمين إلى اليسار (RTL)"
-      },
+      "label": "Right-to-left (RTL) Direction | اتجاه من اليمين إلى اليسار",
       "default": false
     },
     {
       "type": "text",
       "id": "loading_text",
-      "label": {
-        "en": "Loading Text",
-        "ar": "نص التحميل"
-      },
-      "default": {
-        "en": "Loading form...",
-        "ar": "جاري تحميل النموذج..."
-      }
+      "label": "Loading Text | نص التحميل",
+      "default": "Loading form... | جاري تحميل النموذج..."
     }
   ]
 }

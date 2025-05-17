@@ -62,4 +62,3 @@ ar = "تفعيل الاتجاه من اليمين إلى اليسار (RTL)"
 [settings.fields.info]
 en = "Display form in right-to-left direction (for Arabic and other RTL languages)"
 ar = "عرض النموذج باتجاه من اليمين إلى اليسار (للغة العربية واللغات الأخرى RTL)"
-
