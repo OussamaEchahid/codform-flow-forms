@@ -33,6 +33,8 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
   
   // Get the field component based on type
   const getFieldComponent = () => {
+    console.log(`Rendering field of type: ${field.type}`);
+    
     switch (field.type) {
       case 'text':
       case 'email':
@@ -78,6 +80,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'edit-form-title':
+        console.log('Rendering EditFormTitleField with field:', field);
         return (
           <EditFormTitleField
             field={field}
@@ -87,6 +90,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         );
         
       default:
+        console.warn(`Unsupported field type: ${field.type}`);
         return (
           <div dir={formDirection} className={directionClass}>
             Unsupported field type: {field.type}

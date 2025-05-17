@@ -31,6 +31,9 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
     onSave(editedField);
   }, [onSave, editedField]);
   
+  // Log the field type when editor opens
+  console.log(`FieldEditor opened for field type: ${field.type}`);
+  
   // Render different editor based on field type
   const renderFieldEditor = () => {
     switch (field.type) {
@@ -70,6 +73,7 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
         );
       
       case 'edit-form-title':
+        console.log('Rendering EditFormTitleEditor with field:', field);
         return (
           <EditFormTitleEditor
             field={field}
