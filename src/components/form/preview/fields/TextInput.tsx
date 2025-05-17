@@ -65,7 +65,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         alignItems: 'center',
         justifyContent: 'center'
       },
-      "aria-hidden": "true",
+      "aria-hidden": true,
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };

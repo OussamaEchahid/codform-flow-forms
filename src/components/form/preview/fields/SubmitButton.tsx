@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -37,7 +37,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const animationClass = getAnimationClass();
   
   // Default button styling - ensure proper handling of pixel values
-  const buttonStyle = {
+  const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
     fontSize: style.fontSize || '18px', // Default fontSize is 18px
@@ -61,7 +61,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     transition: 'all 0.2s ease',
     marginTop: '14px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative',
+    position: 'relative' as 'relative',
     overflow: 'hidden',
     textAlign: 'center'
   };
