@@ -28,7 +28,7 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// إسترجاع اتجاه النموذج من localStorage
+// Get form direction from localStorage with fallback
 const getSavedDirection = (): 'ltr' | 'rtl' => {
   try {
     const savedDirection = localStorage.getItem('codform_direction');
@@ -38,10 +38,10 @@ const getSavedDirection = (): 'ltr' | 'rtl' => {
   } catch (e) {
     console.error("Error accessing localStorage:", e);
   }
-  return 'ltr'; // توجيه افتراضي
+  return 'ltr'; // Default direction
 };
 
-// حفظ اتجاه النموذج في localStorage
+// Save form direction to localStorage
 const saveDirection = (direction: 'ltr' | 'rtl'): void => {
   try {
     localStorage.setItem('codform_direction', direction);
@@ -65,98 +65,91 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // استخدم القيمة المحفوظة في localStorage أو اعتمد على اللغة الحالية
+  // Use saved value from localStorage or default based on language
   const [direction, setDirection] = useState<'ltr' | 'rtl'>(() => {
     const savedDir = getSavedDirection();
-    // إذا لم يتم تخزين قيمة، استخدم اللغة لتحديد الاتجاه
+    // If no saved value, use language to determine direction
     return savedDir || (language === 'ar' ? 'rtl' : 'ltr');
   });
   
+  // Internal refresh key to force re-render when needed
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // إعادة ضبط الاتجاه عند تغيير اللغة
+  // Reset direction when language changes
   useEffect(() => {
     const newDirection = language === 'ar' ? 'rtl' : 'ltr';
     setDirection(newDirection);
     saveDirection(newDirection);
   }, [language]);
   
-  // آلية إعادة التحميل الأكثر فعالية
+  // More effective refresh mechanism
   const forceRefresh = useCallback(() => {
-    // إنشاء مفتاح فريد حقًا من خلال دمج الطابع الزمني مع قيمة عشوائية
-    const uniqueKey = Date.now() + Math.random() * 10000;
+    // Create a truly unique key by combining timestamp with random value
+    const uniqueKey = Date.now() + Math.random();
     setInternalRefreshKey(uniqueKey);
-    
-    // استخدم نمط تحديث مزدوج لضمان إعادة تركيب المكون بالكامل
-    setTimeout(() => {
-      const secondUniqueKey = Date.now() + Math.random() * 10000;
-      setInternalRefreshKey(secondUniqueKey);
-    }, 50);
   }, []);
   
-  // إجبار التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة على الفور
+  // Force refresh on any prop change to ensure live preview updates immediately
   useEffect(() => {
     forceRefresh();
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction, forceRefresh]);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, direction, forceRefresh]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
+  // Process fields to normalize icon values - necessary for preview
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التعديل المباشر
+      // Create a new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // التأكد من معالجة showIcon بشكل صحيح
+      // Make sure showIcon is processed correctly
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحةً إلى false
+        // Set showIcon to true by default if icon exists and not explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px متسقة
+      // Make sure font size uses consistent px units
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للاتساق
+        // Convert rem to px for consistency
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان مجرد رقم بدون وحدة، افترض أنه px
+          // If just a number without unit, assume it's px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey]);
+  }, [fields]);
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
+  // Create unique ID for this preview panel
   const previewPanelId = `preview-panel-${internalRefreshKey}`;
   
-  // استخدام لون خلفية متسق للمعاينة
+  // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
-  // معالجة تغيير الاتجاه مع تحديث أكثر فعالية
+  // Handle direction change with more effective update
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
-      // تعيين اتجاه جديد
+      // Set new direction
       setDirection(value as 'ltr' | 'rtl');
       
-      // حفظ الاتجاه في localStorage للاستمرارية
+      // Save direction to localStorage for persistence
       saveDirection(value as 'ltr' | 'rtl');
       
-      // فرض تحديث مزدوج لإعادة تركيب المكون بالكامل
+      // Force a refresh to rebuild component completely
       forceRefresh();
-      
-      console.log(`تم تغيير الاتجاه إلى ${value} (محدود للمعاينة فقط)`);
     }
   };
 
@@ -196,7 +189,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         style={{backgroundColor: previewBackgroundColor}}
       >
         <FormPreview 
-          key={`preview-${internalRefreshKey}-${direction}`}
+          key={`preview-${internalRefreshKey}`}
           formTitle={formTitle}
           formDescription={formDescription}
           currentStep={currentStep}
@@ -211,7 +204,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* ملاحظة صغيرة حول محاذاة المعاينة / المتجر */}
+      {/* Small note about preview/store alignment */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'

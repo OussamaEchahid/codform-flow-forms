@@ -30,21 +30,21 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Force center alignment for title regardless of direction
+  // Always use center alignment for title fields
   const alignment: TextAlign = 'center';
   
   // Use precise pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
   
-  // Use consistent pixel values instead of rem to ensure exact size match
+  // Use consistent pixel values to ensure exact size match
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // CRITICAL FIX: ENSURE WE ALWAYS HAVE A CONSISTENT BACKGROUND COLOR
+  // Ensure we always have a consistent background color
   // Default to purple (#9b87f5) if no backgroundColor or primaryColor is defined
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Background style with fixed pixel values for padding - add !important to ensure application
+  // Background style with fixed pixel values for padding
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     padding: '16px',
@@ -68,6 +68,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.3',
     display: 'block',
     direction: textDirection as Direction,
+    width: '100%',
   };
 
   // Description styles
@@ -82,10 +83,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.5',
     opacity: '0.9',
     direction: textDirection as Direction,
+    width: '100%',
+    display: 'block',
   };
 
-  // Create a unique ID for this field
-  const titleFieldId = `title-field-${field.id}-${Date.now()}`;
+  // Create a unique ID for this field to avoid conflicts
+  const titleFieldId = `title-field-${field.id}`;
 
   return (
     <div 
@@ -96,16 +99,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
       data-has-bg="true"
       data-title-color={fieldStyle.color || '#ffffff'}
       data-bg-color={backgroundColor}
-      data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fieldStyle.fontSize || fontSize}
-      data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
-      data-desc-font-weight='normal'
       data-direction={textDirection}
       dir={textDirection}
     >
-      <div className="codform-title-container" style={backgroundStyle}>
+      <div className="codform-title-container" style={backgroundStyle} dir={textDirection}>
         <h3 
           className={isFormTitle ? "codform-form-title" : ""}
           style={titleStyle}

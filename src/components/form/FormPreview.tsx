@@ -44,12 +44,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   formDirection,
 }) => {
   const { language } = useI18n();
-  const [key] = useState(0);
   
   // Use the formDirection prop if provided, otherwise fall back to language-based direction
   const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Improve field processing and proper setup
+  // Improve field processing for consistent display
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart items and cart summary fields have empty labels by default
     const updatedFields = fields.map(field => {
@@ -72,7 +71,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           updatedField.style = {};
         }
         
-        // Set showIcon to true by default if icon exists and not explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
@@ -85,12 +83,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       
       // Make sure font size is explicitly specified with px
       if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // Convert rem to px if needed
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // If just a number without unit, assume it's px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
@@ -113,10 +109,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         color: '#ffffff',
         textAlign: 'center',
         fontWeight: 'bold',
-        fontSize: '24px', // 1.5rem = 24px
+        fontSize: '24px',
         descriptionColor: '#ffffff',
-        descriptionFontSize: '14px', // 0.875rem = 14px
-        backgroundColor: formStyle.primaryColor || '#9b87f5', // Primary background color
+        descriptionFontSize: '14px',
+        backgroundColor: formStyle.primaryColor || '#9b87f5',
       }
     };
     
@@ -125,7 +121,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // If no submit button exists, add one with specific pixel sizes
+    // If no submit button exists, add one
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -134,7 +130,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px', // 1.2rem = 18px
+          fontSize: '18px',
           animation: true,
           animationType: 'pulse',
         },
@@ -145,10 +141,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return result;
   }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
-  // Create unique ID for this form to ensure proper updates
+  // Create unique ID for this form
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
   
-  // Use consistent background color #F9FAFB for form background
+  // Use consistent background color for form
   const formBackgroundColor = "#F9FAFB";
   
   // Direction class for the form
@@ -156,7 +152,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   return (
     <div 
-      key={formId}
       className={`rounded-lg border shadow-sm overflow-hidden codform-form ${dirClass}`}
       style={{
         fontSize: formStyle.fontSize,
@@ -165,12 +160,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
       data-form-preview-id={formId}
-      data-primary-color={formStyle.primaryColor}
-      data-border-radius={formStyle.borderRadius}
-      data-font-size={formStyle.fontSize}
-      data-button-style={formStyle.buttonStyle}
-      data-background-color={formBackgroundColor}
       data-direction={direction}
+      dir={direction}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -218,7 +209,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: direction,
           backgroundColor: formBackgroundColor
         }}
-        data-direction={direction}
+        dir={direction}
       >
         {sanitizedFields.length > 0 ? (
           <div className="space-y-2" style={{backgroundColor: 'transparent'}}>
@@ -236,7 +227,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* Show floating button if enabled and not hidden for preview purposes */}
+      {/* Show floating button if enabled and not hidden for preview */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}
