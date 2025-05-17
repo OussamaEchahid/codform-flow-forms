@@ -16,7 +16,7 @@ interface UpdateThemeRequest {
   insertionMethod?: 'auto' | 'manual';
   blockId?: string;
   themeId?: number;
-  formDirection?: 'ltr' | 'rtl'; // إضافة معلمة الاتجاه
+  formDirection?: 'ltr' | 'rtl'; 
 }
 
 serve(async (req: Request) => {
@@ -96,7 +96,7 @@ serve(async (req: Request) => {
             insertion_method: insertionMethod,
             block_id: blockId || `codform_${formIdShort}`,
             status: 'success',
-            form_direction: formDirection, // تخزين اتجاه النموذج
+            form_direction: formDirection,
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'shop_id,form_id' 
@@ -712,6 +712,12 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     width: 100%;
     display: block;
     box-sizing: border-box;
+  }
+
+  /* ضمان محاذاة العنوان والوصف للمركز دائمًا في العناوين */
+  .codform-title-container h3,
+  .codform-title-container p {
+    text-align: center !important;
   }
 </style>
 {% endif %}`;

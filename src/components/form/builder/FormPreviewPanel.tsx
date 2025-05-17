@@ -45,6 +45,7 @@ const getSavedDirection = (): 'ltr' | 'rtl' => {
 const saveDirection = (direction: 'ltr' | 'rtl'): void => {
   try {
     localStorage.setItem('codform_direction', direction);
+    console.log(`Direction saved to localStorage: ${direction}`);
   } catch (e) {
     console.error("Error saving direction to localStorage:", e);
   }
@@ -87,6 +88,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create a truly unique key by combining timestamp with random value
     const uniqueKey = Date.now() + Math.random();
     setInternalRefreshKey(uniqueKey);
+    console.log(`FormPreview forced refresh with key: ${uniqueKey}`);
   }, []);
   
   // Force refresh on any prop change to ensure live preview updates immediately
@@ -129,6 +131,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }
       }
       
+      // For title fields, force text-align to center for consistency with store
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        updatedField.style.textAlign = 'center';
+      }
+      
+      // Log background color changes for debugging
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        console.log(`Title field background color: ${updatedField.style?.backgroundColor || 'not set'}`);
+      }
+      
       return updatedField;
     });
   }, [fields]);
@@ -148,6 +163,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       // Save direction to localStorage for persistence
       saveDirection(value as 'ltr' | 'rtl');
       
+      // Log the direction change
+      console.log(`Form direction changed to: ${value}`);
+      
       // Force a refresh to rebuild component completely
       forceRefresh();
     }
@@ -158,6 +176,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       id={previewPanelId} 
       style={{backgroundColor: previewBackgroundColor}} 
       className="bg-gray-50"
+      data-direction={direction}
     >
       <div className="flex justify-between items-center mb-3">
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
@@ -202,6 +221,15 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         >
           <div></div>
         </FormPreview>
+      </div>
+      
+      {/* Debugging info */}
+      <div className="mt-2 text-xs bg-gray-100 p-2 rounded border border-gray-200">
+        <p>
+          {language === 'ar' 
+            ? `الاتجاه الحالي: ${direction} - مفتاح التحديث: ${internalRefreshKey.toString().substring(0, 8)}`
+            : `Current direction: ${direction} - Refresh key: ${internalRefreshKey.toString().substring(0, 8)}`}
+        </p>
       </div>
       
       {/* Small note about preview/store alignment */}

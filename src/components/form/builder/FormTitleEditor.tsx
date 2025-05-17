@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -35,7 +34,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const { language } = useI18n();
   const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
-    formTitleField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
+    formTitleField?.style?.textAlign || 'center' // Default to center alignment for titles
   );
   const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
@@ -72,16 +71,16 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   useEffect(() => {
     if (formTitleField) {
       setTitleColor(formTitleField.style?.color || '#ffffff');
-      setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
+      setTitleAlignment(formTitleField.style?.textAlign || 'center'); // Default to center
       setTitleSize(formTitleField.style?.fontSize || '1.5rem');
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
-  }, [formTitleField, language]);
+  }, [formTitleField]);
 
-  // Improved update style function that ensures immediate updates
+  // Enhanced update style function that ensures immediate updates
   const handleUpdateStyle = (property: string, value: string) => {
     if (!formTitleField) return;
     
@@ -105,6 +104,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionFontSize') setDescSize(value);
     if (property === 'backgroundColor') setBackgroundColor(value);
     
+    // Force textAlign to center for consistency with store display
+    if (property !== 'textAlign') {
+      updatedField.style.textAlign = 'center';
+    }
+    
     // Update parent component with new field data
     onUpdateTitleField(updatedField);
     
@@ -125,6 +129,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Update parent component
     onUpdateTitleField(updatedField);
     onFormTitleChange(value);
+    
+    console.log(`Updated title field label: ${value}`);
   };
 
   const handleUpdateDescription = (value: string) => {
@@ -140,6 +146,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Update parent component
     onUpdateTitleField(updatedField);
     onFormDescriptionChange(value);
+    
+    console.log(`Updated title field description: ${value}`);
   };
 
   return (
@@ -313,12 +321,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       variant={titleAlignment === 'left' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => handleUpdateStyle('textAlign', 'left')}
+                      disabled={true} 
                     >
                       <AlignLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       type="button"
-                      variant={titleAlignment === 'center' ? 'default' : 'outline'}
+                      variant={'default'}
                       size="sm"
                       onClick={() => handleUpdateStyle('textAlign', 'center')}
                     >
@@ -329,10 +338,16 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       variant={titleAlignment === 'right' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => handleUpdateStyle('textAlign', 'right')}
+                      disabled={true}
                     >
                       <AlignRight className="h-4 w-4" />
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {language === 'ar' 
+                      ? 'محاذاة العنوان لليسار واليمين معطلة للحفاظ على التنسيق المتناسق في المتجر'
+                      : 'Left and right alignment disabled for consistent formatting in the store'}
+                  </p>
                 </div>
                 
                 <div className="border-t pt-3">

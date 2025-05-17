@@ -158,6 +158,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Direction class for the form
   const dirClass = direction === 'rtl' ? 'rtl' : 'ltr';
   
+  // Log current form direction
+  console.log(`FormPreview rendering with direction: ${direction}`);
+  
   return (
     <div 
       className={`rounded-lg border shadow-sm overflow-hidden codform-form ${dirClass}`}
@@ -239,6 +242,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}
+      
+      {/* Debugging information (hidden from user but useful for development) */}
+      <div style={{ display: 'none' }} data-debug-info>
+        Direction: {direction}
+        Form ID: {formId}
+        Fields count: {sanitizedFields.length}
+      </div>
     </div>
   );
 };

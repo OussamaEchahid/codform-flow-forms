@@ -30,7 +30,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Always use center alignment for title fields
+  // Always use center alignment for title fields for consistency with store display
   const alignment: TextAlign = 'center';
   
   // Use precise pixel values instead of rem for consistent size across environments
@@ -40,8 +40,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // Ensure we always have a consistent background color
-  // Default to purple (#9b87f5) if no backgroundColor or primaryColor is defined
+  // Get background color from field style, fallback to formStyle.primaryColor, then to default purple
+  // Make sure we're not overriding the user's selected color
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Use the same borderRadius value as in the store
