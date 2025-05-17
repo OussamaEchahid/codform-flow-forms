@@ -134,7 +134,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       data-border-radius={borderRadius}
       data-input-id={inputId}
       dir={textDirection}
-      style={{ direction: textDirection }}
     >
       {showLabel && (
         <label 
@@ -146,8 +145,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
             marginBottom: '8px',
-            textAlign: labelAlignment,
-            direction: textDirection
+            textAlign: labelAlignment
           }}
           data-label-text={labelText}
           dir={textDirection}
@@ -159,7 +157,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         </label>
       )}
       
-      <div className="codform-field-wrapper relative" dir={textDirection}>
+      <div className="codform-field-wrapper relative">
         {/* عرض الأيقونة إذا كان يجب عرضها */}
         {showIcon && hasIcon && (
           <div 
@@ -207,7 +205,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             width: '100%',
             height: 'auto',
             lineHeight: 1.5,
-            direction: textDirection,
             textAlign: textDirection === 'rtl' ? 'right' : 'left'
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
@@ -217,7 +214,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
         />
       </div>
       
-      <div className="codform-field-help" dir={textDirection}>
+      <div className="codform-field-help">
         {field.helpText && (
           <p 
             className="mt-1 text-xs text-gray-500 codform-help-text" 
@@ -225,8 +222,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
               marginTop: '4px',
               fontSize: '14px',
               color: '#6b7280',
-              textAlign: labelAlignment,
-              direction: textDirection
+              textAlign: labelAlignment
             }}
             dir={textDirection}
           >
@@ -242,8 +238,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
               color: '#ef4444',
               fontSize: '14px',
               marginTop: '4px',
-              textAlign: labelAlignment,
-              direction: textDirection
+              textAlign: labelAlignment
             }}
             dir={textDirection}
           >

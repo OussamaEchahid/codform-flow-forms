@@ -33,9 +33,9 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) 
   return (
     <div 
       className={`mb-4`}
-      dir={textDirection}
       data-field-type="textarea"
       data-direction={textDirection}
+      dir={textDirection}
     >
       <label 
         htmlFor={field.id} 
@@ -44,8 +44,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) 
           color: fieldStyle.labelColor || '#334155',
           fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
           fontWeight: 500,
-          textAlign: labelAlignment,
-          direction: textDirection
+          textAlign: labelAlignment
         }}
         dir={textDirection}
       >
@@ -67,7 +66,6 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) 
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-          direction: textDirection,
           textAlign: textDirection === 'rtl' ? 'right' : 'left',
           paddingRight: textDirection === 'rtl' ? '12px' : '12px',
           paddingLeft: textDirection === 'rtl' ? '12px' : '12px'
@@ -79,8 +77,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) 
         <p 
           className="mt-1 text-sm text-gray-500"
           style={{
-            textAlign: labelAlignment,
-            direction: textDirection
+            textAlign: labelAlignment
           }}
           dir={textDirection}
         >
