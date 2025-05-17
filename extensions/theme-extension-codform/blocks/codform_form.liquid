@@ -6,6 +6,168 @@
   @by: OurTeam
 {% endcomment %}
 
+{% schema %}
+{
+  "name": "نموذج الدفع عند الاستلام",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "hide_header",
+      "label": "إخفاء عنوان النموذج",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "loading_text",
+      "label": "نص التحميل",
+      "default": "جاري تحميل النموذج..."
+    },
+    {
+      "type": "text",
+      "id": "success_title",
+      "label": "عنوان نجاح الإرسال",
+      "default": "تم إرسال الطلب بنجاح"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "رسالة نجاح الإرسال",
+      "default": "شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام."
+    },
+    {
+      "type": "text",
+      "id": "error_title",
+      "label": "عنوان رسالة الخطأ",
+      "default": "حدث خطأ"
+    },
+    {
+      "type": "text",
+      "id": "error_message",
+      "label": "رسالة الخطأ",
+      "default": "حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى."
+    },
+    {
+      "type": "text",
+      "id": "retry_button",
+      "label": "نص زر إعادة المحاولة",
+      "default": "إعادة المحاولة"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تفعيل الزر العائم",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "أيقونة الزر العائم",
+      "options": [
+        { "value": "shopping-cart", "label": "عربة تسوق" },
+        { "value": "package", "label": "طرد" },
+        { "value": "truck", "label": "شاحنة" },
+        { "value": "send", "label": "إرسال" },
+        { "value": "none", "label": "بدون أيقونة" }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "إظهار الأيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي للزر العائم",
+      "options": [
+        { "value": "none", "label": "بدون" },
+        { "value": "pulse", "label": "نبض" },
+        { "value": "shake", "label": "اهتزاز" },
+        { "value": "bounce", "label": "قفز" },
+        { "value": "wiggle", "label": "تمايل" },
+        { "value": "flash", "label": "وميض" }
+      ],
+      "default": "pulse"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون خلفية الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون نص الزر العائم",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "انحناء حواف الزر العائم",
+      "default": "4px"
+    },
+    {
+      "type": "text",
+      "id": "floating_padding_y",
+      "label": "تباعد عمودي للزر العائم",
+      "default": "10px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_size",
+      "label": "حجم خط الزر العائم",
+      "default": "16px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_weight",
+      "label": "وزن خط الزر العائم",
+      "default": "500"
+    },
+    {
+      "type": "text",
+      "id": "floating_margin_bottom",
+      "label": "هامش سفلي للزر العائم",
+      "default": "20px"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_width",
+      "label": "عرض حدود الزر العائم",
+      "default": "0px"
+    },
+    {
+      "type": "color",
+      "id": "floating_border_color",
+      "label": "لون حدود الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
+      "id": "is_rtl",
+      "label": "اتجاه النص من اليمين لليسار",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "نموذج الدفع عند الاستلام",
+      "category": "نماذج"
+    }
+  ]
+}
+{% endschema %}
+
 <div 
   id="codform-container-{{ block.id }}" 
   class="codform-container" 
@@ -691,3 +853,4 @@
     }
   });
 </script>
+
