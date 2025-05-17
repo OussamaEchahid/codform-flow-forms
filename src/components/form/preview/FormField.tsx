@@ -79,7 +79,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
   };
 
   return (
-    <div className="form-field-wrapper">
+    <div className="form-field-wrapper" dir={formDirection}>
       {getFieldComponent()}
     </div>
   );

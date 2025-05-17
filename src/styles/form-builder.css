@@ -580,6 +580,11 @@
 /* حل مشكلة اهمية مسافات العناوين */
 .codform-title-container {
   margin-bottom: 16px !important;
+  background-color: var(--form-primary-color, #9b87f5) !important;
+  display: block !important;
+  width: 100% !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
 }
 
 /* تصحيح اتجاه النص في العناصر الأخرى وفقًا للقيمة dir */
@@ -636,4 +641,51 @@
 [data-direction="ltr"] .codform-title-container {
   text-align: center !important;
   direction: ltr !important;
+}
+
+/* تصحيح موضع الأيقونات في الحقول النصية */
+[dir="rtl"] .codform-field-icon,
+[data-direction="rtl"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+[dir="ltr"] .codform-field-icon,
+[data-direction="ltr"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
+}
+
+/* تأكيد من تطبيق إضافة المساحات الداخلية للحقول عند وجود أيقونة */
+[dir="rtl"] .with-icon {
+  padding-right: 36px !important;
+  padding-left: 12px !important;
+  text-align: right !important;
+}
+
+[dir="ltr"] .with-icon {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
+  text-align: left !important;
+}
+
+/* تحسين عرض العنوان بإضافة أهمية عالية للمظهر */
+.codform-form-title, .codform-title-description {
+  color: #ffffff !important;
+  display: block !important;
+}
+
+/* ضمان أن النص في الإدخالات يتم محاذاته بشكل صحيح */
+[dir="rtl"] input, 
+[dir="rtl"] textarea, 
+[dir="rtl"] .codform-input, 
+[dir="rtl"] .codform-textarea {
+  text-align: right !important;
+}
+
+[dir="ltr"] input, 
+[dir="ltr"] textarea, 
+[dir="ltr"] .codform-input, 
+[dir="ltr"] .codform-textarea {
+  text-align: left !important;
 }
