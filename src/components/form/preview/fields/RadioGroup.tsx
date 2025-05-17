@@ -57,7 +57,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle, formDirection
             className="flex items-center"
             style={{ 
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              justifyContent: 'flex-start'
+              justifyContent: textDirection === 'rtl' ? 'flex-end' : 'flex-start'
             }}
           >
             <input

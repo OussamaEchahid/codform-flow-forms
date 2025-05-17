@@ -68,7 +68,9 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) 
           borderWidth: inputBorderWidth,
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           direction: textDirection,
-          textAlign: textDirection === 'rtl' ? 'right' : 'left'
+          textAlign: textDirection === 'rtl' ? 'right' : 'left',
+          paddingRight: textDirection === 'rtl' ? '12px' : '12px',
+          paddingLeft: textDirection === 'rtl' ? '12px' : '12px'
         }}
         dir={textDirection}
       />

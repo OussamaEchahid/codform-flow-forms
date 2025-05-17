@@ -549,3 +549,91 @@
   padding-left: 36px !important;
   padding-right: 12px !important;
 }
+
+/* تحسين مظهر حقول الاختيار (الراديو والاختيار المتعدد) للاتجاه RTL */
+[dir="rtl"] .codform-field .space-y-2 > div {
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+}
+
+/* تحسين محاذاة حقول الاختيار للاتجاه LTR */
+[dir="ltr"] .codform-field .space-y-2 > div {
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+/* تأكيد أن المسافات بين العنصر الراديو/شيك بوكس والتسمية مناسبة */
+[dir="rtl"] .codform-field .space-y-2 > div input[type="radio"],
+[dir="rtl"] .codform-field .space-y-2 > div input[type="checkbox"] {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+[dir="ltr"] .codform-field .space-y-2 > div input[type="radio"],
+[dir="ltr"] .codform-field .space-y-2 > div input[type="checkbox"] {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+}
+
+/* حل مشكلة اهمية مسافات العناوين */
+.codform-title-container {
+  margin-bottom: 16px !important;
+}
+
+/* تصحيح اتجاه النص في العناصر الأخرى وفقًا للقيمة dir */
+[data-direction="rtl"] .codform-field,
+[data-direction="rtl"] .codform-field-wrapper,
+[data-direction="rtl"] .codform-input,
+[data-direction="rtl"] .codform-textarea {
+  direction: rtl !important;
+}
+
+[data-direction="ltr"] .codform-field,
+[data-direction="ltr"] .codform-field-wrapper,
+[data-direction="ltr"] .codform-input,
+[data-direction="ltr"] .codform-textarea {
+  direction: ltr !important;
+}
+
+/* تحسين ترتيب الزر مع الأيقونة في الاتجاهات المختلفة */
+[dir="rtl"] .codform-submit-button svg,
+[data-direction="rtl"] .codform-submit-button svg {
+  order: 1;
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+[dir="ltr"] .codform-submit-button svg,
+[data-direction="ltr"] .codform-submit-button svg {
+  order: 0;
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+/* تحسين مظهر النماذج في الاتجاهين */
+.codform-form[dir="rtl"],
+.codform-form[data-direction="rtl"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.codform-form[dir="ltr"],
+.codform-form[data-direction="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* تصحيح اتجاه خلفية العنوان */
+[dir="rtl"] .codform-title-container,
+[data-direction="rtl"] .codform-title-container {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+[dir="ltr"] .codform-title-container,
+[data-direction="ltr"] .codform-title-container {
+  text-align: center !important;
+  direction: ltr !important;
+}

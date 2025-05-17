@@ -57,7 +57,7 @@ const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle, formDir
             className="flex items-center"
             style={{ 
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              justifyContent: 'flex-start'
+              justifyContent: textDirection === 'rtl' ? 'flex-end' : 'flex-start'
             }}
           >
             <input
