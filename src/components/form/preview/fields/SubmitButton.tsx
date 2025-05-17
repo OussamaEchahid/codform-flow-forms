@@ -61,7 +61,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     transition: 'all 0.2s ease',
     marginTop: '14px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative' as 'relative',
+    position: 'relative',
     overflow: 'hidden',
     textAlign: 'center'
   };
