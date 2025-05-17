@@ -83,10 +83,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields, internalRefreshKey]);
 
   // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
+  
+  // Use consistent background color for preview
+  const previewBackgroundColor = "#F9FAFB";
 
   return (
     <div id={previewPanelId}>

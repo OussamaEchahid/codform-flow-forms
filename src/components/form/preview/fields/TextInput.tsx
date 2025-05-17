@@ -70,10 +70,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       "data-icon-name": field.icon
     };
     
-    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
-    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
-    
-    // استخدام switch للمطابقة الدقيقة وإرجاع عنصر React المناسب
+    // Switch for choosing the right icon component
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
@@ -110,6 +107,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // تعديل موضع الأيقونة بناءً على لغة النموذج
   const iconPosition = language === 'ar' ? 'right' : 'left';
   
+  // Force RTL alignment for Arabic language, LTR for others
+  const textDirection = language === 'ar' ? 'rtl' : 'ltr';
+  
+  // Adjust label and input alignment based on language
+  const labelAlignment = language === 'ar' ? 'right' : 'left';
+  
   return (
     <div 
       className="mb-4" 
@@ -126,6 +129,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
+      dir={textDirection}
     >
       {showLabel && (
         <label 
@@ -137,7 +141,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
             marginBottom: '8px',
-            textAlign: 'left'
+            textAlign: labelAlignment
           }}
           data-label-text={labelText}
         >
@@ -195,11 +199,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',
-            lineHeight: 1.5
+            lineHeight: 1.5,
+            direction: textDirection
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           data-icon-position={iconPosition}
           required={field.required}
+          dir={textDirection}
         />
       </div>
       
@@ -210,7 +216,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             marginTop: '4px',
             fontSize: '14px',
             color: '#6b7280',
-            textAlign: 'left'
+            textAlign: labelAlignment
           }}
         >
           {field.helpText}
@@ -221,11 +227,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         <div 
           className="hidden error-message text-sm text-red-500 mt-1 codform-error-message"
           style={{
-            display: 'none', // Initially hidden until validation fails
+            display: 'none',
             color: '#ef4444',
             fontSize: '14px',
             marginTop: '4px',
-            textAlign: 'left'
+            textAlign: labelAlignment
           }}
         >
           {field.errorMessage}

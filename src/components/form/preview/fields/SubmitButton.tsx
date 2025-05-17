@@ -102,8 +102,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   };
 
   // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || 'right';
+  const iconPosition = style.iconPosition || (language === 'ar' ? 'left' : 'right');
   const icon = renderIcon();
+  
+  // Set text direction based on language
+  const textDir = language === 'ar' ? 'rtl' : 'ltr';
   
   return (
     <button
@@ -114,7 +117,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         animationClass,
       )}
       style={buttonStyle}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={textDir}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
       data-has-animation={style.animation ? 'true' : 'false'}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -143,12 +142,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // إنشاء معرف فريد لهذا النموذج لضمان التحديث الصحيح
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
   
+  // Use consistent background color #F9FAFB for form background
+  const formBackgroundColor = "#F9FAFB";
+  
   return (
     <div 
       key={formId}
-      className="rounded-lg border shadow-sm overflow-hidden bg-[#F9FAFB] codform-form"
+      className="rounded-lg border shadow-sm overflow-hidden codform-form"
       style={{
         fontSize: formStyle.fontSize,
+        backgroundColor: formBackgroundColor,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
@@ -157,6 +160,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-border-radius={formStyle.borderRadius}
       data-font-size={formStyle.fontSize}
       data-button-style={formStyle.buttonStyle}
+      data-background-color={formBackgroundColor}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -202,7 +206,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: "#F9FAFB"
+          backgroundColor: formBackgroundColor
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
