@@ -89,7 +89,7 @@ serve(async (req: Request) => {
       // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات)
       const { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published')
+        .select('id, title, description, data, style, is_published, settings')
         .eq('id', productSettings.form_id)
         .eq('is_published', true)
         .limit(1);
@@ -114,7 +114,7 @@ serve(async (req: Request) => {
       // استرداد بيانات النموذج الافتراضي
       const { data: defaultForms, error: defaultError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published')
+        .select('id, title, description, data, style, is_published, settings')
         .eq('shop_id', shop)
         .eq('is_published', true)
         .order('updated_at', { ascending: false })
@@ -277,6 +277,27 @@ serve(async (req: Request) => {
             processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
               processedField.style.showIcon : true;
           }
+
+          // Special handling for submit buttons to ensure they have the right style
+          if (processedField.type === 'submit') {
+            if (!processedField.style) processedField.style = {};
+            // Ensure animation settings are properly transferred
+            if (processedField.style.animation) {
+              processedField.style.animationType = processedField.style.animationType || 'pulse';
+            }
+            // Ensure consistent colors
+            processedField.style.backgroundColor = processedField.style.backgroundColor || '#9b87f5';
+            processedField.style.color = processedField.style.color || '#ffffff';
+            processedField.style.fontSize = processedField.style.fontSize || '18px';
+          }
+          
+          // Special handling for text inputs to ensure icon display is correct
+          if (processedField.type === 'text' || processedField.type === 'phone' || processedField.type === 'email') {
+            if (processedField.icon && processedField.icon !== 'none') {
+              if (!processedField.style) processedField.style = {};
+              processedField.style.showIcon = true;
+            }
+          }
           
           return processedField;
         });
@@ -294,6 +315,16 @@ serve(async (req: Request) => {
         console.error(`[${requestId}] Form fields are missing or not an array`);
         form.fields = [];
       }
+
+      // Verify that form style object exists
+      if (!form.style) {
+        form.style = {
+          primaryColor: '#9b87f5',
+          borderRadius: '8px',
+          fontSize: '16px',
+          direction: 'rtl'
+        };
+      }
     }
 
     // Add debug information if requested
@@ -309,6 +340,7 @@ serve(async (req: Request) => {
       fieldsCount: form?.fields?.length || 0,
       fieldsWithIcons: form?.fields?.filter(f => f && f.icon && f.icon !== 'none').length || 0,
       iconsEnabled: form?.settings?.enableIcons !== false,
+      style: form?.style || null
     } : undefined;
 
     // Return form data

@@ -41,8 +41,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const isFormTitle = field.type === 'form-title';
   
   // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
-  const fontSize = isFormTitle ? '24px' : '20px'; // 1.5rem = 24px, 1.25rem = 20px
-  const descriptionFontSize = '14px'; // 0.875rem = 14px
+  const fontSize = isFormTitle ? '24px' : '20px'; 
+  const descriptionFontSize = '14px';
   
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
@@ -50,35 +50,38 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // قيمة بكسل دقيقة لبادينغ متسق
+    padding: '16px', // Exact padding to match between preview and store
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // هامش سفلي متسق
+    marginBottom: '16px', // Exact margin to match between preview and store
+    textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
   // أنماط العنوان
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fieldStyle.fontSize || fontSize,
-    textAlign: alignment,
+    textAlign: alignment as React.CSSProperties['textAlign'],
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3', // ارتفاع سطر متسق
+    lineHeight: '1.3', // Consistent line height
+    display: 'block',
   };
 
   // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
-    margin: '8px 0 0 0', // هوامش متسقة
+    margin: '6px 0 0 0', // Consistent margin
     padding: '0',
-    textAlign: alignment,
+    textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal', // تغيير من descriptionFontWeight إلى قيمة ثابتة
-    lineHeight: '1.5', // ارتفاع سطر متسق للوصف
+    fontWeight: 'normal',
+    lineHeight: '1.5', // Consistent line height
+    opacity: '0.9',
   };
 
   // إنشاء معرف فريد لهذا الحقل
@@ -101,7 +104,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
       data-desc-font-weight='normal'
     >
-      <div style={backgroundStyle} className="codform-title-container">
+      <div className="codform-title-container" style={backgroundStyle}>
         <h3 
           className={isFormTitle ? "codform-form-title" : ""}
           style={titleStyle}

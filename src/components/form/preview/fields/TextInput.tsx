@@ -44,7 +44,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderColor = fieldStyle.borderColor || '#d1d5db';
   const borderWidth = fieldStyle.borderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
-  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
+  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -57,8 +57,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     // إضافة سمات إضافية للتشخيص
     const iconProps = { 
       size: 18,
-      className: "text-gray-400 codform-icon",
-      "aria-hidden": true,
+      className: "text-gray-500 codform-icon",
+      style: {
+        width: '18px',
+        height: '18px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      },
+      "aria-hidden": "true",
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };
@@ -102,7 +109,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   
   return (
     <div 
-      className="mb-0" 
+      className="mb-4" 
       data-component="TextInput" 
       data-field-type={field.type}
       data-field-id={field.id}
@@ -120,12 +127,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       {showLabel && (
         <label 
           htmlFor={field.id} 
-          className={`block mb-1 ${field.required ? 'relative pr-2' : ''}`}
+          className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
-            fontFamily: fontFamily
+            fontFamily: fontFamily,
+            marginBottom: '8px'
           }}
           data-label-text={labelText}
         >
@@ -140,7 +148,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 codform-field-icon" 
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2
+            }}
             data-icon-type={field.icon}
             data-icon-visible="true"
           >
@@ -167,10 +185,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '2.5rem' : '0.75rem',
-            paddingRight: '0.75rem',
+            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px',
+            paddingRight: '12px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            marginBottom: '0',
+            width: '100%',
+            height: 'auto',
+            lineHeight: 1.5
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           required={field.required}
@@ -178,11 +198,28 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       </div>
       
       {field.helpText && (
-        <p className="mt-1 text-xs text-gray-500 codform-help-text">{field.helpText}</p>
+        <p 
+          className="mt-1 text-xs text-gray-500 codform-help-text" 
+          style={{
+            marginTop: '4px',
+            fontSize: '14px',
+            color: '#6b7280'
+          }}
+        >
+          {field.helpText}
+        </p>
       )}
       
       {field.errorMessage && field.required && (
-        <div className="hidden error-message text-sm text-red-500 mt-1 codform-error-message">
+        <div 
+          className="hidden error-message text-sm text-red-500 mt-1 codform-error-message"
+          style={{
+            display: 'none', // Initially hidden until validation fails
+            color: '#ef4444',
+            fontSize: '14px',
+            marginTop: '4px'
+          }}
+        >
           {field.errorMessage}
         </div>
       )}
