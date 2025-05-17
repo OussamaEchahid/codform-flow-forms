@@ -22,7 +22,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
   
   return (
     <div 
-      className="mb-4"
+      className="mb-4 html-content-wrapper"
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
@@ -36,7 +36,8 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
           className="html-content"
           dangerouslySetInnerHTML={{ __html: field.content }} 
           style={{
-            direction: textDirection
+            direction: textDirection,
+            textAlign: textDirection === 'rtl' ? 'right' : 'left'
           }}
           dir={textDirection}
         />

@@ -27,7 +27,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // Extract description from the field itself
   const description = field.helpText || '';
   
-  // Get language-based direction (ignoring formDirection as titles always have fixed alignment)
+  // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Force center alignment for title regardless of direction
@@ -40,12 +40,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // CRITICAL FIX: ENSURE WE ALWAYS HAVE A PURPLE BACKGROUND
+  // CRITICAL FIX: ENSURE WE ALWAYS HAVE A CONSISTENT BACKGROUND COLOR
   // Default to purple (#9b87f5) if no backgroundColor or primaryColor is defined
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Background style with fixed pixel values for padding - add !important to ensure application
-  const backgroundStyle = {
+  const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     padding: '16px',
     borderRadius: formStyle.borderRadius || '8px',
@@ -57,7 +57,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   };
 
   // Title styles
-  const titleStyle = {
+  const titleStyle: React.CSSProperties = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fieldStyle.fontSize || fontSize,
     textAlign: alignment as React.CSSProperties['textAlign'],
@@ -71,7 +71,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   };
 
   // Description styles
-  const descriptionStyle = {
+  const descriptionStyle: React.CSSProperties = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
     margin: '6px 0 0 0',

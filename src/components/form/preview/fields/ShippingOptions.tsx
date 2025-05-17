@@ -38,7 +38,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
   
   return (
     <div 
-      className="form-control mb-6"
+      className="form-control mb-6 shipping-options-container"
       style={{
         direction: textDirection
       }}
@@ -46,7 +46,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       data-direction={textDirection}
     >
       <label 
-        className="form-label mb-2 block" 
+        className="form-label mb-2 block font-medium" 
         style={{ 
           color: fieldStyle.color,
           textAlign: textDirection === 'rtl' ? 'right' : 'left'
@@ -58,6 +58,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       <RadioGroup 
         defaultValue="standard"
         className="space-y-3"
+        dir={textDirection}
         disabled
       >
         {shippingOptions.map((option) => (
@@ -73,7 +74,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
             <div 
               className="flex flex-1 justify-between items-center"
               style={{
-                flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
+                flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
+                direction: textDirection
               }}
             >
               <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>

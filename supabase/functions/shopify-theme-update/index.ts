@@ -675,6 +675,44 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   .flash-animation {
     animation: flash 3s infinite;
   }
+
+  /* تصحيح الخلفية بحيث تمتد بالكامل */
+  .codform-title-container {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    overflow: hidden; /* تأكد من عدم خروج المحتوى عن الحدود */
+  }
+
+  /* تحسين مظهر العناوين */
+  .codform-form-title {
+    font-size: 24px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+    font-weight: bold !important;
+  }
+
+  /* تحسينات للتوافق مع RTL */
+  [dir="rtl"] .codform-field label,
+  [dir="rtl"] .codform-help-text,
+  [dir="rtl"] .codform-title-description {
+    text-align: right;
+  }
+  
+  [dir="ltr"] .codform-field label,
+  [dir="ltr"] .codform-help-text,
+  [dir="ltr"] .codform-title-description {
+    text-align: left;
+  }
+
+  /* ضمان ظهور العنوان والوصف بشكل صحيح في الإطار بغض النظر عن الاتجاه */
+  .codform-title-container h3,
+  .codform-title-container p {
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
+  }
 </style>
 {% endif %}`;
   
