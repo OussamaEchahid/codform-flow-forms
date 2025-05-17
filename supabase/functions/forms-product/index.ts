@@ -86,10 +86,10 @@ serve(async (req: Request) => {
         actualBlockId = productSettings.block_id;
       }
       
-      // 1. استرداد البيانات الكاملة للنموذج مع fields
+      // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات)
       const { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('*, fields')  // تعديل: طلب fields مع البيانات الأساسية
+        .select('id, title, description, data, style, is_published')
         .eq('id', productSettings.form_id)
         .eq('is_published', true)
         .limit(1);
@@ -111,10 +111,10 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
       formSource = 'default';
       
-      // 2. استرداد البيانات الكاملة للنموذج الافتراضي مع fields
+      // استرداد بيانات النموذج الافتراضي
       const { data: defaultForms, error: defaultError } = await supabase
         .from('forms')
-        .select('*, fields, data')  // تعديل: طلب fields مع البيانات الأساسية
+        .select('id, title, description, data, style, is_published')
         .eq('shop_id', shop)
         .eq('is_published', true)
         .order('updated_at', { ascending: false })
@@ -136,19 +136,43 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Generated new blockId: ${actualBlockId}`);
     }
 
-    // 3. معالجة حالة عدم وجود حقول
-    if (form && !form.fields && form.data && Array.isArray(form.data)) {
-      // استخراج الحقول من data إذا كانت موجودة
-      console.log(`[${requestId}] Extracting fields from form.data`);
-      const allFields = [];
-      form.data.forEach(step => {
-        if (step.fields && Array.isArray(step.fields)) {
-          allFields.push(...step.fields);
+    // تحسين: استخراج الحقول من بنية data
+    if (form && form.data) {
+      console.log(`[${requestId}] Extracting fields from form data structure`);
+      
+      // Initialize fields array
+      let extractedFields = [];
+      
+      try {
+        // Check if data is an array (steps format)
+        if (Array.isArray(form.data)) {
+          console.log(`[${requestId}] Form data is in steps format with ${form.data.length} steps`);
+          // Extract fields from all steps
+          for (const step of form.data) {
+            if (step && step.fields && Array.isArray(step.fields)) {
+              extractedFields = [...extractedFields, ...step.fields];
+            }
+          }
+        } else if (typeof form.data === 'object' && form.data !== null) {
+          // Try to find fields in other data structures
+          if (form.data.fields && Array.isArray(form.data.fields)) {
+            extractedFields = form.data.fields;
+          } else if (form.data.steps && Array.isArray(form.data.steps)) {
+            // Extract from steps if available
+            for (const step of form.data.steps) {
+              if (step && step.fields && Array.isArray(step.fields)) {
+                extractedFields = [...extractedFields, ...step.fields];
+              }
+            }
+          }
         }
-      });
-      if (allFields.length > 0) {
-        form.fields = allFields;
-        console.log(`[${requestId}] Successfully extracted ${allFields.length} fields from form.data`);
+        
+        console.log(`[${requestId}] Successfully extracted ${extractedFields.length} fields from form.data`);
+        form.fields = extractedFields;
+      } catch (err) {
+        console.error(`[${requestId}] Error extracting fields from data:`, err);
+        // Initialize as empty array if extraction fails
+        form.fields = [];
       }
     }
 
@@ -156,7 +180,7 @@ serve(async (req: Request) => {
     if (form && (!form.fields || !Array.isArray(form.fields) || form.fields.length === 0)) {
       console.log(`[${requestId}] Creating default fields for form`);
       
-      const language = form.settings?.direction === 'rtl' ? 'ar' : 'en';
+      const language = form.style?.direction === 'rtl' ? 'ar' : 'en';
       
       // إنشاء حقول افتراضية
       form.fields = [
@@ -172,7 +196,7 @@ serve(async (req: Request) => {
             fontSize: '24px',
             descriptionColor: '#ffffff',
             descriptionFontSize: '14px',
-            backgroundColor: form.settings?.primaryColor || '#9b87f5',
+            backgroundColor: form.style?.primaryColor || '#9b87f5',
           }
         },
         {
@@ -205,7 +229,7 @@ serve(async (req: Request) => {
           id: `submit-${Date.now()}`,
           label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
           style: {
-            backgroundColor: form.settings?.primaryColor || '#9b87f5',
+            backgroundColor: form.style?.primaryColor || '#9b87f5',
             color: '#ffffff',
             fontSize: '18px',
             animation: true,
