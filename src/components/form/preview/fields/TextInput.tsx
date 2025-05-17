@@ -30,7 +30,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Use the provided formDirection or default based on language
+  // تحديد الاتجاه بناءً على formDirection المحدد وليس لغة النظام - هذا هو التغيير المهم
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Default styling values
@@ -112,10 +112,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
   // In RTL form Arabic, icon is on the right; in LTR form English, icon is on the left
   const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
   
-  // Adjust label and input alignment based on direction
+  // Adjust label and input alignment based on direction - تحديث مهم لضمان محاذاة الحقول بشكل صحيح
   const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
   
-  // Add a field CSS class based on direction
+  // Add a field CSS class based on direction - تحديث تصنيف CSS
   const directionClass = textDirection === 'rtl' ? 'rtl' : 'ltr';
   
   return (

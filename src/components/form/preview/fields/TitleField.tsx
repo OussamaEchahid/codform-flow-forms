@@ -49,6 +49,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const descriptionFontSize = '14px';
   
   // Get background color with default value - ensure never undefined
+  // ENSURE the background color is ALWAYS set, with fallback to primary color or default purple
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Background style with fixed pixel values for padding - add !important to ensure application
