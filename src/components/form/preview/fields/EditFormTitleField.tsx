@@ -87,11 +87,16 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
     lineHeight: '1.5',
     opacity: '0.9',
     width: '100%',
-    display: showDescription && description ? 'block' : 'none',
   };
   
   // Create a unique ID for this field
   const fieldId = `edit-form-title-${field.id}`;
+
+  // Only render if we need to show something
+  console.log('Rendering EditFormTitleField with field:', field);
+  console.log('Title alignment:', titleAlignment);
+  console.log('Show description:', showDescription);
+  console.log('Description available:', !!description);
 
   return (
     <div 
@@ -114,6 +119,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
           {field.label || 'عنوان النموذج'}
         </h3>
         
+        {/* Only render the description if showDescription is true and there is a description */}
         {showDescription && description && (
           <p 
             className="codform-edit-description"

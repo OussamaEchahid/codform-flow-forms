@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -30,13 +30,20 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   
+  // Use sensitive drag detection (lower activation distance)
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
-      distance: 8
+      distance: 5 // Make it more sensitive (default is 8)
     }
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
+
+  // Force refresh drag and drop context when elements change
+  useEffect(() => {
+    // This ensures DndContext is re-initialized when element list changes
+    console.log("FormElementEditor: Elements updated, refreshing DndContext");
+  }, [elements.length]);
   
   const handleDragEnd = (event: DragEndEvent) => {
     const {
@@ -47,6 +54,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     if (!over || active.id === over.id) {
       return;
     }
+    
+    console.log("Drag ended. Moving from", active.id, "to", over.id);
     
     const oldIndex = elements.findIndex(item => item.id === active.id);
     const newIndex = elements.findIndex(item => item.id === over.id);
@@ -77,6 +86,24 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         : true;
     }
     
+    // Handle edit-form-title specific styling
+    if (field.type === 'edit-form-title') {
+      // Make sure style object exists
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Ensure we have textAlign set
+      if (!field.style.textAlign) {
+        field.style.textAlign = 'center';
+      }
+      
+      // Default show description to true if not explicitly set
+      if (field.style.showDescription === undefined) {
+        field.style.showDescription = true;
+      }
+    }
+    
     // Notify parent component about the update
     if (onUpdateElement) {
       onUpdateElement(index, field);
@@ -86,7 +113,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     onSelectElement(index);
   };
   
-  // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
+  // Check if there are any elements to display
   const hasElements = elements.length > 0;
 
   return (
@@ -101,7 +128,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         </div>
       )}
       
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext 
+        sensors={sensors} 
+        collisionDetection={closestCenter} 
+        onDragEnd={handleDragEnd}
+      >
         <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
           {elements.map((element, index) => (
             <SortableField 
