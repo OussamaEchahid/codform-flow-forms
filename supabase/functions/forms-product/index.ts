@@ -86,16 +86,18 @@ serve(async (req: Request) => {
         actualBlockId = productSettings.block_id;
       }
       
-      // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات)
+      // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات) - بدون عمود settings
       const { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published, settings')
+        .select('id, title, description, data, style, is_published')
         .eq('id', productSettings.form_id)
         .eq('is_published', true)
         .limit(1);
         
       if (!formError && formData && formData.length > 0) {
         form = formData[0];
+        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
+        form.settings = form.settings || { enableIcons: true };
         console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
       } else if (formError) {
         console.log(`[${requestId}] Error fetching product-specific form: ${formError.message}. Will try default form.`);
@@ -111,10 +113,10 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
       formSource = 'default';
       
-      // استرداد بيانات النموذج الافتراضي
+      // استرداد بيانات النموذج الافتراضي - بدون عمود settings
       const { data: defaultForms, error: defaultError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published, settings')
+        .select('id, title, description, data, style, is_published')
         .eq('shop_id', shop)
         .eq('is_published', true)
         .order('updated_at', { ascending: false })
@@ -122,6 +124,8 @@ serve(async (req: Request) => {
       
       if (!defaultError && defaultForms && defaultForms.length > 0) {
         form = defaultForms[0];
+        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
+        form.settings = form.settings || { enableIcons: true };
         console.log(`[${requestId}] Using default form: ${form.id}`);
       } else if (defaultError) {
         console.error(`[${requestId}] Error fetching default form:`, defaultError);
@@ -245,7 +249,8 @@ serve(async (req: Request) => {
     if (form) {
       // Make sure form has a settings object
       if (!form.settings) {
-        form.settings = {};
+        form.settings = { enableIcons: true };
+        console.log(`[${requestId}] Created default settings object for form`);
       }
       
       // Make sure enableIcons is set (default to true if not specified)
