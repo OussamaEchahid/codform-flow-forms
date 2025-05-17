@@ -86,9 +86,10 @@ serve(async (req: Request) => {
         actualBlockId = productSettings.block_id;
       }
       
+      // 1. استرداد البيانات الكاملة للنموذج مع fields
       const { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('*')
+        .select('*, fields')  // تعديل: طلب fields مع البيانات الأساسية
         .eq('id', productSettings.form_id)
         .eq('is_published', true)
         .limit(1);
@@ -110,10 +111,10 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
       formSource = 'default';
       
-      // Get the default form for this shop
+      // 2. استرداد البيانات الكاملة للنموذج الافتراضي مع fields
       const { data: defaultForms, error: defaultError } = await supabase
         .from('forms')
-        .select('*')
+        .select('*, fields, data')  // تعديل: طلب fields مع البيانات الأساسية
         .eq('shop_id', shop)
         .eq('is_published', true)
         .order('updated_at', { ascending: false })
@@ -135,6 +136,87 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Generated new blockId: ${actualBlockId}`);
     }
 
+    // 3. معالجة حالة عدم وجود حقول
+    if (form && !form.fields && form.data && Array.isArray(form.data)) {
+      // استخراج الحقول من data إذا كانت موجودة
+      console.log(`[${requestId}] Extracting fields from form.data`);
+      const allFields = [];
+      form.data.forEach(step => {
+        if (step.fields && Array.isArray(step.fields)) {
+          allFields.push(...step.fields);
+        }
+      });
+      if (allFields.length > 0) {
+        form.fields = allFields;
+        console.log(`[${requestId}] Successfully extracted ${allFields.length} fields from form.data`);
+      }
+    }
+
+    // 4. إنشاء حقول افتراضية إذا لم تكن موجودة
+    if (form && (!form.fields || !Array.isArray(form.fields) || form.fields.length === 0)) {
+      console.log(`[${requestId}] Creating default fields for form`);
+      
+      const language = form.settings?.direction === 'rtl' ? 'ar' : 'en';
+      
+      // إنشاء حقول افتراضية
+      form.fields = [
+        {
+          type: 'form-title',
+          id: `title-${Date.now()}`,
+          label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+          helpText: language === 'ar' ? 'نموذج جديد للطلب' : 'New order form',
+          style: {
+            color: '#ffffff',
+            textAlign: language === 'ar' ? 'right' : 'left',
+            fontWeight: 'bold',
+            fontSize: '24px',
+            descriptionColor: '#ffffff',
+            descriptionFontSize: '14px',
+            backgroundColor: form.settings?.primaryColor || '#9b87f5',
+          }
+        },
+        {
+          type: 'text',
+          id: `name-${Date.now()}`,
+          label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+          placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+          required: true,
+          icon: 'user',
+          style: { showIcon: true }
+        },
+        {
+          type: 'phone',
+          id: `phone-${Date.now()}`,
+          label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+          placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+          required: true,
+          icon: 'phone',
+          style: { showIcon: true }
+        },
+        {
+          type: 'textarea',
+          id: `address-${Date.now()}`,
+          label: language === 'ar' ? 'العنوان' : 'Address',
+          placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+          required: true,
+        },
+        {
+          type: 'submit',
+          id: `submit-${Date.now()}`,
+          label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+          style: {
+            backgroundColor: form.settings?.primaryColor || '#9b87f5',
+            color: '#ffffff',
+            fontSize: '18px',
+            animation: true,
+            animationType: 'pulse',
+          },
+        }
+      ];
+      
+      console.log(`[${requestId}] Created ${form.fields.length} default fields for the form`);
+    }
+
     // Ensure the settings object exists and process field data
     if (form) {
       // Make sure form has a settings object
@@ -145,48 +227,48 @@ serve(async (req: Request) => {
       // Make sure enableIcons is set (default to true if not specified)
       form.settings.enableIcons = form.settings.enableIcons !== false;
       
-      // Add fields array if it doesn't exist
-      if (!form.fields) {
-        form.fields = [];
-      }
-      
       // Add block_id to the form for reference
       form.block_id = actualBlockId;
       
       // Process form fields to ensure icons are correctly formatted
-      form.fields = form.fields.map(field => {
-        if (!field) return field;
-        
-        // Make a copy of the field to avoid modifying the original
-        const processedField = { ...field };
-        
-        // Make sure icon is properly defined and not empty string
-        if (processedField.icon === undefined || processedField.icon === '') {
-          processedField.icon = 'none';
-        }
-        
-        // Ensure style object exists
-        if (!processedField.style) {
-          processedField.style = {};
-        }
-        
-        // Make sure showIcon is properly defined if an icon exists
-        if (processedField.icon && processedField.icon !== 'none') {
-          processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
-            processedField.style.showIcon : true;
-        }
-        
-        return processedField;
-      });
-
-      // Log all form fields with icon information for debugging
-      if (debugMode || (form.fields && form.fields.some(f => f && f.icon && f.icon !== 'none'))) {
-        console.log(`[${requestId}] Form fields with icon information:`);
-        form.fields.forEach(field => {
-          if (field && field.icon && field.icon !== 'none') {
-            console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
+      if (form.fields && Array.isArray(form.fields)) {
+        form.fields = form.fields.map(field => {
+          if (!field) return field;
+          
+          // Make a copy of the field to avoid modifying the original
+          const processedField = { ...field };
+          
+          // Make sure icon is properly defined and not empty string
+          if (processedField.icon === undefined || processedField.icon === '') {
+            processedField.icon = 'none';
           }
+          
+          // Ensure style object exists
+          if (!processedField.style) {
+            processedField.style = {};
+          }
+          
+          // Make sure showIcon is properly defined if an icon exists
+          if (processedField.icon && processedField.icon !== 'none') {
+            processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
+              processedField.style.showIcon : true;
+          }
+          
+          return processedField;
         });
+
+        // Log all form fields with icon information for debugging
+        if (debugMode || (form.fields && form.fields.some(f => f && f.icon && f.icon !== 'none'))) {
+          console.log(`[${requestId}] Form fields with icon information:`);
+          form.fields.forEach(field => {
+            if (field && field.icon && field.icon !== 'none') {
+              console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
+            }
+          });
+        }
+      } else {
+        console.error(`[${requestId}] Form fields are missing or not an array`);
+        form.fields = [];
       }
     }
 
