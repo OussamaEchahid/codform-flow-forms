@@ -92,12 +92,6 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   // Create a unique ID for this field
   const fieldId = `edit-form-title-${field.id}`;
 
-  // Only render if we need to show something
-  console.log('Rendering EditFormTitleField with field:', field);
-  console.log('Title alignment:', titleAlignment);
-  console.log('Show description:', showDescription);
-  console.log('Description available:', !!description);
-
   return (
     <div 
       id={fieldId}
