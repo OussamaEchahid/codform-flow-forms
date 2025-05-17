@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical, Edit } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSortable } from '@dnd-kit/sortable';
@@ -47,7 +47,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [showDescription, setShowDescription] = useState(formTitleField?.style?.showDescription !== false);
   const [isOpen, setIsOpen] = useState(true);
 
-  // Set up sortable functionality if the component is draggable
+  // Set up sortable functionality using useSortable hook - critical for drag & drop functionality
   const {
     attributes,
     listeners,
@@ -64,11 +64,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     }
   });
   
+  // Style for drag and drop
   const style = isDraggable ? {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 999 : 1
+    zIndex: isDragging ? 999 : 1,
+    position: 'relative' as const // Add this to ensure proper positioning during drag
   } : {};
 
   // Update local state when formTitleField changes
@@ -85,10 +87,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
 
       // Critical: Use field's backgroundColor if it exists, don't overwrite with default
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
-
-      // Log state for debugging
-      console.log("FormTitleEditor initialized with background color:", formTitleField.style?.backgroundColor || '#9b87f5');
-      console.log("FormTitleEditor showDescription:", formTitleField.style?.showDescription !== false);
     }
   }, [formTitleField]);
 
@@ -116,18 +114,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionFontSize') setDescSize(value as string);
     if (property === 'backgroundColor') {
       setBackgroundColor(value as string);
-      console.log(`Background color updated to: ${value}`);
     }
     if (property === 'showDescription') {
       setShowDescription(value as boolean);
-      console.log(`Show description updated to: ${value}`);
     }
 
     // Update parent component with new field data
     onUpdateTitleField(updatedField);
-
-    // Log the update to help with debugging
-    console.log(`Updated title field style: ${property} = ${value}`, updatedField);
   };
   
   const handleUpdateLabel = (value: string) => {
@@ -143,7 +136,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Update parent component
     onUpdateTitleField(updatedField);
     onFormTitleChange(value);
-    console.log(`Updated title field label: ${value}`);
   };
   
   const handleUpdateDescription = (value: string) => {
@@ -159,7 +151,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Update parent component
     onUpdateTitleField(updatedField);
     onFormDescriptionChange(value);
-    console.log(`Updated title field description: ${value}`);
   };
 
   // Return the JSX for the component
@@ -168,6 +159,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       ref={setNodeRef} 
       style={style} 
       className={`form-title-editor bg-white rounded-lg border border-border shadow-sm mb-4 ${isDragging ? 'z-50' : ''}`}
+      data-field-type="form-title-editor"
+      data-draggable={isDraggable}
     >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -177,6 +170,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 className="cursor-grab flex items-center text-gray-400 hover:text-gray-600" 
                 {...attributes} 
                 {...listeners}
+                data-drag-handle="true"
               >
                 <GripVertical className="h-4 w-4" />
               </div>
@@ -410,7 +404,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 onClick={onAddTitleField}
                 className="w-full"
               >
-                <Edit className="h-4 w-4 mr-2" />
                 {language === 'ar' ? 'إضافة حقل عنوان' : 'Add Title Field'}
               </Button>
             )}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,23 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
   const [titleAlignment, setTitleAlignment] = useState(style.textAlign || 'center');
   const [descriptionAlignment, setDescriptionAlignment] = useState(style.descriptionAlignment || 'center');
 
+  // Effect to update local state when field prop changes
+  useEffect(() => {
+    if (field && field.style) {
+      setBackgroundColor(field.style.backgroundColor || '#9b87f5');
+      setTitleColor(field.style.color || '#ffffff');
+      setDescriptionColor(field.style.descriptionColor || '#ffffff');
+      setTitleFontSize(field.style.fontSize || '24px');
+      setDescriptionFontSize(field.style.descriptionFontSize || '14px');
+      setShowDescription(field.style.showDescription !== false);
+      setTitleAlignment(field.style.textAlign || 'center');
+      setDescriptionAlignment(field.style.descriptionAlignment || 'center');
+    }
+    
+    setTitle(field.label || '');
+    setDescription(field.helpText || '');
+  }, [field]);
+
   // Function to update field whenever a value changes
   const updateField = () => {
     // Create a deep copy to avoid mutation issues
@@ -52,6 +69,13 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
       }
     };
     
+    // Log the update for debugging
+    console.log("Updating title field with:", {
+      textAlign: titleAlignment,
+      showDescription,
+      backgroundColor
+    });
+    
     onChange(updatedField);
   };
 
@@ -64,12 +88,16 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
   const handleAlignmentChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
     if (value) {
       setter(value);
+      // Update immediately for better UX
+      setTimeout(updateField, 100);
     }
   };
   
   // Handle switch toggle for description visibility
   const handleShowDescriptionChange = (checked: boolean) => {
     setShowDescription(checked);
+    // Update immediately for better UX
+    setTimeout(updateField, 100);
   };
   
   // Update field on blur events
@@ -104,7 +132,6 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
             value={titleAlignment}
             onValueChange={handleAlignmentChange(setTitleAlignment)}
             className="justify-start"
-            onBlur={handleBlur}
           >
             <ToggleGroupItem value="left" aria-label="Left align">
               <AlignLeft className="h-4 w-4" />
@@ -193,7 +220,6 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
             id="show-description" 
             checked={showDescription} 
             onCheckedChange={handleShowDescriptionChange}
-            onBlur={handleBlur}
           />
         </div>
         
@@ -225,7 +251,6 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
                 value={descriptionAlignment}
                 onValueChange={handleAlignmentChange(setDescriptionAlignment)}
                 className="justify-start"
-                onBlur={handleBlur}
               >
                 <ToggleGroupItem value="left" aria-label="Left align">
                   <AlignLeft className="h-4 w-4" />
