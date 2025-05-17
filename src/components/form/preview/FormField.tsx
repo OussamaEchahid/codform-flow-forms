@@ -37,16 +37,16 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
         return <TextInput field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'textarea':
-        return <TextArea field={field} formStyle={formStyle} />;
+        return <TextArea field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'radio':
-        return <RadioGroup field={field} formStyle={formStyle} />;
+        return <RadioGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'checkbox':
-        return <CheckboxGroup field={field} formStyle={formStyle} />;
+        return <CheckboxGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'image':
-        return <ImageField field={field} formStyle={formStyle} />;
+        return <ImageField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       case 'submit':
         return <SubmitButton field={field} formStyle={formStyle} />;
