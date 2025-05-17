@@ -54,6 +54,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     marginBottom: '16px',
     textAlign: alignment as React.CSSProperties['textAlign'],
     display: 'block',
+    overflow: 'hidden', // Ensure content doesn't overflow
+    position: 'relative', // Ensure positioning context
   };
 
   // Title styles
@@ -68,6 +70,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.3',
     display: 'block',
     direction: textDirection as Direction,
+    width: '100%', // Ensure title takes full width
   };
 
   // Description styles
@@ -82,6 +85,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     lineHeight: '1.5',
     opacity: '0.9',
     direction: textDirection as Direction,
+    width: '100%', // Ensure description takes full width
   };
 
   // Create a unique ID for this field

@@ -40,7 +40,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
     <div 
       className="form-control mb-6 shipping-options-container"
       style={{
-        direction: textDirection
+        direction: textDirection,
+        width: '100%' // Ensure full width
       }}
       dir={textDirection}
       data-direction={textDirection}
@@ -49,7 +50,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
         className="form-label mb-2 block font-medium" 
         style={{ 
           color: fieldStyle.color,
-          textAlign: textDirection === 'rtl' ? 'right' : 'left'
+          textAlign: textDirection === 'rtl' ? 'right' : 'left',
+          width: '100%' // Ensure full width
         }}
       >
         {field.label || (language === 'ar' ? 'خيارات التوصيل' : 'Shipping Options')}
@@ -57,7 +59,7 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       </label>
       <RadioGroup 
         defaultValue="standard"
-        className="space-y-3"
+        className="space-y-3 w-full" // Add full width
         dir={textDirection}
         disabled
       >
@@ -67,7 +69,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
             className="flex items-center space-x-2"
             style={{
               flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              gap: '8px'
+              gap: '8px',
+              width: '100%' // Ensure full width
             }}
           >
             <RadioGroupItem value={option.id} />
@@ -75,7 +78,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
               className="flex flex-1 justify-between items-center"
               style={{
                 flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-                direction: textDirection
+                direction: textDirection,
+                width: '100%' // Ensure full width
               }}
             >
               <div style={{ textAlign: textDirection === 'rtl' ? 'right' : 'left' }}>
