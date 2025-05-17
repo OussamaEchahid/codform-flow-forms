@@ -10,24 +10,28 @@ interface TitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-// تحديد خيارات محاذاة النص الصالحة
+// Define valid text alignment options
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
-// تحديد قيم box-sizing الصالحة
+// Define valid box-sizing options
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
-const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
+const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // استخراج الوصف من الحقل نفسه
+  // Extract description from the field itself
   const description = field.helpText || '';
   
-  // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
-  const defaultAlignment: TextAlign = language === 'ar' ? 'center' : 'center';
+  // Get text direction from formDirection prop or fall back to language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // تحويل محاذاة السلسلة إلى نوع TextAlign مع التحقق
+  // Get alignment from field style or default based on direction
+  const defaultAlignment: TextAlign = textDirection === 'rtl' ? 'center' : 'center';
+  
+  // Convert string alignment to TextAlign type with validation
   const getValidAlignment = (align?: string): TextAlign => {
     if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
       return align as TextAlign;
@@ -37,17 +41,17 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // استخدام قيم بكسل دقيقة بدلاً من rem للحصول على حجم متسق عبر البيئات
+  // Use precise pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
   
-  // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
+  // Use consistent pixel values instead of rem to ensure exact size match
   const fontSize = isFormTitle ? '24px' : '20px'; 
   const descriptionFontSize = '14px';
   
-  // الحصول على لون الخلفية مع القيمة الافتراضية
+  // Get background color with default value - ensure never undefined
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ - إضافة !important لضمان التطبيق
+  // Background style with fixed pixel values for padding - add !important to ensure application
   const backgroundStyle = {
     backgroundColor: `${backgroundColor} !important`,
     padding: '16px !important', // Exact padding to match between preview and store
@@ -58,7 +62,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // أنماط العنوان
+  // Title styles
   const titleStyle = {
     color: `${fieldStyle.color || '#ffffff'} !important`,
     fontSize: `${fieldStyle.fontSize || fontSize} !important`,
@@ -71,7 +75,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     display: 'block !important',
   };
 
-  // أنماط الوصف
+  // Description styles
   const descriptionStyle = {
     color: `${fieldStyle.descriptionColor || '#ffffff'} !important`,
     fontSize: `${fieldStyle.descriptionFontSize || descriptionFontSize} !important`,
@@ -84,14 +88,14 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     opacity: '0.9 !important',
   };
 
-  // إنشاء معرف فريد لهذا الحقل
+  // Create a unique ID for this field
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
   return (
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={textDirection}
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"

@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 
-// استيراد الأيقونات مباشرة لتجنب مشاكل التحميل الديناميكي
+// Import icons directly to avoid dynamic loading issues
 import {
   User,
   Phone,
@@ -23,13 +23,17 @@ interface TextInputProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
+const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // القيم الافتراضية للتنسيق
+  // Use the provided formDirection or default based on language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  
+  // Default styling values
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
@@ -46,15 +50,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
-  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
+  // Determine if there's an icon and if it should be shown
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
+  // Improve icon rendering function with additional diagnostics
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // إضافة سمات إضافية للتشخيص
+    // Add extra attributes for diagnostics
     const iconProps = { 
       size: 18,
       className: "text-gray-500 codform-icon",
@@ -87,13 +91,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // الحصول على نص التسمية الفعلي للعرض
+  // Get actual label text to display
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر البديل الفعلي للعرض
+  // Get actual placeholder text to display
   const placeholderText = field.placeholder || '';
 
-  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
+  // Determine correct input type based on field type
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -101,21 +105,18 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     return 'text';
   };
   
-  // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
+  // Add a unique ID to help ensure display and updates match
   const inputId = `${field.id}-input`;
   
-  // تعديل موضع الأيقونة بناءً على لغة النموذج
-  // في النموذج العربي تكون الأيقونة في اليمين وفي الإنجليزي في اليسار
-  const iconPosition = language === 'ar' ? 'right' : 'left';
+  // Adjust icon position based on direction
+  // In RTL form Arabic, icon is on the right; in LTR form English, icon is on the left
+  const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
   
-  // Force RTL alignment for Arabic language, LTR for others
-  const textDirection = language === 'ar' ? 'rtl' : 'ltr';
-  
-  // Adjust label and input alignment based on language
-  const labelAlignment = language === 'ar' ? 'right' : 'left';
+  // Adjust label and input alignment based on direction
+  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
   
   // Add a field CSS class based on direction
-  const directionClass = language === 'ar' ? 'rtl' : 'ltr';
+  const directionClass = textDirection === 'rtl' ? 'rtl' : 'ltr';
   
   return (
     <div 

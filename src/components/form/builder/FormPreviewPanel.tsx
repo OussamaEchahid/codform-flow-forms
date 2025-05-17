@@ -41,55 +41,46 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   floatingButton,
   hideFloatingButtonPreview = false
 }) => {
-  const { language, setLanguage } = useI18n();
+  const { language } = useI18n();
   const [direction, setDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
+  // Force refresh when any prop changes to ensure live preview updates immediately
   useEffect(() => {
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields), direction]);
-
-  // Update language when direction changes
-  useEffect(() => {
-    if (direction === 'rtl' && language !== 'ar') {
-      setLanguage('ar');
-    } else if (direction === 'ltr' && language !== 'en') {
-      setLanguage('en');
-    }
-  }, [direction, language, setLanguage]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
+  // Process fields to normalize icon values - necessary for preview display
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
+      // Create a new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // ضمان معالجة showIcon بشكل صحيح
+      // Ensure showIcon is properly handled
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
+        // Set showIcon to true by default if icon exists and not explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
+      // Ensure font size uses consistent px units
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للتناسق
+        // Convert rem to px for consistency
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          // If just a number without unit, assume it's px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
@@ -98,13 +89,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     });
   }, [fields, internalRefreshKey]);
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
+  // Create a unique ID for this preview component
   const previewPanelId = `preview-panel-${Date.now()}`;
   
   // Use consistent background color for preview
   const previewBackgroundColor = "#F9FAFB";
 
-  // Handle direction change
+  // Handle direction change without changing language
   const handleDirectionChange = (value: string) => {
     if (value === 'ltr' || value === 'rtl') {
       setDirection(value);
@@ -147,6 +138,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={formStyle}
           fields={processedFields}
+          formDirection={direction}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
         >
@@ -154,7 +146,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
+      {/* Add small note about preview/store alignment */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
