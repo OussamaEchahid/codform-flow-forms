@@ -10,11 +10,15 @@ interface TextAreaProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
+const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Set default values for border styling
   const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
@@ -23,16 +27,27 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   // Set default rows
   const rows = field.rows || 4;
   
+  // Determine label alignment based on direction
+  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
+  
   return (
-    <div className="mb-4">
+    <div 
+      className={`mb-4`}
+      dir={textDirection}
+      data-field-type="textarea"
+      data-direction={textDirection}
+    >
       <label 
         htmlFor={field.id} 
         className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
         style={{ 
           color: fieldStyle.labelColor || '#334155',
           fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
-          fontWeight: 500
+          fontWeight: 500,
+          textAlign: labelAlignment,
+          direction: textDirection
         }}
+        dir={textDirection}
       >
         {field.label || (language === 'ar' ? 'ملاحظات إضافية' : 'Additional notes')}
         {field.required && (
@@ -52,11 +67,23 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+          direction: textDirection,
+          textAlign: textDirection === 'rtl' ? 'right' : 'left'
         }}
+        dir={textDirection}
       />
       
       {field.helpText && (
-        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
+        <p 
+          className="mt-1 text-sm text-gray-500"
+          style={{
+            textAlign: labelAlignment,
+            direction: textDirection
+          }}
+          dir={textDirection}
+        >
+          {field.helpText}
+        </p>
       )}
     </div>
   );
