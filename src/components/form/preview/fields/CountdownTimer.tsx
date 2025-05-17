@@ -26,6 +26,8 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle, formD
       style={{
         direction: textDirection
       }}
+      dir={textDirection}
+      data-direction={textDirection}
     >
       <div 
         className="p-4 border rounded-md text-center"

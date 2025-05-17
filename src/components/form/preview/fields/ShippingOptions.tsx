@@ -42,6 +42,8 @@ const ShippingOptions: React.FC<ShippingOptionsProps> = ({ field, formStyle, for
       style={{
         direction: textDirection
       }}
+      dir={textDirection}
+      data-direction={textDirection}
     >
       <label 
         className="form-label mb-2 block" 

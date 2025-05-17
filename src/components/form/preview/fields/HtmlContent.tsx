@@ -28,6 +28,8 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
         direction: textDirection
       }}
+      dir={textDirection}
+      data-direction={textDirection}
     >
       {field.content ? (
         <div 
@@ -36,6 +38,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
           style={{
             direction: textDirection
           }}
+          dir={textDirection}
         />
       ) : (
         <p 
@@ -44,6 +47,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle, formDirecti
             textAlign: textDirection === 'rtl' ? 'right' : 'left',
             direction: textDirection
           }}
+          dir={textDirection}
         >
           {language === 'ar' 
             ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
