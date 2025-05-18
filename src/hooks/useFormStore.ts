@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { FormFieldStyle } from '@/lib/form-utils';
 
@@ -66,33 +67,7 @@ interface FormStore {
   ensureFieldStyle: (fieldId: string, fieldType: string, defaultStyle?: Partial<FormFieldStyle>) => void;
   
   // إضافة وظيفة جديدة لتنسيق قيم الأنماط لضمان توافقها مع المتجر
-  normalizeStyleValues: (style = {}) => {
-    const normalizedStyle = { ...style };
-    
-    // تحويل قيم rem إلى px إذا لزم الأمر
-    if (normalizedStyle.fontSize && normalizedStyle.fontSize.includes('rem')) {
-      const remValue = parseFloat(normalizedStyle.fontSize);
-      normalizedStyle.fontSize = `${remValue * 16}px`;
-    }
-    
-    if (normalizedStyle.descriptionFontSize && normalizedStyle.descriptionFontSize.includes('rem')) {
-      const remValue = parseFloat(normalizedStyle.descriptionFontSize);
-      normalizedStyle.descriptionFontSize = `${remValue * 16}px`;
-    }
-    
-    // تأكد من أن جميع الألوان تستخدم صيغة hex كاملة
-    ['color', 'backgroundColor', 'descriptionColor', 'borderColor'].forEach(colorProp => {
-      if (normalizedStyle[colorProp] && normalizedStyle[colorProp].startsWith('#') && normalizedStyle[colorProp].length === 4) {
-        // تحويل #rgb إلى #rrggbb
-        const r = normalizedStyle[colorProp][1];
-        const g = normalizedStyle[colorProp][2];
-        const b = normalizedStyle[colorProp][3];
-        normalizedStyle[colorProp] = `#${r}${r}${g}${g}${b}${b}`;
-      }
-    });
-    
-    return normalizedStyle;
-  }
+  normalizeStyleValues: (style?: Record<string, any>) => Record<string, any>;
 }
 
 const defaultFormState: FormState = {
