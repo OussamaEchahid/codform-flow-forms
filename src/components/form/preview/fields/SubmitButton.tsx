@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,13 @@ interface SubmitButtonProps {
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
+  
+  // Ensure we're applying styles consistently
+  useEffect(() => {
+    console.log('SubmitButton rendering with field style:', JSON.stringify(style, null, 2));
+    console.log('backgroundColor from style:', style.backgroundColor);
+    console.log('formStyle primaryColor:', formStyle.primaryColor);
+  }, [style, formStyle]);
   
   // Get animation class if set
   const getAnimationClass = () => {

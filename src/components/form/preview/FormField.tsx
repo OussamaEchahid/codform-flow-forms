@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
@@ -83,6 +83,7 @@ const getFieldKey = (field: FormFieldType) => {
     const bgColor = field.style?.backgroundColor || 'default';
     const textColor = field.style?.color || 'default';
     const animation = field.style?.animationType || 'none';
+    // Adding timestamp to ensure uniqueness and force re-renders on every change
     return `field-${field.id}-${field.type}-${field.label || ''}-bg-${bgColor}-text-${textColor}-animation-${animation}-${Date.now()}`;
   }
   
@@ -98,11 +99,13 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  // Add extra logs for submit button fields
-  if (field.type === 'submit') {
-    console.log('Rendering submit button field:', field.id);
-    console.log('Submit button backgroundColor:', field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5');
-  }
+  // Add extra logs for submit button fields for debugging
+  useEffect(() => {
+    if (field.type === 'submit') {
+      console.log('FormField rendered submit button with backgroundColor:', field.style?.backgroundColor);
+      console.log('FormField rendered submit button with textColor:', field.style?.color);
+    }
+  }, [field]);
 
   // Normalize field properties - ensure icon settings are properly applied
   const normalizedField = {

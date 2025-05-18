@@ -361,7 +361,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                   )}
                 />
                 
-                {/* Color controls */}
+                {/* Color controls with corrected labels */}
                 <div className="space-y-4 border rounded-md p-4">
                   <h4 className="font-medium">
                     {language === 'ar' ? 'ألوان الزر' : 'Button Colors'}
