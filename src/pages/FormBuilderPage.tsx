@@ -57,14 +57,15 @@ const FormBuilderPage = () => {
       
       setIsCheckingDefaultForm(true);
       try {
-        // Fixed: Store the result instead of directly testing the Promise result
+        // Store the result and check it properly
         const defaultForm = await getDefaultForm(shop);
         
         if (isMounted) {
-          if (!defaultForm) {
-            console.log('No default form found, will create one when needed');
-          } else {
+          // Check if defaultForm exists, not the function result itself
+          if (defaultForm) {
             console.log('Default form found:', defaultForm.id);
+          } else {
+            console.log('No default form found, will create one when needed');
           }
         }
       } catch (error) {
