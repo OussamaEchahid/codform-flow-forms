@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -92,8 +93,13 @@ export interface FormFieldStyle {
   totalValueFontSize?: string;
   totalValueColor?: string;
   
+  // Title field specific properties
+  showTitle?: boolean;
+  showDescription?: boolean;
+  titleFontSize?: string;
+  formDirection?: 'ltr' | 'rtl';
+  
   // Additional properties for edit-form-title
-  showDescription?: boolean; // Whether to show the description text
   titleAlignment?: 'left' | 'center' | 'right'; // Text alignment for the title
   descriptionAlignment?: 'left' | 'center' | 'right'; // Text alignment for the description
 }
