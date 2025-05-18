@@ -33,7 +33,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
-  const labelFontWeight = fieldStyle.labelFontWeight || '500';
+  const labelFontWeight = fieldStyle.labelFontWeight || '600';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
   const textColor = fieldStyle.color || '#1f2937';
@@ -50,21 +50,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تحديد موقع الأيقونة - يجب أن تكون على اليمين للعربية وعلى اليسار للإنجليزية
-  // ولكن نسمح بتجاوز ذلك باستخدام إعدادات النمط الصريحة
-  let iconPosition: 'right' | 'left';
-  
-  // استخدام القيمة المحددة في إعدادات النمط إذا كانت موجودة
-  if (fieldStyle.iconPosition) {
-    iconPosition = fieldStyle.iconPosition;
-  } else {
-    // القيمة الافتراضية حسب اللغة - لكن نريد أن تكون على اليمين للعربية
-    iconPosition = language === 'ar' ? 'right' : 'left';
-  }
-  
   // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
+    
+    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
+    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
     
     // إضافة سمات إضافية للتشخيص
     const iconProps = { 
@@ -77,7 +68,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         alignItems: 'center',
         justifyContent: 'center'
       },
-      "aria-hidden": "true" as React.AriaAttributes["aria-hidden"],
+      "aria-hidden": true as boolean,
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };
@@ -116,9 +107,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
   const inputId = `${field.id}-input`;
   
-  // تحديد محاذاة التسمية بناءً على اللغة
-  const labelTextAlign = language === 'ar' ? 'right' : 'left';
-  
   return (
     <div 
       className="mb-4" 
@@ -130,7 +118,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-has-icon={hasIcon ? 'true' : 'false'}
       data-show-icon={showIcon ? 'true' : 'false'}
       data-icon-type={field.icon || 'none'}
-      data-icon-position={iconPosition}
       data-required={field.required ? 'true' : 'false'}
       data-font-family={fontFamily}
       data-font-size={fontSize}
@@ -140,22 +127,20 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     >
       {showLabel && (
         <label 
-          htmlFor={field.id} 
-          className={`block mb-2`}
+          htmlFor={inputId} 
+          className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
-            marginBottom: '8px',
-            textAlign: labelTextAlign
+            marginBottom: '8px'
           }}
           data-label-text={labelText}
-          data-label-align={labelTextAlign}
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 ml-1">*</span>
+            <span className="text-red-500 absolute" style={{left: language === 'ar' ? 'auto' : '-12px', right: language === 'ar' ? '-12px' : 'auto'}}>*</span>
           )}
         </label>
       )}
@@ -164,10 +149,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" 
             style={{
               position: 'absolute',
-              [iconPosition]: '12px',
+              left: language === 'ar' ? 'auto' : '12px',
+              right: language === 'ar' ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -177,7 +163,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             }}
             data-icon-type={field.icon}
             data-icon-visible="true"
-            data-icon-position={iconPosition}
           >
             {renderIcon()}
           </div>
@@ -202,15 +187,14 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon && iconPosition === 'left') ? '36px' : '12px',
-            paddingRight: (showIcon && hasIcon && iconPosition === 'right') ? '36px' : '12px',
+            paddingLeft: (showIcon && hasIcon && language !== 'ar') ? '36px' : '12px',
+            paddingRight: (showIcon && hasIcon && language === 'ar') ? '36px' : '12px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',
             lineHeight: 1.5
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
-          data-icon-position={iconPosition}
           required={field.required}
         />
       </div>
@@ -221,8 +205,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
           style={{
             marginTop: '4px',
             fontSize: '14px',
-            color: '#6b7280',
-            textAlign: language === 'ar' ? 'right' : 'left'
+            color: '#6b7280'
           }}
         >
           {field.helpText}
@@ -236,8 +219,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             display: 'none', // Initially hidden until validation fails
             color: '#ef4444',
             fontSize: '14px',
-            marginTop: '4px',
-            textAlign: language === 'ar' ? 'right' : 'left'
+            marginTop: '4px'
           }}
         >
           {field.errorMessage}

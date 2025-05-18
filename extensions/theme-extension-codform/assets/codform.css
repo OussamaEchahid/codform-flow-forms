@@ -11,7 +11,7 @@
   padding: 15px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: #F9FAFB;
+  background-color: #f9fafb; /* تغيير لون الخلفية للتطابق مع المعاينة */
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -22,7 +22,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* ترويسة النموذج - تطابق تام مع المعاينة */
+/* ترويسة النموذج */
 .codform-header {
   margin-bottom: 20px;
   text-align: right;
@@ -52,31 +52,24 @@
 /* حاوية النموذج الرئيسية */
 .codform-form {
   margin-top: 14px;
-  background-color: #F9FAFB;
+  background-color: #fff;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* تنسيق الحقول - مطابقة تماما للمعاينة */
+/* تنسيق الحقول */
 .codform-field {
   margin-bottom: 16px !important;
   display: block !important;
-  position: relative !important;
 }
 
 .codform-field label {
   display: block !important;
   margin-bottom: 8px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: #374151 !important;
   font-size: 16px !important;
-  text-align: right !important; /* تغيير المحاذاة الافتراضية للغة العربية */
-}
-
-/* محاذاة للغة الإنجليزية */
-[dir="ltr"] .codform-field label {
-  text-align: left !important;
 }
 
 .codform-field input[type="text"],
@@ -87,6 +80,8 @@
 .codform-field select {
   width: 100% !important;
   padding: 10px 12px !important;
+  padding-right: 36px !important; /* مساحة للأيقونة */
+  padding-left: 12px !important;
   border: 1px solid #d1d5db !important;
   border-radius: 8px !important;
   font-size: 16px !important;
@@ -98,19 +93,7 @@
   height: auto !important;
   line-height: 1.5 !important;
   margin: 0 !important;
-}
-
-/* تنسيق الحقول مع الأيقونات - مطابق للمعاينة تماما */
-.codform-field-with-icon input,
-.codform-field-with-icon textarea {
-  padding-right: 36px !important;
-}
-
-/* محاذاة للغة الإنجليزية */
-[dir="ltr"] .codform-field-with-icon input,
-[dir="ltr"] .codform-field-with-icon textarea {
-  padding-left: 36px !important;
-  padding-right: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; /* إضافة ظل خفيف للحقول */
 }
 
 .codform-field input:focus,
@@ -121,13 +104,14 @@
   box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2) !important;
 }
 
-/* تحسين موضع الأيقونات داخل الحقول - مطابق للمعاينة بدقة */
+/* تحسين عرض الأيقونات داخل الحقول */
 .codform-field-icon {
   position: absolute !important;
-  right: 12px !important; /* دائما على اليمين للغة العربية */
+  right: 12px !important;
+  left: auto !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  color: #6b7280 !important;
+  color: #9ca3af !important;
   width: 18px !important;
   height: 18px !important;
   display: flex !important;
@@ -135,23 +119,6 @@
   justify-content: center !important;
   pointer-events: none !important;
   z-index: 2 !important;
-}
-
-/* تصحيح موضع الأيقونات للغة الإنجليزية */
-[dir="ltr"] .codform-field-icon {
-  right: auto !important;
-  left: 12px !important;
-}
-
-/* تنسيق الأيقونات حسب data-icon-position */
-[data-icon-position="right"] .codform-field-icon {
-  right: 12px !important;
-  left: auto !important;
-}
-
-[data-icon-position="left"] .codform-field-icon {
-  left: 12px !important;
-  right: auto !important;
 }
 
 .codform-field-wrapper {
@@ -206,7 +173,7 @@
   margin-right: 3px;
 }
 
-/* أزرار الإرسال - تطابق تام مع المعاينة */
+/* أزرار الإرسال والتنقل بين الخطوات */
 .codform-submit-button,
 .codform-next-button,
 .codform-prev-button,
@@ -443,29 +410,13 @@
   color: #374151 !important;
 }
 
-/* تنسيقات حقول العناوين - تطابق تام مع المعاينة */
+/* تنسيقات حقول العناوين */
 .codform-title-container {
   padding: 16px !important;
   margin-bottom: 16px !important;
   border-radius: 8px !important;
   background-color: #9b87f5 !important;
-}
-
-/* تطبيق محاذاة العنوان بناءً على سمات البيانات */
-[data-title-align="center"] .codform-title-container {
-  text-align: center !important;
-}
-
-[data-title-align="right"] .codform-title-container {
   text-align: right !important;
-}
-
-[data-title-align="left"] .codform-title-container {
-  text-align: left !important;
-}
-
-[data-title-align="justify"] .codform-title-container {
-  text-align: justify !important;
 }
 
 .codform-form-title {
@@ -475,6 +426,7 @@
   margin-bottom: 6px !important;
   line-height: 1.3 !important;
   margin-top: 0 !important;
+  text-align: right !important;
 }
 
 .codform-title-description {
@@ -528,7 +480,7 @@
   display: block;
 }
 
-/* تنسيقات زر الواتساب - مطابقة تماما للمعاينة */
+/* تنسيقات زر الواتساب */
 .codform-whatsapp-button {
   background-color: #25D366 !important;
   color: white !important;
@@ -565,7 +517,7 @@
   justify-content: center !important;
 }
 
-/* تأثيرات حركية متطابقة تماما مع المعاينة */
+/* Animation Effects */
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
@@ -618,22 +570,22 @@
   animation: flash 3s infinite ease-in-out !important;
 }
 
-/* تعديلات للتوافق مع المعاينة والشاشات الصغيرة */
+/* تعديلات لتحسين التوافقية مع الأجهزة المختلفة */
 @media (max-width: 768px) {
   .codform-container {
     padding: 12px;
     margin: 12px 0;
   }
 
-  .codform-title-container {
+  .codform-header {
     padding: 12px !important;
   }
 
-  .codform-form-title {
+  .codform-header h3 {
     font-size: 22px !important;
   }
 
-  /* أحجام ثابتة للشاشات الصغيرة */
+  /* تثبيت أحجام عناصر النموذج للشاشات الصغيرة */
   .codform-field label {
     font-size: 16px !important;
   }
@@ -648,12 +600,19 @@
   }
 }
 
-/* ضبط box-sizing للتناسق */
+/* تأكيدات لضمان التنسيق المستمر في جميع المتصفحات */
 .codform-container * {
-  box-sizing: border-box !important;
+  box-sizing: border-box;
 }
 
-/* تحسين مظهر الأيقونات */
+/* تحسين مظهر عنوان النموذج في الشاشات المختلفة */
+@media (min-width: 769px) {
+  .codform-form-title {
+    font-size: 24px !important;
+  }
+}
+
+/* تحسين موضع الأيقونات */
 .codform-icon {
   display: inline-flex !important;
   align-items: center !important;
@@ -664,6 +623,7 @@
   stroke-width: 2px !important;
 }
 
+/* تحسين موضع الأيقونات في الأزرار */
 .codform-submit-btn svg,
 .codform-whatsapp-button svg {
   width: 18px !important;
@@ -674,51 +634,15 @@
   flex-shrink: 0 !important;
 }
 
-/* تحسين أيقونات الإدخال */
-.codform-input {
-  width: 100% !important;
-  padding: 10px 12px !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
+/* زيادة حجم عنوان النموذج وتحسين موضعه */
+.codform-title {
+  margin-bottom: 16px !important;
 }
 
-/* تنسيق الحقول مع الأيقونات - استنادا إلى سمة data-icon-position */
-.codform-input[data-icon-position="right"] {
-  padding-right: 36px !important;
-  padding-left: 12px !important;
-}
-
-.codform-input[data-icon-position="left"] {
-  padding-left: 36px !important;
-  padding-right: 12px !important;
-}
-
-/* تأكيد على أن الحقول والأزرار تظهر بشكل جيد */
+/* تحسين عرض الحاوية الرئيسية للنموذج */
 .codform-form {
   padding: 16px !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 8px !important;
-  background-color: #F9FAFB !important;
-}
-
-/* تحسين عرض العلامة النجمية للحقول المطلوبة */
-.codform-field label .text-red-500 {
-  color: #ef4444 !important;
-  margin-left: 4px !important;
-}
-
-/* محاذاة الحقول ونموذج الإدخال */
-.codform-field {
-  text-align: right !important;
-}
-
-[dir="ltr"] .codform-field {
-  text-align: left !important;
-}
-
-/* التحكم في إظهار العنوان والوصف من خلال سمات data */
-[data-show-title="false"] .codform-form-title,
-[data-show-description="false"] .codform-title-description {
-  display: none !important;
+  background-color: #ffffff !important; /* تغيير لون الخلفية للتطابق مع المعاينة */
 }

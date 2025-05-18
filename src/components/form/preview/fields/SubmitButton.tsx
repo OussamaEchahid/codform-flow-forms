@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
-import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -11,91 +11,124 @@ interface SubmitButtonProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    buttonStyle?: string;
   };
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
-  const fieldStyle = field.style || {};
+  const style = field.style || {};
+  
+  // Get animation class if set
+  const getAnimationClass = () => {
+    if (style.animation !== true) return '';
+    
+    const animationType = style.animationType || 'pulse';
+    switch (animationType) {
+      case 'pulse': return 'pulse-animation';
+      case 'shake': return 'shake-animation';
+      case 'bounce': return 'bounce-animation';
+      case 'wiggle': return 'wiggle-animation';
+      case 'flash': return 'flash-animation';
+      default: return '';
+    }
+  };
 
-  // عرض الزر بعرض كامل أو لا
-  const fullWidth = fieldStyle.fullWidth !== false; // افتراضيًا يأخذ العرض الكامل
+  const animationClass = getAnimationClass();
   
-  // تنسيق الأيقونة والحركة
-  const hasAnimation = fieldStyle.animation;
-  const animationType = fieldStyle.animationType || 'pulse';
-
-  // نص الزر
-  const buttonText = field.label || (language === 'ar' ? 'إرسال' : 'Submit');
-  
-  // موضع الأيقونة - يمين أو يسار
-  // إذا لم يتم تحديد موضع الأيقونة، استخدم القيمة الافتراضية بناءً على اللغة
-  const iconPosition = fieldStyle.iconPosition || (language === 'ar' ? 'right' : 'left');
-  
-  // نمط العرض لزر الإرسال
-  const buttonStyle = {
-    backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: fieldStyle.color || '#ffffff',
-    borderRadius: fieldStyle.borderRadius || formStyle.borderRadius || '8px',
-    fontSize: fieldStyle.fontSize || '18px',
-    fontWeight: fieldStyle.fontWeight || '600',
-    padding: '14px 24px',
-    width: fullWidth ? '100%' : 'auto',
-    cursor: 'pointer',
-    border: `${fieldStyle.borderWidth || '0px'} solid ${fieldStyle.borderColor || 'transparent'}`,
-    fontFamily: fieldStyle.fontFamily || 'inherit',
+  // Default button styling - اجعل جميع القياسات بالبكسل لضمان التطابق
+  const buttonStyle: React.CSSProperties = {
+    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    color: style.color || '#ffffff',
+    fontSize: style.fontSize || '18px', // استخدام بكسل ثابت
+    fontWeight: style.fontWeight || '600',
+    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
+    borderColor: style.borderColor || 'transparent',
+    borderWidth: style.borderWidth || '0px',
+    borderStyle: 'solid',
+    padding: '14px 24px', // استخدام بكسل ثابت
+    paddingTop: style.paddingY || '14px',
+    paddingBottom: style.paddingY || '14px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    transition: 'all 0.2s ease-in-out',
+    fontFamily: style.fontFamily || 'inherit',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
     marginTop: '14px',
-    position: 'relative' as const, // Cast to const to satisfy TypeScript Position type
-    lineHeight: '1.2',
-    textAlign: 'center' as const, // Cast to const to satisfy TypeScript TextAlign type
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    position: 'relative' as 'relative',
+    overflow: 'hidden',
+    textAlign: 'center'
+  };
+  
+  // Icon rendering
+  const renderIcon = () => {
+    if (!style.showIcon && !style.icon) return null;
+    
+    // Add specific styling for the icon
+    const iconStyle = {
+      width: '18px',
+      height: '18px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    };
+    
+    // Return Lucide React icon components
+    switch (style.icon?.toLowerCase()) {
+      case 'shopping-cart':
+        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'arrow-right':
+        return language === 'ar' ? 
+          <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
+          <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'check':
+        return <Check size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'send':
+        return <Send size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'cart':
+      case 'shopping-bag':
+        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'phone':
+        return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      default:
+        return null;
+    }
   };
 
-  // CSS class للحركة
-  const animationClass = hasAnimation ? `${animationType}-animation` : '';
-  
-  // إنشاء معرف فريد لهذا الزر
-  const buttonId = `submit-button-${field.id}-${Date.now()}`;
+  // Determine the content and order based on icon position
+  const iconPosition = style.iconPosition || (language === 'ar' ? 'right' : 'left');
+  const icon = renderIcon();
   
   return (
-    <div 
-      className={cn('w-full flex', fullWidth ? 'justify-stretch' : 'justify-center')}
-      data-submit-button={true}
-      data-field-id={field.id}
-      data-animation={hasAnimation ? animationType : 'none'}
-      data-button-width={fullWidth ? 'full' : 'auto'}
-      data-button-id={buttonId}
-      data-icon-position={iconPosition}
+    <button
+      type="button"
+      disabled={false}
+      className={cn(
+        "codform-submit-btn", 
+        animationClass,
+      )}
+      style={buttonStyle}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
+      data-animation-type={style.animationType || 'none'}
+      data-button-style={formStyle.buttonStyle || 'rounded'}
+      data-has-animation={style.animation ? 'true' : 'false'}
+      data-icon-position={iconPosition}
+      data-has-icon={style.showIcon ? 'true' : 'false'}
+      data-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
+      data-text-color={style.color || '#ffffff'}
+      data-font-size={style.fontSize || '18px'}
+      data-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
     >
-      <button
-        id={buttonId}
-        type="submit"
-        className={cn('codform-submit-btn', animationClass)}
-        style={buttonStyle}
-        data-submit-type="codform-submit"
-        data-theme-color={formStyle.primaryColor}
-        data-animation-type={animationType}
-      >
-        {/* عرض الأيقونة على اليسار إذا كان موضع الأيقونة يسار */}
-        {iconPosition === 'left' && (
-          <ArrowRight className="rtl:rotate-180 w-5 h-5" />
-        )}
-        
-        {/* نص الزر */}
-        <span>{buttonText}</span>
-        
-        {/* عرض الأيقونة على اليمين إذا كان موضع الأيقونة يمين */}
-        {iconPosition === 'right' && (
-          <ArrowRight className="rtl:rotate-180 w-5 h-5" />
-        )}
-      </button>
-    </div>
+      {iconPosition === 'left' && icon}
+      <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
+      {iconPosition === 'right' && icon}
+    </button>
   );
 };
 

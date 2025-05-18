@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FormField as FormFieldType, FormFieldType as FieldType } from '@/lib/form-utils';
+import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
@@ -34,7 +34,7 @@ const animationStyles = `
   }
   
   @keyframes shake-animation {
-    0% { transform: translateX(0); }
+    0%, 100% { transform: translateX(0); }
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
@@ -60,7 +60,7 @@ const animationStyles = `
   }
   
   .shake-animation {
-    animation: shake-animation 2s infinite ease-in-out !important;
+    animation: shake-animation 0.8s infinite ease-in-out !important;
   }
   
   .bounce-animation {
@@ -75,11 +75,6 @@ const animationStyles = `
     animation: flash-animation 2s infinite ease-in-out !important;
   }
 `;
-
-// Helper function to ensure FormFieldType
-const ensureFieldType = (type: string | FieldType): FieldType => {
-  return type as FieldType;
-};
 
 // إنشاء مفتاح فريد لحقل النموذج لفرض إعادة العرض عند تغيير خصائص الحقل
 const getFieldKey = (field: FormFieldType) => {
@@ -96,8 +91,6 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
   const normalizedField = {
     ...field,
-    // Ensure type is correctly handled
-    type: ensureFieldType(field.type),
     // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
@@ -109,7 +102,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     }
   };
 
-  // معالجة تعيين نوع الحقل
+  // معالجة تعيين نوع الحقل - إصلاح أنواع البريد الإلكتروني والهاتف
   let fieldType = normalizedField.type;
   
   // ربط البريد الإلكتروني والهاتف بإدخالات النص
@@ -124,8 +117,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'email', 'phone' // دعم صريح للبريد الإلكتروني والهاتف
   ];
   
-  const isSupported = supportedStoreFieldTypes.includes(fieldType as string) || 
-    supportedStoreFieldTypes.includes(normalizedField.type as string);
+  const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
 
   // تسجيل بيانات الحركة إذا كان هذا زر إرسال
   if (fieldType === 'submit' && normalizedField.style) {
@@ -137,7 +129,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     }
   }
 
-  const components: { [key: string]: React.FC<FormFieldProps> } = {
+  const components: { [key: string]: React.FC<any> } = {
     'text': TextInput,
     'textarea': TextArea,
     'radio': RadioGroup,
@@ -156,7 +148,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'phone': TextInput, // إضافة دعم صريح للهاتف
   };
 
-  const Component = components[fieldType as string] || components[normalizedField.type as string];
+  const Component = components[fieldType] || components[normalizedField.type];
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;
@@ -165,8 +157,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // إنشاء مفتاح فريد لمثيل هذا الحقل لفرض إعادة العرض عند تغيير الخصائص
   const fieldKey = getFieldKey(field);
   
-  // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
+  // ضبط الهوامش: استخدام هوامش محسنة بناءً على نوع الحقل
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {
