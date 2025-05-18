@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 interface EditFormTitleEditorProps {
   field: FormField;
@@ -18,24 +19,28 @@ interface EditFormTitleEditorProps {
 
 const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChange }) => {
   const { language } = useI18n();
-  const style = field.style || {};
   
   // Initialize state with field values
   const [title, setTitle] = useState(field.label || '');
   const [description, setDescription] = useState(field.helpText || '');
-  const [backgroundColor, setBackgroundColor] = useState(style.backgroundColor || '#9b87f5');
-  const [titleColor, setTitleColor] = useState(style.color || '#ffffff');
-  const [descriptionColor, setDescriptionColor] = useState(style.descriptionColor || '#ffffff');
-  const [titleFontSize, setTitleFontSize] = useState(style.fontSize || '24px');
-  const [descriptionFontSize, setDescriptionFontSize] = useState(style.descriptionFontSize || '14px');
-  const [showDescription, setShowDescription] = useState(style.showDescription !== false);
-  const [titleAlignment, setTitleAlignment] = useState(style.textAlign || 'center');
-  const [descriptionAlignment, setDescriptionAlignment] = useState(style.descriptionAlignment || 'center');
+  const [backgroundColor, setBackgroundColor] = useState('');
+  const [titleColor, setTitleColor] = useState('');
+  const [descriptionColor, setDescriptionColor] = useState('');
+  const [titleFontSize, setTitleFontSize] = useState('');
+  const [descriptionFontSize, setDescriptionFontSize] = useState('');
+  const [showDescription, setShowDescription] = useState(true);
+  const [titleAlignment, setTitleAlignment] = useState('center');
+  const [descriptionAlignment, setDescriptionAlignment] = useState('center');
+  const [debounceTimerId, setDebounceTimerId] = useState<number | null>(null);
 
   // Effect to update local state when field prop changes
   useEffect(() => {
     if (field) {
+      console.log("EditFormTitleEditor: Field updated", field.id);
       const fieldStyle = field.style || {};
+      
+      setTitle(field.label || '');
+      setDescription(field.helpText || '');
       setBackgroundColor(fieldStyle.backgroundColor || '#9b87f5');
       setTitleColor(fieldStyle.color || '#ffffff');
       setDescriptionColor(fieldStyle.descriptionColor || '#ffffff');
@@ -44,69 +49,105 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
       // Important: Ensure consistent logic with EditFormTitleField.tsx
       setShowDescription(fieldStyle.showDescription !== false);
       setTitleAlignment(fieldStyle.textAlign || 'center');
-      setDescriptionAlignment(fieldStyle.descriptionAlignment || 'center');
-      setTitle(field.label || '');
-      setDescription(field.helpText || '');
+      setDescriptionAlignment(fieldStyle.descriptionAlignment || fieldStyle.textAlign || 'center');
     }
   }, [field]);
 
+  // Create a debounced update field function
+  const debouncedUpdateField = useCallback((changes: any) => {
+    if (debounceTimerId) {
+      window.clearTimeout(debounceTimerId);
+    }
+    
+    const timerId = window.setTimeout(() => {
+      updateField(changes);
+    }, 300);
+    
+    setDebounceTimerId(timerId);
+  }, [debounceTimerId]);
+
   // Function to update field whenever a value changes
-  const updateField = () => {
-    // Create a deep copy to avoid mutation issues
-    const updatedField = {
-      ...field,
-      label: title,
-      helpText: description,
-      style: {
-        ...(field.style || {}),
-        backgroundColor,
-        color: titleColor,
-        descriptionColor,
-        fontSize: titleFontSize,
-        descriptionFontSize,
-        showDescription,
+  const updateField = (additionalChanges: Partial<FormField> = {}) => {
+    try {
+      // Create a deep copy to avoid mutation issues
+      const updatedField = {
+        ...field,
+        label: title,
+        helpText: description,
+        ...additionalChanges,
+        style: {
+          ...(field.style || {}),
+          backgroundColor,
+          color: titleColor,
+          descriptionColor,
+          fontSize: titleFontSize,
+          descriptionFontSize,
+          showDescription,
+          textAlign: titleAlignment,
+          descriptionAlignment,
+          ...(additionalChanges.style || {})
+        }
+      };
+      
+      // Log the update for debugging
+      console.log("Updating title field with:", {
+        id: updatedField.id,
         textAlign: titleAlignment,
+        showDescription,
+        backgroundColor,
         descriptionAlignment
-      }
-    };
-    
-    // Log the update for debugging
-    console.log("Updating title field with:", {
-      id: updatedField.id,
-      textAlign: titleAlignment,
-      showDescription,
-      backgroundColor,
-      descriptionAlignment
-    });
-    
-    // Call the onChange callback immediately to update the preview
-    onChange(updatedField);
+      });
+      
+      // Call the onChange callback immediately to update the preview
+      onChange(updatedField);
+      
+    } catch (error) {
+      console.error("Error updating field:", error);
+      toast.error(language === 'ar' ? "حدث خطأ أثناء تحديث الحقل" : "Error updating field");
+    }
   };
 
   // Handle input changes and update the field
-  const handleChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (setter: React.Dispatch<React.SetStateAction<any>>, fieldName?: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setter(e.target.value);
+    
+    if (fieldName) {
+      debouncedUpdateField({ [fieldName]: e.target.value });
+    }
   };
   
   // Handle alignment and toggle changes
-  const handleAlignmentChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
+  const handleAlignmentChange = (setter: React.Dispatch<React.SetStateAction<any>>, styleProperty: string) => (value: string) => {
     if (value) {
       setter(value);
       // Update immediately for better UX
-      setTimeout(updateField, 50);
+      updateField({ 
+        style: { [styleProperty]: value }
+      });
     }
   };
   
   // Handle switch toggle for description visibility
   const handleShowDescriptionChange = (checked: boolean) => {
     setShowDescription(checked);
-    // Update immediately for better UX with a small delay to ensure state is updated
-    setTimeout(updateField, 50);
+    // Update immediately
+    updateField({ 
+      style: { showDescription: checked }
+    });
   };
   
   // Update field on blur events
   const handleBlur = () => {
     updateField();
+  };
+
+  // Handle color change with immediate update
+  const handleColorChange = (setter: React.Dispatch<React.SetStateAction<string>>, styleProperty: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setter(newValue);
+    updateField({
+      style: { [styleProperty]: newValue }
+    });
   };
 
   return (
@@ -134,7 +175,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
           <ToggleGroup 
             type="single" 
             value={titleAlignment}
-            onValueChange={handleAlignmentChange(setTitleAlignment)}
+            onValueChange={handleAlignmentChange(setTitleAlignment, 'textAlign')}
             className="justify-start"
           >
             <ToggleGroupItem value="left" aria-label="Left align">
@@ -175,15 +216,13 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
               id="title-color"
               type="color"
               value={titleColor}
-              onChange={handleChange(setTitleColor)}
-              onBlur={handleBlur}
+              onChange={handleColorChange(setTitleColor, 'color')}
               className="w-12 p-1 h-10"
             />
             <Input
               type="text"
               value={titleColor}
-              onChange={handleChange(setTitleColor)}
-              onBlur={handleBlur}
+              onChange={handleColorChange(setTitleColor, 'color')}
               className="flex-1"
               dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
@@ -200,15 +239,13 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
               id="background-color"
               type="color"
               value={backgroundColor}
-              onChange={handleChange(setBackgroundColor)}
-              onBlur={handleBlur}
+              onChange={handleColorChange(setBackgroundColor, 'backgroundColor')}
               className="w-12 p-1 h-10"
             />
             <Input
               type="text"
               value={backgroundColor}
-              onChange={handleChange(setBackgroundColor)}
-              onBlur={handleBlur}
+              onChange={handleColorChange(setBackgroundColor, 'backgroundColor')}
               className="flex-1"
               dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
@@ -253,7 +290,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
               <ToggleGroup 
                 type="single" 
                 value={descriptionAlignment}
-                onValueChange={handleAlignmentChange(setDescriptionAlignment)}
+                onValueChange={handleAlignmentChange(setDescriptionAlignment, 'descriptionAlignment')}
                 className="justify-start"
               >
                 <ToggleGroupItem value="left" aria-label="Left align">
@@ -294,15 +331,13 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
                   id="description-color"
                   type="color"
                   value={descriptionColor}
-                  onChange={handleChange(setDescriptionColor)}
-                  onBlur={handleBlur}
+                  onChange={handleColorChange(setDescriptionColor, 'descriptionColor')}
                   className="w-12 p-1 h-10"
                 />
                 <Input
                   type="text"
                   value={descriptionColor}
-                  onChange={handleChange(setDescriptionColor)}
-                  onBlur={handleBlur}
+                  onChange={handleColorChange(setDescriptionColor, 'descriptionColor')}
                   className="flex-1"
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                 />
@@ -313,7 +348,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
         
         {/* Apply Changes Button */}
         <Button 
-          onClick={updateField} 
+          onClick={() => updateField()} 
           className="w-full"
           style={{ backgroundColor }}
         >

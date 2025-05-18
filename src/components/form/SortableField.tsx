@@ -29,7 +29,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
   onEdit,
   onDuplicate,
   onDelete,
-  onFieldUpdate
+  onFieldUpdate,
+  selected = false // Add default value and actually use the prop
 }) => {
   const { language } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -175,6 +176,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
       style={style}
       className={cn(
         "border rounded-lg mb-3 overflow-hidden",
+        selected ? "ring-2 ring-codform-purple border-codform-purple" : "", // Add selected styling
         isDragging ? "shadow-lg" : ""
       )}
     >

@@ -68,54 +68,61 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = (index: number, field: FormField) => {
-    // Make a deep copy of the field to avoid reference issues
-    const updatedField = JSON.parse(JSON.stringify(field));
-    
-    // Normalize icon value (convert empty string to 'none')
-    if (updatedField.icon === '') {
-      updatedField.icon = 'none';
-    }
-    
-    // Ensure proper icon settings
-    if (updatedField.icon && updatedField.icon !== 'none') {
-      if (!updatedField.style) {
-        updatedField.style = {};
+    try {
+      console.log("Updating element", field.id, "at index", index);
+      
+      // Make a deep copy of the field to avoid reference issues
+      const updatedField = JSON.parse(JSON.stringify(field));
+      
+      // Normalize icon value (convert empty string to 'none')
+      if (updatedField.icon === '') {
+        updatedField.icon = 'none';
       }
       
-      // Set showIcon based on existing value or default to true if icon exists
-      updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
-        ? updatedField.style.showIcon 
-        : true;
-    }
-    
-    // Handle edit-form-title specific styling
-    if (updatedField.type === 'edit-form-title') {
-      // Make sure style object exists
-      if (!updatedField.style) {
-        updatedField.style = {};
+      // Ensure proper icon settings
+      if (updatedField.icon && updatedField.icon !== 'none') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Set showIcon based on existing value or default to true if icon exists
+        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+          ? updatedField.style.showIcon 
+          : true;
       }
       
-      // Ensure we have textAlign set
-      if (!updatedField.style.textAlign) {
-        updatedField.style.textAlign = 'center';
+      // Handle edit-form-title specific styling
+      if (updatedField.type === 'form-title' || updatedField.type === 'edit-form-title') {
+        // Make sure style object exists
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Ensure we have textAlign set
+        if (!updatedField.style.textAlign) {
+          updatedField.style.textAlign = 'center';
+        }
+        
+        // Default show description to true if not explicitly set
+        if (updatedField.style.showDescription === undefined) {
+          updatedField.style.showDescription = true;
+        }
+        
+        console.log("Updated form title field:", JSON.stringify(updatedField.style, null, 2));
       }
       
-      // Default show description to true if not explicitly set
-      if (updatedField.style.showDescription === undefined) {
-        updatedField.style.showDescription = true;
+      // Notify parent component about the update
+      if (onUpdateElement) {
+        onUpdateElement(index, updatedField);
+        console.log(`Element ${updatedField.id} at index ${index} updated with:`, updatedField);
       }
       
-      console.log("Updated form title field:", updatedField);
+      // Force refresh the preview by selecting the element again
+      onSelectElement(index);
+    } catch (error) {
+      console.error("Error updating field:", error);
+      toast.error(language === 'ar' ? "حدث خطأ أثناء تحديث الحقل" : "Error updating field");
     }
-    
-    // Notify parent component about the update
-    if (onUpdateElement) {
-      onUpdateElement(index, updatedField);
-      console.log(`Element ${updatedField.id} at index ${index} updated with:`, updatedField);
-    }
-    
-    // Force refresh the preview
-    onSelectElement(index);
   };
   
   // Check if there are any elements to display

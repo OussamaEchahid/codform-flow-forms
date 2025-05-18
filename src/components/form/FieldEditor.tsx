@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,25 +31,33 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
   
   // Effect to update the edited field when original field changes
   useEffect(() => {
-    setEditedField(field);
+    console.log("FieldEditor: Original field updated, syncing to local state", field.id);
+    setEditedField({...field});
   }, [field]);
   
   // Function to handle saving the changes
   const handleSave = useCallback(() => {
-    // Ensure style object exists and required properties are set
-    if (editedField.type === 'edit-form-title') {
-      if (!editedField.style) editedField.style = {};
-      // Set default values if not present
-      if (editedField.style.textAlign === undefined) {
-        editedField.style.textAlign = 'center';
+    try {
+      // Create a deep copy to avoid reference issues
+      const finalField = JSON.parse(JSON.stringify(editedField));
+      
+      // Ensure style object exists and required properties are set
+      if (finalField.type === 'edit-form-title' || finalField.type === 'form-title') {
+        if (!finalField.style) finalField.style = {};
+        // Set default values if not present
+        if (finalField.style.textAlign === undefined) {
+          finalField.style.textAlign = 'center';
+        }
+        if (finalField.style.showDescription === undefined) {
+          finalField.style.showDescription = true;
+        }
       }
-      if (editedField.style.showDescription === undefined) {
-        editedField.style.showDescription = true;
-      }
+      
+      console.log("Saving field with final values:", finalField);
+      onSave(finalField);
+    } catch (error) {
+      console.error("Error saving field:", error);
     }
-    
-    console.log("Saving field with final values:", editedField);
-    onSave(editedField);
   }, [onSave, editedField]);
   
   // Log the field type when editor opens
@@ -95,6 +102,7 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
         );
       
       case 'edit-form-title':
+      case 'form-title':
         console.log('Rendering EditFormTitleEditor with field:', editedField);
         return (
           <EditFormTitleEditor
