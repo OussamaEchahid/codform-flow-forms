@@ -112,8 +112,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }
       }
       
-      // إضافة سمة تتبع خاصة لتسهيل تحديد المشكلات
-      updatedField.trackingId = `${field.id}-${Date.now()}`;
+      // Remove the trackingId property since it's not part of the FormField type
+      // This line was causing the error
+      // updatedField.trackingId = `${field.id}-${Date.now()}`;
       
       return updatedField;
     });
