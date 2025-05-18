@@ -26,8 +26,6 @@ interface FormPreviewProps {
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
-  formTitle,
-  formDescription,
   currentStep,
   totalSteps,
   children,
@@ -94,46 +92,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }
       }
       
-      // For title fields, ensure text-align is center
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        updatedField.style.textAlign = 'center';
-        
-        // Log the background color for debugging
-        console.log(`Title field ${updatedField.id} background color: ${updatedField.style.backgroundColor || 'not set'}`);
-      }
-      
       return updatedField;
     });
     
-    // If there's already a form title field, use it
-    if (updatedFields.some(field => field.type === 'form-title')) {
-      return updatedFields;
-    }
-    
-    // If no form title field exists, add one at the beginning with specific pixel sizes
-    const formTitleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#ffffff',
-        textAlign: 'center',
-        fontWeight: 'bold',
-        fontSize: '24px',
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px',
-        backgroundColor: formStyle.primaryColor || '#9b87f5',
-      }
-    };
-    
-    // Check if there's already a submit button
+    // إزالة إنشاء حقل العنوان التلقائي
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
-    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
+    let result = [...updatedFields.filter(f => f.type !== 'form-title')];
     
     // If no submit button exists, add one
     if (!hasSubmitButton) {
@@ -153,7 +118,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor]);
   
   // Create unique ID for this form
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);

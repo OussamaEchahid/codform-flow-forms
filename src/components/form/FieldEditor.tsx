@@ -1,12 +1,11 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
-import EditFormTitleEditor from './editor/EditFormTitleEditor';
 
 interface FieldEditorProps {
   field: FormField;
@@ -19,14 +18,11 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
   
   // Local state to hold the field data
   const [editedField, setEditedField] = useState<FormField>(field);
-  const [refreshKey, setRefreshKey] = useState(0);
   
   // Function to handle changes in the field data
   const handleFieldChange = useCallback((updatedField: FormField) => {
     console.log("Field changed in editor:", updatedField);
     setEditedField(updatedField);
-    // Force refresh to ensure the preview updates
-    setRefreshKey(prev => prev + 1);
   }, []);
   
   // Effect to update the edited field when original field changes
@@ -41,18 +37,6 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
       // Create a deep copy to avoid reference issues
       const finalField = JSON.parse(JSON.stringify(editedField));
       
-      // Ensure style object exists and required properties are set
-      if (finalField.type === 'edit-form-title' || finalField.type === 'form-title') {
-        if (!finalField.style) finalField.style = {};
-        // Set default values if not present
-        if (finalField.style.textAlign === undefined) {
-          finalField.style.textAlign = 'center';
-        }
-        if (finalField.style.showDescription === undefined) {
-          finalField.style.showDescription = true;
-        }
-      }
-      
       console.log("Saving field with final values:", finalField);
       onSave(finalField);
     } catch (error) {
@@ -62,6 +46,27 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
   
   // Log the field type when editor opens
   console.log(`FieldEditor opened for field type: ${field.type} with ID: ${field.id}`);
+  
+  // لا نعرض محرر للحقول المتعلقة بالعنوان
+  if (field.type === 'form-title' || field.type === 'edit-form-title' || field.type === 'title') {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 grid place-items-center overflow-y-auto">
+        <Card className="max-w-2xl w-full">
+          <CardHeader>
+            <CardTitle className={language === 'ar' ? 'text-right' : ''}>
+              {language === 'ar' ? 'هذا الحقل غير متاح' : 'This field is not available'}
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   // Render different editor based on field type
   const renderFieldEditor = () => {
@@ -99,17 +104,6 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onSave, onClose }) => 
               </div>
             </CardContent>
           </Card>
-        );
-      
-      case 'edit-form-title':
-      case 'form-title':
-        console.log('Rendering EditFormTitleEditor with field:', editedField);
-        return (
-          <EditFormTitleEditor
-            key={`title-editor-${refreshKey}-${editedField.id}`}
-            field={editedField}
-            onChange={handleFieldChange}
-          />
         );
       
       case 'select':

@@ -9,12 +9,10 @@ import ImageField from './fields/ImageField';
 import SubmitButton from './fields/SubmitButton';
 import CartItems from './fields/CartItems';
 import CartSummary from './fields/CartSummary';
-import TitleField from './fields/TitleField';
 import HtmlContent from './fields/HtmlContent';
 import ShippingOptions from './fields/ShippingOptions';
 import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
-import EditFormTitleField from './fields/EditFormTitleField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -63,10 +61,6 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
       case 'cart-summary':
         return <CartSummary field={field} formStyle={formStyle} formDirection={formDirection} />;
         
-      case 'form-title':
-      case 'title':
-        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
       case 'html':
         return <HtmlContent field={field} formStyle={formStyle} formDirection={formDirection} />;
         
@@ -78,16 +72,12 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         
       case 'whatsapp-button':
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
+
+      // إزالة حالات العنوان تماما
+      case 'form-title':
+      case 'title':
       case 'edit-form-title':
-        console.log('Rendering EditFormTitleField with field:', field);
-        return (
-          <EditFormTitleField
-            field={field}
-            formStyle={formStyle}
-            formDirection={formDirection}
-          />
-        );
+        return null;
         
       default:
         console.warn(`Unsupported field type: ${field.type}`);
@@ -98,6 +88,11 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         );
     }
   };
+
+  // لا نعرض أي شيء للحقول المتعلقة بالعنوان
+  if (field.type === 'form-title' || field.type === 'edit-form-title' || field.type === 'title') {
+    return null;
+  }
 
   return (
     <div 
