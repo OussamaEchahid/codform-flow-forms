@@ -76,8 +76,13 @@ const animationStyles = `
 `;
 
 // Generate a key for FormField to force re-render when field properties change
+// Include explicit tracking of backgroundColor for submit buttons
 const getFieldKey = (field: FormFieldType) => {
-  return `field-${field.id}-${field.type}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
+  const styleKey = field.type === 'submit' ? 
+    `bg-${field.style?.backgroundColor || 'default'}-color-${field.style?.color || 'default'}-animation-${field.style?.animationType || 'none'}` : 
+    JSON.stringify(field.style || {});
+  
+  return `field-${field.id}-${field.type}-${field.label || ''}-${styleKey}-${Date.now()}`;
 };
 
 // Remove memo to ensure component always updates when props change
@@ -85,6 +90,12 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
+  }
+
+  // Add extra logs for submit button fields
+  if (field.type === 'submit') {
+    console.log('Rendering submit button field:', field.id);
+    console.log('Submit button backgroundColor:', field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5');
   }
 
   // Normalize field properties - ensure icon settings are properly applied
@@ -115,21 +126,6 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
-
-  // Additional logging especially for submit buttons
-  if (fieldType === 'submit') {
-    console.log('Submit button field object:', JSON.stringify(normalizedField, null, 2));
-    
-    // Enhanced debugging to track style properties
-    if (normalizedField.style) {
-      console.log('Submit button style properties:');
-      console.log('- backgroundColor:', normalizedField.style.backgroundColor || 'not set');
-      console.log('- color:', normalizedField.style.color || 'not set');
-      console.log('- fontSize:', normalizedField.style.fontSize || 'not set');
-      console.log('- animation:', normalizedField.style.animation ? 'true' : 'false');
-      console.log('- animationType:', normalizedField.style.animationType || 'not set');
-    }
-  }
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {
     'text': TextInput,

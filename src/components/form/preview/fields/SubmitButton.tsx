@@ -36,16 +36,27 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // CRITICAL FIX: Ensure button background color is properly set and prioritized
+  // CRITICAL FIX: Explicitly set background color for both preview and Shopify store
+  // Use same approach as title fields that works well
   const buttonBackgroundColor = style.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Debug log to trace the background color being applied
-  console.log(`Submit button styling: bgColor=${buttonBackgroundColor}, animationType=${style.animationType || 'none'}`);
-  console.log('Full submit button style object:', JSON.stringify(style, null, 2));
-  
-  // Button styling with explicit color handling
-  const buttonStyle = {
+  // Critical debug logs to trace the color issue
+  console.log(`Submit button ID: ${field.id}, type: ${field.type}`);
+  console.log(`Submit button explicit backgroundColor: ${buttonBackgroundColor}`);
+  console.log(`Submit button final style:`, JSON.stringify({
     backgroundColor: buttonBackgroundColor,
+    color: style.color || '#ffffff',
+    fontSize: style.fontSize || '19px',
+    animation: style.animation || false,
+    animationType: style.animationType || 'none'
+  }, null, 2));
+  
+  // Button styling with explicit CSS variable for background color
+  // This approach mirrors the one used for title fields which works correctly
+  const buttonStyle = {
+    // Use CSS variable for background color (same approach as title field)
+    '--button-bg-color': buttonBackgroundColor,
+    backgroundColor: 'var(--button-bg-color)',
     color: style.color || '#ffffff',
     fontSize: style.fontSize || '19px',
     fontWeight: style.fontWeight || 'bold',
@@ -107,7 +118,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
-      data-button-bg-color={buttonBackgroundColor} // Add explicit data attribute for background color
+      data-button-bg-color={buttonBackgroundColor}
+      // Add extra data attributes to ensure color is passed to Shopify
+      data-bg-color={buttonBackgroundColor.replace('#', '')} // Add hex color without # for Shopify
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

@@ -37,6 +37,10 @@ function loadCodForm(formId, productId, containerId, hideHeader) {
         return;
       }
 
+      // Inject CSS for button styling and animations immediately when form loads
+      injectButtonStyling(formData);
+      injectAnimationStyles();
+
       const form = document.createElement('form');
       form.className = 'codform';
       form.id = 'codform-' + containerId.split('-').pop();
@@ -151,7 +155,7 @@ function createFormControl(formData, field) {
   return formControl;
 }
 
-// Create submit button function with improved color handling
+// Create submit button function with fixed color handling that mirrors title field approach
 function createSubmitButton(formData, field) {
   const submitButton = document.createElement('button');
   submitButton.type = 'submit';
@@ -160,16 +164,23 @@ function createSubmitButton(formData, field) {
   // Get field style or initialize if not present
   const style = field.style || {};
   
-  // Critical: Ensure button background color is properly applied
+  // CRITICAL FIX: Use explicit approach for button background color - same as title fields
   // Get backgroundColor from field style first, then form style, then fallback
   const backgroundColor = style.backgroundColor || formData.formStyle?.primaryColor || '#9b87f5';
   
-  // Debug: Log the button styling being applied
+  // Debug: Log detailed button styling to help track the issue
+  console.log('Shopify store: Submit button rendered with ID:', field.id);
   console.log('Shopify store: Submit button backgroundColor =', backgroundColor);
-  console.log('Shopify store: Submit button style =', JSON.stringify(style, null, 2));
+  console.log('Shopify store: Raw field style =', JSON.stringify(style, null, 2));
+  console.log('Shopify store: Form primary color =', formData.formStyle?.primaryColor);
   
-  // Set button styles with strong emphasis on background color
-  submitButton.style.backgroundColor = backgroundColor;
+  // Set CSS variable for background color - mirrors approach used with title fields
+  const rootStyles = document.documentElement.style;
+  rootStyles.setProperty('--button-bg-color', backgroundColor);
+  
+  // Set button styles with guaranteed background color through CSS variable
+  submitButton.style.backgroundColor = 'var(--button-bg-color)';
+  submitButton.style.backgroundColor = backgroundColor; // Direct backup application
   submitButton.style.color = style.color || '#ffffff';
   submitButton.style.fontSize = style.fontSize || '19px';
   submitButton.style.fontWeight = style.fontWeight || 'bold';
@@ -192,6 +203,7 @@ function createSubmitButton(formData, field) {
   submitButton.dataset.animationType = style.animationType || 'none';
   submitButton.dataset.buttonStyle = formData.formStyle?.buttonStyle || 'rounded';
   submitButton.dataset.buttonBgColor = backgroundColor;
+  submitButton.dataset.bgColor = backgroundColor.replace('#', ''); // Add hex color without # for reference
   
   // Create button content
   const buttonContainer = document.createElement('div');
@@ -234,7 +246,7 @@ function createSubmitButton(formData, field) {
   return submitButton;
 }
 
-// Create icon element function (make sure this exists)
+// Create icon element function
 function createIconElement(iconName, iconColor) {
   const iconContainer = document.createElement('div');
   iconContainer.style.display = 'flex';
@@ -265,9 +277,59 @@ function createIconElement(iconName, iconColor) {
   return iconContainer;
 }
 
+// Inject button styling CSS to the page
+function injectButtonStyling(formData) {
+  // Find existing style element or create a new one
+  let styleElement = document.getElementById('codform-button-styles');
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = 'codform-button-styles';
+    document.head.appendChild(styleElement);
+  }
+  
+  // Get primary color from form style
+  const primaryColor = formData.formStyle?.primaryColor || '#9b87f5';
+  
+  // Find submit button settings if available
+  const submitButtonField = formData.fields.find(f => f.type === 'submit');
+  const buttonColor = submitButtonField?.style?.backgroundColor || primaryColor;
+  
+  // Create CSS for button styling that will apply to all buttons
+  styleElement.textContent = `
+    .codform-submit-btn {
+      background-color: ${buttonColor} !important;
+      transition: all 0.3s ease;
+    }
+    
+    /* Add hover effect */
+    .codform-submit-btn:hover {
+      background-color: ${adjustColor(buttonColor, -10)} !important;
+    }
+  `;
+  
+  console.log('Shopify store: Button styling injected with color:', buttonColor);
+}
+
+// Helper function to darken/lighten a color
+function adjustColor(color, percent) {
+  // Convert color to RGB
+  let r = parseInt(color.substring(1, 3), 16);
+  let g = parseInt(color.substring(3, 5), 16);
+  let b = parseInt(color.substring(5, 7), 16);
+
+  // Adjust each component
+  r = Math.max(Math.min(Math.round(r * (1 + percent / 100)), 255), 0);
+  g = Math.max(Math.min(Math.round(g * (1 + percent / 100)), 255), 0);
+  b = Math.max(Math.min(Math.round(b * (1 + percent / 100)), 255), 0);
+
+  // Convert back to hex
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
 // Make sure to add or update the animation styles in the CSS or inject them
 function injectAnimationStyles() {
   const style = document.createElement('style');
+  style.id = 'codform-animation-styles';
   style.textContent = `
     @keyframes pulse-animation {
       0% { transform: scale(1); }
@@ -317,7 +379,11 @@ function injectAnimationStyles() {
       animation: flash-animation 2s infinite ease-in-out;
     }
   `;
-  document.head.appendChild(style);
+  
+  // Only add if it doesn't exist already
+  if (!document.getElementById('codform-animation-styles')) {
+    document.head.appendChild(style);
+  }
 }
 
 // Submit form function
