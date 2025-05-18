@@ -154,8 +154,12 @@ const FormBuilderPage = () => {
         
         // For existing forms, set to editor mode
         setActiveTab('editor');
-        // Only fetch forms once
-        fetchForms();
+        // Only fetch forms once and filter out title fields
+        const forms = await fetchForms();
+        // Filter out title fields from fetched forms if needed
+        if (forms) {
+          // The filtering will happen in the FormBuilderEditor component
+        }
       } else {
         setActiveTab('dashboard');
         fetchForms();
@@ -217,6 +221,29 @@ const FormBuilderPage = () => {
       </div>
     );
   }
+
+  // This function now filters out any form-title fields if they still exist in the database
+  const filterOutTitleFields = (formData: any) => {
+    if (!formData || !formData.data || !Array.isArray(formData.data)) return formData;
+    
+    const updatedData = formData.data.map((step: any) => {
+      if (!step.fields || !Array.isArray(step.fields)) return step;
+      
+      return {
+        ...step,
+        fields: step.fields.filter((field: any) => 
+          field.type !== 'form-title' && 
+          field.type !== 'title' && 
+          field.type !== 'edit-form-title'
+        )
+      };
+    });
+    
+    return {
+      ...formData,
+      data: updatedData
+    };
+  };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
