@@ -94,7 +94,7 @@ function ensureTitleFieldsDisplay() {
         return;
       }
       
-      // Get data attributes
+      // Get data attributes with proper fallbacks
       const bgColor = field.getAttribute('data-bg-color') || '#9b87f5';
       const titleColor = field.getAttribute('data-title-color') || '#ffffff';
       const alignment = field.getAttribute('data-title-align') || 'left';
@@ -114,8 +114,11 @@ function ensureTitleFieldsDisplay() {
         alignment,
         direction,
         fontSize,
+        fontWeight,
         showTitle,
-        showDesc
+        showDesc,
+        descColor,
+        descFontSize
       });
       
       // Force background color with !important
@@ -192,14 +195,15 @@ function setupTitleFieldObserver() {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['style', 'class', 'data-bg-color', 'data-title-align', 'data-direction'] 
+    attributeFilter: ['style', 'class', 'data-bg-color', 'data-title-align', 'data-direction', 'data-title-color',
+                      'data-font-size', 'data-desc-font-size', 'data-show-title', 'data-show-description'] 
   });
   
   // Initial run
   ensureTitleFieldsDisplay();
 }
 
-// Helper function to convert rem to pixels
+// Helper function to convert rem to pixels with exact algorithm
 function remToPxExact(value) {
   if (!value) return '16px';
   if (value.includes('rem')) {
@@ -228,6 +232,18 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Clearing periodic update interval');
     clearInterval(interval);
   }, 5000);
+});
+
+// Make sure title fields are styled after any form submission or page reload
+window.addEventListener('load', () => {
+  console.log('Window loaded, refreshing title field styling');
+  setTimeout(ensureTitleFieldsDisplay, 100);
+});
+
+// Also catch form submission events to refresh styling afterward
+document.addEventListener('submit', () => {
+  console.log('Form submitted, will refresh title styling');
+  setTimeout(ensureTitleFieldsDisplay, 200);
 });
 
 ` + minifiedContent;

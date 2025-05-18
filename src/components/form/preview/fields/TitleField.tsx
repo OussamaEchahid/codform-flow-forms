@@ -52,22 +52,22 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const fontSize = remToPx(fieldStyle.fontSize, defaultTitleSize);
   const descriptionFontSize = remToPx(fieldStyle.descriptionFontSize, defaultDescSize);
   
-  // Get background color with default value
+  // Get background color with proper fallbacks
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
-  // Use appropriate text alignment
+  // Set content direction based on language
   const contentDirection = language === 'ar' ? 'rtl' : 'ltr';
   
-  // Important: Use !important on all style properties to override store styles
+  // Use !important on all style properties for consistent rendering
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: `${backgroundColor} !important`,
     padding: '16px !important',
     borderRadius: `${formStyle.borderRadius || '8px'} !important`,
     width: '100% !important',
-    boxSizing: 'border-box',
+    boxSizing: 'border-box !important',
     marginBottom: '16px !important',
     textAlign: alignment as React.CSSProperties['textAlign'],
-    direction: contentDirection as React.CSSProperties['direction'],
+    direction: contentDirection as any,
   };
 
   // Title styles with !important flags
@@ -80,8 +80,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     margin: '0 !important',
     padding: '0 !important',
     lineHeight: '1.3 !important',
-    display: 'block !important',
-    direction: contentDirection as React.CSSProperties['direction'],
+    display: showTitle ? 'block !important' : 'none !important',
+    direction: contentDirection as any,
   };
 
   // Description styles with !important flags
@@ -95,10 +95,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontWeight: 'normal !important',
     lineHeight: '1.5 !important',
     opacity: '0.9 !important',
-    direction: contentDirection as React.CSSProperties['direction'],
+    display: showDescription ? 'block !important' : 'none !important',
+    direction: contentDirection as any,
   };
 
-  // Create unique id for this field to fix formatting issues
+  // Create unique id for this field 
   const titleFieldId = `title-field-${field.id}`;
 
   console.log('TitleField rendering', { 

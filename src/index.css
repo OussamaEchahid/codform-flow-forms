@@ -43,6 +43,14 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Form title specific variables for easy customization */
+    --title-bg-color: #9b87f5;
+    --title-text-color: #ffffff;
+    --title-desc-color: rgba(255, 255, 255, 0.9);
+    --title-font-size: 24px;
+    --title-desc-font-size: 14px;
+    --title-border-radius: 8px;
   }
 
   .dark {
@@ -81,6 +89,11 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Form title dark mode variables */
+    --title-bg-color: #9b87f5;
+    --title-text-color: #ffffff;
+    --title-desc-color: rgba(255, 255, 255, 0.9);
   }
 
   html[dir="rtl"] .flip-x {
@@ -127,13 +140,13 @@
     @apply border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-offset-0 focus:ring-primary/30 focus:ring-opacity-50;
   }
   
-  /* CRITICAL: Add specific styles for title fields to ensure consistency */
+  /* CRITICAL: Enhanced title field styles with !important flags for consistency */
   .codform-title-field .codform-title-container {
     width: 100% !important;
     box-sizing: border-box !important;
     padding: 16px !important;
-    background-color: #9b87f5 !important;
-    border-radius: 8px !important;
+    background-color: var(--title-bg-color, #9b87f5) !important;
+    border-radius: var(--title-border-radius, 8px) !important;
     margin-bottom: 16px !important;
   }
   
@@ -143,9 +156,9 @@
     padding: 0 !important;
     line-height: 1.3 !important;
     display: block !important;
-    color: #ffffff !important;
+    color: var(--title-text-color, #ffffff) !important;
     font-weight: bold !important;
-    font-size: 24px !important;
+    font-size: var(--title-font-size, 24px) !important;
   }
   
   .codform-title-field .codform-title-description {
@@ -153,11 +166,11 @@
     padding: 0 !important;
     line-height: 1.5 !important;
     opacity: 0.9 !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-size: 14px !important;
+    color: var(--title-desc-color, rgba(255, 255, 255, 0.9)) !important;
+    font-size: var(--title-desc-font-size, 14px) !important;
   }
   
-  /* RTL specific overrides */
+  /* Improved RTL specific overrides with stronger selectors */
   [dir="rtl"] .codform-title-field .codform-title-container {
     text-align: right !important;
     direction: rtl !important;
@@ -170,7 +183,7 @@
     direction: rtl !important;
   }
   
-  /* LTR specific overrides */
+  /* Improved LTR specific overrides with stronger selectors */
   [dir="ltr"] .codform-title-field .codform-title-container {
     text-align: left !important;
     direction: ltr !important;
@@ -183,8 +196,12 @@
     direction: ltr !important;
   }
   
-  /* Add specific data attribute selectors for dynamic styling */
+  /* Better data attribute selectors for dynamic styling */
   .codform-title-field[data-has-bg="true"] .codform-title-container {
+    background-color: attr(data-bg-color) !important;
+  }
+  
+  .codform-title-field[data-bg-color] .codform-title-container {
     background-color: var(--bg-color, #9b87f5) !important;
   }
   
@@ -193,6 +210,7 @@
     color: var(--title-color, #ffffff) !important;
   }
   
+  /* Enhanced text alignment controls */
   .codform-title-field[data-title-align="right"] .codform-title-container,
   .codform-title-field[data-title-align="right"] .codform-form-title,
   .codform-title-field[data-title-align="right"] .codform-section-title,
@@ -214,6 +232,7 @@
     text-align: center !important;
   }
   
+  /* Direction-based styling with !important */
   .codform-title-field[data-direction="rtl"] .codform-title-container,
   .codform-title-field[data-direction="rtl"] .codform-form-title,
   .codform-title-field[data-direction="rtl"] .codform-section-title,
@@ -228,15 +247,18 @@
     direction: ltr !important;
   }
   
-  /* Apply styling directly based on data attributes */
+  /* Custom Properties for dynamic styling via JavaScript */
   .codform-title-field {
     --bg-color: attr(data-bg-color);
     --title-color: attr(data-title-color);
     --font-size: attr(data-font-size);
     --desc-font-size: attr(data-desc-font-size);
+    --desc-color: attr(data-desc-color);
+    --font-weight: attr(data-font-weight);
+    --font-family: attr(data-font-family);
   }
   
-  /* Font size overrides - critical for exact match */
+  /* Improved font size overrides */
   .codform-title-field[data-font-size] .codform-form-title,
   .codform-title-field[data-font-size] .codform-section-title {
     font-size: var(--font-size, 24px) !important;
@@ -246,13 +268,29 @@
     font-size: var(--desc-font-size, 14px) !important;
   }
   
-  /* Enhanced title container styles to ensure consistency */
-  .codform-title-container {
-    background-color: #9b87f5 !important;
-    padding: 16px !important;
-    border-radius: 8px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    margin-bottom: 16px !important;
+  /* Font weight controls */
+  .codform-title-field[data-font-weight="bold"] .codform-form-title,
+  .codform-title-field[data-font-weight="bold"] .codform-section-title {
+    font-weight: bold !important;
+  }
+  
+  .codform-title-field[data-font-weight="normal"] .codform-form-title,
+  .codform-title-field[data-font-weight="normal"] .codform-section-title {
+    font-weight: normal !important;
+  }
+  
+  .codform-title-field[data-font-weight="medium"] .codform-form-title,
+  .codform-title-field[data-font-weight="medium"] .codform-section-title {
+    font-weight: 500 !important;
+  }
+  
+  /* Visibility controls */
+  .codform-title-field[data-show-title="false"] .codform-form-title,
+  .codform-title-field[data-show-title="false"] .codform-section-title {
+    display: none !important;
+  }
+  
+  .codform-title-field[data-show-description="false"] .codform-title-description {
+    display: none !important;
   }
 }
