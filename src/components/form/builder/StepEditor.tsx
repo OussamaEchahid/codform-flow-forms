@@ -12,7 +12,7 @@ interface StepEditorProps {
   formSteps: FormStep[];
   currentEditStep: number;
   setCurrentEditStep: (index: number) => void;
-  setFormSteps: (steps: FormStep[]) => void;
+  setFormSteps: (steps: FormStep[] | ((prevSteps: FormStep[]) => FormStep[])) => void;
   setPreviewRefresh: (callback: (prev: number) => number) => void;
 }
 
@@ -40,11 +40,10 @@ const StepEditor: React.FC<StepEditorProps> = ({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    setFormSteps((steps) => {
-      const oldIndex = steps.findIndex((step) => step.id === active.id);
-      const newIndex = steps.findIndex((step) => step.id === over.id);
-      const newSteps = arrayMove(steps, oldIndex, newIndex);
-      return newSteps;
+    setFormSteps((prevSteps: FormStep[]) => {
+      const oldIndex = prevSteps.findIndex((step) => step.id === active.id);
+      const newIndex = prevSteps.findIndex((step) => step.id === over.id);
+      return arrayMove(prevSteps, oldIndex, newIndex);
     });
     setPreviewRefresh(prev => prev + 1);
   };
