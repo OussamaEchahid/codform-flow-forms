@@ -37,7 +37,7 @@ const availableFieldTypes: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { type: 'form-title', label: 'عنوان ��لنموذج المخصص', icon: <Palette size={16} /> },
+  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
   { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
   { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
   { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
@@ -322,7 +322,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       fields: defaultFields
     };
     
-    return [defaultStep];
+    return [defaultStep]; // قمنا بإعادة مصفوفة تحتوي على الخطوة الافتراضية
   };
   
   // Fix the setter call in the useEffect that creates default forms

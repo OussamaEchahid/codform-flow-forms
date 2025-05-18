@@ -2,7 +2,7 @@
 import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FormFieldType } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -76,6 +76,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         ? field.style.showIcon 
         : true;
     }
+    
+    // Make sure the field type is properly typed as FormFieldType
+    field.type = field.type as FormFieldType;
     
     // Notify parent component about the update
     if (onUpdateElement) {

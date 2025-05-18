@@ -52,8 +52,13 @@ interface FormFieldStyle {
   // Icon properties
   iconPosition?: string;
   icon?: string;
+  showIcon?: boolean;
   fullWidth?: boolean;
   fontFamily?: string;
+  
+  // Additional display properties
+  showTitle?: boolean;
+  showDescription?: boolean;
   
   // Cart item and summary specific properties
   priceFontSize?: string;

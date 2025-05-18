@@ -68,7 +68,7 @@ export interface FormFieldStyle {
   // Icon properties
   iconPosition?: 'left' | 'right';
   showIcon?: boolean;
-  icon?: string; // Ensure icon property is defined here
+  icon?: string;
   
   // Width and font properties
   fullWidth?: boolean;
@@ -81,6 +81,8 @@ export interface FormFieldStyle {
   
   // Additional properties needed
   showLabel?: boolean;
+  showTitle?: boolean;
+  showDescription?: boolean;
   paddingY?: string;
   
   // Cart item and summary specific properties
@@ -92,14 +94,10 @@ export interface FormFieldStyle {
   totalLabelColor?: string;
   totalValueFontSize?: string;
   totalValueColor?: string;
-  
-  // Title specific properties
-  showTitle?: boolean;
-  showDescription?: boolean;
 }
 
 export interface FormField {
-  type: FormFieldType;
+  type: FormFieldType; // استبدال type: string بـ type: FormFieldType
   id: string;
   label?: string;
   placeholder?: string;
@@ -362,7 +360,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add form title field
   defaultFields.push({
-    type: 'form-title',
+    type: 'form-title' as FormFieldType,
     id: uuidv4(),
     label: 'نموذج جديد',
     helpText: 'نموذج جديد',
