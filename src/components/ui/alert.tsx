@@ -25,7 +25,7 @@ const alertVariants = cva(
 )
 
 // Define the exported type explicitly including all variants
-export type AlertVariant = "default" | "destructive" | "warning" | "success"
+export type AlertVariant = "default" | "destructive" | "warning" | "success" 
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: AlertVariant

@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -13,17 +13,13 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirection }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // تحديد الاتجاه بناءً على خاصية formDirection أو اللغة
-  const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // الحصول على فئة الرسوم المتحركة إذا تم تعيينها
+  // Get animation class if set - Fixed animation functionality
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -40,87 +36,58 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
 
   const animationClass = getAnimationClass();
   
-  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة
-  const buttonStyle: React.CSSProperties = {
+  // Default button styling - ensure proper handling of pixel values
+  const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
+    fontSize: style.fontSize || '19px', // Default fontSize is 19px
+    fontWeight: style.fontWeight || 'bold',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    padding: '14px 24px',
-    paddingTop: style.paddingY || '14px',
-    paddingBottom: style.paddingY || '14px',
-    paddingLeft: style.paddingX || '24px',
-    paddingRight: style.paddingX || '24px',
+    paddingTop: style.paddingY || '15px', // Default paddingY is 15px 
+    paddingBottom: style.paddingY || '15px', // Default paddingY is 15px
+    paddingLeft: '20px',
+    paddingRight: '20px',
     width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center', // Always center the content regardless of icon position
     gap: '8px',
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '14px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative',
-    overflow: 'hidden',
-    textAlign: 'center'
+    marginTop: '0px', // Removed margin completely to bring it closer to previous field
   };
   
-  // تقديم الأيقونة بحجم وموضع متناسقين
+  // Icon rendering with improved support for multiple icon types
   const renderIcon = () => {
     if (!style.showIcon) return null;
     
-    // إضافة نمط محدد للأيقونة لمطابقة المعاينة بالضبط
-    const iconStyle = {
-      width: '18px',
-      height: '18px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    };
-    
-    // إرجاع مكونات أيقونة Lucide React بناءً على اسم الأيقونة
+    // Return Lucide React icon components based on icon name
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
       case 'arrow-right':
-        return textDir === 'rtl' ? 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return language === 'ar' ? 
+          <ArrowRight size={16} color={style.color || '#ffffff'} style={{ transform: 'scaleX(-1)' }} /> : 
+          <ArrowRight size={16} color={style.color || '#ffffff'} />;
       case 'check':
-        return <Check size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return <Check size={16} color={style.color || '#ffffff'} />;
       case 'send':
-        return <Send size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return <Send size={16} color={style.color || '#ffffff'} />;
       case 'cart':
-      case 'shopping-bag':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'phone':
-        return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
       default:
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+        return null;
     }
   };
 
-  // تحديد المحتوى والترتيب بناءً على موضع الأيقونة
-  const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
+  // Determine the content and order based on icon position
+  const iconPosition = style.iconPosition || 'right';
   const icon = renderIcon();
   
-  console.log(`Rendering SubmitButton with styles:`, { 
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
-    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
-    animation: style.animation ? style.animationType : 'none',
-    iconPosition,
-    hasIcon: style.showIcon,
-    direction: textDir
-  });
-
   return (
     <button
       type="button"
@@ -130,17 +97,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
         animationClass,
       )}
       style={buttonStyle}
-      dir={textDir}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
-      data-has-animation={style.animation ? 'true' : 'false'}
-      data-icon-position={iconPosition}
-      data-has-icon={style.showIcon ? 'true' : 'false'}
-      data-direction={textDir}
-      data-button-id={field.id}
     >
       {iconPosition === 'left' && icon}
-      <span className="btn-text">{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
+      <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
       {iconPosition === 'right' && icon}
     </button>
   );

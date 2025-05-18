@@ -2,19 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-
-// Import icons directly to avoid dynamic loading issues
-import {
-  User,
-  Phone,
-  MapPin,
-  Mail,
-  MessageSquare,
-  CheckSquare,
-  CircleCheck,
-  Image,
-  FileText
-} from 'lucide-react';
+import { User, Phone, MapPin, Mail, MessageSquare, CheckSquare, CircleCheck, Image, FileText } from 'lucide-react';
 
 interface TextInputProps {
   field: FormField;
@@ -23,62 +11,44 @@ interface TextInputProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }) => {
+const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Get direction from props or fallback to language-based
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Default styling values
+  // Default values for styling
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
-  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
+  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '1rem';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
   const textColor = fieldStyle.color || '#1f2937';
-  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '16px';
+  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
   const backgroundColor = fieldStyle.backgroundColor || '#ffffff';
   const borderColor = fieldStyle.borderColor || '#d1d5db';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
-  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
+  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
+  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '8px';
   
-  // Determine if there's an icon and if it should be shown
-  const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
-  const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
-  
-  // Enhanced icon rendering function
+  // Normalize icon handling - explicitly check if showIcon is defined first
+  const showIcon = fieldStyle.showIcon !== undefined 
+    ? fieldStyle.showIcon 
+    : (field.icon && field.icon !== 'none');
+
+  // Function to render the field icon based on the icon name
   const renderIcon = () => {
-    if (!hasIcon || !showIcon) return null;
+    // Don't render if icon is disabled or is set to 'none'
+    if (!field.icon || field.icon === 'none' || !showIcon) return null;
     
-    // Icon positioning based on text direction
-    const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
-    
-    // Common icon props
     const iconProps = { 
-      size: 18,
-      className: `text-gray-500 codform-icon ${textDirection === 'rtl' ? 'rtl-icon' : 'ltr-icon'}`,
-      style: {
-        width: '18px',
-        height: '18px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      },
-      "aria-hidden": "true" as React.AriaAttributes["aria-hidden"],
-      "data-testid": `icon-${field.icon}`,
-      "data-icon-name": field.icon,
-      "data-icon-direction": textDirection
+      size: 18, 
+      className: "text-gray-400"
     };
     
-    // Render appropriate icon
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
@@ -89,110 +59,52 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
       case 'circle-check': return <CircleCheck {...iconProps} />;
       case 'image': return <Image {...iconProps} />;
       case 'file-text': return <FileText {...iconProps} />;
-      default: 
-        console.log(`Unknown icon type: ${field.icon}`);
-        return null;
+      default: return null;
     }
   };
   
-  // Get actual label text
+  // Get the actual label text to display - use the most recent value
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // Get placeholder text
+  // Get the actual placeholder text to display - use the most recent value
   const placeholderText = field.placeholder || '';
 
-  // Determine correct input type
-  const getInputType = () => {
-    const originalType = field.type;
-    if (originalType === 'email') return 'email';
-    if (originalType === 'phone') return 'tel';
-    return 'text';
-  };
-  
-  // Generate a unique ID
-  const inputId = `${field.id}-input-${Date.now()}`;
-  
-  // Determine icon position based on direction
-  const iconPosition = textDirection === 'rtl' ? 'right' : 'left';
-  
-  // Determine text alignment based on direction
-  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
-  
-  // Get direction class
-  const directionClass = textDirection === 'rtl' ? 'rtl' : 'ltr';
+  // Force component key to refresh when its data changes
+  const componentKey = `${field.id}-${labelText}-${placeholderText}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}`;
   
   return (
-    <div 
-      className={`mb-4 codform-field codform-field-with-icon ${directionClass}`}
-      data-component="TextInput" 
-      data-field-type={field.type}
-      data-field-id={field.id}
-      data-show-label={showLabel.toString()}
-      data-label-text={labelText}
-      data-has-icon={hasIcon ? 'true' : 'false'}
-      data-show-icon={showIcon ? 'true' : 'false'}
-      data-icon-type={field.icon || 'none'}
-      data-required={field.required ? 'true' : 'false'}
-      data-font-family={fontFamily}
-      data-font-size={fontSize}
-      data-border-radius={borderRadius}
-      data-input-id={inputId}
-      data-direction={textDirection}
-      dir={textDirection}
-    >
+    <div className="mb-0" key={componentKey}>
       {showLabel && (
         <label 
           htmlFor={field.id} 
-          className={`block mb-2 codform-field-label`}
+          className={`block mb-1 ${field.required ? 'relative pr-2' : ''}`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
-            fontFamily: fontFamily,
-            marginBottom: '8px',
-            textAlign: labelAlignment
+            fontFamily: fontFamily
           }}
-          data-label-text={labelText}
-          dir={textDirection}
         >
           {labelText}
           {field.required && (
-            <span className={`text-red-500 ml-1 codform-required ${textDirection === 'rtl' ? 'mr-1 ml-0' : ''}`}>*</span>
+            <span className="text-red-500 absolute right-0 top-0">*</span>
           )}
         </label>
       )}
       
-      <div className={`codform-field-wrapper relative ${directionClass}`} dir={textDirection}>
-        {/* Render icon with explicit positioning */}
-        {showIcon && hasIcon && (
-          <div 
-            className={`codform-field-icon ${textDirection === 'rtl' ? 'rtl-icon' : 'ltr-icon'}`}
-            style={{
-              position: 'absolute',
-              [iconPosition]: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2
-            }}
-            data-icon-type={field.icon}
-            data-icon-visible="true"
-            data-icon-position={iconPosition}
-            dir={textDirection}
-          >
+      <div className="relative">
+        {showIcon && field.icon && field.icon !== 'none' && (
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
             {renderIcon()}
           </div>
         )}
         
         <input
-          type={getInputType()}
-          id={inputId}
-          name={field.id}
+          type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
+          id={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
-          className={`w-full outline-none transition-all codform-input ${directionClass} ${showIcon && hasIcon ? 'with-icon' : ''}`}
+          className="w-full outline-none transition-all"
           style={{
             color: textColor,
             fontSize: fontSize,
@@ -205,54 +117,23 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formDirection }
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon && iconPosition === 'left') ? '36px' : '12px',
-            paddingRight: (showIcon && hasIcon && iconPosition === 'right') ? '36px' : '12px',
+            paddingLeft: (showIcon && field.icon && field.icon !== 'none') ? '2.5rem' : '0.75rem',
+            paddingRight: '0.75rem',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            width: '100%',
-            height: 'auto',
-            lineHeight: 1.5,
-            textAlign: textDirection === 'rtl' ? 'right' : 'left'
+            marginBottom: '0', // Remove bottom margin
           }}
-          data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
-          data-icon-position={iconPosition}
-          data-direction={textDirection}
-          required={field.required}
-          dir={textDirection}
         />
       </div>
       
-      <div className={`codform-field-help ${directionClass}`} dir={textDirection}>
-        {field.helpText && (
-          <p 
-            className={`mt-1 text-xs text-gray-500 codform-help-text ${directionClass}`}
-            style={{
-              marginTop: '4px',
-              fontSize: '14px',
-              color: '#6b7280',
-              textAlign: labelAlignment
-            }}
-            dir={textDirection}
-          >
-            {field.helpText}
-          </p>
-        )}
-        
-        {field.errorMessage && field.required && (
-          <div 
-            className={`hidden error-message text-sm text-red-500 mt-1 codform-error-message ${directionClass}`}
-            style={{
-              display: 'none',
-              color: '#ef4444',
-              fontSize: '14px',
-              marginTop: '4px',
-              textAlign: labelAlignment
-            }}
-            dir={textDirection}
-          >
-            {field.errorMessage}
-          </div>
-        )}
-      </div>
+      {field.helpText && (
+        <p className="mt-1 text-xs text-gray-500">{field.helpText}</p>
+      )}
+      
+      {field.errorMessage && field.required && (
+        <div className="hidden error-message text-sm text-red-500 mt-1">
+          {field.errorMessage}
+        </div>
+      )}
     </div>
   );
 };

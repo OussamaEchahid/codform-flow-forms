@@ -13,9 +13,6 @@ import Index from "@/pages/Index";
 import FormBuilderPage from "@/pages/FormBuilderPage";
 import Forms from "@/pages/Forms"; 
 import Orders from "@/pages/Orders";
-import OrdersList from "@/pages/OrdersList";
-import AbandonedOrders from "@/pages/AbandonedOrders";
-import OrdersChannels from "@/pages/OrdersChannels";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
@@ -140,9 +137,6 @@ function AppRoutes() {
         <Route path="/forms" element={<Forms />} />
         <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/list" element={<OrdersList />} />
-        <Route path="/orders/abandoned" element={<AbandonedOrders />} />
-        <Route path="/orders/channels" element={<OrdersChannels />} />
       </Route>
       
       {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
@@ -152,10 +146,9 @@ function AppRoutes() {
   );
 }
 
-// Main App function - fixed to ensure React hooks are used properly
 function App() {
-  // Move useEffect inside the component body and ensure React is properly imported
-  useEffect(() => {
+  // Clean placeholder tokens and validate connection on startup
+  React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
     // Attempt to validate the connection state with retry logic

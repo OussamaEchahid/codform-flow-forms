@@ -1,4 +1,3 @@
-
 {
   "codform": {
     "form": {
@@ -18,31 +17,6 @@
       "address": "Delivery Address",
       "city": "City",
       "notes": "Additional Notes"
-    },
-    "validation": {
-      "required": "This field is required",
-      "email": "Please enter a valid email address",
-      "phone": "Please enter a valid phone number",
-      "min_length": "This field must be at least {min} characters",
-      "max_length": "This field must be no more than {max} characters"
-    },
-    "customization": {
-      "title_styling": "Form Title Styling",
-      "button_styling": "Button Styling",
-      "field_styling": "Field Styling",
-      "alignment": {
-        "left": "Left",
-        "center": "Center",
-        "right": "Right"
-      },
-      "animations": {
-        "pulse": "Pulse",
-        "shake": "Shake",
-        "bounce": "Bounce",
-        "wiggle": "Wiggle",
-        "flash": "Flash",
-        "none": "None"
-      }
     }
   }
 }

@@ -16,9 +16,6 @@ import NotFound from '@/pages/NotFound';
 import Dashboard from '@/pages/Dashboard';
 import Forms from '@/pages/Forms';
 import Orders from '@/pages/Orders';
-import OrdersList from '@/pages/OrdersList';
-import AbandonedOrders from '@/pages/AbandonedOrders';
-import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
 
@@ -47,18 +44,6 @@ export const routes: RouteObject[] = [
   {
     path: '/orders',
     Component: Orders,
-  },
-  {
-    path: '/orders/list',
-    Component: OrdersList,
-  },
-  {
-    path: '/orders/abandoned',
-    Component: AbandonedOrders,
-  },
-  {
-    path: '/orders/channels',
-    Component: OrdersChannels,
   },
   {
     path: '/auth/*',

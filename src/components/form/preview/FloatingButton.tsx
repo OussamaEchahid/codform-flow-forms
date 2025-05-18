@@ -3,7 +3,7 @@ import React from 'react';
 import { FloatingButtonConfig } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ShoppingCart, Package, Truck, Send } from 'lucide-react';
-import '@/components/form/builder/floating-button.css'; // استيراد الرسوم المتحركة
+import '@/components/form/builder/floating-button.css'; // Import animations
 
 interface FloatingButtonProps {
   config: FloatingButtonConfig;
@@ -12,11 +12,6 @@ interface FloatingButtonProps {
 
 const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = false }) => {
   const { language } = useI18n();
-  
-  // تسجيل معلومات عن تهيئة الزر للتصحيح
-  React.useEffect(() => {
-    console.log('FloatingButton config:', config);
-  }, [config]);
   
   const getAnimationClass = () => {
     if (!config.animation || config.animation === 'none') return '';
@@ -42,21 +37,21 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     
     switch (config.icon) {
       case 'shopping-cart':
-        return <ShoppingCart className="floating-button-icon" size={16} />;
+        return <ShoppingCart size={16} />;
       case 'package':
-        return <Package className="floating-button-icon" size={16} />;
+        return <Package size={16} />;
       case 'truck':
-        return <Truck className="floating-button-icon" size={16} />;
+        return <Truck size={16} />;
       case 'send':
-        return <Send className="floating-button-icon" size={16} />;
+        return <Send size={16} />;
       default:
-        return <ShoppingCart className="floating-button-icon" size={16} />;
+        return <ShoppingCart size={16} />;
     }
   };
   
-  // معالج التمرير إلى النموذج
+  // Scroll to form handler
   const handleClick = () => {
-    // تنفيذ التمرير فقط إذا لم نكن في وضع المعاينة
+    // Only execute scroll if we're not in preview mode
     if (!isPreview) {
       const formElement = document.querySelector('.codform-form');
       if (formElement) {
@@ -65,8 +60,9 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     }
   };
   
-  // حساب العرض بناءً على المحتوى
-  const minWidth = '180px'; // تعيين الحد الأدنى للعرض لجعله أطول
+  // Calculate width based on content
+  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : 'auto';
+  const minWidth = '180px'; // Set minimum width to make it longer
   
   return (
     <div 
@@ -80,8 +76,6 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
         justifyContent: 'center',
         zIndex: 999,
       }}
-      data-button-dir={language === 'ar' ? 'rtl' : 'ltr'}
-      data-button-animation={config.animation || 'none'}
     >
       <button
         className={`codform-floating-button ${getAnimationClass()}`}
@@ -109,17 +103,13 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
         onClick={handleClick}
       >
         {(language === 'ar' || !config.showIcon) && (
-          <span className="floating-button-text">
-            {config.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}
-          </span>
+          <span>{config.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}</span>
         )}
         
         {config.showIcon && getIcon()}
         
         {language !== 'ar' && config.showIcon && (
-          <span className="floating-button-text">
-            {config.text || 'Order Now'}
-          </span>
+          <span>{config.text || 'Order Now'}</span>
         )}
       </button>
     </div>

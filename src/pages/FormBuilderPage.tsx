@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -46,11 +47,8 @@ const FormBuilderPage = () => {
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
-  // Check for default form - with proper dependencies to prevent infinite loop
+  // Check for default form
   useEffect(() => {
-    // Fix for infinite loop - only run when shop changes and not already checking
-    let isMounted = true;
-    
     async function checkForDefaultForm() {
       if (!shop || isCheckingDefaultForm) return;
       
@@ -58,34 +56,23 @@ const FormBuilderPage = () => {
       try {
         const defaultForm = await getDefaultForm(shop);
         
-        if (isMounted) {
-          if (!defaultForm) {
-            console.log('No default form found, will create one when needed');
-          } else {
-            console.log('Default form found:', defaultForm.id);
-          }
+        if (!defaultForm) {
+          console.log('No default form found, will create one when needed');
+        } else {
+          console.log('Default form found:', defaultForm.id);
         }
       } catch (error) {
         console.error('Error checking for default form:', error);
       } finally {
-        if (isMounted) {
-          setIsCheckingDefaultForm(false);
-        }
+        setIsCheckingDefaultForm(false);
       }
     }
     
     checkForDefaultForm();
-    
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [shop, getDefaultForm]); // Removed isCheckingDefaultForm from dependencies to prevent loop
+  }, [shop, getDefaultForm]);
 
-  // Fetch associated products for current form - with cleanup to prevent memory leaks
+  // Fetch associated products for current form
   useEffect(() => {
-    let isMounted = true;
-    
     async function fetchAssociatedProducts() {
       if (!formId || formId === 'new' || !shop) return;
       
@@ -103,9 +90,7 @@ const FormBuilderPage = () => {
         
         // If no associated products, exit early
         if (!productSettings || productSettings.length === 0) {
-          if (isMounted) {
-            setAssociatedProducts([]);
-          }
+          setAssociatedProducts([]);
           return;
         }
         
@@ -118,7 +103,7 @@ const FormBuilderPage = () => {
           .eq('shop', shop)
           .single();
           
-        if (cachedProducts?.products && isMounted) {
+        if (cachedProducts?.products) {
           const shopifyProducts = cachedProducts.products;
           const matchedProducts = shopifyProducts
             .filter((product: any) => productIds.includes(product.id))
@@ -135,13 +120,8 @@ const FormBuilderPage = () => {
     }
     
     fetchAssociatedProducts();
-    
-    return () => {
-      isMounted = false;
-    };
   }, [formId, shop]);
   
-  // Form initialization - simplified to prevent re-fetching
   useEffect(() => {
     async function handleFormInit() {
       if (formId) {
@@ -154,16 +134,15 @@ const FormBuilderPage = () => {
         
         // For existing forms, set to editor mode
         setActiveTab('editor');
-        // Only fetch forms once
         fetchForms();
       } else {
-        setActiveTab('dashboard');
         fetchForms();
+        setActiveTab('dashboard');
       }
     }
     
     handleFormInit();
-  }, [formId, navigate]); // Removed fetchForms and language from dependencies to prevent loops
+  }, [formId, fetchForms, navigate, language]);
 
   // Always enable bypass access in development mode
   useEffect(() => {
