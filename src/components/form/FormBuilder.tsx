@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   DndContext,
@@ -32,24 +33,37 @@ import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useI18n } from '@/lib/i18n';
 
+// Helper function to ensure form field types are correctly typed
+const ensureFormFieldType = (field: any): FormField => {
+  return {
+    ...field,
+    type: field.type as FormFieldType
+  };
+};
+
+// Helper function to ensure array of form fields are correctly typed
+const ensureFormFieldsArray = (fields: any[]): FormField[] => {
+  return fields.map(field => ensureFormFieldType(field));
+};
+
 const availableFieldTypes: Array<{
-  type: FormField['type'];
+  type: FormFieldType;
   label: string;
   icon: React.ReactNode;
 }> = [
-  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
-  { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
-  { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
-  { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
-  { type: 'textarea', label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
-  { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
-  { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
-  { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
-  { type: 'cart-items', label: 'المنتج المختار', icon: <FileText size={16} /> },
-  { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
-  { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
-  { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
-  { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
+  { type: 'form-title' as FormFieldType, label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
+  { type: 'text' as FormFieldType, label: 'حقل نص', icon: <FileText size={16} /> },
+  { type: 'email' as FormFieldType, label: 'بريد إلكتروني', icon: <FileText size={16} /> },
+  { type: 'phone' as FormFieldType, label: 'رقم هاتف', icon: <FileText size={16} /> },
+  { type: 'textarea' as FormFieldType, label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
+  { type: 'select' as FormFieldType, label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
+  { type: 'checkbox' as FormFieldType, label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
+  { type: 'radio' as FormFieldType, label: 'زر راديو', icon: <LayoutGrid size={16} /> },
+  { type: 'cart-items' as FormFieldType, label: 'المنتج المختار', icon: <FileText size={16} /> },
+  { type: 'cart-summary' as FormFieldType, label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
+  { type: 'submit' as FormFieldType, label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
+  { type: 'text/html' as FormFieldType, label: 'نص/HTML', icon: <FileText size={16} /> },
+  { type: 'title' as FormFieldType, label: 'عنوان قسم', icon: <FileText size={16} /> },
 ];
 
 interface FormBuilderProps {
@@ -117,7 +131,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      setFormSteps(template.data);
+      // Ensure all template data is properly typed
+      const properlyTypedData: FormStep[] = template.data.map(step => ({
+        ...step,
+        fields: step.fields.map(field => ensureFormFieldType(field))
+      }));
+      
+      setFormSteps(properlyTypedData);
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -126,7 +146,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     }
   };
   
-  const addFieldToStep = (type: FormField['type']) => {
+  const addFieldToStep = (type: FormFieldType) => {
     const newField = createEmptyField(type);
     const updatedSteps = [...formSteps];
     updatedSteps[currentEditStep].fields.push(newField);
@@ -316,13 +336,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       },
     });
     
+    // Create the default step with properly typed fields
     const defaultStep: FormStep = {
       id: '1',
       title: 'Main Step',
       fields: defaultFields
     };
     
-    return [defaultStep]; // قمنا بإعادة مصفوفة تحتوي على الخطوة الافتراضية
+    // Return as an array of FormStep
+    return [defaultStep];
   };
   
   // Fix the setter call in the useEffect that creates default forms

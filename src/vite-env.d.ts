@@ -59,6 +59,8 @@ interface FormFieldStyle {
   // Additional display properties
   showTitle?: boolean;
   showDescription?: boolean;
+  showLabel?: boolean;
+  paddingY?: string;
   
   // Cart item and summary specific properties
   priceFontSize?: string;
@@ -71,6 +73,9 @@ interface FormFieldStyle {
   totalLabelColor?: string;
   totalValueFontSize?: string;
   totalValueColor?: string;
+  
+  // Label specific properties
+  labelFontWeight?: string;
 }
 
 // Form field extended properties

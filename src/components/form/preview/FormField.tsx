@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FormField as FormFieldType } from '@/lib/form-utils';
+import { FormField as FormFieldType, FormFieldType as FieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
@@ -76,6 +76,11 @@ const animationStyles = `
   }
 `;
 
+// Helper function to ensure FormFieldType
+const ensureFieldType = (type: string | FieldType): FieldType => {
+  return type as FieldType;
+};
+
 // إنشاء مفتاح فريد لحقل النموذج لفرض إعادة العرض عند تغيير خصائص الحقل
 const getFieldKey = (field: FormFieldType) => {
   // تضمين المزيد من الخصائص في المفتاح للتأكد من أن أي تغيير سيؤدي إلى إعادة العرض
@@ -91,6 +96,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
   const normalizedField = {
     ...field,
+    // Ensure type is correctly handled
+    type: ensureFieldType(field.type),
     // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
@@ -117,7 +124,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'email', 'phone' // دعم صريح للبريد الإلكتروني والهاتف
   ];
   
-  const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
+  const isSupported = supportedStoreFieldTypes.includes(fieldType as string) || 
+    supportedStoreFieldTypes.includes(normalizedField.type as string);
 
   // تسجيل بيانات الحركة إذا كان هذا زر إرسال
   if (fieldType === 'submit' && normalizedField.style) {
@@ -148,7 +156,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'phone': TextInput, // إضافة دعم صريح للهاتف
   };
 
-  const Component = components[fieldType] || components[normalizedField.type];
+  const Component = components[fieldType as string] || components[normalizedField.type as string];
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;

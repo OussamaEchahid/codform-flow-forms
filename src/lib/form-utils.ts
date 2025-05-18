@@ -244,6 +244,14 @@ export const extractFormSections = (form: FormData): Array<{ title: string; fiel
   }));
 };
 
+// Helper function to ensure FormFieldType is correctly applied
+const ensureFormFieldType = (field: any): FormField => {
+  return {
+    ...field,
+    type: field.type as FormFieldType
+  };
+};
+
 // Function to create an empty field based on type
 export const createEmptyField = (type: FormFieldType): FormField => {
   let newField: FormField = {
@@ -307,7 +315,7 @@ export const createEmptyField = (type: FormFieldType): FormField => {
       newField.options = [
         { value: 'option1', label: 'الخيار الأول' },
         { value: 'option2', label: 'الخيار الثاني' },
-        { value: 'option3', label: 'الخيار الثالث' }
+        { value: 'option3', label: 'الخيار ��لثالث' }
       ];
       break;
     case 'cart-items':
@@ -379,7 +387,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add name field
   defaultFields.push({
-    type: 'text',
+    type: 'text' as FormFieldType,
     id: uuidv4(),
     label: 'الاسم الكامل',
     placeholder: 'أدخل الاسم الكامل',
@@ -392,7 +400,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add phone field
   defaultFields.push({
-    type: 'phone',
+    type: 'phone' as FormFieldType,
     id: uuidv4(),
     label: 'رقم الهاتف',
     placeholder: 'أدخل رقم الهاتف',
@@ -405,7 +413,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add city field
   defaultFields.push({
-    type: 'text',
+    type: 'text' as FormFieldType,
     id: uuidv4(),
     label: 'المدينة',
     placeholder: 'أدخل اسم المدينة',
@@ -418,7 +426,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add address field
   defaultFields.push({
-    type: 'textarea',
+    type: 'textarea' as FormFieldType,
     id: uuidv4(),
     label: 'العنوان',
     placeholder: 'أدخل العنوان الكامل',
@@ -427,7 +435,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add submit button with updated configuration
   defaultFields.push({
-    type: 'submit',
+    type: 'submit' as FormFieldType,
     id: uuidv4(),
     label: 'الدفع عند الاستلام',
     style: {
@@ -455,7 +463,7 @@ export const createDefaultForm = (): FormStep[] => {
   return [defaultStep];
 };
 
-// Form templates
+// Form templates with explicit FormFieldType typing
 export const formTemplates = [
   {
     id: 1,
@@ -469,7 +477,7 @@ export const formTemplates = [
         fields: [
           {
             id: 'form-title-1',
-            type: 'form-title',
+            type: 'form-title' as FormFieldType,
             label: 'Contact Us',
             helpText: 'We\'ll get back to you as soon as possible',
             style: {
@@ -484,28 +492,28 @@ export const formTemplates = [
           },
           {
             id: 'name-1',
-            type: 'text',
+            type: 'text' as FormFieldType,
             label: 'Name',
             placeholder: 'Your name',
             required: true
           },
           {
             id: 'email-1',
-            type: 'email',
+            type: 'email' as FormFieldType,
             label: 'Email',
             placeholder: 'Your email address',
             required: true
           },
           {
             id: 'message-1',
-            type: 'textarea',
+            type: 'textarea' as FormFieldType,
             label: 'Message',
             placeholder: 'Your message',
             required: true
           },
           {
             id: 'submit-1',
-            type: 'submit',
+            type: 'submit' as FormFieldType,
             label: 'Send Message',
             style: {
               backgroundColor: '#d97706',
@@ -529,7 +537,7 @@ export const formTemplates = [
         fields: [
           {
             id: 'form-title-2',
-            type: 'form-title',
+            type: 'form-title' as FormFieldType,
             label: 'Place Your Order',
             helpText: 'Fill out the form below to place your order',
             style: {
@@ -544,38 +552,38 @@ export const formTemplates = [
           },
           {
             id: 'cart-items-1',
-            type: 'cart-items',
+            type: 'cart-items' as FormFieldType,
             label: ''
           },
           {
             id: 'cart-summary-1',
-            type: 'cart-summary',
+            type: 'cart-summary' as FormFieldType,
             label: ''
           },
           {
             id: 'customer-name',
-            type: 'text',
+            type: 'text' as FormFieldType,
             label: 'Full Name',
             placeholder: 'Your full name',
             required: true
           },
           {
             id: 'customer-phone',
-            type: 'phone',
+            type: 'phone' as FormFieldType,
             label: 'Phone Number',
             placeholder: 'Your phone number',
             required: true
           },
           {
             id: 'customer-address',
-            type: 'textarea',
+            type: 'textarea' as FormFieldType,
             label: 'Delivery Address',
             placeholder: 'Your complete address',
             required: true
           },
           {
             id: 'submit-2',
-            type: 'submit',
+            type: 'submit' as FormFieldType,
             label: 'Place Order',
             style: {
               backgroundColor: '#3b82f6',
@@ -601,7 +609,7 @@ export const formTemplates = [
         fields: [
           {
             id: 'form-title-3',
-            type: 'form-title',
+            type: 'form-title' as FormFieldType,
             label: 'Book Your Appointment',
             helpText: 'Fill in your details to schedule an appointment',
             style: {
@@ -616,21 +624,21 @@ export const formTemplates = [
           },
           {
             id: 'customer-name-3',
-            type: 'text',
+            type: 'text' as FormFieldType,
             label: 'Full Name',
             placeholder: 'Your full name',
             required: true
           },
           {
             id: 'customer-email-3',
-            type: 'email',
+            type: 'email' as FormFieldType,
             label: 'Email Address',
             placeholder: 'Your email address',
             required: true
           },
           {
             id: 'customer-phone-3',
-            type: 'phone',
+            type: 'phone' as FormFieldType,
             label: 'Phone Number',
             placeholder: 'Your phone number',
             required: true
@@ -643,19 +651,19 @@ export const formTemplates = [
         fields: [
           {
             id: 'appointment-date',
-            type: 'date',
+            type: 'date' as FormFieldType,
             label: 'Preferred Date',
             required: true
           },
           {
             id: 'appointment-time',
-            type: 'time',
+            type: 'time' as FormFieldType,
             label: 'Preferred Time',
             required: true
           },
           {
             id: 'appointment-service',
-            type: 'select',
+            type: 'select' as FormFieldType,
             label: 'Service',
             required: true,
             options: [
@@ -666,13 +674,13 @@ export const formTemplates = [
           },
           {
             id: 'appointment-notes',
-            type: 'textarea',
+            type: 'textarea' as FormFieldType,
             label: 'Additional Notes',
             placeholder: 'Any specific requirements or concerns'
           },
           {
             id: 'submit-3',
-            type: 'submit',
+            type: 'submit' as FormFieldType,
             label: 'Book Appointment',
             style: {
               backgroundColor: '#115e59',
