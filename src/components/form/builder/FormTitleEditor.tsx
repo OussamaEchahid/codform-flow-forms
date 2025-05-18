@@ -18,6 +18,7 @@ interface FormTitleEditorProps {
   formTitleField: FormField | undefined;
   onUpdateTitleField: (field: FormField) => void;
   isDraggable?: boolean;
+  formDirection?: 'ltr' | 'rtl';
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -28,7 +29,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onAddTitleField,
   formTitleField,
   onUpdateTitleField,
-  isDraggable = false
+  isDraggable = false,
+  formDirection
 }) => {
   const { language } = useI18n();
   const [backgroundColor, setBackgroundColor] = useState<string>('#9b87f5');
@@ -36,8 +38,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [descriptionColor, setDescriptionColor] = useState<string>('#ffffff');
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(language === 'ar' ? 'right' : 'center');
   const [isEditing, setIsEditing] = useState(false);
+  const [showTitle, setShowTitle] = useState(true);
+  const [showDescription, setShowDescription] = useState(true);
+  const [titleFontSize, setTitleFontSize] = useState('24px');
+  const [descriptionFontSize, setDescriptionFontSize] = useState('14px');
 
-  // Sortable setup for draggable functionality - make sure it's always enabled
+  // تكوين قابلية السحب
   const {
     attributes,
     listeners,
@@ -54,17 +60,21 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     transition,
   };
 
-  // Initialize values from formTitleField if it exists
+  // تهيئة القيم من formTitleField إذا كان موجودًا
   useEffect(() => {
     if (formTitleField) {
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
       setTextColor(formTitleField.style?.color || '#ffffff');
       setDescriptionColor(formTitleField.style?.descriptionColor || '#ffffff');
       setTextAlign((formTitleField.style?.textAlign as 'left' | 'center' | 'right') || 'center');
+      setShowTitle(formTitleField.style?.showTitle !== false);
+      setShowDescription(formTitleField.style?.showDescription !== false);
+      setTitleFontSize(formTitleField.style?.titleFontSize || '24px');
+      setDescriptionFontSize(formTitleField.style?.descriptionFontSize || '14px');
     }
   }, [formTitleField]);
 
-  // Handle field updates
+  // تحديث الحقل
   const handleFieldUpdate = () => {
     if (!formTitleField) {
       onAddTitleField();
@@ -81,6 +91,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
         color: textColor,
         descriptionColor,
         textAlign,
+        showTitle,
+        showDescription,
+        titleFontSize,
+        descriptionFontSize,
+        formDirection
       }
     };
 
@@ -88,7 +103,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     setIsEditing(false);
   };
 
-  // If we're not editing and no field exists, show simplified view
+  // إذا لم نكن في وضع التحرير ولا يوجد حقل، عرض العرض المبسط
   if (!isEditing && !formTitleField) {
     return (
       <Card className="mb-4 p-4 border-2 border-dashed border-purple-200 bg-purple-50">
@@ -115,12 +130,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     );
   }
 
-  // If the field exists or we're editing, show the full editor
+  // إذا كان الحقل موجودًا أو نحن في وضع التحرير، عرض المحرر الكامل
   return (
     <div
       ref={isDraggable ? setNodeRef : undefined}
       style={isDraggable ? style : undefined}
       className={`mb-4 ${isDraggable ? 'cursor-move' : ''}`}
+      data-field-type="form-title"
     >
       <Card className="p-4 border-2 border-purple-300 bg-white">
         {isEditing ? (
@@ -131,12 +147,21 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             textColor={textColor}
             descriptionColor={descriptionColor}
             textAlign={textAlign}
+            showTitle={showTitle}
+            showDescription={showDescription}
+            titleFontSize={titleFontSize}
+            descriptionFontSize={descriptionFontSize}
+            formDirection={formDirection}
             onTitleChange={onFormTitleChange}
             onDescriptionChange={onFormDescriptionChange}
             onBackgroundColorChange={setBackgroundColor}
             onTextColorChange={setTextColor}
             onDescriptionColorChange={setDescriptionColor}
             onTextAlignChange={setTextAlign}
+            onShowTitleChange={setShowTitle}
+            onShowDescriptionChange={setShowDescription}
+            onTitleFontSizeChange={setTitleFontSize}
+            onDescriptionFontSizeChange={setDescriptionFontSize}
             onSave={handleFieldUpdate}
             onCancel={() => setIsEditing(false)}
             language={language}
@@ -182,8 +207,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                   </Button>
                 </div>
               </div>
-              
-              {/* Removed TitlePreview from here to fix the double preview issue */}
             </div>
           </div>
         )}

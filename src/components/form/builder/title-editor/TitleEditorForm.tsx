@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import ColorSelector from './ColorSelector';
 import TextAlignmentSelector from './TextAlignmentSelector';
 import TitlePreview from './TitlePreview';
+import { Slider } from '@/components/ui/slider';
 
 interface TitleEditorFormProps {
   title: string;
@@ -17,6 +18,10 @@ interface TitleEditorFormProps {
   descriptionColor: string;
   textAlign: string;
   showDescription?: boolean;
+  showTitle?: boolean;
+  titleFontSize?: string;
+  descriptionFontSize?: string;
+  formDirection?: 'ltr' | 'rtl';
   onTitleChange: (title: string) => void;
   onDescriptionChange: (description: string) => void;
   onBackgroundColorChange: (color: string) => void;
@@ -24,6 +29,9 @@ interface TitleEditorFormProps {
   onDescriptionColorChange: (color: string) => void;
   onTextAlignChange: (align: 'left' | 'center' | 'right') => void;
   onShowDescriptionChange?: (show: boolean) => void;
+  onShowTitleChange?: (show: boolean) => void;
+  onTitleFontSizeChange?: (size: string) => void;
+  onDescriptionFontSizeChange?: (size: string) => void;
   onSave: () => void;
   onCancel?: () => void;
   language: string;
@@ -37,6 +45,10 @@ const TitleEditorForm: React.FC<TitleEditorFormProps> = ({
   descriptionColor,
   textAlign,
   showDescription = true,
+  showTitle = true,
+  titleFontSize = '1.5rem',
+  descriptionFontSize = '0.875rem',
+  formDirection,
   onTitleChange,
   onDescriptionChange,
   onBackgroundColorChange,
@@ -44,94 +56,177 @@ const TitleEditorForm: React.FC<TitleEditorFormProps> = ({
   onDescriptionColorChange,
   onTextAlignChange,
   onShowDescriptionChange,
+  onShowTitleChange,
+  onTitleFontSizeChange,
+  onDescriptionFontSizeChange,
   onSave,
   onCancel,
   language
 }) => {
+  // تحويل حجم الخط من رقم مع بكسل إلى رقم فقط للسلايدر
+  const getTitleFontSizeValue = () => {
+    const size = titleFontSize?.replace('px', '').replace('rem', '');
+    return parseFloat(size || '24');
+  };
+
+  const getDescFontSizeValue = () => {
+    const size = descriptionFontSize?.replace('px', '').replace('rem', '');
+    return parseFloat(size || '14');
+  };
+
+  // تحديث حجم الخط
+  const handleTitleFontSizeChange = (value: number[]) => {
+    if (onTitleFontSizeChange) {
+      onTitleFontSizeChange(`${value[0]}px`);
+    }
+  };
+
+  const handleDescFontSizeChange = (value: number[]) => {
+    if (onDescriptionFontSizeChange) {
+      onDescriptionFontSizeChange(`${value[0]}px`);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-        </label>
-        <Input
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          className="w-full"
-          placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
-        </label>
-        <Textarea
-          value={description}
-          onChange={(e) => onDescriptionChange(e.target.value)}
-          className="w-full"
-          placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
-        />
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <ColorSelector
-          label={language === 'ar' ? 'لون الخلفية' : 'Background Color'}
-          color={backgroundColor}
-          onChange={onBackgroundColorChange}
-          language={language}
-        />
-        
-        <ColorSelector
-          label={language === 'ar' ? 'لون النص' : 'Text Color'}
-          color={textColor}
-          onChange={onTextColorChange}
-          language={language}
-        />
-        
-        <ColorSelector
-          label={language === 'ar' ? 'لون الوصف' : 'Description Color'}
-          color={descriptionColor}
-          onChange={onDescriptionColorChange}
-          language={language}
-        />
-        
-        <TextAlignmentSelector
-          textAlign={textAlign}
-          onChange={onTextAlignChange}
-          language={language}
-        />
-      </div>
-      
-      {onShowDescriptionChange && (
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="show-description"
-            checked={showDescription}
-            onCheckedChange={onShowDescriptionChange}
-          />
-          <Label htmlFor="show-description">
-            {language === 'ar' ? 'إظهار الوصف' : 'Show Description'}
-          </Label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* العمود الأول - الإعدادات الأساسية */}
+        <div className="space-y-4">
+          {/* عنوان النموذج */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="block text-sm font-medium">
+                {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+              </Label>
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <Label htmlFor="show-title" className="text-xs text-gray-500">
+                  {language === 'ar' ? 'إظهار' : 'Show'}
+                </Label>
+                <Switch
+                  id="show-title"
+                  checked={showTitle}
+                  onCheckedChange={onShowTitleChange}
+                  size="sm"
+                />
+              </div>
+            </div>
+            <Input
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              className="w-full"
+              placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+              disabled={!showTitle}
+            />
+          </div>
+
+          {/* حجم خط العنوان */}
+          {showTitle && onTitleFontSizeChange && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label>
+                  {language === 'ar' ? 'حجم خط العنوان' : 'Title Font Size'}
+                </Label>
+                <span className="text-sm">{getTitleFontSizeValue()}px</span>
+              </div>
+              <Slider
+                value={[getTitleFontSizeValue()]}
+                min={12}
+                max={48}
+                step={1}
+                onValueChange={handleTitleFontSizeChange}
+              />
+            </div>
+          )}
+
+          {/* وصف النموذج */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="block text-sm font-medium">
+                {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+              </Label>
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <Label htmlFor="show-description" className="text-xs text-gray-500">
+                  {language === 'ar' ? 'إظهار' : 'Show'}
+                </Label>
+                <Switch
+                  id="show-description"
+                  checked={showDescription}
+                  onCheckedChange={onShowDescriptionChange}
+                  size="sm"
+                  disabled={!showTitle}
+                />
+              </div>
+            </div>
+            <Textarea
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              className="w-full"
+              placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+              disabled={!showTitle || !showDescription}
+            />
+          </div>
+
+          {/* حجم خط الوصف */}
+          {showTitle && showDescription && onDescriptionFontSizeChange && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label>
+                  {language === 'ar' ? 'حجم خط الوصف' : 'Description Font Size'}
+                </Label>
+                <span className="text-sm">{getDescFontSizeValue()}px</span>
+              </div>
+              <Slider
+                value={[getDescFontSizeValue()]}
+                min={10}
+                max={24}
+                step={1}
+                onValueChange={handleDescFontSizeChange}
+              />
+            </div>
+          )}
         </div>
-      )}
-      
-      <div className="mt-4 mb-2">
-        <h4 className="text-sm font-medium mb-2">
-          {language === 'ar' ? 'معاينة' : 'Preview'}
-        </h4>
-        <TitlePreview
-          backgroundColor={backgroundColor}
-          textColor={textColor}
-          descriptionColor={descriptionColor}
-          textAlign={textAlign}
-          title={title || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
-          description={description || (language === 'ar' ? 'وصف النموذج' : 'Form description')}
-          showDescription={showDescription}
-        />
+
+        {/* العمود الثاني - خيارات التنسيق والألوان */}
+        <div className="space-y-4">
+          {/* لون الخلفية */}
+          <ColorSelector
+            label={language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+            color={backgroundColor}
+            onChange={onBackgroundColorChange}
+            language={language}
+          />
+          
+          {/* لون العنوان */}
+          {showTitle && (
+            <ColorSelector
+              label={language === 'ar' ? 'لون العنوان' : 'Title Color'}
+              color={textColor}
+              onChange={onTextColorChange}
+              language={language}
+            />
+          )}
+          
+          {/* لون الوصف */}
+          {showTitle && showDescription && (
+            <ColorSelector
+              label={language === 'ar' ? 'لون الوصف' : 'Description Color'}
+              color={descriptionColor}
+              onChange={onDescriptionColorChange}
+              language={language}
+            />
+          )}
+          
+          {/* محاذاة النص */}
+          <TextAlignmentSelector
+            textAlign={textAlign}
+            onChange={onTextAlignChange}
+            language={language}
+          />
+        </div>
       </div>
-      
-      <div className="flex justify-end space-x-2">
+
+      {/* أزرار الحفظ والإلغاء */}
+      <div className="flex justify-end space-x-2 rtl:space-x-reverse">
         {onCancel && (
           <Button 
             variant="outline"

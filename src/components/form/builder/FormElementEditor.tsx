@@ -31,18 +31,17 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const { language } = useI18n();
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // تقليل مسافة التنشيط لجعل السحب أكثر حساسية
+  // ضبط السحب والإفلات ليكون أكثر استجابة
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
-      distance: 3 // أكثر حساسية من القيمة السابقة (5)
+      distance: 3 // أكثر حساسية للسحب
     }
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
 
-  // Force refresh drag and drop context when elements change
+  // إعادة تحميل سياق DndContext عندما تتغير العناصر
   useEffect(() => {
-    // This ensures DndContext is re-initialized when element list changes
     console.log("FormElementEditor: Elements updated, refreshing DndContext");
     setRefreshKey(prev => prev + 1);
   }, [elements.length]);
@@ -66,58 +65,72 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   };
   
-  // Handle element updates when they are edited directly from the SortableField
+  // معالجة تحديث العناصر عند تعديلها مباشرة من SortableField
   const handleElementUpdate = (index: number, field: FormField) => {
     try {
       console.log("Updating element", field.id, "at index", index);
       
-      // Make a deep copy of the field to avoid reference issues
+      // نسخ عميق للحقل لتجنب مشاكل المراجع
       const updatedField = JSON.parse(JSON.stringify(field));
       
-      // Normalize icon value (convert empty string to 'none')
+      // تطبيع قيمة الأيقونة (تحويل السلسلة الفارغة إلى 'none')
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Ensure proper icon settings
+      // تأكد من إعدادات الأيقونة الصحيحة
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Set showIcon based on existing value or default to true if icon exists
+        // تعيين showIcon بناءً على القيمة الموجودة أو الافتراضية إلى صحيح إذا كانت الأيقونة موجودة
         updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Handle form-title specific styling
+      // معالجة تنسيق عنوان النموذج المحدد
       if (updatedField.type === 'form-title' || updatedField.type === 'edit-form-title' || updatedField.type === 'title') {
-        // Make sure style object exists
+        // تأكد من وجود كائن النمط
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Ensure we have textAlign set
+        // تأكد من أن لدينا محاذاة نص محددة
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = 'center';
         }
         
-        // Default show description to true if not explicitly set
+        // تأكد من أن حالة إظهار الوصف متاحة
+        if (updatedField.style.showTitle === undefined) {
+          updatedField.style.showTitle = true;
+        }
+        
+        // وضع القيمة الافتراضية لإظهار الوصف إلى صحيح إذا لم تكن محددة صراحةً
         if (updatedField.style.showDescription === undefined) {
           updatedField.style.showDescription = true;
+        }
+        
+        // ضبط أحجام الخطوط إذا لم تكن محددة
+        if (!updatedField.style.titleFontSize) {
+          updatedField.style.titleFontSize = '24px';
+        }
+        
+        if (!updatedField.style.descriptionFontSize) {
+          updatedField.style.descriptionFontSize = '14px';
         }
         
         console.log("Updated form title field:", JSON.stringify(updatedField.style, null, 2));
       }
       
-      // Notify parent component about the update
+      // إخطار المكون الأصلي حول التحديث
       if (onUpdateElement) {
         onUpdateElement(index, updatedField);
         console.log(`Element ${updatedField.id} at index ${index} updated with:`, updatedField);
       }
       
-      // Force refresh the preview by selecting the element again
+      // إجبار تحديث المعاينة عن طريق تحديد العنصر مرة أخرى
       onSelectElement(index);
     } catch (error) {
       console.error("Error updating field:", error);
@@ -125,7 +138,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   };
   
-  // Check if there are any elements to display
+  // التحقق مما إذا كانت هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
   return (

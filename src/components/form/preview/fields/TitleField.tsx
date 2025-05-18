@@ -20,18 +20,23 @@ const TitleField: React.FC<TitleFieldProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Ensure we have the correct text direction
-  const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  // تأكد من توجيه النص الصحيح
+  const direction = formDirection || field.style?.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Use style from the field or fallback to defaults
+  // استخدم النمط من الحقل أو القيم الافتراضية
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
   const textAlign = field.style?.textAlign || 'center';
   const fontWeight = field.style?.fontWeight || 'bold';
-  const fontSize = field.style?.fontSize || '1.5rem';
-  const descriptionFontSize = field.style?.descriptionFontSize || '0.875rem';
+  const titleFontSize = field.style?.titleFontSize || '24px';
+  const descriptionFontSize = field.style?.descriptionFontSize || '14px';
   const showDescription = field.style?.showDescription !== false;
+  const showTitle = field.style?.showTitle !== false;
+  
+  if (!showTitle) {
+    return null;
+  }
   
   return (
     <div
@@ -49,7 +54,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
           color: textColor,
           textAlign: textAlign as any,
           fontWeight: fontWeight as any,
-          fontSize,
+          fontSize: titleFontSize,
           margin: 0,
         }}
       >

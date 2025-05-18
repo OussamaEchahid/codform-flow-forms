@@ -22,7 +22,10 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
   const [textColor, setTextColor] = useState(field.style?.color || '#ffffff');
   const [descriptionColor, setDescriptionColor] = useState(field.style?.descriptionColor || '#ffffff');
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>((field.style?.textAlign as 'left' | 'center' | 'right') || 'center');
+  const [showTitle, setShowTitle] = useState(field.style?.showTitle !== false);
   const [showDescription, setShowDescription] = useState(field.style?.showDescription !== false);
+  const [titleFontSize, setTitleFontSize] = useState(field.style?.titleFontSize || '24px');
+  const [descriptionFontSize, setDescriptionFontSize] = useState(field.style?.descriptionFontSize || '14px');
   
   const handleUpdate = () => {
     const updatedField = {
@@ -35,7 +38,10 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
         color: textColor,
         descriptionColor,
         textAlign,
+        showTitle,
         showDescription,
+        titleFontSize,
+        descriptionFontSize
       }
     };
     onChange(updatedField);
@@ -54,14 +60,21 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
         textColor={textColor}
         descriptionColor={descriptionColor}
         textAlign={textAlign}
+        showTitle={showTitle}
         showDescription={showDescription}
+        titleFontSize={titleFontSize}
+        descriptionFontSize={descriptionFontSize}
+        formDirection={field.style?.formDirection}
         onTitleChange={setLabel}
         onDescriptionChange={setHelpText}
         onBackgroundColorChange={setBackgroundColor}
         onTextColorChange={setTextColor}
         onDescriptionColorChange={setDescriptionColor}
         onTextAlignChange={setTextAlign}
+        onShowTitleChange={setShowTitle}
         onShowDescriptionChange={setShowDescription}
+        onTitleFontSizeChange={setTitleFontSize}
+        onDescriptionFontSizeChange={setDescriptionFontSize}
         onSave={handleUpdate}
         language={language}
       />
