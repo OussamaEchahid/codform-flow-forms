@@ -1,4 +1,3 @@
-
 .form-control {
   margin-bottom: 0.8rem;
 }
@@ -141,7 +140,7 @@
   color: var(--form-primary-color, #9b87f5);
 }
 
-/* RTL Support */
+/* RTL Support - Enhanced for better text direction */
 [dir="rtl"] .form-checkbox, [dir="rtl"] .form-radio {
   margin-right: 0;
   margin-left: 0.5rem;
@@ -406,31 +405,338 @@
   animation-fill-mode: both !important;
 }
 
-/* تحسين المسافات بين حقول النموذج في المعاينة */
-.space-y-4 {
-  --tw-space-y-reverse: 0;
-  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
-  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+/* تحسين تنسيق النموذج لتطابق تماما مع المعاينة */
+.codform-form {
+  background-color: #F9FAFB !important;
+  border-radius: 8px;
+  margin: 0;
 }
 
-.space-y-4 > * {
-  margin-bottom: 8px;
+/* تصحيح موضع الأيقونات ومحاذاة حقول الإدخال - تحسين دعم RTL/LTR */
+/* Icon positioning - Enhanced for RTL/LTR support */
+.codform-field-icon {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  position: absolute !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2 !important;
 }
 
-.space-y-4 > *:last-child {
-  margin-bottom: 0;
+/* Improved LTR icon positioning */
+[dir="ltr"] .codform-field-icon,
+.ltr .codform-field-icon,
+.codform-field[dir="ltr"] .codform-field-icon,
+div[data-direction="ltr"] .codform-field-icon,
+.ltr-icon {
+  left: 12px !important;
+  right: auto !important;
 }
 
-.space-y-2 {
-  --tw-space-y-reverse: 0;
-  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
-  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+/* Improved RTL icon positioning */
+[dir="rtl"] .codform-field-icon,
+.rtl .codform-field-icon,
+.codform-field[dir="rtl"] .codform-field-icon,
+div[data-direction="rtl"] .codform-field-icon,
+.rtl-icon {
+  right: 12px !important;
+  left: auto !important;
 }
 
-.space-y-2 > * {
-  margin-bottom: 6px;
+/* Field alignment based on direction - Enhanced specificity */
+/* LTR field labels */
+[dir="ltr"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+.ltr .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+div[data-direction="ltr"]:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+.codform-field[dir="ltr"]:not([data-field-type="form-title"]):not([data-field-type="title"]) label {
+  text-align: left !important;
 }
 
-.space-y-2 > *:last-child {
-  margin-bottom: 0;
+/* RTL field labels */
+[dir="rtl"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+.rtl .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+div[data-direction="rtl"]:not([data-field-type="form-title"]):not([data-field-type="title"]) label,
+.codform-field[dir="rtl"]:not([data-field-type="form-title"]):not([data-field-type="title"]) label {
+  text-align: right !important;
+}
+
+/* إزالة الخلفية البيضاء من داخل النموذج */
+.codform-container,
+.codform-form,
+.codform-form > div {
+  background-color: #F9FAFB !important;
+}
+
+/* تصحيح الهوامش بين الحقول */
+.codform-field {
+  margin-bottom: 12px !important;
+}
+
+/* ضمان أن خلفية العنوان تظهر دائمًا */
+.codform-title-container {
+  margin-bottom: 16px !important;
+  background-color: var(--form-primary-color, #9b87f5) !important;
+  display: block !important;
+  width: 100% !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+}
+
+.codform-form-title, .codform-title-description {
+  color: #ffffff !important;
+}
+
+/* تصحيح اتجاه النص في العناصر الأخرى وفقًا للقيمة dir */
+/* Enhanced RTL text direction for form fields */
+[dir="rtl"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="rtl"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="rtl"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="rtl"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.rtl .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.rtl .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.rtl .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.rtl .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="rtl"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="rtl"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="rtl"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="rtl"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
+  direction: rtl !important;
+}
+
+/* Enhanced LTR text direction for form fields */
+[dir="ltr"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="ltr"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="ltr"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+[dir="ltr"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.ltr .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.ltr .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.ltr .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+.ltr .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="ltr"] .codform-field:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="ltr"] .codform-field-wrapper:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="ltr"] .codform-input:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]),
+div[data-direction="ltr"] .codform-textarea:not([data-field-type="form-title"]):not([data-field-type="title"]):not([data-field-type="submit"]) {
+  direction: ltr !important;
+}
+
+/* تأكيد من تطبيق إضافة المساحات الداخلية للحقول عند وجود أيقونة */
+/* Enhanced padding for RTL fields with icons */
+[dir="rtl"] .with-icon,
+.rtl .with-icon,
+div[data-direction="rtl"] .with-icon,
+input.codform-input[dir="rtl"].with-icon,
+textarea.codform-textarea[dir="rtl"].with-icon,
+.codform-field[dir="rtl"] input.with-icon,
+.codform-field[dir="rtl"] textarea.with-icon {
+  padding-right: 36px !important;
+  padding-left: 12px !important;
+  text-align: right !important;
+}
+
+/* Enhanced padding for LTR fields with icons */
+[dir="ltr"] .with-icon,
+.ltr .with-icon,
+div[data-direction="ltr"] .with-icon,
+input.codform-input[dir="ltr"].with-icon,
+textarea.codform-textarea[dir="ltr"].with-icon,
+.codform-field[dir="ltr"] input.with-icon,
+.codform-field[dir="ltr"] textarea.with-icon {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
+  text-align: left !important;
+}
+
+/* تحسين عرض العنوان بإضافة أهمية عالية للمظهر */
+.codform-form-title, .codform-title-description {
+  color: #ffffff !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+/* ضمان أن النص في الإدخالات يتم محاذاته بشكل صحيح */
+/* RTL input/textarea text alignment with high specificity */
+[dir="rtl"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+[dir="rtl"] textarea,
+.rtl input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.rtl textarea,
+input[dir="rtl"]:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+textarea[dir="rtl"],
+.codform-field[dir="rtl"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.codform-field[dir="rtl"] textarea,
+div[data-direction="rtl"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+div[data-direction="rtl"] textarea {
+  text-align: right !important;
+}
+
+/* LTR input/textarea text alignment with high specificity */
+[dir="ltr"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+[dir="ltr"] textarea,
+.ltr input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.ltr textarea,
+input[dir="ltr"]:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+textarea[dir="ltr"],
+.codform-field[dir="ltr"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.codform-field[dir="ltr"] textarea,
+div[data-direction="ltr"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+div[data-direction="ltr"] textarea {
+  text-align: left !important;
+}
+
+/* Ensure address field stays right aligned in RTL */
+[dir="rtl"] [data-field-type="textarea"] textarea,
+.rtl [data-field-type="textarea"] textarea,
+div[data-direction="rtl"] [data-field-type="textarea"] textarea,
+textarea[data-field-type="textarea"][dir="rtl"] {
+  text-align: right !important;
+}
+
+/* Make sure submit button text stays centered and doesn't change with RTL */
+.codform-submit-btn {
+  text-align: center !important;
+}
+
+/* Force center alignment for title field regardless of direction */
+[data-field-type="form-title"],
+[data-field-type="title"] {
+  text-align: center !important;
+}
+
+[data-field-type="form-title"] *,
+[data-field-type="title"] * {
+  text-align: center !important;
+}
+
+/* Keep title centered regardless of direction */
+.codform-title-container,
+.codform-form-title, 
+.codform-title-description {
+  text-align: center !important;
+}
+
+/* تأكيد أن المحتوى الموجّه (placeholder) يتبع الاتجاه الصحيح */
+/* Enhanced RTL placeholder styling with high specificity */
+[dir="rtl"] input::placeholder, 
+[dir="rtl"] textarea::placeholder,
+.rtl input::placeholder, 
+.rtl textarea::placeholder,
+input[dir="rtl"]::placeholder, 
+textarea[dir="rtl"]::placeholder,
+.codform-field[dir="rtl"] input::placeholder,
+.codform-field[dir="rtl"] textarea::placeholder,
+div[data-direction="rtl"] input::placeholder,
+div[data-direction="rtl"] textarea::placeholder,
+*[data-direction="rtl"] input::placeholder,
+*[data-direction="rtl"] textarea::placeholder,
+input.rtl::placeholder,
+textarea.rtl::placeholder {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* Enhanced LTR placeholder styling with high specificity */
+[dir="ltr"] input::placeholder, 
+[dir="ltr"] textarea::placeholder,
+.ltr input::placeholder, 
+.ltr textarea::placeholder,
+input[dir="ltr"]::placeholder, 
+textarea[dir="ltr"]::placeholder,
+.codform-field[dir="ltr"] input::placeholder,
+.codform-field[dir="ltr"] textarea::placeholder,
+div[data-direction="ltr"] input::placeholder,
+div[data-direction="ltr"] textarea::placeholder,
+*[data-direction="ltr"] input::placeholder,
+*[data-direction="ltr"] textarea::placeholder,
+input.ltr::placeholder,
+textarea.ltr::placeholder {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+/* Placeholder styles for Firefox */
+[dir="rtl"] input::-moz-placeholder, 
+[dir="rtl"] textarea::-moz-placeholder {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+[dir="ltr"] input::-moz-placeholder, 
+[dir="ltr"] textarea::-moz-placeholder {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+/* Placeholder styles for Edge */
+[dir="rtl"] input::-ms-input-placeholder, 
+[dir="rtl"] textarea::-ms-input-placeholder {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+[dir="ltr"] input::-ms-input-placeholder, 
+[dir="ltr"] textarea::-ms-input-placeholder {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+/* تحسين عرض العلامة النجمية للحقول المطلوبة */
+/* Improved required field star marker positioning */
+[dir="rtl"] .codform-field label .text-red-500,
+[dir="rtl"] .codform-field label .codform-required,
+.rtl .codform-field label .text-red-500,
+.rtl .codform-field label .codform-required,
+.codform-field[dir="rtl"] label .text-red-500,
+.codform-field[dir="rtl"] label .codform-required {
+  margin-right: 4px !important;
+  margin-left: 0 !important;
+}
+
+[dir="ltr"] .codform-field label .text-red-500,
+[dir="ltr"] .codform-field label .codform-required,
+.ltr .codform-field label .text-red-500,
+.ltr .codform-field label .codform-required,
+.codform-field[dir="ltr"] label .text-red-500,
+.codform-field[dir="ltr"] label .codform-required {
+  margin-left: 4px !important;
+  margin-right: 0 !important;
+}
+
+/* Apply direction to all RTL/LTR containers */
+.rtl,
+[dir="rtl"],
+div[data-direction="rtl"],
+.codform-field[dir="rtl"] {
+  direction: rtl !important;
+}
+
+.ltr,
+[dir="ltr"],
+div[data-direction="ltr"],
+.codform-field[dir="ltr"] {
+  direction: ltr !important;
+}
+
+/* Force RTL for specific classes when needed */
+.force-rtl {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Force LTR for specific classes when needed */
+.force-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Ensure input/textarea text follows the correct direction */
+input.rtl, textarea.rtl, select.rtl, 
+.rtl input, .rtl textarea, .rtl select,
+[dir="rtl"] input, [dir="rtl"] textarea, [dir="rtl"] select {
+  text-align: right !important;
+}
+
+input.ltr, textarea.ltr, select.ltr,
+.ltr input, .ltr textarea, .ltr select,
+[dir="ltr"] input, [dir="ltr"] textarea, [dir="ltr"] select {
+  text-align: left !important;
 }

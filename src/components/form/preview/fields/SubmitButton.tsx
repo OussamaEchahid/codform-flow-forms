@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -13,13 +13,17 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Get animation class if set - Fixed animation functionality
+  // Determine direction based on formDirection prop or language
+  const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  
+  // Get animation class if set
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -36,56 +40,73 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling - ensure proper handling of pixel values
-  const buttonStyle = {
+  // Default button styling with exact pixel values matching preview
+  const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '19px', // Default fontSize is 19px
-    fontWeight: style.fontWeight || 'bold',
+    fontSize: style.fontSize || '18px',
+    fontWeight: style.fontWeight || '600',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    paddingTop: style.paddingY || '15px', // Default paddingY is 15px 
-    paddingBottom: style.paddingY || '15px', // Default paddingY is 15px
-    paddingLeft: '20px',
-    paddingRight: '20px',
+    padding: '14px 24px',
+    paddingTop: style.paddingY || '14px',
+    paddingBottom: style.paddingY || '14px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
     width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center', // Always center the content regardless of icon position
+    justifyContent: 'center',
     gap: '8px',
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '0px', // Removed margin completely to bring it closer to previous field
+    marginTop: '14px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    position: 'relative',
+    overflow: 'hidden',
+    textAlign: 'center'
   };
   
-  // Icon rendering with improved support for multiple icon types
+  // Icon rendering with consistent sizing and positioning
   const renderIcon = () => {
     if (!style.showIcon) return null;
+    
+    // Add specific styling for the icon to match preview exactly
+    const iconStyle = {
+      width: '18px',
+      height: '18px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    };
     
     // Return Lucide React icon components based on icon name
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
-        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
+        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'arrow-right':
-        return language === 'ar' ? 
-          <ArrowRight size={16} color={style.color || '#ffffff'} style={{ transform: 'scaleX(-1)' }} /> : 
-          <ArrowRight size={16} color={style.color || '#ffffff'} />;
+        return textDir === 'rtl' ? 
+          <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
+          <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'check':
-        return <Check size={16} color={style.color || '#ffffff'} />;
+        return <Check size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'send':
-        return <Send size={16} color={style.color || '#ffffff'} />;
+        return <Send size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'cart':
-        return <ShoppingCart size={16} color={style.color || '#ffffff'} />;
+      case 'shopping-bag':
+        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'phone':
+        return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       default:
         return null;
     }
   };
 
   // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || 'right';
+  const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
   const icon = renderIcon();
   
   return (
@@ -97,9 +118,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         animationClass,
       )}
       style={buttonStyle}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={textDir}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
+      data-has-animation={style.animation ? 'true' : 'false'}
+      data-icon-position={iconPosition}
+      data-has-icon={style.showIcon ? 'true' : 'false'}
+      data-direction={textDir}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

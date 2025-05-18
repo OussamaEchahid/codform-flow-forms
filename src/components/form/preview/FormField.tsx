@@ -1,19 +1,19 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
 import CheckboxGroup from './fields/CheckboxGroup';
-import TitleField from './fields/TitleField';
+import ImageField from './fields/ImageField';
+import SubmitButton from './fields/SubmitButton';
 import CartItems from './fields/CartItems';
 import CartSummary from './fields/CartSummary';
-import SubmitButton from './fields/SubmitButton';
+import TitleField from './fields/TitleField';
+import HtmlContent from './fields/HtmlContent';
 import ShippingOptions from './fields/ShippingOptions';
 import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
-import ImageField from './fields/ImageField';
-import HtmlContent from './fields/HtmlContent';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -23,156 +23,78 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const animationStyles = `
-  @keyframes pulse-animation {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
+const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDirection }) => {
+  // Determine field class based on direction
+  const directionClass = formDirection === 'rtl' ? 'rtl' : 'ltr';
   
-  @keyframes shake-animation {
-    0% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
-  }
-  
-  @keyframes bounce-animation {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-  
-  @keyframes wiggle-animation {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-3deg); }
-    75% { transform: rotate(3deg); }
-  }
-  
-  @keyframes flash-animation {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-  
-  .pulse-animation {
-    animation: pulse-animation 2s infinite ease-in-out;
-  }
-  
-  .shake-animation {
-    animation: shake-animation 2s infinite ease-in-out;
-  }
-  
-  .bounce-animation {
-    animation: bounce-animation 2s infinite ease-in-out;
-  }
-  
-  .wiggle-animation {
-    animation: wiggle-animation 2s infinite ease-in-out;
-  }
-  
-  .flash-animation {
-    animation: flash-animation 2s infinite ease-in-out;
-  }
-`;
-
-// Generate a key for FormField to force re-render when field properties change
-const getFieldKey = (field: FormFieldType) => {
-  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
-};
-
-// Remove memo to ensure component always updates when props change
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
-  if (!field || !field.type) {
-    console.warn('Invalid field:', field);
-    return null;
-  }
-
-  // Normalize field properties - ensure icon settings are properly applied
-  const normalizedField = {
-    ...field,
-    icon: field.icon === '' ? 'none' : field.icon,
-    style: {
-      ...field.style,
-      // Set default showIcon to true if icon is present and not none
-      showIcon: field.style?.showIcon !== undefined ? 
-        field.style.showIcon : 
-        (field.icon && field.icon !== 'none')
+  // Get the field component based on type
+  const getFieldComponent = () => {
+    switch (field.type) {
+      case 'text':
+      case 'email':
+      case 'phone':
+      case 'city':
+        return <TextInput field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'textarea':
+        return <TextArea field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'radio':
+        return <RadioGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'checkbox':
+        return <CheckboxGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'image':
+        return <ImageField field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'submit':
+        return <SubmitButton field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'cart-items':
+        return <CartItems field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'cart-summary':
+        return <CartSummary field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'form-title':
+      case 'title':
+        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'html':
+        return <HtmlContent field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'shipping-options':
+        return <ShippingOptions field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'countdown-timer':
+        return <CountdownTimer field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      case 'whatsapp-button':
+        return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
+      default:
+        return (
+          <div dir={formDirection} className={directionClass}>
+            Unsupported field type: {field.type}
+          </div>
+        );
     }
   };
-
-  // Handle field type mapping
-  let fieldType = normalizedField.type;
-  
-  // Map email and phone to text inputs
-  if (fieldType === 'email' || fieldType === 'phone') {
-    fieldType = 'text';
-  }
-
-  // Check if this field type is supported in the store preview
-  const supportedStoreFieldTypes = [
-    'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
-    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary'
-  ];
-  
-  const isSupported = supportedStoreFieldTypes.includes(fieldType);
-
-  // Log animation data if this is a submit button
-  if (fieldType === 'submit' && normalizedField.style) {
-    const animationType = normalizedField.style.animationType || 'none';
-    const hasAnimation = !!normalizedField.style.animation;
-    
-    if (hasAnimation) {
-      console.log(`Submit button using animation: ${animationType}`);
-    }
-  }
-
-  const components: { [key: string]: React.FC<FormFieldProps> } = {
-    'text': TextInput,
-    'textarea': TextArea,
-    'radio': RadioGroup,
-    'checkbox': CheckboxGroup,
-    'title': TitleField,
-    'form-title': TitleField, // Use TitleField component for form-title type
-    'text/html': HtmlContent,
-    'cart-items': CartItems,
-    'cart-summary': CartSummary,
-    'submit': SubmitButton,
-    'shipping': ShippingOptions,
-    'countdown': CountdownTimer,
-    'whatsapp': WhatsAppButton,
-    'image': ImageField,
-  };
-
-  const Component = components[fieldType];
-  if (!Component) {
-    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
-    return null;
-  }
-
-  // Generate a unique key for this field instance to force re-render when props change
-  const fieldKey = getFieldKey(field);
-  
-  // Adjust margins: use smaller margins for all fields, and make submit button very close to previous field
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // Changed from mt-1 to mt-0 for submit button
-
-  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
-    return (
-      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey}>
-        <Component field={normalizedField} formStyle={formStyle} />
-        <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
-          {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className={marginClass} key={fieldKey}>
-      <style>{animationStyles}</style>
-      <Component field={normalizedField} formStyle={formStyle} />
+    <div 
+      className={`form-field-wrapper ${directionClass}`} 
+      data-field-type={field.type}
+      data-direction={formDirection}
+      dir={formDirection}
+    >
+      {getFieldComponent()}
     </div>
   );
 };
 
-// Remove displayName since we're not using memo anymore
-export default FormField;
+export default FormFieldComponent;
