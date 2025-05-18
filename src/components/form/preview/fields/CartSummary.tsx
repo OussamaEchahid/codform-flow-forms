@@ -10,11 +10,15 @@ interface CartSummaryProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle }) => {
+const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // استخدام نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
@@ -23,12 +27,21 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle }) => {
   const showTitle = field.label !== '' && field.label !== undefined;
   
   return (
-    <div className="mb-6 codform-cart-summary">
+    <div 
+      className="mb-6 codform-cart-summary"
+      dir={textDirection}
+      data-direction={textDirection}
+    >
       {showTitle && (
-        <h3 className="text-lg font-medium mb-3" style={{
-          color: fieldStyle.color || '#1f2937',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
-        }}>
+        <h3 
+          className="text-lg font-medium mb-3" 
+          style={{
+            color: fieldStyle.color || '#1f2937',
+            fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
+            textAlign: textDirection === 'rtl' ? 'right' : 'left'
+          }}
+          dir={textDirection}
+        >
           {field.label || (language === 'ar' ? 'ملخص الطلب' : 'Order Summary')}
         </h3>
       )}
@@ -38,10 +51,17 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle }) => {
           borderRadius,
           backgroundColor: fieldStyle.backgroundColor || '#f9fafb',
           borderColor: fieldStyle.borderColor || '#e5e7eb',
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: textDirection,
         }}
+        dir={textDirection}
       >
-        <div className="flex justify-between mb-3" data-product-price-display="subtotal">
+        <div 
+          className="flex justify-between mb-3" 
+          data-product-price-display="subtotal"
+          style={{
+            flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
+          }}
+        >
           <span style={{ 
             fontSize: fieldStyle.labelFontSize || '1rem',
             color: fieldStyle.labelColor || '#6b7280' 
@@ -56,7 +76,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle }) => {
             $99.00
           </span>
         </div>
-        <div className="flex justify-between mb-3">
+        <div 
+          className="flex justify-between mb-3"
+          style={{
+            flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
+          }}
+        >
           <span style={{ 
             fontSize: fieldStyle.labelFontSize || '1rem',
             color: fieldStyle.labelColor || '#6b7280' 
@@ -71,7 +96,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle }) => {
             $10.00
           </span>
         </div>
-        <div className="border-t pt-3 mt-3 flex justify-between">
+        <div 
+          className="border-t pt-3 mt-3 flex justify-between"
+          style={{
+            flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
+          }}
+        >
           <span style={{
             fontSize: fieldStyle.totalLabelFontSize || '1.1rem',
             color: fieldStyle.totalLabelColor || '#1f2937',

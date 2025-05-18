@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -36,48 +35,61 @@ export type FormFieldType =
   'cart-items' |
   'cart-summary' |
   'shipping-options' |
-  'phone' |  // Added phone type
-  'form-title' |  // Added form-title type
-  'text/html';  // Added text/html type
+  'phone' |
+  'form-title' |
+  'text/html';
 
 export interface FormFieldOption {
   value: string;
   label: string;
 }
 
+// تحسين واجهة نمط الحقل لتضمين جميع الخصائص المطلوبة
 export interface FormFieldStyle {
-  // Base properties
+  // الخصائص الأساسية
   color?: string;
   backgroundColor?: string;
   fontSize?: string;
   fontWeight?: string;
   textAlign?: string;
   
-  // Description properties
+  // خصائص الوصف
   descriptionColor?: string;
   descriptionFontSize?: string;
-  // Note: descriptionFontWeight is removed as it's not needed
   
-  // Border properties
+  // خصائص الحدود
   borderRadius?: string;
   borderColor?: string;
   borderWidth?: string;
   
-  // Animation properties
+  // خصائص الرسوم المتحركة - تصحيح نوع animationType ليكون قيمة محددة
   animation?: boolean;
-  animationType?: string;
+  animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
   
-  // Icon properties
-  iconPosition?: string;
+  // خصائص الأيقونة
+  showIcon?: boolean;
+  iconPosition?: 'left' | 'right';
   icon?: string;
+  
+  // خصائص إضافية
   fullWidth?: boolean;
   fontFamily?: string;
   
-  // Cart item and summary specific properties
+  // خصائص التسمية
+  labelColor?: string;
+  labelFontSize?: string;
+  labelFontWeight?: string;
+  showLabel?: boolean;
+  
+  // خصائص التباعد
+  paddingY?: string;
+  paddingX?: string;
+  marginTop?: string;
+  marginBottom?: string;
+  
+  // خصائص خاصة بعناصر السلة
   priceFontSize?: string;
   priceColor?: string;
-  labelFontSize?: string;
-  labelColor?: string;
   valueFontSize?: string;
   valueColor?: string;
   totalLabelFontSize?: string;
@@ -100,7 +112,9 @@ export interface FormField {
     label: string;
   }>;
   
-  // Additional properties
+  // خصائص إضافية
+  inputFor?: string;
+  errorMessage?: string;
   defaultValue?: string | string[];
   disabled?: boolean;
   src?: string;
@@ -145,12 +159,12 @@ export interface FloatingButtonConfig {
   textColor?: string;
   backgroundColor?: string;
   
-  // Position properties
+  // خصائص الموضع
   position?: 'bottom' | 'top' | 'left' | 'right';
   showOnMobile?: boolean;
   showOnDesktop?: boolean;
   
-  // Style properties
+  // خصائص النمط
   fontFamily?: string;
   fontSize?: string;
   fontWeight?: string;
@@ -160,11 +174,11 @@ export interface FloatingButtonConfig {
   paddingY?: string;
   marginBottom?: string;
   
-  // Icon properties
+  // خصائص الأيقونة
   showIcon?: boolean;
   icon?: string;
   
-  // Animation properties
+  // خصائص الرسوم المتحركة
   animation?: string;
 }
 
@@ -230,7 +244,7 @@ export const extractFormSections = (form: FormData): Array<{ title: string; fiel
   }));
 };
 
-// Function to create an empty field based on type
+// تحسين دالة إنشاء حقل فارغ لتضمين جميع الخصائص المطلوبة
 export const createEmptyField = (type: FormFieldType): FormField => {
   let newField: FormField = {
     id: uuidv4(),
@@ -239,19 +253,19 @@ export const createEmptyField = (type: FormFieldType): FormField => {
     required: false,
   };
 
-  // Add field-specific configuration
+  // إضافة تكوين خاص بالحقل
   switch (type) {
     case 'form-title':
       newField.label = 'عنوان النموذج المخصص';
       newField.helpText = 'وصف النموذج (اختياري)';
       newField.style = {
         textAlign: 'center',
-        color: '#1A1F2C',
+        color: '#ffffff',
         fontSize: '24px',
         fontWeight: 'bold',
-        descriptionColor: '#6b7280',
+        descriptionColor: '#ffffff',
         descriptionFontSize: '14px',
-        backgroundColor: '',
+        backgroundColor: '#9b87f5',
       };
       break;
     case 'text':
@@ -306,8 +320,15 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         backgroundColor: '#9b87f5',
         color: '#ffffff',
         fontSize: '18px',
+        fontWeight: '600',
         animation: true,
         animationType: 'pulse',
+        showIcon: true,
+        icon: 'shopping-cart',
+        iconPosition: 'left',
+        borderRadius: '8px',
+        paddingY: '14px',
+        paddingX: '24px',
       };
       break;
     case 'text/html':
@@ -319,6 +340,9 @@ export const createEmptyField = (type: FormFieldType): FormField => {
       newField.style = {
         fontWeight: 'bold',
         fontSize: '20px',
+        color: '#1A1F2C',
+        textAlign: 'center',
+        backgroundColor: '#F6F6F7',
       };
       break;
     case 'whatsapp':
@@ -335,11 +359,11 @@ export const createEmptyField = (type: FormFieldType): FormField => {
   return newField;
 };
 
-// Create a complete default form with all required fields
+// تحسين دالة إنشاء نموذج افتراضي مع جميع الحقول المطلوبة
 export const createDefaultForm = (): FormStep[] => {
   const defaultFields: FormField[] = [];
   
-  // Add form title field
+  // إضافة حقل عنوان النموذج
   defaultFields.push({
     type: 'form-title',
     id: uuidv4(),
@@ -347,7 +371,7 @@ export const createDefaultForm = (): FormStep[] => {
     helpText: 'نموذج جديد',
     style: {
       color: '#ffffff',
-      textAlign: 'right',
+      textAlign: 'center',
       fontWeight: 'bold',
       fontSize: '24px',
       descriptionColor: '#ffffff',
@@ -356,7 +380,7 @@ export const createDefaultForm = (): FormStep[] => {
     }
   });
   
-  // Add name field
+  // إضافة حقل الاسم
   defaultFields.push({
     type: 'text',
     id: uuidv4(),
@@ -366,7 +390,7 @@ export const createDefaultForm = (): FormStep[] => {
     icon: 'user',
   });
   
-  // Add phone field
+  // إضافة حقل الهاتف
   defaultFields.push({
     type: 'phone',
     id: uuidv4(),
@@ -376,7 +400,17 @@ export const createDefaultForm = (): FormStep[] => {
     icon: 'phone',
   });
   
-  // Add address field
+  // إضافة حقل المدينة
+  defaultFields.push({
+    type: 'text',
+    id: uuidv4(),
+    label: 'المدينة',
+    placeholder: 'أدخل اسم المدينة',
+    required: true,
+    icon: 'map-pin',
+  });
+  
+  // إضافة حقل العنوان
   defaultFields.push({
     type: 'textarea',
     id: uuidv4(),
@@ -385,17 +419,26 @@ export const createDefaultForm = (): FormStep[] => {
     required: true,
   });
   
-  // Add submit button
+  // إضافة زر الإرسال مع تكوين محدث
   defaultFields.push({
     type: 'submit',
     id: uuidv4(),
-    label: 'إرسال الطلب',
+    label: 'الدفع عند الاستلام',
     style: {
-      backgroundColor: '#9b87f5',
+      backgroundColor: '#000000',
       color: '#ffffff',
       fontSize: '18px',
+      fontWeight: '600',
       animation: true,
-      animationType: 'pulse',
+      animationType: 'shake',
+      borderRadius: '6px',
+      borderColor: '#eaeaff',
+      borderWidth: '0px',
+      paddingY: '14px',
+      showIcon: true,
+      icon: 'shopping-cart',
+      iconPosition: 'left',
+      paddingX: '24px'
     },
   });
   

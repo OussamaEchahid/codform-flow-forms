@@ -4,8 +4,6 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
-import { Button } from '@/components/ui/button';
-import { Edit, Copy, Trash } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 
@@ -17,6 +15,7 @@ interface FormElementEditorProps {
   onDeleteElement: (index: number) => void;
   onDuplicateElement: (index: number) => void;
   onReorderElements?: (newOrder: FormField[]) => void;
+  onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
@@ -26,11 +25,10 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onEditElement,
   onDeleteElement,
   onDuplicateElement,
-  onReorderElements
+  onReorderElements,
+  onUpdateElement
 }) => {
-  const {
-    language
-  } = useI18n();
+  const { language } = useI18n();
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -60,6 +58,34 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   };
   
+  // Handle element updates when they are edited directly from the SortableField
+  const handleElementUpdate = (index: number, field: FormField) => {
+    // Normalize icon value (convert empty string to 'none')
+    if (field.icon === '') {
+      field.icon = 'none';
+    }
+    
+    // Ensure proper icon settings
+    if (field.icon && field.icon !== 'none') {
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Set showIcon based on existing value or default to true if icon exists
+      field.style.showIcon = field.style.showIcon !== undefined 
+        ? field.style.showIcon 
+        : true;
+    }
+    
+    // Notify parent component about the update
+    if (onUpdateElement) {
+      onUpdateElement(index, field);
+    }
+    
+    // Force refresh the preview
+    onSelectElement(index);
+  };
+  
   // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
@@ -81,9 +107,10 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             <SortableField 
               key={element.id} 
               field={element} 
-              onEdit={() => onEditElement(index)} 
+              onEdit={() => onEditElement(index)}
               onDuplicate={() => onDuplicateElement(index)} 
-              onDelete={() => onDeleteElement(index)} 
+              onDelete={() => onDeleteElement(index)}
+              onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
             />
           ))}
         </SortableContext>

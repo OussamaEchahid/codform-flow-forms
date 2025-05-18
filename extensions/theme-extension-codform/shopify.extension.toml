@@ -7,11 +7,59 @@ handle = "theme-extension-codform"
 namespace = "codform"
 key = "settings"
 
-[[extensions.blocks]]
-name = "نموذج الدفع عند الاستلام"
+[[blocks]]
+name = "COD Form نموذج"
 handle = "codform_form"
 type = "product"
 target = "section"
 
-[extensions.settings]
+[blocks.settings]
+[[blocks.settings.fields]]
+key = "is_rtl"
+type = "checkbox"
+default = false
+
+[blocks.settings.fields.label]
+en = "RTL Direction"
+ar = "اتجاه من اليمين إلى اليسار"
+
+[blocks.settings.fields.info]
+en = "Enable right-to-left text direction"
+ar = "تفعيل إتجاه النص من اليمين إلى اليسار"
+
+[settings]
 # Global extension settings
+
+[[settings.fields]]
+key = "insertion_method"
+type = "select"
+default = "manual"
+
+[settings.fields.label]
+en = "Form Insertion Method"
+ar = "طريقة إدراج النموذج"
+
+[[settings.fields.options]]
+value = "auto"
+[settings.fields.options.label]
+en = "Automatic"
+ar = "تلقائي"
+
+[[settings.fields.options]]
+value = "manual"
+[settings.fields.options.label]
+en = "Manual"
+ar = "يدوي"
+
+[[settings.fields]]
+key = "enable_icons"
+type = "checkbox"
+default = true
+
+[settings.fields.label]
+en = "Enable Field Icons"
+ar = "تفعيل أيقونات الحقول"
+
+[settings.fields.info]
+en = "Show icons in form fields when available"
+ar = "عرض الأيقونات في حقول النموذج عند توفرها"

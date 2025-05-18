@@ -5,9 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlignCenter, ChevronDown, ChevronUp, GripVertical, Edit } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { toast } from 'sonner';
 
 interface FormTitleEditorProps {
   formTitle: string;
@@ -17,6 +20,7 @@ interface FormTitleEditorProps {
   onAddTitleField: () => void;
   formTitleField: FormField | undefined;
   onUpdateTitleField: (field: FormField) => void;
+  isDraggable?: boolean;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -26,56 +30,88 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onFormDescriptionChange,
   onAddTitleField,
   formTitleField,
-  onUpdateTitleField
+  onUpdateTitleField,
+  isDraggable = true
 }) => {
   const { language } = useI18n();
   const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
-  const [titleAlignment, setTitleAlignment] = useState(
-    formTitleField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
-  );
-  const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
+  const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '24px');
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
-  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
-  // Remove descriptionFontWeight usage and use a fixed value
+  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '14px');
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
-  // Update local state when formTitleField changes
+  // إعداد وظيفة السحب إذا كان المكون قابل للسحب
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ 
+    id: formTitleField?.id || 'title-editor',
+    disabled: !isDraggable || !formTitleField,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
+  });
+
+  const style = isDraggable ? {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  } : {};
+
+  // تحديث الحالة المحلية عند تغير formTitleField
   useEffect(() => {
     if (formTitleField) {
       setTitleColor(formTitleField.style?.color || '#ffffff');
-      setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
-      setTitleSize(formTitleField.style?.fontSize || '1.5rem');
+      setTitleSize(formTitleField.style?.fontSize || '24px');
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
-      setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
-      // Remove descriptionFontWeight reference here
+      setDescSize(formTitleField.style?.descriptionFontSize || '14px');
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
-  }, [formTitleField, language]);
+  }, [formTitleField]);
 
+  // وظيفة تحديث النمط المحسنة التي تضمن التحديثات الفورية
   const handleUpdateStyle = (property: string, value: string) => {
     if (!formTitleField) return;
     
-    const updatedField = {
-      ...formTitleField,
-      style: {
-        ...formTitleField.style,
-        [property]: value
-      }
-    };
+    // إنشاء نسخة عميقة من الحقل لتجنب مشكلات التعديل
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
     
+    // التأكد من وجود كائن النمط
+    if (!updatedField.style) {
+      updatedField.style = {};
+    }
+    
+    // تحديث خاصية النمط
+    updatedField.style[property] = value;
+    
+    // تحديث الحالة المحلية لعرض التغييرات في واجهة المستخدم
     if (property === 'color') setTitleColor(value);
-    if (property === 'textAlign') setTitleAlignment(value);
     if (property === 'fontSize') setTitleSize(value);
     if (property === 'fontWeight') setTitleWeight(value);
     if (property === 'descriptionColor') setDescColor(value);
     if (property === 'descriptionFontSize') setDescSize(value);
-    // Remove descriptionFontWeight reference here
     if (property === 'backgroundColor') setBackgroundColor(value);
     
+    // دائمًا اجعل محاذاة النص مركزية للتوافق مع عرض المتجر
+    updatedField.style.textAlign = 'center';
+    
+    // تحديث المكون الأب بمعلومات الحقل الجديدة
     onUpdateTitleField(updatedField);
+    
+    // تسجيل التحديث للمساعدة في التصحيح
+    console.log(`Updated title field style: ${property} = ${value}`, updatedField);
+
+    // إظهار رسالة نجاح التحديث للمستخدم
+    toast.success(language === 'ar' ? 'تم تحديث النمط بنجاح' : 'Style updated successfully');
   };
 
   const handleUpdateLabel = (value: string) => {
@@ -84,13 +120,15 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       return;
     }
     
-    const updatedField = {
-      ...formTitleField,
-      label: value
-    };
+    // إنشاء نسخة عميقة لتجنب مشكلات التعديل
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
+    updatedField.label = value;
     
+    // تحديث المكون الأب
     onUpdateTitleField(updatedField);
     onFormTitleChange(value);
+    
+    console.log(`Updated title field label: ${value}`);
   };
 
   const handleUpdateDescription = (value: string) => {
@@ -99,22 +137,47 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       return;
     }
     
-    const updatedField = {
-      ...formTitleField,
-      helpText: value
-    };
+    // إنشاء نسخة عميقة لتجنب مشكلات التعديل
+    const updatedField = JSON.parse(JSON.stringify(formTitleField));
+    updatedField.helpText = value;
     
+    // تحديث المكون الأب
     onUpdateTitleField(updatedField);
     onFormDescriptionChange(value);
+    
+    console.log(`Updated title field description: ${value}`);
   };
 
   return (
-    <div className="mb-4 border p-3 rounded-md bg-white">
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`mb-4 border p-3 rounded-md bg-white ${isDragging ? 'shadow-lg' : ''}`}
+    >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between">
-          <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+          {isDraggable && formTitleField && (
+            <div 
+              {...attributes} 
+              {...listeners} 
+              className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded mr-2"
+            >
+              <GripVertical size={16} className="text-gray-500" />
+            </div>
+          )}
+          
+          <h3 className={`text-lg font-medium flex-1 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
           </h3>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mx-2"
+          >
+            <Edit size={16} />
+          </Button>
+          
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               {isOpen ? 
@@ -221,10 +284,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
-                        <option value="1rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
-                        <option value="1.25rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="1.5rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
-                        <option value="2rem">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
+                        <option value="16px">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="20px">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="24px">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                        <option value="32px">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
                       </select>
                     </div>
 
@@ -250,32 +313,22 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                   <Label className={language === 'ar' ? 'text-right block' : ''}>
                     {language === 'ar' ? 'محاذاة العنوان' : 'Title Alignment'}
                   </Label>
-                  <div className="flex space-x-2 mt-1">
+                  <div className="flex justify-center">
                     <Button
                       type="button"
-                      variant={titleAlignment === 'left' ? 'default' : 'outline'}
+                      variant="default"
                       size="sm"
-                      onClick={() => handleUpdateStyle('textAlign', 'left')}
+                      className="w-full"
                     >
-                      <AlignLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={titleAlignment === 'center' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleUpdateStyle('textAlign', 'center')}
-                    >
-                      <AlignCenter className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={titleAlignment === 'right' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleUpdateStyle('textAlign', 'right')}
-                    >
-                      <AlignRight className="h-4 w-4" />
+                      <AlignCenter className="h-4 w-4 mr-2" />
+                      {language === 'ar' ? 'توسيط (مطلوب للعرض الصحيح في المتجر)' : 'Center (required for correct display in store)'}
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {language === 'ar' 
+                      ? 'يجب أن يكون محاذاة العنوان للوسط دائمًا للحفاظ على التنسيق المتناسق في المتجر'
+                      : 'Title alignment must be centered for consistent formatting in the store'}
+                  </p>
                 </div>
                 
                 <div className="border-t pt-3">
@@ -313,26 +366,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
-                        <option value="0.75rem">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
-                        <option value="0.875rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
-                        <option value="1rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="1.125rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="desc-weight" className={language === 'ar' ? 'text-right block' : ''}>
-                        {language === 'ar' ? 'سمك الوصف' : 'Description Weight'}
-                      </Label>
-                      <select
-                        id="desc-weight"
-                        value="normal" // Use fixed value 'normal' instead of descWeight
-                        onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                      >
-                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
-                        <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
+                        <option value="12px">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
+                        <option value="14px">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="16px">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="18px">{language === 'ar' ? 'كبير' : 'Large'}</option>
                       </select>
                     </div>
                   </div>
