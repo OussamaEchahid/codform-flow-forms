@@ -17,7 +17,7 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // Define valid box-sizing values
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
-// Convert rem to px for consistent styling
+// CRITICAL: Convert rem to px for perfect style matching
 const remToPx = (value: string | undefined, defaultValue: string): string => {
   if (!value) return defaultValue;
   
@@ -37,12 +37,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Get description from field
+  // Get description from field with fallback
   const description = field.helpText || '';
   
   // Check if title and description should be shown
   const showTitle = fieldStyle.showTitle !== false;
-  const showDescription = fieldStyle.showDescription !== false;
+  const showDescription = fieldStyle.showDescription !== false && !!description;
   
   // Set default alignment based on language
   const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
@@ -57,10 +57,10 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // Use precise px values instead of rem for consistent sizing
+  // Use precise px values instead of rem for 100% consistent sizing
   const isFormTitle = field.type === 'form-title';
   
-  // Use consistent px values instead of rem to ensure exact size matching
+  // CRITICAL: Use consistent px values instead of rem
   const defaultTitleSize = isFormTitle ? '24px' : '20px';
   const defaultDescSize = '14px';
   
@@ -71,50 +71,53 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Background style with fixed px padding
+  // CRITICAL: Use !important on all style properties to override store styles
   const backgroundStyle = {
-    backgroundColor: backgroundColor,
-    padding: '16px', // Exact padding to match between preview and store
-    borderRadius: formStyle.borderRadius || '8px',
-    width: '100%',
+    backgroundColor: `${backgroundColor} !important`,
+    padding: '16px !important',
+    borderRadius: `${formStyle.borderRadius || '8px'} !important`,
+    width: '100% !important',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // Exact margin to match between preview and store
+    marginBottom: '16px !important',
     textAlign: alignment as React.CSSProperties['textAlign'],
+    direction: language === 'ar' ? 'rtl' : 'ltr',
   };
 
-  // Title styles
+  // Title styles with !important flags
   const titleStyle = {
-    color: fieldStyle.color || '#ffffff',
-    fontSize: fontSize,
-    textAlign: alignment as React.CSSProperties['textAlign'],
-    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    color: `${fieldStyle.color || '#ffffff'} !important`,
+    fontSize: `${fontSize} !important`,
+    textAlign: `${alignment} !important` as React.CSSProperties['textAlign'],
+    fontWeight: `${fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')} !important`,
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3', // Consistent line height
-    display: 'block',
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important',
+    display: 'block !important',
+    direction: language === 'ar' ? 'rtl' : 'ltr',
   };
 
-  // Description styles
+  // Description styles with !important flags
   const descriptionStyle = {
-    color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: descriptionFontSize,
-    margin: '6px 0 0 0', // Consistent margin
-    padding: '0',
-    textAlign: alignment as React.CSSProperties['textAlign'],
+    color: `${fieldStyle.descriptionColor || '#ffffff'} !important`,
+    fontSize: `${descriptionFontSize} !important`,
+    margin: '6px 0 0 0 !important',
+    padding: '0 !important',
+    textAlign: `${alignment} !important` as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal',
-    lineHeight: '1.5', // Consistent line height
-    opacity: '0.9',
+    fontWeight: 'normal !important',
+    lineHeight: '1.5 !important',
+    opacity: '0.9 !important',
+    direction: language === 'ar' ? 'rtl' : 'ltr',
   };
 
-  // Create unique ID for this field - ensures field is updated on changes
+  // Create unique ID for this field to debug styling issues
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
   return (
     <div 
       id={titleFieldId}
-      className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
+      className={`mb-4 ${isFormTitle ? 'codform-title' : ''} codform-title-field`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-title-align={alignment}
@@ -130,14 +133,16 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-desc-font-weight='normal'
       data-show-title={showTitle.toString()}
       data-show-description={showDescription.toString()}
+      data-direction={language === 'ar' ? 'rtl' : 'ltr'}
     >
+      {/* <!-- START TITLE FIELD --> */}
       <div 
         className="codform-title-container" 
         style={backgroundStyle}
       >
         {showTitle && (
           <h3 
-            className={isFormTitle ? "codform-form-title" : ""}
+            className={isFormTitle ? "codform-form-title" : "codform-section-title"}
             style={titleStyle}
           >
             {field.label}
@@ -153,6 +158,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
           </p>
         )}
       </div>
+      {/* <!-- END TITLE FIELD --> */}
     </div>
   );
 };

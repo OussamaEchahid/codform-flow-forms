@@ -25,7 +25,7 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Helper function to convert rem to px - ensure it matches store implementation
+// CRITICAL: Convert rem to px with same exact algorithm as store implementation
 const remToPx = (value: string | undefined, defaultValue: string): string => {
   if (!value) return defaultValue;
   
@@ -62,7 +62,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // Process fields to normalize icon values - necessary for preview rendering
+  // Process fields to normalize icon values and ensure consistent styling with store display
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
       // Create new field object to avoid direct mutation issues
@@ -85,7 +85,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      // Ensure font size uses consistent px units - CRITICAL for store matching
+      // CRITICAL: Convert all font size units to px for exact store matching
       if (updatedField.style?.fontSize) {
         updatedField.style.fontSize = remToPx(updatedField.style.fontSize, '16px');
       }
@@ -95,7 +95,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
       }
       
-      // Ensure form-title fields have consistent settings
+      // Special handling for title fields to ensure consistent styles with store implementation
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
@@ -110,11 +110,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
+        
+        // Ensure color is explicitly set for store consistency
+        if (!updatedField.style.color) {
+          updatedField.style.color = '#ffffff';
+        }
+        
+        // Ensure background color is explicitly set
+        if (!updatedField.style.backgroundColor && formStyle.primaryColor) {
+          updatedField.style.backgroundColor = formStyle.primaryColor;
+        }
       }
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey, language]); // Add internalRefreshKey and language to dependencies
+  }, [fields, internalRefreshKey, language, formStyle.primaryColor]); 
 
   // Create unique id for this preview component
   const previewPanelId = `preview-panel-${Date.now()}`;
@@ -141,7 +151,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* Add small note alerting about ensuring compatibility between preview and store display */}
+      {/* Add diagnostic note */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
