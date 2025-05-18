@@ -325,7 +325,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     return [defaultStep];
   };
   
-  // Replace the useEffect that creates default forms
+  // Fix the setter call in the useEffect that creates default forms
   useEffect(() => {
     // If the data is empty, we create a default form with all required fields
     if (initialFormData.data.length === 0) {
@@ -488,7 +488,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3 text-right">
-                    حقول الخطوة: {formSteps[currentEditStep]?.title}
+                    حقول الخ��وة: {formSteps[currentEditStep]?.title}
                   </h3>
                   
                   <DndContext
