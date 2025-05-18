@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
 
@@ -21,6 +21,8 @@ interface FormPreviewPanelProps {
   onPreviousStep?: () => void;
   onNextStep?: () => void;
   refreshKey: number;
+  floatingButton?: FloatingButtonConfig;
+  hideFloatingButtonPreview?: boolean;
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -32,7 +34,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   fields,
   onPreviousStep,
   onNextStep,
-  refreshKey
+  refreshKey,
+  floatingButton,
+  hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
 
@@ -51,6 +55,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={formStyle}
           fields={fields}
+          floatingButton={floatingButton}
+          hideFloatingButtonPreview={hideFloatingButtonPreview}
         >
           <div></div>
         </FormPreview>

@@ -4,7 +4,7 @@ import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTe
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
-import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
+import { FormField, FormStep, FormFieldType, FloatingButtonConfig } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
@@ -14,8 +14,17 @@ import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import { useShopify } from '@/hooks/useShopify';
-import { Dialog } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -70,15 +79,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  const { formState, setFormState } = useFormStore();
+  
+  // Call useFormStore hook at the top level to follow React Rules of Hooks
+  const { formState, setFormState, floatingButton, updateFloatingButton } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isFloatingButtonDialogOpen, setIsFloatingButtonDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
-  // التغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
+  // ��لتغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -170,7 +182,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
+  // إنشاء نموذج افتراضي جديد مع ال��ناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -390,7 +402,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             
             console.log("تم تحميل بيانات النموذج:", formData);
           } else {
-            // إذا لم يتم العثور على النموذج، تهيئة نموذج افتراضي
+            // إذا لم يتم العثور على النموذج، ت��يئة نموذج افتراضي
             toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
             setFormElements(createDefaultForm());
           }
@@ -657,10 +669,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
-  const handleStyleChange = (key: string, value: string) => {
+  // Handle style change needs to match the expected signature for FormStyleEditor
+  const handleStyleChange = (newStyle: any) => {
     setFormStyle({
       ...formStyle,
-      [key]: value
+      ...newStyle
     });
     setRefreshKey(prev => prev + 1);
   };
@@ -746,13 +759,28 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
+  const handleFloatingButtonChange = (config: FloatingButtonConfig) => {
+    // Use the updateFloatingButton function from the useFormStore hook we called at the top
+    updateFloatingButton(config);
+    setRefreshKey(prev => prev + 1); // Refresh the preview
+  };
+
+  const handleFloatingButtonOpen = () => {
+    setIsFloatingButtonDialogOpen(true);
+  };
+
+  const handleFloatingButtonClose = () => {
+    setIsFloatingButtonDialogOpen(false);
+  };
+
   return (
-    <main className="flex-1 overflow-auto">
+    <div className="min-h-screen bg-white">
       <FormHeader 
         onSave={handleSave}
         onPublish={handlePublish}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+        onFloatingButtonOpen={handleFloatingButtonOpen}
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
@@ -814,18 +842,66 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
+            floatingButton={floatingButton}
+            hideFloatingButtonPreview={false}
           />
         </div>
       </div>
       
-      <FormStyleEditor
-        isOpen={isStyleDialogOpen}
-        onOpenChange={setIsStyleDialogOpen}
-        formStyle={formStyle}
-        onStyleChange={handleStyleChange}
-        onSave={handleSaveStyle}
-      />
-
+      {/* Style Editor Dialog */}
+      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <FormStyleEditor 
+            formStyle={formStyle}
+            onStyleChange={handleStyleChange}
+            onSave={handleSaveStyle}
+            floatingButton={floatingButton}
+            onFloatingButtonChange={handleFloatingButtonChange}
+            showFloatingButtonEditor={false}
+          />
+          
+          <DialogFooter>
+            <Button onClick={() => setIsStyleDialogOpen(false)}>
+              {language === 'ar' ? 'تم' : 'Done'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Floating Button Dialog */}
+      <Dialog open={isFloatingButtonDialogOpen} onOpenChange={setIsFloatingButtonDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'قم بتخصيص مظهر وسلوك الزر العائم الذي سيظهر في متجرك' 
+                : 'Customize the appearance and behavior of the floating button that will appear in your store'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <FloatingButtonEditor 
+            floatingButton={floatingButton} 
+            onChange={handleFloatingButtonChange}
+          />
+          
+          <DialogFooter>
+            <Button onClick={handleFloatingButtonClose}>
+              {language === 'ar' ? 'تم' : 'Done'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Template Dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
           open={isTemplateDialogOpen}
@@ -851,7 +927,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           />
         </div>
       )}
-    </main>
+    </div>
   );
 };
 

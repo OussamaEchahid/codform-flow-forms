@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FormField {
@@ -33,7 +32,7 @@ export interface FormField {
     fontFamily?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
-    descriptionFontWeight?: string; // Add this property
+    descriptionFontWeight?: string;
     titleColor?: string; // Added for backward compatibility
     titleFontSize?: string; // Added for backward compatibility
     priceColor?: string;
@@ -53,8 +52,29 @@ export interface FormField {
     animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash';
     iconPosition?: 'left' | 'right';
     icon?: boolean;
+    paddingY?: string;
+    marginBottom?: string;
   };
   disabled?: boolean;
+}
+
+// Add floating button configuration interface
+export interface FloatingButtonConfig {
+  enabled: boolean;
+  text: string;
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  textColor?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  paddingY?: string;
+  marginBottom?: string;
+  showIcon?: boolean;
+  icon?: string;
+  animation?: string;
 }
 
 export type FormFieldType =
@@ -238,13 +258,13 @@ export const createDefaultForm = (): FormStep[] => {
         {
           id: "cart_items",
           type: "cart-items",
-          label: "المنتج المختار",
+          label: "", // Empty label to hide the title
           required: false
         },
         {
           id: "cart_summary",
           type: "cart-summary",
-          label: "ملخص الطلب",
+          label: "", // Empty label to hide the title
           required: false
         },
         {

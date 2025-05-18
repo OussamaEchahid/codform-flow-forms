@@ -1,210 +1,236 @@
+
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { FormStyle } from '@/hooks/useFormStore';
+import { FloatingButtonConfig } from '@/lib/form-utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { FormStyle } from '@/hooks/useFormStore';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface FormStyleEditorProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   formStyle: FormStyle;
-  onStyleChange: (key: string, value: string) => void;
+  onStyleChange: (newStyle: any) => void;
   onSave: () => void;
+  floatingButton?: FloatingButtonConfig;
+  onFloatingButtonChange?: (config: FloatingButtonConfig) => void;
+  showFloatingButtonEditor?: boolean;
 }
 
-const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
-  isOpen,
-  onOpenChange,
-  formStyle,
-  onStyleChange,
-  onSave
+const FormStyleEditor: React.FC<FormStyleEditorProps> = ({ 
+  formStyle, 
+  onStyleChange, 
+  onSave,
+  floatingButton,
+  onFloatingButtonChange,
+  showFloatingButtonEditor = false 
 }) => {
   const { language } = useI18n();
-
+  
+  // Update handler to create a new style object
+  const handleStyleChange = (key: string, value: string) => {
+    const newStyle = {
+      ...formStyle,
+      [key]: value
+    };
+    onStyleChange(newStyle);
+  };
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogTitle>
-          {language === 'ar' ? 'تخصيص مظهر النموذج' : 'Customize Form Style'}
-        </DialogTitle>
-        <DialogDescription>
-          {language === 'ar' ? 'قم بتخصيص مظهر النموذج لتناسب هويتك التجارية. هذه الإعدادات خاصة بهذا النموذج فقط.' : 'Customize the form appearance to match your brand identity. These settings apply to this form only.'}
-        </DialogDescription>
-        
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-1 gap-2">
-            <label htmlFor="primary-color" className="text-sm font-medium">
+    <Tabs defaultValue="general">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="general">
+          {language === 'ar' ? 'عام' : 'General'}
+        </TabsTrigger>
+        <TabsTrigger value="buttons">
+          {language === 'ar' ? 'الأزرار' : 'Buttons'}
+        </TabsTrigger>
+        <TabsTrigger value="advanced">
+          {language === 'ar' ? 'متقدم' : 'Advanced'}
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="general" className="space-y-4 py-4">
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="primary-color">
               {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
+            </Label>
+            <div className="flex gap-2">
+              <Input
                 id="primary-color"
                 type="color"
                 value={formStyle.primaryColor}
-                onChange={(e) => onStyleChange('primaryColor', e.target.value)}
-                className="w-10 h-10 rounded"
+                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                className="w-12 h-10 p-1"
               />
-              <input
+              <Input
                 type="text"
                 value={formStyle.primaryColor}
-                onChange={(e) => onStyleChange('primaryColor', e.target.value)}
-                className="flex-1 px-3 py-2 border rounded"
+                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+                className="flex-1"
               />
             </div>
           </div>
           
-          <div className="grid grid-cols-1 gap-2">
-            <label htmlFor="border-radius" className="text-sm font-medium">
-              {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
-            </label>
-            <select
-              id="border-radius"
-              value={formStyle.borderRadius}
-              onChange={(e) => onStyleChange('borderRadius', e.target.value)}
-              className="px-3 py-2 border rounded"
+          <div className="grid gap-2">
+            <Label htmlFor="border-radius">
+              {language === 'ar' ? 'تقويس الحواف' : 'Border Radius'}
+            </Label>
+            <Select 
+              value={formStyle.borderRadius} 
+              onValueChange={(value) => handleStyleChange('borderRadius', value)}
             >
-              <option value="0">None</option>
-              <option value="0.25rem">Small</option>
-              <option value="0.5rem">Medium</option>
-              <option value="1rem">Large</option>
-              <option value="9999px">Round</option>
-            </select>
+              <SelectTrigger id="border-radius">
+                <SelectValue placeholder={language === 'ar' ? 'اختر تقويس الحواف' : 'Select border radius'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">
+                  {language === 'ar' ? 'بدون تقويس' : 'No Radius'}
+                </SelectItem>
+                <SelectItem value="0.25rem">
+                  {language === 'ar' ? 'صغير جداً' : 'Extra Small'}
+                </SelectItem>
+                <SelectItem value="0.5rem">
+                  {language === 'ar' ? 'صغير' : 'Small'}
+                </SelectItem>
+                <SelectItem value="0.75rem">
+                  {language === 'ar' ? 'متوسط' : 'Medium'}
+                </SelectItem>
+                <SelectItem value="1rem">
+                  {language === 'ar' ? 'كبير' : 'Large'}
+                </SelectItem>
+                <SelectItem value="1.5rem">
+                  {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          <div className="grid grid-cols-1 gap-2">
-            <label htmlFor="font-size" className="text-sm font-medium">
+          <div className="grid gap-2">
+            <Label htmlFor="font-size">
               {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-            </label>
-            <select
-              id="font-size"
-              value={formStyle.fontSize}
-              onChange={(e) => onStyleChange('fontSize', e.target.value)}
-              className="px-3 py-2 border rounded"
+            </Label>
+            <Select 
+              value={formStyle.fontSize} 
+              onValueChange={(value) => handleStyleChange('fontSize', value)}
             >
-              <option value="0.875rem">Small</option>
-              <option value="1rem">Medium</option>
-              <option value="1.125rem">Large</option>
-            </select>
+              <SelectTrigger id="font-size">
+                <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.875rem">
+                  {language === 'ar' ? 'صغير' : 'Small'}
+                </SelectItem>
+                <SelectItem value="1rem">
+                  {language === 'ar' ? 'متوسط' : 'Medium'}
+                </SelectItem>
+                <SelectItem value="1.125rem">
+                  {language === 'ar' ? 'كبير' : 'Large'}
+                </SelectItem>
+                <SelectItem value="1.25rem">
+                  {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <div className="grid grid-cols-1 gap-2">
-            <label htmlFor="button-style" className="text-sm font-medium">
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="buttons" className="space-y-4 py-4">
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="button-style">
               {language === 'ar' ? 'نمط الأزرار' : 'Button Style'}
-            </label>
-            <select
-              id="button-style"
-              value={formStyle.buttonStyle}
-              onChange={(e) => onStyleChange('buttonStyle', e.target.value)}
-              className="px-3 py-2 border rounded"
+            </Label>
+            <Select 
+              value={formStyle.buttonStyle} 
+              onValueChange={(value) => handleStyleChange('buttonStyle', value)}
             >
-              <option value="rounded">Rounded</option>
-              <option value="square">Square</option>
-              <option value="pill">Pill</option>
-            </select>
-          </div>
-
-          <div className="border-t pt-4 mt-2">
-            <h3 className="text-sm font-medium mb-3">
-              {language === 'ar' ? 'تأثيرات الرسوم المتحركة للزر' : 'Button Animation Effects'}
-            </h3>
-            <AnimationSection field={{ style: { animation: false, animationType: 'pulse' } }} onChange={() => {}} />
+              <SelectTrigger id="button-style">
+                <SelectValue placeholder={language === 'ar' ? 'اختر نمط الأزرار' : 'Select button style'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rounded">
+                  {language === 'ar' ? 'مستدير' : 'Rounded'}
+                </SelectItem>
+                <SelectItem value="square">
+                  {language === 'ar' ? 'مربع' : 'Square'}
+                </SelectItem>
+                <SelectItem value="pill">
+                  {language === 'ar' ? 'كبسولة' : 'Pill'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
-        <DialogFooter>
-          <Button onClick={onSave}>
+        {/* Only show floating button section if specifically requested */}
+        {showFloatingButtonEditor && floatingButton && onFloatingButtonChange && (
+          <>
+            <Separator className="my-6" />
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'الزر العائم' : 'Floating Button'}
+            </h3>
+            
+            <div className="grid gap-4">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="enable-floating"
+                  checked={floatingButton.enabled}
+                  onChange={(e) => onFloatingButtonChange({
+                    ...floatingButton,
+                    enabled: e.target.checked
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Label htmlFor="enable-floating">
+                  {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
+                </Label>
+              </div>
+              
+              <Button 
+                variant="secondary" 
+                className="mt-4"
+                onClick={() => {
+                  // Logic to open full floating button editor
+                }}
+              >
+                {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
+              </Button>
+            </div>
+          </>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="advanced" className="space-y-4 py-4">
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="custom-css">
+              {language === 'ar' ? 'CSS مخصص' : 'Custom CSS'}
+            </Label>
+            <textarea
+              id="custom-css"
+              rows={10}
+              className="w-full p-2 border rounded-md"
+              placeholder={language === 'ar' ? 'أدخل CSS المخصص هنا...' : 'Enter custom CSS here...'}
+            ></textarea>
+            <p className="text-sm text-gray-500">
+              {language === 'ar' 
+                ? 'استخدم CSS المخصص لتخصيص مظهر النموذج بشكل أكبر.' 
+                : 'Use custom CSS to further customize the appearance of your form.'}
+            </p>
+          </div>
+          
+          <Button onClick={onSave} className="w-full">
             {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-interface AnimationSectionProps {
-  field: {
-    style?: {
-      animation?: boolean;
-      animationType?: string;
-    };
-  };
-  onChange: (updatedField: any) => void;
-}
-
-const AnimationSection: React.FC<AnimationSectionProps> = ({ field, onChange }) => {
-  const { language } = useI18n();
-  const animationTypes = [
-    { value: 'pulse', label: language === 'ar' ? 'نبض' : 'Pulse' },
-    { value: 'shake', label: language === 'ar' ? 'اهتزاز' : 'Shake' },
-    { value: 'bounce', label: language === 'ar' ? 'ارتداد' : 'Bounce' },
-    { value: 'wiggle', label: language === 'ar' ? 'تمايل' : 'Wiggle' },
-    { value: 'flash', label: language === 'ar' ? 'وميض' : 'Flash' }
-  ];
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center">
-        <Checkbox
-          id="animation"
-          checked={field.style?.animation || false}
-          onCheckedChange={(checked) => {
-            onChange({
-              ...field,
-              style: { ...field.style, animation: !!checked }
-            });
-          }}
-        />
-        <label htmlFor="animation" className="ml-2 text-sm font-medium">
-          {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
-        </label>
-      </div>
-      
-      {field.style?.animation && (
-        <Select
-          value={field.style?.animationType || 'pulse'}
-          onValueChange={(value) => {
-            onChange({
-              ...field,
-              style: { ...field.style, animationType: value }
-            });
-          }}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
-          </SelectTrigger>
-          <SelectContent>
-            {animationTypes.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      <div className="grid grid-cols-5 gap-2 mt-4">
-        {animationTypes.map((type) => (
-          <div 
-            key={type.value}
-            className={`relative overflow-hidden border rounded p-2 cursor-pointer hover:bg-gray-50 ${field.style?.animationType === type.value ? 'ring-2 ring-primary' : ''}`}
-            onClick={() => {
-              onChange({
-                ...field,
-                style: { ...field.style, animation: true, animationType: type.value }
-              });
-            }}
-          >
-            <button 
-              className={`w-full py-2 bg-[#9b87f5] text-white text-xs font-medium rounded ${type.value}-animation`}
-            >
-              {type.label}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 

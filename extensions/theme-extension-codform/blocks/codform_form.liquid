@@ -7,13 +7,11 @@
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-product-price="{{ product.price | money_without_currency }}" data-hide-header="true">
-  {% comment %} تم تعديل تهيئة hide-header لتكون دائما true بدلاً من استخدام block.settings.hide_header {% endcomment %}
-  
+<div id="codform-container-{{ block.id }}" class="codform-container" data-product-id="{{ product.id }}" data-form-id="{{ block.settings.form_id }}" data-hide-header="true">
   <div class="codform-form-container">
     <div id="codform-form-loader-{{ block.id }}" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
+      <p>جاري تحميل النموذج...</p>
     </div>
 
     <div id="codform-form-{{ block.id }}" class="codform-form" style="display: none;">
@@ -22,21 +20,647 @@
 
     <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none;">
       <div class="codform-success-icon">✓</div>
-      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
-      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
+      <h4>تم إرسال الطلب بنجاح</h4>
+      <p>شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.</p>
     </div>
 
     <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
-      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
-      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
-      <button id="codform-retry-{{ block.id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
+      <h4>حدث خطأ</h4>
+      <p>حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.</p>
+      <button id="codform-retry-{{ block.id }}" class="codform-button">إعادة المحاولة</button>
     </div>
   </div>
 </div>
 
+{% comment %}
+  FLOATING BUTTON - يتم التحكم في ظهوره من خلال إعدادات البلوك
+{% endcomment %}
+<div id="codform-floating-button-{{ block.id }}" class="codform-floating-button-container" style="{% unless block.settings.enable_floating_button %}display: none;{% endunless %}">
+  <button
+    class="codform-floating-button {% if block.settings.floating_animation != blank and block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
+    style="
+      background-color: {{ block.settings.floating_bg_color }};
+      color: {{ block.settings.floating_text_color }};
+      border-radius: {{ block.settings.floating_border_radius }};
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      border: none;
+      min-width: 250px;
+    "
+    onclick="document.querySelector('#codform-container-{{ block.id }}').scrollIntoView({behavior: 'smooth'});"
+  >
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endif %}
+    
+    {% if block.settings.floating_show_icon %}
+      <span class="codform-floating-button-icon">
+        {% case block.settings.floating_icon %}
+          {% when 'shopping-cart' %}
+            <!-- Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+          {% when 'package' %}
+            <!-- Package icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><polyline points="2.32 6.16 12 11 21.68 6.16"/><line x1="12" y1="22.76" x2="12" y2="11"/><line x1="7" y1="3.5" x2="17" y2="8.5"/></svg>
+          {% when 'truck' %}
+            <!-- Truck icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% when 'send' %}
+            <!-- Send icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {% else %}
+            <!-- Default: Shopping cart icon SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        {% endcase %}
+      </span>
+    {% endif %}
+    
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text }}</span>
+    {% endunless %}
+  </button>
+</div>
+
 <style>
-  /* تنسيقات الرسوم المتحركة للأزرار - تعديل وتحسين */
+  /* Basic container configuration */
+  .codform-container {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* Form header */
+  .codform-header {
+    margin-bottom: 20px;
+    text-align: right;
+    padding: 15px;
+    border-radius: 8px;
+  }
+
+  .codform-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+    line-height: 1.3;
+  }
+
+  .codform-header p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Main form container */
+  .codform-form {
+    margin-top: 20px;
+  }
+
+  /* Field formatting */
+  .codform-field {
+    margin-bottom: 20px;
+  }
+
+  .codform-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 1rem;
+  }
+
+  .codform-field input[type="text"],
+  .codform-field input[type="email"],
+  .codform-field input[type="tel"],
+  .codform-field input[type="number"],
+  .codform-field textarea,
+  .codform-field select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+    font-family: 'Cairo', sans-serif;
+    background-color: #ffffff;
+    color: #1f2937;
+    box-sizing: border-box;
+  }
+
+  .codform-field input:focus,
+  .codform-field textarea:focus,
+  .codform-field select:focus {
+    outline: none;
+    border-color: #9b87f5;
+    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
+  }
+
+  /* Checkboxes */
+  .codform-checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .codform-checkbox-container input[type="checkbox"] {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    accent-color: #9b87f5;
+  }
+
+  /* Radio button group */
+  .codform-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .codform-radio-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .codform-radio-container input[type="radio"] {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    accent-color: #9b87f5;
+  }
+
+  /* Help text */
+  .codform-help-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+
+  /* Required field marker */
+  .codform-required {
+    color: #ef4444;
+    margin-right: 3px;
+  }
+
+  /* Submit and navigation buttons */
+  .codform-submit-button,
+  .codform-next-button,
+  .codform-prev-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    margin-top: 20px;
+    font-family: 'Cairo', sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .codform-submit-button:hover,
+  .codform-next-button:hover {
+    background-color: #8a76e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-prev-button {
+    background-color: #9ca3af;
+  }
+
+  .codform-prev-button:hover {
+    background-color: #8b8f96;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-submit-button:disabled,
+  .codform-next-button:disabled,
+  .codform-prev-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Loading state */
+  .codform-loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* Success and error messages */
+  .codform-success, .codform-error {
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .codform-success-icon {
+    background-color: #10b981;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin: 0 auto 20px;
+  }
+
+  .codform-error-icon {
+    background-color: #ef4444;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin: 0 auto 20px;
+  }
+
+  /* Loading indicator */
+  .codform-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 0;
+  }
+
+  .codform-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #9b87f5;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s ease-in-out;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .codform-button:hover {
+    background-color: #8a76e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Multi-step form formatting */
+  .codform-steps-nav {
+    margin-bottom: 25px;
+  }
+
+  .codform-step-indicators {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .codform-step-indicator {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #6b7280;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .codform-step-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    height: 3px;
+    width: 100%;
+    background-color: #e5e7eb;
+    transform: translateY(-50%);
+    transition: background-color 0.3s ease;
+  }
+
+  .codform-step-indicator:first-child::after {
+    display: none;
+  }
+
+  .codform-step-active {
+    background-color: #9b87f5;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .codform-step-completed {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .codform-step-completed::after,
+  .codform-step-active::after {
+    background-color: #10b981;
+  }
+
+  .codform-steps-container {
+    min-height: 200px;
+  }
+
+  .codform-nav-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+  }
+
+  .codform-prev-button,
+  .codform-next-button {
+    flex: 1;
+  }
+
+  /* Validation messages */
+  .codform-validation-message {
+    color: #ef4444;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .codform-field-error {
+    border-color: #ef4444 !important;
+    background-color: rgba(254, 226, 226, 0.3);
+  }
+
+  /* Special formatting for different field types */
+  .codform-field h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.25rem;
+    color: #374151;
+  }
+
+  /* Step title */
+  .codform-step-title {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #374151;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  /* Improve spacing and layout for better readability */
+  .codform-step {
+    padding: 15px 0;
+  }
+
+  /* Improve focus styles for better accessibility */
+  .codform-field input:focus,
+  .codform-field select:focus,
+  .codform-field textarea:focus {
+    outline: none;
+    border-color: #9b87f5;
+    box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
+  }
+
+  /* Ensure radio and checkbox options are spaced correctly */
+  .codform-radio-container,
+  .codform-checkbox-container {
+    margin-bottom: 8px;
+  }
+
+  .codform-radio-container:last-child,
+  .codform-checkbox-container:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Image field formatting */
+  .codform-image-field {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .codform-image-container {
+    max-width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .codform-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .codform-image-placeholder {
+    min-height: 150px;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    padding: 20px;
+    transition: all 0.2s ease;
+  }
+
+  .codform-image-placeholder:hover {
+    background-color: #e5e7eb;
+    border-color: #9b87f5;
+  }
+
+  .codform-image-upload-input {
+    display: none;
+  }
+
+  .codform-image-upload-label {
+    display: inline-block;
+    background-color: #9b87f5;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
+  }
+
+  .codform-image-upload-label:hover {
+    background-color: #8a76e5;
+  }
+
+  /* WhatsApp button formatting */
+  .codform-whatsapp-button {
+    background-color: #25D366;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .codform-whatsapp-button:hover {
+    background-color: #20bd5a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .codform-whatsapp-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* HTML content formatting */
+  .codform-html-content {
+    margin-bottom: 20px;
+  }
+
+  /* Cart items formatting */
+  .codform-cart-items {
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #ffffff;
+  }
+
+  .codform-cart-item {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+  }
+
+  .codform-cart-item:last-child {
+    border-bottom: none;
+  }
+
+  .codform-cart-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-left: 15px;
+  }
+
+  .codform-cart-item-details {
+    flex: 1;
+  }
+
+  .codform-cart-item-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #1f2937;
+    font-size: 1rem;
+  }
+
+  .codform-cart-item-variant {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 5px;
+  }
+
+  .codform-cart-item-price {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .codform-cart-item-quantity {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .codform-cart-item-quantity-label {
+    margin-left: 5px;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  /* Cart summary formatting */
+  .codform-cart-summary {
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f9fafb;
+  }
+
+  .codform-cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .codform-cart-summary-row:last-child {
+    margin-bottom: 0;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    font-weight: 700;
+  }
+
+  .codform-cart-summary-label {
+    color: #6b7280;
+  }
+
+  .codform-cart-summary-value {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  /* Animation Effects - Improve animation definitions */
   @keyframes pulse {
     0% {
       transform: scale(1);
@@ -48,11 +672,11 @@
       transform: scale(1);
     }
   }
-  
+
   .pulse-animation {
     animation: pulse 2s infinite !important;
   }
-  
+
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     10%, 90% { transform: translateX(-2px); }
@@ -60,32 +684,32 @@
     30%, 50%, 70% { transform: translateX(-6px); }
     40%, 60% { transform: translateX(6px); }
   }
-  
+
   .shake-animation {
     animation: shake 0.8s infinite !important;
   }
-  
+
   @keyframes bounce {
     0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-10px); }
     60% { transform: translateY(-5px); }
   }
-  
+
   .bounce-animation {
     animation: bounce 2s infinite !important;
   }
-  
+
   @keyframes wiggle {
     0%, 100% { transform: rotate(0); }
     25% { transform: rotate(-5deg); }
     50% { transform: rotate(0); }
     75% { transform: rotate(5deg); }
   }
-  
+
   .wiggle-animation {
     animation: wiggle 0.7s ease-in-out infinite !important;
   }
-  
+
   @keyframes flash {
     0%, 50%, 100% {
       opacity: 1;
@@ -94,298 +718,115 @@
       opacity: 0.7;
     }
   }
-  
+
   .flash-animation {
     animation: flash 3s infinite !important;
   }
   
-  /* تنسيق خط القاهرة */
-  @font-face {
-    font-family: 'Cairo';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url(https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvalIkTpu0xg.woff2) format('woff2');
-    unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+  /* Floating button container styles - تحديث أنماط حاوية الزر العائم */
+  .codform-floating-button-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    z-index: 999999 !important; /* تم زيادة z-index لضمان ظهوره فوق جميع العناصر */
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease !important;
   }
   
-  @font-face {
-    font-family: 'Cairo';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url(https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvalIkTpu0xg.woff2) format('woff2');
-    unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+  .codform-floating-button-container.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
   }
   
-  /* تأكيد تطبيق خط القاهرة */
-  .codform-container * {
-    font-family: 'Cairo', sans-serif !important;
+  /* Floating button styles - Updated to be wider and better for scrolling */
+  .codform-floating-button {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    min-width: 250px !important; /* Made wider for better visibility */
+    padding: 12px 24px !important;
+    justify-content: center !important; /* Center the content */
+    font-weight: 600 !important; /* Make text bolder */
+    margin: 0 auto !important;
+    position: relative !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
-  /* تحسينات لأزرار الإرسال */
+  .codform-floating-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .codform-floating-button-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Updated Submit Button Styles */
+  .codform-submit-button {
+    width: 100%;
+    padding: 16px 20px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    border: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
   .codform-submit-btn {
     width: 100% !important;
     padding: 16px 20px !important;
-    font-size: 18px !important;
     font-weight: bold !important;
-    border-radius: 8px !important;
-    margin: 20px 0 !important;
-    cursor: pointer !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 10px !important;
-    background-color: #9b87f5 !important;
-    color: white !important;
-    border: none !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
     transition: all 0.3s ease !important;
     position: relative !important;
     overflow: hidden !important;
-  }
-  
-  .codform-submit-btn:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
-    opacity: 0.95 !important;
-  }
-
-  .codform-submit-btn span {
-    display: inline-flex !important;
+    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-  }
-  
-  /* محاذاة عناصر RTL بشكل صحيح */
-  [dir="rtl"] .codform-submit-btn {
-    flex-direction: row-reverse !important;
-  }
-  
-  /* تحسينات لحقول النص والهاتف */
-  .codform-field input[type="text"],
-  .codform-field input[type="tel"],
-  .codform-field input[type="email"],
-  .codform-field textarea {
-    width: 100% !important;
-    padding: 12px 15px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-    margin-bottom: 10px !important;
-    direction: rtl !important;
-  }
-  
-  /* تنسيق خاص لعنوان النموذج */
-  .codform-title {
-    padding: 0 !important;
+    gap: 10px !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+    border: none !important;
+    margin-top: 20px !important;
     margin-bottom: 20px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* تحسين تنسيق حاوية العنوان للحصول على مظهر متوافق مع المعاينة */
-  .codform-title-container {
-    padding: 16px !important;
-    border-radius: 8px !important;
-    margin-bottom: 0 !important;
-    background-color: #9b87f5 !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-  }
-  
-  /* تحسين تنسيق وصف العنوان */
-  .codform-title-description {
-    margin-top: 8px !important;
-    color: #ffffff !important;
-    opacity: 0.9 !important;
-    font-size: 0.875rem !important;
-    font-weight: normal !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* تحسينات لمحاذاة العنوان والوصف */
-  .codform-field[data-title-align="center"] h3,
-  .codform-field[data-title-align="center"] p.codform-title-description {
-    text-align: center !important;
-  }
-
-  .codform-field[data-title-align="right"] h3,
-  .codform-field[data-title-align="right"] p.codform-title-description {
-    text-align: right !important;
-  }
-
-  .codform-field[data-title-align="left"] h3,
-  .codform-field[data-title-align="left"] p.codform-title-description {
-    text-align: left !important;
-  }
-
-  /* تنسيق خلفية العنوان */
-  .codform-field[data-has-bg="true"] {
-    padding: 0 !important;
-  }
-
-  .codform-field[data-has-bg="true"] > div {
-    padding: 16px !important;
-    border-radius: 8px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* تحسين تنسيق حقل العنوان في النموذج */
-  .codform-field[data-field-type="form-title"] {
-    margin-bottom: 20px !important;
-  }
-  
-  .codform-field[data-field-type="form-title"] h3 {
-    font-weight: bold !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.3 !important;
-  }
-  
-  .codform-field[data-field-type="title"] h3 {
-    font-weight: medium !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.3 !important;
-  }
-  
-  /* تطبيق خصائص العنوان المخصصة */
-  .codform-field h3 {
-    font-size: attr(data-font-size) !important;
-    font-weight: attr(data-font-weight) !important;
-  }
-  
-  /* تطبيق خصائص الوصف المخصصة */
-  .codform-field .codform-title-description {
-    font-size: attr(data-desc-font-size) !important;
-    font-weight: attr(data-desc-font-weight) !important;
-  }
-  
-  /* تصحيح الأحجام وفقًا للبيانات المخصصة */
-  .codform-field[data-font-size="1rem"] h3 {
-    font-size: 1rem !important;
-  }
-  
-  .codform-field[data-font-size="1.25rem"] h3 {
-    font-size: 1.25rem !important;
-  }
-  
-  .codform-field[data-font-size="1.5rem"] h3 {
-    font-size: 1.5rem !important;
-  }
-  
-  .codform-field[data-font-size="2rem"] h3 {
-    font-size: 2rem !important;
-  }
-  
-  .codform-field[data-desc-font-size="0.75rem"] .codform-title-description {
-    font-size: 0.75rem !important;
-  }
-  
-  .codform-field[data-desc-font-size="0.875rem"] .codform-title-description {
-    font-size: 0.875rem !important;
-  }
-  
-  .codform-field[data-desc-font-size="1rem"] .codform-title-description {
-    font-size: 1rem !important;
-  }
-  
-  .codform-field[data-desc-font-size="1.125rem"] .codform-title-description {
-    font-size: 1.125rem !important;
-  }
-  
-  .codform-field[data-font-weight="normal"] h3 {
-    font-weight: normal !important;
-  }
-  
-  .codform-field[data-font-weight="medium"] h3 {
-    font-weight: 500 !important;
-  }
-  
-  .codform-field[data-font-weight="bold"] h3 {
-    font-weight: bold !important;
-  }
-  
-  .codform-field[data-desc-font-weight="normal"] .codform-title-description {
-    font-weight: normal !important;
-  }
-  
-  .codform-field[data-desc-font-weight="medium"] .codform-title-description {
-    font-weight: 500 !important;
-  }
-  
-  .codform-field[data-desc-font-weight="bold"] .codform-title-description {
-    font-weight: bold !important;
-  }
-  
-  /* تحسينات لملخص العربة */
-  .codform-cart-summary {
-    background-color: #f9fafb !important;
-    border-radius: 8px !important;
-    padding: 15px !important;
-    margin: 15px 0 !important;
-    border: 1px solid #e5e7eb !important;
-  }
-  
-  /* تحسينات لعناصر العربة */
-  .codform-cart-items {
-    border: 1px solid #e5e7eb !important;
-    border-radius: 8px !important;
-    margin: 15px 0 !important;
-  }
-  
-  .codform-cart-item {
-    display: flex !important;
-    padding: 15px !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    align-items: center !important;
-  }
-  
-  /* تحسين صور المنتجات */
-  .codform-cart-item img {
-    width: 80px !important;
-    height: 80px !important;
-    border-radius: 4px !important;
-    object-fit: cover !important;
-    margin-left: 15px !important;
-  }
-  
-  /* تصحيح مشكلة العرض في الهاتف */
-  .codform-html-content h3 {
-    font-size: 1.3rem !important;
-    margin-bottom: 10px !important;
-    font-weight: bold !important;
-  }
-  
-  /* الشاشات الصغيرة */
-  @media (max-width: 768px) {
-    .codform-submit-btn {
-      font-size: 16px !important;
-      padding: 12px 16px !important;
-    }
-    
-    .codform-cart-item {
-      flex-direction: column !important;
-    }
-    
-    .codform-cart-item img {
-      margin-left: 0 !important;
-      margin-bottom: 10px !important;
-    }
-  }
-  
-  /* ضمان تطبيق أنماط أزرار الإرسال بشكل متسق */
-  .codform-submit-container {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    margin: 20px 0 !important;
   }
 </style>
 
-{% endif %}
+<script>
+  // Make sure floating button is visible on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if floating button is enabled in block settings
+    var enableFloatingButton = {% if block.settings.enable_floating_button %}true{% else %}false{% endif %};
+    var floatingButtonContainer = document.getElementById('codform-floating-button-{{ block.id }}');
+    
+    if (floatingButtonContainer && enableFloatingButton) {
+      // Make floating button visible
+      floatingButtonContainer.style.display = 'flex';
+      floatingButtonContainer.style.visibility = 'visible';
+      floatingButtonContainer.style.opacity = '1';
+      floatingButtonContainer.classList.remove('hidden');
+    }
+  });
+</script>
 
 {% schema %}
 {
@@ -401,52 +842,101 @@
       "info": "أدخل معرف النموذج الذي تريد عرضه"
     },
     {
-      "type": "text",
-      "id": "title",
-      "label": "عنوان النموذج",
-      "default": "اطلب المنتج الآن - الدفع عند الاستلام"
+      "type": "header",
+      "content": "إعدادات الزر العائم"
     },
     {
-      "type": "textarea",
-      "id": "description",
-      "label": "وصف النموذج",
-      "default": "املأ النموذج التالي لطلب المنتج والدفع عند استلام المنتج."
-    },
-    {
-      "type": "text",
-      "id": "loading_text",
-      "label": "نص التحميل",
-      "default": "جاري تحميل النموذج..."
+      "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تمكين الزر العائم",
+      "default": true,
+      "info": "يعرض زرًا في أسفل الشاشة للتنقل السريع إلى النموذج"
     },
     {
       "type": "text",
-      "id": "success_title",
-      "label": "عنوان رسالة النجاح",
-      "default": "تم إرسال الطلب بنجاح"
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
     },
     {
-      "type": "textarea",
-      "id": "success_message",
-      "label": "رسالة النجاح",
-      "default": "شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام."
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون النص",
+      "default": "#ffffff"
     },
     {
-      "type": "text",
-      "id": "error_title",
-      "label": "عنوان رسالة الخطأ",
-      "default": "حدث خطأ"
-    },
-    {
-      "type": "textarea",
-      "id": "error_message",
-      "label": "رسالة الخطأ",
-      "default": "حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى."
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون الخلفية",
+      "default": "#000000"
     },
     {
       "type": "text",
-      "id": "retry_button",
-      "label": "نص زر إعادة المحاولة",
-      "default": "إعادة المحاولة"
+      "id": "floating_border_radius",
+      "label": "نصف قطر الحواف",
+      "default": "4px"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "عرض أيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "نوع الأيقونة",
+      "options": [
+        {
+          "value": "shopping-cart",
+          "label": "عربة تسوق"
+        },
+        {
+          "value": "package",
+          "label": "طرد"
+        },
+        {
+          "value": "truck",
+          "label": "شاحنة"
+        },
+        {
+          "value": "send",
+          "label": "إرسال"
+        }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي",
+      "options": [
+        {
+          "value": "none",
+          "label": "بدون"
+        },
+        {
+          "value": "pulse",
+          "label": "نبض"
+        },
+        {
+          "value": "bounce",
+          "label": "قفز"
+        },
+        {
+          "value": "shake",
+          "label": "اهتزاز"
+        },
+        {
+          "value": "wiggle",
+          "label": "تمايل"
+        },
+        {
+          "value": "flash",
+          "label": "وميض"
+        }
+      ],
+      "default": "none"
     }
   ]
 }

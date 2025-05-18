@@ -1,285 +1,84 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.20.0'
+// This function fetches form data by ID for the store front
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-}
+};
 
-// Define the expected API key - make it consistent across functions
-const VALID_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10eWZ1d2Rzc2hsenF3anVqYXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTYyNTksImV4cCI6MjA2MjA3MjI1OX0.hjwGefZdZFIrYCdcBJ0XWJVt6YWdBR6d77Rsq8F9Szg';
-
-serve(async (req) => {
-  // Handle CORS
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase credentials')
+    // Parse request
+    let formId;
+    
+    try {
+      const body = await req.json();
+      formId = body.id;
+    } catch (e) {
+      // If the request body is not valid JSON, try to get formId from URL
+      const url = new URL(req.url);
+      formId = url.searchParams.get('id');
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Check API key if provided
-    const authHeader = req.headers.get('Authorization')
-    const apiKey = req.headers.get('X-API-Key');
-    
-    console.log('Request headers:', {
-      hasAuthHeader: !!authHeader,
-      hasApiKey: !!apiKey,
-      authHeaderStart: authHeader ? authHeader.substring(0, 20) + '...' : 'none'
-    });
-    
-    // Allow both Authorization header and X-API-Key header for backward compatibility
-    let isAuthorized = false;
-    let token = '';
-    
-    if (authHeader) {
-      // Format: Bearer <token>
-      token = authHeader.split(' ')[1] || authHeader;
-      if (token === VALID_API_KEY) {
-        isAuthorized = true;
-      }
-    }
-    
-    if (apiKey) {
-      if (apiKey === VALID_API_KEY) {
-        isAuthorized = true;
-      }
-    }
-    
-    // Debug authentication
-    console.log('Authentication check:', {
-      isAuthorized,
-      hasToken: !!token,
-      tokenLength: token ? token.length : 0,
-    });
-    
-    // Public access is allowed - we don't require API key for GET requests to form data
-    // This lets the forms be loaded from any Shopify store
-    const isPublicFormFetch = req.method === 'GET';
-    
-    // If API key was provided but is invalid, return an error
-    if (token && !isAuthorized && !isPublicFormFetch) {
-      console.error('Invalid API key provided:', token.substring(0, 10) + '...');
-      return new Response(JSON.stringify({ error: 'Unauthorized access - invalid API key' }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 401,
-      });
-    }
-
-    // Get form ID from URL
-    const url = new URL(req.url)
-    const pathParts = url.pathname.split('/');
-    const formId = pathParts[pathParts.length - 1];
 
     if (!formId) {
-      throw new Error('No form ID provided')
+      return new Response(
+        JSON.stringify({ error: 'Form ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
-    console.log('Fetching form with ID:', formId)
+    console.log(`Fetching form with ID: ${formId}`);
 
-    // Get form from database
-    const { data: formData, error } = await supabase
+    // Get the form data
+    const { data: form, error: formError } = await supabase
       .from('forms')
       .select('*')
       .eq('id', formId)
-      .single()
+      .eq('is_published', true)
+      .single();
 
-    if (error) {
-      console.error('Database error:', error)
-      throw error
+    if (formError || !form) {
+      console.error('Error or no form found:', formError);
+      return new Response(
+        JSON.stringify({ error: 'Form not found or not published' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
-    if (!formData) {
-      console.error('Form not found:', formId)
-      throw new Error(`Form with ID ${formId} not found`)
-    }
-
-    // Verify the form is published
-    if (formData.is_published !== true) {
-      console.error('Form is not published:', formId)
-      throw new Error(`Form with ID ${formId} is not published`)
-    }
-
-    console.log('Successfully fetched form:', formData.title, 'ID:', formId)
-
-    // Transform form data to the expected format, optimizing for size
-    const transformedData = transformFormData(formData)
-    
-    // Return the form data with proper caching headers
-    return new Response(JSON.stringify(transformedData), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-      },
-      status: 200,
-    })
-  } catch (error) {
-    console.error('Error getting form:', error.message)
-    
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      path: new URL(req.url).pathname
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      status: error.message.includes('not found') ? 404 : 400,
-    })
-  }
-})
-
-// Function to transform form data into a structure that's easier to use in the frontend
-function transformFormData(formData) {
-  // Only log brief info in production to reduce function size
-  if (Deno.env.get('SUPABASE_ENV') !== 'development') {
-    console.log(`Transform function received form: ${formData.id}, title: ${formData.title}`);
-  } else {
-    console.log('Transform function received data type:', typeof formData);
-  }
-  
-  if (!formData || !formData.data) {
-    return {
-      id: formData.id,
-      title: formData.title,
-      description: formData.description,
-      primaryColor: formData.primary_color || '#9b87f5',
-      fields: []
-    }
-  }
-
-  const data = formData.data
-  
-  // In production environment, skip verbose logging
-  if (Deno.env.get('SUPABASE_ENV') === 'development') {
-    console.log('Form data array length:', Array.isArray(data) ? data.length : 'not an array');
-    console.log('Raw form data structure:', JSON.stringify(data).substring(0, 500) + '...');
-  }
-  
-  // Check if form has steps
-  const hasSteps = Array.isArray(data) && data.some(step => step.fields && Array.isArray(step.fields))
-  
-  if (Deno.env.get('SUPABASE_ENV') === 'development') {
-    console.log('Form has steps:', hasSteps);
-  }
-  
-  let transformedFields = [];
-  
-  try {
-    if (hasSteps) {
-      // Process multi-step form
-      if (Deno.env.get('SUPABASE_ENV') === 'development') {
-        console.log('Processing as multi-step form');
+    // Make sure we include the floating button settings in the response
+    const responseData = {
+      ...form,
+      floating_button: form.floating_button || { 
+        enabled: true, // Default to true if missing
+        text: 'Order Now',
+        textColor: '#ffffff',
+        backgroundColor: '#000000',
+        borderRadius: '4px',
+        showIcon: true,
+        icon: 'shopping-cart'
       }
-      
-      data.forEach((step, stepIndex) => {
-        // Add a step marker field
-        transformedFields.push({
-          id: step.id || `step-${stepIndex}`,
-          type: 'step',
-          label: step.title || `Step ${stepIndex + 1}`,
-          stepIndex: stepIndex,
-          isStep: true
-        })
-        
-        // Process fields in this step
-        if (step.fields && Array.isArray(step.fields)) {
-          step.fields.forEach(field => {
-            transformedFields.push({
-              ...field,
-              stepId: step.id,
-              stepTitle: step.title,
-              stepIndex: stepIndex
-            })
-          })
-        }
-      })
-    } else {
-      // Process single-step form with nested fields structure
-      if (Deno.env.get('SUPABASE_ENV') === 'development') {
-        console.log('Processing as single-step form with nested fields structure');
-      }
-      
-      let totalFields = 0;
-      
-      if (Array.isArray(data) && data.length > 0) {
-        data.forEach((step, stepIndex) => {
-          // Add a step marker field
-          transformedFields.push({
-            id: step.id || `${stepIndex + 1}`,
-            type: 'step',
-            label: step.title || `Step ${stepIndex + 1}`,
-            stepIndex: stepIndex,
-            isStep: true
-          })
-          
-          // Process fields in this step
-          if (step.fields && Array.isArray(step.fields)) {
-            step.fields.forEach(field => {
-              transformedFields.push({
-                ...field,
-                stepId: step.id || `${stepIndex + 1}`,
-                stepTitle: step.title || `Step ${stepIndex + 1}`,
-                stepIndex: stepIndex
-              })
-              totalFields++;
-            })
-          }
-        })
-      }
-      
-      if (Deno.env.get('SUPABASE_ENV') === 'development') {
-        console.log('Transformed', totalFields, 'total fields');
-        
-        // Log the first and second fields for debugging
-        if (transformedFields.length > 0) {
-          console.log('First field:', JSON.stringify(transformedFields[0]));
-        }
-        if (transformedFields.length > 1) {
-          console.log('Second field:', JSON.stringify(transformedFields[1]));
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error transforming form data:', error.message);
-    // Return basic form data if transformation fails
-    return {
-      id: formData.id,
-      title: formData.title,
-      description: formData.description,
-      primaryColor: formData.primary_color || '#9b87f5',
-      error: 'Error transforming form data',
-      fields: []
     };
+
+    return new Response(
+      JSON.stringify(responseData),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error in api-forms function:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
-  
-  if (Deno.env.get('SUPABASE_ENV') === 'development') {
-    console.log('Transformed', transformedFields.length, 'fields for the form');
-  } else {
-    console.log(`Transformed ${transformedFields.length} fields for form: ${formData.id}`);
-  }
-  
-  return {
-    id: formData.id,
-    title: formData.title,
-    description: formData.description,
-    primaryColor: formData.primary_color || '#9b87f5',
-    borderRadius: formData.border_radius || '0.5rem',
-    fontSize: formData.font_size || '1rem',
-    buttonStyle: formData.button_style || 'rounded',
-    fields: transformedFields
-  }
-}
+});

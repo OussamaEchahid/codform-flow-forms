@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
+import FloatingButton from './preview/FloatingButton';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -19,6 +20,8 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   hideHeader?: boolean;
+  floatingButton?: FloatingButtonConfig;
+  hideFloatingButtonPreview?: boolean; // Add prop to control floating button visibility in preview
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -35,15 +38,25 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   hideHeader = false,
+  floatingButton,
+  hideFloatingButtonPreview = false, // Default to false to show in preview
 }) => {
   const { language } = useI18n();
   const [key] = useState(0);
   
   // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
+    // Ensure cart-items and cart-summary have empty labels by default
+    const updatedFields = fields.map(field => {
+      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
+        return { ...field, label: '' };
+      }
+      return field;
+    });
+    
     // إذا كان هناك form-title موجود، نستخدمه
-    if (fields.some(field => field.type === 'form-title')) {
-      return fields;
+    if (updatedFields.some(field => field.type === 'form-title')) {
+      return updatedFields;
     }
     
     // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
@@ -64,9 +77,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     };
     
     // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
-    const hasSubmitButton = fields.some(field => field.type === 'submit');
+    const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
-    let result = [formTitleField, ...fields.filter(f => f.type !== 'form-title')];
+    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
     // إذا لم يكن هناك زر إرسال، نضيف واحدًا
     if (!hasSubmitButton) {
@@ -91,7 +104,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   return (
     <div 
       key={key}
-      className="rounded-lg border shadow-sm overflow-hidden bg-white"
+      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
@@ -158,6 +171,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           children
         )}
       </div>
+
+      {/* Render floating button if enabled AND not hidden for preview purposes */}
+      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
+        <FloatingButton config={floatingButton} isPreview={true} />
+      )}
     </div>
   );
 };
