@@ -1,3 +1,4 @@
+
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -170,165 +171,25 @@
   data-enable-icons="true"
 >
   <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; padding: 20px;">
-    <div class="codform-loader-spinner"></div>
+    <div class="codform-spinner"></div>
+    <div style="margin-top: 10px;">{{ block.settings.loading_text }}</div>
   </div>
   
   <div id="codform-form-{{ block.id }}" class="codform-form-container" style="display: none;"></div>
   
   <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none; text-align: center; padding: 20px;">
-    <h3>تم إرسال الطلب بنجاح</h3>
-    <p>سيتم التواصل معك قريباً</p>
+    <div class="codform-success-icon">✓</div>
+    <h3>{{ block.settings.success_title }}</h3>
+    <p>{{ block.settings.success_message }}</p>
   </div>
   
   <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none; text-align: center; padding: 20px;">
-    <h3>حدث خطأ</h3>
-    <p>يرجى المحاولة مرة أخرى</p>
-    <button id="codform-retry-{{ block.id }}" class="codform-retry-button">إعادة المحاولة</button>
+    <div class="codform-error-icon">!</div>
+    <h3>{{ block.settings.error_title }}</h3>
+    <p>{{ block.settings.error_message }}</p>
+    <button id="codform-retry-{{ block.id }}" class="codform-button">{{ block.settings.retry_button }}</button>
   </div>
 </div>
-
-<style>
-  /* Basic styling for the form loader */
-  .codform-loader-spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border-left-color: #09f;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  .codform-retry-button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    background: #09f;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .codform-form textarea,
-  .codform-form input[type="text"],
-  .codform-form input[type="email"],
-  .codform-form input[type="tel"],
-  .codform-form input[type="number"] {
-    width: 100%;
-    padding: 8px 12px;
-    margin: 8px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .codform-form label {
-    font-weight: 500;
-    display: block;
-    margin-bottom: 5px;
-  }
-  
-  .codform-submit-button {
-    padding: 10px 20px;
-    margin-top: 15px;
-    width: 100%;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 16px;
-    color: white;
-  }
-  
-  .codform-required {
-    color: #e32;
-    margin-left: 4px;
-  }
-
-  .codform-field {
-    margin-bottom: 15px;
-  }
-  
-  .codform-field-with-icon input,
-  .codform-field-with-icon textarea {
-    padding-left: 36px !important;
-  }
-  
-  .codform-field-with-icon.rtl input,
-  .codform-field-with-icon.rtl textarea {
-    padding-left: 12px !important;
-    padding-right: 36px !important;
-  }
-  
-  .codform-field-with-icon .codform-field-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6b7280;
-  }
-  
-  .codform-field-with-icon.rtl .codform-field-icon {
-    left: auto;
-    right: 10px;
-  }
-  
-  .codform-help-text {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 4px;
-  }
-  
-  @keyframes pulse-animation {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
-  
-  .pulse-animation {
-    animation: pulse-animation 2s infinite ease-in-out;
-  }
-  
-  @keyframes shake-animation {
-    0% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
-  }
-  
-  .shake-animation {
-    animation: shake-animation 2s infinite ease-in-out;
-  }
-  
-  @keyframes bounce-animation {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-  
-  .bounce-animation {
-    animation: bounce-animation 2s infinite ease-in-out;
-  }
-  
-  @keyframes wiggle-animation {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-3deg); }
-    75% { transform: rotate(3deg); }
-  }
-  
-  .wiggle-animation {
-    animation: wiggle-animation 2s infinite ease-in-out;
-  }
-  
-  @keyframes flash-animation {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-  
-  .flash-animation {
-    animation: flash-animation 2s infinite ease-in-out !important;
-  }
-</style>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -441,14 +302,14 @@
     function createFormHtml(formData, blockId) {
       const hideHeader = container.getAttribute('data-hide-header') === 'true';
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
-      const isRTL = formData.settings?.direction === 'rtl';
+      const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
       let html = '';
       
       // إضافة رأس النموذج إذا لم يتم إخفاؤه
       if (!hideHeader && formData.title) {
-        html += `<div class="codform-header" style="background-color: ${formData.settings?.primaryColor || '#9b87f5'}; color: #ffffff; padding: 15px; border-radius: 8px 8px 0 0; margin-bottom: 15px;">
-          <h3 style="margin: 0; font-size: 1.25rem;">${formData.title}</h3>
-          ${formData.description ? `<p style="margin: 5px 0 0 0; font-size: 0.875rem;">${formData.description}</p>` : ''}
+        html += `<div class="codform-header" style="background-color: ${formData.settings?.primaryColor || '#9b87f5'}">
+          <h3>${formData.title}</h3>
+          ${formData.description ? `<p>${formData.description}</p>` : ''}
         </div>`;
       }
       
@@ -504,16 +365,63 @@
       if (form) {
         form.addEventListener('submit', function(event) {
           event.preventDefault();
-          // معالجة إرسال النموذج - يمكن إضافة المزيد من المنطق هنا
-          console.log('Form submitted');
           
-          // هنا يمكن إضافة منطق إرسال البيانات إلى الخلفية
+          // جمع بيانات النموذج
+          const formData = new FormData(form);
+          const formDataObj = {};
+          formData.forEach((value, key) => {
+            formDataObj[key] = value;
+          });
           
-          // إظهار رسالة النجاح
-          if (formContainer) formContainer.style.display = 'none';
-          if (successContainer) successContainer.style.display = 'block';
+          console.log('Form submitted with data:', formDataObj);
+          
+          // تمرير بيانات النموذج إلى API
+          submitFormData(formDataObj, blockId);
         });
       }
+    }
+    
+    // وظيفة لإرسال بيانات النموذج
+    function submitFormData(data, blockId) {
+      const shop = Shopify.shop || window.location.hostname;
+      const productId = container.getAttribute('data-product-id');
+      
+      // عرض حالة التحميل
+      formContainer.classList.add('codform-loading');
+      
+      // إضافة معلومات السياق
+      data.shop = shop;
+      data.product_id = productId;
+      data.form_id = blockId;
+      
+      // إرسال البيانات إلى API
+      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/submit-cod-form`;
+      
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(result => {
+        // إظهار رسالة النجاح
+        formContainer.style.display = 'none';
+        formContainer.classList.remove('codform-loading');
+        successContainer.style.display = 'block';
+      })
+      .catch(error => {
+        // إظهار رسالة الخطأ
+        console.error('Error submitting form:', error);
+        formContainer.classList.remove('codform-loading');
+        showError("حدث خطأ أثناء إرسال النموذج، يرجى المحاولة مرة أخرى.");
+      });
     }
     
     // وظيفة لإنشاء حقل إدخال
@@ -536,7 +444,7 @@
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div style="position: relative;">
+          <div class="codform-field-wrapper" style="position: relative;">
             ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
@@ -572,7 +480,7 @@
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div style="position: relative;">
+          <div class="codform-field-wrapper" style="position: relative;">
             ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
@@ -606,7 +514,7 @@
           const translatedOptionLabel = option.label || '';
           
           html += `
-            <div class="codform-radio-option">
+            <div class="codform-radio-container">
               <input
                 type="radio"
                 id="codform-field-${field.id}-${index}"
@@ -648,7 +556,7 @@
           const translatedOptionLabel = option.label || '';
           
           html += `
-            <div class="codform-checkbox-option">
+            <div class="codform-checkbox-container">
               <input
                 type="checkbox"
                 id="codform-field-${field.id}-${index}"
@@ -675,11 +583,11 @@
     function createSubmitButton(field, formSettings) {
       const buttonStyle = field.style || {};
       const backgroundColor = buttonStyle.backgroundColor || formSettings?.primaryColor || '#9b87f5';
-      const borderRadius = buttonStyle.borderRadius || '4px';
-      const fontSize = buttonStyle.fontSize || '16px';
-      const fontWeight = buttonStyle.fontWeight || '500';
+      const borderRadius = buttonStyle.borderRadius || '8px';
+      const fontSize = buttonStyle.fontSize || '18px';
+      const fontWeight = buttonStyle.fontWeight || '600';
       const color = buttonStyle.color || '#ffffff';
-      const padding = buttonStyle.paddingY ? `${buttonStyle.paddingY} 20px` : '10px 20px';
+      const padding = buttonStyle.paddingY ? `${buttonStyle.paddingY} 20px` : '14px 20px';
       const borderWidth = buttonStyle.borderWidth || '0px';
       const borderColor = buttonStyle.borderColor || backgroundColor;
       
@@ -693,7 +601,7 @@
       
       if (showIcon) {
         const iconSvg = getIconSvg(buttonStyle.icon || 'shopping-cart');
-        iconHtml = `<span class="codform-button-icon" style="display: inline-flex; align-items: center; margin-${buttonStyle.iconPosition === 'right' ? 'left' : 'right'}: 8px;">${iconSvg}</span>`;
+        iconHtml = `<span class="codform-icon" style="display: inline-flex; align-items: center; margin-${buttonStyle.iconPosition === 'right' ? 'right' : 'left'}: 8px;">${iconSvg}</span>`;
       }
       
       const translatedLabel = field.label || 'إرسال الطلب';
@@ -702,7 +610,7 @@
         <div class="codform-field">
           <button
             type="submit"
-            class="codform-submit-button ${animationClass}"
+            class="codform-submit-btn ${animationClass}"
             style="
               background-color: ${backgroundColor};
               border-radius: ${borderRadius};
@@ -735,11 +643,13 @@
       const translatedHelp = field.helpText || '';
       
       return `
-        <div class="codform-field codform-title-field" style="background-color: ${backgroundColor}; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-          <h3 style="margin: 0; color: ${color}; font-size: ${style.fontSize || '1.25rem'}; font-weight: ${style.fontWeight || 'bold'}; text-align: ${style.textAlign || 'left'};">
-            ${translatedLabel}
-          </h3>
-          ${translatedHelp ? `<p style="margin: 5px 0 0 0; color: ${descriptionColor}; font-size: ${style.descriptionFontSize || '0.875rem'};">${translatedHelp}</p>` : ''}
+        <div class="codform-title-field">
+          <div class="codform-title-container" style="background-color: ${backgroundColor}; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: ${style.textAlign || 'right'};">
+            <h3 class="codform-form-title" style="margin: 0; color: ${color}; font-size: ${style.fontSize || '24px'}; font-weight: ${style.fontWeight || 'bold'};">
+              ${translatedLabel}
+            </h3>
+            ${translatedHelp ? `<p class="codform-title-description" style="margin: 6px 0 0 0; color: ${descriptionColor}; font-size: ${style.descriptionFontSize || '14px'};">${translatedHelp}</p>` : ''}
+          </div>
         </div>
       `;
     }
@@ -758,35 +668,35 @@
       const style = field.style || {};
       const backgroundColor = style.backgroundColor || '#25D366';
       const color = style.color || '#ffffff';
-      const borderRadius = style.borderRadius || '4px';
+      const borderRadius = style.borderRadius || '8px';
       const phone = field.phone || '';
       const message = encodeURIComponent(field.message || '');
       
       const translatedLabel = field.label || 'واتساب';
       
       // أيقونة واتساب SVG
-      const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+      const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path></svg>`;
+      
+      const url = `https://wa.me/${phone}${message ? `?text=${message}` : ''}`;
       
       return `
         <div class="codform-field">
           <a 
-            href="https://wa.me/${phone}${message ? `?text=${message}` : ''}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="codform-whatsapp-button"
+            href="${url}" 
+            target="_blank" 
+            class="codform-whatsapp-button" 
             style="
+              background-color: ${backgroundColor};
+              border-radius: ${borderRadius};
+              color: ${color};
               display: flex;
               align-items: center;
               justify-content: center;
-              background-color: ${backgroundColor};
-              color: ${color};
-              padding: 10px 20px;
-              border-radius: ${borderRadius};
-              text-decoration: none;
-              font-weight: 500;
+              gap: 10px;
+              padding: 14px 20px;
             "
           >
-            <span style="display: inline-flex; align-items: center; margin-right: 8px;">${whatsappIcon}</span>
+            <span class="codform-whatsapp-icon">${whatsappIcon}</span>
             <span>${translatedLabel}</span>
           </a>
         </div>
@@ -796,53 +706,47 @@
     // وظيفة لإنشاء حقل صورة
     function createImageField(field) {
       const style = field.style || {};
-      const imageUrl = field.imageUrl || '';
-      const altText = field.altText || field.label || 'صورة';
-      const maxWidth = style.maxWidth || '100%';
-      const alignment = style.alignment || 'center';
-      
-      let alignmentStyle = 'margin: 0 auto;'; // للتوسيط افتراضيًا
-      
-      if (alignment === 'left') {
-        alignmentStyle = 'margin-right: auto;';
-      } else if (alignment === 'right') {
-        alignmentStyle = 'margin-left: auto;';
-      }
       
       return `
-        <div class="codform-field">
-          <img 
-            src="${imageUrl}"
-            alt="${altText}"
-            class="codform-image"
-            style="
-              max-width: ${maxWidth};
-              display: block;
-              ${alignmentStyle}
-              border-radius: ${style.borderRadius || '0'};
-            "
-          />
+        <div class="codform-field codform-image-field">
+          <div class="codform-image-container">
+            <img 
+              src="${field.image || ''}"
+              alt="${field.alt || field.label || ''}"
+              class="codform-image"
+              style="
+                border-radius: ${style.borderRadius || '8px'};
+                ${style.maxHeight ? `max-height: ${style.maxHeight};` : ''}
+                ${style.maxWidth ? `max-width: ${style.maxWidth};` : ''}
+              "
+            />
+          </div>
+          ${field.caption ? `<div class="codform-image-caption" style="margin-top: 8px; text-align: center; font-size: 14px; color: #6B7280;">${field.caption}</div>` : ''}
         </div>
       `;
     }
     
     // وظيفة للحصول على SVG للأيقونة
     function getIconSvg(iconName) {
-      // تنفيذ الأيقونات الأساسية
-      switch (iconName) {
-        case 'user':
-          return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-        case 'phone':
-          return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
-        case 'mail':
-          return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>';
-        case 'map-pin':
-          return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
-        case 'shopping-cart':
-          return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
-        default:
-          return '';
-      }
+      // مجموعة من الأيقونات SVG الشائعة
+      const icons = {
+        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
+        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+        'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"></path><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>',
+        'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+        'check': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+        'email': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+      };
+      
+      // إرجاع أيقونة SVG أو أيقونة المستخدم الافتراضية
+      return icons[iconName] || icons['user'];
     }
   });
 </script>
