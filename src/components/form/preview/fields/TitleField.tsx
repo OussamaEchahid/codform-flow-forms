@@ -16,6 +16,8 @@ interface TitleFieldProps {
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // Define valid box-sizing values
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
+// Define valid CSS direction values
+type Direction = 'rtl' | 'ltr' | 'inherit' | 'initial' | 'unset';
 
 // CRITICAL: Convert rem to px for perfect style matching
 const remToPx = (value: string | undefined, defaultValue: string): string => {
@@ -70,6 +72,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
+
+  // Use Direction type for proper typechecking
+  const contentDirection: Direction = language === 'ar' ? 'rtl' : 'ltr';
   
   // CRITICAL: Use !important on all style properties to override store styles
   const backgroundStyle = {
@@ -80,7 +85,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     boxSizing: 'border-box' as BoxSizing,
     marginBottom: '16px !important',
     textAlign: alignment as React.CSSProperties['textAlign'],
-    direction: language === 'ar' ? 'rtl' : 'ltr',
+    direction: contentDirection,
   };
 
   // Title styles with !important flags
@@ -94,7 +99,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     padding: '0 !important',
     lineHeight: '1.3 !important',
     display: 'block !important',
-    direction: language === 'ar' ? 'rtl' : 'ltr',
+    direction: contentDirection,
   };
 
   // Description styles with !important flags
@@ -108,7 +113,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontWeight: 'normal !important',
     lineHeight: '1.5 !important',
     opacity: '0.9 !important',
-    direction: language === 'ar' ? 'rtl' : 'ltr',
+    direction: contentDirection,
   };
 
   // Create unique ID for this field to debug styling issues
