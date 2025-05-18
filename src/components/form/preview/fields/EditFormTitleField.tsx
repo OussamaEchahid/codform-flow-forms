@@ -75,7 +75,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   
   return (
     <div
-      className="form-title-field w-full my-2"
+      className="form-title-field w-full my-2 codform-title-container"
       style={containerStyle}
       dir={direction}
       data-form-direction={direction}
@@ -83,12 +83,12 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
       data-testid="edit-form-title-field"
       data-background-color={backgroundColor}
     >
-      <h2 style={titleStyle}>
+      <h2 style={titleStyle} className="codform-form-title">
         {field.label}
       </h2>
       
       {showDescription && field.helpText && (
-        <p style={descriptionStyle}>
+        <p style={descriptionStyle} className="codform-title-description">
           {field.helpText}
         </p>
       )}
