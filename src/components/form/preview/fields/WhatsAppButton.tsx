@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { MessageSquare } from 'lucide-react';
 
 interface WhatsAppButtonProps {
   field: FormField;
@@ -10,87 +9,65 @@ interface WhatsAppButtonProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
-    buttonStyle?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle, formDirection }) => {
+const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+
+  // تحديد رقم الواتساب والرسالة
+  const phoneNumber = field.whatsappNumber || '';
   
-  // Determine direction based on formDirection prop or language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Get WhatsApp number from the field
-  const whatsappNumber = field.whatsappNumber || '';
-  
-  // Default message
+  // لضمان التوافق مع الأنماط القديمة
   const message = field.message || '';
   
-  // Create WhatsApp URL
-  const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
-  
-  // Determine button radius based on style
-  let buttonRadius = '8px'; // default to match the store's appearance
-  if (formStyle.buttonStyle === 'pill') {
-    buttonRadius = '9999px';
-  } else if (formStyle.buttonStyle === 'square') {
-    buttonRadius = '0';
-  } else {
-    buttonRadius = formStyle.borderRadius || '8px';
-  }
-  
-  // Icon style to ensure consistent display
-  const iconStyle = {
-    width: '18px',
-    height: '18px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0
+  // نص الزر
+  const buttonText = field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp');
+
+  // إنشاء رابط الواتساب
+  const getWhatsAppLink = () => {
+    let link = `https://wa.me/${phoneNumber.replace(/\D/g, '')}`;
+    if (message) {
+      link += `?text=${encodeURIComponent(message)}`;
+    }
+    return link;
   };
-  
+
   return (
-    <div 
-      className="mb-4"
-      dir={textDirection}
-      data-direction={textDirection}
-    >
+    <div className="mb-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <a 
-        href={whatsappUrl}
-        target="_blank"
+        href={getWhatsAppLink()} 
+        target="_blank" 
         rel="noopener noreferrer"
         className="codform-whatsapp-button"
         style={{
-          backgroundColor: fieldStyle.backgroundColor || '#25D366',
-          color: fieldStyle.color || 'white',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '18px',
-          borderRadius: fieldStyle.borderRadius || buttonRadius,
-          textDecoration: 'none',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          padding: '14px 20px',
-          fontWeight: '600',
-          width: '100%',
-          border: 'none',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          fontFamily: 'inherit',
-          marginTop: '14px',
-          marginBottom: '8px',
-          textAlign: 'center'
+          backgroundColor: '#25D366',
+          borderRadius: fieldStyle.borderRadius || formStyle.borderRadius || '8px',
+          fontSize: fieldStyle.fontSize || '18px',
         }}
-        data-button-type="whatsapp"
-        data-whatsapp-number={whatsappNumber}
-        dir={textDirection}
       >
-        <MessageSquare style={iconStyle} className="codform-whatsapp-icon" />
-        {field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp')}
+        <svg 
+          className="codform-whatsapp-icon" 
+          width="18" 
+          height="18" 
+          viewBox="0 0 24 24" 
+          strokeWidth="2" 
+          stroke="currentColor" 
+          fill="none" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+          <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+          <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+        </svg>
+        {buttonText}
       </a>
+      
+      {field.helpText && (
+        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
+      )}
     </div>
   );
 };

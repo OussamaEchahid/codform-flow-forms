@@ -10,94 +10,63 @@ interface CheckboxGroupProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle, formDirection }) => {
+const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Determine direction based on formDirection prop or language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Determine label alignment based on direction
-  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
-  
-  // Ensure options are available and have correct format
-  const options = Array.isArray(field.options) ? field.options : [];
-  
+  // Check if options is an array and if not, create a default array
+  const options = Array.isArray(field.options) 
+    ? field.options 
+    : [
+        { value: 'option1', label: language === 'ar' ? 'الخيار الأول' : 'First Option' },
+        { value: 'option2', label: language === 'ar' ? 'الخيار الثاني' : 'Second Option' }
+      ];
+
   return (
-    <div 
-      className="mb-4"
-      dir={textDirection}
-      data-field-type="checkbox"
-      data-direction={textDirection}
-    >
-      <label 
-        className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
-        style={{ 
-          color: fieldStyle.labelColor || '#334155',
-          fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
-          fontWeight: 500,
-          textAlign: labelAlignment,
-          direction: textDirection
-        }}
-        dir={textDirection}
-      >
-        {field.label || (language === 'ar' ? 'اختيارات متعددة' : 'Multiple choices')}
-        {field.required && (
-          <span className="text-red-500 absolute right-0 top-0">*</span>
-        )}
-      </label>
+    <div className="mb-6">
+      {field.label && (
+        <label className="block font-medium mb-2" style={{ 
+          color: fieldStyle.labelColor || '#374151',
+          fontSize: fieldStyle.labelFontSize || formStyle.fontSize,
+        }}>
+          {field.label}
+          {field.required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
       
       <div className="space-y-2">
         {options.map((option, index) => (
-          <div 
-            key={index} 
-            className="flex items-center"
-            style={{ 
-              flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              justifyContent: textDirection === 'rtl' ? 'flex-end' : 'flex-start'
-            }}
-          >
+          <div key={index} className="flex items-center">
             <input
               type="checkbox"
-              id={`${field.id}-${index}`}
+              id={`${field.id}-option-${index}`}
               name={field.id}
-              value={option.value}
-              className={textDirection === 'rtl' ? 'ml-2' : 'mr-2'}
+              value={typeof option === 'string' ? option : option.value}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
               style={{
-                borderColor: fieldStyle.borderColor || '#d1d5db',
-                accentColor: fieldStyle.color || formStyle.primaryColor || '#9b87f5'
+                accentColor: formStyle.primaryColor || '#9b87f5',
               }}
+              defaultChecked={field.defaultValue === (typeof option === 'string' ? option : option.value)}
+              disabled={field.disabled}
             />
             <label
-              htmlFor={`${field.id}-${index}`}
+              htmlFor={`${field.id}-option-${index}`}
+              className="ml-2 block"
               style={{
-                color: fieldStyle.color || '#1f2937',
-                fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
-                direction: textDirection,
-                textAlign: textDirection === 'rtl' ? 'right' : 'left'
+                color: fieldStyle.color || '#374151',
+                fontSize: fieldStyle.fontSize || formStyle.fontSize,
               }}
-              dir={textDirection}
             >
-              {option.label}
+              {typeof option === 'string' ? option : option.label}
             </label>
           </div>
         ))}
       </div>
       
       {field.helpText && (
-        <p 
-          className="mt-1 text-sm text-gray-500"
-          style={{
-            textAlign: labelAlignment,
-            direction: textDirection
-          }}
-          dir={textDirection}
-        >
-          {field.helpText}
-        </p>
+        <p className="text-gray-500 text-sm mt-1">{field.helpText}</p>
       )}
     </div>
   );

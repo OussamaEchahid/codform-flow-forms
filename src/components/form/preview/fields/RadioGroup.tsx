@@ -10,39 +10,24 @@ interface RadioGroupProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle, formDirection }) => {
+const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
-  
-  // Determine direction based on formDirection prop or language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Determine label alignment based on direction
-  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
   
   // Ensure options are available and have correct format
   const options = Array.isArray(field.options) ? field.options : [];
   
   return (
-    <div 
-      className="mb-4"
-      dir={textDirection}
-      data-field-type="radio"
-      data-direction={textDirection}
-    >
+    <div className="mb-4">
       <label 
         className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
         style={{ 
           color: fieldStyle.labelColor || '#334155',
           fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
-          fontWeight: 500,
-          textAlign: labelAlignment,
-          direction: textDirection
+          fontWeight: 500
         }}
-        dir={textDirection}
       >
         {field.label || (language === 'ar' ? 'اختيار واحد' : 'Single choice')}
         {field.required && (
@@ -52,20 +37,13 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle, formDirection
       
       <div className="space-y-2">
         {options.map((option, index) => (
-          <div 
-            key={index} 
-            className="flex items-center"
-            style={{ 
-              flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row',
-              justifyContent: textDirection === 'rtl' ? 'flex-end' : 'flex-start'
-            }}
-          >
+          <div key={index} className="flex items-center">
             <input
               type="radio"
               id={`${field.id}-${index}`}
               name={field.id}
               value={option.value}
-              className={textDirection === 'rtl' ? 'ml-2' : 'mr-2'}
+              className="mr-2 h-4 w-4 text-blue-600"
               style={{
                 borderColor: fieldStyle.borderColor || '#d1d5db',
                 accentColor: fieldStyle.color || formStyle.primaryColor || '#9b87f5'
@@ -75,11 +53,8 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle, formDirection
               htmlFor={`${field.id}-${index}`}
               style={{
                 color: fieldStyle.color || '#1f2937',
-                fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem',
-                direction: textDirection,
-                textAlign: textDirection === 'rtl' ? 'right' : 'left'
+                fontSize: fieldStyle.fontSize || formStyle.fontSize || '1rem'
               }}
-              dir={textDirection}
             >
               {option.label}
             </label>
@@ -88,16 +63,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle, formDirection
       </div>
       
       {field.helpText && (
-        <p 
-          className="mt-1 text-sm text-gray-500"
-          style={{
-            textAlign: labelAlignment,
-            direction: textDirection
-          }}
-          dir={textDirection}
-        >
-          {field.helpText}
-        </p>
+        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
       )}
     </div>
   );

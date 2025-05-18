@@ -10,55 +10,25 @@ interface CountdownTimerProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle, formDirection }) => {
+const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Determine direction based on formDirection prop or language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Default background color to a light version of the primary color or a default purple
-  const defaultBgColor = formStyle.primaryColor 
-    ? `${formStyle.primaryColor}1A` // Add 10% opacity suffix
-    : 'rgba(155, 135, 245, 0.1)';
-  
   return (
-    <div 
-      className="mb-6 countdown-timer-wrapper"
-      style={{
-        direction: textDirection
-      }}
-      dir={textDirection}
-      data-direction={textDirection}
-    >
+    <div className="mb-6">
       <div 
-        className="p-4 border rounded-md"
+        className="p-4 border rounded-md text-center"
         style={{
-          backgroundColor: fieldStyle.backgroundColor || defaultBgColor,
+          backgroundColor: fieldStyle.backgroundColor || 'rgba(155, 135, 245, 0.1)',
           borderColor: fieldStyle.borderColor || formStyle.primaryColor || '#9b87f5',
-          textAlign: 'center'
         }}
       >
-        <h3 
-          className="text-lg font-medium mb-2"
-          style={{
-            textAlign: 'center', // Always center title regardless of direction
-            direction: textDirection
-          }}
-          dir={textDirection}
-        >
+        <h3 className="text-lg font-medium mb-2">
           {field.label || (language === 'ar' ? 'الوقت المتبقي للعرض' : 'Offer ends in')}
         </h3>
-        <div 
-          className="flex justify-center gap-4 mt-3"
-          style={{
-            direction: textDirection
-          }}
-          dir={textDirection}
-        >
+        <div className="flex justify-center gap-4 mt-3">
           <div className="bg-white p-2 rounded min-w-[60px]">
             <div className="text-2xl font-bold">24</div>
             <div className="text-xs text-gray-500">

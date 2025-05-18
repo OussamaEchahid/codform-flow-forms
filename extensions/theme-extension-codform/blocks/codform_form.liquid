@@ -171,43 +171,22 @@
   data-block-id="{{ block.id }}"
   data-hide-header="{{ block.settings.hide_header }}"
   data-enable-icons="true"
-  data-direction="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
-  dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
+  dir="rtl"
 >
-  <div 
-    id="codform-form-loader-{{ block.id }}" 
-    class="codform-loader" 
-    style="display: flex; justify-content: center; padding: 20px;" 
-    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
-  >
+  <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; padding: 20px;">
     <div class="codform-spinner"></div>
     <div style="margin-top: 10px; font-weight: 500;">{{ block.settings.loading_text }}</div>
   </div>
   
-  <div 
-    id="codform-form-{{ block.id }}" 
-    class="codform-form-container" 
-    style="display: none;" 
-    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
-  ></div>
+  <div id="codform-form-{{ block.id }}" class="codform-form-container" style="display: none;"></div>
   
-  <div 
-    id="codform-success-{{ block.id }}" 
-    class="codform-success" 
-    style="display: none; text-align: center; padding: 20px;"
-    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
-  >
+  <div id="codform-success-{{ block.id }}" class="codform-success" style="display: none; text-align: center; padding: 20px;">
     <div class="codform-success-icon">✓</div>
     <h3>{{ block.settings.success_title }}</h3>
     <p>{{ block.settings.success_message }}</p>
   </div>
   
-  <div 
-    id="codform-error-{{ block.id }}" 
-    class="codform-error" 
-    style="display: none; text-align: center; padding: 20px;"
-    dir="{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}"
-  >
+  <div id="codform-error-{{ block.id }}" class="codform-error" style="display: none; text-align: center; padding: 20px;">
     <div class="codform-error-icon">!</div>
     <h3>{{ block.settings.error_title }}</h3>
     <p>{{ block.settings.error_message }}</p>
@@ -227,10 +206,6 @@
     if (container && loader) {
       loader.style.display = 'flex';
       
-      // Get form direction from container data attribute
-      const formDirection = container.getAttribute('data-direction') || '{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}';
-      console.log('Form direction:', formDirection);
-      
       // إضافة معالج حدث إعادة المحاولة
       if (retryButton) {
         retryButton.addEventListener('click', function() {
@@ -249,7 +224,6 @@
       const productId = container.getAttribute('data-product-id');
       const blockId = container.getAttribute('data-block-id');
       const shop = Shopify.shop || window.location.hostname;
-      const formDirection = container.getAttribute('data-direction') || '{% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %}';
       
       if (!productId || !shop) {
         showError("بيانات المنتج أو المتجر غير متوفرة");
@@ -258,10 +232,10 @@
       }
       
       // طباعة معلومات التصحيح
-      console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop, 'direction:', formDirection);
+      console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop);
       
       // استخدام عنوان URL الكامل مع https - إصلاح خطأ حل DNS
-      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}&direction=${encodeURIComponent(formDirection)}`;
+      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
       console.log('Request URL:', apiUrl);
       
@@ -277,7 +251,7 @@
         .then(data => {
           if (data && data.form) {
             console.log('Form data received successfully:', data);
-            renderForm(data.form, blockId, formDirection);
+            renderForm(data.form, blockId);
           } else {
             console.error('No form data received:', data);
             showError("لا يوجد نموذج متوفر لهذا المنتج");
@@ -290,7 +264,7 @@
     }
     
     // وظيفة لعرض النموذج
-    function renderForm(formData, blockId, formDirection) {
+    function renderForm(formData, blockId) {
       if (!formContainer) {
         console.error('Form container not found');
         return;
@@ -302,7 +276,7 @@
       }
       
       // إنشاء HTML للنموذج
-      const formHtml = createFormHtml(formData, blockId, formDirection);
+      const formHtml = createFormHtml(formData, blockId);
       
       // عرض النموذج
       formContainer.innerHTML = formHtml;
@@ -328,14 +302,14 @@
     }
     
     // وظيفة لإنشاء HTML للنموذج
-    function createFormHtml(formData, blockId, formDirection) {
+    function createFormHtml(formData, blockId) {
       const hideHeader = container.getAttribute('data-hide-header') === 'true';
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
-      const isRTL = formDirection === 'rtl';
+      const isRTL = formData.style?.direction === 'rtl' || true; // Defaulting to RTL
       let html = '';
       
       // بداية النموذج
-      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #F9FAFB;" dir="${isRTL ? 'rtl' : 'ltr'}">`;
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'};">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
@@ -343,7 +317,7 @@
           if (field && field.type) {
             // إضافة حقل عنوان النموذج في الأعلى
             if (field.type === 'form-title') {
-              html += createTitleField(field, formDirection);
+              html += createTitleField(field);
               return;
             }
             
@@ -352,27 +326,23 @@
             } else if (field.type === 'textarea') {
               html += createTextareaField(field, isRTL, enableIcons);
             } else if (field.type === 'radio') {
-              html += createRadioField(field, isRTL);
+              html += createRadioField(field);
             } else if (field.type === 'checkbox') {
-              html += createCheckboxField(field, isRTL);
+              html += createCheckboxField(field);
             } else if (field.type === 'submit') {
-              html += createSubmitButton(field, formData.style, isRTL);
-            } else if (field.type === 'text/html' || field.type === 'html') {
-              html += createHtmlContent(field, isRTL);
-            } else if (field.type === 'whatsapp' || field.type === 'whatsapp-button') {
-              html += createWhatsAppButton(field, isRTL);
+              html += createSubmitButton(field, formData.style);
+            } else if (field.type === 'text/html') {
+              html += createHtmlContent(field);
+            } else if (field.type === 'whatsapp') {
+              html += createWhatsAppButton(field);
             } else if (field.type === 'image') {
               html += createImageField(field);
-            } else if (field.type === 'countdown-timer') {
-              html += createCountdownTimer(field, formData.style, isRTL);
-            } else if (field.type === 'shipping-options') {
-              html += createShippingOptions(field, formData.style, isRTL);
             }
           }
         });
       } else {
         console.error('No fields found in form data', formData);
-        html += `<div style="padding: 15px; text-align: center; color: #e32; direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">لا توجد حقول في هذا النموذج</div>`;
+        html += '<div style="padding: 15px; text-align: center; color: #e32;">لا توجد حقول في هذا النموذج</div>';
       }
       
       // نهاية النموذج
@@ -403,7 +373,7 @@
     // وظيفة لإنشاء حقل إدخال
     function createInputField(field, isRTL, enableIcons) {
       const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
-      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''}`;
+      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''} ${isRTL ? 'rtl' : ''}`;
       let iconSvg = '';
       
       // الحصول على SVG للأيقونة إذا لزم الأمر
@@ -415,17 +385,14 @@
       const translatedPlaceholder = field.placeholder || '';
       const isRequired = field.required ? true : false;
       
-      const iconPosition = isRTL ? 'right' : 'left';
-      const labelAlignment = isRTL ? 'right' : 'left';
-      
       return `
-        <div class="${fieldClassContainer}" dir="${isRTL ? 'rtl' : 'ltr'}">
-          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="${fieldClassContainer}">
+          <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${isRequired ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
@@ -433,11 +400,9 @@
               placeholder="${translatedPlaceholder}"
               ${isRequired ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
-              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
-              dir="${isRTL ? 'rtl' : 'ltr'}"
             />
           </div>
-          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
         </div>
       `;
     }
@@ -445,7 +410,7 @@
     // وظيفة لإنشاء منطقة نص
     function createTextareaField(field, isRTL, enableIcons) {
       const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
-      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''}`;
+      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''} ${isRTL ? 'rtl' : ''}`;
       let iconSvg = '';
       
       // الحصول على SVG للأيقونة إذا لزم الأمر
@@ -456,17 +421,14 @@
       const translatedLabel = field.label || '';
       const translatedPlaceholder = field.placeholder || '';
       
-      const iconPosition = isRTL ? 'right' : 'left';
-      const labelAlignment = isRTL ? 'right' : 'left';
-      
       return `
-        <div class="${fieldClassContainer}" dir="${isRTL ? 'rtl' : 'ltr'}">
-          <label for="codform-field-${field.id}" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="${fieldClassContainer}">
+          <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon" style="${iconPosition === 'right' ? 'right: 12px;' : 'left: 12px;'}">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
@@ -474,27 +436,24 @@
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
-              style="${hasIcon ? (iconPosition === 'right' ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 36px; padding-right: 12px;') : ''}"
-              dir="${isRTL ? 'rtl' : 'ltr'}"
             ></textarea>
           </div>
-          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
         </div>
       `;
     }
     
     // وظيفة لإنشاء مجموعة أزرار راديو
-    function createRadioField(field, isRTL) {
+    function createRadioField(field) {
       const translatedLabel = field.label || '';
-      const labelAlignment = isRTL ? 'right' : 'left';
       
       let html = `
-        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
-          <label style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="codform-field">
+          <label>
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div class="codform-radio-group" style="direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <div class="codform-radio-group">
       `;
       
       if (field.options && field.options.length) {
@@ -502,7 +461,7 @@
           const translatedOptionLabel = option.label || '';
           
           html += `
-            <div class="codform-radio-option" dir="${isRTL ? 'rtl' : 'ltr'}">
+            <div class="codform-radio-option">
               <input
                 type="radio"
                 id="codform-field-${field.id}-${index}"
@@ -511,7 +470,7 @@
                 ${field.required && index === 0 ? 'required' : ''}
                 ${option.selected ? 'checked' : ''}
               />
-              <label for="codform-field-${field.id}-${index}" dir="${isRTL ? 'rtl' : 'ltr'}">${translatedOptionLabel}</label>
+              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
             </div>
           `;
         });
@@ -519,7 +478,7 @@
       
       html += `
           </div>
-          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
         </div>
       `;
       
@@ -527,17 +486,16 @@
     }
     
     // وظيفة لإنشاء مجموعة مربعات اختيار
-    function createCheckboxField(field, isRTL) {
+    function createCheckboxField(field) {
       const translatedLabel = field.label || '';
-      const labelAlignment = isRTL ? 'right' : 'left';
       
       let html = `
-        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
-          <label style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="codform-field">
+          <label>
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div class="codform-checkbox-group" style="direction: ${isRTL ? 'rtl' : 'ltr'};" dir="${isRTL ? 'rtl' : 'ltr'}">
+          <div class="codform-checkbox-group">
       `;
       
       if (field.options && field.options.length) {
@@ -545,7 +503,7 @@
           const translatedOptionLabel = option.label || '';
           
           html += `
-            <div class="codform-checkbox-option" dir="${isRTL ? 'rtl' : 'ltr'}">
+            <div class="codform-checkbox-option">
               <input
                 type="checkbox"
                 id="codform-field-${field.id}-${index}"
@@ -553,7 +511,7 @@
                 value="${option.value || ''}"
                 ${option.selected ? 'checked' : ''}
               />
-              <label for="codform-field-${field.id}-${index}" dir="${isRTL ? 'rtl' : 'ltr'}">${translatedOptionLabel}</label>
+              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
             </div>
           `;
         });
@@ -561,7 +519,7 @@
       
       html += `
           </div>
-          ${field.helpText ? `<div class="codform-help-text" style="text-align: ${labelAlignment};" dir="${isRTL ? 'rtl' : 'ltr'}">${field.helpText}</div>` : ''}
+          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
         </div>
       `;
       
@@ -569,7 +527,7 @@
     }
     
     // وظيفة لإنشاء زر إرسال
-    function createSubmitButton(field, formStyle, isRTL) {
+    function createSubmitButton(field, formStyle) {
       const buttonStyle = field.style || {};
       const backgroundColor = buttonStyle.backgroundColor || formStyle?.primaryColor || '#9b87f5';
       const color = buttonStyle.color || '#ffffff';
@@ -587,7 +545,7 @@
       // معالجة الأيقونة
       let iconSvg = '';
       const showIcon = buttonStyle.showIcon !== undefined ? buttonStyle.showIcon : true;
-      const iconPosition = buttonStyle.iconPosition || (isRTL ? 'right' : 'left');
+      const iconPosition = buttonStyle.iconPosition || 'right';
       
       if (showIcon) {
         let iconName = buttonStyle.icon || 'shopping-cart';
@@ -599,10 +557,10 @@
         }
       }
       
-      const translatedLabel = field.label || (isRTL ? 'إرسال الطلب' : 'Submit Order');
+      const translatedLabel = field.label || 'إرسال الطلب';
       
       return `
-        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="codform-field">
           <button
             type="submit"
             class="codform-submit-btn ${animationClass}"
@@ -622,12 +580,10 @@
               width: 100%;
               text-align: center;
               margin-top: 14px;
-              direction: ${isRTL ? 'rtl' : 'ltr'};
             "
             data-animation-type="${animationType}"
             data-icon-position="${iconPosition}"
             data-has-icon="${showIcon ? 'true' : 'false'}"
-            dir="${isRTL ? 'rtl' : 'ltr'}"
           >
             ${iconPosition === 'left' && showIcon ? `<span class="codform-icon">${iconSvg}</span>` : ''}
             <span>${translatedLabel}</span>
@@ -638,72 +594,59 @@
     }
     
     // وظيفة لإنشاء حقل العنوان
-    function createTitleField(field, formDirection) {
+    function createTitleField(field) {
       const style = field.style || {};
       const backgroundColor = style.backgroundColor || '#9b87f5';
       const color = style.color || '#ffffff';
       const descriptionColor = style.descriptionColor || '#ffffff';
       const fontSize = style.fontSize || '24px';
       const descriptionFontSize = style.descriptionFontSize || '14px';
-      const textAlign = 'center'; // Always center for title
-      const isRTL = formDirection === 'rtl';
-      const borderRadius = '0.5rem'; // تعيين قيمة ثابتة مطابقة للمعاينة
+      const textAlign = style.textAlign || 'right';
       
-      const translatedLabel = field.label || (isRTL ? 'نموذج جديد' : 'New Form');
+      const translatedLabel = field.label || 'نموذج جديد';
       const translatedHelp = field.helpText || '';
       
       return `
         <div class="codform-title-container" style="
           background-color: ${backgroundColor};
           padding: 16px;
-          border-radius: ${borderRadius};
+          border-radius: 8px;
           margin-bottom: 16px;
           text-align: ${textAlign};
-          width: 100%;
-          box-sizing: border-box;
-          display: block;
-        " dir="${isRTL ? 'rtl' : 'ltr'}">
+        ">
           <h3 class="codform-form-title" style="
             color: ${color};
             font-size: ${fontSize};
             font-weight: bold;
-            margin: 0;
-            padding: 0;
+            margin: 0 0 6px 0;
             line-height: 1.3;
             text-align: ${textAlign};
-            width: 100%;
-            display: block;
-            direction: ${isRTL ? 'rtl' : 'ltr'};
-          " dir="${isRTL ? 'rtl' : 'ltr'}">
+          ">
             ${translatedLabel}
           </h3>
           ${translatedHelp ? `<p class="codform-title-description" style="
             color: ${descriptionColor};
             font-size: ${descriptionFontSize};
             margin: 6px 0 0 0;
-            padding: 0;
             line-height: 1.5;
             opacity: 0.9;
             text-align: ${textAlign};
-            width: 100%;
-            display: block;
-            direction: ${isRTL ? 'rtl' : 'ltr'};
-          " dir="${isRTL ? 'rtl' : 'ltr'}">${translatedHelp}</p>` : ''}
+          ">${translatedHelp}</p>` : ''}
         </div>
       `;
     }
     
     // وظيفة لإنشاء محتوى HTML
-    function createHtmlContent(field, isRTL) {
+    function createHtmlContent(field) {
       return `
-        <div class="codform-field codform-html-content" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'}; text-align: ${isRTL ? 'right' : 'left'};">
+        <div class="codform-field codform-html-content">
           ${field.content || ''}
         </div>
       `;
     }
     
     // وظيفة لإنشاء زر واتساب
-    function createWhatsAppButton(field, isRTL) {
+    function createWhatsAppButton(field) {
       const style = field.style || {};
       const backgroundColor = style.backgroundColor || '#25D366';
       const color = style.color || '#ffffff';
@@ -712,13 +655,13 @@
       const phone = field.whatsappNumber || '';
       const message = encodeURIComponent(field.message || '');
       
-      const translatedLabel = field.label || (isRTL ? 'تواصل عبر واتساب' : 'Contact via WhatsApp');
+      const translatedLabel = field.label || 'تواصل عبر واتساب';
       
       // أيقونة واتساب SVG
       const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
       
       return `
-        <div class="codform-field" dir="${isRTL ? 'rtl' : 'ltr'}">
+        <div class="codform-field">
           <a 
             href="https://wa.me/${phone}${message ? `?text=${message}` : ''}"
             target="_blank"
@@ -740,9 +683,7 @@
               margin-bottom: 8px;
               width: 100%;
               text-align: center;
-              direction: ${isRTL ? 'rtl' : 'ltr'};
             "
-            dir="${isRTL ? 'rtl' : 'ltr'}"
           >
             <span class="codform-whatsapp-icon" style="
               display: inline-flex;
@@ -780,169 +721,6 @@
       `;
     }
     
-    // وظيفة لإنشاء عداد تنازلي
-    function createCountdownTimer(field, formStyle, isRTL) {
-      const fieldStyle = field.style || {};
-      const defaultBgColor = formStyle?.primaryColor 
-        ? `${formStyle.primaryColor}1A` // Add 10% opacity suffix
-        : 'rgba(155, 135, 245, 0.1)';
-      
-      const translatedLabel = field.label || (isRTL ? 'الوقت المتبقي للعرض' : 'Offer ends in');
-      
-      return `
-        <div class="codform-field mb-6 countdown-timer-wrapper" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'};">
-          <div 
-            class="p-4 border rounded-md"
-            style="
-              background-color: ${fieldStyle.backgroundColor || defaultBgColor};
-              border-color: ${fieldStyle.borderColor || formStyle?.primaryColor || '#9b87f5'};
-              text-align: center;
-            "
-          >
-            <h3 
-              class="text-lg font-medium mb-2"
-              style="
-                text-align: center;
-                direction: ${isRTL ? 'rtl' : 'ltr'};
-              "
-              dir="${isRTL ? 'rtl' : 'ltr'}"
-            >
-              ${translatedLabel}
-            </h3>
-            <div 
-              class="flex justify-center gap-4 mt-3"
-              style="
-                direction: ${isRTL ? 'rtl' : 'ltr'};
-                display: flex;
-                justify-content: center;
-                gap: 1rem;
-                margin-top: 0.75rem;
-              "
-              dir="${isRTL ? 'rtl' : 'ltr'}"
-            >
-              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
-                <div class="text-2xl font-bold">24</div>
-                <div class="text-xs text-gray-500">
-                  ${isRTL ? 'ساعة' : 'Hours'}
-                </div>
-              </div>
-              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
-                <div class="text-2xl font-bold">00</div>
-                <div class="text-xs text-gray-500">
-                  ${isRTL ? 'دقيقة' : 'Minutes'}
-                </div>
-              </div>
-              <div class="bg-white p-2 rounded min-w-[60px]" style="background-color: white; padding: 0.5rem; border-radius: 0.25rem; min-width: 60px; text-align: center;">
-                <div class="text-2xl font-bold">00</div>
-                <div class="text-xs text-gray-500">
-                  ${isRTL ? 'ثانية' : 'Seconds'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء خيارات الشحن
-    function createShippingOptions(field, formStyle, isRTL) {
-      const fieldStyle = field.style || {};
-      
-      const translatedLabel = field.label || (isRTL ? 'خيارات التوصيل' : 'Shipping Options');
-      
-      const shippingOptions = [
-        {
-          id: 'standard',
-          name: isRTL ? 'توصيل قياسي' : 'Standard Delivery',
-          price: '$5.00',
-          time: isRTL ? '3-5 أيام' : '3-5 days',
-        },
-        {
-          id: 'express',
-          name: isRTL ? 'توصيل سريع' : 'Express Delivery',
-          price: '$15.00',
-          time: isRTL ? '1-2 أيام' : '1-2 days',
-        }
-      ];
-      
-      let html = `
-        <div class="form-control mb-6 shipping-options-container" dir="${isRTL ? 'rtl' : 'ltr'}" style="direction: ${isRTL ? 'rtl' : 'ltr'}; margin-bottom: 1.5rem;">
-          <label 
-            class="form-label mb-2 block font-medium" 
-            style="
-              color: ${fieldStyle.color || 'inherit'};
-              text-align: ${isRTL ? 'right' : 'left'};
-              display: block;
-              margin-bottom: 0.5rem;
-              font-weight: 500;
-            "
-            dir="${isRTL ? 'rtl' : 'ltr'}"
-          >
-            ${translatedLabel}
-            ${field.required ? '<span class="text-red-500 mr-1" style="color: #f56565; margin-right: 0.25rem;">*</span>' : ''}
-          </label>
-          <div class="space-y-3" style="display: flex; flex-direction: column; gap: 0.75rem;" dir="${isRTL ? 'rtl' : 'ltr'}">
-      `;
-      
-      shippingOptions.forEach((option) => {
-        html += `
-          <div 
-            class="flex items-center space-x-2"
-            style="
-              display: flex;
-              align-items: center;
-              flex-direction: ${isRTL ? 'row-reverse' : 'row'};
-              gap: 8px;
-            "
-            dir="${isRTL ? 'rtl' : 'ltr'}"
-          >
-            <div style="
-              width: 16px;
-              height: 16px;
-              border: 2px solid ${formStyle?.primaryColor || '#9b87f5'};
-              border-radius: 50%;
-              position: relative;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-              <div style="
-                width: 8px;
-                height: 8px;
-                background-color: ${option.id === 'standard' ? (formStyle?.primaryColor || '#9b87f5') : 'transparent'};
-                border-radius: 50%;
-              "></div>
-            </div>
-            <div 
-              class="flex flex-1 justify-between items-center"
-              style="
-                display: flex;
-                flex: 1;
-                justify-content: space-between;
-                align-items: center;
-                flex-direction: ${isRTL ? 'row-reverse' : 'row'};
-                direction: ${isRTL ? 'rtl' : 'ltr'};
-              "
-              dir="${isRTL ? 'rtl' : 'ltr'}"
-            >
-              <div style="text-align: ${isRTL ? 'right' : 'left'};">
-                <div class="font-medium" style="font-weight: 500;">${option.name}</div>
-                <div class="text-sm text-gray-500" style="font-size: 0.875rem; color: #6b7280;">${option.time}</div>
-              </div>
-              <div class="font-medium" style="font-weight: 500;">${option.price}</div>
-            </div>
-          </div>
-        `;
-      });
-      
-      html += `
-          </div>
-        </div>
-      `;
-      
-      return html;
-    }
-    
     // الحصول على رمز SVG للأيقونة بناءً على نوعها
     function getIconSvg(iconType) {
       // مجموعة من الأيقونات المتاحة كرموز SVG
@@ -966,82 +744,3 @@
     }
   });
 </script>
-
-<style>
-  /* إضافة نمط لتحسين مظهر النماذج */
-  .codform-container {
-    margin: 2rem 0;
-    padding: 1.5rem;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.5rem;
-    background-color: #f9f9f9;
-  }
-  
-  /* تحسين مظهر العناوين */
-  .codform-title-container {
-    border-radius: 8px;
-    overflow: hidden;
-    width: 100% !important;
-    box-sizing: border-box;
-    display: block;
-  }
-  
-  /* تأكد من أن العنوان يمتد بالكامل */
-  .codform-form-title {
-    font-size: 24px !important;
-    line-height: 1.4 !important;
-    font-weight: bold !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* تحسين الأيقونات */
-  .codform-field-icon {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #555;
-    display: flex;
-  }
-  
-  /* تحسين الحقول في حالة RTL */
-  [dir="rtl"] .codform-field label,
-  [dir="rtl"] .codform-help-text {
-    text-align: right !important;
-  }
-  
-  [dir="ltr"] .codform-field label,
-  [dir="ltr"] .codform-help-text {
-    text-align: left !important;
-  }
-  
-  /* تحسين مظهر المدخلات */
-  .codform-field-wrapper {
-    position: relative;
-  }
-
-  .codform-input,
-  .codform-textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    background-color: white;
-    font-size: 16px;
-    line-height: 1.5;
-  }
-  
-  /* تصحيح تحديد الخيارات */
-  .codform-radio-option,
-  .codform-checkbox-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  
-  /* تحسين مظهر HTML المخصص */
-  .codform-html-content {
-    margin: 1rem 0;
-  }
-</style>

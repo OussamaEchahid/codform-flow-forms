@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -152,10 +151,9 @@ function AppRoutes() {
   );
 }
 
-// Main App function - fixed to ensure React hooks are used properly
 function App() {
-  // Move useEffect inside the component body and ensure React is properly imported
-  useEffect(() => {
+  // Clean placeholder tokens and validate connection on startup
+  React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
     // Attempt to validate the connection state with retry logic

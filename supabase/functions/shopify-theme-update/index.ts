@@ -16,7 +16,6 @@ interface UpdateThemeRequest {
   insertionMethod?: 'auto' | 'manual';
   blockId?: string;
   themeId?: number;
-  formDirection?: 'ltr' | 'rtl'; 
 }
 
 serve(async (req: Request) => {
@@ -34,7 +33,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId, formDirection = 'ltr' } = await req.json() as UpdateThemeRequest;
+    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
 
     if (!shop || !accessToken) {
       return new Response(JSON.stringify({
@@ -46,7 +45,7 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`Updating theme for shop ${shop} with direction: ${formDirection}`);
+    console.log(`Updating theme for shop ${shop}`);
 
     try {
       // First, get theme info to determine if we're dealing with OS2.0 or traditional theme
@@ -75,11 +74,11 @@ serve(async (req: Request) => {
       if (themeType === 'OS2.0') {
         // Update OS2.0 theme
         console.log('Updating OS2.0 theme');
-        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, blockId, formDirection);
+        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, blockId);
       } else {
         // Update traditional theme
         console.log('Updating traditional theme');
-        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, blockId, formDirection);
+        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, blockId);
       }
 
       // Store insertion information in the database for reference
@@ -96,7 +95,6 @@ serve(async (req: Request) => {
             insertion_method: insertionMethod,
             block_id: blockId || `codform_${formIdShort}`,
             status: 'success',
-            form_direction: formDirection,
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'shop_id,form_id' 
@@ -114,7 +112,6 @@ serve(async (req: Request) => {
         success: true,
         theme_id: targetThemeId,
         theme_type: themeType,
-        form_direction: formDirection,
         message: `Form block has been added to the theme successfully`,
         details: updateResult
       }), { 
@@ -194,7 +191,7 @@ async function getShopifyThemes(shop: string, accessToken: string): Promise<any[
 }
 
 // OS2.0 Theme update function
-async function updateOS2Theme(shop: string, accessToken: string, themeId: number, blockId?: string, formDirection: string = 'ltr'): Promise<any> {
+async function updateOS2Theme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For OS2.0 themes, we need to update the product.json template to insert our app block
   // First, get the template
   const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
@@ -258,12 +255,10 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Block definition with form direction
+  // Block definition without form_id
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
-    settings: {
-      is_rtl: formDirection === 'rtl'
-    }
+    settings: {}
   };
   
   // Update the template
@@ -292,13 +287,12 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     block_id: actualBlockId,
     template: 'product.json',
     section: 'main',
-    block_type: appBlockType,
-    form_direction: formDirection
+    block_type: appBlockType
   };
 }
 
 // Traditional Theme update function
-async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, blockId?: string, formDirection: string = 'ltr'): Promise<any> {
+async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For traditional themes, we need to update the product template to include our snippet
   
   // First, get the product template
@@ -330,7 +324,7 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
     }
     
     // Continue with the alternative template
-    return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', altData.asset.value, formDirection);
+    return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', altData.asset.value);
   }
   
   const data = await response.json();
@@ -339,88 +333,72 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
   }
   
   // Process the template
-  return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', data.asset.value, formDirection);
+  return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', data.asset.value);
 }
 
 // Helper function to process the traditional liquid template
-async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, blockId: string, templateKey: string, templateContent: string, formDirection: string = 'ltr'): Promise<any> {
+async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, blockId: string, templateKey: string, templateContent: string): Promise<any> {
   // Generate a block ID if not provided
   const actualBlockId = blockId || `codform_${Date.now()}`;
   
-  // Include formDirection in the snippet render call
-  const isRtl = formDirection === 'rtl';
-  const snippetIncludeString = `{% render 'codform', product: product, block_id: '${actualBlockId}', is_rtl: ${isRtl} %}`;
-  
-  // Check if our snippet is already included
-  const oldSnippetRegex = new RegExp(`\\{\\%\\s*render\\s+['"]codform['"]\\s*,\\s*product\\s*:\\s*product\\s*,\\s*block_id\\s*:\\s*['"]${actualBlockId}['"]\\s*\\%\\}`, 'i');
+  // Check if our snippet is already included - now without form_id parameter
+  const snippetIncludeString = `{% render 'codform', product: product, block_id: '${actualBlockId}' %}`;
   
   if (templateContent.includes(snippetIncludeString)) {
-    console.log('Snippet with current direction already included in template');
+    console.log('Snippet already included in template');
     return {
       block_id: actualBlockId,
       template: templateKey,
-      status: 'already_exists',
-      form_direction: formDirection
+      status: 'already_exists'
     };
-  } else if (oldSnippetRegex.test(templateContent)) {
-    // If the snippet exists but without form direction, update it
-    templateContent = templateContent.replace(
-      oldSnippetRegex,
-      snippetIncludeString
-    );
-    
-    console.log('Updated existing snippet with direction parameter');
+  }
+
+  // Look for common insertion points
+  const addToCartButtonRegex = /<form.*?product-form.*?>|<form.*?action="\/cart\/add".*?>|<form.*?add-to-cart.*?>|\{\%\s*form.*?cart\/add.*?\%\}/i;
+  const priceRegex = /<div.*?product(\-|\s+|\_)price.*?>|\{\{.*?product\.price.*?\}\}|\{\{.*?current\_variant\.price.*?\}\}/i;
+  const variantSelectorRegex = /<select.*?id="product(\-|\s+|\_)select.*?>|<div.*?product(\-|\s+|\_)variant.*?>/i;
+  
+  // Try to insert it before the add to cart button
+  let modifiedContent = '';
+  let insertionPoint = '';
+  
+  if (addToCartButtonRegex.test(templateContent)) {
+    insertionPoint = 'add to cart button';
+    modifiedContent = templateContent.replace(addToCartButtonRegex, match => {
+      return `${snippetIncludeString}\n\n${match}`;
+    });
+  } else if (priceRegex.test(templateContent)) {
+    insertionPoint = 'price element';
+    modifiedContent = templateContent.replace(priceRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
+  } else if (variantSelectorRegex.test(templateContent)) {
+    insertionPoint = 'variant selector';
+    modifiedContent = templateContent.replace(variantSelectorRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
   } else {
-    // Look for common insertion points
-    const addToCartButtonRegex = /<form.*?product-form.*?>|<form.*?action="\/cart\/add".*?>|<form.*?add-to-cart.*?>|\{\%\s*form.*?cart\/add.*?\%\}/i;
-    const priceRegex = /<div.*?product(\-|\s+|\_)price.*?>|\{\{.*?product\.price.*?\}\}|\{\{.*?current\_variant\.price.*?\}\}/i;
-    const variantSelectorRegex = /<select.*?id="product(\-|\s+|\_)select.*?>|<div.*?product(\-|\s+|\_)variant.*?>/i;
+    // If we couldn't find a good insertion point, add it to the end of the main content area 
+    // which often has a class like "product" or "product-content"
+    const productContainerRegex = /<div.*?class=".*?product.*?".*?>.*?<\/div>/s;
     
-    // Try to insert it before the add to cart button
-    let modifiedContent = '';
-    let insertionPoint = '';
-    
-    if (addToCartButtonRegex.test(templateContent)) {
-      insertionPoint = 'add to cart button';
-      modifiedContent = templateContent.replace(addToCartButtonRegex, match => {
-        return `${snippetIncludeString}\n\n${match}`;
-      });
-    } else if (priceRegex.test(templateContent)) {
-      insertionPoint = 'price element';
-      modifiedContent = templateContent.replace(priceRegex, match => {
-        return `${match}\n\n${snippetIncludeString}`;
-      });
-    } else if (variantSelectorRegex.test(templateContent)) {
-      insertionPoint = 'variant selector';
-      modifiedContent = templateContent.replace(variantSelectorRegex, match => {
-        return `${match}\n\n${snippetIncludeString}`;
+    if (productContainerRegex.test(templateContent)) {
+      insertionPoint = 'product container';
+      modifiedContent = templateContent.replace(productContainerRegex, match => {
+        // Insert before the closing div
+        const lastDivIndex = match.lastIndexOf('</div>');
+        const start = match.substring(0, lastDivIndex);
+        const end = match.substring(lastDivIndex);
+        return `${start}\n${snippetIncludeString}\n${end}`;
       });
     } else {
-      // If we couldn't find a good insertion point, add it to the end of the main content area 
-      // which often has a class like "product" or "product-content"
-      const productContainerRegex = /<div.*?class=".*?product.*?".*?>.*?<\/div>/s;
-      
-      if (productContainerRegex.test(templateContent)) {
-        insertionPoint = 'product container';
-        modifiedContent = templateContent.replace(productContainerRegex, match => {
-          // Insert before the closing div
-          const lastDivIndex = match.lastIndexOf('</div>');
-          const start = match.substring(0, lastDivIndex);
-          const end = match.substring(lastDivIndex);
-          return `${start}\n${snippetIncludeString}\n${end}`;
-        });
-      } else {
-        // Last resort - just append to the template
-        modifiedContent = `${templateContent}\n\n${snippetIncludeString}`;
-        insertionPoint = 'end of template';
-      }
+      // Last resort - just append to the template
+      modifiedContent = `${templateContent}\n\n${snippetIncludeString}`;
+      insertionPoint = 'end of template';
     }
-    
-    // Update templateContent for the next step
-    templateContent = modifiedContent;
   }
   
-  // Create the snippet with support for RTL direction
+  // Create the snippet - now without form_id parameter
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -428,27 +406,27 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true" data-direction="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
-  <div class="codform-form-container" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true">
+  <div class="codform-form-container">
     <div id="codform-form-loader-{{ block_id }}" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p style="direction: {% if is_rtl %}rtl{% else %}ltr{% endif %}; text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
     </div>
 
-    <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;">
       <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
     </div>
 
-    <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;">
       <div class="codform-success-icon">✓</div>
-      <h4 style="text-align: center;">{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
-      <p style="text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
+      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
+      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
     </div>
 
-    <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
-      <h4 style="text-align: center;">{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
-      <p style="text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
+      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
+      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
       <button id="codform-retry-{{ block_id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
     </div>
   </div>
@@ -466,7 +444,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
       font-size: {{ block.settings.floating_font_size | default: '16px' }};
       font-weight: {{ block.settings.floating_font_weight | default: '500' }};
       margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
-      direction: {% if is_rtl %}rtl{% else %}ltr{% endif %};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
       {% if block.settings.floating_border_width != '0px' %}
       border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
       {% else %}
@@ -475,7 +453,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     "
     onclick="document.querySelector('#codform-container-{{ block_id }}').scrollIntoView({behavior: 'smooth'});"
   >
-    {% if is_rtl or block.settings.floating_show_icon == false %}
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
       <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
     {% endif %}
     
@@ -501,7 +479,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
       </span>
     {% endif %}
     
-    {% unless is_rtl or block.settings.floating_show_icon == false %}
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
       <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
     {% endunless %}
   </button>
@@ -618,11 +596,6 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     justify-content: center;
   }
   
-  /* Fix for RTL text alignment issues */
-  [dir="rtl"] .codform-form-container {
-    text-align: right;
-  }
-  
   /* Animation styles */
   @keyframes pulse {
     0% { transform: scale(1); }
@@ -675,50 +648,6 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   .flash-animation {
     animation: flash 3s infinite;
   }
-
-  /* تصحيح الخلفية بحيث تمتد بالكامل */
-  .codform-title-container {
-    width: 100%;
-    box-sizing: border-box;
-    display: block;
-    overflow: hidden; /* تأكد من عدم خروج المحتوى عن الحدود */
-  }
-
-  /* تحسين مظهر العناوين */
-  .codform-form-title {
-    font-size: 24px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.4 !important;
-    font-weight: bold !important;
-  }
-
-  /* تحسينات للتوافق مع RTL */
-  [dir="rtl"] .codform-field label,
-  [dir="rtl"] .codform-help-text,
-  [dir="rtl"] .codform-title-description {
-    text-align: right;
-  }
-  
-  [dir="ltr"] .codform-field label,
-  [dir="ltr"] .codform-help-text,
-  [dir="ltr"] .codform-title-description {
-    text-align: left;
-  }
-
-  /* ضمان ظهور العنوان والوصف بشكل صحيح في الإطار بغض النظر عن الاتجاه */
-  .codform-title-container h3,
-  .codform-title-container p {
-    width: 100%;
-    display: block;
-    box-sizing: border-box;
-  }
-
-  /* ضمان محاذاة العنوان والوصف للمركز دائمًا في العناوين */
-  .codform-title-container h3,
-  .codform-title-container p {
-    text-align: center !important;
-  }
 </style>
 {% endif %}`;
   
@@ -754,7 +683,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     body: JSON.stringify({
       asset: {
         key: templateKey,
-        value: templateContent
+        value: modifiedContent
       }
     })
   });
@@ -764,12 +693,12 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     throw new Error(`Failed to update template: ${templateResponse.status} - ${errorData}`);
   }
   
-  console.log(`Successfully updated traditional product template with direction: ${formDirection}`);
+  console.log(`Successfully updated traditional product template, inserted codform snippet near ${insertionPoint}`);
   
   return {
     block_id: actualBlockId,
     template: templateKey,
-    form_direction: formDirection,
+    insertion_point: insertionPoint,
     snippet: 'codform.liquid'
   };
 }
