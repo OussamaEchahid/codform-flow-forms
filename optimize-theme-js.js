@@ -73,95 +73,131 @@ minifiedContent = minifiedContent.replace(
   '$1: $2 !important$3'
 );
 
-// Add specific code for title field styling to ensure it's displayed correctly
+// Add enhanced function for title field styling to ensure it's displayed correctly
 minifiedContent = `
 // Critical: Function to ensure title fields display properly
 function ensureTitleFieldsDisplay() {
+  console.log('Ensuring title fields display properly');
   const titleFields = document.querySelectorAll('.codform-title-field');
-  if (!titleFields || titleFields.length === 0) return;
+  if (!titleFields || titleFields.length === 0) {
+    console.log('No title fields found');
+    return;
+  }
+  
+  console.log('Found', titleFields.length, 'title fields to style');
   
   titleFields.forEach(field => {
-    const container = field.querySelector('.codform-title-container');
-    if (!container) return;
-    
-    // Force background color with !important
-    const bgColor = field.getAttribute('data-bg-color') || '#9b87f5';
-    container.style.setProperty('background-color', bgColor, 'important');
-    container.style.setProperty('padding', '16px', 'important');
-    container.style.setProperty('border-radius', '8px', 'important');
-    container.style.setProperty('width', '100%', 'important');
-    container.style.setProperty('box-sizing', 'border-box', 'important');
-    container.style.setProperty('margin-bottom', '16px', 'important');
-    
-    // Set text alignment based on data attribute
-    const alignment = field.getAttribute('data-title-align') || 'left';
-    container.style.setProperty('text-align', alignment, 'important');
-    
-    // Set direction based on data attribute
-    const direction = field.getAttribute('data-direction') || 'ltr';
-    container.style.setProperty('direction', direction, 'important');
-    
-    // Style the title element
-    const title = container.querySelector('h3');
-    if (title) {
-      const color = field.getAttribute('data-title-color') || '#ffffff';
+    try {
+      const container = field.querySelector('.codform-title-container');
+      if (!container) {
+        console.log('No container found in field', field.id);
+        return;
+      }
+      
+      // Get data attributes
+      const bgColor = field.getAttribute('data-bg-color') || '#9b87f5';
+      const titleColor = field.getAttribute('data-title-color') || '#ffffff';
+      const alignment = field.getAttribute('data-title-align') || 'left';
+      const direction = field.getAttribute('data-direction') || 'ltr';
       const fontSize = field.getAttribute('data-font-size') || '24px';
       const fontWeight = field.getAttribute('data-font-weight') || 'bold';
-      
-      title.style.setProperty('color', color, 'important');
-      title.style.setProperty('font-size', fontSize, 'important');
-      title.style.setProperty('font-weight', fontWeight, 'important');
-      title.style.setProperty('text-align', alignment, 'important');
-      title.style.setProperty('margin', '0', 'important');
-      title.style.setProperty('padding', '0', 'important');
-      title.style.setProperty('line-height', '1.3', 'important');
-      title.style.setProperty('display', 'block', 'important');
-      title.style.setProperty('direction', direction, 'important');
-    }
-    
-    // Style the description element
-    const desc = container.querySelector('.codform-title-description');
-    if (desc) {
-      const descColor = field.getAttribute('data-desc-color') || 'rgba(255, 255, 255, 0.9)';
       const descFontSize = field.getAttribute('data-desc-font-size') || '14px';
+      const descColor = field.getAttribute('data-desc-color') || 'rgba(255, 255, 255, 0.9)';
+      const showTitle = field.getAttribute('data-show-title') === 'true';
+      const showDesc = field.getAttribute('data-show-description') === 'true';
       
-      desc.style.setProperty('color', descColor, 'important');
-      desc.style.setProperty('font-size', descFontSize, 'important');
-      desc.style.setProperty('opacity', '0.9', 'important');
-      desc.style.setProperty('margin', '6px 0 0 0', 'important');
-      desc.style.setProperty('padding', '0', 'important');
-      desc.style.setProperty('text-align', alignment, 'important');
-      desc.style.setProperty('line-height', '1.5', 'important');
-      desc.style.setProperty('direction', direction, 'important');
+      // Log for debugging
+      console.log('Title field styling:', {
+        id: field.id,
+        bgColor,
+        titleColor,
+        alignment,
+        direction,
+        fontSize,
+        showTitle,
+        showDesc
+      });
+      
+      // Force background color with !important
+      container.style.setProperty('background-color', bgColor, 'important');
+      container.style.setProperty('padding', '16px', 'important');
+      container.style.setProperty('border-radius', '8px', 'important');
+      container.style.setProperty('width', '100%', 'important');
+      container.style.setProperty('box-sizing', 'border-box', 'important');
+      container.style.setProperty('margin-bottom', '16px', 'important');
+      container.style.setProperty('text-align', alignment, 'important');
+      container.style.setProperty('direction', direction, 'important');
+      
+      // Style the title element
+      const title = container.querySelector('h3');
+      if (title) {
+        title.style.setProperty('color', titleColor, 'important');
+        title.style.setProperty('font-size', fontSize, 'important');
+        title.style.setProperty('font-weight', fontWeight, 'important');
+        title.style.setProperty('text-align', alignment, 'important');
+        title.style.setProperty('margin', '0', 'important');
+        title.style.setProperty('padding', '0', 'important');
+        title.style.setProperty('line-height', '1.3', 'important');
+        title.style.setProperty('display', showTitle ? 'block' : 'none', 'important');
+        title.style.setProperty('direction', direction, 'important');
+      }
+      
+      // Style the description element
+      const desc = container.querySelector('.codform-title-description');
+      if (desc) {
+        desc.style.setProperty('color', descColor, 'important');
+        desc.style.setProperty('font-size', descFontSize, 'important');
+        desc.style.setProperty('opacity', '0.9', 'important');
+        desc.style.setProperty('margin', '6px 0 0 0', 'important');
+        desc.style.setProperty('padding', '0', 'important');
+        desc.style.setProperty('text-align', alignment, 'important');
+        desc.style.setProperty('line-height', '1.5', 'important');
+        desc.style.setProperty('direction', direction, 'important');
+        desc.style.setProperty('display', showDesc ? 'block' : 'none', 'important');
+      }
+    } catch (error) {
+      console.error('Error styling title field:', error);
     }
   });
 }
 
 // Use MutationObserver to ensure styles are applied even when DOM changes
 function setupTitleFieldObserver() {
+  console.log('Setting up title field observer');
+  
   const observer = new MutationObserver((mutations) => {
-    ensureTitleFieldsDisplay();
+    let needsUpdate = false;
+    
+    mutations.forEach(mutation => {
+      if (
+        mutation.type === 'childList' || 
+        mutation.type === 'attributes' ||
+        (mutation.target && 
+         (mutation.target.classList && mutation.target.classList.contains('codform-title-field') ||
+          mutation.target.closest && mutation.target.closest('.codform-title-field'))
+        )
+      ) {
+        needsUpdate = true;
+      }
+    });
+    
+    if (needsUpdate) {
+      console.log('DOM changed, updating title fields');
+      ensureTitleFieldsDisplay();
+    }
   });
   
   // Start observing the document for DOM changes
   observer.observe(document.body, { 
     childList: true,
-    subtree: true 
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class', 'data-bg-color', 'data-title-align', 'data-direction'] 
   });
   
   // Initial run
   ensureTitleFieldsDisplay();
 }
-
-// Run after DOM is loaded and setup observer
-document.addEventListener('DOMContentLoaded', () => {
-  ensureTitleFieldsDisplay();
-  setupTitleFieldObserver();
-  
-  // Also re-run periodically for the first few seconds as a fallback
-  const interval = setInterval(ensureTitleFieldsDisplay, 500);
-  setTimeout(() => clearInterval(interval), 5000);
-});
 
 // Helper function to convert rem to pixels
 function remToPxExact(value) {
@@ -176,24 +212,25 @@ function remToPxExact(value) {
   return value;
 }
 
-` + minifiedContent;
+// Run after DOM is loaded and setup observer
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing title field styling');
+  ensureTitleFieldsDisplay();
+  setupTitleFieldObserver();
+  
+  // Also re-run periodically for the first few seconds as a fallback
+  const interval = setInterval(() => {
+    console.log('Periodic title fields update');
+    ensureTitleFieldsDisplay();
+  }, 500);
+  
+  setTimeout(() => {
+    console.log('Clearing periodic update interval');
+    clearInterval(interval);
+  }, 5000);
+});
 
-// Ensure the remToPxExact function is included
-if (!minifiedContent.includes('function remToPxExact')) {
-  minifiedContent = `
-function remToPxExact(value) {
-  if (!value) return '16px';
-  if (value.includes('rem')) {
-    const remValue = parseFloat(value);
-    return Math.round(remValue * 16) + 'px';
-  }
-  if (!value.includes('px') && !isNaN(parseFloat(value))) {
-    return value + 'px';
-  }
-  return value;
-}
 ` + minifiedContent;
-}
 
 const optimizedSize = Buffer.byteLength(minifiedContent, 'utf8');
 console.log(`Optimized size: ${optimizedSize} bytes (${(optimizedSize / 1024).toFixed(2)} KB)`);

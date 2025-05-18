@@ -145,6 +145,7 @@
     display: block !important;
     color: #ffffff !important;
     font-weight: bold !important;
+    font-size: 24px !important;
   }
   
   .codform-title-field .codform-title-description {
@@ -153,6 +154,7 @@
     line-height: 1.5 !important;
     opacity: 0.9 !important;
     color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 14px !important;
   }
   
   /* RTL specific overrides */
@@ -181,17 +183,16 @@
     direction: ltr !important;
   }
   
-  /* تأكد من تطبيق الألوان بشكل صحيح */
+  /* Add specific data attribute selectors for dynamic styling */
   .codform-title-field[data-has-bg="true"] .codform-title-container {
-    background-color: attr(data-bg-color) !important;
+    background-color: var(--bg-color, #9b87f5) !important;
   }
   
   .codform-title-field[data-title-color] .codform-form-title,
   .codform-title-field[data-title-color] .codform-section-title {
-    color: attr(data-title-color) !important;
+    color: var(--title-color, #ffffff) !important;
   }
   
-  /* تحسين المحاذاة */
   .codform-title-field[data-title-align="right"] .codform-title-container,
   .codform-title-field[data-title-align="right"] .codform-form-title,
   .codform-title-field[data-title-align="right"] .codform-section-title,
@@ -227,7 +228,25 @@
     direction: ltr !important;
   }
   
-  /* تعزيز اعدادات العنوان بشكل إضافي */
+  /* Apply styling directly based on data attributes */
+  .codform-title-field {
+    --bg-color: attr(data-bg-color);
+    --title-color: attr(data-title-color);
+    --font-size: attr(data-font-size);
+    --desc-font-size: attr(data-desc-font-size);
+  }
+  
+  /* Font size overrides - critical for exact match */
+  .codform-title-field[data-font-size] .codform-form-title,
+  .codform-title-field[data-font-size] .codform-section-title {
+    font-size: var(--font-size, 24px) !important;
+  }
+  
+  .codform-title-field[data-desc-font-size] .codform-title-description {
+    font-size: var(--desc-font-size, 14px) !important;
+  }
+  
+  /* Enhanced title container styles to ensure consistency */
   .codform-title-container {
     background-color: #9b87f5 !important;
     padding: 16px !important;

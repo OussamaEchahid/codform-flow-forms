@@ -12,7 +12,7 @@ interface TitleFieldProps {
   };
 }
 
-// تحويل الوحدات من rem إلى px للتوافق التام مع المتجر
+// Convert rem units to px for exact store compatibility
 const remToPx = (value: string | undefined, defaultValue: string): string => {
   if (!value) return defaultValue;
   
@@ -32,46 +32,46 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // الحصول على وصف من الحقل مع استخدام القيمة الافتراضية
+  // Get description from field with default value
   const description = field.helpText || '';
   
-  // التحقق مما إذا كان يجب عرض العنوان والوصف
+  // Check if title and description should be shown
   const showTitle = fieldStyle.showTitle !== false;
   const showDescription = fieldStyle.showDescription !== false && !!description;
   
-  // تعيين المحاذاة الافتراضية بناءً على اللغة
+  // Set default alignment based on language
   const defaultAlignment = language === 'ar' ? 'right' : 'left';
   const alignment = fieldStyle.textAlign || defaultAlignment;
   
-  // استخدم قيم بكسل دقيقة بدلاً من rem لتناسق الحجم بنسبة 100%
+  // Use exact pixel values instead of rem for 100% size consistency
   const isFormTitle = field.type === 'form-title';
   const defaultTitleSize = isFormTitle ? '24px' : '20px';
   const defaultDescSize = '14px';
   
-  // تحويل كل قيم الحجم إلى بكسل - مهم جدًا للتناسق
+  // Convert all size values to pixels - critical for consistency
   const fontSize = remToPx(fieldStyle.fontSize, defaultTitleSize);
   const descriptionFontSize = remToPx(fieldStyle.descriptionFontSize, defaultDescSize);
   
-  // الحصول على لون الخلفية مع القيمة الافتراضية
+  // Get background color with default value
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
-  // استخدم محاذاة النص المناسبة
+  // Use appropriate text alignment
   const contentDirection = language === 'ar' ? 'rtl' : 'ltr';
   
-  // مهم: استخدم !important على جميع خصائص النمط لتجاوز أنماط المتجر
-  const backgroundStyle = {
+  // Important: Use !important on all style properties to override store styles
+  const backgroundStyle: React.CSSProperties = {
     backgroundColor: `${backgroundColor} !important`,
     padding: '16px !important',
     borderRadius: `${formStyle.borderRadius || '8px'} !important`,
     width: '100% !important',
-    boxSizing: 'border-box' as React.CSSProperties['boxSizing'],
+    boxSizing: 'border-box',
     marginBottom: '16px !important',
     textAlign: alignment as React.CSSProperties['textAlign'],
     direction: contentDirection as React.CSSProperties['direction'],
   };
 
-  // أنماط العنوان مع علامات !important
-  const titleStyle = {
+  // Title styles with !important flags
+  const titleStyle: React.CSSProperties = {
     color: `${fieldStyle.color || '#ffffff'} !important`,
     fontSize: `${fontSize} !important`,
     textAlign: `${alignment} !important` as React.CSSProperties['textAlign'],
@@ -84,8 +84,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     direction: contentDirection as React.CSSProperties['direction'],
   };
 
-  // أنماط الوصف مع علامات !important
-  const descriptionStyle = {
+  // Description styles with !important flags
+  const descriptionStyle: React.CSSProperties = {
     color: `${fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'} !important`,
     fontSize: `${descriptionFontSize} !important`,
     margin: '6px 0 0 0 !important',
@@ -98,7 +98,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     direction: contentDirection as React.CSSProperties['direction'],
   };
 
-  // إنشاء معرف فريد لهذا الحقل لتصحيح مشاكل التنسيق
+  // Create unique id for this field to fix formatting issues
   const titleFieldId = `title-field-${field.id}`;
 
   console.log('TitleField rendering', { 
@@ -109,7 +109,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     alignment,
     showTitle,
     showDescription,
-    language
+    language,
+    fieldStyle
   });
 
   return (
