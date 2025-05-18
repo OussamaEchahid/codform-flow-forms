@@ -7,9 +7,14 @@ import { Badge } from '@/components/ui/badge';
 
 interface ShopifyProductsListProps {
   products: ShopifyProduct[];
+  hideTestProducts?: boolean;
 }
 
-const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ products }) => {
+const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ 
+  products,
+  hideTestProducts = true
+}) => {
+  
   if (!products || products.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">

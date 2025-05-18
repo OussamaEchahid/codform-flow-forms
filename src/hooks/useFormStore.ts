@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface FormStyle {
@@ -73,17 +72,15 @@ export const useFormStore = create<FormStore>((set) => ({
   })),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
-  // Initialize floating button configuration with enabled=true to make sure it's active by default
+  // Initialize floating button configuration
   floatingButton: {
-    enabled: true, // Default to true to ensure it's active by default
+    enabled: false,
     text: 'Order Now',
     textColor: '#ffffff',
     backgroundColor: '#000000',
     borderRadius: '4px',
     showIcon: true,
     icon: 'shopping-cart',
-    animation: 'none', // Default animation to none
-    marginBottom: '20px', // Default bottom margin
   },
   
   // Add method to update floating button

@@ -32,6 +32,9 @@ model Form {
   shopId      String?  // Optional Shopify shop ID
   isActive    Boolean  @default(true)
   submissions Submission[]
+  
+  // New field to track product associations
+  productId   String? // Optional product ID for direct association
 }
 
 model Submission {
@@ -43,4 +46,33 @@ model Submission {
   status    String   @default("pending") // pending, approved, rejected
   shopId    String?  // Optional Shopify shop ID
   orderId   String?  // Optional Shopify order ID
+}
+
+// Model representing the Shopify product-form settings
+model ShopifyProductSetting {
+  id         String  @id @default(uuid())
+  shopId     String
+  productId  String
+  formId     String
+  blockId    String?
+  enabled    Boolean @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([shopId, productId])
+}
+
+// Model for form insertion settings
+model ShopifyFormInsertion {
+  id              String @id @default(uuid())
+  formId          String
+  shopId          String
+  position        String @default("product-page")
+  blockId         String?
+  themeType       String @default("auto-detect")
+  insertionMethod String @default("auto")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([formId, shopId])
 }

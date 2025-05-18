@@ -13,11 +13,6 @@ interface FloatingButtonProps {
 const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = false }) => {
   const { language } = useI18n();
   
-  // If the floating button is not enabled, don't render it
-  if (!config.enabled) {
-    return null;
-  }
-  
   const getAnimationClass = () => {
     if (!config.animation || config.animation === 'none') return '';
     
@@ -65,12 +60,13 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
     }
   };
   
-  // Set fixed minimum width for better appearance
-  const minWidth = '250px'; // Increased minimum width to make it longer
+  // Calculate width based on content
+  const buttonWidth = config.text && config.text.length > 10 ? 'auto' : 'auto';
+  const minWidth = '180px'; // Set minimum width to make it longer
   
   return (
     <div 
-      className={`codform-floating-button-container ${config.enabled ? '' : 'hidden'}`}
+      className="codform-floating-button-container"
       style={{
         position: 'fixed',
         bottom: config.marginBottom || '20px',
@@ -99,12 +95,10 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({ config, isPreview = fal
           alignItems: 'center',
           gap: '8px',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-          transition: 'transform 0.2s ease, opacity 0.3s ease',
+          transition: 'transform 0.2s ease',
           direction: language === 'ar' ? 'rtl' : 'ltr',
           width: 'auto',
           minWidth: minWidth,
-          opacity: '1',
-          visibility: 'visible',
         }}
         onClick={handleClick}
       >

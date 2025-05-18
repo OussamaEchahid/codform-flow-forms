@@ -64,6 +64,7 @@ export type Database = {
           id: string
           is_published: boolean
           primaryColor: string | null
+          product_id: string | null
           shop_id: string | null
           style: Json | null
           submitbuttontext: string | null
@@ -81,6 +82,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           primaryColor?: string | null
+          product_id?: string | null
           shop_id?: string | null
           style?: Json | null
           submitbuttontext?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           primaryColor?: string | null
+          product_id?: string | null
           shop_id?: string | null
           style?: Json | null
           submitbuttontext?: string | null
@@ -223,6 +226,79 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_cached_products: {
+        Row: {
+          id: string
+          products: Json
+          shop: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          products?: Json
+          shop: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          products?: Json
+          shop?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_cached_products_shop_fkey"
+            columns: ["shop"]
+            isOneToOne: false
+            referencedRelation: "shopify_shops"
+            referencedColumns: ["shop"]
+          },
+        ]
+      }
+      shopify_form_insertion: {
+        Row: {
+          block_id: string | null
+          created_at: string | null
+          form_id: string
+          id: string
+          insertion_method: string | null
+          position: string | null
+          shop_id: string
+          theme_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string | null
+          form_id: string
+          id?: string
+          insertion_method?: string | null
+          position?: string | null
+          shop_id: string
+          theme_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          insertion_method?: string | null
+          position?: string | null
+          shop_id?: string
+          theme_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_form_insertion_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopify_page_syncs: {
         Row: {
           created_at: string
@@ -287,6 +363,33 @@ export type Database = {
           id?: string
           product_id?: string
           shop_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      shopify_shops: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          shop: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shop: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shop?: string
           updated_at?: string | null
         }
         Relationships: []

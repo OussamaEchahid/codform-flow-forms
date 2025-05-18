@@ -21,6 +21,7 @@ interface ShopifyFormSync {
 export const useShopify = () => {
   const { shop } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -77,8 +78,8 @@ export const useShopify = () => {
   }, [shop]);
 
   // Load products when connected
-  const loadProducts = useCallback(async () => {
-    if (!isConnected || !shop) {
+  const loadProducts = useCallback(async (forceRefresh = false) => {
+    if (!shop) {
       return [];
     }
 
@@ -99,23 +100,45 @@ export const useShopify = () => {
       
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { shop, accessToken: token }
+        body: { 
+          shop, 
+          accessToken: token,
+          forceRefresh: forceRefresh,
+          includeTestProducts: false // Always filter test products 
+        }
       });
 
       if (error) {
         throw error;
       }
 
-      setProducts(data?.products || []);
+      // Store all products
+      const fetchedProducts = data?.products || [];
+      
+      if (Array.isArray(fetchedProducts)) {
+        setAllProducts(fetchedProducts);
+        setProducts(fetchedProducts);
+        
+        console.log(`Loaded ${fetchedProducts.length} products from Shopify`);
+        
+        if (fetchedProducts.length === 0) {
+          console.warn('No products returned from Shopify API');
+        }
+      } else {
+        console.error('Invalid product data returned:', fetchedProducts);
+        throw new Error('Invalid product data structure returned');
+      }
+      
       setIsLoading(false);
-      return data?.products || [];
+      return fetchedProducts;
     } catch (error) {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
+      toast.error('فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى');
       return [];
     }
-  }, [isConnected, shop]);
+  }, [shop]);
 
   // Test connection
   const testConnection = useCallback(async (withRetry = false) => {
@@ -235,7 +258,7 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop]);
+  }, [isConnected, failSafeMode, shop, pendingSyncForms]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
@@ -324,6 +347,7 @@ export const useShopify = () => {
     accessToken,
     shopifyAPI,
     products,
+    allProducts,
     shop,
     error: tokenError,
     failSafeMode,
@@ -335,6 +359,6 @@ export const useShopify = () => {
     syncForm,
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
-    emergencyReset
+    emergencyReset,
   };
 };

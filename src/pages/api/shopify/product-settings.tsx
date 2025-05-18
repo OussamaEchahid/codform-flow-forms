@@ -34,7 +34,6 @@ export async function saveProductSettings(
 
     console.log('Using shop ID:', shopId);
     
-    // التحقق من وجود عمود block_id في الجدول قبل المتابعة
     try {
       // التحقق من وجود الجدول وأعمدته
       const { data: tableInfo, error: tableError } = await supabase
@@ -71,7 +70,22 @@ export async function saveProductSettings(
       
       console.log('Preparing to insert/update settings with data:', settingsData);
 
-      // استخدام supabase للإدراج/التحديث
+      // أولاً، نتحقق من وجود إعدادات حالية للمنتج
+      const { data: existingSettings, error: getError } = await supabase
+        .from('shopify_product_settings')
+        .select('*')
+        .eq('shop_id', shopId)
+        .eq('product_id', requestBody.productId)
+        .maybeSingle();
+
+      if (getError) {
+        console.error('خطأ في البحث عن الإعدادات الحالية:', getError);
+        return { 
+          error: `خطأ في البحث عن الإعدادات الحالية: ${getError.message || 'خطأ غير معروف'}`
+        };
+      }
+
+      // استخدام upsert للإدراج/التحديث
       const result = await supabase.from('shopify_product_settings').upsert(
         settingsData,
         { 
@@ -88,6 +102,35 @@ export async function saveProductSettings(
       }
 
       console.log('Product settings saved successfully');
+      
+      // التحقق من وجود إدخال في جدول shopify_form_insertion للنموذج
+      const { data: formInsertionData, error: formInsertionError } = await supabase
+        .from('shopify_form_insertion')
+        .select('*')
+        .eq('form_id', requestBody.formId)
+        .eq('shop_id', shopId)
+        .maybeSingle();
+        
+      if (formInsertionError) {
+        console.warn('Warning: Error checking form insertion data:', formInsertionError);
+        // استمر على الرغم من الخطأ
+      } else if (!formInsertionData) {
+        // إنشاء إدخال جديد في جدول shopify_form_insertion إذا لم يكن موجودًا
+        const formInsertionResult = await supabase.from('shopify_form_insertion').insert({
+          form_id: requestBody.formId,
+          shop_id: shopId,
+          position: 'product-page',
+          block_id: settingsData.block_id,
+          insertion_method: 'auto',
+          theme_type: 'auto-detect'
+        });
+        
+        if (formInsertionResult.error) {
+          console.warn('Warning: Could not create form insertion entry:', formInsertionResult.error);
+          // استمر على الرغم من الخطأ
+        }
+      }
+
       return { 
         success: true,
         productId: requestBody.productId,

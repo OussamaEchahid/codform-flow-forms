@@ -1,100 +1,59 @@
-import { v4 as uuidv4 } from 'uuid';
+
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export type FormFieldType = 
+  'text' | 
+  'email' | 
+  'tel' | 
+  'number' | 
+  'textarea' | 
+  'select' | 
+  'checkbox' | 
+  'radio' | 
+  'date' | 
+  'time' | 
+  'datetime-local' | 
+  'file' | 
+  'hidden' | 
+  'image' | 
+  'color' | 
+  'range' | 
+  'url' | 
+  'month' | 
+  'week' | 
+  'password' |
+  'title' |
+  'html' |
+  'step' |
+  'submit' |
+  'whatsapp' |
+  'cart-items' |
+  'cart-summary' |
+  'shipping-options' |
+  'phone' |  // Added phone type
+  'form-title' |  // Added form-title type
+  'text/html';  // Added text/html type
 
 export interface FormField {
   id: string;
   type: FormFieldType;
   label?: string;
-  required?: boolean;
   placeholder?: string;
-  helpText?: string;
-  options?: { value: string; label: string }[];
-  validation?: string;
-  rows?: number;
-  content?: string;
-  src?: string;
-  alt?: string;
-  width?: string;
-  phoneNumber?: string;
-  message?: string;
-  whatsappNumber?: string;
-  showImage?: boolean;
-  showPrice?: boolean;
-  showShipping?: boolean;
-  showTax?: boolean;
-  icon?: string; 
+  required?: boolean;
+  options?: { label: string; value: string }[];
   defaultValue?: string;
-  style?: {
-    backgroundColor?: string;
-    color?: string;
-    fontSize?: string;
-    textAlign?: string;
-    fontWeight?: string;
-    fontFamily?: string;
-    descriptionColor?: string;
-    descriptionFontSize?: string;
-    descriptionFontWeight?: string;
-    titleColor?: string; // Added for backward compatibility
-    titleFontSize?: string; // Added for backward compatibility
-    priceColor?: string;
-    priceFontSize?: string;
-    labelColor?: string;
-    labelFontSize?: string;
-    valueColor?: string;
-    valueFontSize?: string;
-    totalLabelColor?: string;
-    totalLabelFontSize?: string;
-    totalValueColor?: string;
-    totalValueFontSize?: string;
-    borderColor?: string;
-    borderRadius?: string;
-    borderWidth?: string;
-    animation?: boolean;
-    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash';
-    iconPosition?: 'left' | 'right';
-    icon?: boolean;
-    paddingY?: string;
-    marginBottom?: string;
-  };
-  disabled?: boolean;
+  helpText?: string;
+  name?: string;
+  isStep?: boolean;
+  stepId?: string;
+  stepIndex?: number;
+  [key: string]: any;
 }
-
-// Add floating button configuration interface
-export interface FloatingButtonConfig {
-  enabled: boolean;
-  text: string;
-  fontFamily?: string;
-  fontSize?: string;
-  fontWeight?: string;
-  textColor?: string;
-  backgroundColor?: string;
-  borderColor?: string;
-  borderRadius?: string;
-  borderWidth?: string;
-  paddingY?: string;
-  marginBottom?: string;
-  showIcon?: boolean;
-  icon?: string;
-  animation?: string;
-}
-
-export type FormFieldType =
-  | 'text'
-  | 'email'
-  | 'phone'
-  | 'textarea'
-  | 'select'
-  | 'checkbox'
-  | 'radio'
-  | 'text/html'
-  | 'cart-items'
-  | 'cart-summary'
-  | 'submit'
-  | 'shipping'
-  | 'countdown'
-  | 'whatsapp'
-  | 'image'
-  | 'title'
-  | 'form-title'; // Added form-title type
 
 export interface FormStep {
   id: string;
@@ -102,42 +61,279 @@ export interface FormStep {
   fields: FormField[];
 }
 
-export interface FormTemplate {
-  id: number;
+export interface FormData {
+  id: string;
   title: string;
-  description: string;
+  description?: string | null;
   data: FormStep[];
-  primaryColor?: string; // Added this property
-  fields?: number; // Added this property for FormTemplatesDialog
-  steps?: number; // Added this property for FormTemplatesDialog
+  primaryColor: string;
+  borderRadius: string;
+  fontSize: string;
+  buttonStyle: string;
+  is_published?: boolean;
+  shop_id?: string | null;
+  product_id?: string | null;
+  style?: {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
+  };
 }
 
-/**
- * Mock form templates for demonstration
- */
-export const formTemplates: FormTemplate[] = [
+export interface FloatingButtonConfig {
+  enabled?: boolean;
+  text?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  borderRadius?: string;
+  paddingY?: string;
+  marginBottom?: string;
+  showIcon?: boolean;
+  icon?: string;
+  animation?: string;
+  animationType?: string;
+  borderWidth?: string;  // Added missing property
+  borderColor?: string;  // Added missing property
+  fontFamily?: string;   // Added missing property
+}
+
+export const formatCurrency = (amount: number, locale = 'ar-SA', currency = 'SAR') => {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+export const validatePhone = (phone: string): boolean => {
+  // Basic validation: at least 8 digits, can include +, -, (), and spaces
+  const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+  return phoneRegex.test(phone);
+};
+
+export const generateFormFieldClassName = (field: FormField) => {
+  return cn(
+    "codform-field",
+    field.className,
+    field.type === 'hidden' && "hidden"
+  );
+};
+
+export const loadForm = async (formId: string, productId?: string): Promise<FormData> => {
+  try {
+    // Build the URL with the optional productId parameter
+    let url = `/api/forms/${formId}`;
+    if (productId) {
+      url += `?productId=${encodeURIComponent(productId)}`;
+    }
+    
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      throw new Error(`Failed to load form: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error loading form:", error);
+    throw error;
+  }
+};
+
+export const extractFormSections = (form: FormData): Array<{ title: string; fields: FormField[] }> => {
+  // If there's no data or data is not an array with fields property, return empty array
+  if (!form || !form.data || !Array.isArray(form.data)) {
+    return [];
+  }
+
+  // Map each step in the form data to a section
+  return form.data.map(step => ({
+    title: step.title || '',
+    fields: step.fields || []
+  }));
+};
+
+// Function to create an empty field based on type
+export const createEmptyField = (type: FormFieldType): FormField => {
+  const newId = `${type}-${Date.now()}`;
+  let newField: FormField = {
+    id: newId,
+    type: type,
+    required: false
+  };
+  
+  switch(type) {
+    case 'text':
+      newField.label = 'Text Field';
+      newField.placeholder = 'Enter text here';
+      break;
+    case 'email':
+      newField.label = 'Email';
+      newField.placeholder = 'Enter your email';
+      break;
+    case 'phone':
+      newField.label = 'Phone Number';
+      newField.placeholder = 'Enter your phone number';
+      break;
+    case 'textarea':
+      newField.label = 'Text Area';
+      newField.placeholder = 'Enter your message here';
+      break;
+    case 'select':
+      newField.label = 'Select Option';
+      newField.options = [
+        { label: 'Option 1', value: 'option1' },
+        { label: 'Option 2', value: 'option2' },
+        { label: 'Option 3', value: 'option3' }
+      ];
+      break;
+    case 'checkbox':
+      newField.label = 'Checkbox Option';
+      newField.options = [
+        { label: 'Option 1', value: 'option1' },
+        { label: 'Option 2', value: 'option2' }
+      ];
+      break;
+    case 'radio':
+      newField.label = 'Radio Option';
+      newField.options = [
+        { label: 'Option 1', value: 'option1' },
+        { label: 'Option 2', value: 'option2' }
+      ];
+      break;
+    case 'submit':
+      newField.label = 'Submit Form';
+      newField.style = {
+        backgroundColor: '#3b82f6',
+        color: '#ffffff',
+        fontSize: '1rem',
+        animation: false
+      };
+      break;
+    case 'form-title':
+      newField.label = 'Form Title';
+      newField.helpText = 'Form description goes here';
+      newField.style = {
+        textAlign: 'center',
+        color: '#1a202c',
+        fontSize: '1.5rem',
+        fontWeight: 'bold',
+        backgroundColor: '#f7fafc'
+      };
+      break;
+    case 'text/html':
+      newField.label = 'HTML Content';
+      newField.content = '<p>Enter your HTML content here</p>';
+      break;
+    case 'cart-items':
+      newField.label = 'Cart Items';
+      break;
+    case 'cart-summary':
+      newField.label = 'Order Summary';
+      break;
+    case 'whatsapp':
+      newField.label = 'WhatsApp Contact';
+      newField.phoneNumber = '';
+      newField.message = 'Hello, I would like to inquire about...';
+      break;
+    case 'title':
+      newField.label = 'Section Title';
+      newField.style = {
+        textAlign: 'center',
+        fontSize: '1.25rem',
+        fontWeight: 'bold'
+      };
+      break;
+    default:
+      newField.label = 'New Field';
+      break;
+  }
+  
+  return newField;
+};
+
+// Function to create a default form
+export const createDefaultForm = (): FormStep[] => {
+  return [
+    {
+      id: '1',
+      title: 'Customer Information',
+      fields: [
+        createEmptyField('form-title'),
+        createEmptyField('text'),
+        createEmptyField('email'),
+        createEmptyField('phone'),
+        createEmptyField('textarea'),
+        createEmptyField('submit')
+      ]
+    }
+  ];
+};
+
+// Form templates
+export const formTemplates = [
   {
     id: 1,
-    title: 'نموذج تسجيل بسيط',
-    description: 'نموذج أساسي لجمع معلومات المستخدمين.',
+    title: 'Simple Contact Form',
+    description: 'A basic contact form with name, email, and message fields',
+    primaryColor: '#d97706',
     data: [
       {
         id: '1',
-        title: 'معلومات شخصية',
+        title: 'Contact Information',
         fields: [
           {
-            id: 'name',
-            type: 'text',
-            label: 'الاسم',
-            required: true,
-            placeholder: 'أدخل اسمك'
+            id: 'form-title-1',
+            type: 'form-title' as FormFieldType,
+            label: 'Contact Us',
+            helpText: 'We\'ll get back to you as soon as possible',
+            style: {
+              textAlign: 'center',
+              color: '#ffffff',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              backgroundColor: '#d97706'
+            }
           },
           {
-            id: 'email',
-            type: 'email',
-            label: 'البريد الإلكتروني',
-            required: true,
-            placeholder: 'أدخل بريدك الإلكتروني'
+            id: 'name-1',
+            type: 'text' as FormFieldType,
+            label: 'Name',
+            placeholder: 'Your name',
+            required: true
+          },
+          {
+            id: 'email-1',
+            type: 'email' as FormFieldType,
+            label: 'Email',
+            placeholder: 'Your email address',
+            required: true
+          },
+          {
+            id: 'message-1',
+            type: 'textarea' as FormFieldType,
+            label: 'Message',
+            placeholder: 'Your message',
+            required: true
+          },
+          {
+            id: 'submit-1',
+            type: 'submit' as FormFieldType,
+            label: 'Send Message',
+            style: {
+              backgroundColor: '#d97706',
+              color: '#ffffff',
+              fontSize: '1rem'
+            }
           }
         ]
       }
@@ -145,39 +341,69 @@ export const formTemplates: FormTemplate[] = [
   },
   {
     id: 2,
-    title: 'نموذج طلب منتج',
-    description: 'نموذج لطلب منتج مع تفاصيل الشحن.',
+    title: 'Product Order Form',
+    description: 'A form for collecting order information',
+    primaryColor: '#3b82f6',
     data: [
       {
         id: '1',
-        title: 'معلومات المنتج',
+        title: 'Order Information',
         fields: [
           {
-            id: 'product_name',
-            type: 'text',
-            label: 'اسم المنتج',
-            required: true,
-            placeholder: 'أدخل اسم المنتج'
+            id: 'form-title-2',
+            type: 'form-title' as FormFieldType,
+            label: 'Place Your Order',
+            helpText: 'Fill out the form below to place your order',
+            style: {
+              textAlign: 'center',
+              color: '#ffffff',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              backgroundColor: '#3b82f6'
+            }
           },
           {
-            id: 'quantity',
-            type: 'text',
-            label: 'الكمية',
-            required: true,
-            placeholder: 'أدخل الكمية المطلوبة'
-          }
-        ]
-      },
-      {
-        id: '2',
-        title: 'معلومات الشحن',
-        fields: [
+            id: 'cart-items-1',
+            type: 'cart-items' as FormFieldType,
+            label: ''
+          },
           {
-            id: 'address',
-            type: 'textarea',
-            label: 'عنوان الشحن',
-            required: true,
-            placeholder: 'أدخل عنوان الشحن بالتفصيل'
+            id: 'cart-summary-1',
+            type: 'cart-summary' as FormFieldType,
+            label: ''
+          },
+          {
+            id: 'customer-name',
+            type: 'text' as FormFieldType,
+            label: 'Full Name',
+            placeholder: 'Your full name',
+            required: true
+          },
+          {
+            id: 'customer-phone',
+            type: 'phone' as FormFieldType,
+            label: 'Phone Number',
+            placeholder: 'Your phone number',
+            required: true
+          },
+          {
+            id: 'customer-address',
+            type: 'textarea' as FormFieldType,
+            label: 'Delivery Address',
+            placeholder: 'Your complete address',
+            required: true
+          },
+          {
+            id: 'submit-2',
+            type: 'submit' as FormFieldType,
+            label: 'Place Order',
+            style: {
+              backgroundColor: '#3b82f6',
+              color: '#ffffff',
+              fontSize: '1.2rem',
+              animation: true,
+              animationType: 'pulse'
+            }
           }
         ]
       }
@@ -185,274 +411,95 @@ export const formTemplates: FormTemplate[] = [
   },
   {
     id: 3,
-    title: 'نموذج استبيان',
-    description: 'نموذج لجمع آراء العملاء.',
+    title: 'Appointment Booking Form',
+    description: 'A form for scheduling appointments',
+    primaryColor: '#115e59',
     data: [
       {
         id: '1',
-        title: 'الآراء',
+        title: 'Personal Information',
         fields: [
           {
-            id: 'satisfaction',
-            type: 'radio',
-            label: 'ما مدى رضاك عن المنتج؟',
+            id: 'form-title-3',
+            type: 'form-title' as FormFieldType,
+            label: 'Book Your Appointment',
+            helpText: 'Fill in your details to schedule an appointment',
+            style: {
+              textAlign: 'center',
+              color: '#ffffff',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              backgroundColor: '#115e59'
+            }
+          },
+          {
+            id: 'customer-name-3',
+            type: 'text' as FormFieldType,
+            label: 'Full Name',
+            placeholder: 'Your full name',
+            required: true
+          },
+          {
+            id: 'customer-email-3',
+            type: 'email' as FormFieldType,
+            label: 'Email Address',
+            placeholder: 'Your email address',
+            required: true
+          },
+          {
+            id: 'customer-phone-3',
+            type: 'phone' as FormFieldType,
+            label: 'Phone Number',
+            placeholder: 'Your phone number',
+            required: true
+          }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Appointment Details',
+        fields: [
+          {
+            id: 'appointment-date',
+            type: 'date' as FormFieldType,
+            label: 'Preferred Date',
+            required: true
+          },
+          {
+            id: 'appointment-time',
+            type: 'time' as FormFieldType,
+            label: 'Preferred Time',
+            required: true
+          },
+          {
+            id: 'appointment-service',
+            type: 'select' as FormFieldType,
+            label: 'Service',
             required: true,
             options: [
-              { value: 'satisfied', label: 'راض جداً' },
-              { value: 'neutral', label: 'محايد' },
-              { value: 'dissatisfied', label: 'غير راض' }
+              { label: 'Consultation', value: 'consultation' },
+              { label: 'Follow-up', value: 'follow-up' },
+              { label: 'Treatment', value: 'treatment' }
             ]
           },
           {
-            id: 'comments',
-            type: 'textarea',
-            label: 'تعليقات إضافية',
-            placeholder: 'أدخل تعليقاتك هنا'
+            id: 'appointment-notes',
+            type: 'textarea' as FormFieldType,
+            label: 'Additional Notes',
+            placeholder: 'Any specific requirements or concerns'
+          },
+          {
+            id: 'submit-3',
+            type: 'submit' as FormFieldType,
+            label: 'Book Appointment',
+            style: {
+              backgroundColor: '#115e59',
+              color: '#ffffff',
+              fontSize: '1.2rem'
+            }
           }
         ]
       }
     ]
   }
 ];
-
-/**
- * Creates a default form template with standard fields
- */
-export const createDefaultForm = (): FormStep[] => {
-  return [
-    {
-      id: "1",
-      title: "معلومات الطلب",
-      fields: [
-        {
-          id: "full_name",
-          type: "text",
-          label: "الاسم الكامل",
-          placeholder: "أدخل اسمك الكامل",
-          required: true,
-          helpText: "يرجى إدخال الاسم الثلاثي"
-        },
-        {
-          id: "phone",
-          type: "phone",
-          label: "رقم الهاتف",
-          placeholder: "05xxxxxxxx",
-          required: true,
-          validation: "^(05)\\d{8}$",
-          helpText: "يرجى إدخال رقم هاتف صحيح يبدأ بـ 05"
-        },
-        {
-          id: "city",
-          type: "text",
-          label: "المدينة",
-          placeholder: "أدخل اسم المدينة",
-          required: true
-        },
-        {
-          id: "address",
-          type: "textarea",
-          label: "العنوان",
-          placeholder: "أدخل عنوان التوصيل بالتفصيل",
-          required: true
-        },
-        {
-          id: "cart_items",
-          type: "cart-items",
-          label: "", // Empty label to hide the title
-          required: false
-        },
-        {
-          id: "cart_summary",
-          type: "cart-summary",
-          label: "", // Empty label to hide the title
-          required: false
-        },
-        {
-          id: "submit",
-          type: "submit",
-          label: "إرسال الطلب الآن",
-          required: false
-        }
-      ]
-    }
-  ];
-};
-
-/**
- * Creates a new empty form
- * @param title The title of the form
- * @returns The new form state
- */
-export const createNewForm = (title: string = 'نموذج جديد'): FormStep[] => {
-  const formTitleField: FormField = {
-    id: `form-title-${Date.now()}`,
-    type: 'form-title',
-    label: 'نموذج جديد',
-    helpText: 'وصف النموذج (اختياري)',
-    style: {
-      textAlign: 'center',
-      color: '#1A1F2C',
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      descriptionColor: '#6b7280',
-      descriptionFontSize: '1rem',
-      backgroundColor: '#F59E0B',
-    }
-  };
-
-  return [
-    {
-      id: uuidv4(),
-      title: 'الخطوة الأولى',
-      fields: [formTitleField]
-    }
-  ];
-};
-
-export const createEmptyField = (type: string): FormField => {
-  const baseField: FormField = {
-    id: `field-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    type: type as any,
-    label: getDefaultLabelForType(type),
-    required: false,
-  };
-
-  // Add type-specific properties
-  switch (type) {
-    case 'form-title':
-      return {
-        ...baseField,
-        label: 'عنوان النموذج المخصص',
-        helpText: 'وصف النموذج (اختياري)',
-        style: {
-          textAlign: 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '#F59E0B',
-        }
-      };
-    case 'text':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '',
-      };
-    case 'email':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
-      };
-    case 'phone':
-      return {
-        ...baseField,
-        placeholder: '',
-        validation: '',
-      };
-    case 'textarea':
-      return {
-        ...baseField,
-        placeholder: '',
-        rows: 4,
-      };
-    case 'select':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-        placeholder: 'اختر من القائمة',
-      };
-    case 'checkbox':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-      };
-    case 'radio':
-      return {
-        ...baseField,
-        options: [
-          { value: 'option1', label: 'خيار 1' },
-          { value: 'option2', label: 'خيار 2' }
-        ],
-      };
-    case 'text/html':
-      return {
-        ...baseField,
-        content: '<p>أدخل المحتوى هنا</p>',
-      };
-    case 'submit':
-      return {
-        ...baseField,
-        label: 'إرسال الطلب الآن',
-        style: {
-          backgroundColor: '#9b87f5',
-          color: 'white',
-          fontSize: '1.1rem',
-        }
-      };
-    case 'whatsapp':
-      return {
-        ...baseField,
-        label: 'تواصل عبر واتساب',
-        phoneNumber: '966500000000',
-        message: 'أرغب في التواصل بخصوص طلب المنتج',
-      };
-    case 'image':
-      return {
-        ...baseField,
-        src: '',
-        alt: '',
-        width: '100%',
-      };
-    case 'cart-items':
-      return {
-        ...baseField,
-        label: '', // Empty label to hide the title
-        showImage: true,
-        showPrice: true,
-      };
-    case 'cart-summary':
-      return {
-        ...baseField,
-        label: '', // Empty label to hide the title
-        showShipping: true,
-        showTax: false,
-      };
-    default:
-      return baseField;
-  }
-};
-
-/**
- * Gets default label based on field type
- */
-const getDefaultLabelForType = (type: string): string => {
-  switch (type) {
-    case 'text': return 'حقل نصي';
-    case 'email': return 'البريد الإلكتروني';
-    case 'phone': return 'رقم الهاتف';
-    case 'textarea': return 'ملاحظات إضافية';
-    case 'select': return 'اختر من القائمة';
-    case 'checkbox': return 'اختيارات متعددة';
-    case 'radio': return 'اختيار واحد';
-    case 'submit': return 'إرسال الطلب الآن';
-    case 'text/html': return 'نص/HTML';
-    case 'whatsapp': return 'تواصل عبر واتساب';
-    case 'image': return 'صورة';
-    case 'title': return 'عنوان قسم';
-    case 'form-title': return 'عنوان النموذج المخصص';
-    case 'cart-items': return 'المنتج المختار';
-    case 'cart-summary': return 'ملخص الطلب';
-    case 'shipping': return 'خيارات الشحن';
-    case 'countdown': return 'العد التنازلي';
-    default: return 'حقل جديد';
-  }
-};

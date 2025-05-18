@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { useAuth } from '@/lib/auth';
@@ -33,6 +32,7 @@ export const useFormTemplates = () => {
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
+  const [isCreatingForm, setIsCreatingForm] = useState(false); // مؤشر جديد لمنع الإنشاء المتكرر
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
@@ -151,7 +151,15 @@ export const useFormTemplates = () => {
   // Create a default form
   const createDefaultForm = async () => {
     try {
+      // منع الإنشاءات المتكررة
+      if (isCreatingForm) {
+        console.log('Already creating a form, preventing duplicate creation');
+        return null;
+      }
+      
+      setIsCreatingForm(true);
       setIsLoading(true);
+      
       const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
@@ -159,10 +167,15 @@ export const useFormTemplates = () => {
         console.error('No active shop ID found');
         toast.error('لم يتم العثور على متجر نشط');
         setIsLoading(false);
+        setIsCreatingForm(false);
         return null;
       }
 
+      // Create a UUID immediately for the new form instead of using 'new'
       const newFormId = uuidv4();
+      console.log('Creating new form with ID:', newFormId);
+      
+      // Prepare default form data
       const formData: FormData = {
         id: newFormId,
         title: 'نموذج جديد',
@@ -171,7 +184,7 @@ export const useFormTemplates = () => {
         isPublished: false,
         shop_id: shopId,
       };
-
+      
       // Insert into Supabase
       const { error } = await supabase
         .from('forms')
@@ -189,6 +202,7 @@ export const useFormTemplates = () => {
         console.error('Error saving form to database:', error);
         toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
         setIsLoading(false);
+        setIsCreatingForm(false);
         return null;
       }
 
@@ -199,11 +213,13 @@ export const useFormTemplates = () => {
       fetchForms();
       
       setIsLoading(false);
+      setIsCreatingForm(false);
       return formData;
     } catch (error) {
       console.error('Error creating default form', error);
       toast.error('خطأ في إنشاء نموذج جديد');
       setIsLoading(false);
+      setIsCreatingForm(false);
       return null;
     }
   };
@@ -317,9 +333,26 @@ export const useFormTemplates = () => {
   };
   
   // Load a specific form by ID
-  const loadForm = async (formId: string) => {
+  const loadForm = async (formId: string | undefined) => {
     try {
       setIsLoading(true);
+      
+      // If formId is undefined or 'new', we're creating a new form
+      if (!formId || formId === 'new') {
+        console.log('No form ID provided or ID is "new", creating a new form');
+        const newForm = await createDefaultForm();
+        setIsLoading(false);
+        return newForm;
+      }
+      
+      // Validate UUID format before querying
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(formId)) {
+        console.error(`Invalid UUID format: "${formId}"`);
+        toast.error('معرف النموذج غير صالح');
+        setIsLoading(false);
+        return null;
+      }
       
       // Fetch form from Supabase
       const { data, error } = await supabase

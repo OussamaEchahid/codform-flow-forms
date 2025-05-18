@@ -1,3 +1,4 @@
+// This function is responsible for updating the Shopify theme to insert the form
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
@@ -14,7 +15,6 @@ interface UpdateThemeRequest {
   insertionMethod?: 'auto' | 'manual';
   blockId?: string;
   themeId?: number;
-  floatingButtonSettings?: any; // Add floating button settings
 }
 
 serve(async (req: Request) => {
@@ -32,15 +32,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { 
-      shop, 
-      accessToken, 
-      formId, 
-      insertionMethod = 'auto', 
-      blockId, 
-      themeId,
-      floatingButtonSettings = {} // Get floating button settings from request
-    } = await req.json() as UpdateThemeRequest;
+    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
 
     if (!shop || !accessToken || !formId) {
       return new Response(JSON.stringify({
@@ -53,7 +45,6 @@ serve(async (req: Request) => {
     }
 
     console.log(`Updating theme for shop ${shop} with form ${formId}`);
-    console.log('Floating button settings:', floatingButtonSettings);
 
     try {
       // First, get theme info to determine if we're dealing with OS2.0 or traditional theme
@@ -79,39 +70,14 @@ serve(async (req: Request) => {
       
       let updateResult;
       
-      // Get form details to get floating button settings if not provided
-      if (!floatingButtonSettings.enabled && floatingButtonSettings.enabled !== false) {
-        console.log('Fetching form details to get floating button settings');
-        try {
-          const { data: formData, error: formError } = await supabase
-            .from('forms')
-            .select('*')
-            .eq('id', formId)
-            .single();
-            
-          if (!formError && formData && formData.style) {
-            console.log('Found form data with style:', formData.style);
-            // Extract floating button settings from form data if available
-            if (formData.floating_button) {
-              floatingButtonSettings = formData.floating_button;
-              console.log('Using floating button settings from form data:', floatingButtonSettings);
-            }
-          } else {
-            console.log('Form not found or no style info available');
-          }
-        } catch (error) {
-          console.log('Error getting form details:', error);
-        }
-      }
-      
       if (themeType === 'OS2.0') {
         // Update OS2.0 theme
         console.log('Updating OS2.0 theme');
-        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, formId, blockId, floatingButtonSettings);
+        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, formId, blockId);
       } else {
         // Update traditional theme
         console.log('Updating traditional theme');
-        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, formId, blockId, floatingButtonSettings);
+        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, formId, blockId);
       }
 
       // Store insertion information in the database for reference
@@ -127,7 +93,6 @@ serve(async (req: Request) => {
             theme_type: themeType,
             insertion_method: insertionMethod,
             block_id: blockId || `codform_${formIdShort}`,
-            floating_button: floatingButtonSettings, // Save floating button settings
             status: 'success',
             updated_at: new Date().toISOString()
           }, { 
@@ -147,8 +112,7 @@ serve(async (req: Request) => {
         theme_id: targetThemeId,
         theme_type: themeType,
         message: `Form has been added to the theme successfully`,
-        details: updateResult,
-        floating_button: floatingButtonSettings // Return floating button settings in response
+        details: updateResult
       }), { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -226,14 +190,7 @@ async function getShopifyThemes(shop: string, accessToken: string): Promise<any[
 }
 
 // OS2.0 Theme update function
-async function updateOS2Theme(
-  shop: string, 
-  accessToken: string, 
-  themeId: number, 
-  formId: string, 
-  blockId?: string,
-  floatingButtonSettings?: any // Add floating button settings parameter
-): Promise<any> {
+async function updateOS2Theme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
   // For OS2.0 themes, we need to update the product.json template to insert our app block
   // First, get the template
   const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
@@ -298,25 +255,12 @@ async function updateOS2Theme(
     productSection.blocks = {};
   }
   
-  // Settings with floating button properties
-  const blockSettings = {
-    form_id: formId,
-    // Include floating button settings if provided
-    enable_floating_button: floatingButtonSettings?.enabled === true,
-    floating_button_text: floatingButtonSettings?.text || 'Order Now',
-    floating_text_color: floatingButtonSettings?.textColor || '#ffffff',
-    floating_bg_color: floatingButtonSettings?.backgroundColor || '#000000',
-    floating_border_radius: floatingButtonSettings?.borderRadius || '4px',
-    floating_show_icon: floatingButtonSettings?.showIcon === true,
-    floating_icon: floatingButtonSettings?.icon || 'shopping-cart',
-    floating_animation: floatingButtonSettings?.animation || 'none',
-    is_rtl: false // Default to LTR
-  };
-  
-  // Update the block with form ID and floating button settings
+  // Simplified settings - only include form_id
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
-    settings: blockSettings
+    settings: {
+      form_id: formId
+    }
   };
   
   // Update the template
@@ -345,20 +289,12 @@ async function updateOS2Theme(
     block_id: actualBlockId,
     template: 'product.json',
     section: 'main',
-    block_type: appBlockType,
-    settings: blockSettings
+    block_type: appBlockType
   };
 }
 
 // Traditional Theme update function
-async function updateTraditionalTheme(
-  shop: string, 
-  accessToken: string, 
-  themeId: number, 
-  formId: string, 
-  blockId?: string,
-  floatingButtonSettings?: any // Add floating button settings parameter
-): Promise<any> {
+async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, formId: string, blockId?: string): Promise<any> {
   // For traditional themes, we need to update the product template to include our snippet
   
   // First, get the product template
@@ -390,7 +326,7 @@ async function updateTraditionalTheme(
     }
     
     // Continue with the alternative template
-    return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', altData.asset.value, floatingButtonSettings);
+    return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', altData.asset.value);
   }
   
   const data = await response.json();
@@ -399,75 +335,24 @@ async function updateTraditionalTheme(
   }
   
   // Process the template
-  return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', data.asset.value, floatingButtonSettings);
+  return await processTraditionalTemplate(shop, accessToken, themeId, formId, blockId || '', 'templates/product.liquid', data.asset.value);
 }
 
 // Helper function to process the traditional liquid template
-async function processTraditionalTemplate(
-  shop: string, 
-  accessToken: string, 
-  themeId: number, 
-  formId: string, 
-  blockId: string, 
-  templateKey: string, 
-  templateContent: string,
-  floatingButtonSettings?: any // Add floating button settings parameter
-): Promise<any> {
+async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, formId: string, blockId: string, templateKey: string, templateContent: string): Promise<any> {
   // Generate a block ID if not provided
   const formIdShort = formId.substring(0, 8);
   const actualBlockId = blockId || `codform_${formIdShort}`;
   
-  // Create snippet parameters with floating button settings
-  const floatingBtnEnabled = floatingButtonSettings?.enabled === true;
-  const floatingBtnText = floatingButtonSettings?.text || 'Order Now';
-  const floatingBtnTextColor = floatingButtonSettings?.textColor || '#ffffff';
-  const floatingBtnBgColor = floatingButtonSettings?.backgroundColor || '#000000';
-  const floatingBtnRadius = floatingButtonSettings?.borderRadius || '4px';
-  const floatingBtnShowIcon = floatingButtonSettings?.showIcon === true;
-  const floatingBtnIcon = floatingButtonSettings?.icon || 'shopping-cart';
-  const floatingBtnAnimation = floatingButtonSettings?.animation || 'none';
-  const isRTL = false; // Default to LTR
+  // Check if our snippet is already included
+  const snippetIncludeString = `{% render 'codform', product: product, form_id: '${formId}', block_id: '${actualBlockId}' %}`;
   
-  // Create snippet include string with additional parameters for floating button
-  const snippetIncludeString = `{% render 'codform', product: product, form_id: '${formId}', block_id: '${actualBlockId}', enable_floating_button: ${floatingBtnEnabled}, floating_button_text: '${floatingBtnText}', floating_text_color: '${floatingBtnTextColor}', floating_bg_color: '${floatingBtnBgColor}', floating_border_radius: '${floatingBtnRadius}', floating_show_icon: ${floatingBtnShowIcon}, floating_icon: '${floatingBtnIcon}', floating_animation: '${floatingBtnAnimation}', is_rtl: ${isRTL} %}`;
-  
-  // Check if our snippet is already included - if so, we need to replace it with updated parameters
-  const snippetRegex = /\{\%\s*render\s+['"]codform['"].*?\%\}/;
-  
-  if (snippetRegex.test(templateContent)) {
-    console.log('Snippet already included in template, updating with new parameters');
-    const modifiedContent = templateContent.replace(snippetRegex, snippetIncludeString);
-    
-    // Upload the modified template
-    const updateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken
-      },
-      body: JSON.stringify({
-        asset: {
-          key: templateKey,
-          value: modifiedContent
-        }
-      })
-    });
-    
-    if (!updateResponse.ok) {
-      const errorData = await updateResponse.text();
-      throw new Error(`Failed to update template: ${updateResponse.status} - ${errorData}`);
-    }
-    
-    console.log('Successfully updated snippet include in template');
-    
-    // Update the snippet itself
-    await updateCodformSnippet(shop, accessToken, themeId);
-    
+  if (templateContent.includes(snippetIncludeString)) {
+    console.log('Snippet already included in template');
     return {
       block_id: actualBlockId,
       template: templateKey,
-      status: 'updated',
-      floating_button: floatingBtnEnabled
+      status: 'already_exists'
     };
   }
 
@@ -516,43 +401,7 @@ async function processTraditionalTemplate(
     }
   }
   
-  // Update the snippet
-  await updateCodformSnippet(shop, accessToken, themeId);
-  
-  // Upload the modified template
-  const updateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': accessToken
-    },
-    body: JSON.stringify({
-      asset: {
-        key: templateKey,
-        value: modifiedContent
-      }
-    })
-  });
-  
-  if (!updateResponse.ok) {
-    const errorData = await updateResponse.text();
-    throw new Error(`Failed to update template: ${updateResponse.status} - ${errorData}`);
-  }
-  
-  console.log(`Successfully updated traditional product template, inserted codform snippet near ${insertionPoint}`);
-  
-  return {
-    block_id: actualBlockId,
-    template: templateKey,
-    insertion_point: insertionPoint,
-    snippet: 'codform.liquid',
-    floating_button: floatingBtnEnabled
-  };
-}
-
-// Function to update the codform snippet with the latest version
-async function updateCodformSnippet(shop: string, accessToken: string, themeId: number): Promise<void> {
-  // The snippet content with updated floating button support
+  // Create the snippet
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -595,32 +444,34 @@ async function updateCodformSnippet(shop: string, accessToken: string, themeId: 
   </div>
 </div>
 
-{% comment %} FLOATING BUTTON - Add explicitly from parameters instead of relying on block settings {% endcomment %}
-{% if enable_floating_button %}
+{% if block.settings.enable_floating_button %}
 <div id="codform-floating-button-{{ block_id }}" class="codform-floating-button-container">
   <button
-    class="codform-floating-button {% if floating_animation != 'none' %}{{ floating_animation }}-animation{% endif %}"
+    class="codform-floating-button {% if block.settings.floating_animation != 'none' %}{{ block.settings.floating_animation }}-animation{% endif %}"
     style="
-      background-color: {{ floating_bg_color | default: '#000000' }};
-      color: {{ floating_text_color | default: '#ffffff' }};
-      border-radius: {{ floating_border_radius | default: '4px' }};
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 20px;
-      direction: {% if is_rtl %}rtl{% else %}ltr{% endif %};
+      background-color: {{ block.settings.floating_bg_color | default: '#000000' }};
+      color: {{ block.settings.floating_text_color | default: '#ffffff' }};
+      border-radius: {{ block.settings.floating_border_radius | default: '4px' }};
+      padding: {{ block.settings.floating_padding_y | default: '10px' }} 20px;
+      font-size: {{ block.settings.floating_font_size | default: '16px' }};
+      font-weight: {{ block.settings.floating_font_weight | default: '500' }};
+      margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
+      {% if block.settings.floating_border_width != '0px' %}
+      border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
+      {% else %}
       border: none;
-      min-width: 250px;
+      {% endif %}
     "
     onclick="document.querySelector('#codform-container-{{ block_id }}').scrollIntoView({behavior: 'smooth'});"
   >
-    {% if is_rtl or floating_show_icon == false %}
-      <span>{{ floating_button_text | default: 'اطلب الآن' }}</span>
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
     {% endif %}
     
-    {% if floating_show_icon %}
+    {% if block.settings.floating_show_icon %}
       <span class="codform-floating-button-icon">
-        {% case floating_icon %}
+        {% case block.settings.floating_icon %}
           {% when 'shopping-cart' %}
             <!-- Shopping cart icon SVG -->
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
@@ -640,121 +491,134 @@ async function updateCodformSnippet(shop: string, accessToken: string, themeId: 
       </span>
     {% endif %}
     
-    {% unless is_rtl or floating_show_icon == false %}
-      <span>{{ floating_button_text | default: 'Order Now' }}</span>
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
+      <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
     {% endunless %}
   </button>
 </div>
 {% endif %}
 
 <style>
-  /* Basic container configuration */
   .codform-container {
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #f9fafb;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-    width: 100%;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
   }
-
-  /* Form header */
+  
   .codform-header {
-    margin-bottom: 20px;
-    text-align: right;
-    padding: 15px;
-    border-radius: 8px;
+    margin-bottom: 1rem;
   }
-
-  .codform-header h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #374151;
-    line-height: 1.3;
+  
+  .codform-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
   }
-
-  .codform-header p {
-    color: #6b7280;
+  
+  .codform-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #9b87f5;
+    border-radius: 50%;
+    animation: codform-spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  @keyframes codform-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .codform-success, .codform-error {
+    text-align: center;
+    padding: 2rem 0;
+  }
+  
+  .codform-success-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
+  }
+  
+  .codform-error-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #F44336;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
+  }
+  
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
     font-size: 1rem;
-    line-height: 1.5;
-    margin: 0;
+    transition: opacity 0.2s;
   }
   
-  /* Rest of the CSS styles... */
-
-  /* Floating button container styles - Important for visibility */
+  .codform-button:hover {
+    opacity: 0.9;
+  }
+  
+  /* Floating button container styles */
   .codform-floating-button-container {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 0 !important;
-    right: 0 !important;
-    display: flex !important;
-    justify-content: center !important;
-    z-index: 999999 !important; /* Very high z-index to ensure visibility */
-    pointer-events: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transition: opacity 0.3s ease !important;
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 999;
   }
   
-  .codform-floating-button-container.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-  }
-  
-  /* Floating button styles - Updated to be wider and better for scrolling */
+  /* Floating button styles */
   .codform-floating-button {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-    min-width: 250px !important; /* Made wider for better visibility */
-    padding: 12px 24px !important;
-    justify-content: center !important; /* Center the content */
-    font-weight: 600 !important; /* Make text bolder */
-    margin: 0 auto !important;
-    position: relative !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
   }
   
   .codform-floating-button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   }
   
   .codform-floating-button-icon {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   /* Animation styles */
-  /* Animation Effects - Improve animation definitions */
   @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
   }
-
+  
   .pulse-animation {
-    animation: pulse 2s infinite !important;
+    animation: pulse 2s infinite;
   }
-
+  
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     10%, 90% { transform: translateX(-2px); }
@@ -762,83 +626,45 @@ async function updateCodformSnippet(shop: string, accessToken: string, themeId: 
     30%, 50%, 70% { transform: translateX(-6px); }
     40%, 60% { transform: translateX(6px); }
   }
-
+  
   .shake-animation {
-    animation: shake 0.8s infinite !important;
+    animation: shake 0.8s infinite;
   }
-
+  
   @keyframes bounce {
     0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-10px); }
     60% { transform: translateY(-5px); }
   }
-
+  
   .bounce-animation {
-    animation: bounce 2s infinite !important;
+    animation: bounce 2s infinite;
   }
-
+  
   @keyframes wiggle {
     0%, 100% { transform: rotate(0); }
     25% { transform: rotate(-5deg); }
     50% { transform: rotate(0); }
     75% { transform: rotate(5deg); }
   }
-
+  
   .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite !important;
+    animation: wiggle 0.7s ease-in-out infinite;
   }
-
+  
   @keyframes flash {
-    0%, 50%, 100% {
-      opacity: 1;
-    }
-    25%, 75% {
-      opacity: 0.7;
-    }
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
   }
-
+  
   .flash-animation {
-    animation: flash 3s infinite !important;
+    animation: flash 3s infinite;
   }
 </style>
-
-<script>
-  // Initialize the form data with floating button settings
-  document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('codform-container-{{ block_id }}');
-    if (container) {
-      const formId = container.getAttribute('data-form-id');
-      const productId = container.getAttribute('data-product-id');
-      
-      // Check if floating button is enabled from parameters
-      const floatingButtonEnabled = {% if enable_floating_button %}true{% else %}false{% endif %};
-      const floatingButtonEl = document.getElementById('codform-floating-button-{{ block_id }}');
-      
-      // Initialize form loader
-      initCodForm(formId, '{{ block_id }}', productId);
-      
-      // Make sure floating button is visible if enabled
-      if (floatingButtonEl && floatingButtonEnabled) {
-        floatingButtonEl.classList.remove('hidden');
-        floatingButtonEl.style.display = 'flex';
-        floatingButtonEl.style.visibility = 'visible';
-        floatingButtonEl.style.opacity = '1';
-      } else if (floatingButtonEl && !floatingButtonEnabled) {
-        floatingButtonEl.classList.add('hidden');
-        floatingButtonEl.style.display = 'none';
-      }
-    }
-  });
-
-  function initCodForm(formId, blockId, productId) {
-    // Rest of form initialization code...
-    // This will be filled in by the separate codform.js file
-  }
-</script>
 {% endif %}`;
   
   // Upload the snippet
-  const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+  const snippetResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -852,11 +678,39 @@ async function updateCodformSnippet(shop: string, accessToken: string, themeId: 
     })
   });
   
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Failed to update codform snippet: ${response.status} - ${errorData}`);
+  if (!snippetResponse.ok) {
+    const errorData = await snippetResponse.text();
+    throw new Error(`Failed to create snippet: ${snippetResponse.status} - ${errorData}`);
   }
   
-  console.log('Successfully updated codform snippet');
+  console.log('Successfully created codform snippet');
+  
+  // Upload the modified template
+  const templateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken
+    },
+    body: JSON.stringify({
+      asset: {
+        key: templateKey,
+        value: modifiedContent
+      }
+    })
+  });
+  
+  if (!templateResponse.ok) {
+    const errorData = await templateResponse.text();
+    throw new Error(`Failed to update template: ${templateResponse.status} - ${errorData}`);
+  }
+  
+  console.log(`Successfully updated traditional product template, inserted codform snippet near ${insertionPoint}`);
+  
+  return {
+    block_id: actualBlockId,
+    template: templateKey,
+    insertion_point: insertionPoint,
+    snippet: 'codform.liquid'
+  };
 }
-
