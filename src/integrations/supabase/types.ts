@@ -365,7 +365,15 @@ export type Database = {
           shop_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shopify_product_settings_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shopify_shops: {
         Row: {
@@ -440,6 +448,16 @@ export type Database = {
           p_default?: string
         }
         Returns: undefined
+      }
+      associate_product_with_form: {
+        Args: {
+          p_shop_id: string
+          p_product_id: string
+          p_form_id: string
+          p_block_id?: string
+          p_enabled?: boolean
+        }
+        Returns: string
       }
       check_column_exists: {
         Args: { p_table: string; p_column: string }

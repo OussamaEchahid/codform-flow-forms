@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { ShopifyProduct } from '@/lib/shopify/types';
+import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
@@ -19,7 +18,7 @@ interface ShopifyFormSync {
 }
 
 export const useShopify = () => {
-  const { shop } = useAuth();
+  const { shop, user: authUser } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,11 +30,37 @@ export const useShopify = () => {
   const [accessToken, setAccessToken] = useState<string>('');
   const [shopifyAPI, setShopifyAPI] = useState<any>(null);
   const [pendingSyncForms, setPendingSyncForms] = useState<string[]>([]);
+  const [user, setUser] = useState<ShopifyUser | null>(null);
   
   // Recovery mode - for handling errors gracefully
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
+
+  // Set the user from auth context
+  useEffect(() => {
+    if (authUser) {
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.name,
+        role: authUser.user_metadata?.role || 'user'
+      });
+    } else {
+      // Try to get user from localStorage as fallback
+      const storedUser = localStorage.getItem('shopify_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error('Failed to parse stored user:', e);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    }
+  }, [authUser]);
 
   // Initialize connection state
   useEffect(() => {
@@ -201,7 +226,7 @@ export const useShopify = () => {
     return await testConnection(true);
   }, [testConnection]);
 
-  // Sync a form with Shopify
+  // Sync a form with Shopify - updated to handle automatic form-product association
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
     if (!isConnected && !failSafeMode) {
       throw new Error('Not connected to Shopify');
@@ -262,6 +287,36 @@ export const useShopify = () => {
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
+
+  // New function to get default form for a shop
+  const getDefaultForm = useCallback(async (shopDomain?: string) => {
+    const targetShop = shopDomain || shop;
+    if (!targetShop) {
+      console.warn('No shop provided to getDefaultForm');
+      return null;
+    }
+
+    try {
+      // Get the most recently updated form for this shop
+      const { data, error } = await shopifySupabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', targetShop)
+        .eq('is_published', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error getting default form:', error);
+        return null;
+      }
+
+      return data && data.length > 0 ? data[0] : null;
+    } catch (error) {
+      console.error('Exception in getDefaultForm:', error);
+      return null;
+    }
+  }, [shop]);
 
   // Resync pending forms
   const resyncPendingForms = useCallback(async () => {
@@ -349,6 +404,7 @@ export const useShopify = () => {
     products,
     allProducts,
     shop,
+    user,
     error: tokenError,
     failSafeMode,
     pendingSyncForms,
@@ -360,5 +416,8 @@ export const useShopify = () => {
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
     emergencyReset,
+    getDefaultForm,
   };
 };
+
+// Removed the duplicate export at the end that was causing conflicts

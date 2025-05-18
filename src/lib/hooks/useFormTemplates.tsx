@@ -17,6 +17,10 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
+  associatedProducts?: Array<{
+    id: string;
+    title: string;
+  }>;
 }
 
 export interface FormTemplate {
@@ -148,6 +152,73 @@ export const useFormTemplates = () => {
     }
   };
 
+  // Helper function to create default form fields with all required fields
+  const createCompleteDefaultFormFields = (language = 'ar'): FormField[] => {
+    const defaultFields: FormField[] = [];
+    
+    // Add form title field
+    defaultFields.push({
+      type: 'form-title',
+      id: uuidv4(),
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: '#9b87f5',
+      }
+    });
+    
+    // Add name field
+    defaultFields.push({
+      type: 'text',
+      id: uuidv4(),
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    // Add phone field
+    defaultFields.push({
+      type: 'phone',
+      id: uuidv4(),
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    // Add address field
+    defaultFields.push({
+      type: 'textarea',
+      id: uuidv4(),
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      required: true,
+    });
+    
+    // Add submit button
+    defaultFields.push({
+      type: 'submit',
+      id: uuidv4(),
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
+      },
+    });
+    
+    return defaultFields;
+  };
+
   // Create a default form
   const createDefaultForm = async () => {
     try {
@@ -160,7 +231,6 @@ export const useFormTemplates = () => {
       setIsCreatingForm(true);
       setIsLoading(true);
       
-      const defaultTemplate = formTemplates[0]; // Use first template as default
       const shopId = getActiveShopId();
       
       if (!shopId) {
@@ -175,24 +245,34 @@ export const useFormTemplates = () => {
       const newFormId = uuidv4();
       console.log('Creating new form with ID:', newFormId);
       
-      // Prepare default form data
+      // Get the current UI language
+      const currentLanguage = document.documentElement.lang || 'ar';
+      
+      // Create complete form fields with all required fields
+      const completeFields = createCompleteDefaultFormFields(currentLanguage);
+      
+      // Prepare the form data with all required fields
       const formData: FormData = {
         id: newFormId,
-        title: 'نموذج جديد',
-        description: 'نموذج جديد',
-        data: defaultTemplate.data,
+        title: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
+        description: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
+        data: [{ 
+          id: '1', 
+          title: 'Main Step',
+          fields: completeFields
+        }],
         isPublished: false,
         shop_id: shopId,
       };
       
-      // Insert into Supabase
+      // Insert the complete form with all required fields
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
-          title: 'نموذج جديد',
-          description: 'نموذج جديد',
-          data: defaultTemplate.data,
+          title: formData.title,
+          description: formData.description,
+          data: formData.data,
           is_published: false,
           shop_id: shopId,
           user_id: user?.id
@@ -206,11 +286,14 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Update form state and move to editing immediately
       setFormState(formData);
       toast.success('تم إنشاء نموذج جديد');
       
-      // Refresh forms list
-      fetchForms();
+      // Refresh forms list but don't wait for it
+      setTimeout(() => {
+        fetchForms();
+      }, 100);
       
       setIsLoading(false);
       setIsCreatingForm(false);
@@ -305,7 +388,22 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Delete form from Supabase
+      // Step 1: First remove product associations (disable rather than delete)
+      try {
+        // Make a request to the new DELETE endpoint
+        const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          console.warn('Could not remove product associations, but proceeding with form deletion');
+        }
+      } catch (error) {
+        console.warn('Error removing product associations:', error);
+        // Continue with deletion even if this step fails
+      }
+      
+      // Step 2: Delete form from Supabase
       const { error } = await supabase
         .from('forms')
         .delete()
@@ -313,12 +411,19 @@ export const useFormTemplates = () => {
       
       if (error) {
         console.error('Error deleting form:', error);
-        toast.error('خطأ في حذف النموذج');
+        
+        // If error contains foreign key constraint message, try to show a more helpful error
+        if (error.message?.includes('foreign key constraint')) {
+          toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
+        } else {
+          toast.error('خطأ في حذف النموذج');
+        }
+        
         setIsLoading(false);
         return false;
       }
       
-      // Update local state
+      // Step 3: Update local state
       setForms(forms.filter(form => form.id !== formId));
       
       toast.success('تم حذف النموذج بنجاح');

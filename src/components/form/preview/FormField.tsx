@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
@@ -32,7 +33,7 @@ const animationStyles = `
   }
   
   @keyframes shake-animation {
-    0%, 100% { transform: translateX(0); }
+    0% { transform: translateX(0); }
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
@@ -74,7 +75,8 @@ const animationStyles = `
   }
 `;
 
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
+// Memoize the form field component to avoid unnecessary re-renders
+const FormField: React.FC<FormFieldProps> = memo(({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
@@ -95,16 +97,15 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
-  
-  console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
 
   // Log animation data if this is a submit button
   if (fieldType === 'submit' && field.style) {
-    console.log(`Submit button animation data:`, {
-      has_animation: field.style.animation || false,
-      animation_type: field.style.animationType || 'none',
-      style: field.style
-    });
+    const animationType = field.style.animationType || 'none';
+    const hasAnimation = !!field.style.animation;
+    
+    if (hasAnimation) {
+      console.log(`Submit button using animation: ${animationType}`);
+    }
   }
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {
@@ -147,6 +148,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
       <Component field={field} formStyle={formStyle} />
     </>
   );
-};
+});
+
+// Add a display name for debugging purposes
+FormField.displayName = 'FormField';
 
 export default FormField;

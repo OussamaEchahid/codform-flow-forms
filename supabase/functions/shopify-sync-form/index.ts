@@ -34,166 +34,110 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { formId, shop, settings } = await req.json() as SyncFormRequest;
+    const requestData: SyncFormRequest = await req.json();
+    const { formId, shop, settings } = requestData;
 
     if (!formId || !shop) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Missing required parameters: formId and shop are required'
-      }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: formId or shop' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
-    console.log(`Syncing form ${formId} with shop ${shop}`);
+    console.log(`Processing form sync for shop ${shop}, formId ${formId}`);
 
-    // Get the form data first to verify it exists
+    // First, check if the form exists and update its published status if needed
     const { data: formData, error: formError } = await supabase
       .from('forms')
       .select('*')
       .eq('id', formId)
       .single();
-    
+
     if (formError || !formData) {
-      console.error("Error fetching form data:", formError);
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Form not found in database'
-      }), { 
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      console.error('Form not found:', formError);
+      return new Response(
+        JSON.stringify({ error: 'Form not found', details: formError }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
-    // Log form details
-    console.log(`Form found: "${formData.title}", current published status: ${formData.is_published}`);
-
-    // Update form with shop_id and ensure it's published for use in the theme
-    const { error: formUpdateError } = await supabase
-      .from('forms')
-      .update({ 
-        shop_id: shop,
-        is_published: true, // Always ensure the form is published when synced with a shop
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', formId);
-    
-    if (formUpdateError) {
-      console.error("Error updating form with shop_id:", formUpdateError);
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Failed to update form with shop ID'
-      }), { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    } else {
-      console.log(`Form ${formId} updated with shop_id ${shop} and published successfully`);
+    // Update form to published state if not already published
+    if (!formData.is_published) {
+      await supabase
+        .from('forms')
+        .update({ is_published: true })
+        .eq('id', formId);
+      console.log(`Updated form ${formId} to published state`);
     }
 
-    // Verify form is now published
-    const { data: updatedForm } = await supabase
-      .from('forms')
-      .select('is_published')
-      .eq('id', formId)
-      .single();
-      
-    console.log(`Form published status after sync: ${updatedForm?.is_published}`);
+    // Insert or update the form insertion settings
+    const blockId = settings?.blockId || `cod-form-${formId.substring(0, 8)}`;
+    const position = settings?.position || 'product-page';
+    const themeType = settings?.themeType || 'auto-detect';
+    const insertionMethod = settings?.insertionMethod || 'auto';
 
-    // Store insertion preferences if provided
-    if (settings) {
-      // First, ensure we have a valid block_id
-      const blockId = settings.blockId || `codform-${Date.now().toString(36)}`;
+    // Use the associate_product_with_form function for specific products
+    if (settings?.products && settings.products.length > 0) {
+      console.log(`Associating form ${formId} with ${settings.products.length} products`);
       
-      const insertionSettings = {
+      // We've created the associate_product_with_form database function
+      // which handles clearing previous associations
+      for (const productId of settings.products) {
+        const { data: result, error: associationError } = await supabase
+          .rpc('associate_product_with_form', {
+            p_shop_id: shop,
+            p_product_id: productId,
+            p_form_id: formId,
+            p_block_id: blockId,
+            p_enabled: true
+          });
+          
+        if (associationError) {
+          console.error(`Error associating form with product ${productId}:`, associationError);
+        } else {
+          console.log(`Successfully associated form ${formId} with product ${productId}`);
+        }
+      }
+    }
+
+    // Always update the general form insertion settings
+    const { error: insertError } = await supabase
+      .from('shopify_form_insertion')
+      .upsert({
         form_id: formId,
         shop_id: shop,
-        insertion_method: settings.insertionMethod || 'auto',
-        theme_type: settings.themeType || 'auto-detect',
-        position: settings.position || 'product-page',
-        block_id: blockId
-      };
+        position,
+        block_id: blockId,
+        theme_type: themeType,
+        insertion_method: insertionMethod,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'form_id,shop_id'
+      });
 
-      // Store insertion preferences
-      const { error: insertionError } = await supabase
-        .from('shopify_form_insertion')
-        .upsert(insertionSettings, { 
-          onConflict: 'form_id,shop_id' 
-        });
-
-      if (insertionError) {
-        console.error("Error saving insertion settings:", insertionError);
-      } else {
-        console.log("Insertion settings saved successfully:", insertionSettings);
-      }
-
-      // If we have product settings and it's a product-specific form
-      if (settings.products && settings.products.length > 0) {
-        // First delete existing product settings for this form to avoid conflicts
-        const { error: deleteError } = await supabase
-          .from('shopify_product_settings')
-          .delete()
-          .eq('form_id', formId)
-          .eq('shop_id', shop);
-        
-        if (deleteError) {
-          console.error("Error deleting existing product settings:", deleteError);
-        }
-        
-        // Insert new product settings
-        const productSettings = settings.products.map(productId => ({
-          form_id: formId,
-          product_id: productId,
-          shop_id: shop,
-          block_id: blockId,
-          enabled: true
-        }));
-        
-        const { error: insertError } = await supabase
-          .from('shopify_product_settings')
-          .insert(productSettings);
-        
-        if (insertError) {
-          console.error("Error inserting product settings:", insertError);
-          return new Response(JSON.stringify({
-            success: false,
-            message: 'Failed to save product settings'
-          }), { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-        
-        console.log(`Synced ${productSettings.length} products with form ${formId}`);
-      } else if (!settings.products || settings.products.length === 0) {
-        // If no products specified, we'll create a default entry that can be used globally
-        console.log("No specific products provided - form will be available for all products");
-      }
+    if (insertError) {
+      console.error('Error updating form insertion:', insertError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update form insertion settings', details: insertError }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Form synced with Shopify successfully',
-      form_id: formId,
-      shop: shop,
-      is_published: true,
-      manual_installation_required: settings?.insertionMethod === 'manual',
-      insertion_settings: settings
-    }), { 
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-    
+
+    // Return success response
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Form synced successfully',
+        formId,
+        blockId
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
   } catch (error) {
-    console.error("Error in shopify-sync-form:", error);
-    return new Response(JSON.stringify({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    }), { 
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('Error processing request:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
-})
+});

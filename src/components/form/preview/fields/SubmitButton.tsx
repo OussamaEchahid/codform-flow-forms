@@ -2,7 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { ShoppingCart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -16,96 +16,89 @@ interface SubmitButtonProps {
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
-  const fieldStyle = field.style || {};
+  const style = field.style || {};
   
-  // Default label based on language if not provided
-  const buttonLabel = field.label || (language === 'ar' 
-    ? 'إرسال الطلب' 
-    : 'Submit Order');
-  
-  // Determine button radius based on style
-  let buttonRadius = '8px'; // Default border radius
-  if (formStyle.buttonStyle === 'pill') {
-    buttonRadius = '9999px';
-  } else if (formStyle.buttonStyle === 'square') {
-    buttonRadius = '0';
-  } else if (formStyle.borderRadius) {
-    buttonRadius = formStyle.borderRadius;
-  }
-
-  // Define font size based on style or field settings
-  const fontSize = fieldStyle.fontSize || formStyle.fontSize || '1.2rem';
-
-  // Get animation class
+  // Get animation class if set
   const getAnimationClass = () => {
-    if (!fieldStyle.animation) return '';
+    if (!style.animation) return '';
     
-    // If animation is just boolean true with no specific type, default to pulse
-    if (fieldStyle.animation === true && !fieldStyle.animationType) {
-      return 'pulse-animation';
+    const animationType = style.animationType || 'pulse';
+    switch (animationType) {
+      case 'pulse': return 'pulse-animation';
+      case 'shake': return 'shake-animation';
+      case 'bounce': return 'bounce-animation';
+      case 'wiggle': return 'wiggle-animation';
+      case 'flash': return 'flash-animation';
+      default: return '';
     }
-    
-    // Get the specific animation type if provided
-    if (fieldStyle.animationType) {
-      const type = fieldStyle.animationType.toLowerCase();
-      
-      switch (type) {
-        case 'pulse':
-          return 'pulse-animation';
-        case 'shake':
-          return 'shake-animation';
-        case 'bounce':
-          return 'bounce-animation';
-        case 'wiggle':
-          return 'wiggle-animation';
-        case 'flash':
-          return 'flash-animation';
-        default:
-          return '';
-      }
-    }
-    
-    return '';
   };
-  
+
   const animationClass = getAnimationClass();
   
+  // Use pixel values for font sizes to ensure consistent display
+  const fontSize = style.fontSize || '18px'; // Default is 1.2rem = 18px
+  
+  const buttonStyle = {
+    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    color: style.color || '#ffffff',
+    fontSize: fontSize,
+    borderRadius: formStyle.buttonStyle === 'pill' ? '9999px' : 
+                 formStyle.buttonStyle === 'sharp' ? '0' : 
+                 formStyle.borderRadius || '8px',
+    width: style.fullWidth === false ? 'auto' : '100%',
+    fontWeight: style.fontWeight || 'bold',
+  };
+  
+  // Icon rendering
+  const renderIcon = () => {
+    if (!style.icon) return null;
+    
+    let iconElement = null;
+    
+    // Simple icon rendering using text characters
+    switch (style.icon.toLowerCase()) {
+      case 'arrow-right':
+        iconElement = language === 'ar' ? '←' : '→';
+        break;
+      case 'check':
+        iconElement = '✓';
+        break;
+      case 'cart':
+        iconElement = '🛒';
+        break;
+      case 'send':
+        iconElement = '📨';
+        break;
+      default:
+        iconElement = null;
+    }
+    
+    return iconElement ? (
+      <span className="inline-block mx-1">{iconElement}</span>
+    ) : null;
+  };
+
+  const icon = renderIcon();
+  const iconPosition = style.iconPosition || 'right';
+  
   return (
-    <div className="mb-4 mt-8">
-      <button
-        className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
-        style={{
-          backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
-          color: fieldStyle.color || 'white',
-          fontSize: fontSize,
-          borderRadius: buttonRadius,
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: fieldStyle.fontFamily || 'inherit',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-          transition: 'all 0.3s ease',
-          direction: language === 'ar' ? 'rtl' : 'ltr',
-          textAlign: 'center',
-          animationDuration: '2s',
-          animationIterationCount: 'infinite',
-          animationTimingFunction: 'ease-in-out'
-        }}
-        disabled={field.disabled}
-        type="submit"
-        data-animation-type={fieldStyle.animationType || ''}
-        data-has-animation={fieldStyle.animation ? 'true' : 'false'}
-        data-icon-position={fieldStyle.iconPosition || 'left'}
-      >
-        {(fieldStyle.iconPosition !== 'right' || language === 'ar') && (
-          <ShoppingCart size={24} className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
-        )}
-        <span className="inline-block">{buttonLabel}</span>
-        {fieldStyle.iconPosition === 'right' && language !== 'ar' && (
-          <ShoppingCart size={24} className="w-6 h-6 inline-flex flex-shrink-0" style={{ verticalAlign: 'middle' }} />
-        )}
-      </button>
-    </div>
+    <button
+      type="button"
+      disabled={false}
+      className={cn(
+        "codform-submit-btn", 
+        animationClass,
+        iconPosition === 'left' ? 'flex-row-reverse' : 'flex-row'
+      )}
+      style={buttonStyle}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      data-animation-type={style.animationType || 'none'}
+      data-button-style={formStyle.buttonStyle || 'rounded'}
+    >
+      {iconPosition === 'left' && icon}
+      <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
+      {iconPosition === 'right' && icon}
+    </button>
   );
 };
 

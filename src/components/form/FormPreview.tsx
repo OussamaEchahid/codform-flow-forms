@@ -33,7 +33,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   formStyle = {
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
-    fontSize: '1rem',
+    fontSize: '16px', // Use fixed pixel value (1rem = 16px)
     buttonStyle: 'rounded',
   },
   fields = [],
@@ -44,7 +44,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   const [key] = useState(0);
   
-  // تنظيف الحقول وإظهار عنوان النموذج بشكل صحيح
+  // Clean up fields and properly display form title
   const sanitizedFields = React.useMemo(() => {
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
@@ -54,12 +54,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return field;
     });
     
-    // إذا كان هناك form-title موجود، نستخدمه
+    // If there's already a form-title, use it
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // إذا لم يكن هناك form-title، نضيف واحدًا في البداية
+    // If there's no form-title, add one at the beginning with specific pixel sizes
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -69,19 +69,19 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         color: '#ffffff',
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
-        fontSize: '1.5rem',
+        fontSize: '24px', // 1.5rem = 24px
         descriptionColor: '#ffffff',
-        descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // لون الخلفية الأساسي
+        descriptionFontSize: '14px', // 0.875rem = 14px
+        backgroundColor: '#9b87f5', // Primary background color
       }
     };
     
-    // تحقق مما إذا كان هناك زر إرسال موجود بالفعل
+    // Check if there's already a submit button
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // إذا لم يكن هناك زر إرسال، نضيف واحدًا
+    // If there's no submit button, add one with specific pixel sizes
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -90,7 +90,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '1.2rem',
+          fontSize: '18px', // 1.2rem = 18px
           animation: true,
           animationType: 'pulse',
         },

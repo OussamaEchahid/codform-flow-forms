@@ -37,33 +37,48 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // Background styling - Always use a background color for form-title type
-  const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
-  const backgroundStyle = {
-    backgroundColor: backgroundColor,
-    padding: '16px', // Explicitly use 16px for exact matching with store
-    borderRadius: formStyle.borderRadius || '8px', // Use 8px as default for consistent rounding
-    width: '100%',
-    boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '0', // No bottom margin to match store display
-  };
-
-  // Use larger styling for form-title type
+  // Use exact pixel values instead of rem for consistent size across environments
   const isFormTitle = field.type === 'form-title';
   
-  // Determine font size for title - Make sure it's stored correctly for store rendering
-  const fontSize = fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem');
-  const fontWeight = fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium');
+  // Use consistent pixel values rather than rem to ensure exact size matching
+  const fontSize = isFormTitle ? '24px' : '20px'; // 1.5rem = 24px, 1.25rem = 20px
+  const descriptionFontSize = '14px'; // 0.875rem = 14px
   
-  // Description styles inside the same background container
+  // Get background color with default
+  const backgroundColor = fieldStyle.backgroundColor || '#9b87f5';
+  
+  // Background styling with fixed pixel values for padding
+  const backgroundStyle = {
+    backgroundColor: backgroundColor,
+    padding: '16px', // Exact pixel value for consistent padding
+    borderRadius: formStyle.borderRadius || '8px',
+    width: '100%',
+    boxSizing: 'border-box' as BoxSizing,
+    marginBottom: '16px', // Consistent bottom margin
+  };
+
+  // Title styles
+  const titleStyle = {
+    color: fieldStyle.color || '#ffffff',
+    fontSize: fieldStyle.fontSize || fontSize,
+    textAlign: alignment,
+    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    fontFamily: fieldStyle.fontFamily || 'inherit',
+    margin: '0',
+    padding: '0',
+    lineHeight: '1.3', // Consistent line height
+  };
+
+  // Description styles
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-    margin: '8px 0 0 0', // Consistent 8px top margin
+    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
+    margin: '8px 0 0 0', // Consistent margins
     padding: '0',
     textAlign: alignment,
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: fieldStyle.descriptionFontWeight || 'normal',
+    fontWeight: 'normal', // Changed from descriptionFontWeight to a fixed value
+    lineHeight: '1.5', // Consistent line height for description
   };
 
   return (
@@ -77,24 +92,15 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fontSize}
-      data-font-weight={fontWeight}
-      data-desc-font-size={fieldStyle.descriptionFontSize || '0.875rem'}
-      data-desc-font-weight={fieldStyle.descriptionFontWeight || 'normal'}
+      data-font-size={fieldStyle.fontSize || fontSize}
+      data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
+      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
+      data-desc-font-weight='normal' // Changed from descriptionFontWeight to a fixed value
     >
       <div style={backgroundStyle} className="codform-title-container">
         <h3 
-          className={isFormTitle ? "text-2xl" : "text-lg"}
-          style={{
-            color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
-            fontSize: fontSize,
-            textAlign: alignment,
-            fontWeight: fontWeight,
-            fontFamily: fieldStyle.fontFamily || 'inherit',
-            margin: '0',
-            padding: '0',
-            lineHeight: '1.3', // Add line height for better text appearance
-          }}
+          className={isFormTitle ? "codform-form-title" : ""}
+          style={titleStyle}
         >
           {field.label}
         </h3>

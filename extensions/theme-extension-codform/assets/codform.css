@@ -17,6 +17,8 @@
   margin-right: auto;
   box-sizing: border-box;
   width: 100%;
+  font-size: 16px; /* حجم خط قاعدي ثابت */
+  line-height: 1.5;
 }
 
 /* ترويسة النموذج */
@@ -28,7 +30,7 @@
 }
 
 .codform-header h3 {
-  font-size: 1.5rem;
+  font-size: 24px; /* حجم ثابت للعناوين */
   font-weight: 700;
   margin-bottom: 8px;
   color: #ffffff;
@@ -37,7 +39,7 @@
 
 .codform-header p {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
+  font-size: 16px; /* حجم ثابت للوصف */
   line-height: 1.5;
   margin: 0;
 }
@@ -57,7 +59,7 @@
   margin-bottom: 8px;
   font-weight: 600;
   color: #374151;
-  font-size: 1rem;
+  font-size: 16px; /* حجم ثابت للتسميات */
 }
 
 .codform-field input[type="text"],
@@ -70,7 +72,7 @@
   padding: 12px 15px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 16px; /* حجم ثابت للإدخال */
   transition: all 0.2s ease-in-out;
   font-family: 'Cairo', sans-serif;
   background-color: #ffffff;
@@ -122,7 +124,7 @@
 
 /* نص المساعدة */
 .codform-help-text {
-  font-size: 0.875rem;
+  font-size: 14px; /* حجم ثابت لنص المساعدة */
   color: #6b7280;
   margin-top: 4px;
 }
@@ -143,7 +145,7 @@
   padding: 14px 24px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 18px; /* حجم ثابت للأزرار */
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   width: 100%;
@@ -254,6 +256,7 @@
   margin-top: 16px;
   transition: all 0.2s ease-in-out;
   font-family: 'Cairo', sans-serif;
+  font-size: 18px; /* حجم ثابت للأزرار */
 }
 
 .codform-button:hover {
@@ -352,14 +355,14 @@
 .codform-field h3 {
   margin-top: 0;
   margin-bottom: 10px;
-  font-size: 1.25rem;
+  font-size: 20px; /* حجم ثابت للعناوين داخل الحقول */
   color: #374151;
 }
 
 /* عنوان الخطوة */
 .codform-step-title {
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 20px; /* حجم ثابت لعنوان الخطوة */
   color: #374151;
   margin-bottom: 20px;
   padding-bottom: 8px;
@@ -459,7 +462,7 @@
   padding: 12px 20px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 18px; /* حجم ثابت لزر الواتساب */
   text-decoration: none;
   width: 100%;
   border: none;
@@ -482,6 +485,7 @@
 /* تنسيقات المحتوى HTML */
 .codform-html-content {
   margin-bottom: 20px;
+  font-size: 16px; /* حجم ثابت للمحتوى HTML */
 }
 
 /* تنسيقات عناصر السلة */
@@ -520,11 +524,11 @@
   font-weight: 600;
   margin-bottom: 5px;
   color: #1f2937;
-  font-size: 1rem;
+  font-size: 16px; /* حجم ثابت لعنوان المنتج */
 }
 
 .codform-cart-item-variant {
-  font-size: 0.875rem;
+  font-size: 14px; /* حجم ثابت للمتغيرات */
   color: #6b7280;
   margin-bottom: 5px;
 }
@@ -532,6 +536,7 @@
 .codform-cart-item-price {
   font-weight: 600;
   color: #1f2937;
+  font-size: 16px; /* حجم ثابت للسعر */
 }
 
 .codform-cart-item-quantity {
@@ -542,7 +547,7 @@
 
 .codform-cart-item-quantity-label {
   margin-left: 5px;
-  font-size: 0.875rem;
+  font-size: 14px; /* حجم ثابت للكمية */
   color: #6b7280;
 }
 
@@ -559,6 +564,7 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 10px;
+  font-size: 16px; /* حجم ثابت لملخص السلة */
 }
 
 .codform-cart-summary-row:last-child {
@@ -575,6 +581,27 @@
 .codform-cart-summary-value {
   font-weight: 600;
   color: #1f2937;
+}
+
+/* تنسيق خاص لعناصر العناوين الرئيسية في النموذج */
+.codform-title-container {
+  padding: 16px !important; /* تأكيد مع !important */
+  margin: 0 0 16px 0 !important;
+  border-radius: 8px;
+}
+
+.codform-title-container h3 {
+  font-size: 24px !important; /* حجم ثابت للعنوان الرئيسي مع !important */
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.codform-title-description {
+  font-size: 14px !important; /* حجم ثابت للوصف مع !important */
+  margin: 8px 0 0 0 !important;
+  padding: 0 !important;
+  line-height: 1.5 !important;
 }
 
 /* Animation Effects - تحسين تعريفات التأثيرات الحركية */
@@ -645,6 +672,7 @@
   .codform-container {
     padding: 15px;
     margin: 15px 0;
+    font-size: 16px; /* الحفاظ على حجم الخط حتى في الأجهزة الصغيرة */
   }
 
   .codform-header {
@@ -652,11 +680,11 @@
   }
 
   .codform-header h3 {
-    font-size: 1.3rem;
+    font-size: 22px; /* تخفيض طفيف للأجهزة الصغيرة مع الحفاظ على التناسق */
   }
 
   .codform-field label {
-    font-size: 0.95rem;
+    font-size: 16px; /* الحفاظ على حجم التسميات */
   }
 
   .codform-step-indicators {
@@ -666,7 +694,7 @@
   .codform-step-indicator {
     width: 30px;
     height: 30px;
-    font-size: 0.9rem;
+    font-size: 14px;
   }
 
   .codform-nav-buttons {
@@ -684,18 +712,27 @@
     margin-left: 0;
   }
   
-  /* تحسين حجم الأزرار للشاشات الصغيرة */
+  /* تحسين حجم الأزرار للشاشات الصغيرة مع الحفاظ على التناسق */
   .codform-submit-button,
   .codform-next-button,
   .codform-prev-button,
   .codform-button {
     padding: 12px 20px;
-    font-size: 1rem;
+    font-size: 16px; /* تخفيض طفيف للأجهزة الصغيرة */
   }
   
   /* تحسين المسافات بين عناصر النموذج */
   .codform-field {
     margin-bottom: 15px;
+  }
+  
+  /* تحسين حجم العناوين للأجهزة الصغيرة */
+  .codform-title-container h3 {
+    font-size: 22px !important; /* تخفيض طفيف للأجهزة الصغيرة */
+  }
+
+  .codform-title-description {
+    font-size: 14px !important; /* الحفاظ على حجم الوصف */
   }
 }
 
@@ -716,3 +753,35 @@
 .codform-container select {
   max-width: 100%;
 }
+
+/* تصحيح مشكلة التنسيق والخطوط */
+.codform-form {
+  font-family: 'Cairo', sans-serif !important;
+  font-size: 16px !important;
+}
+
+/* تنسيق موحد لجميع حجوم الخطوط */
+.codform-form-title {
+  font-size: 24px !important;
+  line-height: 1.3 !important;
+}
+
+/* التأكيد على تناسق الخطوط في جميع أجزاء النموذج */
+.codform-container h1,
+.codform-container h2,
+.codform-container h3,
+.codform-container h4,
+.codform-container h5,
+.codform-container h6 {
+  line-height: 1.3 !important;
+  margin-top: 0 !important;
+}
+
+.codform-container h1 { font-size: 28px !important; }
+.codform-container h2 { font-size: 24px !important; }
+.codform-container h3 { font-size: 22px !important; }
+.codform-container h4 { font-size: 20px !important; }
+.codform-container h5 { font-size: 18px !important; }
+.codform-container h6 { font-size: 16px !important; }
+.codform-container p { font-size: 16px !important; margin-bottom: 16px !important; }
+

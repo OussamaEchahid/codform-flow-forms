@@ -1,33 +1,5 @@
 
-/**
- * Clean and normalize a Shopify store domain
- * @param shop The shop domain to clean
- * @returns The cleaned and normalized shop domain
- */
-export function cleanShopDomain(shop: string): string {
-  if (!shop) return "";
-  
-  let cleanedShop = shop.trim();
-  
-  // Remove protocol if present
-  if (cleanedShop.startsWith('http')) {
-    try {
-      const url = new URL(cleanedShop);
-      cleanedShop = url.hostname;
-    } catch (e) {
-      console.error("Error cleaning shop URL:", e);
-    }
-  }
-  
-  // Ensure it ends with myshopify.com
-  if (!cleanedShop.endsWith('myshopify.com')) {
-    if (!cleanedShop.includes('.')) {
-      cleanedShop = `${cleanedShop}.myshopify.com`;
-    }
-  }
-  
-  return cleanedShop;
-}
+import { cleanShopifyDomain } from '@/lib/shopify/types';
 
 /**
  * Parse Shopify parameters from URL
@@ -50,7 +22,7 @@ export function parseShopifyParams(): {
   const isShopifyRequest = !!(shopParam && (hmac || host));
   
   return {
-    shopDomain: shopParam ? cleanShopDomain(shopParam) : undefined,
+    shopDomain: shopParam ? cleanShopifyDomain(shopParam) : undefined,
     hmac: hmac || undefined,
     timestamp: timestamp || undefined,
     host: host || undefined,
@@ -75,7 +47,7 @@ export function detectCurrentShop(): string | undefined {
   const isConnected = localStorage.getItem('shopify_connected');
   
   if (storedShop && isConnected === 'true') {
-    return cleanShopDomain(storedShop);
+    return cleanShopifyDomain(storedShop);
   }
   
   return undefined;
