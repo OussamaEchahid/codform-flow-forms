@@ -44,6 +44,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
   
   // Debug direction
   console.log(`Title field direction: ${direction} for field ${field.id}`);
+  console.log(`Title field styling: backgroundColor=${backgroundColor}, textColor=${textColor}, textAlign=${textAlign}`);
   
   return (
     <div
@@ -57,6 +58,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
       dir={direction}
       data-form-direction={direction}
       data-field-type="title"
+      data-testid="title-field"
     >
       <h2
         style={{
