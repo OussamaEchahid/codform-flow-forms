@@ -1,8 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { AlignLeft, AlignRight } from 'lucide-react'; 
 
 interface FormStyle {
   primaryColor: string;
@@ -25,6 +28,29 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Get form direction from localStorage with fallback
+const getSavedDirection = (): 'ltr' | 'rtl' => {
+  try {
+    const savedDirection = localStorage.getItem('codform_direction');
+    if (savedDirection === 'ltr' || savedDirection === 'rtl') {
+      return savedDirection;
+    }
+  } catch (e) {
+    console.error("Error accessing localStorage:", e);
+  }
+  return 'ltr'; // Default direction
+};
+
+// Save form direction to localStorage
+const saveDirection = (direction: 'ltr' | 'rtl'): void => {
+  try {
+    localStorage.setItem('codform_direction', direction);
+    console.log(`Direction saved to localStorage: ${direction}`);
+  } catch (e) {
+    console.error("Error saving direction to localStorage:", e);
+  }
+};
+
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
   formDescription,
@@ -39,62 +65,148 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
+  
+  // Use saved value from localStorage or default based on language
+  const [direction, setDirection] = useState<'ltr' | 'rtl'>(() => {
+    const savedDir = getSavedDirection();
+    // If no saved value, use language to determine direction
+    return savedDir || (language === 'ar' ? 'rtl' : 'ltr');
+  });
+  
+  // Internal refresh key to force re-render when needed
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
+  // Reset direction when language changes
   useEffect(() => {
-    setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
+    const newDirection = language === 'ar' ? 'rtl' : 'ltr';
+    setDirection(newDirection);
+    saveDirection(newDirection);
+  }, [language]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
+  // More effective refresh mechanism
+  const forceRefresh = useCallback(() => {
+    // Create a truly unique key by combining timestamp with random value
+    const uniqueKey = Date.now() + Math.random();
+    setInternalRefreshKey(uniqueKey);
+    console.log(`FormPreview forced refresh with key: ${uniqueKey}`);
+  }, []);
+  
+  // Force refresh on any prop change to ensure live preview updates immediately
+  useEffect(() => {
+    forceRefresh();
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, direction, forceRefresh]);
+  
+  // Process fields to normalize icon values - necessary for preview
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
+      // Create a new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // ضمان معالجة showIcon بشكل صحيح
+      // Make sure showIcon is processed correctly
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
+        // Set showIcon to true by default if icon exists and not explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
+      // Make sure font size uses consistent px units
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للتناسق
+        // Convert rem to px for consistency
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          // If just a number without unit, assume it's px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
+      // For title fields, force text-align to center for consistency with store
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        updatedField.style.textAlign = 'center';
+      }
+      
+      // Log background color changes for debugging
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        console.log(`Title field background color: ${updatedField.style?.backgroundColor || 'not set'}`);
+      }
+      
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields]);
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
-  const previewPanelId = `preview-panel-${Date.now()}`;
+  // Create unique ID for this preview panel
+  const previewPanelId = `preview-panel-${internalRefreshKey}`;
+  
+  // Use consistent background color for preview
+  const previewBackgroundColor = "#F9FAFB";
+
+  // Handle direction change with more effective update
+  const handleDirectionChange = (value: string) => {
+    if (value === 'ltr' || value === 'rtl') {
+      // Set new direction
+      setDirection(value as 'ltr' | 'rtl');
+      
+      // Save direction to localStorage for persistence
+      saveDirection(value as 'ltr' | 'rtl');
+      
+      // Log the direction change
+      console.log(`Form direction changed to: ${value}`);
+      
+      // Force a refresh to rebuild component completely
+      forceRefresh();
+    }
+  };
 
   return (
-    <div id={previewPanelId}>
-      <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
-        {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
-      </h3>
+    <div 
+      id={previewPanelId} 
+      style={{backgroundColor: previewBackgroundColor}} 
+      className="bg-gray-50"
+      data-direction={direction}
+    >
+      <div className="flex justify-between items-center mb-3">
+        <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+          {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+        </h3>
+        
+        <div className="direction-controls">
+          <ToggleGroup 
+            type="single" 
+            value={direction} 
+            onValueChange={handleDirectionChange} 
+            variant="outline"
+            className="border rounded"
+          >
+            <ToggleGroupItem value="ltr" aria-label="Left to right">
+              <AlignLeft className="h-4 w-4" />
+              <span className="sr-only">LTR</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="rtl" aria-label="Right to left">
+              <AlignRight className="h-4 w-4" />
+              <span className="sr-only">RTL</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </div>
       
-      <div className="border rounded-lg p-3 bg-gray-50">
+      <div 
+        className="border rounded-lg p-3 bg-gray-50"
+        style={{backgroundColor: previewBackgroundColor}}
+      >
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
           formTitle={formTitle}
@@ -103,6 +215,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={formStyle}
           fields={processedFields}
+          formDirection={direction}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
         >
@@ -110,11 +223,20 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
-      <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
+      {/* Debugging info */}
+      <div className="mt-2 text-xs bg-gray-100 p-2 rounded border border-gray-200">
+        <p>
+          {language === 'ar' 
+            ? `الاتجاه الحالي: ${direction} - مفتاح التحديث: ${internalRefreshKey.toString().substring(0, 8)}`
+            : `Current direction: ${direction} - Refresh key: ${internalRefreshKey.toString().substring(0, 8)}`}
+        </p>
+      </div>
+      
+      {/* Small note about preview/store alignment */}
+      <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
-          ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'
-          : 'This preview accurately reflects how the form will appear in your Shopify store'}
+          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
+          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
       </div>
     </div>
   );

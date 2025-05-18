@@ -8,10 +8,24 @@ namespace = "codform"
 key = "settings"
 
 [[blocks]]
-name = "نموذج الدفع عند الاستلام"
+name = "COD Form نموذج"
 handle = "codform_form"
 type = "product"
 target = "section"
+
+[blocks.settings]
+[[blocks.settings.fields]]
+key = "is_rtl"
+type = "checkbox"
+default = false
+
+[blocks.settings.fields.label]
+en = "RTL Direction"
+ar = "اتجاه من اليمين إلى اليسار"
+
+[blocks.settings.fields.info]
+en = "Enable right-to-left text direction"
+ar = "تفعيل إتجاه النص من اليمين إلى اليسار"
 
 [settings]
 # Global extension settings

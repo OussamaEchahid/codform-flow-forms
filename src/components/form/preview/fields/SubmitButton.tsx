@@ -13,11 +13,15 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const style = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Get animation class if set
   const getAnimationClass = () => {
@@ -36,17 +40,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling - اجعل جميع القياسات بالبكسل لضمان التطابق
+  // Default button styling with exact pixel values matching preview
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px', // استخدام بكسل ثابت
+    fontSize: style.fontSize || '18px',
     fontWeight: style.fontWeight || '600',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    padding: '14px 24px', // استخدام بكسل ثابت
+    padding: '14px 24px',
     paddingTop: style.paddingY || '14px',
     paddingBottom: style.paddingY || '14px',
     paddingLeft: '24px',
@@ -61,16 +65,16 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     transition: 'all 0.2s ease',
     marginTop: '14px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative' as 'relative',
+    position: 'relative',
     overflow: 'hidden',
     textAlign: 'center'
   };
   
-  // Icon rendering
+  // Icon rendering with consistent sizing and positioning
   const renderIcon = () => {
-    if (!style.showIcon && !style.icon) return null;
+    if (!style.showIcon) return null;
     
-    // Add specific styling for the icon
+    // Add specific styling for the icon to match preview exactly
     const iconStyle = {
       width: '18px',
       height: '18px',
@@ -79,12 +83,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       justifyContent: 'center'
     };
     
-    // Return Lucide React icon components
+    // Return Lucide React icon components based on icon name
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'arrow-right':
-        return language === 'ar' ? 
+        return textDir === 'rtl' ? 
           <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
           <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'check':
@@ -102,7 +106,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   };
 
   // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || (language === 'ar' ? 'right' : 'left');
+  const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
   const icon = renderIcon();
   
   return (
@@ -114,16 +118,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         animationClass,
       )}
       style={buttonStyle}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={textDir}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
       data-has-animation={style.animation ? 'true' : 'false'}
       data-icon-position={iconPosition}
       data-has-icon={style.showIcon ? 'true' : 'false'}
-      data-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
-      data-text-color={style.color || '#ffffff'}
-      data-font-size={style.fontSize || '18px'}
-      data-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
+      data-direction={textDir}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

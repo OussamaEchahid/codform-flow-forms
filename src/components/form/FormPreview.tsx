@@ -22,6 +22,7 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
+  formDirection?: 'ltr' | 'rtl';
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -40,64 +41,73 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
+  formDirection,
 }) => {
   const { language } = useI18n();
   
-  // تحسين معالجة الحقول وإعدادها بشكل صحيح
+  // Use the formDirection prop if provided, otherwise fall back to language-based direction
+  const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  
+  // Improve field processing for consistent display
   const sanitizedFields = React.useMemo(() => {
-    // ضمان أن حقول عناصر السلة وملخص السلة لها تسميات فارغة افتراضيًا
+    // Ensure cart items and cart summary fields have empty labels by default
     const updatedFields = fields.map(field => {
-      // نسخ الحقل لتجنب مشاكل التغيير المباشر
+      // Copy field to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تعيين تسمية فارغة افتراضية لعناصر السلة والملخص
+      // Set empty default label for cart items and summary
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         updatedField.label = '';
       }
       
-      // تحويل الأيقونة الفارغة إلى 'none' لمعالجة متسقة
+      // Convert empty icon to 'none' for consistent handling
       if (field.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // التأكد من تعريف style.showIcon إذا كانت الأيقونة موجودة
+      // Make sure style.showIcon is defined if icon exists
       if (field.icon && field.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحة إلى false
-        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // ضمان وجود خصائص النمط الأساسية
+      // Ensure basic style properties exist
       if (!updatedField.style) {
         updatedField.style = {};
       }
       
-      // تأكد من تحديد حجم الخط بشكل صريح بالبكسل
+      // Make sure font size is explicitly specified with px
       if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px إذا لزم الأمر
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
+      }
+      
+      // For title fields, ensure text-align is center
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        updatedField.style.textAlign = 'center';
       }
       
       return updatedField;
     });
     
-    // إذا كان هناك بالفعل عنوان للنموذج، استخدمه
+    // If there's already a form title field, use it
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // إذا لم يكن هناك عنوان للنموذج، أضف واحدًا في البداية بأحجام بكسل محددة
+    // If no form title field exists, add one at the beginning with specific pixel sizes
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -105,21 +115,21 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       helpText: formDescription,
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: 'center',
         fontWeight: 'bold',
-        fontSize: '24px', // استخدام بكسل ثابت 
-        descriptionColor: 'rgba(255, 255, 255, 0.9)',
-        descriptionFontSize: '14px', // استخدام بكسل ثابت
-        backgroundColor: formStyle.primaryColor || '#9b87f5', // لون خلفية أساسي
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: formStyle.primaryColor || '#9b87f5',
       }
     };
     
-    // التحقق مما إذا كان هناك زر إرسال بالفعل
+    // Check if there's already a submit button
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // إذا لم يكن هناك زر إرسال، أضف واحدًا
+    // If no submit button exists, add one
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -128,7 +138,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px', // استخدام بكسل ثابت
+          fontSize: '18px',
           animation: true,
           animationType: 'pulse',
         },
@@ -139,23 +149,30 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return result;
   }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
-  // إنشاء معرف فريد لهذا النموذج لضمان التحديث الصحيح
+  // Create unique ID for this form
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
+  
+  // Use consistent background color for form
+  const formBackgroundColor = "#F9FAFB";
+  
+  // Direction class for the form
+  const dirClass = direction === 'rtl' ? 'rtl' : 'ltr';
+  
+  // Log current form direction
+  console.log(`FormPreview rendering with direction: ${direction}`);
   
   return (
     <div 
-      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
+      className={`rounded-lg border shadow-sm overflow-hidden codform-form ${dirClass}`}
       style={{
         fontSize: formStyle.fontSize,
+        backgroundColor: formBackgroundColor,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#ffffff', // تثبيت لون خلفية
       } as React.CSSProperties}
       data-form-preview-id={formId}
-      data-primary-color={formStyle.primaryColor}
-      data-border-radius={formStyle.borderRadius}
-      data-font-size={formStyle.fontSize}
-      data-button-style={formStyle.buttonStyle}
+      data-direction={direction}
+      dir={direction}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -197,21 +214,22 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className="p-3" 
+        className={`p-3 ${dirClass}`} 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: '#ffffff', // تثبيت لون خلفية
+          direction: direction,
+          backgroundColor: formBackgroundColor
         }}
-        data-direction={language === 'ar' ? 'rtl' : 'ltr'}
+        dir={direction}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2" style={{backgroundColor: 'transparent'}}>
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}
                 field={field} 
                 formStyle={formStyle}
+                formDirection={direction}
               />
             ))}
           </div>
@@ -220,10 +238,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* عرض الزر العائم إذا كان ممكّنًا وغير مخفي لأغراض المعاينة */}
+      {/* Show floating button if enabled and not hidden for preview */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}
+      
+      {/* Debugging information (hidden from user but useful for development) */}
+      <div style={{ display: 'none' }} data-debug-info>
+        Direction: {direction}
+        Form ID: {formId}
+        Fields count: {sanitizedFields.length}
+      </div>
     </div>
   );
 };

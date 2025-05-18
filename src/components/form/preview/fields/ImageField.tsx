@@ -10,11 +10,15 @@ interface ImageFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  formDirection?: 'ltr' | 'rtl';
 }
 
-const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
+const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle, formDirection }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine direction based on formDirection prop or language
+  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Use image source or placeholder
   const imageSrc = field.src || 'https://via.placeholder.com/800x400?text=Image';
@@ -26,16 +30,27 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   // Set border radius for the image
   const imageBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   
+  // Determine label alignment based on direction
+  const labelAlignment = textDirection === 'rtl' ? 'right' : 'left';
+  
   return (
-    <div className="mb-4">
+    <div 
+      className="mb-4"
+      dir={textDirection}
+      data-field-type="image"
+      data-direction={textDirection}
+    >
       {field.label && (
         <div 
           className="mb-2"
           style={{ 
             color: fieldStyle.labelColor || '#334155',
             fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
-            fontWeight: 500
+            fontWeight: 500,
+            textAlign: labelAlignment,
+            direction: textDirection
           }}
+          dir={textDirection}
         >
           {field.label}
         </div>
@@ -62,7 +77,16 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
       </div>
       
       {field.helpText && (
-        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
+        <p 
+          className="mt-1 text-sm text-gray-500"
+          style={{
+            textAlign: labelAlignment,
+            direction: textDirection
+          }}
+          dir={textDirection}
+        >
+          {field.helpText}
+        </p>
       )}
     </div>
   );
