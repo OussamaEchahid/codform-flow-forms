@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -56,6 +57,7 @@ const FormBuilderPage = () => {
       
       setIsCheckingDefaultForm(true);
       try {
+        // Fixed: Store the result instead of directly testing the Promise result
         const defaultForm = await getDefaultForm(shop);
         
         if (isMounted) {
