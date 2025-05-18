@@ -3,8 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlignLeft, AlignRight } from 'lucide-react'; 
 
 interface FormStyle {
@@ -73,8 +73,15 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return savedDir || (language === 'ar' ? 'rtl' : 'ltr');
   });
   
-  // مفتاح تحديث داخلي لفرض إعادة الرسم عند الحاجة
+  // مفتاح تحديث داخلي لفرض إعادة الرسم عند الحاجة - يستخدم Date.now() لضمان قيمة فريدة في كل مرة
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
+  
+  // دالة لإعادة الرسم بمفتاح جديد
+  const forceRefresh = useCallback(() => {
+    const newKey = Date.now() + Math.random();
+    console.log(`إجبار إعادة الرسم بمفتاح جديد: ${newKey}`);
+    setInternalRefreshKey(newKey);
+  }, []);
   
   // إعادة تعيين الاتجاه عند تغيير اللغة
   useEffect(() => {
@@ -83,98 +90,65 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     saveDirection(newDirection);
   }, [language]);
   
-  // آلية تحديث أكثر فعالية
-  const forceRefresh = useCallback(() => {
-    // إنشاء مفتاح فريد حقًا من خلال الجمع بين الطابع الزمني وقيمة عشوائية
-    const uniqueKey = Date.now() + Math.random();
-    setInternalRefreshKey(uniqueKey);
-    console.log(`تم فرض تحديث المعاينة بمفتاح: ${uniqueKey}`);
-  }, []);
-  
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة على الفور
+  // تحديث عند تغير أي من الخصائص
   useEffect(() => {
+    // فحص ما إذا كان هناك حقل عنوان وتسجيل لون خلفيته للتصحيح
+    const titleField = fields.find(f => f.type === 'form-title' || f.type === 'title');
+    if (titleField && titleField.style) {
+      console.log(`FormPreviewPanel: حقل العنوان لديه لون خلفية: ${titleField.style.backgroundColor || 'غير محدد'}`);
+    }
+    
+    // إعادة الرسم الإجبارية لضمان عرض التغييرات
     forceRefresh();
   }, [fields, formStyle, formTitle, formDescription, refreshKey, direction, forceRefresh]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونات - ضروري للمعاينة
+  // معالجة الحقول لتوحيد قيم الأيقونات وإعدادات النمط
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التعديل المباشر
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // التأكد من معالجة showIcon بشكل صحيح
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحةً إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px متسقة
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للاتساق
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان مجرد رقم بدون وحدة، فافترض أنه بوحدة px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
-      // بالنسبة لحقول العنوان، فرض محاذاة النص إلى الوسط للاتساق مع المتجر
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
+        // توحيد محاذاة النص للعناوين
         updatedField.style.textAlign = 'center';
-      }
-      
-      // تسجيل تغييرات لون الخلفية لتصحيح الأخطاء
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        console.log(`لون خلفية حقل العنوان: ${updatedField.style?.backgroundColor || 'غير محدد'}`);
+        
+        // تأكد من أن لون الخلفية محدد
+        console.log(`FormPreviewPanel: معالجة حقل العنوان ${updatedField.id} مع لون خلفية: ${updatedField.style.backgroundColor || 'غير محدد'}`);
       }
       
       return updatedField;
     });
   }, [fields]);
 
-  // إنشاء معرف فريد لهذه اللوحة
-  const previewPanelId = `preview-panel-${internalRefreshKey}`;
-  
-  // استخدام لون خلفية متسق للمعاينة
-  const previewBackgroundColor = "#F9FAFB";
-
-  // معالج تغيير الاتجاه مع تحديث أكثر فعالية
-  const handleDirectionChange = (value: string) => {
-    if (value === 'ltr' || value === 'rtl') {
-      // تعيين الاتجاه الجديد
-      setDirection(value as 'ltr' | 'rtl');
-      
-      // حفظ الاتجاه في التخزين المحلي للاستمرارية
-      saveDirection(value as 'ltr' | 'rtl');
-      
-      // تسجيل تغيير الاتجاه
-      console.log(`تم تغيير اتجاه النموذج إلى: ${value}`);
-      
-      // فرض تحديث لإعادة بناء المكون بالكامل
-      forceRefresh();
-    }
-  };
-
   return (
     <div 
-      id={previewPanelId} 
-      style={{backgroundColor: previewBackgroundColor}} 
+      id={`preview-panel-${internalRefreshKey}`} 
+      style={{backgroundColor: "#F9FAFB"}} 
       className="bg-gray-50"
       data-direction={direction}
     >
@@ -205,7 +179,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       <div 
         className="border rounded-lg p-3 bg-gray-50"
-        style={{backgroundColor: previewBackgroundColor}}
+        style={{backgroundColor: "#F9FAFB"}}
       >
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
@@ -223,23 +197,23 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* معلومات تصحيح الأخطاء */}
-      <div className="mt-2 text-xs bg-gray-100 p-2 rounded border border-gray-200">
-        <p>
-          {language === 'ar' 
-            ? `الاتجاه الحالي: ${direction} - مفتاح التحديث: ${internalRefreshKey.toString().substring(0, 8)}`
-            : `Current direction: ${direction} - Refresh key: ${internalRefreshKey.toString().substring(0, 8)}`}
-        </p>
-      </div>
-      
-      {/* ملاحظة صغيرة حول محاذاة المعاينة/المتجر */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
-        {language === 'ar' 
-          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
-          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
+        {language === 'ar' ? 'تاريخ التحديث: ' : 'Last update: '}
+        {new Date().toLocaleTimeString()}
+        {' - '}
+        {language === 'ar' ? `مفتاح التحديث: ${internalRefreshKey.toString().substring(0, 6)}` : `Refresh key: ${internalRefreshKey.toString().substring(0, 6)}`}
       </div>
     </div>
   );
+  
+  // معالج تغيير الاتجاه
+  function handleDirectionChange(value: string) {
+    if (value === 'ltr' || value === 'rtl') {
+      setDirection(value as 'ltr' | 'rtl');
+      saveDirection(value as 'ltr' | 'rtl');
+      forceRefresh(); // ضمان تحديث المعاينة
+    }
+  }
 };
 
 export default FormPreviewPanel;

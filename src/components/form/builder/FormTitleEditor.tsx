@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Label } from "@/components/ui/label";
@@ -56,6 +57,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const handleUpdateStyle = (property: string, value: string) => {
     if (!formTitleField) return;
     
+    console.log(`تحديث نمط العنوان - الخاصية: ${property}، القيمة: ${value}`);
+    
     // إنشاء نسخة محدثة من الحقل مع الخاصية الجديدة
     const updatedField = {
       ...formTitleField,
@@ -73,7 +76,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionColor') setDescColor(value);
     if (property === 'descriptionFontSize') setDescSize(value);
     // مهم: تحديث لون الخلفية
-    if (property === 'backgroundColor') setBackgroundColor(value);
+    if (property === 'backgroundColor') {
+      console.log(`تحديث لون الخلفية إلى: ${value}`);
+      setBackgroundColor(value);
+    }
     
     // إرسال الحقل المحدث إلى المكون الأب
     onUpdateTitleField(updatedField);
