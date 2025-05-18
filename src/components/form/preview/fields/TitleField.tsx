@@ -13,7 +13,7 @@ interface TitleFieldProps {
 }
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
-  // Extract style props with proper defaults
+  // استخراج خصائص النمط مع الافتراضيات المناسبة
   const {
     backgroundColor = formStyle.primaryColor || '#9b87f5',
     color = '#ffffff',
@@ -26,7 +26,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     showDescription = true,
   } = field.style || {};
 
-  // Log the rendering of this title field
+  // تسجيل تقديم حقل العنوان هذا
   console.log(`Rendering title field: ${field.id}`, {
     label: field.label,
     backgroundColor,
@@ -34,7 +34,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontSize
   });
 
-  // Prepare inline styles to ensure they are properly applied in the store
+  // إعداد أنماط مضمنة لضمان تطبيقها بشكل صحيح في المتجر
   const titleStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     color: color,
@@ -56,7 +56,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     display: showDescription && field.helpText ? 'block' : 'none',
   };
 
-  // Add data attributes to help ensure style consistency
+  // أضف سمات البيانات للمساعدة في ضمان اتساق النمط
   const titleDataAttributes = {
     'data-field-type': field.type,
     'data-field-id': field.id,

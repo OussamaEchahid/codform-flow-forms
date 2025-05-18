@@ -16,7 +16,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const [value, setValue] = useState('');
   const isRtl = document.dir === 'rtl' || false;
   
-  // Extract necessary properties with defaults
+  // استخراج الخصائص اللازمة مع القيم الافتراضية
   const {
     label,
     placeholder = '',
@@ -25,27 +25,27 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     type = 'text',
   } = field;
   
-  // Get style props with defaults
+  // الحصول على خصائص النمط مع القيم الافتراضية
   const {
     fontSize = formStyle.fontSize || '16px',
     showIcon = icon && icon !== 'none',
   } = field.style || {};
 
-  // Log icon rendering for debugging
+  // تسجيل تقديم الأيقونة لتصحيح الأخطاء
   if (icon && icon !== 'none' && showIcon) {
     console.log(`Rendering icon: ${icon} for field ${field.id}`);
   }
 
-  // Set input type based on field type
+  // تعيين نوع الإدخال بناءً على نوع الحقل
   const inputType = field.type === 'phone' ? 'tel' : 
                     field.type === 'email' ? 'email' : 
                     'text';
 
-  // Handle icon display based on language direction
+  // معالجة عرض الأيقونة بناءً على اتجاه اللغة
   const iconPosition = isRtl ? 'right' : 'left';
   const iconClass = icon && showIcon ? `has-icon icon-${iconPosition}` : '';
   
-  // Add data attributes for styling consistency
+  // إضافة سمات البيانات لاتساق النمط
   const dataAttributes = {
     'data-field-type': field.type,
     'data-has-icon': icon && icon !== 'none' && showIcon ? 'true' : 'false',

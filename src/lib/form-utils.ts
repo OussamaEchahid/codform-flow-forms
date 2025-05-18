@@ -1,666 +1,497 @@
+
 import { v4 as uuidv4 } from 'uuid';
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+// تعريف أنواع النموذج
+export type FormId = string;
+export type FieldId = string;
 
-export type FormFieldType = 
-  'text' | 
-  'email' | 
-  'tel' | 
-  'number' | 
-  'textarea' | 
-  'select' | 
-  'checkbox' | 
-  'radio' | 
-  'date' | 
-  'time' | 
-  'datetime-local' | 
-  'file' | 
-  'hidden' | 
-  'image' | 
-  'color' | 
-  'range' | 
-  'url' | 
-  'month' | 
-  'week' | 
-  'password' |
+// أنواع حقول النموذج المدعومة
+export type FormFieldType =
+  'text' |
+  'textarea' |
+  'select' |
+  'radio' |
+  'checkbox' |
   'title' |
-  'html' |
-  'step' |
-  'submit' |
+  'countdown' |
+  'image' |
   'whatsapp' |
   'cart-items' |
   'cart-summary' |
-  'shipping' |  // Added shipping type
-  'phone' |  // Added phone type
-  'form-title' |  // Added form-title type
-  'text/html';  // Added text/html type
+  'shipping' |  // إضافة نوع الشحن
+  'phone' |  
+  'email' |  // إضافة نوع البريد الإلكتروني
+  'form-title' |  
+  'text/html' |  
+  'submit'; // إضافة نوع زر الإرسال
 
+// تعريف خيارات الحقل
 export interface FormFieldOption {
   value: string;
   label: string;
 }
 
+// نمط الحقل - خصائص تنسيق الحقل
 export interface FormFieldStyle {
-  // Base properties
+  // الخصائص العامة
   color?: string;
   backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  borderRadius?: string;
   fontSize?: string;
   fontWeight?: string;
   textAlign?: string;
+  width?: string;
+  height?: string;
+  minHeight?: string;
+  maxHeight?: string;
+  padding?: string;
+  margin?: string;
+  opacity?: string;
   
-  // Description properties
-  descriptionColor?: string;
-  descriptionFontSize?: string;
-  
-  // Border properties
-  borderRadius?: string;
-  borderColor?: string;
-  borderWidth?: string;
-  
-  // Animation properties
-  animation?: boolean;
-  animationType?: string;
-  
-  // Icon properties
-  iconPosition?: string;
-  icon?: string;
-  fullWidth?: boolean;
-  fontFamily?: string;
-  
-  // Label specific properties
+  // خصائص خاصة بالتسميات
   labelColor?: string;
   labelFontSize?: string;
   labelFontWeight?: string;
   
-  // Additional properties needed
+  // خصائص خاصة بالمساعدة
+  helpTextColor?: string;
+  helpTextFontSize?: string;
+  
+  // خصائص العرض
+  display?: string;
   showLabel?: boolean;
   showIcon?: boolean;
   paddingY?: string;
   
-  // Title specific properties
+  // خصائص خاصة بالعنوان
   showTitle?: boolean;
   showDescription?: boolean;
+  descriptionColor?: string;
+  descriptionFontSize?: string;
   
-  // Cart item and summary specific properties
+  // خصائص عناصر السلة والملخص
   priceFontSize?: string;
   priceColor?: string;
-  valueFontSize?: string;
-  valueColor?: string;
-  totalLabelFontSize?: string;
-  totalLabelColor?: string;
-  totalValueFontSize?: string;
-  totalValueColor?: string;
+  
+  // خصائص التأثيرات الحركية
+  animation?: boolean;
+  animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
 }
 
+// تعريف حقل النموذج
 export interface FormField {
-  type: string;
-  id: string;
+  id: FieldId;
+  type: FormFieldType;
   label?: string;
   placeholder?: string;
   helpText?: string;
   required?: boolean;
   icon?: string;
   style?: FormFieldStyle;
-  options?: Array<{
-    value: string;
-    label: string;
-  }>;
-  
-  // Additional properties needed
-  inputFor?: string;
-  errorMessage?: string;
-  
-  // Additional properties
-  defaultValue?: string | string[];
+  options?: FormFieldOption[];
+  defaultValue?: string;
+  maxLength?: number;
+  minLength?: number;
+  max?: number;
+  min?: number;
+  step?: number;
+  pattern?: string;
   disabled?: boolean;
-  src?: string;
-  alt?: string;
-  width?: string | number;
-  className?: string;
-  content?: string;
-  whatsappNumber?: string;
-  message?: string;
+  autoFocus?: boolean;
   rows?: number;
+  src?: string; // لحقول الصور
+  alt?: string; // نص بديل للصور
+  width?: string; // عرض الصور أو الحقول
+  height?: string; // ارتفاع الصور أو الحقول
+  autoplay?: boolean; // لحقول الفيديو
+  controls?: boolean; // لحقول الفيديو
+  autoSubmit?: boolean; // تقديم تلقائي بعد الاختيار
+  content?: string; // محتوى HTML أو نص عادي
+  alignment?: 'left' | 'center' | 'right'; // محاذاة العناصر
+  phoneCode?: string; // رمز البلد لأرقام الهاتف
+  format?: string; // تنسيق للتاريخ أو أنواع أخرى
+  validation?: string; // قواعد التحقق المخصصة
+  data?: Record<string, any>; // بيانات إضافية للحقل
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validationSchema?: any; // مخطط التحقق
 }
 
+// تعريف خطوة النموذج
 export interface FormStep {
   id: string;
-  title: string;
+  title?: string;
   fields: FormField[];
 }
 
-export interface FormData {
-  id: string;
-  title: string;
-  description?: string | null;
-  data: FormStep[];
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-  is_published?: boolean;
-  shop_id?: string | null;
-  product_id?: string | null;
-  style?: {
-    primaryColor: string;
-    borderRadius: string;
-    fontSize: string;
-    buttonStyle: string;
-  };
-}
-
+// تعريف زر عائم
 export interface FloatingButtonConfig {
   enabled: boolean;
-  text: string;
-  textColor?: string;
+  text?: string;
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
+  color?: string;
   backgroundColor?: string;
-  
-  // Position properties
-  position?: 'bottom' | 'top' | 'left' | 'right';
-  showOnMobile?: boolean;
-  showOnDesktop?: boolean;
-  
-  // Style properties
-  fontFamily?: string;
-  fontSize?: string;
-  fontWeight?: string;
-  borderColor?: string;
-  borderRadius?: string;
-  borderWidth?: string;
-  paddingY?: string;
-  marginBottom?: string;
-  
-  // Icon properties
-  showIcon?: boolean;
   icon?: string;
-  
-  // Animation properties
-  animation?: string;
+  action?: 'scroll-to-form' | 'open-popup' | 'whatsapp';
+  whatsappNumber?: string;
+  whatsappMessage?: string;
+  style?: {
+    borderRadius?: string;
+    fontSize?: string;
+    fontWeight?: string;
+    boxShadow?: string;
+    animation?: boolean;
+    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
+    padding?: string;
+  };
 }
 
-export const formatCurrency = (amount: number, locale = 'ar-SA', currency = 'SAR') => {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
+// تعريف النموذج
+export interface Form {
+  id: FormId;
+  title: string;
+  description?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  published: boolean;
+  style: {
+    primaryColor?: string;
+    borderRadius?: string;
+    fontSize?: string;
+    buttonStyle?: 'rounded' | 'square' | 'pill';
+  };
+  steps: FormStep[];
+  settings?: {
+    redirectUrl?: string;
+    successMessage?: string;
+    errorMessage?: string;
+    submitButtonText?: string;
+    submitButtonIcon?: string;
+    storeDataInDatabase?: boolean;
+    sendEmail?: boolean;
+    emailTo?: string;
+    emailSubject?: string;
+    emailTemplate?: string;
+    autoResponder?: boolean;
+    autoResponderSubject?: string;
+    autoResponderTemplate?: string;
+    trackFormAnalytics?: boolean;
+    confirmationRequired?: boolean;
+    confirmationMessage?: string;
+    customClasses?: string;
+    customJavaScript?: string;
+    customCss?: string;
+  };
+  floatingButton?: FloatingButtonConfig;
+}
 
-export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-export const validatePhone = (phone: string): boolean => {
-  // Basic validation: at least 8 digits, can include +, -, (), and spaces
-  const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
-  return phoneRegex.test(phone);
-};
-
-export const generateFormFieldClassName = (field: FormField) => {
-  return cn(
-    "codform-field",
-    field.className,
-    field.type === 'hidden' && "hidden"
-  );
-};
-
-export const loadForm = async (formId: string, productId?: string): Promise<FormData> => {
-  try {
-    // Build the URL with the optional productId parameter
-    let url = `/api/forms/${formId}`;
-    if (productId) {
-      url += `?productId=${encodeURIComponent(productId)}`;
-    }
-    
-    const res = await fetch(url);
-    
-    if (!res.ok) {
-      throw new Error(`Failed to load form: ${res.status}`);
-    }
-    
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error("Error loading form:", error);
-    throw error;
-  }
-};
-
-export const extractFormSections = (form: FormData): Array<{ title: string; fields: FormField[] }> => {
-  // If there's no data or data is not an array with fields property, return empty array
-  if (!form || !form.data || !Array.isArray(form.data)) {
-    return [];
-  }
-
-  // Map each step in the form data to a section
-  return form.data.map(step => ({
-    title: step.title || '',
-    fields: step.fields || []
-  }));
-};
-
-// Function to create an empty field based on type
-export const createEmptyField = (type: FormFieldType): FormField => {
-  let newField: FormField = {
-    id: uuidv4(),
+// وظائف مساعدة لإنشاء عناصر جديدة
+export const createNewField = (type: FormFieldType, language: 'en' | 'ar' = 'en'): FormField => {
+  const id = `${type}-${Date.now()}`;
+  const newField: FormField = {
+    id,
     type,
-    label: '',
-    required: false,
   };
 
-  // Add field-specific configuration
-  switch (type) {
-    case 'form-title':
-      newField.label = 'عنوان النموذج المخصص';
-      newField.helpText = 'وصف النموذج (اختياري)';
-      newField.style = {
-        textAlign: 'center',
-        color: '#1A1F2C',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        descriptionColor: '#6b7280',
-        descriptionFontSize: '14px',
-        backgroundColor: '',
-      };
-      break;
-    case 'text':
-      newField.label = 'حقل نص';
-      newField.placeholder = 'أدخل نصًا هنا';
-      break;
-    case 'email':
-      newField.label = 'بريد إلكتروني';
-      newField.placeholder = 'أدخل البريد الإلكتروني';
-      break;
-    case 'phone':
-      newField.label = 'رقم هاتف';
-      newField.placeholder = 'أدخل رقم الهاتف';
-      break;
-    case 'textarea':
-      newField.label = 'نص متعدد الأسطر';
-      newField.placeholder = 'أدخل نصًا هنا';
-      break;
-    case 'select':
-      newField.label = 'قائمة منسدلة';
-      newField.options = [
-        { value: 'option1', label: 'الخيار الأول' },
-        { value: 'option2', label: 'الخيار الثاني' },
-        { value: 'option3', label: 'الخيار الثالث' }
-      ];
-      break;
-    case 'checkbox':
-      newField.label = 'خانة اختيار';
-      newField.options = [
-        { value: 'option1', label: 'الخيار الأول' },
-        { value: 'option2', label: 'الخيار الثاني' },
-        { value: 'option3', label: 'الخيار الثالث' }
-      ];
-      break;
-    case 'radio':
-      newField.label = 'زر راديو';
-      newField.options = [
-        { value: 'option1', label: 'الخيار الأول' },
-        { value: 'option2', label: 'الخيار الثاني' },
-        { value: 'option3', label: 'الخيار الثالث' }
-      ];
-      break;
-    case 'cart-items':
-      newField.label = 'المنتج المختار';
-      break;
-    case 'cart-summary':
-      newField.label = 'ملخص ا��طلب';
-      break;
-    case 'submit':
-      newField.label = 'إرسال الطلب';
-      newField.style = {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '18px',
-        animation: true,
-        animationType: 'pulse',
-      };
-      break;
-    case 'text/html':
-      newField.label = 'نص/HTML';
-      newField.content = '<p>محتوى HTML</p>';
-      break;
-    case 'title':
-      newField.label = 'عنوان قسم';
-      newField.style = {
-        fontWeight: 'bold',
-        fontSize: '20px',
-      };
-      break;
-    case 'whatsapp':
-      newField.label = 'طلب عبر الواتساب';
-      break;
-    case 'image':
-      newField.label = 'صورة';
-      break;
-    default:
-      newField.label = 'حقل جديد';
-      break;
+  // تعيين التسميات الافتراضية بناءً على نوع الحقل واللغة
+  if (language === 'ar') {
+    switch (type) {
+      case 'text':
+        newField.label = 'حقل نصي';
+        newField.placeholder = 'أدخل النص هنا';
+        break;
+      case 'email':
+        newField.label = 'البريد الإلكتروني';
+        newField.placeholder = 'أدخل بريدك الإلكتروني';
+        break;
+      case 'phone':
+        newField.label = 'رقم الهاتف';
+        newField.placeholder = 'أدخل رقم الهاتف';
+        break;
+      case 'textarea':
+        newField.label = 'وصف';
+        newField.placeholder = 'أدخل وصفًا هنا';
+        break;
+      case 'select':
+        newField.label = 'اختر خيارًا';
+        newField.options = [
+          { value: 'option1', label: 'الخيار الأول' },
+          { value: 'option2', label: 'الخيار الثاني' },
+          { value: 'option3', label: 'الخيار الثالث' }
+        ];
+        break;
+      case 'radio':
+        newField.label = 'اختر واحدًا';
+        newField.options = [
+          { value: 'option1', label: 'الخيار الأول' },
+          { value: 'option2', label: 'الخيار الثاني' }
+        ];
+        break;
+      case 'checkbox':
+        newField.label = 'اختر كل ما ينطبق';
+        newField.options = [
+          { value: 'option1', label: 'الخيار الأول' },
+          { value: 'option2', label: 'الخيار الثاني' }
+        ];
+        break;
+      case 'title':
+        newField.label = 'عنوان القسم';
+        newField.style = {
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#333333',
+        };
+        break;
+      case 'form-title':
+        newField.label = 'عنوان النموذج';
+        newField.helpText = 'وصف النموذج';
+        newField.style = {
+          backgroundColor: '#9b87f5',
+          color: '#ffffff',
+          fontSize: '24px',
+          textAlign: 'right',
+          fontWeight: 'bold',
+          descriptionColor: '#ffffff',
+          descriptionFontSize: '14px',
+          showTitle: true,
+          showDescription: true
+        };
+        break;
+      case 'image':
+        newField.label = 'صورة';
+        newField.src = 'https://via.placeholder.com/400x200?text=صورة';
+        break;
+      case 'whatsapp':
+        newField.label = 'تواصل عبر واتساب';
+        break;
+      case 'cart-items':
+        newField.label = 'المنتج المختار';
+        break;
+      case 'cart-summary':
+        newField.label = 'ملخص الطلب';
+        break;
+      case 'submit':
+        newField.label = 'إرسال الطلب';
+        newField.style = {
+          backgroundColor: '#9b87f5',
+          color: '#ffffff',
+          fontSize: '18px',
+          animation: true,
+          animationType: 'pulse'
+        };
+        break;
+      case 'shipping':
+        newField.label = 'خيارات الشحن';
+        newField.options = [
+          { value: 'standard', label: 'الشحن القياسي' },
+          { value: 'express', label: 'الشحن السريع' }
+        ];
+        break;
+      case 'text/html':
+        newField.label = 'محتوى HTML';
+        newField.content = '<p>يمكنك إضافة أي محتوى HTML هنا</p>';
+        break;
+      case 'countdown':
+        newField.label = 'العد التنازلي';
+        break;
+    }
+  } else {
+    // التسميات الإنجليزية الافتراضية
+    switch (type) {
+      case 'text':
+        newField.label = 'Text';
+        newField.placeholder = 'Enter text here';
+        break;
+      case 'email':
+        newField.label = 'Email';
+        newField.placeholder = 'Enter your email';
+        break;
+      case 'phone':
+        newField.label = 'Phone Number';
+        newField.placeholder = 'Enter your phone number';
+        break;
+      case 'textarea':
+        newField.label = 'Description';
+        newField.placeholder = 'Enter a description here';
+        break;
+      case 'select':
+        newField.label = 'Select an option';
+        newField.options = [
+          { value: 'option1', label: 'First Option' },
+          { value: 'option2', label: 'Second Option' },
+          { value: 'option3', label: 'Third Option' }
+        ];
+        break;
+      case 'radio':
+        newField.label = 'Choose one';
+        newField.options = [
+          { value: 'option1', label: 'First Option' },
+          { value: 'option2', label: 'Second Option' }
+        ];
+        break;
+      case 'checkbox':
+        newField.label = 'Select all that apply';
+        newField.options = [
+          { value: 'option1', label: 'First Option' },
+          { value: 'option2', label: 'Second Option' }
+        ];
+        break;
+      case 'title':
+        newField.label = 'Section Title';
+        newField.style = {
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#333333',
+        };
+        break;
+      case 'form-title':
+        newField.label = 'Form Title';
+        newField.helpText = 'Form Description';
+        newField.style = {
+          backgroundColor: '#9b87f5',
+          color: '#ffffff',
+          fontSize: '24px',
+          textAlign: 'left',
+          fontWeight: 'bold',
+          descriptionColor: '#ffffff',
+          descriptionFontSize: '14px',
+          showTitle: true,
+          showDescription: true
+        };
+        break;
+      case 'image':
+        newField.label = 'Image';
+        newField.src = 'https://via.placeholder.com/400x200?text=Image';
+        break;
+      case 'whatsapp':
+        newField.label = 'Contact via WhatsApp';
+        break;
+      case 'cart-items':
+        newField.label = 'Selected Product';
+        break;
+      case 'cart-summary':
+        newField.label = 'Order Summary';
+        break;
+      case 'submit':
+        newField.label = 'Submit Order';
+        newField.style = {
+          backgroundColor: '#9b87f5',
+          color: '#ffffff',
+          fontSize: '18px',
+          animation: true,
+          animationType: 'pulse'
+        };
+        break;
+      case 'shipping':
+        newField.label = 'Shipping Options';
+        newField.options = [
+          { value: 'standard', label: 'Standard Shipping' },
+          { value: 'express', label: 'Express Shipping' }
+        ];
+        break;
+      case 'text/html':
+        newField.label = 'HTML Content';
+        newField.content = '<p>You can add any HTML content here</p>';
+        break;
+      case 'countdown':
+        newField.label = 'Countdown Timer';
+        break;
+    }
   }
 
   return newField;
 };
 
-// Create a complete default form with all required fields
-export const createDefaultForm = (): FormStep[] => {
-  const defaultFields: FormField[] = [];
+// إنشاء نموذج فارغ جديد
+export const createEmptyForm = (language: 'en' | 'ar' = 'en'): Form => {
+  const formId = uuidv4();
+  const currentDate = new Date().toISOString();
   
-  // Add form title field
-  defaultFields.push({
-    type: 'form-title',
-    id: uuidv4(),
-    label: 'نموذج جديد',
-    helpText: 'نموذج جديد',
-    style: {
-      color: '#ffffff',
-      textAlign: 'right',
-      fontWeight: 'bold',
-      fontSize: '24px',
-      descriptionColor: '#ffffff',
-      descriptionFontSize: '14px',
-      backgroundColor: '#9b87f5',
-    }
-  });
+  // إنشاء حقل عنوان افتراضي بناءً على اللغة
+  const titleField = createNewField('form-title', language);
   
-  // Add name field
-  defaultFields.push({
-    type: 'text',
-    id: uuidv4(),
-    label: 'الاسم الكامل',
-    placeholder: 'أدخل الاسم الكامل',
-    required: true,
-    icon: 'user',
-  });
+  // إنشاء حقول افتراضية بناءً على اللغة
+  const nameField = createNewField('text', language);
+  nameField.id = `text-${Date.now()}-1`;
+  nameField.label = language === 'ar' ? 'الاسم' : 'Name';
+  nameField.placeholder = language === 'ar' ? 'أدخل اسمك الكامل' : 'Enter your full name';
+  nameField.required = true;
+  nameField.icon = 'user';
   
-  // Add phone field
-  defaultFields.push({
-    type: 'phone',
-    id: uuidv4(),
-    label: 'رقم الهاتف',
-    placeholder: 'أدخل رقم الهاتف',
-    required: true,
-    icon: 'phone',
-  });
+  const phoneField = createNewField('phone', language);
+  phoneField.id = `phone-${Date.now()}-2`;
+  phoneField.label = language === 'ar' ? 'رقم الهاتف' : 'Phone Number';
+  phoneField.placeholder = language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter your phone number';
+  phoneField.required = true;
+  phoneField.icon = 'phone';
   
-  // Add city field
-  defaultFields.push({
-    type: 'text',
-    id: uuidv4(),
-    label: 'المدينة',
-    placeholder: 'أدخل اسم المدينة',
-    required: true,
-    icon: 'map-pin',
-  });
+  const cityField = createNewField('text', language);
+  cityField.id = `city-${Date.now()}`;
+  cityField.label = language === 'ar' ? 'المدينة' : 'City';
+  cityField.placeholder = language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name';
+  cityField.icon = 'map-pin';
   
-  // Add address field
-  defaultFields.push({
-    type: 'textarea',
-    id: uuidv4(),
-    label: 'العنوان',
-    placeholder: 'أدخل العنوان الكامل',
-    required: true,
-  });
-  
-  // Add submit button with updated configuration
-  defaultFields.push({
-    type: 'submit',
-    id: uuidv4(),
-    label: 'الدفع عند الاستلام',
-    style: {
-      backgroundColor: '#000000',
-      color: '#ffffff',
-      fontSize: '1.15rem',
-      fontWeight: '500',
-      animation: true,
-      animationType: 'shake',
-      borderRadius: '6px',
-      borderColor: '#eaeaff',
-      borderWidth: '0px',
-      paddingY: '12px',
-      showIcon: true,
-      icon: 'shopping-cart',
-      iconPosition: 'left',
-    },
-  });
-  
-  const defaultStep: FormStep = {
-    id: '1',
-    title: 'Main Step',
-    fields: defaultFields
+  const submitButton = createNewField('submit', language);
+  submitButton.style = {
+    backgroundColor: '#9b87f5',
+    color: '#ffffff',
+    fontSize: '18px',
+    animation: true,
+    animationType: 'pulse'
   };
   
-  return [defaultStep];
+  return {
+    id: formId,
+    title: language === 'ar' ? 'نموذج جديد' : 'New Form',
+    version: 1,
+    createdAt: currentDate,
+    updatedAt: currentDate,
+    published: false,
+    style: {
+      primaryColor: '#9b87f5',
+      borderRadius: '0.5rem',
+      fontSize: '16px',
+      buttonStyle: 'rounded',
+    },
+    steps: [
+      {
+        id: uuidv4(),
+        title: language === 'ar' ? 'المعلومات الشخصية' : 'Personal Information',
+        fields: [
+          titleField,
+          nameField,
+          phoneField,
+          cityField,
+          submitButton
+        ]
+      }
+    ]
+  };
 };
 
-// Form templates
-export const formTemplates = [
-  {
-    id: 1,
-    title: 'Simple Contact Form',
-    description: 'A basic contact form with name, email, and message fields',
-    primaryColor: '#d97706',
-    data: [
-      {
-        id: '1',
-        title: 'Contact Information',
-        fields: [
-          {
-            id: 'form-title-1',
-            type: 'form-title' as FormFieldType,
-            label: 'Contact Us',
-            helpText: 'We\'ll get back to you as soon as possible',
-            style: {
-              textAlign: 'center',
-              color: '#ffffff',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              backgroundColor: '#d97706'
-            }
-          },
-          {
-            id: 'name-1',
-            type: 'text' as FormFieldType,
-            label: 'Name',
-            placeholder: 'Your name',
-            required: true
-          },
-          {
-            id: 'email-1',
-            type: 'email' as FormFieldType,
-            label: 'Email',
-            placeholder: 'Your email address',
-            required: true
-          },
-          {
-            id: 'message-1',
-            type: 'textarea' as FormFieldType,
-            label: 'Message',
-            placeholder: 'Your message',
-            required: true
-          },
-          {
-            id: 'submit-1',
-            type: 'submit' as FormFieldType,
-            label: 'Send Message',
-            style: {
-              backgroundColor: '#d97706',
-              color: '#ffffff',
-              fontSize: '1rem'
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Product Order Form',
-    description: 'A form for collecting order information',
-    primaryColor: '#3b82f6',
-    data: [
-      {
-        id: '1',
-        title: 'Order Information',
-        fields: [
-          {
-            id: 'form-title-2',
-            type: 'form-title' as FormFieldType,
-            label: 'Place Your Order',
-            helpText: 'Fill out the form below to place your order',
-            style: {
-              textAlign: 'center',
-              color: '#ffffff',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              backgroundColor: '#3b82f6'
-            }
-          },
-          {
-            id: 'cart-items-1',
-            type: 'cart-items' as FormFieldType,
-            label: ''
-          },
-          {
-            id: 'cart-summary-1',
-            type: 'cart-summary' as FormFieldType,
-            label: ''
-          },
-          {
-            id: 'customer-name',
-            type: 'text' as FormFieldType,
-            label: 'Full Name',
-            placeholder: 'Your full name',
-            required: true
-          },
-          {
-            id: 'customer-phone',
-            type: 'phone' as FormFieldType,
-            label: 'Phone Number',
-            placeholder: 'Your phone number',
-            required: true
-          },
-          {
-            id: 'customer-address',
-            type: 'textarea' as FormFieldType,
-            label: 'Delivery Address',
-            placeholder: 'Your complete address',
-            required: true
-          },
-          {
-            id: 'submit-2',
-            type: 'submit' as FormFieldType,
-            label: 'Place Order',
-            style: {
-              backgroundColor: '#3b82f6',
-              color: '#ffffff',
-              fontSize: '1.2rem',
-              animation: true,
-              animationType: 'pulse'
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    title: 'Appointment Booking Form',
-    description: 'A form for scheduling appointments',
-    primaryColor: '#115e59',
-    data: [
-      {
-        id: '1',
-        title: 'Personal Information',
-        fields: [
-          {
-            id: 'form-title-3',
-            type: 'form-title' as FormFieldType,
-            label: 'Book Your Appointment',
-            helpText: 'Fill in your details to schedule an appointment',
-            style: {
-              textAlign: 'center',
-              color: '#ffffff',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              backgroundColor: '#115e59'
-            }
-          },
-          {
-            id: 'customer-name-3',
-            type: 'text' as FormFieldType,
-            label: 'Full Name',
-            placeholder: 'Your full name',
-            required: true
-          },
-          {
-            id: 'customer-email-3',
-            type: 'email' as FormFieldType,
-            label: 'Email Address',
-            placeholder: 'Your email address',
-            required: true
-          },
-          {
-            id: 'customer-phone-3',
-            type: 'phone' as FormFieldType,
-            label: 'Phone Number',
-            placeholder: 'Your phone number',
-            required: true
-          }
-        ]
-      },
-      {
-        id: '2',
-        title: 'Appointment Details',
-        fields: [
-          {
-            id: 'appointment-date',
-            type: 'date' as FormFieldType,
-            label: 'Preferred Date',
-            required: true
-          },
-          {
-            id: 'appointment-time',
-            type: 'time' as FormFieldType,
-            label: 'Preferred Time',
-            required: true
-          },
-          {
-            id: 'appointment-service',
-            type: 'select' as FormFieldType,
-            label: 'Service',
-            required: true,
-            options: [
-              { label: 'Consultation', value: 'consultation' },
-              { label: 'Follow-up', value: 'follow-up' },
-              { label: 'Treatment', value: 'treatment' }
-            ]
-          },
-          {
-            id: 'appointment-notes',
-            type: 'textarea' as FormFieldType,
-            label: 'Additional Notes',
-            placeholder: 'Any specific requirements or concerns'
-          },
-          {
-            id: 'submit-3',
-            type: 'submit' as FormFieldType,
-            label: 'Book Appointment',
-            style: {
-              backgroundColor: '#115e59',
-              color: '#ffffff',
-              fontSize: '1.2rem'
-            }
-          }
-        ]
-      }
-    ]
-  }
-];
+// وظائف مساعدة أخرى
+export const duplicateField = (field: FormField): FormField => {
+  return {
+    ...field,
+    id: `${field.type}-${Date.now()}-copy`,
+  };
+};
+
+export const isValidForm = (form: Form): boolean => {
+  // التحقق من صحة النموذج
+  return (
+    !!form.id &&
+    !!form.title &&
+    !!form.steps &&
+    Array.isArray(form.steps) &&
+    form.steps.every(
+      (step) =>
+        !!step.id &&
+        !!step.fields &&
+        Array.isArray(step.fields) &&
+        step.fields.every((field) => !!field.id && !!field.type)
+    )
+  );
+};

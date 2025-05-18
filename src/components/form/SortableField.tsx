@@ -57,9 +57,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
     transition,
   };
 
-  // Get readable field type name
+  // استخدام مخطط أنواع آمن للحصول على اسم نوع الحقل المقروء
   const getFieldTypeName = (type: string): string => {
-    // Create a type safe mapping of field types to their display names
+    // إنشاء تخطيط آمن النوع لأنواع الحقول إلى أسماء العرض الخاصة بها
     const fieldTypeMap: Record<string, { en: string, ar: string }> = {
       'text': { en: 'Text Input', ar: 'حقل نص' },
       'textarea': { en: 'Text Area', ar: 'منطقة نصية' },
@@ -83,14 +83,14 @@ const SortableField: React.FC<SortableFieldProps> = ({
     return fieldTypeMap[type] ? fieldTypeMap[type][language === 'ar' ? 'ar' : 'en'] : type;
   };
 
-  // React to field changes
+  // الاستجابة لتغييرات الحقل
   useEffect(() => {
     if (field.type === 'form-title') {
       setFieldValue(field.label || '');
     }
   }, [field.label, field.type]);
 
-  // Update field title if needed
+  // تحديث عنوان الحقل إذا لزم الأمر
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (field.type === 'form-title' && onFieldUpdate) {
       const newValue = e.target.value;
@@ -105,7 +105,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     }
   };
 
-  // Update field description if needed
+  // تحديث وصف الحقل إذا لزم الأمر
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (field.type === 'form-title' && onFieldUpdate) {
       const newValue = e.target.value;
@@ -119,10 +119,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
     }
   };
 
-  // Conditionally render different field previews based on type
+  // عرض معاينات مختلفة للحقول المختلفة بناءً على النوع
   const renderFieldPreview = () => {
     if (field.type === 'form-title') {
-      // Special handling for form title
+      // معالجة خاصة لعنوان النموذج
       const backgroundColor = field.style?.backgroundColor || 'var(--form-primary-color, #9b87f5)';
       const textColor = field.style?.color || '#ffffff';
       
