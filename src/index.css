@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -132,6 +131,9 @@
     width: 100% !important;
     box-sizing: border-box !important;
     padding: 16px !important;
+    background-color: #9b87f5 !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
   }
   
   .codform-title-field .codform-form-title,
@@ -140,6 +142,8 @@
     padding: 0 !important;
     line-height: 1.3 !important;
     display: block !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
   }
   
   .codform-title-field .codform-title-description {
@@ -147,6 +151,7 @@
     padding: 0 !important;
     line-height: 1.5 !important;
     opacity: 0.9 !important;
+    color: rgba(255, 255, 255, 0.9) !important;
   }
   
   /* RTL specific overrides */

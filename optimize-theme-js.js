@@ -73,35 +73,81 @@ minifiedContent = minifiedContent.replace(
   '$1: $2 !important$3'
 );
 
-// Ensure createTitleField function correctly applies styles
-if (minifiedContent.includes('function createTitleField')) {
-  console.log('Enhancing title field styling...');
-
-  // Make sure the container element gets explicit styling
-  minifiedContent = minifiedContent.replace(
-    /(container\.style\.backgroundColor\s*=\s*[^;]+);/g,
-    '$1 + " !important";'
-  );
-
-  // Make sure title element gets explicit styling including font size in pixels
-  minifiedContent = minifiedContent.replace(
-    /(title\.style\.color\s*=\s*[^;]+);/g,
-    '$1 + " !important";'
-  );
+// Add specific code for title field styling to ensure it's displayed correctly
+minifiedContent = `
+// Critical: Function to ensure title fields display properly
+function ensureTitleFieldsDisplay() {
+  const titleFields = document.querySelectorAll('.codform-title-field');
+  if (!titleFields || titleFields.length === 0) return;
   
-  minifiedContent = minifiedContent.replace(
-    /(title\.style\.fontSize\s*=\s*[^;]+);/g,
-    'title.style.fontSize = remToPxExact(field.style.fontSize || "24px") + " !important";'
-  );
-  
-  // Add font weight with !important
-  minifiedContent = minifiedContent.replace(
-    /(title\.style\.fontWeight\s*=\s*[^;]+);/g,
-    '$1 + " !important";'
-  );
+  titleFields.forEach(field => {
+    const container = field.querySelector('.codform-title-container');
+    if (!container) return;
+    
+    // Force background color with !important
+    const bgColor = field.getAttribute('data-bg-color') || '#9b87f5';
+    container.style.backgroundColor = bgColor + ' !important';
+    container.style.padding = '16px !important';
+    container.style.borderRadius = '8px !important';
+    container.style.width = '100% !important';
+    container.style.boxSizing = 'border-box !important';
+    container.style.marginBottom = '16px !important';
+    
+    // Set text alignment based on data attribute
+    const alignment = field.getAttribute('data-title-align') || 'left';
+    container.style.textAlign = alignment + ' !important';
+    
+    // Set direction based on data attribute
+    const direction = field.getAttribute('data-direction') || 'ltr';
+    container.style.direction = direction + ' !important';
+    
+    // Style the title element
+    const title = container.querySelector('h3');
+    if (title) {
+      const color = field.getAttribute('data-title-color') || '#ffffff';
+      const fontSize = field.getAttribute('data-font-size') || '24px';
+      const fontWeight = field.getAttribute('data-font-weight') || 'bold';
+      
+      title.style.color = color + ' !important';
+      title.style.fontSize = fontSize + ' !important';
+      title.style.fontWeight = fontWeight + ' !important';
+      title.style.textAlign = alignment + ' !important';
+      title.style.margin = '0 !important';
+      title.style.padding = '0 !important';
+      title.style.lineHeight = '1.3 !important';
+      title.style.display = 'block !important';
+      title.style.direction = direction + ' !important';
+    }
+    
+    // Style the description element
+    const desc = container.querySelector('.codform-title-description');
+    if (desc) {
+      const descColor = field.getAttribute('data-desc-color') || '#ffffff';
+      const descFontSize = field.getAttribute('data-desc-font-size') || '14px';
+      
+      desc.style.color = descColor + ' !important';
+      desc.style.fontSize = descFontSize + ' !important';
+      desc.style.opacity = '0.9 !important';
+      desc.style.margin = '6px 0 0 0 !important';
+      desc.style.padding = '0 !important';
+      desc.style.textAlign = alignment + ' !important';
+      desc.style.lineHeight = '1.5 !important';
+      desc.style.direction = direction + ' !important';
+    }
+  });
 }
 
-// Add the remToPxExact function if it doesn't exist
+// Run after DOM is loaded and periodically to ensure styles are applied
+document.addEventListener('DOMContentLoaded', () => {
+  ensureTitleFieldsDisplay();
+  // Re-run every 300ms for the first 3 seconds to ensure styles are applied
+  const interval = setInterval(ensureTitleFieldsDisplay, 300);
+  setTimeout(() => clearInterval(interval), 3000);
+});
+
+` + minifiedContent;
+
+// Ensure the remToPxExact function is included
 if (!minifiedContent.includes('function remToPxExact')) {
   minifiedContent = `
 function remToPxExact(value) {

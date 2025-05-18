@@ -119,6 +119,18 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Create unique ID for this field to debug styling issues
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
+  // Using console logs to debug styling issues
+  console.log('TitleField rendering', { 
+    id: field.id,
+    backgroundColor,
+    fieldType: field.type,
+    fontSize,
+    alignment,
+    showTitle,
+    showDescription,
+    language
+  });
+
   return (
     <div 
       id={titleFieldId}
