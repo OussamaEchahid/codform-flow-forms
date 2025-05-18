@@ -4,7 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
-import { Bug, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Bug, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Separator } from '@/components/ui/separator';
 
@@ -156,7 +156,7 @@ const FormSyncDebugger: React.FC<FormSyncDebuggerProps> = ({ field, formStyle })
           )}
           
           {recommendations.length > 0 && (
-            <Alert variant="info" className="mb-3">
+            <Alert variant="success" className="mb-3">
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>
                 {language === 'ar' ? 'توصيات' : 'Recommendations'}

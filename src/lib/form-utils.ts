@@ -44,7 +44,7 @@ export interface FormFieldOption {
   label: string;
 }
 
-// تحسين واجهة نمط الحقل لتتضمن جميع الخصائص المطلوبة
+// تحسين واجهة نمط الحقل لتضمين جميع الخصائص المطلوبة
 export interface FormFieldStyle {
   // الخصائص الأساسية
   color?: string;
@@ -62,7 +62,7 @@ export interface FormFieldStyle {
   borderColor?: string;
   borderWidth?: string;
   
-  // خصائص الرسوم المتحركة
+  // خصائص الرسوم المتحركة - تصحيح نوع animationType ليكون قيمة محددة
   animation?: boolean;
   animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
   
