@@ -24,7 +24,7 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates, FormFieldType } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -230,7 +230,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add form title field
     defaultFields.push({
-      type: 'form-title',
+      type: 'form-title' as FormFieldType,
       id: uuidv4(),
       label: 'نموذج جديد',
       helpText: 'نموذج جديد',
@@ -249,7 +249,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add name field
     defaultFields.push({
-      type: 'text',
+      type: 'text' as FormFieldType,
       id: uuidv4(),
       label: 'الاسم الكامل',
       placeholder: 'أدخل الاسم الكامل',
@@ -262,7 +262,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add phone field
     defaultFields.push({
-      type: 'phone',
+      type: 'phone' as FormFieldType,
       id: uuidv4(),
       label: 'رقم الهاتف',
       placeholder: 'أدخل رقم الهاتف',
@@ -275,7 +275,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add city field
     defaultFields.push({
-      type: 'text',
+      type: 'text' as FormFieldType,
       id: uuidv4(),
       label: 'المدينة',
       placeholder: 'أدخل اسم المدينة',
@@ -288,7 +288,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add address field
     defaultFields.push({
-      type: 'textarea',
+      type: 'textarea' as FormFieldType,
       id: uuidv4(),
       label: 'العنوان',
       placeholder: 'أدخل العنوان الكامل',
@@ -297,7 +297,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add submit button with updated configuration
     defaultFields.push({
-      type: 'submit',
+      type: 'submit' as FormFieldType,
       id: uuidv4(),
       label: 'الدفع عند الاستلام',
       style: {
