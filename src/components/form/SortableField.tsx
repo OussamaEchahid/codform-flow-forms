@@ -23,7 +23,7 @@ export interface SortableFieldProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onFieldUpdate?: (updatedField: FormField) => void;
-  isSelected?: boolean; // Add isSelected as an optional prop
+  isSelected?: boolean;
 }
 
 const SortableField: React.FC<SortableFieldProps> = ({
@@ -32,7 +32,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
   onDuplicate,
   onDelete,
   onFieldUpdate,
-  isSelected = false // Default to false if not provided
+  isSelected = false
 }) => {
   const { language } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -58,8 +58,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
   };
 
   // Get readable field type name
-  const getFieldTypeName = (type: FormFieldType): string => {
-    const fieldTypeMap: Record<FormFieldType, { en: string, ar: string }> = {
+  const getFieldTypeName = (type: string): string => {
+    // Create a type safe mapping of field types to their display names
+    const fieldTypeMap: Record<string, { en: string, ar: string }> = {
       'text': { en: 'Text Input', ar: 'حقل نص' },
       'textarea': { en: 'Text Area', ar: 'منطقة نصية' },
       'select': { en: 'Dropdown', ar: 'قائمة منسدلة' },

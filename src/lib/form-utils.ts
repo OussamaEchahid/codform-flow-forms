@@ -34,7 +34,7 @@ export type FormFieldType =
   'whatsapp' |
   'cart-items' |
   'cart-summary' |
-  'shipping-options' |
+  'shipping' |  // Added shipping type
   'phone' |  // Added phone type
   'form-title' |  // Added form-title type
   'text/html';  // Added text/html type
@@ -80,6 +80,10 @@ export interface FormFieldStyle {
   showLabel?: boolean;
   showIcon?: boolean;
   paddingY?: string;
+  
+  // Title specific properties
+  showTitle?: boolean;
+  showDescription?: boolean;
   
   // Cart item and summary specific properties
   priceFontSize?: string;
@@ -308,7 +312,7 @@ export const createEmptyField = (type: FormFieldType): FormField => {
       newField.label = 'المنتج المختار';
       break;
     case 'cart-summary':
-      newField.label = 'ملخص الطلب';
+      newField.label = 'ملخص ا��طلب';
       break;
     case 'submit':
       newField.label = 'إرسال الطلب';

@@ -64,6 +64,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     'data-text-color': color,
     'data-font-size': fontSize,
     'data-text-align': textAlign,
+    'data-show-title': showTitle ? 'true' : 'false',
+    'data-show-description': showDescription ? 'true' : 'false',
   };
 
   return (
