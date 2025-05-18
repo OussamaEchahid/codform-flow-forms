@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
@@ -44,20 +43,15 @@ function findRootDirectory() {
 function validateExtensions(rootDir) {
   console.log('Validating extensions structure...');
   
-  // Run the separate validation script
-  try {
-    require('./validate-shopify-extensions');
-  } catch (error) {
-    console.error('Error running validation script:', error.message);
-  }
-  
   // Check if the app has the extensions section in shopify.app.toml
   const appConfigPath = path.join(rootDir, 'shopify.app.toml');
   if (fs.existsSync(appConfigPath)) {
     const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-    if (!appConfig.includes('[extensions]')) {
-      console.warn('⚠️ Warning: Missing [extensions] section in shopify.app.toml');
+    if (!appConfig.includes('[[extensions]]')) {
+      console.warn('⚠️ Warning: Missing [[extensions]] section or using incorrect format in shopify.app.toml');
       console.warn('This might cause the "Expected array, received object" error');
+    } else {
+      console.log('✓ Found extensions configuration in correct array format');
     }
   }
   
