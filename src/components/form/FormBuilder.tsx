@@ -37,7 +37,7 @@ const availableFieldTypes: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
+  { type: 'form-title', label: 'عنوان ��لنموذج المخصص', icon: <Palette size={16} /> },
   { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
   { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
   { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
@@ -488,7 +488,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-3 text-right">
-                    حقول الخ��وة: {formSteps[currentEditStep]?.title}
+                    حقول الخطوة: {formSteps[currentEditStep]?.title}
                   </h3>
                   
                   <DndContext
