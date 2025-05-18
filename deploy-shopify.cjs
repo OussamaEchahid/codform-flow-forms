@@ -47,22 +47,9 @@ function validateExtensions(rootDir) {
   const appConfigPath = path.join(rootDir, 'shopify.app.toml');
   if (fs.existsSync(appConfigPath)) {
     const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-    if (!appConfig.includes('[[extensions]]')) {
-      console.warn('⚠️ Warning: Missing [[extensions]] section or using incorrect format in shopify.app.toml');
+    if (!appConfig.includes('[extensions]')) {
+      console.warn('⚠️ Warning: Missing [extensions] section in shopify.app.toml');
       console.warn('This might cause the "Expected array, received object" error');
-      console.warn('Make sure to use [[extensions]] format (double brackets) instead of [extensions]');
-    } else {
-      console.log('✓ Found extensions configuration in correct array format');
-    }
-  }
-  
-  // Check for [extensions] format (incorrect) vs [[extensions]] format (correct)
-  if (fs.existsSync(appConfigPath)) {
-    const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-    if (appConfig.includes('[extensions]') && !appConfig.includes('[[extensions]]')) {
-      console.error('❌ Error: Found [extensions] section which is incorrect format.');
-      console.error('This will cause the "Expected array, received object" error.');
-      console.error('Please update to use [[extensions]] format (double brackets) in shopify.app.toml');
     }
   }
   
@@ -129,29 +116,6 @@ function main() {
       validateExtensions(rootDir);
     }
     
-    // Add special command to only validate extensions
-    if (command === 'validate-extensions') {
-      console.log('Performing validation of extensions only...');
-      validateExtensions(rootDir);
-      // Check specifically for the common array vs object format error
-      const appConfigPath = path.join(rootDir, 'shopify.app.toml');
-      if (fs.existsSync(appConfigPath)) {
-        const appConfig = fs.readFileSync(appConfigPath, 'utf8');
-        console.log('\nChecking for common "Expected array, received object" error in shopify.app.toml:');
-        if (appConfig.includes('[extensions]') && !appConfig.includes('[[extensions]]')) {
-          console.error('❌ ERROR FOUND: [extensions] should be [[extensions]]');
-          console.error('This is the cause of the "Expected array, received object" error.');
-          console.error('Please update shopify.app.toml to use the correct format.');
-          process.exit(1);
-        } else if (appConfig.includes('[[extensions]]')) {
-          console.log('✓ No issues detected with extensions format. Using correct [[extensions]] format.');
-        } else {
-          console.warn('⚠️ No extensions section found in the configuration file.');
-        }
-      }
-      return;
-    }
-    
     // Execute the appropriate Shopify command
     switch(command) {
       case 'build':
@@ -184,6 +148,12 @@ function main() {
         shopifyCommand = `shopify app env ${additionalArgs}`;
         break;
       
+      case 'validate':
+        console.log('Validating extension structure without deployment...');
+        validateExtensions(rootDir);
+        console.log('Validation complete - fix any warnings before deploying');
+        return;
+        
       default:
         // Pass through any other commands directly to Shopify CLI
         console.log(`Executing command: shopify app ${command} ${additionalArgs}`);

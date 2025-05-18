@@ -7,32 +7,11 @@ handle = "theme-extension-codform"
 namespace = "codform"
 key = "settings"
 
-[[blocks]]
+[[extensions.blocks]]
 name = "نموذج الدفع عند الاستلام"
 handle = "codform_form"
 type = "product"
 target = "section"
 
-[settings]
+[extensions.settings]
 # Global extension settings
-
-[[settings.fields]]
-key = "insertion_method"
-type = "select"
-default = "manual"
-
-[settings.fields.label]
-en = "Form Insertion Method"
-ar = "طريقة إدراج النموذج"
-
-[[settings.fields.options]]
-value = "auto"
-[settings.fields.options.label]
-en = "Automatic"
-ar = "تلقائي"
-
-[[settings.fields.options]]
-value = "manual"
-[settings.fields.options.label]
-en = "Manual"
-ar = "يدوي"

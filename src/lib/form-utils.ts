@@ -33,6 +33,7 @@ export interface FormField {
     fontFamily?: string;
     descriptionColor?: string;
     descriptionFontSize?: string;
+    descriptionFontWeight?: string; // Add this property
     titleColor?: string; // Added for backward compatibility
     titleFontSize?: string; // Added for backward compatibility
     priceColor?: string;
@@ -394,12 +395,14 @@ export const createEmptyField = (type: string): FormField => {
     case 'cart-items':
       return {
         ...baseField,
+        label: '', // Empty label to hide the title
         showImage: true,
         showPrice: true,
       };
     case 'cart-summary':
       return {
         ...baseField,
+        label: '', // Empty label to hide the title
         showShipping: true,
         showTax: false,
       };
