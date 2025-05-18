@@ -81,10 +81,45 @@ const ensureFieldType = (type: string | FieldType): FieldType => {
   return type as FieldType;
 };
 
+// Helper function to convert rem to px for consistent styling
+const remToPx = (value: string): string => {
+  if (!value) return '';
+  if (value.includes('rem')) {
+    const remValue = parseFloat(value);
+    return `${remValue * 16}px`;
+  }
+  if (!value.includes('px') && !isNaN(parseFloat(value))) {
+    return `${value}px`;
+  }
+  return value;
+};
+
 // إنشاء مفتاح فريد لحقل النموذج لفرض إعادة العرض عند تغيير خصائص الحقل
 const getFieldKey = (field: FormFieldType) => {
   // تضمين المزيد من الخصائص في المفتاح للتأكد من أن أي تغيير سيؤدي إلى إعادة العرض
   return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
+};
+
+// Process field styles to ensure consistent formatting
+const normalizeFieldStyle = (field: FormFieldType): FormFieldType => {
+  if (!field.style) return field;
+  
+  const normalizedStyle = { ...field.style };
+  
+  // Convert all font size values to px
+  if (normalizedStyle.fontSize) {
+    normalizedStyle.fontSize = remToPx(normalizedStyle.fontSize);
+  }
+  
+  // Convert description font size to px
+  if (normalizedStyle.descriptionFontSize) {
+    normalizedStyle.descriptionFontSize = remToPx(normalizedStyle.descriptionFontSize);
+  }
+  
+  return {
+    ...field,
+    style: normalizedStyle
+  };
 };
 
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
@@ -109,8 +144,11 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     }
   };
 
+  // Apply style normalization for consistent formatting
+  const processedField = normalizeFieldStyle(normalizedField);
+
   // معالجة تعيين نوع الحقل
-  let fieldType = normalizedField.type;
+  let fieldType = processedField.type;
   
   // ربط البريد الإلكتروني والهاتف بإدخالات النص
   if (fieldType === 'email' || fieldType === 'phone') {
@@ -128,9 +166,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     supportedStoreFieldTypes.includes(normalizedField.type as string);
 
   // تسجيل بيانات الحركة إذا كان هذا زر إرسال
-  if (fieldType === 'submit' && normalizedField.style) {
-    const animationType = normalizedField.style.animationType || 'none';
-    const hasAnimation = !!normalizedField.style.animation;
+  if (fieldType === 'submit' && processedField.style) {
+    const animationType = processedField.style.animationType || 'none';
+    const hasAnimation = !!processedField.style.animation;
     
     if (hasAnimation) {
       console.log(`Submit button using animation: ${animationType}`);
@@ -156,7 +194,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'phone': TextInput, // إضافة دعم صريح للهاتف
   };
 
-  const Component = components[fieldType as string] || components[normalizedField.type as string];
+  const Component = components[fieldType as string] || components[processedField.type as string];
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;
@@ -170,20 +208,20 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {
-    'data-field-type': normalizedField.type,
-    'data-field-id': normalizedField.id,
-    'data-has-icon': normalizedField.icon && normalizedField.icon !== 'none' ? 'true' : 'false',
-    'data-show-icon': normalizedField.style?.showIcon ? 'true' : 'false',
-    'data-icon': normalizedField.icon || 'none',
-    'data-required': normalizedField.required ? 'true' : 'false',
+    'data-field-type': processedField.type,
+    'data-field-id': processedField.id,
+    'data-has-icon': processedField.icon && processedField.icon !== 'none' ? 'true' : 'false',
+    'data-show-icon': processedField.style?.showIcon ? 'true' : 'false',
+    'data-icon': processedField.icon || 'none',
+    'data-required': processedField.required ? 'true' : 'false',
   };
 
   if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
-        <Component field={normalizedField} formStyle={formStyle} />
+        <Component field={processedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
-          {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
+          {processedField.label ? `حقل "${processedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
         </div>
       </div>
     );
@@ -192,7 +230,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   return (
     <div className={marginClass} key={fieldKey} {...dataAttributes}>
       <style>{animationStyles}</style>
-      <Component field={normalizedField} formStyle={formStyle} />
+      <Component field={processedField} formStyle={formStyle} />
     </div>
   );
 };

@@ -25,6 +25,22 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Helper function to convert rem to px
+const remToPx = (value: string | undefined, defaultValue: string): string => {
+  if (!value) return defaultValue;
+  
+  if (value.includes('rem')) {
+    const remValue = parseFloat(value);
+    return `${Math.round(remValue * 16)}px`;
+  }
+  
+  if (!value.includes('px') && !isNaN(parseFloat(value))) {
+    return `${value}px`;
+  }
+  
+  return value;
+};
+
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
   formDescription,
@@ -70,15 +86,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       }
       
       // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
-      if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للتناسق
-        if (updatedField.style.fontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize);
-          updatedField.style.fontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
+      if (updatedField.style?.fontSize) {
+        updatedField.style.fontSize = remToPx(updatedField.style.fontSize, '16px');
+      }
+      
+      // التأكد من أن حجم خط الوصف يستخدم وحدات px المتسقة
+      if (updatedField.style?.descriptionFontSize) {
+        updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
       }
       
       return updatedField;

@@ -24,6 +24,22 @@ interface FormPreviewProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Helper function to convert rem to px for consistent styling
+const remToPx = (value: string | undefined, defaultValue: string): string => {
+  if (!value) return defaultValue;
+  
+  if (value.includes('rem')) {
+    const remValue = parseFloat(value);
+    return `${Math.round(remValue * 16)}px`;
+  }
+  
+  if (!value.includes('px') && !isNaN(parseFloat(value))) {
+    return `${value}px`;
+  }
+  
+  return value;
+};
+
 const FormPreview: React.FC<FormPreviewProps> = ({
   formTitle,
   formDescription,
@@ -79,15 +95,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       }
       
       // تأكد من تحديد حجم الخط بشكل صريح بالبكسل
-      if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px إذا لزم الأمر
-        if (updatedField.style.fontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize);
-          updatedField.style.fontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
+      if (updatedField.style.fontSize) {
+        updatedField.style.fontSize = remToPx(updatedField.style.fontSize, '16px');
+      }
+      
+      // تأكد من تحديد حجم خط الوصف بشكل صريح بالبكسل
+      if (updatedField.style.descriptionFontSize) {
+        updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
       }
       
       return updatedField;
@@ -108,9 +122,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         color: '#ffffff',
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
-        fontSize: '24px', // 1.5rem = 24px
+        fontSize: '24px', // استخدام قيم بكسل صريحة
         descriptionColor: '#ffffff',
-        descriptionFontSize: '14px', // 0.875rem = 14px
+        descriptionFontSize: '14px', // استخدام قيم بكسل صريحة
         backgroundColor: formStyle.primaryColor || '#9b87f5', // لون خلفية أساسي
       }
     };
@@ -129,7 +143,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px', // 1.2rem = 18px
+          fontSize: '18px', // استخدام قيم بكسل صريحة
           animation: true,
           animationType: 'pulse',
         },
@@ -148,14 +162,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       key={formId}
       className="rounded-lg border shadow-sm overflow-hidden bg-[#F9FAFB] codform-form"
       style={{
-        fontSize: formStyle.fontSize,
+        fontSize: remToPx(formStyle.fontSize, '16px'),
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
       data-border-radius={formStyle.borderRadius}
-      data-font-size={formStyle.fontSize}
+      data-font-size={remToPx(formStyle.fontSize, '16px')}
       data-button-style={formStyle.buttonStyle}
     >
       {totalSteps > 1 && (

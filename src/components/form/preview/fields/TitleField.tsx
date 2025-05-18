@@ -17,6 +17,22 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // تحديد قيم box-sizing الصالحة
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
+// Convert rem to px for consistent styling
+const remToPx = (value: string | undefined, defaultValue: string): string => {
+  if (!value) return defaultValue;
+  
+  if (value.includes('rem')) {
+    const remValue = parseFloat(value);
+    return `${Math.round(remValue * 16)}px`;
+  }
+  
+  if (!value.includes('px') && !isNaN(parseFloat(value))) {
+    return `${value}px`;
+  }
+  
+  return value;
+};
+
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
@@ -45,8 +61,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const isFormTitle = field.type === 'form-title';
   
   // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
-  const fontSize = isFormTitle ? '24px' : '20px'; 
-  const descriptionFontSize = '14px';
+  const defaultTitleSize = isFormTitle ? '24px' : '20px';
+  const defaultDescSize = '14px';
+  
+  // تحويل جميع قيم الأحجام إلى بكسل
+  const fontSize = remToPx(fieldStyle.fontSize, defaultTitleSize);
+  const descriptionFontSize = remToPx(fieldStyle.descriptionFontSize, defaultDescSize);
   
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
@@ -65,7 +85,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط العنوان
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
-    fontSize: fieldStyle.fontSize || fontSize,
+    fontSize: fontSize,
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
@@ -78,7 +98,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
+    fontSize: descriptionFontSize,
     margin: '6px 0 0 0', // Consistent margin
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
@@ -103,14 +123,18 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fieldStyle.fontSize || fontSize}
+      data-font-size={fontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
+      data-desc-font-size={descriptionFontSize}
+      data-desc-color={fieldStyle.descriptionColor || '#ffffff'}
       data-desc-font-weight='normal'
       data-show-title={showTitle.toString()}
       data-show-description={showDescription.toString()}
     >
-      <div className="codform-title-container" style={backgroundStyle}>
+      <div 
+        className="codform-title-container" 
+        style={backgroundStyle}
+      >
         {showTitle && (
           <h3 
             className={isFormTitle ? "codform-form-title" : ""}
