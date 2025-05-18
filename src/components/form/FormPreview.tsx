@@ -42,7 +42,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideFloatingButtonPreview = false,
 }) => {
   const { language } = useI18n();
-  const [key] = useState(0);
   
   // تحسين معالجة الحقول وإعدادها بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
@@ -108,9 +107,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         color: '#ffffff',
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
-        fontSize: '24px', // 1.5rem = 24px
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px', // 0.875rem = 14px
+        fontSize: '24px', // استخدام بكسل ثابت 
+        descriptionColor: 'rgba(255, 255, 255, 0.9)',
+        descriptionFontSize: '14px', // استخدام بكسل ثابت
         backgroundColor: formStyle.primaryColor || '#9b87f5', // لون خلفية أساسي
       }
     };
@@ -120,7 +119,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // إذا لم يكن هناك زر إرسال، أضف واحدًا بأحجام بكسل محددة
+    // إذا لم يكن هناك زر إرسال، أضف واحدًا
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -129,7 +128,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px', // 1.2rem = 18px
+          fontSize: '18px', // استخدام بكسل ثابت
           animation: true,
           animationType: 'pulse',
         },
@@ -145,12 +144,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   return (
     <div 
-      key={formId}
       className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
+        backgroundColor: '#ffffff', // تثبيت لون خلفية
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
@@ -202,6 +201,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
+          backgroundColor: '#ffffff', // تثبيت لون خلفية
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >

@@ -111,10 +111,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       </div>
       
       {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
-      <div className="mt-2 text-xs text-gray-500 p-2 rounded">
+      <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
         {language === 'ar' 
-          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
-          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
+          ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'
+          : 'This preview accurately reflects how the form will appear in your Shopify store'}
       </div>
     </div>
   );

@@ -50,11 +50,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // Exact padding to match between preview and store
+    padding: '16px', // قيم دقيقة لتطابق بين المعاينة والمتجر
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // Exact margin to match between preview and store
+    marginBottom: '16px', // قيم دقيقة لتطابق بين المعاينة والمتجر
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
@@ -67,20 +67,20 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3', // Consistent line height
+    lineHeight: '1.3', // قيمة متسقة 
     display: 'block',
   };
 
   // أنماط الوصف
   const descriptionStyle = {
-    color: fieldStyle.descriptionColor || '#ffffff',
+    color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
     fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
-    margin: '6px 0 0 0', // Consistent margin
+    margin: '6px 0 0 0', // قيمة دقيقة للتطابق
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
     fontWeight: 'normal',
-    lineHeight: '1.5', // Consistent line height
+    lineHeight: '1.5', // قيمة متسقة
     opacity: '0.9',
   };
 
@@ -102,6 +102,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-font-size={fieldStyle.fontSize || fontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
+      data-desc-color={fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'}
       data-desc-font-weight='normal'
     >
       <div className="codform-title-container" style={backgroundStyle}>

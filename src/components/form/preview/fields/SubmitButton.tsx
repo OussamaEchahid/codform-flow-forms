@@ -19,7 +19,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Get animation class if set - Fixed animation functionality
+  // Get animation class if set
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -36,17 +36,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling - ensure proper handling of pixel values
+  // Default button styling - اجعل جميع القياسات بالبكسل لضمان التطابق
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px', // Default fontSize is 18px
+    fontSize: style.fontSize || '18px', // استخدام بكسل ثابت
     fontWeight: style.fontWeight || '600',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    padding: '14px 24px',
+    padding: '14px 24px', // استخدام بكسل ثابت
     paddingTop: style.paddingY || '14px',
     paddingBottom: style.paddingY || '14px',
     paddingLeft: '24px',
@@ -66,9 +66,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     textAlign: 'center'
   };
   
-  // Icon rendering with improved support for multiple icon types
+  // Icon rendering
   const renderIcon = () => {
-    if (!style.showIcon) return null;
+    if (!style.showIcon && !style.icon) return null;
     
     // Add specific styling for the icon
     const iconStyle = {
@@ -79,7 +79,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       justifyContent: 'center'
     };
     
-    // Return Lucide React icon components based on icon name
+    // Return Lucide React icon components
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
@@ -102,7 +102,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   };
 
   // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || 'right';
+  const iconPosition = style.iconPosition || (language === 'ar' ? 'right' : 'left');
   const icon = renderIcon();
   
   return (
@@ -120,6 +120,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       data-has-animation={style.animation ? 'true' : 'false'}
       data-icon-position={iconPosition}
       data-has-icon={style.showIcon ? 'true' : 'false'}
+      data-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
+      data-text-color={style.color || '#ffffff'}
+      data-font-size={style.fontSize || '18px'}
+      data-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

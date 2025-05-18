@@ -34,7 +34,7 @@ const animationStyles = `
   }
   
   @keyframes shake-animation {
-    0% { transform: translateX(0); }
+    0%, 100% { transform: translateX(0); }
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
@@ -60,7 +60,7 @@ const animationStyles = `
   }
   
   .shake-animation {
-    animation: shake-animation 2s infinite ease-in-out !important;
+    animation: shake-animation 0.8s infinite ease-in-out !important;
   }
   
   .bounce-animation {
@@ -102,7 +102,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     }
   };
 
-  // معالجة تعيين نوع الحقل
+  // معالجة تعيين نوع الحقل - إصلاح أنواع البريد الإلكتروني والهاتف
   let fieldType = normalizedField.type;
   
   // ربط البريد الإلكتروني والهاتف بإدخالات النص
@@ -129,7 +129,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     }
   }
 
-  const components: { [key: string]: React.FC<FormFieldProps> } = {
+  const components: { [key: string]: React.FC<any> } = {
     'text': TextInput,
     'textarea': TextArea,
     'radio': RadioGroup,
@@ -157,8 +157,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // إنشاء مفتاح فريد لمثيل هذا الحقل لفرض إعادة العرض عند تغيير الخصائص
   const fieldKey = getFieldKey(field);
   
-  // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
+  // ضبط الهوامش: استخدام هوامش محسنة بناءً على نوع الحقل
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {

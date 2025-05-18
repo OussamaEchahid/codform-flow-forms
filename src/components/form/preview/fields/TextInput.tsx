@@ -33,7 +33,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
-  const labelFontWeight = fieldStyle.labelFontWeight || '500';
+  const labelFontWeight = fieldStyle.labelFontWeight || '600';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
   const textColor = fieldStyle.color || '#1f2937';
@@ -54,6 +54,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
+    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
+    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
+    
     // إضافة سمات إضافية للتشخيص
     const iconProps = { 
       size: 18,
@@ -69,9 +72,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };
-    
-    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
-    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
     
     // استخدام switch للمطابقة الدقيقة وإرجاع عنصر React المناسب
     switch(field.icon) {
@@ -123,10 +123,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {showLabel && (
         <label 
-          htmlFor={field.id} 
+          htmlFor={inputId} 
           className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
           style={{ 
             color: labelColor,
@@ -139,7 +140,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 absolute right-0 top-0">*</span>
+            <span className="text-red-500 absolute" style={{left: language === 'ar' ? 'auto' : '-12px', right: language === 'ar' ? '-12px' : 'auto'}}>*</span>
           )}
         </label>
       )}
@@ -151,7 +152,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" 
             style={{
               position: 'absolute',
-              left: '12px',
+              left: language === 'ar' ? 'auto' : '12px',
+              right: language === 'ar' ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -185,8 +187,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px',
-            paddingRight: '12px',
+            paddingLeft: (showIcon && hasIcon && language !== 'ar') ? '36px' : '12px',
+            paddingRight: (showIcon && hasIcon && language === 'ar') ? '36px' : '12px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',

@@ -231,7 +231,7 @@
       // طباعة معلومات التصحيح
       console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop);
       
-      // استخدام عنوان URL الكامل مع https - إصلاح خطأ حل DNS
+      // استخدام عنوان URL الكامل مع https
       const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
       console.log('Request URL:', apiUrl);
@@ -313,8 +313,8 @@
         </div>`;
       }
       
-      // بداية النموذج
-      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'};">`;
+      // بداية النموذج مع تحديد خلفية بيضاء
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #ffffff;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
@@ -439,13 +439,13 @@
       const translatedPlaceholder = field.placeholder || '';
       
       return `
-        <div class="${fieldClassContainer}" style="position: relative;">
+        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px;">
           <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 50%; transform: translateY(-50%); z-index: 2;">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
@@ -453,6 +453,7 @@
               placeholder="${translatedPlaceholder}"
               ${field.required ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
+              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px;"
             />
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -475,13 +476,13 @@
       const translatedPlaceholder = field.placeholder || '';
       
       return `
-        <div class="${fieldClassContainer}" style="position: relative;">
+        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px;">
           <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 15px; z-index: 2;">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
@@ -489,6 +490,7 @@
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
+              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px;"
             ></textarea>
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -543,7 +545,7 @@
       const translatedLabel = field.label || '';
       
       let html = `
-        <div class="codform-field">
+        <div class="codform-field" style="margin-bottom: 16px;">
           <label>
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
@@ -607,7 +609,7 @@
       const translatedLabel = field.label || 'إرسال الطلب';
       
       return `
-        <div class="codform-field">
+        <div class="codform-field" style="margin-top: 16px;">
           <button
             type="submit"
             class="codform-submit-btn ${animationClass}"
@@ -622,6 +624,10 @@
               display: flex;
               align-items: center;
               justify-content: center;
+              gap: 8px;
+              width: 100%;
+              cursor: pointer;
+              margin-top: 14px;
             "
           >
             ${buttonStyle.iconPosition !== 'right' ? iconHtml : ''}
@@ -637,7 +643,9 @@
       const style = field.style || {};
       const backgroundColor = style.backgroundColor || '#9b87f5';
       const color = style.color || '#ffffff';
-      const descriptionColor = style.descriptionColor || '#ffffff';
+      const descriptionColor = style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+      const fontSize = style.fontSize || '24px';
+      const descriptionFontSize = style.descriptionFontSize || '14px';
       
       const translatedLabel = field.label || '';
       const translatedHelp = field.helpText || '';
@@ -645,10 +653,10 @@
       return `
         <div class="codform-title-field">
           <div class="codform-title-container" style="background-color: ${backgroundColor}; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: ${style.textAlign || 'right'};">
-            <h3 class="codform-form-title" style="margin: 0; color: ${color}; font-size: ${style.fontSize || '24px'}; font-weight: ${style.fontWeight || 'bold'};">
+            <h3 class="codform-form-title" style="margin: 0; color: ${color}; font-size: ${fontSize}; font-weight: ${style.fontWeight || 'bold'};">
               ${translatedLabel}
             </h3>
-            ${translatedHelp ? `<p class="codform-title-description" style="margin: 6px 0 0 0; color: ${descriptionColor}; font-size: ${style.descriptionFontSize || '14px'};">${translatedHelp}</p>` : ''}
+            ${translatedHelp ? `<p class="codform-title-description" style="margin: 6px 0 0 0; color: ${descriptionColor}; opacity: 0.9; font-size: ${descriptionFontSize};">${translatedHelp}</p>` : ''}
           </div>
         </div>
       `;
@@ -657,7 +665,7 @@
     // وظيفة لإنشاء محتوى HTML
     function createHtmlContent(field) {
       return `
-        <div class="codform-field codform-html-content">
+        <div class="codform-field codform-html-content" style="margin-bottom: 16px;">
           ${field.content || ''}
         </div>
       `;
@@ -680,7 +688,7 @@
       const url = `https://wa.me/${phone}${message ? `?text=${message}` : ''}`;
       
       return `
-        <div class="codform-field">
+        <div class="codform-field" style="margin-bottom: 16px;">
           <a 
             href="${url}" 
             target="_blank" 
@@ -694,6 +702,8 @@
               justify-content: center;
               gap: 10px;
               padding: 14px 20px;
+              text-decoration: none;
+              width: 100%;
             "
           >
             <span class="codform-whatsapp-icon">${whatsappIcon}</span>
@@ -708,7 +718,7 @@
       const style = field.style || {};
       
       return `
-        <div class="codform-field codform-image-field">
+        <div class="codform-field codform-image-field" style="margin-bottom: 16px;">
           <div class="codform-image-container">
             <img 
               src="${field.image || ''}"
@@ -718,6 +728,9 @@
                 border-radius: ${style.borderRadius || '8px'};
                 ${style.maxHeight ? `max-height: ${style.maxHeight};` : ''}
                 ${style.maxWidth ? `max-width: ${style.maxWidth};` : ''}
+                width: 100%;
+                height: auto;
+                display: block;
               "
             />
           </div>
