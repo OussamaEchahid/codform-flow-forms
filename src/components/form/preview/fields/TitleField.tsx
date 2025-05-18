@@ -24,6 +24,10 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // استخراج الوصف من الحقل نفسه
   const description = field.helpText || '';
   
+  // التحقق مما إذا كان يجب إظهار العنوان والوصف
+  const showTitle = fieldStyle.showTitle !== false;
+  const showDescription = fieldStyle.showDescription !== false;
+  
   // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
   const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
@@ -103,16 +107,20 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
       data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
       data-desc-font-weight='normal'
+      data-show-title={showTitle.toString()}
+      data-show-description={showDescription.toString()}
     >
       <div className="codform-title-container" style={backgroundStyle}>
-        <h3 
-          className={isFormTitle ? "codform-form-title" : ""}
-          style={titleStyle}
-        >
-          {field.label}
-        </h3>
+        {showTitle && (
+          <h3 
+            className={isFormTitle ? "codform-form-title" : ""}
+            style={titleStyle}
+          >
+            {field.label}
+          </h3>
+        )}
         
-        {description && (
+        {showDescription && description && (
           <p 
             className="codform-title-description"
             style={descriptionStyle}

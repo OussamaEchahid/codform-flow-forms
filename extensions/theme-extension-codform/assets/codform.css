@@ -71,12 +71,12 @@
   font-weight: 500 !important;
   color: #374151 !important;
   font-size: 16px !important;
-  text-align: left !important;
+  text-align: right !important; /* تغيير المحاذاة الافتراضية للغة العربية */
 }
 
-/* محاذاة للغة العربية */
-[dir="rtl"] .codform-field label {
-  text-align: right !important;
+/* محاذاة للغة الإنجليزية */
+[dir="ltr"] .codform-field label {
+  text-align: left !important;
 }
 
 .codform-field input[type="text"],
@@ -124,7 +124,7 @@
 /* تحسين موضع الأيقونات داخل الحقول - مطابق للمعاينة بدقة */
 .codform-field-icon {
   position: absolute !important;
-  right: 12px !important;
+  right: 12px !important; /* دائما على اليمين للغة العربية */
   top: 50% !important;
   transform: translateY(-50%) !important;
   color: #6b7280 !important;
@@ -141,6 +141,17 @@
 [dir="ltr"] .codform-field-icon {
   right: auto !important;
   left: 12px !important;
+}
+
+/* تنسيق الأيقونات حسب data-icon-position */
+[data-icon-position="right"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+[data-icon-position="left"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
 }
 
 .codform-field-wrapper {
@@ -438,7 +449,23 @@
   margin-bottom: 16px !important;
   border-radius: 8px !important;
   background-color: #9b87f5 !important;
+}
+
+/* تطبيق محاذاة العنوان بناءً على سمات البيانات */
+[data-title-align="center"] .codform-title-container {
   text-align: center !important;
+}
+
+[data-title-align="right"] .codform-title-container {
+  text-align: right !important;
+}
+
+[data-title-align="left"] .codform-title-container {
+  text-align: left !important;
+}
+
+[data-title-align="justify"] .codform-title-container {
+  text-align: justify !important;
 }
 
 .codform-form-title {
@@ -448,7 +475,6 @@
   margin-bottom: 6px !important;
   line-height: 1.3 !important;
   margin-top: 0 !important;
-  text-align: center !important;
 }
 
 .codform-title-description {
@@ -457,7 +483,6 @@
   margin-top: 6px !important;
   margin-bottom: 0 !important;
   line-height: 1.5 !important;
-  text-align: center !important;
 }
 
 /* عنوان الخطوة */
@@ -658,11 +683,13 @@
   font-size: 16px !important;
 }
 
-.codform-input.with-icon {
+/* تنسيق الحقول مع الأيقونات - استنادا إلى سمة data-icon-position */
+.codform-input[data-icon-position="right"] {
   padding-right: 36px !important;
+  padding-left: 12px !important;
 }
 
-[dir="ltr"] .codform-input.with-icon {
+.codform-input[data-icon-position="left"] {
   padding-left: 36px !important;
   padding-right: 12px !important;
 }
@@ -683,20 +710,15 @@
 
 /* محاذاة الحقول ونموذج الإدخال */
 .codform-field {
-  text-align: left !important;
-}
-
-[dir="rtl"] .codform-field {
   text-align: right !important;
 }
 
-/* تصحيح دقيق لمحاذاة الأيقونات مع حقول الإدخال */
-.codform-input[data-icon-position="right"] {
-  padding-right: 36px !important;
-  padding-left: 12px !important;
+[dir="ltr"] .codform-field {
+  text-align: left !important;
 }
 
-.codform-input[data-icon-position="left"] {
-  padding-left: 36px !important;
-  padding-right: 12px !important;
+/* التحكم في إظهار العنوان والوصف من خلال سمات data */
+[data-show-title="false"] .codform-form-title,
+[data-show-description="false"] .codform-title-description {
+  display: none !important;
 }

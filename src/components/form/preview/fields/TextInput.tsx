@@ -50,6 +50,18 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
+  // تحديد موقع الأيقونة - يجب أن تكون على اليمين للعربية وعلى اليسار للإنجليزية
+  // ولكن نسمح بتجاوز ذلك باستخدام إعدادات النمط الصريحة
+  let iconPosition: 'right' | 'left';
+  
+  // استخدام القيمة المحددة في إعدادات النمط إذا كانت موجودة
+  if (fieldStyle.iconPosition) {
+    iconPosition = fieldStyle.iconPosition;
+  } else {
+    // القيمة الافتراضية حسب اللغة - لكن نريد أن تكون على اليمين للعربية
+    iconPosition = language === 'ar' ? 'right' : 'left';
+  }
+  
   // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
@@ -69,9 +81,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       "data-testid": `icon-${field.icon}`,
       "data-icon-name": field.icon
     };
-    
-    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
-    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
     
     // استخدام switch للمطابقة الدقيقة وإرجاع عنصر React المناسب
     switch(field.icon) {
@@ -107,8 +116,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
   const inputId = `${field.id}-input`;
   
-  // تعديل موضع الأيقونة بناءً على لغة النموذج
-  const iconPosition = language === 'ar' ? 'right' : 'left';
+  // تحديد محاذاة التسمية بناءً على اللغة
+  const labelTextAlign = language === 'ar' ? 'right' : 'left';
   
   return (
     <div 
@@ -121,11 +130,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-has-icon={hasIcon ? 'true' : 'false'}
       data-show-icon={showIcon ? 'true' : 'false'}
       data-icon-type={field.icon || 'none'}
+      data-icon-position={iconPosition}
       data-required={field.required ? 'true' : 'false'}
       data-font-family={fontFamily}
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {showLabel && (
         <label 
@@ -137,9 +148,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
             marginBottom: '8px',
-            textAlign: 'left'
+            textAlign: labelTextAlign
           }}
           data-label-text={labelText}
+          data-label-align={labelTextAlign}
         >
           {labelText}
           {field.required && (
@@ -210,7 +222,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             marginTop: '4px',
             fontSize: '14px',
             color: '#6b7280',
-            textAlign: 'left'
+            textAlign: language === 'ar' ? 'right' : 'left'
           }}
         >
           {field.helpText}
@@ -225,7 +237,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             color: '#ef4444',
             fontSize: '14px',
             marginTop: '4px',
-            textAlign: 'left'
+            textAlign: language === 'ar' ? 'right' : 'left'
           }}
         >
           {field.errorMessage}
