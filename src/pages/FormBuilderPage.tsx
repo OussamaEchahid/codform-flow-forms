@@ -26,6 +26,7 @@ const FormBuilderPage = () => {
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
   const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -124,20 +125,31 @@ const FormBuilderPage = () => {
   
   useEffect(() => {
     async function handleFormInit() {
-      if (formId) {
-        // Handle the "new" form ID case - redirect to dashboard instead of creating a form
-        if (formId === 'new') {
-          console.log('New form requested, redirecting to dashboard');
-          navigate('/form-builder', { replace: true });
-          return;
+      setIsLoading(true);
+      
+      try {
+        if (formId) {
+          // Handle the "new" form ID case - redirect to dashboard instead of creating a form
+          if (formId === 'new') {
+            console.log('New form requested, redirecting to dashboard');
+            navigate('/form-builder', { replace: true });
+            return;
+          }
+          
+          // For existing forms, set to editor mode
+          setActiveTab('editor');
+          await fetchForms();
+        } else {
+          await fetchForms();
+          setActiveTab('dashboard');
         }
-        
-        // For existing forms, set to editor mode
-        setActiveTab('editor');
-        fetchForms();
-      } else {
-        fetchForms();
-        setActiveTab('dashboard');
+      } catch (error) {
+        console.error("Error initializing form:", error);
+        toast.error(language === 'ar' 
+          ? 'حدث خطأ أثناء تحميل النموذج' 
+          : 'Error loading form');
+      } finally {
+        setIsLoading(false);
       }
     }
     
@@ -192,6 +204,21 @@ const FormBuilderPage = () => {
               </Button>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB]">
+        <AppSidebar />
+        <div className="flex-1 flex justify-center items-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div>
+          <span className="mr-3">
+            {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+          </span>
         </div>
       </div>
     );
