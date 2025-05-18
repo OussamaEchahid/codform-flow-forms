@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -20,7 +21,6 @@ interface SortableFieldProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onFieldUpdate?: (updatedField: FormField) => void;
-  selected?: boolean;
 }
 
 const SortableField: React.FC<SortableFieldProps> = ({
@@ -28,14 +28,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
   onEdit,
   onDuplicate,
   onDelete,
-  onFieldUpdate,
-  selected = false
+  onFieldUpdate
 }) => {
   const { language } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [editedField, setEditedField] = useState<FormField>(field);
   
-  // تعديل خصائص السحب والإفلات لتعمل بشكل أفضل
   const {
     attributes,
     listeners,
@@ -160,7 +158,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
 
   // Show different field settings based on field type
   const shouldShowSubmitSpecificSettings = field.type === 'submit';
-  const isTitleField = field.type === 'title' || field.type === 'form-title' || field.type === 'edit-form-title';
   
   // Animation types for submit button
   const animationTypes = [
@@ -177,7 +174,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
       style={style}
       className={cn(
         "border rounded-lg mb-3 overflow-hidden",
-        selected ? "ring-2 ring-codform-purple border-codform-purple" : "",
         isDragging ? "shadow-lg" : ""
       )}
     >

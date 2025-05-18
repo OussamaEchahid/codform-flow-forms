@@ -1,3 +1,4 @@
+
 // This function is responsible for updating the Shopify theme to insert the form
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -15,7 +16,6 @@ interface UpdateThemeRequest {
   insertionMethod?: 'auto' | 'manual';
   blockId?: string;
   themeId?: number;
-  formDirection?: 'ltr' | 'rtl'; 
 }
 
 serve(async (req: Request) => {
@@ -33,7 +33,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId, formDirection = 'ltr' } = await req.json() as UpdateThemeRequest;
+    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
 
     if (!shop || !accessToken) {
       return new Response(JSON.stringify({
@@ -45,7 +45,7 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`Updating theme for shop ${shop} with direction: ${formDirection}`);
+    console.log(`Updating theme for shop ${shop}`);
 
     try {
       // First, get theme info to determine if we're dealing with OS2.0 or traditional theme
@@ -69,20 +69,16 @@ serve(async (req: Request) => {
       themeType = await detectThemeType(shop, accessToken, targetThemeId);
       console.log(`Detected theme type: ${themeType}`);
       
-      // Upload CSS file first regardless of theme type
-      await uploadCSSFile(shop, accessToken, targetThemeId);
-      console.log("Successfully uploaded codform.css stylesheet");
-      
       let updateResult;
       
       if (themeType === 'OS2.0') {
         // Update OS2.0 theme
         console.log('Updating OS2.0 theme');
-        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, blockId, formDirection);
+        updateResult = await updateOS2Theme(shop, accessToken, targetThemeId, blockId);
       } else {
         // Update traditional theme
         console.log('Updating traditional theme');
-        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, blockId, formDirection);
+        updateResult = await updateTraditionalTheme(shop, accessToken, targetThemeId, blockId);
       }
 
       // Store insertion information in the database for reference
@@ -99,7 +95,6 @@ serve(async (req: Request) => {
             insertion_method: insertionMethod,
             block_id: blockId || `codform_${formIdShort}`,
             status: 'success',
-            form_direction: formDirection,
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'shop_id,form_id' 
@@ -117,7 +112,6 @@ serve(async (req: Request) => {
         success: true,
         theme_id: targetThemeId,
         theme_type: themeType,
-        form_direction: formDirection,
         message: `Form block has been added to the theme successfully`,
         details: updateResult
       }), { 
@@ -148,289 +142,11 @@ serve(async (req: Request) => {
   }
 });
 
-// Upload the CSS file to the theme assets with improved title field styling
-async function uploadCSSFile(shop: string, accessToken: string, themeId: number): Promise<void> {
-  // CSS content - improved version for better title field display
-  const cssContent = `/* CODFORM - نماذج الدفع عند الاستلام */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
-
-/* تكوين أساسي للحاوية الرئيسية */
-.codform-container {
-  font-family: 'Cairo', sans-serif;
-  margin: 20px 0;
-  padding: 15px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #F9FAFB !important;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
-  width: 100%;
-  font-size: 16px;
-  line-height: 1.5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* ترويسة النموذج */
-.codform-header {
-  margin-bottom: 20px;
-  text-align: center;
-  padding: 16px !important;
-  border-radius: 8px !important;
-  background-color: #9b87f5 !important;
-  display: block !important;
-}
-
-.codform-header h3 {
-  font-size: 24px !important;
-  font-weight: 700 !important;
-  margin-bottom: 6px !important;
-  color: #ffffff !important;
-  line-height: 1.3 !important;
-  margin-top: 0 !important;
-  display: block !important;
-}
-
-.codform-header p {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  margin: 0 !important;
-}
-
-/* حاوية النموذج الرئيسية */
-.codform-form {
-  margin-top: 14px;
-  background-color: transparent !important;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: none !important;
-  border: none !important;
-}
-
-/* ===== تنسيقات حقل العنوان - تحسين جذري لضمان ظهور الخلفية ===== */
-.form-title-field,
-.codform-title-field,
-div[data-field-type="title"],
-div[data-field-type="form-title"],
-div[data-field-type="edit-form-title"],
-div[data-testid="title-field"],
-div[data-testid="edit-form-title-field"],
-.form-title-wrapper > div,
-.space-y-2 > div:first-child {
-  background-color: #9b87f5 !important;
-  padding: 16px !important;
-  border-radius: 8px !important;
-  margin-bottom: 16px !important;
-  width: 100% !important;
-  display: block !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-.form-title-field h2,
-div[data-field-type="title"] h2,
-div[data-field-type="form-title"] h2,
-div[data-testid="title-field"] h2,
-div[data-testid="edit-form-title-field"] h2,
-.form-title-wrapper h2,
-.space-y-2 > div:first-child h2 {
-  font-size: 24px !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 1.3 !important;
-  width: 100% !important;
-  display: block !important;
-  text-align: center !important;
-}
-
-.form-title-field p,
-div[data-field-type="title"] p,
-div[data-field-type="form-title"] p,
-div[data-testid="title-field"] p,
-div[data-testid="edit-form-title-field"] p,
-.form-title-wrapper p,
-.space-y-2 > div:first-child p {
-  font-size: 14px !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-  margin-top: 6px !important;
-  margin-bottom: 0 !important;
-  line-height: 1.5 !important;
-  width: 100% !important;
-  display: block !important;
-  text-align: center !important;
-}
-
-/* أسلوب خلفية قوية للعنصر الأول في النموذج دائمًا */
-.codform-form .space-y-2 > div:first-child {
-  background-color: #9b87f5 !important;
-  border-radius: 8px !important;
-  padding: 16px !important;
-}
-
-/* Ensure that .form-title-field has the proper styles */
-.form-title-wrapper {
-  background-color: transparent !important;
-}
-
-/* تنسيق الحقول */
-.codform-field {
-  margin-bottom: 16px !important;
-  display: block !important;
-  position: relative !important;
-  background-color: transparent !important;
-}
-
-.codform-field label {
-  display: block !important;
-  margin-bottom: 8px !important;
-  font-weight: 500 !important;
-  color: #374151 !important;
-  font-size: 16px !important;
-}
-
-/* محاذاة للغة العربية */
-[dir="rtl"] .codform-field label,
-.rtl .codform-field label {
-  text-align: right !important;
-}
-
-[dir="ltr"] .codform-field label,
-.ltr .codform-field label {
-  text-align: left !important;
-}
-
-.codform-field input[type="text"],
-.codform-field input[type="email"],
-.codform-field input[type="tel"],
-.codform-field input[type="number"],
-.codform-field textarea,
-.codform-field select {
-  width: 100% !important;
-  padding: 10px 12px !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
-  transition: all 0.2s ease-in-out !important;
-  font-family: 'Cairo', sans-serif !important;
-  background-color: #ffffff !important;
-  color: #1f2937 !important;
-  box-sizing: border-box !important;
-  height: auto !important;
-  line-height: 1.5 !important;
-  margin: 0 !important;
-}
-
-/* أزرار الإرسال */
-.codform-submit-button,
-.codform-next-button,
-.codform-prev-button,
-.codform-submit-btn {
-  background-color: #9b87f5 !important;
-  color: white !important;
-  border: none !important;
-  padding: 14px 24px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  font-size: 18px !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease-in-out !important;
-  width: 100% !important;
-  margin-top: 14px !important;
-  font-family: 'Cairo', sans-serif !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  position: relative !important;
-  overflow: hidden !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  text-align: center !important;
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.pulse-animation {
-  animation: pulse 2s infinite !important;
-}
-
-/* تحسينات للتوافق مع RTL */
-[dir="rtl"] .codform-field label,
-[dir="rtl"] .codform-help-text,
-[dir="rtl"] .codform-title-description {
-  text-align: right;
-}
-
-[dir="ltr"] .codform-field label,
-[dir="ltr"] .codform-help-text,
-[dir="ltr"] .codform-title-description {
-  text-align: left;
-}
-
-/* ضمان ظهور العنوان والوصف بشكل صحيح */
-.codform-title-container h3,
-.codform-title-container p {
-  width: 100%;
-  display: block;
-  box-sizing: border-box;
-  text-align: center !important;
-}
-
-/* محاذاة لRTL و LTR */
-.codform-form.rtl,
-.codform-form-container[dir="rtl"],
-.codform-form[dir="rtl"] {
-  direction: rtl !important;
-}
-
-.codform-form.ltr,
-.codform-form-container[dir="ltr"],
-.codform-form[dir="ltr"] {
-  direction: ltr !important;
-}`;
-
-  const response = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': accessToken
-    },
-    body: JSON.stringify({
-      asset: {
-        key: "assets/codform.css",
-        value: cssContent
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Failed to upload CSS file: ${response.status} - ${errorData}`);
-  }
-}
-
 // Helper function to detect theme type
 async function detectThemeType(shop: string, accessToken: string, themeId: number): Promise<string> {
   try {
     // Try to fetch product.json template file to check if it exists (OS2.0 themes have this)
-    const response = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
+    const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -457,7 +173,7 @@ async function detectThemeType(shop: string, accessToken: string, themeId: numbe
 
 // Helper function to get shop themes
 async function getShopifyThemes(shop: string, accessToken: string): Promise<any[]> {
-  const response = await fetch(`https://${shop}/admin/api/2023-07/themes.json`, {
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes.json`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -475,10 +191,10 @@ async function getShopifyThemes(shop: string, accessToken: string): Promise<any[
 }
 
 // OS2.0 Theme update function
-async function updateOS2Theme(shop: string, accessToken: string, themeId: number, blockId?: string, formDirection: string = 'ltr'): Promise<any> {
+async function updateOS2Theme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For OS2.0 themes, we need to update the product.json template to insert our app block
   // First, get the template
-  const response = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.json`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -539,16 +255,14 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     productSection.blocks = {};
   }
   
-  // Block definition with form direction
+  // Block definition without form_id
   productSection.blocks[actualBlockId] = {
     type: appBlockType,
-    settings: {
-      is_rtl: formDirection === 'rtl'
-    }
+    settings: {}
   };
   
   // Update the template
-  const updateResponse = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json`, {
+  const updateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -573,17 +287,16 @@ async function updateOS2Theme(shop: string, accessToken: string, themeId: number
     block_id: actualBlockId,
     template: 'product.json',
     section: 'main',
-    block_type: appBlockType,
-    form_direction: formDirection
+    block_type: appBlockType
   };
 }
 
 // Traditional Theme update function
-async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, blockId?: string, formDirection: string = 'ltr'): Promise<any> {
+async function updateTraditionalTheme(shop: string, accessToken: string, themeId: number, blockId?: string): Promise<any> {
   // For traditional themes, we need to update the product template to include our snippet
   
   // First, get the product template
-  const response = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
+  const response = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -593,7 +306,7 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
   
   if (!response.ok) {
     // Try alternative product template
-    const altResponse = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
+    const altResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json?asset[key]=templates/product.liquid`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -611,7 +324,7 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
     }
     
     // Continue with the alternative template
-    return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', altData.asset.value, formDirection);
+    return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', altData.asset.value);
   }
   
   const data = await response.json();
@@ -620,88 +333,72 @@ async function updateTraditionalTheme(shop: string, accessToken: string, themeId
   }
   
   // Process the template
-  return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', data.asset.value, formDirection);
+  return await processTraditionalTemplate(shop, accessToken, themeId, blockId || '', 'templates/product.liquid', data.asset.value);
 }
 
 // Helper function to process the traditional liquid template
-async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, blockId: string, templateKey: string, templateContent: string, formDirection: string = 'ltr'): Promise<any> {
+async function processTraditionalTemplate(shop: string, accessToken: string, themeId: number, blockId: string, templateKey: string, templateContent: string): Promise<any> {
   // Generate a block ID if not provided
   const actualBlockId = blockId || `codform_${Date.now()}`;
   
-  // Include formDirection in the snippet render call
-  const isRtl = formDirection === 'rtl';
-  const snippetIncludeString = `{% render 'codform', product: product, block_id: '${actualBlockId}', is_rtl: ${isRtl} %}`;
-  
-  // Check if our snippet is already included
-  const oldSnippetRegex = new RegExp(`\\{\\%\\s*render\\s+['"]codform['"]\\s*,\\s*product\\s*:\\s*product\\s*,\\s*block_id\\s*:\\s*['"]${actualBlockId}['"]\\s*\\%\\}`, 'i');
+  // Check if our snippet is already included - now without form_id parameter
+  const snippetIncludeString = `{% render 'codform', product: product, block_id: '${actualBlockId}' %}`;
   
   if (templateContent.includes(snippetIncludeString)) {
-    console.log('Snippet with current direction already included in template');
+    console.log('Snippet already included in template');
     return {
       block_id: actualBlockId,
       template: templateKey,
-      status: 'already_exists',
-      form_direction: formDirection
+      status: 'already_exists'
     };
-  } else if (oldSnippetRegex.test(templateContent)) {
-    // If the snippet exists but without form direction, update it
-    templateContent = templateContent.replace(
-      oldSnippetRegex,
-      snippetIncludeString
-    );
-    
-    console.log('Updated existing snippet with direction parameter');
+  }
+
+  // Look for common insertion points
+  const addToCartButtonRegex = /<form.*?product-form.*?>|<form.*?action="\/cart\/add".*?>|<form.*?add-to-cart.*?>|\{\%\s*form.*?cart\/add.*?\%\}/i;
+  const priceRegex = /<div.*?product(\-|\s+|\_)price.*?>|\{\{.*?product\.price.*?\}\}|\{\{.*?current\_variant\.price.*?\}\}/i;
+  const variantSelectorRegex = /<select.*?id="product(\-|\s+|\_)select.*?>|<div.*?product(\-|\s+|\_)variant.*?>/i;
+  
+  // Try to insert it before the add to cart button
+  let modifiedContent = '';
+  let insertionPoint = '';
+  
+  if (addToCartButtonRegex.test(templateContent)) {
+    insertionPoint = 'add to cart button';
+    modifiedContent = templateContent.replace(addToCartButtonRegex, match => {
+      return `${snippetIncludeString}\n\n${match}`;
+    });
+  } else if (priceRegex.test(templateContent)) {
+    insertionPoint = 'price element';
+    modifiedContent = templateContent.replace(priceRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
+  } else if (variantSelectorRegex.test(templateContent)) {
+    insertionPoint = 'variant selector';
+    modifiedContent = templateContent.replace(variantSelectorRegex, match => {
+      return `${match}\n\n${snippetIncludeString}`;
+    });
   } else {
-    // Look for common insertion points
-    const addToCartButtonRegex = /<form.*?product-form.*?>|<form.*?action="\/cart\/add".*?>|<form.*?add-to-cart.*?>|\{\%\s*form.*?cart\/add.*?\%\}/i;
-    const priceRegex = /<div.*?product(\-|\s+|\_)price.*?>|\{\{.*?product\.price.*?\}\}|\{\{.*?current\_variant\.price.*?\}\}/i;
-    const variantSelectorRegex = /<select.*?id="product(\-|\s+|\_)select.*?>|<div.*?product(\-|\s+|\_)variant.*?>/i;
+    // If we couldn't find a good insertion point, add it to the end of the main content area 
+    // which often has a class like "product" or "product-content"
+    const productContainerRegex = /<div.*?class=".*?product.*?".*?>.*?<\/div>/s;
     
-    // Try to insert it before the add to cart button
-    let modifiedContent = '';
-    let insertionPoint = '';
-    
-    if (addToCartButtonRegex.test(templateContent)) {
-      insertionPoint = 'add to cart button';
-      modifiedContent = templateContent.replace(addToCartButtonRegex, match => {
-        return `${snippetIncludeString}\n\n${match}`;
-      });
-    } else if (priceRegex.test(templateContent)) {
-      insertionPoint = 'price element';
-      modifiedContent = templateContent.replace(priceRegex, match => {
-        return `${match}\n\n${snippetIncludeString}`;
-      });
-    } else if (variantSelectorRegex.test(templateContent)) {
-      insertionPoint = 'variant selector';
-      modifiedContent = templateContent.replace(variantSelectorRegex, match => {
-        return `${match}\n\n${snippetIncludeString}`;
+    if (productContainerRegex.test(templateContent)) {
+      insertionPoint = 'product container';
+      modifiedContent = templateContent.replace(productContainerRegex, match => {
+        // Insert before the closing div
+        const lastDivIndex = match.lastIndexOf('</div>');
+        const start = match.substring(0, lastDivIndex);
+        const end = match.substring(lastDivIndex);
+        return `${start}\n${snippetIncludeString}\n${end}`;
       });
     } else {
-      // If we couldn't find a good insertion point, add it to the end of the main content area 
-      // which often has a class like "product" or "product-content"
-      const productContainerRegex = /<div.*?class=".*?product.*?".*?>.*?<\/div>/s;
-      
-      if (productContainerRegex.test(templateContent)) {
-        insertionPoint = 'product container';
-        modifiedContent = templateContent.replace(productContainerRegex, match => {
-          // Insert before the closing div
-          const lastDivIndex = match.lastIndexOf('</div>');
-          const start = match.substring(0, lastDivIndex);
-          const end = match.substring(lastDivIndex);
-          return `${start}\n${snippetIncludeString}\n${end}`;
-        });
-      } else {
-        // Last resort - just append to the template
-        modifiedContent = `${templateContent}\n\n${snippetIncludeString}`;
-        insertionPoint = 'end of template';
-      }
+      // Last resort - just append to the template
+      modifiedContent = `${templateContent}\n\n${snippetIncludeString}`;
+      insertionPoint = 'end of template';
     }
-    
-    // Update templateContent for the next step
-    templateContent = modifiedContent;
   }
   
-  // Create the snippet with support for RTL direction and improved title styling
+  // Create the snippet - now without form_id parameter
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -709,27 +406,27 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 {% endcomment %}
 
 {% if product %}
-<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true" data-direction="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
-  <div class="codform-form-container" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+<div id="codform-container-{{ block_id }}" class="codform-container" data-product-id="{{ product.id }}" data-hide-header="true">
+  <div class="codform-form-container">
     <div id="codform-form-loader-{{ block_id }}" class="codform-loader">
       <div class="codform-spinner"></div>
-      <p style="direction: {% if is_rtl %}rtl{% else %}ltr{% endif %}; text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
+      <p>{{ block.settings.loading_text | default: 'جاري تحميل النموذج...' }}</p>
     </div>
 
-    <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;">
       <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
     </div>
 
-    <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;">
       <div class="codform-success-icon">✓</div>
-      <h4 style="text-align: center;">{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
-      <p style="text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
+      <h4>{{ block.settings.success_title | default: 'تم إرسال الطلب بنجاح' }}</h4>
+      <p>{{ block.settings.success_message | default: 'شكرًا لك، سنتواصل معك في أقرب وقت لإتمام عملية الدفع عند الاستلام.' }}</p>
     </div>
 
-    <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
+    <div id="codform-error-{{ block_id }}" class="codform-error" style="display: none;">
       <div class="codform-error-icon">!</div>
-      <h4 style="text-align: center;">{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
-      <p style="text-align: {% if is_rtl %}right{% else %}left{% endif %};">{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
+      <h4>{{ block.settings.error_title | default: 'حدث خطأ' }}</h4>
+      <p>{{ block.settings.error_message | default: 'حدث خطأ أثناء تحميل النموذج، يرجى المحاولة مرة أخرى.' }}</p>
       <button id="codform-retry-{{ block_id }}" class="codform-button">{{ block.settings.retry_button | default: 'إعادة المحاولة' }}</button>
     </div>
   </div>
@@ -747,7 +444,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
       font-size: {{ block.settings.floating_font_size | default: '16px' }};
       font-weight: {{ block.settings.floating_font_weight | default: '500' }};
       margin-bottom: {{ block.settings.floating_margin_bottom | default: '20px' }};
-      direction: {% if is_rtl %}rtl{% else %}ltr{% endif %};
+      direction: {% if block.settings.is_rtl %}rtl{% else %}ltr{% endif %};
       {% if block.settings.floating_border_width != '0px' %}
       border: {{ block.settings.floating_border_width | default: '1px' }} solid {{ block.settings.floating_border_color | default: '#000000' }};
       {% else %}
@@ -756,7 +453,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     "
     onclick="document.querySelector('#codform-container-{{ block_id }}').scrollIntoView({behavior: 'smooth'});"
   >
-    {% if is_rtl or block.settings.floating_show_icon == false %}
+    {% if block.settings.is_rtl or block.settings.floating_show_icon == false %}
       <span>{{ block.settings.floating_button_text | default: 'اطلب الآن' }}</span>
     {% endif %}
     
@@ -782,24 +479,24 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
       </span>
     {% endif %}
     
-    {% unless is_rtl or block.settings.floating_show_icon == false %}
+    {% unless block.settings.is_rtl or block.settings.floating_show_icon == false %}
       <span>{{ block.settings.floating_button_text | default: 'Order Now' }}</span>
     {% endunless %}
   </button>
 </div>
 {% endif %}
 
-<!-- External CSS -->
-{{ 'codform.css' | asset_url | stylesheet_tag }}
-
 <style>
-  /* Basic styles for quick loading (will be overridden by external CSS) */
   .codform-container {
     margin: 2rem 0;
     padding: 1.5rem;
     border: 1px solid #e5e5e5;
     border-radius: 0.5rem;
     background-color: #f9f9f9;
+  }
+  
+  .codform-header {
+    margin-bottom: 1rem;
   }
   
   .codform-loader {
@@ -825,128 +522,137 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     100% { transform: rotate(360deg); }
   }
   
-  /* ===== تنسيقات حقل العنوان - إصلاح فوري في حالة تأخر تحميل ملف CSS الخارجي ===== */
-  .form-title-field,
-  .codform-title-field,
-  div[data-field-type="title"],
-  div[data-field-type="form-title"],
-  div[data-field-type="edit-form-title"],
-  div[data-testid="title-field"],
-  div[data-testid="edit-form-title-field"],
-  .form-title-wrapper > div,
-  .space-y-2 > div:first-child {
-    background-color: #9b87f5 !important;
-    padding: 16px !important;
-    border-radius: 8px !important;
-    margin-bottom: 16px !important;
-    width: 100% !important;
-    display: block !important;
-    box-sizing: border-box !important;
+  .codform-success, .codform-error {
+    text-align: center;
+    padding: 2rem 0;
   }
   
-  .form-title-field h2,
-  .codform-title-field h2,
-  div[data-field-type="title"] h2,
-  div[data-field-type="form-title"] h2,
-  div[data-field-type="edit-form-title"] h2,
-  div[data-testid="title-field"] h2,
-  div[data-testid="edit-form-title-field"] h2,
-  .form-title-wrapper h2,
-  .space-y-2 > div:first-child h2 {
-    color: #ffffff !important;
-    font-size: 24px !important;
-    font-weight: bold !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  .codform-success-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
   }
   
-  .form-title-field p,
-  .codform-title-field p,
-  div[data-field-type="title"] p,
-  div[data-field-type="form-title"] p,
-  div[data-field-type="edit-form-title"] p,
-  div[data-testid="title-field"] p,
-  div[data-testid="edit-form-title-field"] p,
-  .form-title-wrapper p,
-  .space-y-2 > div:first-child p {
-    color: rgba(255, 255, 255, 0.9) !important;
+  .codform-error-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #F44336;
+    color: white;
+    font-size: 36px;
+    line-height: 60px;
+    margin: 0 auto 1rem;
   }
   
-  /* تطبيق خلفية على العنصر الأول في النموذج دائمًا */
-  .codform-form .space-y-2 > *:first-child,
-  .form-field-wrapper.form-title-wrapper > div {
-    background-color: #9b87f5 !important;
-    border-radius: 8px !important;
-    padding: 16px !important;
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+  }
+  
+  .codform-button:hover {
+    opacity: 0.9;
+  }
+  
+  /* Floating button container styles */
+  .codform-floating-button-container {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 999;
+  }
+  
+  /* Floating button styles */
+  .codform-floating-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+  }
+  
+  .codform-floating-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .codform-floating-button-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Animation styles */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  .pulse-animation {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+  
+  .shake-animation {
+    animation: shake 0.8s infinite;
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  .bounce-animation {
+    animation: bounce 2s infinite;
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    50% { transform: rotate(0); }
+    75% { transform: rotate(5deg); }
+  }
+  
+  .wiggle-animation {
+    animation: wiggle 0.7s ease-in-out infinite;
+  }
+  
+  @keyframes flash {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
+  }
+  
+  .flash-animation {
+    animation: flash 3s infinite;
   }
 </style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('CODFORM element found with ID: {{ block_id }}');
-    console.log('Direction: {% if is_rtl %}rtl{% else %}ltr{% endif %}');
-    
-    // هذه الدالة تضمن أن العنوان يظهر بالألوان الصحيحة
-    function forceTitleStyles() {
-      // استهداف جميع عناصر العنوان المحتملة
-      const titleSelectors = [
-        '.form-title-field', 
-        '.codform-title-field', 
-        '[data-field-type="title"]', 
-        '[data-field-type="form-title"]',
-        '[data-field-type="edit-form-title"]',
-        '[data-testid="title-field"]', 
-        '[data-testid="edit-form-title-field"]',
-        '.form-title-wrapper > div',
-        '.space-y-2 > div:first-child'
-      ];
-      
-      titleSelectors.forEach(function(selector) {
-        const elements = document.querySelectorAll(selector);
-        
-        elements.forEach(function(element) {
-          // تطبيق الخلفية والتنسيقات بشكل مباشر
-          element.style.backgroundColor = '#9b87f5';
-          element.style.padding = '16px';
-          element.style.borderRadius = '8px';
-          element.style.marginBottom = '16px';
-          element.style.width = '100%';
-          element.style.display = 'block';
-          
-          // تطبيق التنسيقات على العناوين
-          const titles = element.querySelectorAll('h2');
-          titles.forEach(function(title) {
-            title.style.color = '#ffffff';
-            title.style.margin = '0';
-            title.style.padding = '0';
-            title.style.fontWeight = 'bold';
-          });
-          
-          // تطبيق التنسيقات على الوصف
-          const descriptions = element.querySelectorAll('p');
-          descriptions.forEach(function(desc) {
-            desc.style.color = 'rgba(255, 255, 255, 0.9)';
-          });
-        });
-      });
-    }
-    
-    // تطبيق التنسيقات فورًا
-    forceTitleStyles();
-    
-    // تطبيق التنسيقات مرة أخرى بعد تحميل النموذج (للتحميل الديناميكي)
-    setTimeout(forceTitleStyles, 500);
-    setTimeout(forceTitleStyles, 1000);
-    setTimeout(forceTitleStyles, 2000);
-    
-    // متابعة تطبيق التنسيقات بشكل دوري للتأكد من ظهورها بشكل صحيح
-    setInterval(forceTitleStyles, 3000);
-  });
-</script>
 {% endif %}`;
-
-  // Upload the snippet with the updated style fixes
-  const snippetResponse = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json`, {
+  
+  // Upload the snippet
+  const snippetResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -968,7 +674,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
   console.log('Successfully created codform snippet');
   
   // Upload the modified template
-  const templateResponse = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json`, {
+  const templateResponse = await fetch(`https://${shop}/admin/api/2023-04/themes/${themeId}/assets.json`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -977,7 +683,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     body: JSON.stringify({
       asset: {
         key: templateKey,
-        value: templateContent
+        value: modifiedContent
       }
     })
   });
@@ -987,13 +693,12 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     throw new Error(`Failed to update template: ${templateResponse.status} - ${errorData}`);
   }
   
-  console.log(`Successfully updated traditional product template with direction: ${formDirection}`);
+  console.log(`Successfully updated traditional product template, inserted codform snippet near ${insertionPoint}`);
   
   return {
     block_id: actualBlockId,
     template: templateKey,
-    form_direction: formDirection,
-    snippet: 'codform.liquid',
-    css: 'codform.css'
+    insertion_point: insertionPoint,
+    snippet: 'codform.liquid'
   };
 }

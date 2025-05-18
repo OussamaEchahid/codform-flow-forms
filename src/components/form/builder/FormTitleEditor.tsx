@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { FormField } from '@/lib/form-utils';
-import { Card } from '@/components/ui/card';
 import { useI18n } from '@/lib/i18n';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, GripVertical, Edit } from 'lucide-react';
+import { FormField } from '@/lib/form-utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Palette } from 'lucide-react';
-import TitleEditorForm from './title-editor/TitleEditorForm';
 
 interface FormTitleEditorProps {
   formTitle: string;
@@ -18,7 +20,6 @@ interface FormTitleEditorProps {
   formTitleField: FormField | undefined;
   onUpdateTitleField: (field: FormField) => void;
   isDraggable?: boolean;
-  formDirection?: 'ltr' | 'rtl';
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -29,188 +30,364 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onAddTitleField,
   formTitleField,
   onUpdateTitleField,
-  isDraggable = false,
-  formDirection
+  isDraggable = true
 }) => {
   const { language } = useI18n();
-  const [backgroundColor, setBackgroundColor] = useState<string>('#9b87f5');
-  const [textColor, setTextColor] = useState<string>('#ffffff');
-  const [descriptionColor, setDescriptionColor] = useState<string>('#ffffff');
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(language === 'ar' ? 'right' : 'center');
-  const [isEditing, setIsEditing] = useState(false);
-  const [showTitle, setShowTitle] = useState(true);
-  const [showDescription, setShowDescription] = useState(true);
-  const [titleFontSize, setTitleFontSize] = useState('24px');
-  const [descriptionFontSize, setDescriptionFontSize] = useState('14px');
+  const [titleColor, setTitleColor] = useState(formTitleField?.style?.color || '#ffffff');
+  const [titleAlignment, setTitleAlignment] = useState(
+    formTitleField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
+  );
+  const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
+  const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
+  const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
+  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
+  const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
+  const [isOpen, setIsOpen] = useState(true);
 
-  // تكوين قابلية السحب
+  // Set up sortable functionality if the component is draggable
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({
-    id: formTitleField?.id || 'form-title-editor',
-    disabled: !isDraggable
+    isDragging
+  } = useSortable({ 
+    id: formTitleField?.id || 'title-editor',
+    disabled: !isDraggable || !formTitleField,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
   });
 
-  const style = {
+  const style = isDraggable ? {
     transform: CSS.Transform.toString(transform),
     transition,
-  };
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  } : {};
 
-  // تهيئة القيم من formTitleField إذا كان موجودًا
+  // Update local state when formTitleField changes
   useEffect(() => {
     if (formTitleField) {
+      setTitleColor(formTitleField.style?.color || '#ffffff');
+      setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
+      setTitleSize(formTitleField.style?.fontSize || '1.5rem');
+      setTitleWeight(formTitleField.style?.fontWeight || 'bold');
+      setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
+      setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
-      setTextColor(formTitleField.style?.color || '#ffffff');
-      setDescriptionColor(formTitleField.style?.descriptionColor || '#ffffff');
-      setTextAlign((formTitleField.style?.textAlign as 'left' | 'center' | 'right') || 'center');
-      setShowTitle(formTitleField.style?.showTitle !== false);
-      setShowDescription(formTitleField.style?.showDescription !== false);
-      setTitleFontSize(formTitleField.style?.titleFontSize || '24px');
-      setDescriptionFontSize(formTitleField.style?.descriptionFontSize || '14px');
     }
-  }, [formTitleField]);
+  }, [formTitleField, language]);
 
-  // تحديث الحقل
-  const handleFieldUpdate = () => {
-    if (!formTitleField) {
-      onAddTitleField();
-      return;
-    }
-
-    const updatedField: FormField = {
+  const handleUpdateStyle = (property: string, value: string) => {
+    if (!formTitleField) return;
+    
+    const updatedField = {
       ...formTitleField,
-      label: formTitle,
-      helpText: formDescription,
       style: {
         ...formTitleField.style,
-        backgroundColor,
-        color: textColor,
-        descriptionColor,
-        textAlign,
-        showTitle,
-        showDescription,
-        titleFontSize,
-        descriptionFontSize,
-        formDirection
+        [property]: value
       }
     };
-
+    
+    if (property === 'color') setTitleColor(value);
+    if (property === 'textAlign') setTitleAlignment(value);
+    if (property === 'fontSize') setTitleSize(value);
+    if (property === 'fontWeight') setTitleWeight(value);
+    if (property === 'descriptionColor') setDescColor(value);
+    if (property === 'descriptionFontSize') setDescSize(value);
+    if (property === 'backgroundColor') setBackgroundColor(value);
+    
     onUpdateTitleField(updatedField);
-    setIsEditing(false);
   };
 
-  // إذا لم نكن في وضع التحرير ولا يوجد حقل، عرض العرض المبسط
-  if (!isEditing && !formTitleField) {
-    return (
-      <Card className="mb-4 p-4 border-2 border-dashed border-purple-200 bg-purple-50">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold">
-              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {formTitle}
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onAddTitleField} 
-            className="border-purple-300 text-purple-700 hover:bg-purple-50"
-          >
-            <Pencil className="h-4 w-4 mr-1" />
-            {language === 'ar' ? 'إضافة عنوان قابل للتعديل' : 'Add Editable Title'}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+  const handleUpdateLabel = (value: string) => {
+    if (!formTitleField) {
+      onFormTitleChange(value);
+      return;
+    }
+    
+    const updatedField = {
+      ...formTitleField,
+      label: value
+    };
+    
+    onUpdateTitleField(updatedField);
+    onFormTitleChange(value);
+  };
 
-  // إذا كان الحقل موجودًا أو نحن في وضع التحرير، عرض المحرر الكامل
+  const handleUpdateDescription = (value: string) => {
+    if (!formTitleField) {
+      onFormDescriptionChange(value);
+      return;
+    }
+    
+    const updatedField = {
+      ...formTitleField,
+      helpText: value
+    };
+    
+    onUpdateTitleField(updatedField);
+    onFormDescriptionChange(value);
+  };
+
   return (
-    <div
-      ref={isDraggable ? setNodeRef : undefined}
-      style={isDraggable ? style : undefined}
-      className={`mb-4 ${isDraggable ? 'cursor-move' : ''}`}
-      data-field-type="form-title"
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`mb-4 border p-3 rounded-md bg-white ${isDragging ? 'shadow-lg' : ''}`}
     >
-      <Card className="p-4 border-2 border-purple-300 bg-white">
-        {isEditing ? (
-          <TitleEditorForm
-            title={formTitle}
-            description={formDescription}
-            backgroundColor={backgroundColor}
-            textColor={textColor}
-            descriptionColor={descriptionColor}
-            textAlign={textAlign}
-            showTitle={showTitle}
-            showDescription={showDescription}
-            titleFontSize={titleFontSize}
-            descriptionFontSize={descriptionFontSize}
-            formDirection={formDirection}
-            onTitleChange={onFormTitleChange}
-            onDescriptionChange={onFormDescriptionChange}
-            onBackgroundColorChange={setBackgroundColor}
-            onTextColorChange={setTextColor}
-            onDescriptionColorChange={setDescriptionColor}
-            onTextAlignChange={setTextAlign}
-            onShowTitleChange={setShowTitle}
-            onShowDescriptionChange={setShowDescription}
-            onTitleFontSizeChange={setTitleFontSize}
-            onDescriptionFontSizeChange={setDescriptionFontSize}
-            onSave={handleFieldUpdate}
-            onCancel={() => setIsEditing(false)}
-            language={language}
-          />
-        ) : (
-          <div className="flex items-center">
-            {isDraggable && (
-              <div 
-                {...attributes} 
-                {...listeners} 
-                className="p-2 cursor-grab"
-              >
-                <GripVertical className="h-5 w-5 text-gray-400" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between">
+          {isDraggable && formTitleField && (
+            <div 
+              {...attributes} 
+              {...listeners} 
+              className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded mr-2"
+            >
+              <GripVertical size={16} className="text-gray-500" />
+            </div>
+          )}
+          
+          <h3 className={`text-lg font-medium flex-1 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
+          </h3>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mx-2"
+          >
+            <Edit size={16} />
+          </Button>
+          
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              {isOpen ? 
+                <ChevronUp className="h-4 w-4" /> : 
+                <ChevronDown className="h-4 w-4" />
+              }
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        
+        <CollapsibleContent className="mt-2">
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label htmlFor="form-title" className={language === 'ar' ? 'text-right block' : ''}>
+                  {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+                </Label>
+                <Input
+                  id="form-title"
+                  value={formTitleField ? formTitleField.label : formTitle}
+                  onChange={(e) => handleUpdateLabel(e.target.value)}
+                  placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+                  className={language === 'ar' ? 'text-right' : ''}
+                />
               </div>
-            )}
-            
-            <div className="flex-1">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {formTitle}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center">
-                    <Palette className="h-4 w-4 mr-1 text-purple-600" />
-                    <div 
-                      className="w-5 h-5 rounded-full" 
-                      style={{ backgroundColor }}
-                    ></div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsEditing(true)}
-                    className="text-purple-700 hover:bg-purple-50"
-                  >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    {language === 'ar' ? 'تعديل' : 'Edit'}
-                  </Button>
-                </div>
+
+              <div>
+                <Label htmlFor="form-desc" className={language === 'ar' ? 'text-right block' : ''}>
+                  {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
+                </Label>
+                <Textarea
+                  id="form-desc"
+                  value={formTitleField ? formTitleField.helpText : formDescription}
+                  onChange={(e) => handleUpdateDescription(e.target.value)}
+                  placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+                  className={`${language === 'ar' ? 'text-right' : ''} h-20`}
+                />
               </div>
             </div>
+
+            {!formTitleField ? (
+              <Button 
+                onClick={onAddTitleField}
+                className="w-full mt-2"
+              >
+                {language === 'ar' ? 'تحويل العنوان إلى قابل للتعديل' : 'Convert to Editable Title'}
+              </Button>
+            ) : (
+              <div className="space-y-4 pt-2 border-t">
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <Label htmlFor="title-color" className={language === 'ar' ? 'text-right block' : ''}>
+                      {language === 'ar' ? 'لون العنوان' : 'Title Color'}
+                    </Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="title-color"
+                        type="color"
+                        value={titleColor}
+                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                        className="w-12 h-8 p-1"
+                      />
+                      <Input
+                        value={titleColor}
+                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
+                        className="ml-2 flex-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="bg-color" className={language === 'ar' ? 'text-right block' : ''}>
+                      {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+                    </Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="bg-color"
+                        type="color"
+                        value={backgroundColor}
+                        onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                        className="w-12 h-8 p-1"
+                      />
+                      <Input
+                        value={backgroundColor}
+                        onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
+                        className="ml-2 flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    {language === 'ar' ? 'خصائص العنوان' : 'Title Properties'}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="title-size" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'حجم العنوان' : 'Title Size'}
+                      </Label>
+                      <select
+                        id="title-size"
+                        value={titleSize}
+                        onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="1rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="1.25rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="1.5rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                        <option value="2rem">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="title-weight" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'سمك العنوان' : 'Title Weight'}
+                      </Label>
+                      <select
+                        id="title-weight"
+                        value={titleWeight}
+                        onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
+                        <option value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="bold">{language === 'ar' ? 'سميك' : 'Bold'}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className={language === 'ar' ? 'text-right block' : ''}>
+                    {language === 'ar' ? 'محاذاة العنوان' : 'Title Alignment'}
+                  </Label>
+                  <div className="flex space-x-2 mt-1">
+                    <Button
+                      type="button"
+                      variant={titleAlignment === 'left' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleUpdateStyle('textAlign', 'left')}
+                    >
+                      <AlignLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={titleAlignment === 'center' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleUpdateStyle('textAlign', 'center')}
+                    >
+                      <AlignCenter className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={titleAlignment === 'right' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleUpdateStyle('textAlign', 'right')}
+                    >
+                      <AlignRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-3">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    {language === 'ar' ? 'خصائص الوصف' : 'Description Properties'}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="desc-color" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'لون الوصف' : 'Description Color'}
+                      </Label>
+                      <div className="flex mt-1">
+                        <Input
+                          id="desc-color"
+                          type="color"
+                          value={descColor}
+                          onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                          className="w-12 h-8 p-1"
+                        />
+                        <Input
+                          value={descColor}
+                          onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
+                          className="ml-2 flex-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="desc-size" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
+                      </Label>
+                      <select
+                        id="desc-size"
+                        value={descSize}
+                        onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="0.75rem">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
+                        <option value="0.875rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="1rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="1.125rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="desc-weight" className={language === 'ar' ? 'text-right block' : ''}>
+                        {language === 'ar' ? 'سمك الوصف' : 'Description Weight'}
+                      </Label>
+                      <select
+                        id="desc-weight"
+                        value="normal"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                        disabled
+                      >
+                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </Card>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };

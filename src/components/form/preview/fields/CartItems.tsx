@@ -11,15 +11,11 @@ interface CartItemsProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, formDirection }) => {
+const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
-  
-  // Determine direction based on formDirection prop or language
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
@@ -28,41 +24,21 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, formDirection }
   const showTitle = field.label !== '' && field.label !== undefined;
   
   return (
-    <div 
-      className="mb-6 codform-cart-items"
-      dir={textDirection}
-      data-direction={textDirection}
-    >
+    <div className="mb-6 codform-cart-items">
       {showTitle && (
-        <h3 
-          className="text-lg font-medium mb-3" 
-          style={{
-            color: fieldStyle.color || '#1f2937',
-            fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
-            textAlign: textDirection === 'rtl' ? 'right' : 'left'
-          }}
-          dir={textDirection}
-        >
+        <h3 className="text-lg font-medium mb-3" style={{
+          color: fieldStyle.color || '#1f2937',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
+        }}>
           {field.label || (language === 'ar' ? 'المنتج المختار' : 'Selected Product')}
         </h3>
       )}
-      <div 
-        className="border rounded-md overflow-hidden" 
-        style={{ 
-          borderRadius,
-          direction: textDirection,
-        }}
-        dir={textDirection}
-      >
+      <div className="border rounded-md overflow-hidden" style={{ 
+        borderRadius,
+        direction: language === 'ar' ? 'rtl' : 'ltr',
+      }}>
         {/* عنصر العربة النموذجي للمعاينة */}
-        <div 
-          className="flex items-center p-4 border-b codform-cart-item" 
-          data-product-item
-          dir={textDirection}
-          style={{
-            flexDirection: textDirection === 'rtl' ? 'row-reverse' : 'row'
-          }}
-        >
+        <div className="flex items-center p-4 border-b codform-cart-item" data-product-item>
           <div className="w-20 h-20 bg-gray-100 rounded-md flex-shrink-0 ml-4 flex items-center justify-center" style={{ borderRadius: '0.25rem' }}>
             <img 
               src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=80&h=80&q=80" 
@@ -84,39 +60,24 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, formDirection }
             />
           </div>
           <div className="flex-1">
-            <h4 
-              className="font-medium product-title" 
-              style={{
-                fontSize: fieldStyle.fontSize || '1.1rem',
-                color: fieldStyle.color || '#1f2937',
-                textAlign: textDirection === 'rtl' ? 'right' : 'left'
-              }}
-              dir={textDirection}
-            >
+            <h4 className="font-medium product-title" style={{
+              fontSize: fieldStyle.fontSize || '1.1rem',
+              color: fieldStyle.color || '#1f2937',
+            }}>
               {language === 'ar' ? 'منتج تجريبي' : 'Sample Product'}
             </h4>
-            <div 
-              className="text-sm text-gray-500 mt-1 product-quantity" 
-              style={{
-                fontSize: fieldStyle.descriptionFontSize || '0.9rem',
-                color: fieldStyle.descriptionColor || '#6b7280',
-                textAlign: textDirection === 'rtl' ? 'right' : 'left'
-              }}
-              dir={textDirection}
-            >
+            <div className="text-sm text-gray-500 mt-1 product-quantity" style={{
+              fontSize: fieldStyle.descriptionFontSize || '0.9rem',
+              color: fieldStyle.descriptionColor || '#6b7280',
+            }}>
               {language === 'ar' ? 'الكمية: ١' : 'Quantity: 1'}
             </div>
           </div>
           <div className="text-right">
-            <div 
-              className="font-medium product-price" 
-              style={{
-                fontSize: fieldStyle.priceFontSize || '1rem',
-                color: fieldStyle.priceColor || '#1f2937',
-                textAlign: textDirection === 'rtl' ? 'left' : 'right'
-              }}
-              dir={textDirection}
-            >$99.00</div>
+            <div className="font-medium product-price" style={{
+              fontSize: fieldStyle.priceFontSize || '1rem',
+              color: fieldStyle.priceColor || '#1f2937',
+            }}>$99.00</div>
           </div>
         </div>
       </div>

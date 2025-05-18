@@ -22,10 +22,11 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
-  formDirection?: 'ltr' | 'rtl';
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
+  formTitle,
+  formDescription,
   currentStep,
   totalSteps,
   children,
@@ -39,66 +40,52 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
-  formDirection,
 }) => {
   const { language } = useI18n();
+  const [key] = useState(0);
   
-  // Use the formDirection prop if provided, otherwise fall back to language-based direction
-  const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Ensure field processing for consistent display - DO NOT filter out title fields
+  // تحسين معالجة الحقول وإعدادها بشكل صحيح
   const sanitizedFields = React.useMemo(() => {
-    // Add specific CSS classes for better styling
-    const formTitleBgColor = formStyle.primaryColor || '#9b87f5';
-    
-    // Ensure cart items and cart summary fields have empty labels by default
+    // ضمان أن حقول عناصر السلة وملخص السلة لها تسميات فارغة افتراضيًا
     const updatedFields = fields.map(field => {
-      // Copy field to avoid direct mutation issues
+      // نسخ الحقل لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
       
-      // Set empty default label for cart items and summary
+      // تعيين تسمية فارغة افتراضية لعناصر السلة والملخص
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         updatedField.label = '';
       }
       
-      // Special handling for title fields to ensure background color renders correctly
-      if (field.type === 'form-title' || field.type === 'edit-form-title' || field.type === 'title') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        // Set explicit background color if not already set
-        if (!updatedField.style.backgroundColor) {
-          updatedField.style.backgroundColor = formTitleBgColor;
-        }
-      }
-      
-      // Convert empty icon to 'none' for consistent handling
+      // تحويل الأيقونة الفارغة إلى 'none' لمعالجة متسقة
       if (field.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Make sure style.showIcon is defined if icon exists
+      // التأكد من تعريف style.showIcon إذا كانت الأيقونة موجودة
       if (field.icon && field.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
+        // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحة إلى false
+        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Ensure basic style properties exist
+      // ضمان وجود خصائص النمط الأساسية
       if (!updatedField.style) {
         updatedField.style = {};
       }
       
-      // Make sure font size is explicitly specified with px
+      // تأكد من تحديد حجم الخط بشكل صريح بالبكسل
       if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
+        // تحويل rem إلى px إذا لزم الأمر
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
@@ -106,11 +93,34 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return updatedField;
     });
     
+    // إذا كان هناك بالفعل عنوان للنموذج، استخدمه
+    if (updatedFields.some(field => field.type === 'form-title')) {
+      return updatedFields;
+    }
+    
+    // إذا لم يكن هناك عنوان للنموذج، أضف واحدًا في البداية بأحجام بكسل محددة
+    const formTitleField: FormField = {
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: formTitle,
+      helpText: formDescription,
+      style: {
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px', // 1.5rem = 24px
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px', // 0.875rem = 14px
+        backgroundColor: formStyle.primaryColor || '#9b87f5', // لون خلفية أساسي
+      }
+    };
+    
+    // التحقق مما إذا كان هناك زر إرسال بالفعل
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
-    let result = [...updatedFields];
+    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // If no submit button exists, add one
+    // إذا لم يكن هناك زر إرسال، أضف واحدًا بأحجام بكسل محددة
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -119,7 +129,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px',
+          fontSize: '18px', // 1.2rem = 18px
           animation: true,
           animationType: 'pulse',
         },
@@ -128,87 +138,25 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, language, formStyle.primaryColor]);
+  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
   
-  // Create unique ID for this form
+  // إنشاء معرف فريد لهذا النموذج لضمان التحديث الصحيح
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
-  
-  // Use consistent background color for form
-  const formBackgroundColor = "#F9FAFB";
-  
-  // Direction class for the form
-  const dirClass = direction === 'rtl' ? 'rtl' : 'ltr';
-  
-  // Apply specific styling for title fields via style tag to ensure specificity
-  React.useEffect(() => {
-    // Create a style element to inject high-specificity CSS
-    const styleEl = document.createElement('style');
-    styleEl.setAttribute('data-form-title-styles', formId);
-    styleEl.textContent = `
-      /* High-specificity selectors for title fields */
-      .codform-form .form-title-field,
-      .codform-form [data-field-type="title"],
-      .codform-form [data-field-type="form-title"],
-      .codform-form [data-field-type="edit-form-title"],
-      .codform-form [data-testid="title-field"],
-      .codform-form [data-testid="edit-form-title-field"] {
-        background-color: ${formStyle.primaryColor || '#9b87f5'} !important;
-        border-radius: ${formStyle.borderRadius || '0.5rem'} !important;
-        padding: 0.75rem !important;
-        margin-bottom: 1rem !important;
-        width: 100% !important;
-        display: block !important;
-        box-sizing: border-box !important;
-      }
-      
-      .codform-form .form-title-field h2,
-      .codform-form [data-field-type="title"] h2,
-      .codform-form [data-field-type="form-title"] h2,
-      .codform-form [data-testid="title-field"] h2,
-      .codform-form [data-testid="edit-form-title-field"] h2 {
-        color: #ffffff !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.3 !important;
-        width: 100% !important;
-        display: block !important;
-      }
-      
-      .codform-form .form-title-field p,
-      .codform-form [data-field-type="title"] p,
-      .codform-form [data-field-type="form-title"] p,
-      .codform-form [data-testid="title-field"] p,
-      .codform-form [data-testid="edit-form-title-field"] p {
-        color: rgba(255, 255, 255, 0.9) !important;
-        margin: 0.25rem 0 0 0 !important;
-        width: 100% !important;
-        display: block !important;
-      }
-    `;
-    
-    document.head.appendChild(styleEl);
-    
-    return () => {
-      // Clean up on unmount
-      const existingStyle = document.querySelector(`style[data-form-title-styles="${formId}"]`);
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    };
-  }, [formId, formStyle.primaryColor, formStyle.borderRadius]);
   
   return (
     <div 
-      className={`rounded-lg border shadow-sm overflow-hidden codform-form ${dirClass}`}
+      key={formId}
+      className="rounded-lg border shadow-sm overflow-hidden bg-[#F9FAFB] codform-form"
       style={{
         fontSize: formStyle.fontSize,
-        backgroundColor: formBackgroundColor,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
       data-form-preview-id={formId}
-      data-direction={direction}
-      dir={direction}
+      data-primary-color={formStyle.primaryColor}
+      data-border-radius={formStyle.borderRadius}
+      data-font-size={formStyle.fontSize}
+      data-button-style={formStyle.buttonStyle}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -250,22 +198,21 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className={`p-3 ${dirClass}`} 
+        className="p-3" 
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
-          direction: direction,
-          backgroundColor: formBackgroundColor
+          direction: language === 'ar' ? 'rtl' : 'ltr',
+          backgroundColor: "#F9FAFB"
         }}
-        dir={direction}
+        data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2" style={{backgroundColor: 'transparent'}}>
+          <div className="space-y-2">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}
                 field={field} 
                 formStyle={formStyle}
-                formDirection={direction}
               />
             ))}
           </div>
@@ -274,17 +221,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* Show floating button if enabled and not hidden for preview */}
+      {/* عرض الزر العائم إذا كان ممكّنًا وغير مخفي لأغراض المعاينة */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}
-      
-      {/* Debugging information (hidden from user but useful for development) */}
-      <div style={{ display: 'none' }} data-debug-info>
-        Direction: {direction}
-        Form ID: {formId}
-        Fields count: {sanitizedFields.length}
-      </div>
     </div>
   );
 };

@@ -13,11 +13,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   
   // Define the available form elements with translations
   const availableElements = [
-    {
-      type: 'form-title',
-      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
-      icon: 'H1' 
-    },
     { 
       type: 'text', 
       label: language === 'ar' ? 'حقل نص' : 'Text Input', 
@@ -82,6 +77,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'image', 
       label: language === 'ar' ? 'صورة' : 'Image', 
       icon: '🖼️' 
+    },
+    { 
+      type: 'form-title', 
+      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
+      icon: 'H1' 
     }
   ];
 
@@ -95,16 +95,12 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
         <div 
           key={element.type}
           className={`flex items-center justify-between p-3 hover:bg-gray-50 border rounded-md cursor-pointer ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-          onClick={() => onAddElement(element.type)}
         >
           <Button 
             variant="ghost" 
             size="sm"
             className="p-1" 
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering the parent onClick
-              onAddElement(element.type);
-            }}
+            onClick={() => onAddElement(element.type)}
           >
             <Plus size={16} />
           </Button>

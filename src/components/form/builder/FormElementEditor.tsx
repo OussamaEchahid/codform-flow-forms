@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -29,116 +29,64 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onUpdateElement
 }) => {
   const { language } = useI18n();
-  const [refreshKey, setRefreshKey] = useState(0);
   
-  // ضبط السحب والإفلات ليكون أكثر استجابة
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
-      distance: 3 // أكثر حساسية للسحب
+      distance: 8
     }
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
-
-  // إعادة تحميل سياق DndContext عندما تتغير العناصر
-  useEffect(() => {
-    console.log("FormElementEditor: Elements updated, refreshing DndContext");
-    setRefreshKey(prev => prev + 1);
-  }, [elements.length]);
   
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const {
+      active,
+      over
+    } = event;
     
     if (!over || active.id === over.id) {
       return;
     }
     
-    console.log("Drag ended. Moving from", active.id, "to", over.id);
-    
     const oldIndex = elements.findIndex(item => item.id === active.id);
     const newIndex = elements.findIndex(item => item.id === over.id);
     
-    if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
+    if (onReorderElements) {
       const newElements = arrayMove(elements, oldIndex, newIndex);
       onReorderElements(newElements);
       toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
   };
   
-  // معالجة تحديث العناصر عند تعديلها مباشرة من SortableField
+  // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = (index: number, field: FormField) => {
-    try {
-      console.log("Updating element", field.id, "at index", index);
-      
-      // نسخ عميق للحقل لتجنب مشاكل المراجع
-      const updatedField = JSON.parse(JSON.stringify(field));
-      
-      // تطبيع قيمة الأيقونة (تحويل السلسلة الفارغة إلى 'none')
-      if (updatedField.icon === '') {
-        updatedField.icon = 'none';
-      }
-      
-      // تأكد من إعدادات الأيقونة الصحيحة
-      if (updatedField.icon && updatedField.icon !== 'none') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        // تعيين showIcon بناءً على القيمة الموجودة أو الافتراضية إلى صحيح إذا كانت الأيقونة موجودة
-        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
-          ? updatedField.style.showIcon 
-          : true;
-      }
-      
-      // معالجة تنسيق عنوان النموذج المحدد
-      if (updatedField.type === 'form-title' || updatedField.type === 'edit-form-title' || updatedField.type === 'title') {
-        // تأكد من وجود كائن النمط
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        // تأكد من أن لدينا محاذاة نص محددة
-        if (!updatedField.style.textAlign) {
-          updatedField.style.textAlign = 'center';
-        }
-        
-        // تأكد من أن حالة إظهار الوصف متاحة
-        if (updatedField.style.showTitle === undefined) {
-          updatedField.style.showTitle = true;
-        }
-        
-        // وضع القيمة الافتراضية لإظهار الوصف إلى صحيح إذا لم تكن محددة صراحةً
-        if (updatedField.style.showDescription === undefined) {
-          updatedField.style.showDescription = true;
-        }
-        
-        // ضبط أحجام الخطوط إذا لم تكن محددة
-        if (!updatedField.style.titleFontSize) {
-          updatedField.style.titleFontSize = '24px';
-        }
-        
-        if (!updatedField.style.descriptionFontSize) {
-          updatedField.style.descriptionFontSize = '14px';
-        }
-        
-        console.log("Updated form title field:", JSON.stringify(updatedField.style, null, 2));
-      }
-      
-      // إخطار المكون الأصلي حول التحديث
-      if (onUpdateElement) {
-        onUpdateElement(index, updatedField);
-        console.log(`Element ${updatedField.id} at index ${index} updated with:`, updatedField);
-      }
-      
-      // إجبار تحديث المعاينة عن طريق تحديد العنصر مرة أخرى
-      onSelectElement(index);
-    } catch (error) {
-      console.error("Error updating field:", error);
-      toast.error(language === 'ar' ? "حدث خطأ أثناء تحديث الحقل" : "Error updating field");
+    // Normalize icon value (convert empty string to 'none')
+    if (field.icon === '') {
+      field.icon = 'none';
     }
+    
+    // Ensure proper icon settings
+    if (field.icon && field.icon !== 'none') {
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Set showIcon based on existing value or default to true if icon exists
+      field.style.showIcon = field.style.showIcon !== undefined 
+        ? field.style.showIcon 
+        : true;
+    }
+    
+    // Notify parent component about the update
+    if (onUpdateElement) {
+      onUpdateElement(index, field);
+    }
+    
+    // Force refresh the preview
+    onSelectElement(index);
   };
   
-  // التحقق مما إذا كانت هناك عناصر للعرض
+  // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
   const hasElements = elements.length > 0;
 
   return (
@@ -153,22 +101,16 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         </div>
       )}
       
-      <DndContext 
-        key={`dnd-context-${refreshKey}`}
-        sensors={sensors} 
-        collisionDetection={closestCenter} 
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
           {elements.map((element, index) => (
             <SortableField 
-              key={`${element.id}-${refreshKey}`}
+              key={element.id} 
               field={element} 
               onEdit={() => onEditElement(index)}
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-              selected={selectedIndex === index}
             />
           ))}
         </SortableContext>
