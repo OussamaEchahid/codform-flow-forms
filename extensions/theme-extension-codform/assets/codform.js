@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
   // Configuration
   const API_URL_BASE = 'https://mtyfuwdsshlzqwjujavp.functions.supabase.co';
@@ -855,46 +854,106 @@ document.addEventListener('DOMContentLoaded', function() {
   // Create title field
   function createTitleField(field, style, container) {
     const titleContainer = document.createElement('div');
-    titleContainer.className = field.type === 'form-title' ? 'codform-title-container' : 'codform-subtitle-container';
+    titleContainer.className = field.type === 'form-title' ? 'codform-form-title-container codform-title-container' : 'codform-title-container';
     
-    // Apply styling attributes to container
-    const hasBackground = !!(field.style && field.style.backgroundColor);
+    // Convert rem values to px for consistent styling
+    const remToPx = (value) => {
+      if (!value) return '';
+      if (value.includes('rem')) {
+        const remValue = parseFloat(value);
+        return `${Math.round(remValue * 16)}px`;
+      }
+      if (!value.includes('px') && !isNaN(parseFloat(value))) {
+        return `${value}px`;
+      }
+      return value;
+    };
     
-    if (hasBackground) {
-      titleContainer.style.backgroundColor = field.style.backgroundColor;
-      titleContainer.style.padding = '16px';
-      titleContainer.style.borderRadius = style.borderRadius || '8px';
-    }
+    // Use form direction to determine text alignment default
+    const isRTL = document.dir === 'rtl' || document.documentElement.lang === 'ar';
+    const defaultAlignment = isRTL ? 'right' : 'left';
+    
+    // Apply styling attributes to container with explicit px values
+    const backgroundColor = field.style?.backgroundColor || style.primaryColor || '#9b87f5';
+    
+    titleContainer.style.backgroundColor = backgroundColor;
+    titleContainer.style.padding = '16px';
+    titleContainer.style.borderRadius = style.borderRadius || '8px';
+    titleContainer.style.width = '100%';
+    titleContainer.style.boxSizing = 'border-box';
+    titleContainer.style.marginBottom = '16px';
     
     // Create title element
-    const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
+    const titleTag = field.type === 'form-title' ? 'h2' : 'h3';
+    const title = document.createElement(titleTag);
     title.innerText = field.label || field.text || '';
+    title.className = field.type === 'form-title' ? 'codform-form-title' : '';
     
-    // Apply all styling from field.style
-    if (field.style) {
-      if (field.style.color) title.style.color = field.style.color;
-      if (field.style.fontSize) title.style.fontSize = field.style.fontSize;
-      if (field.style.fontWeight) title.style.fontWeight = field.style.fontWeight;
-      if (field.style.textAlign) title.style.textAlign = field.style.textAlign;
-      if (field.style.fontFamily) title.style.fontFamily = field.style.fontFamily;
+    // Add important data attributes for debugging
+    titleContainer.setAttribute('data-title-color', field.style?.color || '#ffffff');
+    titleContainer.setAttribute('data-bg-color', backgroundColor);
+    titleContainer.setAttribute('data-font-size', field.style?.fontSize || (field.type === 'form-title' ? '24px' : '20px'));
+    titleContainer.setAttribute('data-font-weight', field.style?.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium'));
+    
+    // Set showing options
+    const showTitle = field.style?.showTitle !== false;
+    const showDescription = field.style?.showDescription !== false;
+    titleContainer.setAttribute('data-show-title', showTitle.toString());
+    titleContainer.setAttribute('data-show-description', showDescription?.toString() || 'true');
+    
+    // Apply all styling from field.style explicitly with !important where needed
+    // Default values for title styling
+    const defaultTitleSize = field.type === 'form-title' ? '24px' : '20px';
+    title.style.color = field.style?.color || '#ffffff';
+    title.style.fontSize = remToPx(field.style?.fontSize) || defaultTitleSize;
+    title.style.fontWeight = field.style?.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium');
+    title.style.margin = '0';
+    title.style.padding = '0';
+    title.style.lineHeight = '1.3';
+    title.style.display = 'block';
+    
+    // Handle text alignment - critically important to preserve
+    const textAlign = field.style?.textAlign || defaultAlignment;
+    title.style.textAlign = textAlign;
+    titleContainer.style.textAlign = textAlign;
+    
+    // Add fontFamily if specified
+    if (field.style?.fontFamily) {
+      title.style.fontFamily = field.style.fontFamily;
+      titleContainer.setAttribute('data-font-family', field.style.fontFamily);
     }
     
-    titleContainer.appendChild(title);
+    if (showTitle) {
+      titleContainer.appendChild(title);
+    }
     
-    // Add description if provided
-    if (field.helpText) {
+    // Add description if provided and showDescription is not false
+    if (field.helpText && showDescription) {
       const description = document.createElement('p');
       description.innerText = field.helpText;
-      description.className = 'codform-field-description';
+      description.className = 'codform-title-description';
       
-      // Apply styling to description
-      if (field.style) {
-        if (field.style.descriptionColor) description.style.color = field.style.descriptionColor;
-        if (field.style.descriptionFontSize) description.style.fontSize = field.style.descriptionFontSize;
-        if (field.style.descriptionFontWeight) description.style.fontWeight = field.style.descriptionFontWeight;
-        if (field.style.textAlign) description.style.textAlign = field.style.textAlign;
-        if (field.style.fontFamily) description.style.fontFamily = field.style.fontFamily;
+      // Default values for description styling
+      const defaultDescSize = '14px';
+      
+      // Apply styling to description with explicit px values
+      description.style.color = field.style?.descriptionColor || '#ffffff';
+      description.style.fontSize = remToPx(field.style?.descriptionFontSize) || defaultDescSize;
+      description.style.margin = '6px 0 0 0';
+      description.style.padding = '0';
+      description.style.textAlign = textAlign;
+      description.style.fontWeight = 'normal';
+      description.style.lineHeight = '1.5';
+      description.style.opacity = '0.9';
+      
+      // Add fontFamily to description if specified
+      if (field.style?.fontFamily) {
+        description.style.fontFamily = field.style.fontFamily;
       }
+      
+      // Add data attributes for description
+      titleContainer.setAttribute('data-desc-color', field.style?.descriptionColor || '#ffffff');
+      titleContainer.setAttribute('data-desc-font-size', remToPx(field.style?.descriptionFontSize) || defaultDescSize);
       
       titleContainer.appendChild(description);
     }
@@ -998,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add WhatsApp icon
     const icon = document.createElement('span');
     icon.className = 'codform-whatsapp-icon';
-    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="M8.2 8.2c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-.5.5c-.3.3-.3.7 0 1l3 3c.3.3.7.3 1 0l.5-.5c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-1.5 1.5c-1.2 1.2-3.1 1.2-4.2 0L7 16.3c-1.2-1.2-1.2-3.1 0-4.2l1.2-1.9z"></path></svg>';
+    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="M8.2 8.2c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-.5.5c-.3.3-.3.7 0 1l3 3c.3.3.7.3 1 0l.5-.5c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-1.5 1.5c-1.2 1.2-3.1 1.2-4.2 0L7 16.3c-1.2-1.2-1.2-3.1 0-4.2l1.2-1.9z"></svg>';
     
     // Add button label
     const label = document.createElement('span');

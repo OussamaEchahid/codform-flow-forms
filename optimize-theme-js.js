@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -20,27 +19,41 @@ const originalContent = fs.readFileSync(jsFilePath, 'utf8');
 const originalSize = Buffer.byteLength(originalContent, 'utf8');
 console.log(`Original size: ${originalSize} bytes (${(originalSize / 1024).toFixed(2)} KB)`);
 
-// Simple optimizations (in a real app, you would use a proper minifier like Terser)
+// More careful optimizations to preserve style functionality
 console.log('Applying optimizations...');
 
-// Remove comments
-let optimizedContent = originalContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+// Remove comments (but keep any commented out code that might be important)
+let optimizedContent = originalContent.replace(/\/\*[\s\S]*?\*\//g, '');
 
-// Remove console.logs
-optimizedContent = optimizedContent.replace(/console\.log\([^)]*\);?/g, '');
+// Remove console.logs except those that might be important for debugging
+optimizedContent = optimizedContent.replace(/console\.log\(['"](?!Error|Important|Critical|Warn|Debug).*?\);?/g, '');
 
-// Remove extra whitespace
-optimizedContent = optimizedContent.replace(/\s+/g, ' ');
+// Be careful with whitespace - preserve functional whitespace
+let minifiedContent = optimizedContent
+  .replace(/\s*{\s*/g, ' { ')
+  .replace(/\s*}\s*/g, ' } ')
+  .replace(/\s*:\s*/g, ': ')
+  .replace(/\s*;\s*/g, '; ')
+  .replace(/\s*,\s*/g, ', ');
 
-// Basic minification
-optimizedContent = optimizedContent
-  .replace(/\s*{\s*/g, '{')
-  .replace(/\s*}\s*/g, '}')
-  .replace(/\s*:\s*/g, ':')
-  .replace(/\s*;\s*/g, ';')
-  .replace(/\s*,\s*/g, ',');
+// Restore any essential style properties that might have been mangled
+// We need to be particularly careful with style properties
+const styleProperties = [
+  'color', 'backgroundColor', 'fontSize', 'fontFamily', 'fontWeight', 
+  'textAlign', 'borderRadius', 'margin', 'padding', 'lineHeight',
+  'opacity', 'boxSizing'
+];
 
-const optimizedSize = Buffer.byteLength(optimizedContent, 'utf8');
+// Ensure style properties have proper spacing
+styleProperties.forEach(prop => {
+  const regex = new RegExp(`([a-z0-9])${prop}:`, 'g');
+  minifiedContent = minifiedContent.replace(regex, `$1; ${prop}:`);
+});
+
+// Make sure that !important stays attached to the property value
+minifiedContent = minifiedContent.replace(/;\s*!/g, ' !');
+
+const optimizedSize = Buffer.byteLength(minifiedContent, 'utf8');
 console.log(`Optimized size: ${optimizedSize} bytes (${(optimizedSize / 1024).toFixed(2)} KB)`);
 
 // Calculate reduction
@@ -54,7 +67,7 @@ fs.writeFileSync(backupPath, originalContent);
 console.log(`Original file backed up to ${backupPath}`);
 
 // Write optimized file
-fs.writeFileSync(jsFilePath, optimizedContent);
+fs.writeFileSync(jsFilePath, minifiedContent);
 console.log(`Optimized file written to ${jsFilePath}`);
 
 console.log('Optimization complete!');

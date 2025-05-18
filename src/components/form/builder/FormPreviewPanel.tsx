@@ -25,7 +25,7 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Helper function to convert rem to px
+// Helper function to convert rem to px - ensure it matches store implementation
 const remToPx = (value: string | undefined, defaultValue: string): string => {
   if (!value) return defaultValue;
   
@@ -57,49 +57,49 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
+  // Force update when any property changes to ensure live preview updates instantly
   useEffect(() => {
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
+  // Process fields to normalize icon values - necessary for preview rendering
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
+      // Create new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // ضمان معالجة showIcon بشكل صحيح
+      // Ensure showIcon is properly processed
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
+        // Set showIcon to true by default unless explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
+      // Ensure font size uses consistent px units
       if (updatedField.style?.fontSize) {
         updatedField.style.fontSize = remToPx(updatedField.style.fontSize, '16px');
       }
       
-      // التأكد من أن حجم خط الوصف يستخدم وحدات px المتسقة
+      // Ensure description font size uses consistent px units
       if (updatedField.style?.descriptionFontSize) {
         updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
       }
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields, internalRefreshKey]); // Add internalRefreshKey to dependencies to ensure re-render
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
+  // Create unique id for this preview component
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
@@ -124,7 +124,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
+      {/* Add small note alerting about ensuring compatibility between preview and store display */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'

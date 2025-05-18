@@ -12,9 +12,9 @@ interface TitleFieldProps {
   };
 }
 
-// تحديد خيارات محاذاة النص الصالحة
+// Define valid text alignment types
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
-// تحديد قيم box-sizing الصالحة
+// Define valid box-sizing values
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
 // Convert rem to px for consistent styling
@@ -37,17 +37,17 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // استخراج الوصف من الحقل نفسه
+  // Get description from field
   const description = field.helpText || '';
   
-  // التحقق مما إذا كان يجب إظهار العنوان والوصف
+  // Check if title and description should be shown
   const showTitle = fieldStyle.showTitle !== false;
   const showDescription = fieldStyle.showDescription !== false;
   
-  // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
+  // Set default alignment based on language
   const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
-  // تحويل محاذاة السلسلة إلى نوع TextAlign مع التحقق
+  // Validate and get text alignment
   const getValidAlignment = (align?: string): TextAlign => {
     if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
       return align as TextAlign;
@@ -57,21 +57,21 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // استخدام قيم بكسل دقيقة بدلاً من rem للحصول على حجم متسق عبر البيئات
+  // Use precise px values instead of rem for consistent sizing
   const isFormTitle = field.type === 'form-title';
   
-  // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
+  // Use consistent px values instead of rem to ensure exact size matching
   const defaultTitleSize = isFormTitle ? '24px' : '20px';
   const defaultDescSize = '14px';
   
-  // تحويل جميع قيم الأحجام إلى بكسل
+  // Convert all size values to pixels
   const fontSize = remToPx(fieldStyle.fontSize, defaultTitleSize);
   const descriptionFontSize = remToPx(fieldStyle.descriptionFontSize, defaultDescSize);
   
-  // الحصول على لون الخلفية مع القيمة الافتراضية
+  // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // نمط الخلفية مع قيم بكسل ثابتة للبادينغ
+  // Background style with fixed px padding
   const backgroundStyle = {
     backgroundColor: backgroundColor,
     padding: '16px', // Exact padding to match between preview and store
@@ -82,7 +82,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // أنماط العنوان
+  // Title styles
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fontSize,
@@ -95,7 +95,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     display: 'block',
   };
 
-  // أنماط الوصف
+  // Description styles
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: descriptionFontSize,
@@ -108,7 +108,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     opacity: '0.9',
   };
 
-  // إنشاء معرف فريد لهذا الحقل
+  // Create unique ID for this field
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
   return (
