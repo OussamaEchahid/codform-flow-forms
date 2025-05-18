@@ -66,11 +66,8 @@ export interface FormFieldStyle {
   animationType?: string;
   
   // Icon properties
-  iconPosition?: 'left' | 'right';
-  showIcon?: boolean;
+  iconPosition?: string;
   icon?: string;
-  
-  // Width and font properties
   fullWidth?: boolean;
   fontFamily?: string;
   
@@ -81,8 +78,7 @@ export interface FormFieldStyle {
   
   // Additional properties needed
   showLabel?: boolean;
-  showTitle?: boolean;
-  showDescription?: boolean;
+  showIcon?: boolean;
   paddingY?: string;
   
   // Cart item and summary specific properties
@@ -97,7 +93,7 @@ export interface FormFieldStyle {
 }
 
 export interface FormField {
-  type: FormFieldType; // استبدال type: string بـ type: FormFieldType
+  type: string;
   id: string;
   label?: string;
   placeholder?: string;
@@ -244,14 +240,6 @@ export const extractFormSections = (form: FormData): Array<{ title: string; fiel
   }));
 };
 
-// Helper function to ensure FormFieldType is correctly applied
-const ensureFormFieldType = (field: any): FormField => {
-  return {
-    ...field,
-    type: field.type as FormFieldType
-  };
-};
-
 // Function to create an empty field based on type
 export const createEmptyField = (type: FormFieldType): FormField => {
   let newField: FormField = {
@@ -274,8 +262,6 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         descriptionColor: '#6b7280',
         descriptionFontSize: '14px',
         backgroundColor: '',
-        showTitle: true,
-        showDescription: true,
       };
       break;
     case 'text':
@@ -315,7 +301,7 @@ export const createEmptyField = (type: FormFieldType): FormField => {
       newField.options = [
         { value: 'option1', label: 'الخيار الأول' },
         { value: 'option2', label: 'الخيار الثاني' },
-        { value: 'option3', label: 'الخيار ��لثالث' }
+        { value: 'option3', label: 'الخيار الثالث' }
       ];
       break;
     case 'cart-items':
@@ -332,7 +318,6 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         fontSize: '18px',
         animation: true,
         animationType: 'pulse',
-        iconPosition: 'left'
       };
       break;
     case 'text/html':
@@ -348,8 +333,6 @@ export const createEmptyField = (type: FormFieldType): FormField => {
       break;
     case 'whatsapp':
       newField.label = 'طلب عبر الواتساب';
-      newField.whatsappNumber = '';
-      newField.message = '';
       break;
     case 'image':
       newField.label = 'صورة';
@@ -368,7 +351,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add form title field
   defaultFields.push({
-    type: 'form-title' as FormFieldType,
+    type: 'form-title',
     id: uuidv4(),
     label: 'نموذج جديد',
     helpText: 'نموذج جديد',
@@ -380,53 +363,42 @@ export const createDefaultForm = (): FormStep[] => {
       descriptionColor: '#ffffff',
       descriptionFontSize: '14px',
       backgroundColor: '#9b87f5',
-      showTitle: true,
-      showDescription: true
     }
   });
   
   // Add name field
   defaultFields.push({
-    type: 'text' as FormFieldType,
+    type: 'text',
     id: uuidv4(),
     label: 'الاسم الكامل',
     placeholder: 'أدخل الاسم الكامل',
     required: true,
     icon: 'user',
-    style: {
-      iconPosition: 'right'
-    }
   });
   
   // Add phone field
   defaultFields.push({
-    type: 'phone' as FormFieldType,
+    type: 'phone',
     id: uuidv4(),
     label: 'رقم الهاتف',
     placeholder: 'أدخل رقم الهاتف',
     required: true,
     icon: 'phone',
-    style: {
-      iconPosition: 'right'
-    }
   });
   
   // Add city field
   defaultFields.push({
-    type: 'text' as FormFieldType,
+    type: 'text',
     id: uuidv4(),
     label: 'المدينة',
     placeholder: 'أدخل اسم المدينة',
     required: true,
     icon: 'map-pin',
-    style: {
-      iconPosition: 'right'
-    }
   });
   
   // Add address field
   defaultFields.push({
-    type: 'textarea' as FormFieldType,
+    type: 'textarea',
     id: uuidv4(),
     label: 'العنوان',
     placeholder: 'أدخل العنوان الكامل',
@@ -435,7 +407,7 @@ export const createDefaultForm = (): FormStep[] => {
   
   // Add submit button with updated configuration
   defaultFields.push({
-    type: 'submit' as FormFieldType,
+    type: 'submit',
     id: uuidv4(),
     label: 'الدفع عند الاستلام',
     style: {
@@ -450,6 +422,7 @@ export const createDefaultForm = (): FormStep[] => {
       borderWidth: '0px',
       paddingY: '12px',
       showIcon: true,
+      icon: 'shopping-cart',
       iconPosition: 'left',
     },
   });
@@ -463,7 +436,7 @@ export const createDefaultForm = (): FormStep[] => {
   return [defaultStep];
 };
 
-// Form templates with explicit FormFieldType typing
+// Form templates
 export const formTemplates = [
   {
     id: 1,
@@ -485,9 +458,7 @@ export const formTemplates = [
               color: '#ffffff',
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              backgroundColor: '#d97706',
-              showTitle: true,
-              showDescription: true
+              backgroundColor: '#d97706'
             }
           },
           {
@@ -545,9 +516,7 @@ export const formTemplates = [
               color: '#ffffff',
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              backgroundColor: '#3b82f6',
-              showTitle: true,
-              showDescription: true
+              backgroundColor: '#3b82f6'
             }
           },
           {
@@ -617,9 +586,7 @@ export const formTemplates = [
               color: '#ffffff',
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              backgroundColor: '#115e59',
-              showTitle: true,
-              showDescription: true
+              backgroundColor: '#115e59'
             }
           },
           {

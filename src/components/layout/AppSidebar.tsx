@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,11 +12,7 @@ import {
   Globe,
   LogOut,
   RefreshCcw,
-  ShoppingBag,
-  ChevronDown,
-  ListOrdered,
-  AlertTriangle,
-  Layers
+  ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -28,22 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const AppSidebar = () => {
   const { t, language, setLanguage } = useI18n();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // State for the Orders collapsible menu
-  const [isOrdersOpen, setIsOrdersOpen] = useState(
-    location.pathname.startsWith('/orders')
-  );
 
   const handleLogout = async () => {
     try {
@@ -55,23 +41,16 @@ const AppSidebar = () => {
     }
   };
 
-  // Reordered navigation items - Orders now comes right after Forms
-  const mainNavItems = [
+  const navItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
+    { title: t('orders'), path: '/orders', icon: ShoppingCart },
     { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
     { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
     { title: t('settings'), path: '/settings', icon: Settings },
     { title: 'Shopify Products', path: '/shopify-products', icon: ShoppingBag },
     { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
-  ];
-  
-  // Orders submenu items
-  const ordersSubItems = [
-    { title: language === 'ar' ? 'قائمة الطلبات' : 'Orders List', path: '/orders/list', icon: ListOrdered },
-    { title: language === 'ar' ? 'الطلبات المتروكة' : 'Abandoned Orders', path: '/orders/abandoned', icon: AlertTriangle },
-    { title: language === 'ar' ? 'قنوات الطلبات' : 'Orders Channels', path: '/orders/channels', icon: Layers },
   ];
 
   return (
@@ -106,97 +85,7 @@ const AppSidebar = () => {
         </div>
         <nav>
           <ul className="space-y-2">
-            {/* Dashboard */}
-            <li>
-              <NavLink
-                to="/dashboard"
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-[#2A2E36] text-[#9b87f5]'
-                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                  )
-                }
-              >
-                <LayoutDashboard size={20} />
-                <span>{t('dashboard')}</span>
-              </NavLink>
-            </li>
-            
-            {/* Forms */}
-            <li>
-              <NavLink
-                to="/forms"
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-[#2A2E36] text-[#9b87f5]'
-                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                  )
-                }
-              >
-                <FileText size={20} />
-                <span>{t('forms')}</span>
-              </NavLink>
-            </li>
-            
-            {/* Orders Menu - Positioned right after Forms */}
-            <li>
-              <Collapsible 
-                open={isOrdersOpen} 
-                onOpenChange={setIsOrdersOpen}
-                className="w-full"
-              >
-                <CollapsibleTrigger asChild>
-                  <div
-                    className={cn(
-                      'flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors',
-                      (location.pathname === '/orders' || location.pathname.startsWith('/orders/'))
-                        ? 'bg-[#2A2E36] text-[#9b87f5]'
-                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart size={20} />
-                      <span>{t('orders')}</span>
-                    </div>
-                    <ChevronDown 
-                      size={16} 
-                      className={cn(
-                        'transition-transform duration-200',
-                        isOrdersOpen && 'transform rotate-180'
-                      )}
-                    />
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="pt-2 pl-6 ml-2 border-l border-[#2A2E36]">
-                    {ordersSubItems.map((subItem) => (
-                      <NavLink
-                        key={subItem.path}
-                        to={subItem.path}
-                        className={({ isActive }) =>
-                          cn(
-                            'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1',
-                            isActive
-                              ? 'bg-[#2A2E36] text-[#9b87f5]'
-                              : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                          )
-                        }
-                      >
-                        <subItem.icon size={16} />
-                        <span className="text-sm">{subItem.title}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </li>
-            
-            {/* Remaining navigation items */}
-            {mainNavItems.slice(2).map((item) => (
+            {navItems.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}

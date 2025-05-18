@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { FormField as FormFieldType, FormFieldType as FieldType } from '@/lib/form-utils';
+import React, { memo } from 'react';
+import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
@@ -25,7 +25,6 @@ interface FormFieldProps {
   };
 }
 
-// تعريف أنماط الحركة لضمان توافقها في كل من المعاينة والمتجر
 const animationStyles = `
   @keyframes pulse-animation {
     0% { transform: scale(1); }
@@ -56,132 +55,71 @@ const animationStyles = `
   }
   
   .pulse-animation {
-    animation: pulse-animation 2s infinite ease-in-out !important;
+    animation: pulse-animation 2s infinite ease-in-out;
   }
   
   .shake-animation {
-    animation: shake-animation 2s infinite ease-in-out !important;
+    animation: shake-animation 2s infinite ease-in-out;
   }
   
   .bounce-animation {
-    animation: bounce-animation 2s infinite ease-in-out !important;
+    animation: bounce-animation 2s infinite ease-in-out;
   }
   
   .wiggle-animation {
-    animation: wiggle-animation 2s infinite ease-in-out !important;
+    animation: wiggle-animation 2s infinite ease-in-out;
   }
   
   .flash-animation {
-    animation: flash-animation 2s infinite ease-in-out !important;
+    animation: flash-animation 2s infinite ease-in-out;
   }
 `;
 
-// Helper function to ensure FormFieldType
-const ensureFieldType = (type: string | FieldType): FieldType => {
-  return type as FieldType;
-};
-
-// Helper function to convert rem to px for consistent styling
-const remToPx = (value: string | undefined): string => {
-  if (!value) return '';
-  if (value.includes('rem')) {
-    const remValue = parseFloat(value);
-    return `${Math.round(remValue * 16)}px`;
-  }
-  if (!value.includes('px') && !isNaN(parseFloat(value))) {
-    return `${value}px`;
-  }
-  return value;
-};
-
-// إنشاء مفتاح فريد لحقل النموذج لفرض إعادة العرض عند تغيير خصائص الحقل
+// Generate a key for FormField to force re-render when field properties change
 const getFieldKey = (field: FormFieldType) => {
-  // تضمين المزيد من الخصائص في المفتاح للتأكد من أن أي تغيير سيؤدي إلى إعادة العرض
-  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
+  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
 };
 
-// Process field styles to ensure consistent formatting
-const normalizeFieldStyle = (field: FormFieldType): FormFieldType => {
-  if (!field.style) return field;
-  
-  const normalizedStyle = { ...field.style };
-  
-  // Convert all font size values to px - CRITICAL for store matching
-  if (normalizedStyle.fontSize) {
-    normalizedStyle.fontSize = remToPx(normalizedStyle.fontSize);
-  }
-  
-  // Convert description font size to px - CRITICAL for store matching
-  if (normalizedStyle.descriptionFontSize) {
-    normalizedStyle.descriptionFontSize = remToPx(normalizedStyle.descriptionFontSize);
-  }
-  
-  // For title fields, ensure all necessary style properties are explicitly set
-  if (field.type === 'title' || field.type === 'form-title') {
-    // Default text color to white if not specified
-    if (!normalizedStyle.color) {
-      normalizedStyle.color = '#ffffff';
-    }
-    
-    // Set default font weights based on field type
-    if (!normalizedStyle.fontWeight) {
-      normalizedStyle.fontWeight = field.type === 'form-title' ? 'bold' : 'medium';
-    }
-  }
-  
-  return {
-    ...field,
-    style: normalizedStyle
-  };
-};
-
+// Remove memo to ensure component always updates when props change
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
   }
 
-  // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
+  // Normalize field properties - ensure icon settings are properly applied
   const normalizedField = {
     ...field,
-    // Ensure type is correctly handled
-    type: ensureFieldType(field.type),
-    // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
       ...field.style,
-      // تعيين showIcon افتراضيًا إلى true إذا كانت الأيقونة موجودة وليست 'none'
+      // Set default showIcon to true if icon is present and not none
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
         (field.icon && field.icon !== 'none')
     }
   };
 
-  // Apply style normalization for consistent formatting
-  const processedField = normalizeFieldStyle(normalizedField);
-
-  // معالجة تعيين نوع الحقل
-  let fieldType = processedField.type;
+  // Handle field type mapping
+  let fieldType = normalizedField.type;
   
-  // ربط البريد الإلكتروني والهاتف بإدخالات النص
+  // Map email and phone to text inputs
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
 
-  // التحقق مما إذا كان نوع الحقل هذا مدعومًا في معاينة المتجر
+  // Check if this field type is supported in the store preview
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
-    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
-    'email', 'phone' // دعم صريح للبريد الإلكتروني والهاتف
+    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary'
   ];
   
-  const isSupported = supportedStoreFieldTypes.includes(fieldType as string) || 
-    supportedStoreFieldTypes.includes(normalizedField.type as string);
+  const isSupported = supportedStoreFieldTypes.includes(fieldType);
 
-  // تسجيل بيانات الحركة إذا كان هذا زر إرسال
-  if (fieldType === 'submit' && processedField.style) {
-    const animationType = processedField.style.animationType || 'none';
-    const hasAnimation = !!processedField.style.animation;
+  // Log animation data if this is a submit button
+  if (fieldType === 'submit' && normalizedField.style) {
+    const animationType = normalizedField.style.animationType || 'none';
+    const hasAnimation = !!normalizedField.style.animation;
     
     if (hasAnimation) {
       console.log(`Submit button using animation: ${animationType}`);
@@ -194,7 +132,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
-    'form-title': TitleField, // استخدام مكون TitleField لنوع form-title
+    'form-title': TitleField, // Use TitleField component for form-title type
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
@@ -203,49 +141,38 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'countdown': CountdownTimer,
     'whatsapp': WhatsAppButton,
     'image': ImageField,
-    'email': TextInput, // إضافة دعم صريح للبريد الإلكتروني
-    'phone': TextInput, // إضافة دعم صريح للهاتف
   };
 
-  const Component = components[fieldType as string] || components[processedField.type as string];
+  const Component = components[fieldType];
   if (!Component) {
     console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
     return null;
   }
 
-  // إنشاء مفتاح فريد لمثيل هذا الحقل لفرض إعادة العرض عند تغيير الخصائص
+  // Generate a unique key for this field instance to force re-render when props change
   const fieldKey = getFieldKey(field);
   
-  // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1';
+  // Adjust margins: use smaller margins for all fields, and make submit button very close to previous field
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // Changed from mt-1 to mt-0 for submit button
 
-  // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
-  const dataAttributes = {
-    'data-field-type': processedField.type,
-    'data-field-id': processedField.id,
-    'data-has-icon': processedField.icon && processedField.icon !== 'none' ? 'true' : 'false',
-    'data-show-icon': processedField.style?.showIcon ? 'true' : 'false',
-    'data-icon': processedField.icon || 'none',
-    'data-required': processedField.required ? 'true' : 'false',
-  };
-
-  if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title
+  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
     return (
-      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
-        <Component field={processedField} formStyle={formStyle} />
+      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey}>
+        <Component field={normalizedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
-          {processedField.label ? `حقل "${processedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
+          {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
         </div>
       </div>
     );
   }
 
   return (
-    <div className={marginClass} key={fieldKey} {...dataAttributes}>
+    <div className={marginClass} key={fieldKey}>
       <style>{animationStyles}</style>
-      <Component field={processedField} formStyle={formStyle} />
+      <Component field={normalizedField} formStyle={formStyle} />
     </div>
   );
 };
 
+// Remove displayName since we're not using memo anymore
 export default FormField;

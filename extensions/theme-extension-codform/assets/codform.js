@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function() {
   // Configuration
   const API_URL_BASE = 'https://mtyfuwdsshlzqwjujavp.functions.supabase.co';
@@ -6,106 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Log startup
   console.log('COD Form Script loaded');
-  
-  // Define SVG icons for common field types
-  const FIELD_ICONS = {
-    'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>',
-    'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-    'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-    'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
-    'message-square': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-    'check-square': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
-    'circle-check': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    'image': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
-    'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'
-  };
-  
-  // Add CSS for input fields with icons
-  const iconStyles = `
-    .codform-field-with-icon {
-      position: relative;
-    }
-    
-    .codform-field-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #6b7280;
-      display: flex;
-      align-items: center;
-      pointer-events: none;
-    }
-    
-    .codform-field-with-icon input,
-    .codform-field-with-icon textarea {
-      padding-left: 36px !important;
-    }
-    
-    .codform-field-with-icon.rtl input,
-    .codform-field-with-icon.rtl textarea {
-      padding-left: 12px !important;
-      padding-right: 36px !important;
-    }
-    
-    .codform-field-with-icon.rtl .codform-field-icon {
-      left: auto;
-      right: 10px;
-    }
-
-    @keyframes pulse-animation {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-    
-    @keyframes shake-animation {
-      0% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-      20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    @keyframes bounce-animation {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-    
-    @keyframes wiggle-animation {
-      0%, 100% { transform: rotate(0); }
-      25% { transform: rotate(-3deg); }
-      75% { transform: rotate(3deg); }
-    }
-    
-    @keyframes flash-animation {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    .pulse-animation {
-      animation: pulse-animation 2s infinite ease-in-out !important;
-    }
-    
-    .shake-animation {
-      animation: shake-animation 2s infinite ease-in-out !important;
-    }
-    
-    .bounce-animation {
-      animation: bounce-animation 2s infinite ease-in-out !important;
-    }
-    
-    .wiggle-animation {
-      animation: wiggle-animation 2s infinite ease-in-out !important;
-    }
-    
-    .flash-animation {
-      animation: flash-animation 2s infinite ease-in-out !important;
-    }
-  `;
-  
-  // Inject styles
-  const styleElement = document.createElement('style');
-  styleElement.textContent = iconStyles;
-  document.head.appendChild(styleElement);
   
   // Initialize all form containers
   initializeForms();
@@ -131,9 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const productId = container.dataset.productId;
     const shopDomain = Shopify ? Shopify.shop : window.location.hostname;
     const hideHeader = container.dataset.hideHeader === 'true';
-    const enableIcons = container.dataset.enableIcons !== 'false'; // Default to true unless explicitly disabled
     
-    console.log(`Initializing form block ${blockId} for product ${productId} on shop ${shopDomain}, icons ${enableIcons ? 'enabled' : 'disabled'}`);
+    console.log(`Initializing form block ${blockId} for product ${productId} on shop ${shopDomain}`);
     
     // Get the form loading, form display, success, and error elements
     const formLoader = document.getElementById(`codform-form-loader-${blockId}`);
@@ -172,19 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
           
           const formData = data.form || data;
           console.log(`Form data retrieved successfully for block ${blockId}`);
-          
-          // Apply the settings from the extension configuration
-          formData.settings = formData.settings || {};
-          formData.settings.enableIcons = enableIcons;
-          
-          // Debug info for icons
-          if (formData.fields) {
-            const fieldsWithIcons = formData.fields.filter(f => f.icon && f.icon !== 'none');
-            console.log(`Form has ${fieldsWithIcons.length} fields with icons. Icons ${enableIcons ? 'enabled' : 'disabled'}`);
-            if (fieldsWithIcons.length > 0) {
-              console.log('Icon types:', fieldsWithIcons.map(f => f.icon).join(', '));
-            }
-          }
           
           // Render the form
           renderForm(formData, formElement, hideHeader);
@@ -272,12 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
       buttonStyle: form.buttonStyle || 'rounded'
     };
     
-    // Get the global settings
-    const settings = form.settings || {};
-    const enableIcons = settings.enableIcons !== false; // Default to true unless explicitly disabled
-    
-    console.log(`Rendering form with icons ${enableIcons ? 'enabled' : 'disabled'}`);
-    
     // Set form container styles
     formElement.innerHTML = ''; // Clear previous content
     
@@ -312,36 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
       formEl.className = 'codform-form';
       formEl.id = `form-${form.id}`;
       
-      // Add data attributes for debugging
-      formEl.setAttribute('data-enable-icons', enableIcons.toString());
-      formEl.setAttribute('data-form-id', form.id || 'unknown');
-      
-      // Set the appropriate direction based on language
-      const isRTL = document.dir === 'rtl' || document.documentElement.lang === 'ar';
-      formEl.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
-      formEl.className += isRTL ? ' codform-rtl' : ' codform-ltr';
-      
       // Add the first step fields
       const firstStep = formSteps[0];
       if (firstStep && Array.isArray(firstStep.fields)) {
         firstStep.fields.forEach(field => {
-          // Process field to ensure icon info is correct
-          if (field.icon === '') {
-            field.icon = 'none';
-          }
-          
-          if (!field.style) {
-            field.style = {};
-          }
-          
-          // Make sure showIcon is properly defined if an icon exists
-          if (field.icon && field.icon !== 'none') {
-            field.style.showIcon = field.style.showIcon !== undefined ? 
-              field.style.showIcon : true;
-          }
-          
-          // Create the field element
-          const fieldElement = createFormField(field, style, enableIcons, isRTL);
+          const fieldElement = createFormField(field, style);
           if (fieldElement) {
             formEl.appendChild(fieldElement);
           }
@@ -434,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Create a form field based on its type
-  function createFormField(field, style, enableIcons, isRTL) {
+  function createFormField(field, style) {
     if (!field || !field.type) {
       console.warn('Invalid field:', field);
       return null;
@@ -453,10 +309,10 @@ document.addEventListener('DOMContentLoaded', function() {
       case 'tel':
       case 'phone':
       case 'number':
-        return createInputField(field, style, fieldDiv, enableIcons, isRTL);
+        return createInputField(field, style, fieldDiv);
       
       case 'textarea':
-        return createTextareaField(field, style, fieldDiv, enableIcons, isRTL);
+        return createTextareaField(field, style, fieldDiv);
       
       case 'radio':
         return createRadioField(field, style, fieldDiv);
@@ -496,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Create input field (text, email, tel, number)
-  function createInputField(field, style, container, enableIcons, isRTL) {
+  function createInputField(field, style, container) {
     const label = document.createElement('label');
     label.htmlFor = field.id;
     label.innerText = field.label || '';
@@ -508,24 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
       label.appendChild(requiredSpan);
     }
     
-    // Check if this field has an icon and if icons are enabled
-    const hasIcon = field.icon && field.icon !== 'none';
-    const showIcon = hasIcon && enableIcons && field.style?.showIcon !== false;
-    
-    // Add icon-related data attributes for debugging
-    container.setAttribute('data-has-icon', hasIcon ? 'true' : 'false');
-    container.setAttribute('data-show-icon', showIcon ? 'true' : 'false');
-    container.setAttribute('data-icon-type', field.icon || 'none');
-    
-    // If this field has an icon, add the icon container class
-    if (showIcon) {
-      container.classList.add('codform-field-with-icon');
-      if (isRTL) {
-        container.classList.add('rtl');
-      }
-    }
-    
-    // Create input element
     const input = document.createElement('input');
     // Convert 'phone' type to 'tel' for better mobile handling
     input.type = field.type === 'phone' ? 'tel' : field.type;
@@ -543,39 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (field.style.borderRadius) input.style.borderRadius = field.style.borderRadius;
     }
     
-    // Add the label first
     container.appendChild(label);
-    
-    // Create a wrapper div for the input and icon
-    const inputWrapper = document.createElement('div');
-    inputWrapper.className = 'codform-input-wrapper';
-    inputWrapper.style.position = 'relative';
-    
-    // If this field has an icon and icons are enabled, add the icon
-    if (showIcon) {
-      const iconContainer = document.createElement('div');
-      iconContainer.className = 'codform-field-icon';
-      
-      // Get the icon SVG from our map
-      const iconSvg = FIELD_ICONS[field.icon];
-      if (iconSvg) {
-        iconContainer.innerHTML = iconSvg;
-        console.log(`Added icon for field ${field.id}: ${field.icon}`);
-      } else {
-        console.warn(`Icon type '${field.icon}' not found for field ${field.id}`);
-        // Use a fallback icon
-        iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-      }
-      
-      // Add the icon to the wrapper
-      inputWrapper.appendChild(iconContainer);
-    }
-    
-    // Add the input to the wrapper
-    inputWrapper.appendChild(input);
-    
-    // Add the wrapper to the container
-    container.appendChild(inputWrapper);
+    container.appendChild(input);
     
     if (field.helpText) {
       const helpText = document.createElement('div');
@@ -588,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Create textarea field
-  function createTextareaField(field, style, container, enableIcons, isRTL) {
+  function createTextareaField(field, style, container) {
     const label = document.createElement('label');
     label.htmlFor = field.id;
     label.innerText = field.label || '';
@@ -598,23 +405,6 @@ document.addEventListener('DOMContentLoaded', function() {
       requiredSpan.className = 'codform-required';
       requiredSpan.innerText = '*';
       label.appendChild(requiredSpan);
-    }
-    
-    // Check if this field has an icon and if icons are enabled
-    const hasIcon = field.icon && field.icon !== 'none';
-    const showIcon = hasIcon && enableIcons && field.style?.showIcon !== false;
-    
-    // Add icon-related data attributes for debugging
-    container.setAttribute('data-has-icon', hasIcon ? 'true' : 'false');
-    container.setAttribute('data-show-icon', showIcon ? 'true' : 'false');
-    container.setAttribute('data-icon-type', field.icon || 'none');
-    
-    // If this field has an icon, add the icon container class
-    if (showIcon) {
-      container.classList.add('codform-field-with-icon');
-      if (isRTL) {
-        container.classList.add('rtl');
-      }
     }
     
     const textarea = document.createElement('textarea');
@@ -634,36 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     container.appendChild(label);
-    
-    // Create a wrapper div for the textarea and icon
-    const textareaWrapper = document.createElement('div');
-    textareaWrapper.className = 'codform-textarea-wrapper';
-    textareaWrapper.style.position = 'relative';
-    
-    // If this field has an icon and icons are enabled, add the icon
-    if (showIcon) {
-      const iconContainer = document.createElement('div');
-      iconContainer.className = 'codform-field-icon';
-      iconContainer.style.top = '20px'; // Adjust top positioning for textarea
-      
-      // Get the icon SVG from our map
-      const iconSvg = FIELD_ICONS[field.icon];
-      if (iconSvg) {
-        iconContainer.innerHTML = iconSvg;
-      } else {
-        // Use a fallback icon
-        iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-      }
-      
-      // Add the icon to the wrapper
-      textareaWrapper.appendChild(iconContainer);
-    }
-    
-    // Add the textarea to the wrapper
-    textareaWrapper.appendChild(textarea);
-    
-    // Add the wrapper to the container
-    container.appendChild(textareaWrapper);
+    container.appendChild(textarea);
     
     if (field.helpText) {
       const helpText = document.createElement('div');
@@ -854,106 +615,46 @@ document.addEventListener('DOMContentLoaded', function() {
   // Create title field
   function createTitleField(field, style, container) {
     const titleContainer = document.createElement('div');
-    titleContainer.className = field.type === 'form-title' ? 'codform-form-title-container codform-title-container' : 'codform-title-container';
+    titleContainer.className = field.type === 'form-title' ? 'codform-title-container' : 'codform-subtitle-container';
     
-    // Convert rem values to px for consistent styling
-    const remToPx = (value) => {
-      if (!value) return '';
-      if (value.includes('rem')) {
-        const remValue = parseFloat(value);
-        return `${Math.round(remValue * 16)}px`;
-      }
-      if (!value.includes('px') && !isNaN(parseFloat(value))) {
-        return `${value}px`;
-      }
-      return value;
-    };
+    // Apply styling attributes to container
+    const hasBackground = !!(field.style && field.style.backgroundColor);
     
-    // Use form direction to determine text alignment default
-    const isRTL = document.dir === 'rtl' || document.documentElement.lang === 'ar';
-    const defaultAlignment = isRTL ? 'right' : 'left';
-    
-    // Apply styling attributes to container with explicit px values
-    const backgroundColor = field.style?.backgroundColor || style.primaryColor || '#9b87f5';
-    
-    titleContainer.style.backgroundColor = backgroundColor;
-    titleContainer.style.padding = '16px';
-    titleContainer.style.borderRadius = style.borderRadius || '8px';
-    titleContainer.style.width = '100%';
-    titleContainer.style.boxSizing = 'border-box';
-    titleContainer.style.marginBottom = '16px';
+    if (hasBackground) {
+      titleContainer.style.backgroundColor = field.style.backgroundColor;
+      titleContainer.style.padding = '16px';
+      titleContainer.style.borderRadius = style.borderRadius || '8px';
+    }
     
     // Create title element
-    const titleTag = field.type === 'form-title' ? 'h2' : 'h3';
-    const title = document.createElement(titleTag);
+    const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
     title.innerText = field.label || field.text || '';
-    title.className = field.type === 'form-title' ? 'codform-form-title' : '';
     
-    // Add important data attributes for debugging
-    titleContainer.setAttribute('data-title-color', field.style?.color || '#ffffff');
-    titleContainer.setAttribute('data-bg-color', backgroundColor);
-    titleContainer.setAttribute('data-font-size', field.style?.fontSize || (field.type === 'form-title' ? '24px' : '20px'));
-    titleContainer.setAttribute('data-font-weight', field.style?.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium'));
-    
-    // Set showing options
-    const showTitle = field.style?.showTitle !== false;
-    const showDescription = field.style?.showDescription !== false;
-    titleContainer.setAttribute('data-show-title', showTitle.toString());
-    titleContainer.setAttribute('data-show-description', showDescription?.toString() || 'true');
-    
-    // Apply all styling from field.style explicitly with !important where needed
-    // Default values for title styling
-    const defaultTitleSize = field.type === 'form-title' ? '24px' : '20px';
-    title.style.color = field.style?.color || '#ffffff';
-    title.style.fontSize = remToPx(field.style?.fontSize) || defaultTitleSize;
-    title.style.fontWeight = field.style?.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium');
-    title.style.margin = '0';
-    title.style.padding = '0';
-    title.style.lineHeight = '1.3';
-    title.style.display = 'block';
-    
-    // Handle text alignment - critically important to preserve
-    const textAlign = field.style?.textAlign || defaultAlignment;
-    title.style.textAlign = textAlign;
-    titleContainer.style.textAlign = textAlign;
-    
-    // Add fontFamily if specified
-    if (field.style?.fontFamily) {
-      title.style.fontFamily = field.style.fontFamily;
-      titleContainer.setAttribute('data-font-family', field.style.fontFamily);
+    // Apply all styling from field.style
+    if (field.style) {
+      if (field.style.color) title.style.color = field.style.color;
+      if (field.style.fontSize) title.style.fontSize = field.style.fontSize;
+      if (field.style.fontWeight) title.style.fontWeight = field.style.fontWeight;
+      if (field.style.textAlign) title.style.textAlign = field.style.textAlign;
+      if (field.style.fontFamily) title.style.fontFamily = field.style.fontFamily;
     }
     
-    if (showTitle) {
-      titleContainer.appendChild(title);
-    }
+    titleContainer.appendChild(title);
     
-    // Add description if provided and showDescription is not false
-    if (field.helpText && showDescription) {
+    // Add description if provided
+    if (field.helpText) {
       const description = document.createElement('p');
       description.innerText = field.helpText;
-      description.className = 'codform-title-description';
+      description.className = 'codform-field-description';
       
-      // Default values for description styling
-      const defaultDescSize = '14px';
-      
-      // Apply styling to description with explicit px values
-      description.style.color = field.style?.descriptionColor || '#ffffff';
-      description.style.fontSize = remToPx(field.style?.descriptionFontSize) || defaultDescSize;
-      description.style.margin = '6px 0 0 0';
-      description.style.padding = '0';
-      description.style.textAlign = textAlign;
-      description.style.fontWeight = 'normal';
-      description.style.lineHeight = '1.5';
-      description.style.opacity = '0.9';
-      
-      // Add fontFamily to description if specified
-      if (field.style?.fontFamily) {
-        description.style.fontFamily = field.style.fontFamily;
+      // Apply styling to description
+      if (field.style) {
+        if (field.style.descriptionColor) description.style.color = field.style.descriptionColor;
+        if (field.style.descriptionFontSize) description.style.fontSize = field.style.descriptionFontSize;
+        if (field.style.descriptionFontWeight) description.style.fontWeight = field.style.descriptionFontWeight;
+        if (field.style.textAlign) description.style.textAlign = field.style.textAlign;
+        if (field.style.fontFamily) description.style.fontFamily = field.style.fontFamily;
       }
-      
-      // Add data attributes for description
-      titleContainer.setAttribute('data-desc-color', field.style?.descriptionColor || '#ffffff');
-      titleContainer.setAttribute('data-desc-font-size', remToPx(field.style?.descriptionFontSize) || defaultDescSize);
       
       titleContainer.appendChild(description);
     }
@@ -1057,7 +758,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add WhatsApp icon
     const icon = document.createElement('span');
     icon.className = 'codform-whatsapp-icon';
-    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="M8.2 8.2c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-.5.5c-.3.3-.3.7 0 1l3 3c.3.3.7.3 1 0l.5-.5c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-1.5 1.5c-1.2 1.2-3.1 1.2-4.2 0L7 16.3c-1.2-1.2-1.2-3.1 0-4.2l1.2-1.9z"></svg>';
+    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="M8.2 8.2c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-.5.5c-.3.3-.3.7 0 1l3 3c.3.3.7.3 1 0l.5-.5c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-1.5 1.5c-1.2 1.2-3.1 1.2-4.2 0L7 16.3c-1.2-1.2-1.2-3.1 0-4.2l1.2-1.9z"></path></svg>';
     
     // Add button label
     const label = document.createElement('span');

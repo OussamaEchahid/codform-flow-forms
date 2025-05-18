@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   DndContext,
@@ -25,7 +24,7 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates, FormFieldType } from '@/lib/form-utils';
+import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -33,37 +32,24 @@ import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useI18n } from '@/lib/i18n';
 
-// Helper function to ensure form field types are correctly typed
-const ensureFormFieldType = (field: any): FormField => {
-  return {
-    ...field,
-    type: field.type as FormFieldType
-  };
-};
-
-// Helper function to ensure array of form fields are correctly typed
-const ensureFormFieldsArray = (fields: any[]): FormField[] => {
-  return fields.map(field => ensureFormFieldType(field));
-};
-
 const availableFieldTypes: Array<{
-  type: FormFieldType;
+  type: FormField['type'];
   label: string;
   icon: React.ReactNode;
 }> = [
-  { type: 'form-title' as FormFieldType, label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
-  { type: 'text' as FormFieldType, label: 'حقل نص', icon: <FileText size={16} /> },
-  { type: 'email' as FormFieldType, label: 'بريد إلكتروني', icon: <FileText size={16} /> },
-  { type: 'phone' as FormFieldType, label: 'رقم هاتف', icon: <FileText size={16} /> },
-  { type: 'textarea' as FormFieldType, label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
-  { type: 'select' as FormFieldType, label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
-  { type: 'checkbox' as FormFieldType, label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
-  { type: 'radio' as FormFieldType, label: 'زر راديو', icon: <LayoutGrid size={16} /> },
-  { type: 'cart-items' as FormFieldType, label: 'المنتج المختار', icon: <FileText size={16} /> },
-  { type: 'cart-summary' as FormFieldType, label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
-  { type: 'submit' as FormFieldType, label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
-  { type: 'text/html' as FormFieldType, label: 'نص/HTML', icon: <FileText size={16} /> },
-  { type: 'title' as FormFieldType, label: 'عنوان قسم', icon: <FileText size={16} /> },
+  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
+  { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
+  { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
+  { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
+  { type: 'textarea', label: 'نص متعدد الأسطر', icon: <FileText size={16} /> },
+  { type: 'select', label: 'قائمة منسدلة', icon: <LayoutGrid size={16} /> },
+  { type: 'checkbox', label: 'خانة اختيار', icon: <LayoutGrid size={16} /> },
+  { type: 'radio', label: 'زر راديو', icon: <LayoutGrid size={16} /> },
+  { type: 'cart-items', label: 'المنتج المختار', icon: <FileText size={16} /> },
+  { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
+  { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
+  { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
+  { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
 ];
 
 interface FormBuilderProps {
@@ -131,13 +117,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      // Ensure all template data is properly typed
-      const properlyTypedData: FormStep[] = template.data.map(step => ({
-        ...step,
-        fields: step.fields.map(field => ensureFormFieldType(field))
-      }));
-      
-      setFormSteps(properlyTypedData);
+      setFormSteps(template.data);
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -146,7 +126,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     }
   };
   
-  const addFieldToStep = (type: FormFieldType) => {
+  const addFieldToStep = (type: FormField['type']) => {
     const newField = createEmptyField(type);
     const updatedSteps = [...formSteps];
     updatedSteps[currentEditStep].fields.push(newField);
@@ -250,104 +230,74 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     
     // Add form title field
     defaultFields.push({
-      type: 'form-title' as FormFieldType,
+      type: 'form-title',
       id: uuidv4(),
-      label: 'نموذج جديد',
-      helpText: 'نموذج جديد',
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
         color: '#ffffff',
-        textAlign: 'right',
+        textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
         fontSize: '24px',
         descriptionColor: '#ffffff',
         descriptionFontSize: '14px',
         backgroundColor: '#9b87f5',
-        showTitle: true,
-        showDescription: true
       }
     });
     
     // Add name field
     defaultFields.push({
-      type: 'text' as FormFieldType,
+      type: 'text',
       id: uuidv4(),
-      label: 'الاسم الكامل',
-      placeholder: 'أدخل الاسم الكامل',
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
       required: true,
       icon: 'user',
-      style: {
-        iconPosition: 'right'
-      }
     });
     
     // Add phone field
     defaultFields.push({
-      type: 'phone' as FormFieldType,
+      type: 'phone',
       id: uuidv4(),
-      label: 'رقم الهاتف',
-      placeholder: 'أدخل رقم الهاتف',
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
       required: true,
       icon: 'phone',
-      style: {
-        iconPosition: 'right'
-      }
-    });
-    
-    // Add city field
-    defaultFields.push({
-      type: 'text' as FormFieldType,
-      id: uuidv4(),
-      label: 'المدينة',
-      placeholder: 'أدخل اسم المدينة',
-      required: true,
-      icon: 'map-pin',
-      style: {
-        iconPosition: 'right'
-      }
     });
     
     // Add address field
     defaultFields.push({
-      type: 'textarea' as FormFieldType,
+      type: 'textarea',
       id: uuidv4(),
-      label: 'العنوان',
-      placeholder: 'أدخل العنوان الكامل',
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
       required: true,
     });
     
-    // Add submit button with updated configuration
+    // Add submit button
     defaultFields.push({
-      type: 'submit' as FormFieldType,
+      type: 'submit',
       id: uuidv4(),
-      label: 'الدفع عند الاستلام',
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
       style: {
-        backgroundColor: '#000000',
+        backgroundColor: '#9b87f5',
         color: '#ffffff',
-        fontSize: '1.15rem',
-        fontWeight: '500',
+        fontSize: '18px',
         animation: true,
-        animationType: 'shake',
-        borderRadius: '6px',
-        borderColor: '#eaeaff',
-        borderWidth: '0px',
-        paddingY: '12px',
-        showIcon: true,
-        iconPosition: 'left',
+        animationType: 'pulse',
       },
     });
     
-    // Create the default step with properly typed fields
     const defaultStep: FormStep = {
       id: '1',
       title: 'Main Step',
       fields: defaultFields
     };
     
-    // Return as an array of FormStep
     return [defaultStep];
   };
   
-  // Fix the setter call in the useEffect that creates default forms
+  // Replace the useEffect that creates default forms
   useEffect(() => {
     // If the data is empty, we create a default form with all required fields
     if (initialFormData.data.length === 0) {
@@ -371,6 +321,73 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       }
     }
   }, [initialFormData]);
+
+  const createEmptyField = (type: FormField['type']) => {
+    let newField: FormField = {
+      id: uuidv4(), // Use UUID from imported library
+      type,
+      label: '',
+      required: false,
+    };
+  
+    // Add field-specific configuration
+    switch (type) {
+      case 'form-title':
+        newField.label = 'عنوان النموذج المخصص';
+        newField.helpText = 'وصف النموذج (اختياري)';
+        newField.style = {
+          textAlign: 'center',
+          color: '#1A1F2C',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          descriptionColor: '#6b7280',
+          descriptionFontSize: '1rem',
+          backgroundColor: '',
+        };
+        break;
+      case 'text':
+        newField.label = 'حقل نص';
+        break;
+      case 'email':
+        newField.label = 'بريد إلكتروني';
+        break;
+      case 'phone':
+        newField.label = 'رقم هاتف';
+        break;
+      case 'textarea':
+        newField.label = 'نص متعدد الأسطر';
+        break;
+      case 'select':
+        newField.label = 'قائمة منسدلة';
+        break;
+      case 'checkbox':
+        newField.label = 'خانة اختيار';
+        break;
+      case 'radio':
+        newField.label = 'زر راديو';
+        break;
+      case 'cart-items':
+        newField.label = 'المنتج المختار';
+        break;
+      case 'cart-summary':
+        newField.label = 'ملخص الطلب';
+        break;
+      case 'submit':
+        newField.label = 'زر إرسال الطلب';
+        break;
+      case 'text/html':
+        newField.label = 'نص/HTML';
+        break;
+      case 'title':
+        newField.label = 'عنوان قسم';
+        break;
+      default:
+        newField.label = 'حقل جديد';
+        break;
+    }
+  
+    return newField;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

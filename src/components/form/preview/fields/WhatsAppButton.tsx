@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
+import { MessageSquare } from 'lucide-react';
 
 interface WhatsAppButtonProps {
   field: FormField;
@@ -9,65 +10,52 @@ interface WhatsAppButtonProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    buttonStyle?: string;
   };
 }
 
 const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
-
-  // تحديد رقم الواتساب والرسالة
-  const phoneNumber = field.whatsappNumber || '';
   
-  // لضمان التوافق مع الأنماط القديمة
+  // Get WhatsApp number from the field
+  const whatsappNumber = field.whatsappNumber || '';
+  
+  // Default message
   const message = field.message || '';
   
-  // نص الزر
-  const buttonText = field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp');
-
-  // إنشاء رابط الواتساب
-  const getWhatsAppLink = () => {
-    let link = `https://wa.me/${phoneNumber.replace(/\D/g, '')}`;
-    if (message) {
-      link += `?text=${encodeURIComponent(message)}`;
-    }
-    return link;
-  };
-
+  // Create WhatsApp URL
+  const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
+  
+  // Determine button radius based on style
+  let buttonRadius = '0.5rem'; // default
+  if (formStyle.buttonStyle === 'pill') {
+    buttonRadius = '9999px';
+  } else if (formStyle.buttonStyle === 'square') {
+    buttonRadius = '0';
+  } else {
+    buttonRadius = formStyle.borderRadius || '0.5rem';
+  }
+  
   return (
-    <div className="mb-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="mb-4">
       <a 
-        href={getWhatsAppLink()} 
-        target="_blank" 
+        href={whatsappUrl}
+        target="_blank"
         rel="noopener noreferrer"
-        className="codform-whatsapp-button"
+        className="w-full py-3 px-4 flex items-center justify-center gap-2 text-white font-medium transition-all duration-200 hover:opacity-90"
         style={{
-          backgroundColor: '#25D366',
-          borderRadius: fieldStyle.borderRadius || formStyle.borderRadius || '8px',
-          fontSize: fieldStyle.fontSize || '18px',
+          backgroundColor: fieldStyle.backgroundColor || '#25D366',
+          color: fieldStyle.color || 'white',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.1rem',
+          borderRadius: fieldStyle.borderRadius || buttonRadius,
+          textDecoration: 'none',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <svg 
-          className="codform-whatsapp-icon" 
-          width="18" 
-          height="18" 
-          viewBox="0 0 24 24" 
-          strokeWidth="2" 
-          stroke="currentColor" 
-          fill="none" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        >
-          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-          <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
-          <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
-        </svg>
-        {buttonText}
+        <MessageSquare size={20} />
+        {field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp')}
       </a>
-      
-      {field.helpText && (
-        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
-      )}
     </div>
   );
 };
