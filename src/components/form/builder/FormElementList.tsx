@@ -14,9 +14,9 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   // Define the available form elements with translations
   const availableElements = [
     {
-      type: 'edit-form-title',
-      label: language === 'ar' ? 'عنوان النموذج المخصص' : 'Edit Form Title',
-      icon: 'H'
+      type: 'form-title',
+      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
+      icon: 'H1' 
     },
     { 
       type: 'text', 
@@ -82,11 +82,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'image', 
       label: language === 'ar' ? 'صورة' : 'Image', 
       icon: '🖼️' 
-    },
-    { 
-      type: 'form-title', 
-      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
-      icon: 'H1' 
     }
   ];
 

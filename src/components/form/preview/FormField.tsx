@@ -13,6 +13,8 @@ import HtmlContent from './fields/HtmlContent';
 import ShippingOptions from './fields/ShippingOptions';
 import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
+import TitleField from './fields/TitleField';
+import EditFormTitleField from './fields/EditFormTitleField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -73,11 +75,15 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
       case 'whatsapp-button':
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
 
-      // إزالة حالات العنوان تماما
+      // إعادة تفعيل مكونات العنوان
       case 'form-title':
+        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
+      
       case 'title':
+        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
+      
       case 'edit-form-title':
-        return null;
+        return <EditFormTitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       default:
         console.warn(`Unsupported field type: ${field.type}`);
@@ -88,11 +94,6 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         );
     }
   };
-
-  // لا نعرض أي شيء للحقول المتعلقة بالعنوان
-  if (field.type === 'form-title' || field.type === 'edit-form-title' || field.type === 'title') {
-    return null;
-  }
 
   return (
     <div 

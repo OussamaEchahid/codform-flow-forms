@@ -48,17 +48,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Log direction for debugging
   console.log(`FormPreview using direction: ${direction}, provided formDirection: ${formDirection}, language: ${language}`);
   
-  // Improve field processing for consistent display - MODIFIED to filter out title fields
+  // Improve field processing for consistent display - MODIFIED to not filter out title fields
   const sanitizedFields = React.useMemo(() => {
-    // Filter out any title fields
-    const filteredFields = fields.filter(f => 
-      f.type !== 'form-title' && 
-      f.type !== 'title' && 
-      f.type !== 'edit-form-title'
-    );
-    
     // Ensure cart items and cart summary fields have empty labels by default
-    const updatedFields = filteredFields.map(field => {
+    const updatedFields = fields.map(field => {
       // Copy field to avoid direct mutation issues
       const updatedField = { ...field };
       
