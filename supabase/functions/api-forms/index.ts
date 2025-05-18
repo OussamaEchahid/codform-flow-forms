@@ -77,24 +77,23 @@ serve(async (req) => {
       });
     }
 
-    // Get URL parameters
-    const url = new URL(req.url);
+    // Get form ID from URL
+    const url = new URL(req.url)
     const pathParts = url.pathname.split('/');
     const formId = pathParts[pathParts.length - 1];
-    const productId = url.searchParams.get('productId');
 
     if (!formId) {
       throw new Error('No form ID provided')
     }
 
-    console.log('Fetching form with ID:', formId, productId ? `for product: ${productId}` : '');
+    console.log('Fetching form with ID:', formId)
 
     // Get form from database
     const { data: formData, error } = await supabase
       .from('forms')
       .select('*')
       .eq('id', formId)
-      .single();
+      .single()
 
     if (error) {
       console.error('Database error:', error)
@@ -110,25 +109,6 @@ serve(async (req) => {
     if (formData.is_published !== true) {
       console.error('Form is not published:', formId)
       throw new Error(`Form with ID ${formId} is not published`)
-    }
-
-    // If we have a product ID, check if this form is associated with this product
-    if (productId) {
-      const { data: productSettings, error: productError } = await supabase
-        .from('shopify_product_settings')
-        .select('*')
-        .eq('form_id', formId)
-        .eq('product_id', productId)
-        .single();
-
-      if (productError) {
-        // If we don't find a product-specific setting, it might be a global form
-        console.log(`No specific product settings found for product ${productId}, checking if this is a global form`);
-        // We continue anyway - the form might be used globally
-      } else if (productSettings) {
-        console.log(`Found product-specific settings for form ${formId} and product ${productId}`);
-        // We confirmed this form is associated with this product
-      }
     }
 
     console.log('Successfully fetched form:', formData.title, 'ID:', formId)

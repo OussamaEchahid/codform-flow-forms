@@ -4,7 +4,7 @@ import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTe
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
-import { FormField, FormStep, FormFieldType, FloatingButtonConfig } from '@/lib/form-utils';
+import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
@@ -13,19 +13,9 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
-import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
+import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import { useShopify } from '@/hooks/useShopify';
-import { 
-  Dialog, 
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -80,18 +70,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { t, language } = useI18n();
   const shopifyIntegration = useShopify();
   const { createFormFromTemplate, saveForm, loadForm, publishForm } = useFormTemplates();
-  
-  // Call useFormStore hook at the top level to follow React Rules of Hooks
-  const { formState, setFormState, floatingButton, updateFloatingButton } = useFormStore();
+  const { formState, setFormState } = useFormStore();
   
   const [isStyleDialogOpen, setIsStyleDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
-  const [isFloatingButtonDialogOpen, setIsFloatingButtonDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
+  // التغيير هنا: لا نأخذ الإعدادات من localStorage ولكن نستخدم إعدادات مخصصة لكل نموذج
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
     borderRadius: '0.5rem',
@@ -109,7 +96,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
-  
+
   // تحسين وظيفة البحث عن حقل عنوان النموذج
   const getFormTitleField = (): FormField | undefined => {
     return formElements.find(f => f.type === 'form-title');
@@ -183,7 +170,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
+  // إنشاء نموذج افتراضي جديد مع العناصر المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -224,16 +211,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       icon: 'phone',
     });
     
-    // إضافة حقل المدينة (City) بعد رقم الهاتف
-    fields.push({
-      type: 'text' as FormFieldType,
-      id: `city-${Date.now()}`,
-      label: language === 'ar' ? 'المدينة' : 'City',
-      placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name',
-      required: true,
-      icon: 'map-pin',
-    });
-    
     // إضافة حقل العنوان
     fields.push({
       type: 'textarea' as FormFieldType,
@@ -243,41 +220,30 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       required: true,
     });
     
-    // إضافة زر الطلب مع الإعدادات الجديدة
+    // إضافة زر الطلب
     fields.push({
       type: 'submit' as FormFieldType,
       id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
       style: {
-        backgroundColor: '#000000', // لون الخلفية الأسود
-        color: '#ffffff', // لون النص الأبيض
-        fontSize: '1.15rem', // حجم الخط
-        fontWeight: '500', // وزن النص
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '1.2rem',
         animation: true,
-        animationType: 'shake', // نوع الحركة
-        borderColor: '#eaeaff', // لون الحدود
-        borderRadius: '6px', // انحناء الحدود
-        borderWidth: '0px', // عرض الحدود
-        paddingY: '12px', // المسافة العمودية
-        showIcon: true, // إظهار الأيقونة
-        icon: 'shopping-cart', // نوع الأيقونة
-        iconPosition: 'left', // موضع الأيقونة
+        animationType: 'pulse',
+        iconPosition: 'left',
       },
     });
     
     return fields;
   };
 
-  // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج - تم تحسينه للأداء
+  // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج
   const initializeNewForm = async () => {
     try {
-      // Show loading state immediately
-      setIsLoading(true);
-      
       const shopId = getActiveShopId();
       if (!shopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
-        setIsLoading(false);
         return;
       }
 
@@ -285,7 +251,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Set initial form style
+      // أضف إعدادات النمط الخاصة بالنموذج الجديد
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
         borderRadius: '0.5rem',
@@ -295,7 +261,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       
       setFormStyle(defaultStyle);
 
-      // Create default fields with ALL required fields
+      // Create default fields
       const defaultFields = createDefaultForm();
       setFormElements(defaultFields);
 
@@ -306,7 +272,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         fields: defaultFields
       };
 
-      // Start with bare minimum fields for faster creation
+      // Create new form in database with style info
       const { data, error } = await supabase.from('forms').insert({
         id: newId,
         title: formTitle,
@@ -314,12 +280,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         data: [initialFormStep],
         shop_id: shopId,
         is_published: false,
-      }).select('id').single();
+        style: defaultStyle
+      }).select();
 
       if (error) {
         console.error("Error creating new form:", error);
         toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
-        setIsLoading(false);
         return;
       }
 
@@ -334,41 +300,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         style: defaultStyle
       });
 
-      // Update URL to use the real UUID instead of "new"
-      navigate(`/form-builder/${newId}`, { replace: true });
-
-      // Update rest of the form data in the background
-      setTimeout(async () => {
-        await supabase.from('forms').update({
-          style: defaultStyle,
-          user_id: shopifyIntegration.user?.id || null
-        }).eq('id', newId);
-      }, 500);
-
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');
-      setIsLoading(false);
     } catch (error) {
       console.error("Error initializing new form:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء نموذج جديد' : 'Error initializing new form');
-      setIsLoading(false);
     }
   };
 
-  // تحميل بيانات النموذج عند تغيير معرف النموذج - تم تحسينه للأداء
+  // تحميل بيانات النموذج عند تغيير معرف النموذج
   useEffect(() => {
     const loadFormData = async () => {
-      setIsLoading(true);
       const id = formId || params.formId;
       
       if (id) {
         setCurrentFormId(id);
         try {
-          // For new forms, create a default one immediately
-          if (id === 'new') {
-            await initializeNewForm();
-            return;
-          }
-          
           const formData = await loadForm(id);
           
           if (formData) {
@@ -407,19 +353,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 const submitButton: FormField = {
                   type: 'submit',
                   id: `submit-${Date.now()}`,
-                  label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+                  label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
                   style: {
-                    backgroundColor: '#000000',
+                    backgroundColor: '#9b87f5',
                     color: '#ffffff',
-                    fontSize: '1.15rem',
+                    fontSize: '1.2rem',
                     animation: true,
-                    animationType: 'shake',
-                    borderColor: '#eaeaff',
-                    borderRadius: '6px',
-                    borderWidth: '0px',
-                    paddingY: '12px',
-                    showIcon: true,
-                    icon: 'shopping-cart',
+                    animationType: 'pulse',
                     iconPosition: 'left',
                   },
                 };
@@ -447,20 +387,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 buttonStyle: 'rounded',
               });
             }
+            
+            console.log("تم تحميل بيانات النموذج:", formData);
           } else {
-            // If the form wasn't found, initialize a new form
-            await initializeNewForm();
+            // إذا لم يتم العثور على النموذج، تهيئة نموذج افتراضي
+            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج، تم إنشاء نموذج افتراضي' : 'Form not found, created a default form');
+            setFormElements(createDefaultForm());
           }
         } catch (error) {
           console.error("خطأ في تحميل النموذج:", error);
           toast.error(language === 'ar' ? 'خطأ في تحميل النموذج' : 'Error loading form');
-          // Create a default form in case of error
-          await initializeNewForm();
-        } finally {
-          setIsLoading(false);
+          // في حالة وجود خطأ، إنشاء نموذج افتراضي
+          setFormElements(createDefaultForm());
         }
       } else {
-        // If no form ID, initialize a new form
+        // إذا لم يكن هناك معرف للنموذج، تهيئة نموذج جديد
         await initializeNewForm();
       }
     };
@@ -601,7 +542,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         
         if (error) {
           console.error("Direct database update for publishing failed:", error);
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
+          toast.error(language === 'ar' ? 'فشل تغيير ��الة النشر' : 'Failed to change publish status');
         } else {
           setIsPublished(newPublishState);
           toast.success(
@@ -716,11 +657,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
-  // Handle style change needs to match the expected signature for FormStyleEditor
-  const handleStyleChange = (newStyle: any) => {
+  const handleStyleChange = (key: string, value: string) => {
     setFormStyle({
       ...formStyle,
-      ...newStyle
+      [key]: value
     });
     setRefreshKey(prev => prev + 1);
   };
@@ -728,11 +668,43 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const handleSaveStyle = () => {
     setIsStyleDialogOpen(false);
     // لا تحفظ إعدادات النمط في localStorage بل اجعلها خاصة بالنموذج الحالي فقط
+    // localStorage.setItem('selectedTemplateStyle', JSON.stringify(formStyle));
     
     // حفظ النموذج مع إعدادات النمط الجديدة
     handleSave();
     
     toast.success(language === 'ar' ? 'تم حفظ تخصيص النمط بنجاح' : 'Style customization saved successfully');
+  };
+
+  const handleShopifyIntegration = async (settings: any) => {
+    if (!currentFormId) {
+      toast.error(language === 'ar' ? 'يجب حفظ النموذج أولا' : 'You must save the form first');
+      return;
+    }
+    
+    try {
+      await shopifyIntegration.syncForm({ 
+        formId: currentFormId,
+        shopDomain: shopifyIntegration.shop,
+        settings
+      });
+      
+      toast.success(
+        language === 'ar' 
+          ? 'تم حفظ إعدادات شوبيفاي بنجاح'
+          : 'Shopify settings saved successfully'
+      );
+      
+      // Save form after Shopify integration
+      handleSave();
+    } catch (error) {
+      console.error("Error saving Shopify settings:", error);
+      toast.error(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ إعدادات شوبيفاي'
+          : 'Error saving Shopify settings'
+      );
+    }
   };
 
   const sensors = useSensors(
@@ -774,42 +746,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     }, 100);
   };
 
-  const handleFloatingButtonChange = (config: FloatingButtonConfig) => {
-    // Use the updateFloatingButton function from the useFormStore hook we called at the top
-    updateFloatingButton(config);
-    setRefreshKey(prev => prev + 1); // Refresh the preview
-  };
-
-  const handleFloatingButtonOpen = () => {
-    setIsFloatingButtonDialogOpen(true);
-  };
-
-  const handleFloatingButtonClose = () => {
-    setIsFloatingButtonDialogOpen(false);
-  };
-
-  // Show a loading screen during slow operations
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <h2 className="text-lg font-medium text-gray-700">
-            {language === 'ar' ? 'جاري تحميل النموذج...' : 'Loading form...'}
-          </h2>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-white">
+    <main className="flex-1 overflow-auto">
       <FormHeader 
         onSave={handleSave}
         onPublish={handlePublish}
         onStyleOpen={() => setIsStyleDialogOpen(true)}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
-        onFloatingButtonOpen={handleFloatingButtonOpen}
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
@@ -827,6 +770,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
           </h2>
           
+          {/* Add the form title editor at top */}
+          <FormTitleEditor
+            formTitle={formTitle}
+            formDescription={formDescription}
+            onFormTitleChange={(title) => setFormTitle(title)}
+            onFormDescriptionChange={(desc) => setFormDescription(desc)}
+            formTitleField={getFormTitleField()}
+            onAddTitleField={addFormTitleField}
+            onUpdateTitleField={updateFormTitleField}
+          />
+          
           <DndContext 
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -836,36 +790,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               items={formElements.map(el => el.id)}
               strategy={verticalListSortingStrategy}
             >
-              {/* إضافة محرر العنوان كعنصر قابل للسحب والإفلات */}
-              {getFormTitleField() && (
-                <FormTitleEditor
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  onFormTitleChange={(title) => setFormTitle(title)}
-                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
-                  formTitleField={getFormTitleField()}
-                  onAddTitleField={addFormTitleField}
-                  onUpdateTitleField={updateFormTitleField}
-                  isDraggable={true}
-                />
-              )}
-              
-              {/* إذا لم يكن هناك حقل عنوان، عرض محرر العنوان العادي */}
-              {!getFormTitleField() && (
-                <FormTitleEditor
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  onFormTitleChange={(title) => setFormTitle(title)}
-                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
-                  formTitleField={undefined}
-                  onAddTitleField={addFormTitleField}
-                  onUpdateTitleField={updateFormTitleField}
-                  isDraggable={false}
-                />
-              )}
-              
               <FormElementEditor
-                elements={formElements.filter(field => field.type !== 'form-title')}
+                elements={formElements}
                 selectedIndex={selectedElementIndex}
                 onSelectElement={setSelectedElementIndex}
                 onEditElement={editElement}
@@ -888,66 +814,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
-            floatingButton={floatingButton}
-            hideFloatingButtonPreview={false}
           />
         </div>
       </div>
       
-      {/* Style Editor Dialog */}
-      <Dialog open={isStyleDialogOpen} onOpenChange={setIsStyleDialogOpen}>
-        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <FormStyleEditor 
-            formStyle={formStyle}
-            onStyleChange={handleStyleChange}
-            onSave={handleSaveStyle}
-            floatingButton={floatingButton}
-            onFloatingButtonChange={handleFloatingButtonChange}
-            showFloatingButtonEditor={false}
-          />
-          
-          <DialogFooter>
-            <Button onClick={() => setIsStyleDialogOpen(false)}>
-              {language === 'ar' ? 'تم' : 'Done'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Floating Button Dialog */}
-      <Dialog open={isFloatingButtonDialogOpen} onOpenChange={setIsFloatingButtonDialogOpen}>
-        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'ar' 
-                ? 'قم بتخصيص مظهر وسلوك الزر العائم الذي سيظهر في متجرك' 
-                : 'Customize the appearance and behavior of the floating button that will appear in your store'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <FloatingButtonEditor 
-            floatingButton={floatingButton} 
-            onChange={handleFloatingButtonChange}
-          />
-          
-          <DialogFooter>
-            <Button onClick={handleFloatingButtonClose}>
-              {language === 'ar' ? 'تم' : 'Done'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Template Dialog */}
+      <FormStyleEditor
+        isOpen={isStyleDialogOpen}
+        onOpenChange={setIsStyleDialogOpen}
+        formStyle={formStyle}
+        onStyleChange={handleStyleChange}
+        onSave={handleSaveStyle}
+      />
+
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <FormTemplatesDialog 
           open={isTemplateDialogOpen}
@@ -963,7 +841,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           onClose={() => setIsFieldEditorOpen(false)}
         />
       )}
-    </div>
+
+      {currentFormId && (
+        <div className="mt-6">
+          <ShopifyIntegration
+            formId={currentFormId}
+            onSave={handleShopifyIntegration}
+            isSyncing={shopifyIntegration.isSyncing}
+          />
+        </div>
+      )}
+    </main>
   );
 };
 

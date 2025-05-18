@@ -73,7 +73,7 @@ const ShopifySync: React.FC = () => {
     };
     
     loadData();
-  }, [shopId, navigate, language]);
+  }, [shopId, navigate]);
 
   const handleSyncForms = async () => {
     if (!shopId) {

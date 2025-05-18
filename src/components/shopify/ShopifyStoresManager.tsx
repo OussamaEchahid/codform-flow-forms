@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { Store, Check, Trash2, ExternalLink, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { ShopifyStore, ShopifyStoreConnection } from "@/lib/shopify/types";
+import { ShopifyStoreConnection } from '@/lib/shopify/types';
 import { parseShopifyParams } from '@/utils/shopify-helpers'; 
 
 export const ShopifyStoresManager: React.FC = () => {
@@ -90,7 +91,7 @@ export const ShopifyStoresManager: React.FC = () => {
         shopifyConnectionManager.removeStore(storeUrl);
         const allStores = shopifyConnectionManager.getAllStores();
         setStores(allStores);
-        toast.success(`��م إزالة متجر ${storeUrl} بنجاح`);
+        toast.success(`تم إزالة متجر ${storeUrl} بنجاح`);
       } catch (error) {
         toast.error(`فشل في إزالة المتجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       }

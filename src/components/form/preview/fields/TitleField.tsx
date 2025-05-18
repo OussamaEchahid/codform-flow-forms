@@ -10,118 +10,86 @@ interface TitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection }) => {
+// Define valid text alignment options
+type TextAlign = 'left' | 'center' | 'right' | 'justify';
+// Define valid box-sizing values
+type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
+
+const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // استخراج الوصف من الحقل
+  // Extract the description from the field itself
   const description = field.helpText || '';
   
-  // الحصول على اتجاه اللغة
-  const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  // Get alignment from field style or default based on language
+  const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
-  // تحديد نوع العنوان
+  // Convert string alignment to TextAlign type with validation
+  const getValidAlignment = (align?: string): TextAlign => {
+    if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
+      return align as TextAlign;
+    }
+    return defaultAlignment;
+  };
+  
+  const alignment = getValidAlignment(fieldStyle.textAlign);
+  
+  // Background styling - Always use a background color for form-title type
+  const backgroundColor = fieldStyle.backgroundColor || '#9b87f5'; // Always have a background color
+  const backgroundStyle = {
+    backgroundColor: backgroundColor,
+    padding: '16px', // Explicitly use 16px for exact matching with store
+    borderRadius: formStyle.borderRadius || '8px', // Use 8px as default for consistent rounding
+    width: '100%',
+    boxSizing: 'border-box' as BoxSizing,
+    marginBottom: '0', // No bottom margin to match store display
+  };
+
+  // Description styles inside the same background container
+  const descriptionStyle = {
+    color: fieldStyle.descriptionColor || '#ffffff',
+    fontSize: fieldStyle.descriptionFontSize || '0.875rem',
+    margin: '8px 0 0 0', // Consistent 8px top margin
+    padding: '0',
+    textAlign: alignment,
+    fontFamily: fieldStyle.fontFamily || 'inherit',
+  };
+
+  // Use larger styling for form-title type
   const isFormTitle = field.type === 'form-title';
   
-  // تحديد حجم الخط بشكل دقيق
-  const fontSize = fieldStyle.fontSize || (isFormTitle ? '24px' : '20px');
-  const descriptionFontSize = fieldStyle.descriptionFontSize || '14px';
+  // Determine font size for title - Make sure it's stored correctly for store rendering
+  const fontSize = fieldStyle.fontSize || (isFormTitle ? '1.5rem' : '1.25rem');
   
-  // الحصول على لون الخلفية
-  const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
-  
-  // استخدام نفس قيمة نصف القطر للحدود
-  const borderRadiusValue = formStyle.borderRadius || '0.5rem';
-
-  console.log(`Title field background color: ${backgroundColor}`);
-  
-  // تحسين الأنماط باستخدام سمات البيانات بدلاً من !important
-  const backgroundStyle: React.CSSProperties = {
-    backgroundColor: backgroundColor,
-    padding: '16px',
-    borderRadius: borderRadiusValue,
-    width: '100%',
-    boxSizing: 'border-box',
-    marginBottom: '16px',
-    textAlign: 'center',
-    display: 'block',
-    overflow: 'hidden',
-  };
-
-  // أنماط العنوان
-  const titleStyle: React.CSSProperties = {
-    color: fieldStyle.color || '#ffffff',
-    fontSize: fontSize,
-    textAlign: 'center',
-    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
-    fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3',
-    display: 'block',
-    direction: textDirection,
-    width: '100%',
-  };
-
-  // أنماط الوصف
-  const descriptionStyle: React.CSSProperties = {
-    color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: descriptionFontSize,
-    margin: '6px 0 0 0',
-    padding: '0',
-    textAlign: 'center',
-    fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal',
-    lineHeight: '1.5',
-    opacity: '0.9',
-    direction: textDirection,
-    width: '100%',
-    display: 'block',
-  };
-
-  // معرف فريد للحقل
-  const titleFieldId = `title-field-${field.id}`;
-
-  console.log(`Rendering TitleField with styles:`, { 
-    backgroundColor, 
-    titleColor: fieldStyle.color || '#ffffff',
-    fontSize,
-    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
-    descriptionColor: fieldStyle.descriptionColor || '#ffffff',
-    descriptionFontSize,
-    direction: textDirection
-  });
-
   return (
     <div 
-      id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
-      data-title-align="center"
+      data-title-align={alignment}
       data-has-bg="true"
       data-title-color={fieldStyle.color || '#ffffff'}
       data-bg-color={backgroundColor}
+      data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-direction={textDirection}
-      data-title-font-size={fontSize}
-      data-description-font-size={descriptionFontSize}
-      data-title-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-description-color={fieldStyle.descriptionColor || '#ffffff'}
-      dir={textDirection}
+      data-font-size={fontSize}
     >
-      <div 
-        className="codform-title-container" 
-        style={backgroundStyle} 
-        dir={textDirection}
-        data-title-style="true"
-      >
+      <div style={backgroundStyle} className="codform-title-container">
         <h3 
-          className={isFormTitle ? "codform-form-title" : "codform-section-title"}
-          style={titleStyle}
-          dir={textDirection}
+          className={isFormTitle ? "text-2xl font-bold" : "text-lg font-medium"}
+          style={{
+            color: fieldStyle.color || '#ffffff', // Default to white text for contrast with background
+            fontSize: fontSize,
+            textAlign: alignment,
+            fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+            fontFamily: fieldStyle.fontFamily || 'inherit',
+            margin: '0',
+            padding: '0',
+            lineHeight: '1.3', // Add line height for better text appearance
+          }}
         >
           {field.label}
         </h3>
@@ -130,7 +98,6 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
           <p 
             className="codform-title-description"
             style={descriptionStyle}
-            dir={textDirection}
           >
             {description}
           </p>

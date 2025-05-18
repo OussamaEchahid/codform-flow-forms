@@ -8,7 +8,6 @@ export interface Database extends ShopifyDatabase {
     Tables: {
       shopify_stores: ShopifyDatabase['public']['Tables']['shopify_stores'];
       shopify_product_settings: ShopifyDatabase['public']['Tables']['shopify_product_settings'];
-      shopify_form_insertion: ShopifyDatabase['public']['Tables']['shopify_form_insertion'];
       
       // Add other tables used in the main application
       forms: {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -9,9 +10,8 @@ import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard
 import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ShoppingBag } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -19,12 +19,10 @@ const FormBuilderPage = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
-  const { tokenError, failSafeMode, toggleFailSafeMode, getDefaultForm } = useShopify();
+  const { tokenError, failSafeMode, toggleFailSafeMode } = useShopify();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
-  const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
-  const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -46,124 +44,14 @@ const FormBuilderPage = () => {
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
-  // Check for default form - with proper dependencies to prevent infinite loop
   useEffect(() => {
-    // Fix for infinite loop - only run when shop changes and not already checking
-    let isMounted = true;
-    
-    async function checkForDefaultForm() {
-      if (!shop || isCheckingDefaultForm) return;
-      
-      setIsCheckingDefaultForm(true);
-      try {
-        const defaultForm = await getDefaultForm(shop);
-        
-        if (isMounted) {
-          if (!defaultForm) {
-            console.log('No default form found, will create one when needed');
-          } else {
-            console.log('Default form found:', defaultForm.id);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking for default form:', error);
-      } finally {
-        if (isMounted) {
-          setIsCheckingDefaultForm(false);
-        }
-      }
+    if (formId) {
+      setActiveTab('editor');
+    } else {
+      fetchForms();
+      setActiveTab('dashboard');
     }
-    
-    checkForDefaultForm();
-    
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [shop, getDefaultForm]); // Removed isCheckingDefaultForm from dependencies to prevent loop
-
-  // Fetch associated products for current form - with cleanup to prevent memory leaks
-  useEffect(() => {
-    let isMounted = true;
-    
-    async function fetchAssociatedProducts() {
-      if (!formId || formId === 'new' || !shop) return;
-      
-      try {
-        // Get product settings for this form
-        const { data: productSettings, error } = await shopifySupabase
-          .from('shopify_product_settings')
-          .select('*')
-          .eq('form_id', formId);
-          
-        if (error) {
-          console.error('Error fetching product settings:', error);
-          return;
-        }
-        
-        // If no associated products, exit early
-        if (!productSettings || productSettings.length === 0) {
-          if (isMounted) {
-            setAssociatedProducts([]);
-          }
-          return;
-        }
-        
-        const productIds = productSettings.map(s => s.product_id);
-        
-        // Fetch product details from cached products table
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shop)
-          .single();
-          
-        if (cachedProducts?.products && isMounted) {
-          const shopifyProducts = cachedProducts.products;
-          const matchedProducts = shopifyProducts
-            .filter((product: any) => productIds.includes(product.id))
-            .map((product: any) => ({ 
-              id: product.id, 
-              title: product.title 
-            }));
-            
-          setAssociatedProducts(matchedProducts);
-        }
-      } catch (error) {
-        console.error('Error fetching associated products:', error);
-      }
-    }
-    
-    fetchAssociatedProducts();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [formId, shop]);
-  
-  // Form initialization - simplified to prevent re-fetching
-  useEffect(() => {
-    async function handleFormInit() {
-      if (formId) {
-        // Handle the "new" form ID case - redirect to dashboard instead of creating a form
-        if (formId === 'new') {
-          console.log('New form requested, redirecting to dashboard');
-          navigate('/form-builder', { replace: true });
-          return;
-        }
-        
-        // For existing forms, set to editor mode
-        setActiveTab('editor');
-        // Only fetch forms once
-        fetchForms();
-      } else {
-        setActiveTab('dashboard');
-        fetchForms();
-      }
-    }
-    
-    handleFormInit();
-  }, [formId, navigate]); // Removed fetchForms and language from dependencies to prevent loops
+  }, [formId, fetchForms]);
 
   // Always enable bypass access in development mode
   useEffect(() => {
@@ -239,28 +127,11 @@ const FormBuilderPage = () => {
         </div>
       )}
       
-      {/* Display associated products banner when editing an existing form */}
-      {activeTab === 'editor' && associatedProducts.length > 0 && (
-        <div className="absolute top-0 left-0 right-0 z-40 px-4 py-2 mt-16">
-          <Alert className="bg-blue-50 border-blue-200">
-            <ShoppingBag className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">
-              {language === 'ar' ? 'منتجات مرتبطة' : 'Associated Products'}
-            </AlertTitle>
-            <AlertDescription className="text-blue-700">
-              {language === 'ar' 
-                ? `هذا النموذج مرتبط بـ ${associatedProducts.length} منتج: ${associatedProducts.map(p => p.title).join(', ')}` 
-                : `This form is associated with ${associatedProducts.length} product(s): ${associatedProducts.map(p => p.title).join(', ')}`}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
       <div className="flex-1 overflow-x-hidden">
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          formId && formId !== 'new' && <FormBuilderEditor formId={formId} />
+          <FormBuilderEditor formId={formId} />
         )}
       </div>
     </div>

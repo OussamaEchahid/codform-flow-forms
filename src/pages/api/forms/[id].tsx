@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
@@ -18,7 +18,6 @@ interface FormData {
 
 export default function FormAPI() {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
   const [form, setForm] = useState<FormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,60 +29,30 @@ export default function FormAPI() {
           throw new Error('Form ID is required');
         }
 
-        // Skip API call if id is 'new' since it's a placeholder
-        if (id === 'new') {
-          console.log('Cannot fetch form with id "new", it will be redirected');
-          setError('Form with ID "new" is being redirected to create a new form');
-          setIsLoading(false);
-          return;
-        }
-
-        // Extract product ID from URL parameters if available
-        const searchParams = new URLSearchParams(location.search);
-        const productId = searchParams.get('productId');
-
-        console.log('Fetching form data for ID:', id, productId ? `and product: ${productId}` : '');
+        console.log('Fetching form data for ID:', id);
         
-        try {
-          // Try to validate if the ID is a valid UUID format
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (!uuidRegex.test(id)) {
-            console.error(`Invalid UUID format: "${id}"`);
-            throw new Error(`Invalid UUID format: "${id}"`);
-          }
-          
-          // Prepare the request body with optional productId
-          const requestBody: Record<string, any> = { id };
-          if (productId) {
-            requestBody.productId = productId;
-          }
-          
-          // Call the Supabase Edge Function directly
-          const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
-            body: requestBody
-          });
+        // Call the Supabase Edge Function directly
+        const { data, error } = await shopifySupabase.functions.invoke('api-forms', {
+          body: { id }
+        });
 
-          if (error) {
-            console.error('Error calling api-forms function:', error);
-            throw new Error(error.message || 'Error fetching form');
-          }
-
-          if (!data) {
-            throw new Error('Form not found');
-          }
-
-          // Properly cast the data to FormData with correct type for the 'data' field
-          const formData: FormData = {
-            ...data,
-            data: data.data as unknown as FormStep[]
-          };
-
-          // Return the form data as JSON
-          setForm(formData);
-        } catch (e: any) {
-          console.error('Error in API call:', e);
-          throw new Error(e.message || 'Error processing form data');
+        if (error) {
+          console.error('Error calling api-forms function:', error);
+          throw new Error(error.message || 'Error fetching form');
         }
+
+        if (!data) {
+          throw new Error('Form not found');
+        }
+
+        // Properly cast the data to FormData with correct type for the 'data' field
+        const formData: FormData = {
+          ...data,
+          data: data.data as unknown as FormStep[]
+        };
+
+        // Return the form data as JSON
+        setForm(formData);
       } catch (error: any) {
         console.error('Error in fetchForm:', error);
         setError(error.message || 'Error fetching form');
@@ -93,7 +62,7 @@ export default function FormAPI() {
     }
 
     fetchForm();
-  }, [id, location.search]);
+  }, [id]);
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {

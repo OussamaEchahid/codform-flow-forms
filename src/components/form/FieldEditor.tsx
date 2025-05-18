@@ -160,7 +160,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           <WhatsAppFieldEditor
             field={currentField}
             onSave={handleSaveField}
-            onClose={onClose}
+            onCancel={onClose}
           />
         );
         

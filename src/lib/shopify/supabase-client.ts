@@ -1,5 +1,4 @@
 
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database-types';
 
@@ -22,5 +21,4 @@ export const shopifySupabase = createClient<Database>(
 // تصدير وظائف مساعدة للتعامل مع جداول Shopify
 export const shopifyStores = () => shopifySupabase.from('shopify_stores');
 export const shopifyProductSettings = () => shopifySupabase.from('shopify_product_settings');
-export const shopifyFormInsertion = () => shopifySupabase.from('shopify_form_insertion');
 export const shopifyAuth = shopifySupabase.auth;

@@ -2,8 +2,7 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -13,144 +12,101 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirection }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
-  const style = field.style || {};
+  const fieldStyle = field.style || {};
   
-  // تحديد الاتجاه
-  const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  // Default label based on language if not provided
+  const buttonLabel = field.label || (language === 'ar' 
+    ? 'إرسال الطلب' 
+    : 'Submit Order');
   
-  // الحصول على فئة الرسوم المتحركة
-  const getAnimationClass = () => {
-    if (style.animation !== true) return '';
-    
-    const animationType = style.animationType || 'pulse';
-    switch (animationType) {
-      case 'pulse': return 'pulse-animation';
-      case 'shake': return 'shake-animation';
-      case 'bounce': return 'bounce-animation';
-      case 'wiggle': return 'wiggle-animation';
-      case 'flash': return 'flash-animation';
-      default: return '';
-    }
-  };
+  // Determine button radius based on style
+  let buttonRadius = '8px'; // Default border radius
+  if (formStyle.buttonStyle === 'pill') {
+    buttonRadius = '9999px';
+  } else if (formStyle.buttonStyle === 'square') {
+    buttonRadius = '0';
+  } else if (formStyle.borderRadius) {
+    buttonRadius = formStyle.borderRadius;
+  }
 
-  const animationClass = getAnimationClass();
+  // Define font size based on style or field settings
+  const fontSize = fieldStyle.fontSize || '1.2rem'; // Increased default font size
   
-  // نمط الزر المحسن
-  const buttonStyle: React.CSSProperties = {
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
-    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
-    borderColor: style.borderColor || 'transparent',
-    borderWidth: style.borderWidth || '0px',
-    borderStyle: 'solid',
-    padding: '14px 24px',
-    paddingTop: style.paddingY || '14px',
-    paddingBottom: style.paddingY || '14px',
-    paddingLeft: style.paddingX || '24px',
-    paddingRight: style.paddingX || '24px',
-    width: style.fullWidth === false ? 'auto' : '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    fontFamily: style.fontFamily || 'inherit',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    marginTop: '14px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative',
-    overflow: 'hidden',
-    textAlign: 'center'
-  };
-  
-  // تقديم الأيقونة
-  const renderIcon = () => {
-    if (!style.showIcon) return null;
-    
-    // أنماط الأيقونة
-    const iconStyle = {
-      width: '18px',
-      height: '18px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    };
-    
-    // إرجاع الأيقونة المناسبة
-    switch (style.icon?.toLowerCase()) {
-      case 'shopping-cart':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'arrow-right':
-        return textDir === 'rtl' ? 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'check':
-        return <Check size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'send':
-        return <Send size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'cart':
-      case 'shopping-bag':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'phone':
-        return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      default:
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+  // Determine animation class based on animation type
+  let animationClass = '';
+  if (fieldStyle.animation) {
+    // If animation is just boolean true, default to pulse
+    if (typeof fieldStyle.animation === 'boolean' && fieldStyle.animation) {
+      animationClass = 'pulse-animation';
+      console.log("Setting default pulse animation");
+    } 
+    // If we have a specific animation type
+    else if (fieldStyle.animationType) {
+      switch (fieldStyle.animationType) {
+        case 'pulse':
+          animationClass = 'pulse-animation';
+          break;
+        case 'shake':
+          animationClass = 'shake-animation';
+          break;
+        case 'bounce':
+          animationClass = 'bounce-animation';
+          break;
+        case 'wiggle':
+          animationClass = 'wiggle-animation';
+          break;
+        case 'flash':
+          animationClass = 'flash-animation';
+          break;
+        default:
+          animationClass = '';
+      }
+      console.log(`Applied animation: ${fieldStyle.animationType} -> class: ${animationClass}`);
     }
-  };
-
-  // موضع الأيقونة
-  const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
-  const icon = renderIcon();
+  }
   
-  console.log(`Rendering SubmitButton with styles:`, { 
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
-    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
-    animation: style.animation ? style.animationType : 'none',
-    iconPosition,
-    hasIcon: style.showIcon,
-    direction: textDir
+  console.log("Button animation data:", { 
+    animation: fieldStyle.animation, 
+    type: fieldStyle.animationType,
+    class: animationClass 
   });
-
+  
   return (
-    <button
-      type="button"
-      disabled={false}
-      className={cn(
-        "codform-submit-btn", 
-        animationClass,
-      )}
-      style={buttonStyle}
-      dir={textDir}
-      data-animation-type={style.animationType || 'none'}
-      data-button-style={formStyle.buttonStyle || 'rounded'}
-      data-has-animation={style.animation ? 'true' : 'false'}
-      data-icon-position={iconPosition}
-      data-has-icon={style.showIcon ? 'true' : 'false'}
-      data-direction={textDir}
-      data-button-id={field.id}
-      data-button-color={style.color || '#ffffff'}
-      data-button-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
-      data-button-font-size={style.fontSize || '18px'}
-      data-button-font-weight={style.fontWeight || '600'}
-      data-button-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
-      data-button-padding-y={style.paddingY || '14px'}
-      data-button-padding-x={style.paddingX || '24px'}
-      data-button-icon={style.icon || 'shopping-cart'}
-    >
-      {iconPosition === 'left' && icon}
-      <span className="btn-text">{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
-      {iconPosition === 'right' && icon}
-    </button>
+    <div className="mb-4 mt-8 codform-submit-container">
+      <button
+        className={`codform-submit-button w-full py-5 px-5 font-bold transition-all duration-200 hover:opacity-90 relative overflow-hidden flex items-center justify-center gap-3 ${animationClass}`}
+        style={{
+          backgroundColor: fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+          color: fieldStyle.color || 'white',
+          fontSize: fontSize,
+          borderRadius: buttonRadius,
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: fieldStyle.fontFamily || 'inherit',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+          transition: 'all 0.3s ease',
+          direction: language === 'ar' ? 'rtl' : 'ltr',
+          textAlign: 'center',
+        }}
+        disabled={field.disabled}
+        data-animation-type={fieldStyle.animationType || ''}
+        data-has-animation={fieldStyle.animation ? 'true' : 'false'}
+        data-icon-position={fieldStyle.iconPosition || 'left'}
+      >
+        {fieldStyle.iconPosition !== 'right' && (
+          <ShoppingCart className="w-6 h-6" />
+        )}
+        {buttonLabel}
+        {fieldStyle.iconPosition === 'right' && (
+          <ShoppingCart className="w-6 h-6" />
+        )}
+      </button>
+    </div>
   );
 };
 

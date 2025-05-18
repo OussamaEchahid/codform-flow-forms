@@ -24,13 +24,12 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormFieldStyle, FormStep, createEmptyField, createDefaultForm, formTemplates, FormFieldType } from '@/lib/form-utils';
+import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { useI18n } from '@/lib/i18n';
 
 const availableFieldTypes: Array<{
   type: FormField['type'];
@@ -58,7 +57,6 @@ interface FormBuilderProps {
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const navigate = useNavigate();
-  const { language } = useI18n();
   const { saveForm, publishForm } = useFormTemplates();
   const [formTitle, setFormTitle] = useState(initialFormData.title);
   const [formDescription, setFormDescription] = useState(initialFormData.description || '');
@@ -117,28 +115,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      // Make sure all fields have properly typed animation types
-      const validatedData = template.data.map(step => {
-        return {
-          ...step,
-          fields: step.fields.map(field => {
-            if (field.style && field.style.animationType && typeof field.style.animationType === 'string') {
-              // Ensure animationType is valid
-              const validType = validateAnimationType(field.style.animationType);
-              return {
-                ...field,
-                style: {
-                  ...field.style,
-                  animationType: validType
-                }
-              };
-            }
-            return field;
-          })
-        };
-      });
-      
-      setFormSteps(validatedData);
+      setFormSteps(template.data);
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -146,7 +123,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       toast.success(`تم تطبيق قالب ${template.title} بنجاح`);
     }
   };
-  
+
   const addFieldToStep = (type: FormField['type']) => {
     const newField = createEmptyField(type);
     const updatedSteps = [...formSteps];
@@ -166,11 +143,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     const fieldIndex = updatedSteps[stepIndex].fields.findIndex(f => f.id === updatedField.id);
     
     if (fieldIndex !== -1) {
-      // Validate animationType if it exists
-      if (updatedField.style && updatedField.style.animationType) {
-        updatedField.style.animationType = validateAnimationType(updatedField.style.animationType);
-      }
-      
       updatedSteps[stepIndex].fields[fieldIndex] = updatedField;
       setFormSteps(updatedSteps);
     }
@@ -178,14 +150,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
     setPreviewRefresh(prev => prev + 1);
-  };
-
-  // Helper function to validate animation type
-  const validateAnimationType = (type: string): 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none' => {
-    const validTypes = ['pulse', 'shake', 'bounce', 'wiggle', 'flash', 'none'] as const;
-    return validTypes.includes(type as any) 
-      ? (type as 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none')
-      : 'pulse'; // Default to 'pulse' if invalid
   };
 
   const deleteField = (fieldId: string) => {
@@ -258,112 +222,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setPreviewRefresh(prev => prev + 1);
   };
 
-  // Create default form fields with all required fields
-  const createCompleteDefaultForm = (): FormStep[] => {
-    const defaultFields: FormField[] = [];
-    
-    // Add form title field
-    defaultFields.push({
-      type: 'form-title',
-      id: uuidv4(),
-      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      style: {
-        color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '24px',
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px',
-        backgroundColor: '#9b87f5',
-      }
-    });
-    
-    // Add name field
-    defaultFields.push({
-      type: 'text',
-      id: uuidv4(),
-      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
-      required: true,
-      icon: 'user',
-    });
-    
-    // Add phone field
-    defaultFields.push({
-      type: 'phone',
-      id: uuidv4(),
-      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
-      required: true,
-      icon: 'phone',
-    });
-    
-    // Add address field
-    defaultFields.push({
-      type: 'textarea',
-      id: uuidv4(),
-      label: language === 'ar' ? 'العنوان' : 'Address',
-      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
-      required: true,
-    });
-    
-    // Add submit button with properly typed animation type
-    defaultFields.push({
-      type: 'submit',
-      id: uuidv4(),
-      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-      style: {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '18px',
-        animation: true,
-        animationType: 'pulse', // Explicitly typed as a valid animation type
-      },
-    });
-    
-    const defaultStep: FormStep = {
-      id: '1',
-      title: 'Main Step',
-      fields: defaultFields
-    };
-    
-    return [defaultStep];
-  };
-  
-  // Replace the useEffect that creates default forms
   useEffect(() => {
-    // If the data is empty, we create a default form with all required fields
+    // If the data is empty, we create a default form
     if (initialFormData.data.length === 0) {
-      const completeDefaultForm = createCompleteDefaultForm();
-      setFormSteps(completeDefaultForm);
-      setPreviewRefresh(prev => prev + 1);
-    } else if (initialFormData.data.length > 0) {
-      // Validate all animation types in the existing form data
-      const validatedSteps = initialFormData.data.map(step => {
-        return {
-          ...step,
-          fields: step.fields.map(field => {
-            if (field.style && field.style.animationType) {
-              return {
-                ...field,
-                style: {
-                  ...field.style,
-                  animationType: validateAnimationType(field.style.animationType)
-                }
-              };
-            }
-            return field;
-          })
-        };
-      });
-      
-      setFormSteps(validatedSteps);
+      setFormSteps(createDefaultForm());
       setPreviewRefresh(prev => prev + 1);
     }
-  }, [initialFormData, language]);
+  }, [initialFormData]);
 
-  // This function now uses the proper FormFieldType type and handles animation types correctly
   const createEmptyField = (type: FormField['type']) => {
     let newField: FormField = {
       id: uuidv4(), // Use UUID from imported library
@@ -416,17 +282,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
         break;
       case 'submit':
         newField.label = 'زر إرسال الطلب';
-        newField.style = {
-          backgroundColor: '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          fontWeight: '600',
-          borderRadius: '8px',
-          paddingY: '14px',
-          paddingX: '24px',
-          animation: true,
-          animationType: 'pulse', // Using a valid specific animation type
-        };
         break;
       case 'text/html':
         newField.label = 'نص/HTML';

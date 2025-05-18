@@ -8,6 +8,24 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
+type ShopifyProduct = {
+  id: string;
+  title: string;
+  handle: string;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  image: {
+    src: string;
+  } | null;
+  status: string;
+  variants: {
+    id: string;
+    price: string;
+    title: string;
+  }[];
+};
+
 // Handle CORS preflight requests
 function handleOptions() {
   return new Response(null, {
@@ -20,8 +38,6 @@ function handleOptions() {
 interface RequestParams {
   shop: string;
   forceRefresh?: boolean;
-  includeTestProducts?: boolean;
-  accessToken?: string;
 }
 
 serve(async (req: Request) => {
@@ -38,8 +54,6 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     let shop = url.searchParams.get('shop');
     let forceRefresh = url.searchParams.get('forceRefresh') === 'true';
-    let includeTestProducts = url.searchParams.get('includeTestProducts') === 'true';
-    let accessToken: string | undefined = undefined;
     
     // If not in query params, try to get from request body
     if (!shop) {
@@ -47,8 +61,6 @@ serve(async (req: Request) => {
         const body = await req.json() as RequestParams;
         shop = body.shop;
         forceRefresh = body.forceRefresh || false;
-        includeTestProducts = body.includeTestProducts || false;
-        accessToken = body.accessToken; // Allow passing access token directly for testing
       } catch (err) {
         console.error(`[${requestId}] Error parsing request body:`, err);
       }
@@ -64,7 +76,41 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}`);
+    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}`);
+
+    // For development/test stores, return mock data
+    if (shop.includes('test') || shop.includes('example') || shop.includes('development') || shop.includes('myshopify')) {
+      console.log(`[${requestId}] Test store detected, returning mock data`);
+      
+      // Generate mock products
+      const mockProducts = Array.from({ length: 10 }, (_, i) => ({
+        id: `gid://shopify/Product/${1000000 + i}`,
+        title: `Test Product ${i + 1}`,
+        handle: `test-product-${i + 1}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        published_at: new Date().toISOString(),
+        status: 'active',
+        image: {
+          src: `https://via.placeholder.com/500x500.png?text=Product+${i + 1}`
+        },
+        variants: [
+          {
+            id: `gid://shopify/ProductVariant/${2000000 + i}`,
+            price: `${Math.floor(10 + Math.random() * 90)}.99`,
+            title: 'Default Title'
+          }
+        ]
+      }));
+      
+      return new Response(JSON.stringify({
+        success: true,
+        products: mockProducts,
+        count: mockProducts.length
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Setup Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -82,13 +128,7 @@ serve(async (req: Request) => {
         
       if (!cacheError && cachedProducts && cachedProducts.length > 0 && cachedProducts[0].products) {
         console.log(`[${requestId}] Returning cached products for ${shop}`);
-        let productsData = cachedProducts[0].products;
-        
-        // Always filter test products unless explicitly included
-        if (!includeTestProducts) {
-          productsData = filterTestProducts(productsData);
-          console.log(`[${requestId}] Filtered test products from cache, returning ${productsData.length} products`);
-        }
+        const productsData = cachedProducts[0].products;
         
         return new Response(JSON.stringify({
           success: true,
@@ -102,50 +142,32 @@ serve(async (req: Request) => {
       }
     }
     
-    // Get shop access token if not provided
-    if (!accessToken) {
-      const { data: shopData, error: shopError } = await supabase
-        .from('shopify_stores')
-        .select('access_token')
-        .eq('shop', shop)
-        .single();
+    // If we get here, we need to fetch from Shopify API
+    console.log(`[${requestId}] Fetching products from Shopify API for ${shop}`);
+    
+    // Get shop access token
+    const { data: shopData, error: shopError } = await supabase
+      .from('shopify_shops')
+      .select('access_token')
+      .eq('shop', shop)
+      .single();
       
-      if (shopError || !shopData || !shopData.access_token) {
-        console.error(`[${requestId}] Error fetching shop access token:`, shopError);
-        
-        // Generate mock products only if this is a dev store
-        if (shop.includes('myshopify.com')) {
-          console.log(`[${requestId}] Test store detected, returning mock data`);
-          const mockProducts = generateMockProducts();
-          
-          return new Response(JSON.stringify({
-            success: true,
-            products: mockProducts,
-            count: mockProducts.length,
-            isMockData: true
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-        
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Shop not found or access token missing',
-        }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      
-      accessToken = shopData.access_token;
+    if (shopError || !shopData) {
+      console.error(`[${requestId}] Error fetching shop access token:`, shopError);
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Shop not found or access token missing',
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
     
     // Fetch products from Shopify API
     try {
-      // Make sure to use the latest API version for best compatibility
-      const shopifyResponse = await fetch(`https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`, {
+      const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-10/products.json?limit=250`, {
         headers: {
-          'X-Shopify-Access-Token': accessToken,
+          'X-Shopify-Access-Token': shopData.access_token,
           'Content-Type': 'application/json'
         }
       });
@@ -155,42 +177,7 @@ serve(async (req: Request) => {
       }
       
       const shopifyData = await shopifyResponse.json();
-      let products = shopifyData.products;
-      
-      if (!products || !Array.isArray(products)) {
-        console.error(`[${requestId}] Invalid product data returned:`, products);
-        throw new Error('Invalid product data returned from Shopify API');
-      }
-      
-      // Transform the products to match our expected format
-      products = products.map((product: any) => {
-        // Process all images
-        const images = product.images && product.images.length > 0 ? 
-          product.images.map((img: any) => img.src) : [];
-        
-        // Process variants
-        const variants = product.variants && product.variants.length > 0 ?
-          product.variants.map((variant: any) => ({
-            id: variant.id,
-            title: variant.title,
-            price: variant.price,
-            available: variant.inventory_quantity > 0 || variant.inventory_policy === 'continue'
-          })) : [];
-        
-        return {
-          id: product.id,
-          title: product.title,
-          handle: product.handle,
-          created_at: product.created_at,
-          updated_at: product.updated_at,
-          published_at: product.published_at,
-          status: product.status,
-          tags: product.tags,
-          price: product.variants && product.variants.length > 0 ? product.variants[0].price : '0',
-          images: images,
-          variants: variants
-        };
-      });
+      const products = shopifyData.products;
       
       // Cache products in Supabase
       const { error: cacheInsertError } = await supabase
@@ -205,15 +192,6 @@ serve(async (req: Request) => {
         
       if (cacheInsertError) {
         console.error(`[${requestId}] Error caching products:`, cacheInsertError);
-      } else {
-        console.log(`[${requestId}] Successfully cached ${products.length} products for ${shop}`);
-      }
-      
-      // Filter out test products unless explicitly included
-      if (!includeTestProducts) {
-        const originalCount = products.length;
-        products = filterTestProducts(products);
-        console.log(`[${requestId}] Filtered ${originalCount - products.length} test products, returning ${products.length} products`);
       }
       
       return new Response(JSON.stringify({
@@ -246,57 +224,3 @@ serve(async (req: Request) => {
     });
   }
 });
-
-// Helper function to generate mock products
-function generateMockProducts() {
-  return Array.from({ length: 5 }, (_, i) => ({
-    id: `gid://shopify/Product/${1000000 + i}`,
-    title: `Mock Product ${i + 1}${i < 2 ? " (This is sample data)" : ""}`,
-    handle: `mock-product-${i + 1}`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    published_at: new Date().toISOString(),
-    status: 'active',
-    images: [`https://via.placeholder.com/500x500.png?text=Mock+Product+${i+1}`],
-    variants: [
-      {
-        id: `gid://shopify/ProductVariant/${2000000 + i}`,
-        price: `${Math.floor(10 + Math.random() * 90)}.99`,
-        title: 'Default Title',
-        available: true
-      }
-    ]
-  }));
-}
-
-// Helper function to filter test products
-function filterTestProducts(products: any[]) {
-  if (!Array.isArray(products)) return [];
-  
-  return products.filter(product => {
-    const title = (product.title || '').toLowerCase();
-    const handle = (product.handle || '').toLowerCase();
-    const tags = product.tags ? 
-      (Array.isArray(product.tags) ? product.tags.join(' ').toLowerCase() : String(product.tags).toLowerCase()) : 
-      '';
-      
-    // More accurate test for detecting test products, but avoiding false positives
-    // on real products that just happen to have "test" somewhere in the title
-    const isTestProduct = 
-      title === 'test' || 
-      handle === 'test' || 
-      title === 'test product' ||
-      title === 'demo' || 
-      handle === 'demo' || 
-      title === 'demo product' ||
-      title === 'sample' || 
-      handle === 'sample' || 
-      title === 'sample product' ||
-      title.startsWith('test ') ||
-      tags.includes('test-product') ||
-      tags.includes('demo-product') ||
-      tags.includes('sample-product');
-      
-    return !isTestProduct;
-  });
-}

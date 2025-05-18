@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -13,7 +13,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { 
   AlertDialog, 
@@ -26,14 +25,11 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag, Link } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ShopifyProduct } from '@/lib/shopify/types';
 
 interface FormListProps {
   forms: FormData[];
@@ -41,107 +37,9 @@ interface FormListProps {
   onSelectForm: (formId: string) => void;
 }
 
-// This interface is no longer needed since we've updated FormData to include associatedProducts
-// interface FormWithProducts extends FormData {
-//   associatedProducts?: {
-//     id: string;
-//     title: string;
-//   }[];
-// }
-
 const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [enhancedForms, setEnhancedForms] = useState<FormData[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-
-  // Fetch associated products for each form
-  useEffect(() => {
-    const fetchProductAssociations = async () => {
-      if (!forms.length) return;
-      
-      setIsLoadingProducts(true);
-      
-      try {
-        // Get all product settings
-        const { data: productSettings, error } = await shopifySupabase
-          .from('shopify_product_settings')
-          .select('*')
-          .in('form_id', forms.map(form => form.id));
-          
-        if (error) {
-          console.error('Error fetching product settings:', error);
-          return;
-        }
-        
-        // Group product IDs by form ID
-        const productsByForm = productSettings?.reduce((acc, setting) => {
-          if (!acc[setting.form_id]) {
-            acc[setting.form_id] = [];
-          }
-          acc[setting.form_id].push(setting.product_id);
-          return acc;
-        }, {} as Record<string, string[]>) || {};
-        
-        // Fetch product details for all product IDs
-        const allProductIds = productSettings?.map(s => s.product_id) || [];
-        if (allProductIds.length === 0) {
-          // No products to fetch, just set the forms as is
-          setEnhancedForms(forms);
-          return;
-        }
-        
-        // Fetch product details from cached products table
-        const shopId = localStorage.getItem('shopify_store');
-        if (!shopId) {
-          console.error('No shop ID found in localStorage');
-          return;
-        }
-        
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shopId)
-          .single();
-          
-        // Map the products to forms
-        const productsMap = new Map<string, { id: string; title: string }>();
-        
-        if (cachedProducts?.products) {
-          const shopifyProducts = cachedProducts.products as ShopifyProduct[];
-          shopifyProducts.forEach(product => {
-            if (allProductIds.includes(product.id)) {
-              productsMap.set(product.id, { 
-                id: product.id,
-                title: product.title
-              });
-            }
-          });
-        }
-        
-        // Enhance the forms with associated products
-        const formsWithProducts = forms.map(form => {
-          const productIds = productsByForm[form.id] || [];
-          const associatedProducts = productIds.map(id => productsMap.get(id))
-            .filter(p => p !== undefined) as { id: string; title: string }[];
-            
-          return {
-            ...form,
-            associatedProducts
-          };
-        });
-        
-        setEnhancedForms(formsWithProducts);
-      } catch (error) {
-        console.error('Error enhancing forms with products:', error);
-        setEnhancedForms(forms); // Fallback to original forms
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    };
-    
-    fetchProductAssociations();
-  }, [forms]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -173,45 +71,14 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     );
   }
 
-  const displayForms = enhancedForms.length > 0 ? enhancedForms : forms;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {displayForms.map((form) => (
+      {forms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-lg truncate">
-                  {form.title}
-                </CardTitle>
-                {/* Display associated products if any */}
-                {form.associatedProducts && form.associatedProducts.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
-                    <ShoppingBag className="h-3 w-3" />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="max-w-xs">
-                            <p className="font-bold mb-1">المنتجات المرتبطة:</p>
-                            <ul className="list-disc list-inside space-y-1">
-                              {form.associatedProducts.map(product => (
-                                <li key={product.id}>{product.title}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
-              </div>
+              <CardTitle className="text-lg truncate">{form.title}</CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -236,16 +103,6 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
                       </>
                     )}
                   </DropdownMenuItem>
-                  {form.associatedProducts && form.associatedProducts.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-blue-600">
-                        <Link className="mr-2 h-4 w-4" />
-                        <span>المنتجات المرتبطة ({form.associatedProducts.length})</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => setFormToDelete(form.id)}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"

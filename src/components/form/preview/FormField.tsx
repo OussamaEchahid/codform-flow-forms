@@ -5,15 +5,15 @@ import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
 import CheckboxGroup from './fields/CheckboxGroup';
-import ImageField from './fields/ImageField';
-import SubmitButton from './fields/SubmitButton';
+import TitleField from './fields/TitleField';
 import CartItems from './fields/CartItems';
 import CartSummary from './fields/CartSummary';
-import TitleField from './fields/TitleField';
-import HtmlContent from './fields/HtmlContent';
+import SubmitButton from './fields/SubmitButton';
 import ShippingOptions from './fields/ShippingOptions';
 import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
+import ImageField from './fields/ImageField';
+import HtmlContent from './fields/HtmlContent';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -23,82 +23,76 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
-  formDirection?: 'ltr' | 'rtl';
 }
 
-const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDirection }) => {
-  // تحديد فئة الحقل بناءً على الاتجاه
-  const directionClass = formDirection === 'rtl' ? 'rtl' : 'ltr';
+const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
+  if (!field || !field.type) {
+    console.warn('Invalid field:', field);
+    return null;
+  }
+
+  // Handle field type mapping
+  let fieldType = field.type;
   
-  // تسجيل معلومات التصحيح عند تقديم الحقل
-  console.log(`Rendering field type: ${field.type}, id: ${field.id}, direction: ${formDirection}`, field.style);
+  // Map email and phone to text inputs
+  if (fieldType === 'email' || fieldType === 'phone') {
+    fieldType = 'text';
+  }
+
+  // Check if this field type is supported in the store preview
+  const supportedStoreFieldTypes = [
+    'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
+    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary'
+  ];
   
-  // الحصول على مكون الحقل بناءً على النوع
-  const getFieldComponent = () => {
-    switch (field.type) {
-      case 'text':
-      case 'email':
-      case 'phone':
-      case 'city':
-        return <TextInput field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'textarea':
-        return <TextArea field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'radio':
-        return <RadioGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'checkbox':
-        return <CheckboxGroup field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'image':
-        return <ImageField field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'submit':
-        return <SubmitButton field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'cart-items':
-        return <CartItems field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'cart-summary':
-        return <CartSummary field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'form-title':
-      case 'title':
-        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'html':
-        return <HtmlContent field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'shipping-options':
-        return <ShippingOptions field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'countdown-timer':
-        return <CountdownTimer field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      case 'whatsapp-button':
-        return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
-      default:
-        return (
-          <div dir={formDirection} className={directionClass}>
-            Unsupported field type: {field.type}
-          </div>
-        );
-    }
+  const isSupported = supportedStoreFieldTypes.includes(fieldType);
+  
+  console.log(`Processing field (${field.id}): ${field.type} -> ${fieldType} (supported: ${isSupported})`);
+
+  // Log animation data if this is a submit button
+  if (fieldType === 'submit' && field.style) {
+    console.log(`Submit button animation data:`, {
+      has_animation: field.style.animation || false,
+      animation_type: field.style.animationType || 'none',
+      style: field.style
+    });
+  }
+
+  const components: { [key: string]: React.FC<FormFieldProps> } = {
+    'text': TextInput,
+    'textarea': TextArea,
+    'radio': RadioGroup,
+    'checkbox': CheckboxGroup,
+    'title': TitleField,
+    'form-title': TitleField, // Use TitleField component for form-title type
+    'text/html': HtmlContent,
+    'cart-items': CartItems,
+    'cart-summary': CartSummary,
+    'submit': SubmitButton,
+    'shipping': ShippingOptions,
+    'countdown': CountdownTimer,
+    'whatsapp': WhatsAppButton,
+    'image': ImageField,
   };
 
-  return (
-    <div 
-      className={`form-field-wrapper ${directionClass}`} 
-      data-field-type={field.type}
-      data-direction={formDirection}
-      data-field-id={field.id}
-      dir={formDirection}
-    >
-      {getFieldComponent()}
-    </div>
-  );
+  const Component = components[fieldType];
+  if (!Component) {
+    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
+    return null;
+  }
+
+  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
+    return (
+      <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
+        <Component field={field} formStyle={formStyle} />
+        <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
+          {field.label ? `حقل "${field.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
+        </div>
+      </div>
+    );
+  }
+
+  return <Component field={field} formStyle={formStyle} />;
 };
 
-export default FormFieldComponent;
+export default FormField;

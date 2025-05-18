@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
+import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { toast } from 'sonner';
@@ -18,9 +19,8 @@ interface ShopifyFormSync {
 }
 
 export const useShopify = () => {
-  const { shop, user: authUser } = useAuth();
+  const { shop } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -30,37 +30,11 @@ export const useShopify = () => {
   const [accessToken, setAccessToken] = useState<string>('');
   const [shopifyAPI, setShopifyAPI] = useState<any>(null);
   const [pendingSyncForms, setPendingSyncForms] = useState<string[]>([]);
-  const [user, setUser] = useState<ShopifyUser | null>(null);
   
   // Recovery mode - for handling errors gracefully
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
-
-  // Set the user from auth context
-  useEffect(() => {
-    if (authUser) {
-      setUser({
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.user_metadata?.name,
-        role: authUser.user_metadata?.role || 'user'
-      });
-    } else {
-      // Try to get user from localStorage as fallback
-      const storedUser = localStorage.getItem('shopify_user');
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch (e) {
-          console.error('Failed to parse stored user:', e);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    }
-  }, [authUser]);
 
   // Initialize connection state
   useEffect(() => {
@@ -103,8 +77,8 @@ export const useShopify = () => {
   }, [shop]);
 
   // Load products when connected
-  const loadProducts = useCallback(async (forceRefresh = false) => {
-    if (!shop) {
+  const loadProducts = useCallback(async () => {
+    if (!isConnected || !shop) {
       return [];
     }
 
@@ -125,45 +99,23 @@ export const useShopify = () => {
       
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { 
-          shop, 
-          accessToken: token,
-          forceRefresh: forceRefresh,
-          includeTestProducts: false // Always filter test products 
-        }
+        body: { shop, accessToken: token }
       });
 
       if (error) {
         throw error;
       }
 
-      // Store all products
-      const fetchedProducts = data?.products || [];
-      
-      if (Array.isArray(fetchedProducts)) {
-        setAllProducts(fetchedProducts);
-        setProducts(fetchedProducts);
-        
-        console.log(`Loaded ${fetchedProducts.length} products from Shopify`);
-        
-        if (fetchedProducts.length === 0) {
-          console.warn('No products returned from Shopify API');
-        }
-      } else {
-        console.error('Invalid product data returned:', fetchedProducts);
-        throw new Error('Invalid product data structure returned');
-      }
-      
+      setProducts(data?.products || []);
       setIsLoading(false);
-      return fetchedProducts;
+      return data?.products || [];
     } catch (error) {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
-      toast.error('فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى');
       return [];
     }
-  }, [shop]);
+  }, [isConnected, shop]);
 
   // Test connection
   const testConnection = useCallback(async (withRetry = false) => {
@@ -226,7 +178,7 @@ export const useShopify = () => {
     return await testConnection(true);
   }, [testConnection]);
 
-  // Sync a form with Shopify - updated to handle automatic form-product association
+  // Sync a form with Shopify
   const syncForm = useCallback(async (formData: ShopifyFormSync) => {
     if (!isConnected && !failSafeMode) {
       throw new Error('Not connected to Shopify');
@@ -283,40 +235,10 @@ export const useShopify = () => {
       
       throw error;
     }
-  }, [isConnected, failSafeMode, shop, pendingSyncForms]);
+  }, [isConnected, failSafeMode, shop]);
 
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
-
-  // New function to get default form for a shop
-  const getDefaultForm = useCallback(async (shopDomain?: string) => {
-    const targetShop = shopDomain || shop;
-    if (!targetShop) {
-      console.warn('No shop provided to getDefaultForm');
-      return null;
-    }
-
-    try {
-      // Get the most recently updated form for this shop
-      const { data, error } = await shopifySupabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', targetShop)
-        .eq('is_published', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error('Error getting default form:', error);
-        return null;
-      }
-
-      return data && data.length > 0 ? data[0] : null;
-    } catch (error) {
-      console.error('Exception in getDefaultForm:', error);
-      return null;
-    }
-  }, [shop]);
 
   // Resync pending forms
   const resyncPendingForms = useCallback(async () => {
@@ -402,9 +324,7 @@ export const useShopify = () => {
     accessToken,
     shopifyAPI,
     products,
-    allProducts,
     shop,
-    user,
     error: tokenError,
     failSafeMode,
     pendingSyncForms,
@@ -415,9 +335,6 @@ export const useShopify = () => {
     syncForm,
     syncFormWithShopify, // Alias for compatibility
     resyncPendingForms,
-    emergencyReset,
-    getDefaultForm,
+    emergencyReset
   };
 };
-
-// Removed the duplicate export at the end that was causing conflicts
