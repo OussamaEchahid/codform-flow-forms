@@ -8,7 +8,6 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Palette } from 'lucide-react';
 import TitleEditorForm from './title-editor/TitleEditorForm';
-import TitlePreview from './title-editor/TitlePreview';
 
 interface FormTitleEditorProps {
   formTitle: string;
@@ -38,7 +37,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(language === 'ar' ? 'right' : 'center');
   const [isEditing, setIsEditing] = useState(false);
 
-  // Sortable setup for draggable functionality
+  // Sortable setup for draggable functionality - make sure it's always enabled
   const {
     attributes,
     listeners,
@@ -184,14 +183,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </div>
               </div>
               
-              <TitlePreview
-                backgroundColor={backgroundColor}
-                textColor={textColor}
-                descriptionColor={descriptionColor}
-                textAlign={textAlign}
-                title={formTitle}
-                description={formDescription}
-              />
+              {/* Removed TitlePreview from here to fix the double preview issue */}
             </div>
           </div>
         )}

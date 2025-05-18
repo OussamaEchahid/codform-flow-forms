@@ -75,15 +75,10 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
       case 'whatsapp-button':
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
 
-      // إعادة تفعيل مكونات العنوان
       case 'form-title':
-        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
-      
+      case 'edit-form-title':
       case 'title':
         return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
-      
-      case 'edit-form-title':
-        return <EditFormTitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
       default:
         console.warn(`Unsupported field type: ${field.type}`);

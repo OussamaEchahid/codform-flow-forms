@@ -31,10 +31,10 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const { language } = useI18n();
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Use sensitive drag detection (lower activation distance)
+  // تقليل مسافة التنشيط لجعل السحب أكثر حساسية
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
-      distance: 5 // Make it more sensitive (default is 8)
+      distance: 3 // أكثر حساسية من القيمة السابقة (5)
     }
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
@@ -91,8 +91,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
           : true;
       }
       
-      // Handle edit-form-title specific styling
-      if (updatedField.type === 'form-title' || updatedField.type === 'edit-form-title') {
+      // Handle form-title specific styling
+      if (updatedField.type === 'form-title' || updatedField.type === 'edit-form-title' || updatedField.type === 'title') {
         // Make sure style object exists
         if (!updatedField.style) {
           updatedField.style = {};

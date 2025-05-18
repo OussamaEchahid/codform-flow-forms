@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -44,9 +45,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Use the formDirection prop if provided, otherwise fall back to language-based direction
   const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
-  
-  // Log direction for debugging
-  console.log(`FormPreview using direction: ${direction}, provided formDirection: ${formDirection}, language: ${language}`);
   
   // Improve field processing for consistent display - MODIFIED to not filter out title fields
   const sanitizedFields = React.useMemo(() => {
