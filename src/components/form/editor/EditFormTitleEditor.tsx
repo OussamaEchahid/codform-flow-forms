@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -99,8 +100,8 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
           fontSize: titleFontSize,
           descriptionFontSize,
           showDescription,
-          textAlign: titleAlignment,
-          descriptionAlignment, // Now correctly typed as TextAlign
+          textAlign: validateTextAlignment(titleAlignment),
+          descriptionAlignment: validateTextAlignment(descriptionAlignment),
           ...(additionalChanges.style || {})
         }
       };
@@ -108,10 +109,10 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
       // Log the update for debugging
       console.log("Updating title field with:", {
         id: updatedField.id,
-        textAlign: titleAlignment,
+        textAlign: updatedField.style.textAlign,
         showDescription,
         backgroundColor,
-        descriptionAlignment
+        descriptionAlignment: updatedField.style.descriptionAlignment
       });
       
       // Call the onChange callback immediately to update the preview
@@ -138,7 +139,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
       setter(value as TextAlign);
       // Update immediately for better UX
       updateField({ 
-        style: { [styleProperty]: value }
+        style: { [styleProperty]: validateTextAlignment(value) }
       });
     }
   };
