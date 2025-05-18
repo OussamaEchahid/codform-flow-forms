@@ -2,7 +2,7 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { LayoutAlignRight, LayoutAlignLeft } from 'lucide-react';
+import { AlignRight, AlignLeft } from 'lucide-react';
 
 interface FormSettingsProps {
   formTitle: string;
@@ -61,7 +61,7 @@ const FormSettings: React.FC<FormSettingsProps> = ({
               onClick={onToggleDirection}
               className="flex items-center gap-1"
             >
-              <LayoutAlignLeft size={16} />
+              <AlignLeft size={16} />
               {formDirection === 'ltr' ? 
                 (language === 'ar' ? 'من اليسار إلى اليمين (نشط)' : 'Left to Right (Active)') : 
                 (language === 'ar' ? 'من اليسار إلى اليمين' : 'Left to Right')}
@@ -73,7 +73,7 @@ const FormSettings: React.FC<FormSettingsProps> = ({
               onClick={onToggleDirection}
               className="flex items-center gap-1"
             >
-              <LayoutAlignRight size={16} />
+              <AlignRight size={16} />
               {formDirection === 'rtl' ? 
                 (language === 'ar' ? 'من اليمين إلى اليسار (نشط)' : 'Right to Left (Active)') : 
                 (language === 'ar' ? 'من اليمين إلى اليسار' : 'Right to Left')}

@@ -19,10 +19,10 @@ export const useFormBuilder = ({ initialFormData }: UseFormBuilderProps) => {
   const [currentEditStep, setCurrentEditStep] = useState(0);
   const [previewRefresh, setPreviewRefresh] = useState(0);
   const [formStyle, setFormStyle] = useState({
-    primaryColor: initialFormData.style?.primaryColor || initialFormData.primaryColor || '#9b87f5',
-    borderRadius: initialFormData.style?.borderRadius || initialFormData.borderRadius || '0.5rem',
-    fontSize: initialFormData.style?.fontSize || initialFormData.fontSize || '1rem',
-    buttonStyle: initialFormData.style?.buttonStyle || initialFormData.buttonStyle || 'rounded',
+    primaryColor: initialFormData.style?.primaryColor || '#9b87f5',
+    borderRadius: initialFormData.style?.borderRadius || '0.5rem',
+    fontSize: initialFormData.style?.fontSize || '1rem',
+    buttonStyle: initialFormData.style?.buttonStyle || 'rounded',
   });
   
   // Default form direction based on language - Arabic is RTL, other languages are LTR
