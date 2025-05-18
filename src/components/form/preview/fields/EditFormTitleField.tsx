@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 
 interface EditFormTitleFieldProps {
@@ -17,12 +17,12 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   formStyle,
   formDirection
 }) => {
-  // Use style from the field or fallback to defaults
+  // استخدم النمط من الحقل أو القيم الافتراضية
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
   
-  // Get text alignment - check for titleAlignment first, then fall back to textAlign
+  // الحصول على محاذاة النص - تحقق من titleAlignment أولاً، ثم الرجوع إلى textAlign
   const textAlign = field.style?.titleAlignment || field.style?.textAlign || 'center';
   const descriptionAlign = field.style?.descriptionAlignment || field.style?.textAlign || 'center';
   
@@ -32,19 +32,25 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   const showDescription = field.style?.showDescription !== false;
   const showTitle = field.style?.showTitle !== false;
   
+  // استخدم اتجاه النموذج من الخصائص أو من نمط الحقل أو الافتراضي إلى 'ltr'
+  const direction = formDirection || field.style?.formDirection || 'ltr';
+  
+  // تسجيل معلومات التصحيح للمساعدة في تتبع المشكلات
+  useEffect(() => {
+    console.log(`[EditFormTitleField] Rendering title field with ID: ${field.id}`);
+    console.log(`[EditFormTitleField] Background color: ${backgroundColor}`);
+    console.log(`[EditFormTitleField] Text color: ${textColor}`);
+    console.log(`[EditFormTitleField] Direction: ${direction}`);
+    console.log(`[EditFormTitleField] Text alignment: ${textAlign}`);
+  }, [field.id, backgroundColor, textColor, direction, textAlign]);
+  
   if (!showTitle) {
     return null;
   }
   
-  // Use formDirection from props or from field style or default to 'ltr'
-  const direction = formDirection || field.style?.formDirection || 'ltr';
-  
-  // Debug direction
-  console.log(`Form title direction: ${direction} for field ${field.id}`);
-  
   return (
     <div
-      className="form-title-field w-full my-2"
+      className="form-title-field w-full my-2 codform-edit-title-container"
       style={{
         backgroundColor,
         borderRadius: formStyle.borderRadius || '0.5rem',
@@ -54,8 +60,10 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
       dir={direction}
       data-form-direction={direction}
       data-field-type="edit-form-title"
+      data-testid="edit-form-title-field"
     >
       <h2
+        className="codform-edit-title"
         style={{
           color: textColor,
           textAlign: textAlign as any,
@@ -69,6 +77,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
       
       {showDescription && field.helpText && (
         <p
+          className="codform-edit-description"
           style={{
             color: descriptionColor,
             textAlign: descriptionAlign as any,
