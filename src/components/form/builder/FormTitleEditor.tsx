@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Label } from "@/components/ui/label";
@@ -13,6 +12,7 @@ interface FormTitleEditorProps {
   onFormTitleChange?: (title: string) => void;
   onFormDescriptionChange?: (description: string) => void;
   onAddTitleField?: () => void;
+  isDraggable?: boolean; // Added the isDraggable property to the props interface
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -22,7 +22,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   formDescription,
   onFormTitleChange,
   onFormDescriptionChange,
-  onAddTitleField
+  onAddTitleField,
+  isDraggable = false // Default value is false if not provided
 }) => {
   const { language } = useI18n();
 
@@ -179,8 +180,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     );
   };
 
+  // Apply isDraggable classes if needed
+  const containerClasses = `space-y-4 ${isDraggable ? 'cursor-move' : ''}`;
+
   return (
-    <div className="space-y-4">
+    <div className={containerClasses}>
       {formTitleField ? (
         <>
           <div className="border p-4 rounded-md bg-white">
