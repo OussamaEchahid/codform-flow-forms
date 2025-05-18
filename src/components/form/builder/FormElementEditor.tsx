@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -29,6 +29,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onUpdateElement
 }) => {
   const { language } = useI18n();
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // Use sensitive drag detection (lower activation distance)
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -43,13 +44,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   useEffect(() => {
     // This ensures DndContext is re-initialized when element list changes
     console.log("FormElementEditor: Elements updated, refreshing DndContext");
+    setRefreshKey(prev => prev + 1);
   }, [elements.length]);
   
   const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     
     if (!over || active.id === over.id) {
       return;
@@ -60,7 +59,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const oldIndex = elements.findIndex(item => item.id === active.id);
     const newIndex = elements.findIndex(item => item.id === over.id);
     
-    if (onReorderElements) {
+    if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
       const newElements = arrayMove(elements, oldIndex, newIndex);
       onReorderElements(newElements);
       toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
@@ -69,44 +68,50 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = (index: number, field: FormField) => {
+    // Make a deep copy of the field to avoid reference issues
+    const updatedField = JSON.parse(JSON.stringify(field));
+    
     // Normalize icon value (convert empty string to 'none')
-    if (field.icon === '') {
-      field.icon = 'none';
+    if (updatedField.icon === '') {
+      updatedField.icon = 'none';
     }
     
     // Ensure proper icon settings
-    if (field.icon && field.icon !== 'none') {
-      if (!field.style) {
-        field.style = {};
+    if (updatedField.icon && updatedField.icon !== 'none') {
+      if (!updatedField.style) {
+        updatedField.style = {};
       }
       
       // Set showIcon based on existing value or default to true if icon exists
-      field.style.showIcon = field.style.showIcon !== undefined 
-        ? field.style.showIcon 
+      updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+        ? updatedField.style.showIcon 
         : true;
     }
     
     // Handle edit-form-title specific styling
-    if (field.type === 'edit-form-title') {
+    if (updatedField.type === 'edit-form-title') {
       // Make sure style object exists
-      if (!field.style) {
-        field.style = {};
+      if (!updatedField.style) {
+        updatedField.style = {};
       }
       
       // Ensure we have textAlign set
-      if (!field.style.textAlign) {
-        field.style.textAlign = 'center';
+      if (!updatedField.style.textAlign) {
+        updatedField.style.textAlign = 'center';
       }
       
       // Default show description to true if not explicitly set
-      if (field.style.showDescription === undefined) {
-        field.style.showDescription = true;
+      if (updatedField.style.showDescription === undefined) {
+        updatedField.style.showDescription = true;
       }
+      
+      console.log("Updated form title field:", updatedField);
     }
     
     // Notify parent component about the update
     if (onUpdateElement) {
-      onUpdateElement(index, field);
+      onUpdateElement(index, updatedField);
+      console.log(`Element ${updatedField.id} at index ${index} updated with:`, updatedField);
     }
     
     // Force refresh the preview
@@ -129,6 +134,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       )}
       
       <DndContext 
+        key={`dnd-context-${refreshKey}`}
         sensors={sensors} 
         collisionDetection={closestCenter} 
         onDragEnd={handleDragEnd}
@@ -136,12 +142,13 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
           {elements.map((element, index) => (
             <SortableField 
-              key={element.id} 
+              key={`${element.id}-${refreshKey}`}
               field={element} 
               onEdit={() => onEditElement(index)}
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
+              selected={selectedIndex === index}
             />
           ))}
         </SortableContext>

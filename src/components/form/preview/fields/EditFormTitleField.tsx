@@ -92,6 +92,9 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   // Create a unique ID for this field
   const fieldId = `edit-form-title-${field.id}`;
 
+  // Add debug logging to track field rendering
+  console.log(`Rendering EditFormTitleField: id=${field.id}, alignment=${titleAlignment}, showDescription=${showDescription}`);
+
   return (
     <div 
       id={fieldId}

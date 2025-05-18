@@ -34,19 +34,20 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
 
   // Effect to update local state when field prop changes
   useEffect(() => {
-    if (field && field.style) {
-      setBackgroundColor(field.style.backgroundColor || '#9b87f5');
-      setTitleColor(field.style.color || '#ffffff');
-      setDescriptionColor(field.style.descriptionColor || '#ffffff');
-      setTitleFontSize(field.style.fontSize || '24px');
-      setDescriptionFontSize(field.style.descriptionFontSize || '14px');
-      setShowDescription(field.style.showDescription !== false);
-      setTitleAlignment(field.style.textAlign || 'center');
-      setDescriptionAlignment(field.style.descriptionAlignment || 'center');
+    if (field) {
+      const fieldStyle = field.style || {};
+      setBackgroundColor(fieldStyle.backgroundColor || '#9b87f5');
+      setTitleColor(fieldStyle.color || '#ffffff');
+      setDescriptionColor(fieldStyle.descriptionColor || '#ffffff');
+      setTitleFontSize(fieldStyle.fontSize || '24px');
+      setDescriptionFontSize(fieldStyle.descriptionFontSize || '14px');
+      // Important: Ensure consistent logic with EditFormTitleField.tsx
+      setShowDescription(fieldStyle.showDescription !== false);
+      setTitleAlignment(fieldStyle.textAlign || 'center');
+      setDescriptionAlignment(fieldStyle.descriptionAlignment || 'center');
+      setTitle(field.label || '');
+      setDescription(field.helpText || '');
     }
-    
-    setTitle(field.label || '');
-    setDescription(field.helpText || '');
   }, [field]);
 
   // Function to update field whenever a value changes
@@ -71,11 +72,14 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
     
     // Log the update for debugging
     console.log("Updating title field with:", {
+      id: updatedField.id,
       textAlign: titleAlignment,
       showDescription,
-      backgroundColor
+      backgroundColor,
+      descriptionAlignment
     });
     
+    // Call the onChange callback immediately to update the preview
     onChange(updatedField);
   };
 
@@ -89,15 +93,15 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
     if (value) {
       setter(value);
       // Update immediately for better UX
-      setTimeout(updateField, 100);
+      setTimeout(updateField, 50);
     }
   };
   
   // Handle switch toggle for description visibility
   const handleShowDescriptionChange = (checked: boolean) => {
     setShowDescription(checked);
-    // Update immediately for better UX
-    setTimeout(updateField, 100);
+    // Update immediately for better UX with a small delay to ensure state is updated
+    setTimeout(updateField, 50);
   };
   
   // Update field on blur events
