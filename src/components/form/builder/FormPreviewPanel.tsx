@@ -41,7 +41,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // إضافة وظيفة تسجيل للتغييرات
+  // Add logging function for changes
   useEffect(() => {
     console.log('FormPreviewPanel: Refreshing preview with new data', { 
       refreshKey,
@@ -50,11 +50,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       formStyle
     });
     
-    // رقم متتبع إضافي لقياس مدى استجابة المعاينة للتغييرات
+    // Additional tracking number to measure preview responsiveness
     const updateTracker = `update-${Date.now()}`;
     console.log(`Preview refresh tracker: ${updateTracker}`);
     
-    // تسجيل معلومات عن العنوان إذا كان موجوداً
+    // Log info about title if present
     const titleField = fields.find(f => f.type === 'form-title');
     if (titleField) {
       console.log('Title field found:', { 
@@ -65,7 +65,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       });
     }
     
-    // تسجيل معلومات عن الحقول ذات الأيقونات
+    // Log information about fields with icons
     const fieldsWithIcons = fields.filter(f => f.icon && f.icon !== 'none');
     if (fieldsWithIcons.length > 0) {
       console.log(`Fields with icons: ${fieldsWithIcons.length}`);
@@ -77,50 +77,46 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
+  // Process fields to normalize icon values - essential for preview display
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
+      // Create a new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // ضمان معالجة showIcon بشكل صحيح
+      // Ensure showIcon is handled properly
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
+        // Set showIcon to true by default unless explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
+      // Ensure font size uses consistent px units
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للتناسق
+        // Convert rem to px for consistency
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          // If it's a number without unit, assume px
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
-      
-      // Remove the trackingId property since it's not part of the FormField type
-      // This line was causing the error
-      // updatedField.trackingId = `${field.id}-${Date.now()}`;
       
       return updatedField;
     });
   }, [fields, internalRefreshKey]);
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
+  // Create unique id for this preview panel
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
@@ -145,7 +141,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
+      {/* Add small comment to alert about preview/store display consistency */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
