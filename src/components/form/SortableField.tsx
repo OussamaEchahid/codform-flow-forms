@@ -21,6 +21,7 @@ interface SortableFieldProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onFieldUpdate?: (updatedField: FormField) => void;
+  selected?: boolean; // Adding the missing selected prop
 }
 
 const SortableField: React.FC<SortableFieldProps> = ({
