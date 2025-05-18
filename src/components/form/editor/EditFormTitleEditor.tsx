@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +16,9 @@ interface EditFormTitleEditorProps {
   onChange: (updatedField: FormField) => void;
 }
 
+// Define type for text alignment to match FormField style expectations
+type TextAlign = 'left' | 'center' | 'right';
+
 const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChange }) => {
   const { language } = useI18n();
   
@@ -29,8 +31,9 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
   const [titleFontSize, setTitleFontSize] = useState('');
   const [descriptionFontSize, setDescriptionFontSize] = useState('');
   const [showDescription, setShowDescription] = useState(true);
-  const [titleAlignment, setTitleAlignment] = useState('center');
-  const [descriptionAlignment, setDescriptionAlignment] = useState('center');
+  // Update type to be TextAlign instead of string
+  const [titleAlignment, setTitleAlignment] = useState<TextAlign>('center');
+  const [descriptionAlignment, setDescriptionAlignment] = useState<TextAlign>('center');
   const [debounceTimerId, setDebounceTimerId] = useState<number | null>(null);
 
   // Effect to update local state when field prop changes
@@ -48,10 +51,23 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
       setDescriptionFontSize(fieldStyle.descriptionFontSize || '14px');
       // Important: Ensure consistent logic with EditFormTitleField.tsx
       setShowDescription(fieldStyle.showDescription !== false);
-      setTitleAlignment(fieldStyle.textAlign || 'center');
-      setDescriptionAlignment(fieldStyle.descriptionAlignment || fieldStyle.textAlign || 'center');
+      
+      // Ensure values are one of the allowed options
+      const titleAlign = fieldStyle.textAlign || 'center';
+      setTitleAlignment(validateTextAlignment(titleAlign));
+      
+      const descAlign = fieldStyle.descriptionAlignment || fieldStyle.textAlign || 'center';
+      setDescriptionAlignment(validateTextAlignment(descAlign));
     }
   }, [field]);
+  
+  // Helper function to validate text alignment values
+  const validateTextAlignment = (value: any): TextAlign => {
+    if (value === 'left' || value === 'center' || value === 'right') {
+      return value;
+    }
+    return 'center'; // Default to center if invalid value
+  };
 
   // Create a debounced update field function
   const debouncedUpdateField = useCallback((changes: any) => {
@@ -84,7 +100,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
           descriptionFontSize,
           showDescription,
           textAlign: titleAlignment,
-          descriptionAlignment,
+          descriptionAlignment, // Now correctly typed as TextAlign
           ...(additionalChanges.style || {})
         }
       };
@@ -117,9 +133,9 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({ field, onChan
   };
   
   // Handle alignment and toggle changes
-  const handleAlignmentChange = (setter: React.Dispatch<React.SetStateAction<any>>, styleProperty: string) => (value: string) => {
-    if (value) {
-      setter(value);
+  const handleAlignmentChange = (setter: React.Dispatch<React.SetStateAction<TextAlign>>, styleProperty: string) => (value: string) => {
+    if (value && (value === 'left' || value === 'center' || value === 'right')) {
+      setter(value as TextAlign);
       // Update immediately for better UX
       updateField({ 
         style: { [styleProperty]: value }

@@ -13,7 +13,7 @@ interface EditFormTitleFieldProps {
   formDirection?: 'ltr' | 'rtl';
 }
 
-// Define valid text alignment types
+// Define valid text alignment types - must match what EditFormTitleEditor uses
 type TextAlign = 'left' | 'center' | 'right';
 // Define valid direction options
 type Direction = 'ltr' | 'rtl' | 'initial' | 'inherit';
@@ -28,11 +28,19 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({ field, formStyl
   // Get language-based direction or use formDirection if provided
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
+  // Helper function to ensure alignment is valid
+  const validateTextAlignment = (value: any): TextAlign => {
+    if (value === 'left' || value === 'center' || value === 'right') {
+      return value as TextAlign;
+    }
+    return 'center'; // Default to center if invalid value
+  };
+  
   // Title alignment (use from field style or default to center)
-  const titleAlignment = fieldStyle.textAlign || 'center';
+  const titleAlignment = validateTextAlignment(fieldStyle.textAlign || 'center');
   
   // Description alignment (use the same as title alignment by default)
-  const descriptionAlignment = fieldStyle.descriptionAlignment || titleAlignment || 'center';
+  const descriptionAlignment = validateTextAlignment(fieldStyle.descriptionAlignment || titleAlignment || 'center');
   
   // Show description flag (default to true unless explicitly set to false)
   const showDescription = fieldStyle.showDescription !== false;
