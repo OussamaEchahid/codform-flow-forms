@@ -260,7 +260,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         borderWidth: '0px', // عرض الحدود
         paddingY: '12px', // المسافة العمودية
         showIcon: true, // إظهار الأيقونة
-        icon: 'shopping-cart', // نوع الأيقونة
         iconPosition: 'left', // موضع الأيقونة
       },
     });
@@ -397,7 +396,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                     fontSize: '1.5rem',
                     descriptionColor: '#ffffff',
                     descriptionFontSize: '0.875rem',
-                    backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
+                    backgroundColor: '#9b87f5', // خلفية بنفسجية ��ائمًا
                   }
                 };
                 loadedElements = [titleField, ...loadedElements];

@@ -108,7 +108,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         paddingY: '15px', // Updated to 15px
         showIcon: true,
         icon: 'shopping-cart',
-        iconPosition: 'left',
+        iconPosition: 'left', // Use this instead of 'icon' property
       }
     };
     

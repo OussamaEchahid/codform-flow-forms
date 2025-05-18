@@ -69,6 +69,7 @@ export interface FormFieldStyle {
   // Icon properties
   iconPosition?: 'left' | 'right';
   showIcon?: boolean;
+  icon?: string; // Added icon property
   
   // Width and font properties
   fullWidth?: boolean;

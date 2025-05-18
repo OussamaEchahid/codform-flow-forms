@@ -232,16 +232,18 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     defaultFields.push({
       type: 'form-title',
       id: uuidv4(),
-      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      label: 'نموذج جديد',
+      helpText: 'نموذج جديد',
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: 'right',
         fontWeight: 'bold',
         fontSize: '24px',
         descriptionColor: '#ffffff',
         descriptionFontSize: '14px',
         backgroundColor: '#9b87f5',
+        showTitle: true,
+        showDescription: true
       }
     });
     
@@ -249,42 +251,68 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     defaultFields.push({
       type: 'text',
       id: uuidv4(),
-      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      label: 'الاسم الكامل',
+      placeholder: 'أدخل الاسم الكامل',
       required: true,
       icon: 'user',
+      style: {
+        iconPosition: 'right'
+      }
     });
     
     // Add phone field
     defaultFields.push({
       type: 'phone',
       id: uuidv4(),
-      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      label: 'رقم الهاتف',
+      placeholder: 'أدخل رقم الهاتف',
       required: true,
       icon: 'phone',
+      style: {
+        iconPosition: 'right'
+      }
+    });
+    
+    // Add city field
+    defaultFields.push({
+      type: 'text',
+      id: uuidv4(),
+      label: 'المدينة',
+      placeholder: 'أدخل اسم المدينة',
+      required: true,
+      icon: 'map-pin',
+      style: {
+        iconPosition: 'right'
+      }
     });
     
     // Add address field
     defaultFields.push({
       type: 'textarea',
       id: uuidv4(),
-      label: language === 'ar' ? 'العنوان' : 'Address',
-      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      label: 'العنوان',
+      placeholder: 'أدخل العنوان الكامل',
       required: true,
     });
     
-    // Add submit button
+    // Add submit button with updated configuration
     defaultFields.push({
       type: 'submit',
       id: uuidv4(),
-      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      label: 'الدفع عند الاستلام',
       style: {
-        backgroundColor: '#9b87f5',
+        backgroundColor: '#000000',
         color: '#ffffff',
-        fontSize: '18px',
+        fontSize: '1.15rem',
+        fontWeight: '500',
         animation: true,
-        animationType: 'pulse',
+        animationType: 'shake',
+        borderRadius: '6px',
+        borderColor: '#eaeaff',
+        borderWidth: '0px',
+        paddingY: '12px',
+        showIcon: true,
+        iconPosition: 'left',
       },
     });
     
@@ -321,73 +349,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       }
     }
   }, [initialFormData]);
-
-  const createEmptyField = (type: FormField['type']) => {
-    let newField: FormField = {
-      id: uuidv4(), // Use UUID from imported library
-      type,
-      label: '',
-      required: false,
-    };
-  
-    // Add field-specific configuration
-    switch (type) {
-      case 'form-title':
-        newField.label = 'عنوان النموذج المخصص';
-        newField.helpText = 'وصف النموذج (اختياري)';
-        newField.style = {
-          textAlign: 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '',
-        };
-        break;
-      case 'text':
-        newField.label = 'حقل نص';
-        break;
-      case 'email':
-        newField.label = 'بريد إلكتروني';
-        break;
-      case 'phone':
-        newField.label = 'رقم هاتف';
-        break;
-      case 'textarea':
-        newField.label = 'نص متعدد الأسطر';
-        break;
-      case 'select':
-        newField.label = 'قائمة منسدلة';
-        break;
-      case 'checkbox':
-        newField.label = 'خانة اختيار';
-        break;
-      case 'radio':
-        newField.label = 'زر راديو';
-        break;
-      case 'cart-items':
-        newField.label = 'المنتج المختار';
-        break;
-      case 'cart-summary':
-        newField.label = 'ملخص الطلب';
-        break;
-      case 'submit':
-        newField.label = 'زر إرسال الطلب';
-        break;
-      case 'text/html':
-        newField.label = 'نص/HTML';
-        break;
-      case 'title':
-        newField.label = 'عنوان قسم';
-        break;
-      default:
-        newField.label = 'حقل جديد';
-        break;
-    }
-  
-    return newField;
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
