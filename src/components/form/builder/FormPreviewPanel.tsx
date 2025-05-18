@@ -41,86 +41,55 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // Add logging function for changes
+  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
-    console.log('FormPreviewPanel: Refreshing preview with new data', { 
-      refreshKey,
-      fieldsCount: fields.length,
-      formTitle,
-      formStyle
-    });
-    
-    // Additional tracking number to measure preview responsiveness
-    const updateTracker = `update-${Date.now()}`;
-    console.log(`Preview refresh tracker: ${updateTracker}`);
-    
-    // Log info about title if present
-    const titleField = fields.find(f => f.type === 'form-title');
-    if (titleField) {
-      console.log('Title field found:', { 
-        id: titleField.id,
-        label: titleField.label,
-        backgroundColor: titleField.style?.backgroundColor,
-        textColor: titleField.style?.color
-      });
-    }
-    
-    // Log information about fields with icons
-    const fieldsWithIcons = fields.filter(f => f.icon && f.icon !== 'none');
-    if (fieldsWithIcons.length > 0) {
-      console.log(`Fields with icons: ${fieldsWithIcons.length}`);
-      fieldsWithIcons.forEach(f => {
-        console.log(`Icon field: ${f.id}, type: ${f.type}, icon: ${f.icon}, showIcon: ${f.style?.showIcon !== false}`);
-      });
-    }
-    
     setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // Process fields to normalize icon values - essential for preview display
+  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // Create a new field object to avoid direct mutation issues
+      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
       
-      // Convert empty icon strings to 'none'
+      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Ensure showIcon is handled properly
+      // ضمان معالجة showIcon بشكل صحيح
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Set showIcon to true by default unless explicitly set to false
+        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Ensure font size uses consistent px units
+      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // Convert rem to px for consistency
+        // تحويل rem إلى px للتناسق
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // If it's a number without unit, assume px
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey]);
+  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
 
-  // Create unique id for this preview panel
+  // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
-    <div id={previewPanelId} data-preview-refresh-key={internalRefreshKey}>
+    <div id={previewPanelId}>
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>
@@ -141,7 +110,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* Add small comment to alert about preview/store display consistency */}
+      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded">
         {language === 'ar' 
           ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'

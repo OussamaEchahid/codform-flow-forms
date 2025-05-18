@@ -18,17 +18,11 @@ export interface FormState {
   created_at?: string;
   updated_at?: string;
   style?: FormStyle;
-  settings?: {
-    enableIcons?: boolean;
-    titleStyle?: boolean;
-    directRenderMode?: boolean;
-  };
 }
 
 interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
-  updateFormSettings: (settings: Partial<FormState['settings']>) => void;
   resetFormState: () => void;
   
   // Add floating button configuration
@@ -69,11 +63,6 @@ const defaultFormState: FormState = {
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
-  },
-  settings: {
-    enableIcons: true,
-    titleStyle: true,
-    directRenderMode: false, // استخدام طريقة العرض المباشر (بدون JavaScript)
   }
 };
 
@@ -84,15 +73,6 @@ export const useFormStore = create<FormStore>((set) => ({
       ...state.formState, 
       ...form 
     } 
-  })),
-  updateFormSettings: (settings) => set((state) => ({
-    formState: {
-      ...state.formState,
-      settings: {
-        ...state.formState.settings,
-        ...settings
-      }
-    }
   })),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   

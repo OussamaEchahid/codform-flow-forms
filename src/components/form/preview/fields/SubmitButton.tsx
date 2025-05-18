@@ -105,22 +105,6 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const iconPosition = style.iconPosition || 'right';
   const icon = renderIcon();
   
-  // إنشاء سمات بيانات إضافية للمساعدة في المطابقة بين المعاينة والمتجر
-  const dataAttributes = {
-    'data-button-id': field.id,
-    'data-button-text': field.label,
-    'data-button-bg': style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    'data-button-color': style.color || '#ffffff',
-    'data-button-font-size': style.fontSize || '18px',
-    'data-button-border-radius': style.borderRadius || formStyle.borderRadius || '8px',
-    'data-button-animation': style.animationType || 'none',
-    'data-has-animation': style.animation ? 'true' : 'false',
-    'data-icon-position': iconPosition,
-    'data-has-icon': style.showIcon ? 'true' : 'false',
-    'data-icon-type': style.icon || 'none',
-    'data-button-style': JSON.stringify(style)
-  };
-  
   return (
     <button
       type="button"
@@ -131,7 +115,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       )}
       style={buttonStyle}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      {...dataAttributes}
+      data-animation-type={style.animationType || 'none'}
+      data-button-style={formStyle.buttonStyle || 'rounded'}
+      data-has-animation={style.animation ? 'true' : 'false'}
+      data-icon-position={iconPosition}
+      data-has-icon={style.showIcon ? 'true' : 'false'}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

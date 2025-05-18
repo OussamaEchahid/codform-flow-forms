@@ -26,36 +26,23 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   // Set border radius for the image
   const imageBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   
-  // إضافة معرف فريد لهذا الحقل
-  const imageFieldId = `image-field-${field.id}-${Date.now()}`;
-  
   return (
-    <div 
-      className="mb-4 codform-image-field"
-      id={imageFieldId}
-      data-field-id={field.id}
-      data-field-type={field.type}
-      data-image-src={imageSrc}
-      data-image-alt={imageAlt}
-      data-image-width={imageWidth}
-      data-image-border-radius={imageBorderRadius}
-    >
+    <div className="mb-4">
       {field.label && (
         <div 
-          className="mb-2 codform-image-label"
+          className="mb-2"
           style={{ 
             color: fieldStyle.labelColor || '#334155',
             fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
             fontWeight: 500
           }}
-          data-label-text={field.label}
         >
           {field.label}
         </div>
       )}
       
       <div 
-        className="overflow-hidden codform-image-container"
+        className="overflow-hidden"
         style={{
           maxWidth: '100%',
           width: imageWidth,
@@ -66,7 +53,7 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
         <img 
           src={imageSrc} 
           alt={imageAlt}
-          className="w-full h-auto codform-image"
+          className="w-full h-auto"
           style={{
             objectFit: 'cover',
             display: 'block'
@@ -75,7 +62,7 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
       </div>
       
       {field.helpText && (
-        <p className="mt-1 text-sm text-gray-500 codform-image-help-text">{field.helpText}</p>
+        <p className="mt-1 text-sm text-gray-500">{field.helpText}</p>
       )}
     </div>
   );

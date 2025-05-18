@@ -25,7 +25,7 @@ interface FormFieldProps {
   };
 }
 
-// Define animation styles to ensure consistency between preview and store
+// تعريف أنماط الحركة لضمان توافقها في كل من المعاينة والمتجر
 const animationStyles = `
   @keyframes pulse-animation {
     0% { transform: scale(1); }
@@ -76,9 +76,9 @@ const animationStyles = `
   }
 `;
 
-// Create a unique key for form field to force re-render when field properties change
+// إنشاء مفتاح فريد لحقل النموذج لفرض إعادة العرض عند تغيير خصائص الحقل
 const getFieldKey = (field: FormFieldType) => {
-  // Include more properties in the key to ensure any change will trigger a re-render
+  // تضمين المزيد من الخصائص في المفتاح للتأكد من أن أي تغيير سيؤدي إلى إعادة العرض
   return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
 };
 
@@ -88,38 +88,38 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  // Normalize field properties - ensure icon settings are applied correctly
+  // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
   const normalizedField = {
     ...field,
-    // Convert empty icon to 'none'
+    // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
       ...field.style,
-      // Set showIcon to true by default if icon exists and is not 'none'
+      // تعيين showIcon افتراضيًا إلى true إذا كانت الأيقونة موجودة وليست 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
         (field.icon && field.icon !== 'none')
     }
   };
 
-  // Handle field type mapping
+  // معالجة تعيين نوع الحقل
   let fieldType = normalizedField.type;
   
-  // Map email and phone to text inputs
+  // ربط البريد الإلكتروني والهاتف بإدخالات النص
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
 
-  // Check if this field type is supported in store preview
+  // التحقق مما إذا كان نوع الحقل هذا مدعومًا في معاينة المتجر
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
     'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
-    'email', 'phone' // Explicit support for email and phone
+    'email', 'phone' // دعم صريح للبريد الإلكتروني والهاتف
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
 
-  // Log animation data if this is a submit button
+  // تسجيل بيانات الحركة إذا كان هذا زر إرسال
   if (fieldType === 'submit' && normalizedField.style) {
     const animationType = normalizedField.style.animationType || 'none';
     const hasAnimation = !!normalizedField.style.animation;
@@ -135,7 +135,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
-    'form-title': TitleField, // Use TitleField component for form-title type
+    'form-title': TitleField, // استخدام مكون TitleField لنوع form-title
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
@@ -144,8 +144,8 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'countdown': CountdownTimer,
     'whatsapp': WhatsAppButton,
     'image': ImageField,
-    'email': TextInput, // Add explicit support for email
-    'phone': TextInput, // Add explicit support for phone
+    'email': TextInput, // إضافة دعم صريح للبريد الإلكتروني
+    'phone': TextInput, // إضافة دعم صريح للهاتف
   };
 
   const Component = components[fieldType] || components[normalizedField.type];
@@ -154,13 +154,13 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  // Create unique key for this field instance to force re-render when properties change
+  // إنشاء مفتاح فريد لمثيل هذا الحقل لفرض إعادة العرض عند تغيير الخصائص
   const fieldKey = getFieldKey(field);
   
-  // Set margins: smaller margins for all fields, make submit button close to previous field
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // Changed from mt-1 to mt-0 for submit button
+  // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
 
-  // Add data attributes to help ensure display consistency between preview and store
+  // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {
     'data-field-type': normalizedField.type,
     'data-field-id': normalizedField.id,
@@ -168,10 +168,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-show-icon': normalizedField.style?.showIcon ? 'true' : 'false',
     'data-icon': normalizedField.icon || 'none',
     'data-required': normalizedField.required ? 'true' : 'false',
-    'data-field-style': JSON.stringify(normalizedField.style || {}), // Add all style properties as JSON string
   };
 
-  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
+  if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
         <Component field={normalizedField} formStyle={formStyle} />

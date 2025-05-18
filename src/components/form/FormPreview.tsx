@@ -143,12 +143,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // إنشاء معرف فريد لهذا النموذج لضمان التحديث الصحيح
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);
   
-  // إضافة سمة بيانات لتخزين معلومات ترتيب الحقول
-  const fieldsOrder = sanitizedFields.map(f => f.id).join(',');
-  
-  // توفير معلومات التنسيق كسمة بيانات منفصلة
-  const formStyleJSON = JSON.stringify(formStyle);
-  
   return (
     <div 
       key={formId}
@@ -163,10 +157,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-border-radius={formStyle.borderRadius}
       data-font-size={formStyle.fontSize}
       data-button-style={formStyle.buttonStyle}
-      data-form-language={language}
-      data-fields-order={fieldsOrder}
-      data-form-style={formStyleJSON}
-      data-form-direction={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -217,7 +207,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2 codform-fields-container">
+          <div className="space-y-2">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}

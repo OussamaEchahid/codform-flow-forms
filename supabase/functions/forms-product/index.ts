@@ -86,28 +86,23 @@ serve(async (req: Request) => {
         actualBlockId = productSettings.block_id;
       }
       
-      // Retrieve form data with basic fields and style
-      // Note: We explicitly select 'settings' field but handle the case when it doesn't exist
-      try {
-        const { data: formData, error: formError } = await supabase
-          .from('forms')
-          .select('id, title, description, data, style, is_published')
-          .eq('id', productSettings.form_id)
-          .eq('is_published', true)
-          .limit(1);
-          
-        if (!formError && formData && formData.length > 0) {
-          form = formData[0];
-          // Add default settings object if not present
-          form.settings = { enableIcons: true, titleStyle: true };
-          console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
-        } else if (formError) {
-          console.log(`[${requestId}] Error fetching product-specific form: ${formError.message}. Will try default form.`);
-        } else {
-          console.log(`[${requestId}] No product-specific form found with ID: ${productSettings.form_id}. Will try default form.`);
-        }
-      } catch (err) {
-        console.error(`[${requestId}] Exception when fetching form: ${err.message}`);
+      // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات) - بدون عمود settings
+      const { data: formData, error: formError } = await supabase
+        .from('forms')
+        .select('id, title, description, data, style, is_published')
+        .eq('id', productSettings.form_id)
+        .eq('is_published', true)
+        .limit(1);
+        
+      if (!formError && formData && formData.length > 0) {
+        form = formData[0];
+        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
+        form.settings = form.settings || { enableIcons: true };
+        console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
+      } else if (formError) {
+        console.log(`[${requestId}] Error fetching product-specific form: ${formError.message}. Will try default form.`);
+      } else {
+        console.log(`[${requestId}] No product-specific form found with ID: ${productSettings.form_id}. Will try default form.`);
       }
     } else {
       console.log(`[${requestId}] No product-specific settings found for product ${productId}`);
@@ -118,28 +113,24 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
       formSource = 'default';
       
-      try {
-        // Retrieve default form data
-        const { data: defaultForms, error: defaultError } = await supabase
-          .from('forms')
-          .select('id, title, description, data, style, is_published')
-          .eq('shop_id', shop)
-          .eq('is_published', true)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-        
-        if (!defaultError && defaultForms && defaultForms.length > 0) {
-          form = defaultForms[0];
-          // Add default settings object
-          form.settings = { enableIcons: true, titleStyle: true };
-          console.log(`[${requestId}] Using default form: ${form.id}`);
-        } else if (defaultError) {
-          console.error(`[${requestId}] Error fetching default form:`, defaultError);
-        } else {
-          console.log(`[${requestId}] No default form found for shop ${shop}`);
-        }
-      } catch (err) {
-        console.error(`[${requestId}] Exception when fetching default form: ${err.message}`);
+      // استرداد بيانات النموذج الافتراضي - بدون عمود settings
+      const { data: defaultForms, error: defaultError } = await supabase
+        .from('forms')
+        .select('id, title, description, data, style, is_published')
+        .eq('shop_id', shop)
+        .eq('is_published', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      
+      if (!defaultError && defaultForms && defaultForms.length > 0) {
+        form = defaultForms[0];
+        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
+        form.settings = form.settings || { enableIcons: true };
+        console.log(`[${requestId}] Using default form: ${form.id}`);
+      } else if (defaultError) {
+        console.error(`[${requestId}] Error fetching default form:`, defaultError);
+      } else {
+        console.log(`[${requestId}] No default form found for shop ${shop}`);
       }
     }
 
@@ -149,7 +140,7 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Generated new blockId: ${actualBlockId}`);
     }
 
-    // Extract fields from data structure
+    // تحسين: استخراج الحقول من بنية data
     if (form && form.data) {
       console.log(`[${requestId}] Extracting fields from form data structure`);
       
@@ -189,13 +180,13 @@ serve(async (req: Request) => {
       }
     }
 
-    // Create default fields if none exist
+    // 4. إنشاء حقول افتراضية إذا لم تكن موجودة
     if (form && (!form.fields || !Array.isArray(form.fields) || form.fields.length === 0)) {
       console.log(`[${requestId}] Creating default fields for form`);
       
       const language = form.style?.direction === 'rtl' ? 'ar' : 'en';
       
-      // Create default fields
+      // إنشاء حقول افتراضية
       form.fields = [
         {
           type: 'form-title',
@@ -254,88 +245,91 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Created ${form.fields.length} default fields for the form`);
     }
 
-    // Process form fields to ensure icons and styles are correct
-    if (form && form.fields && Array.isArray(form.fields)) {
-      form.fields = form.fields.map(field => {
-        if (!field) return field;
-        
-        // Make a copy of the field to avoid modifying the original
-        const processedField = { ...field };
-        
-        // Make sure icon is properly defined and not empty string
-        if (processedField.icon === undefined || processedField.icon === '') {
-          processedField.icon = 'none';
-        }
-        
-        // Ensure style object exists
-        if (!processedField.style) {
-          processedField.style = {};
-        }
-        
-        // Make sure showIcon is properly defined if an icon exists
-        if (processedField.icon && processedField.icon !== 'none') {
-          // Always show icons by default
-          processedField.style.showIcon = processedField.style.showIcon !== false;
-        }
-
-        // Special handling for title fields
-        if (processedField.type === 'title' || processedField.type === 'form-title') {
-          // Log title field properties
-          console.log(`[${requestId}] Processing title field ${processedField.id}:`, {
-            color: processedField.style.color || '#ffffff',
-            backgroundColor: processedField.style.backgroundColor || form.style?.primaryColor || '#9b87f5',
-            fontSize: processedField.style.fontSize || '24px'
-          });
-          
-          // Always ensure background color is set
-          if (!processedField.style.backgroundColor) {
-            processedField.style.backgroundColor = form.style?.primaryColor || '#9b87f5';
-          }
-          
-          // Set text color for contrast
-          if (!processedField.style.color) {
-            processedField.style.color = '#ffffff';
-          }
-          
-          // Make sure important properties are set for title fields
-          processedField.style = {
-            ...processedField.style,
-            showTitle: processedField.style.showTitle !== false,
-            showDescription: processedField.style.showDescription !== false,
-            descriptionColor: processedField.style.descriptionColor || '#ffffff',
-            fontWeight: processedField.style.fontWeight || 'bold',
-          };
-        }
-
-        // Special handling for submit buttons
-        if (processedField.type === 'submit') {
-          // Ensure animation settings are properly transferred
-          if (processedField.style.animation) {
-            processedField.style.animationType = processedField.style.animationType || 'pulse';
-          }
-          // Ensure consistent colors
-          processedField.style.backgroundColor = processedField.style.backgroundColor || form.style?.primaryColor || '#9b87f5';
-          processedField.style.color = processedField.style.color || '#ffffff';
-          processedField.style.fontSize = processedField.style.fontSize || '18px';
-        }
-        
-        return processedField;
-      });
-    }
-
-    // Ensure the form style object exists
-    if (form && !form.style) {
-      form.style = {
-        primaryColor: '#9b87f5',
-        borderRadius: '8px',
-        fontSize: '16px',
-        direction: 'rtl'
-      };
-    }
-
-    // Add block_id to the form for reference
+    // Ensure the settings object exists and process field data
     if (form) {
+      // Make sure form has a settings object
+      if (!form.settings) {
+        form.settings = { enableIcons: true };
+        console.log(`[${requestId}] Created default settings object for form`);
+      }
+      
+      // Make sure enableIcons is set (default to true if not specified)
+      form.settings.enableIcons = form.settings.enableIcons !== false;
+      
+      // Add block_id to the form for reference
       form.block_id = actualBlockId;
+      
+      // Process form fields to ensure icons are correctly formatted
+      if (form.fields && Array.isArray(form.fields)) {
+        form.fields = form.fields.map(field => {
+          if (!field) return field;
+          
+          // Make a copy of the field to avoid modifying the original
+          const processedField = { ...field };
+          
+          // Make sure icon is properly defined and not empty string
+          if (processedField.icon === undefined || processedField.icon === '') {
+            processedField.icon = 'none';
+          }
+          
+          // Ensure style object exists
+          if (!processedField.style) {
+            processedField.style = {};
+          }
+          
+          // Make sure showIcon is properly defined if an icon exists
+          if (processedField.icon && processedField.icon !== 'none') {
+            processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
+              processedField.style.showIcon : true;
+          }
+
+          // Special handling for submit buttons to ensure they have the right style
+          if (processedField.type === 'submit') {
+            if (!processedField.style) processedField.style = {};
+            // Ensure animation settings are properly transferred
+            if (processedField.style.animation) {
+              processedField.style.animationType = processedField.style.animationType || 'pulse';
+            }
+            // Ensure consistent colors
+            processedField.style.backgroundColor = processedField.style.backgroundColor || '#9b87f5';
+            processedField.style.color = processedField.style.color || '#ffffff';
+            processedField.style.fontSize = processedField.style.fontSize || '18px';
+          }
+          
+          // Special handling for text inputs to ensure icon display is correct
+          if (processedField.type === 'text' || processedField.type === 'phone' || processedField.type === 'email') {
+            if (processedField.icon && processedField.icon !== 'none') {
+              if (!processedField.style) processedField.style = {};
+              processedField.style.showIcon = true;
+            }
+          }
+          
+          return processedField;
+        });
+
+        // Log all form fields with icon information for debugging
+        if (debugMode || (form.fields && form.fields.some(f => f && f.icon && f.icon !== 'none'))) {
+          console.log(`[${requestId}] Form fields with icon information:`);
+          form.fields.forEach(field => {
+            if (field && field.icon && field.icon !== 'none') {
+              console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
+            }
+          });
+        }
+      } else {
+        console.error(`[${requestId}] Form fields are missing or not an array`);
+        form.fields = [];
+      }
+
+      // Verify that form style object exists
+      if (!form.style) {
+        form.style = {
+          primaryColor: '#9b87f5',
+          borderRadius: '8px',
+          fontSize: '16px',
+          direction: 'rtl'
+        };
+      }
     }
 
     // Add debug information if requested
@@ -350,15 +344,18 @@ serve(async (req: Request) => {
       formId: form?.id || null,
       fieldsCount: form?.fields?.length || 0,
       fieldsWithIcons: form?.fields?.filter(f => f && f.icon && f.icon !== 'none').length || 0,
-      iconsEnabled: true,
-      titleStyleEnabled: true,
-      style: form?.style || null,
-      settings: form?.settings || null
+      iconsEnabled: form?.settings?.enableIcons !== false,
+      style: form?.style || null
     } : undefined;
 
     // Return form data
     if (form) {
-      console.log(`[${requestId}] Successfully sending form data to client. Form has ${form.fields?.length || 0} fields`);
+      const fieldsWithIcons = form.fields?.filter(field => field && field.icon && field.icon !== 'none') || [];
+      console.log(`[${requestId}] Successfully sending form data to client. Form has ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
+      
+      if (fieldsWithIcons.length > 0) {
+        console.log(`[${requestId}] Icon types used: ${fieldsWithIcons.map(f => f.icon).join(', ')}`);
+      }
       
       return new Response(
         JSON.stringify({ 
