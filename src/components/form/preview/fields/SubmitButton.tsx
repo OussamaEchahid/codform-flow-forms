@@ -40,34 +40,34 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
 
   const animationClass = getAnimationClass();
   
-  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة
+  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة وإضافة !important للخصائص الحرجة
   const buttonStyle: React.CSSProperties = {
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
-    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
-    borderColor: style.borderColor || 'transparent',
-    borderWidth: style.borderWidth || '0px',
-    borderStyle: 'solid',
-    padding: '14px 24px',
-    paddingTop: style.paddingY || '14px',
-    paddingBottom: style.paddingY || '14px',
-    paddingLeft: style.paddingX || '24px',
-    paddingRight: style.paddingX || '24px',
-    width: style.fullWidth === false ? 'auto' : '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
+    backgroundColor: `${style.backgroundColor || formStyle.primaryColor || '#9b87f5'} !important`,
+    color: `${style.color || '#ffffff'} !important`,
+    fontSize: `${style.fontSize || '18px'} !important`,
+    fontWeight: `${style.fontWeight || '600'} !important`,
+    borderRadius: `${style.borderRadius || formStyle.borderRadius || '8px'} !important`,
+    borderColor: `${style.borderColor || 'transparent'} !important`,
+    borderWidth: `${style.borderWidth || '0px'} !important`,
+    borderStyle: 'solid !important',
+    padding: '14px 24px !important',
+    paddingTop: `${style.paddingY || '14px'} !important`,
+    paddingBottom: `${style.paddingY || '14px'} !important`,
+    paddingLeft: `${style.paddingX || '24px'} !important`,
+    paddingRight: `${style.paddingX || '24px'} !important`,
+    width: style.fullWidth === false ? 'auto !important' : '100% !important',
+    display: 'flex !important',
+    alignItems: 'center !important',
+    justifyContent: 'center !important',
+    gap: '8px !important',
     fontFamily: style.fontFamily || 'inherit',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    marginTop: '14px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative',
-    overflow: 'hidden',
-    textAlign: 'center'
+    cursor: 'pointer !important',
+    transition: 'all 0.2s ease !important',
+    marginTop: '14px !important',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1) !important',
+    position: 'relative !important',
+    overflow: 'hidden !important',
+    textAlign: 'center !important'
   };
   
   // تقديم الأيقونة بحجم وموضع متناسقين
@@ -138,6 +138,14 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
       data-has-icon={style.showIcon ? 'true' : 'false'}
       data-direction={textDir}
       data-button-id={field.id}
+      data-button-color={style.color || '#ffffff'}
+      data-button-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
+      data-button-font-size={style.fontSize || '18px'}
+      data-button-font-weight={style.fontWeight || '600'}
+      data-button-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
+      data-button-padding-y={style.paddingY || '14px'}
+      data-button-padding-x={style.paddingX || '24px'}
+      data-button-icon={style.icon || 'shopping-cart'}
     >
       {iconPosition === 'left' && icon}
       <span className="btn-text">{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

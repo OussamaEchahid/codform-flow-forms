@@ -104,6 +104,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // دائمًا اجعل محاذاة النص مركزية للتوافق مع عرض المتجر
     updatedField.style.textAlign = 'center';
     
+    // إضافة سمات إضافية لضمان التوافق
+    updatedField.style.display = 'block';
+    updatedField.style.width = '100%';
+    
     // تحديث المكون الأب بمعلومات الحقل الجديدة
     onUpdateTitleField(updatedField);
     

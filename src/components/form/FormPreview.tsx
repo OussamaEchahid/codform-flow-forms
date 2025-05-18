@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -50,104 +49,39 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Improve field processing for consistent display
   const sanitizedFields = React.useMemo(() => {
-    // Ensure cart items and cart summary fields have empty labels by default
+    // استخدام الوظائف المحسنة من form-utils
+    import { prepareFieldStyleForStore, createDefaultTitleField, normalizeFontSize } from '@/lib/form-utils';
+    
+    // ضمان أن حقول العربة الخاصة بالبنود والملخص لها تسميات فارغة افتراضيًا
     const updatedFields = fields.map(field => {
-      // Copy field to avoid direct mutation issues
-      const updatedField = { ...field };
-      
-      // Set empty default label for cart items and summary
-      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
-        updatedField.label = '';
-      }
-      
-      // Convert empty icon to 'none' for consistent handling
-      if (field.icon === '') {
-        updatedField.icon = 'none';
-      }
-      
-      // Make sure style.showIcon is defined if icon exists
-      if (field.icon && field.icon !== 'none') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
-          ? updatedField.style.showIcon 
-          : true;
-      }
-      
-      // Ensure basic style properties exist
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-      
-      // Make sure font size is explicitly specified with px
-      if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        if (updatedField.style.fontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize);
-          updatedField.style.fontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
-      }
-      
-      // For title fields, ensure text-align is center
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        updatedField.style.textAlign = 'center';
-      }
-      
-      return updatedField;
+      // استخدام وظيفة prepareFieldStyleForStore من form-utils
+      return prepareFieldStyleForStore(field);
     });
     
-    // If there's already a form title field, use it
+    // إذا كان هناك بالفعل حقل عنوان نموذج، استخدمه
     if (updatedFields.some(field => field.type === 'form-title')) {
       return updatedFields;
     }
     
-    // If no form title field exists, add one at the beginning with specific pixel sizes
-    const formTitleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#ffffff',
-        textAlign: 'center',
-        fontWeight: 'bold',
-        fontSize: '24px',
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px',
-        backgroundColor: formStyle.primaryColor || '#9b87f5',
-      }
-    };
+    // إذا لم يكن هناك حقل عنوان نموذج، أضف واحدًا في البداية بأحجام بكسل محددة
+    const formTitleField = createDefaultTitleField(formTitle, formDescription);
     
-    // Check if there's already a submit button
+    // التحقق مما إذا كان هناك بالفعل زر إرسال
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
     let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
     
-    // If no submit button exists, add one
+    // إذا لم يكن هناك زر إرسال، أضف واحدًا
     if (!hasSubmitButton) {
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-${Date.now()}`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          animation: true,
-          animationType: 'pulse',
-        },
-      };
+      const submitButton = createDefaultSubmitButton(language === 'ar' ? 'إرسال الطلب' : 'Submit Order');
       result.push(submitButton);
     }
     
+    // ضمان أن حجم الخط للنموذج بأكمله هو بتنسيق px
+    const formFontSize = normalizeFontSize(formStyle.fontSize || '16px');
+    
     return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
+  }, [fields, formTitle, formDescription, language, formStyle.primaryColor, formStyle.fontSize]);
   
   // Create unique ID for this form
   const formId = React.useMemo(() => `form-preview-${Date.now()}`, []);

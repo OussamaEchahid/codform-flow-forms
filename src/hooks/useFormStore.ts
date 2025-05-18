@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { FormFieldStyle } from '@/lib/form-utils';
 
@@ -65,6 +64,35 @@ interface FormStore {
   
   // إضافة وظيفة للتحقق من أن الحقل يحتوي على جميع الخصائص المطلوبة
   ensureFieldStyle: (fieldId: string, fieldType: string, defaultStyle?: Partial<FormFieldStyle>) => void;
+  
+  // إضافة وظيفة جديدة لتنسيق قيم الأنماط لضمان توافقها مع المتجر
+  normalizeStyleValues: (style = {}) => {
+    const normalizedStyle = { ...style };
+    
+    // تحويل قيم rem إلى px إذا لزم الأمر
+    if (normalizedStyle.fontSize && normalizedStyle.fontSize.includes('rem')) {
+      const remValue = parseFloat(normalizedStyle.fontSize);
+      normalizedStyle.fontSize = `${remValue * 16}px`;
+    }
+    
+    if (normalizedStyle.descriptionFontSize && normalizedStyle.descriptionFontSize.includes('rem')) {
+      const remValue = parseFloat(normalizedStyle.descriptionFontSize);
+      normalizedStyle.descriptionFontSize = `${remValue * 16}px`;
+    }
+    
+    // تأكد من أن جميع الألوان تستخدم صيغة hex كاملة
+    ['color', 'backgroundColor', 'descriptionColor', 'borderColor'].forEach(colorProp => {
+      if (normalizedStyle[colorProp] && normalizedStyle[colorProp].startsWith('#') && normalizedStyle[colorProp].length === 4) {
+        // تحويل #rgb إلى #rrggbb
+        const r = normalizedStyle[colorProp][1];
+        const g = normalizedStyle[colorProp][2];
+        const b = normalizedStyle[colorProp][3];
+        normalizedStyle[colorProp] = `#${r}${r}${g}${g}${b}${b}`;
+      }
+    });
+    
+    return normalizedStyle;
+  }
 }
 
 const defaultFormState: FormState = {
@@ -165,6 +193,9 @@ export const useFormStore = create<FormStore>((set, get) => ({
           descriptionColor: foundField.style.descriptionColor || '#ffffff',
           descriptionFontSize: foundField.style.descriptionFontSize || '14px',
           backgroundColor: foundField.style.backgroundColor || defaultFormState.style?.primaryColor || '#9b87f5',
+          display: 'block', // إضافة خواص إضافية لضمان التوافق مع المتجر
+          width: '100%',
+          overflow: 'hidden'
         };
       } else if (fieldType === 'submit') {
         foundField.style = {
@@ -176,6 +207,11 @@ export const useFormStore = create<FormStore>((set, get) => ({
           borderRadius: foundField.style.borderRadius || defaultFormState.style?.borderRadius || '8px',
           paddingY: foundField.style.paddingY || '14px',
           paddingX: foundField.style.paddingX || '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: foundField.style.fullWidth === false ? 'auto' : '100%',
+          textAlign: 'center'
         };
       }
       
@@ -188,10 +224,41 @@ export const useFormStore = create<FormStore>((set, get) => ({
       // تحديث حالة النموذج
       set({ formState: updatedFormState });
       
-      console.log(`Updated field ${fieldId} style:`, foundField.style);
+      console.log(`Updated field ${fieldId} style with enhanced compatibility:`, foundField.style);
+      return foundField.style;
     } else {
       console.warn(`Field ${fieldId} not found`);
+      return null;
     }
+  },
+  
+  // إضافة وظيفة جديدة لتنسيق قيم الأنماط لضمان توافقها مع المتجر
+  normalizeStyleValues: (style = {}) => {
+    const normalizedStyle = { ...style };
+    
+    // تحويل قيم rem إلى px إذا لزم الأمر
+    if (normalizedStyle.fontSize && normalizedStyle.fontSize.includes('rem')) {
+      const remValue = parseFloat(normalizedStyle.fontSize);
+      normalizedStyle.fontSize = `${remValue * 16}px`;
+    }
+    
+    if (normalizedStyle.descriptionFontSize && normalizedStyle.descriptionFontSize.includes('rem')) {
+      const remValue = parseFloat(normalizedStyle.descriptionFontSize);
+      normalizedStyle.descriptionFontSize = `${remValue * 16}px`;
+    }
+    
+    // تأكد من أن جميع الألوان تستخدم صيغة hex كاملة
+    ['color', 'backgroundColor', 'descriptionColor', 'borderColor'].forEach(colorProp => {
+      if (normalizedStyle[colorProp] && normalizedStyle[colorProp].startsWith('#') && normalizedStyle[colorProp].length === 4) {
+        // تحويل #rgb إلى #rrggbb
+        const r = normalizedStyle[colorProp][1];
+        const g = normalizedStyle[colorProp][2];
+        const b = normalizedStyle[colorProp][3];
+        normalizedStyle[colorProp] = `#${r}${r}${g}${g}${b}${b}`;
+      }
+    });
+    
+    return normalizedStyle;
   }
 }));
 

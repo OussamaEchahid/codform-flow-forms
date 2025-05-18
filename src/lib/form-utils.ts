@@ -201,6 +201,95 @@ export const validatePhone = (phone: string): boolean => {
   return phoneRegex.test(phone);
 };
 
+export const validateAnimationType = (type: string): 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none' => {
+  const validTypes = ['pulse', 'shake', 'bounce', 'wiggle', 'flash', 'none'] as const;
+  return validTypes.includes(type as any) 
+    ? (type as 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none')
+    : 'pulse'; // Default to 'pulse' if invalid
+};
+
+export const normalizeFontSize = (fontSize: string | undefined): string => {
+  if (!fontSize) return '';
+  
+  // إذا كانت القيمة تحتوي على وحدة rem
+  if (fontSize.includes('rem')) {
+    const remValue = parseFloat(fontSize);
+    return `${remValue * 16}px`;
+  }
+  
+  // إذا كانت القيمة رقمية فقط
+  if (!isNaN(parseFloat(fontSize)) && !fontSize.match(/[a-z%]/i)) {
+    return `${fontSize}px`;
+  }
+  
+  return fontSize;
+};
+
+export const normalizeColor = (color: string | undefined): string => {
+  if (!color) return '';
+  
+  // تحويل #rgb إلى #rrggbb
+  if (color.startsWith('#') && color.length === 4) {
+    const r = color[1];
+    const g = color[2];
+    const b = color[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  
+  return color;
+};
+
+export const prepareFieldStyleForStore = (field: FormField): FormField => {
+  if (!field) return field;
+  
+  const updatedField = { ...field };
+  
+  // إضافة أو تحديث كائن النمط
+  if (!updatedField.style) {
+    updatedField.style = {};
+  }
+  
+  // معالجة أنماط العنوان
+  if (field.type === 'form-title' || field.type === 'title') {
+    updatedField.style = {
+      ...updatedField.style,
+      textAlign: 'center',
+      color: normalizeColor(updatedField.style.color || '#ffffff'),
+      fontSize: normalizeFontSize(updatedField.style.fontSize || (field.type === 'form-title' ? '24px' : '20px')),
+      fontWeight: updatedField.style.fontWeight || 'bold',
+      descriptionColor: normalizeColor(updatedField.style.descriptionColor || '#ffffff'),
+      descriptionFontSize: normalizeFontSize(updatedField.style.descriptionFontSize || '14px'),
+      backgroundColor: normalizeColor(updatedField.style.backgroundColor || '#9b87f5'),
+      display: 'block',
+      width: '100%'
+    };
+  }
+  
+  // معالجة أنماط زر الإرسال
+  if (field.type === 'submit') {
+    // إذا كان هناك animationType، تأكد من أنه قيمة صالحة
+    if (updatedField.style.animationType) {
+      updatedField.style.animationType = validateAnimationType(updatedField.style.animationType as string);
+    }
+    
+    updatedField.style = {
+      ...updatedField.style,
+      backgroundColor: normalizeColor(updatedField.style.backgroundColor || '#9b87f5'),
+      color: normalizeColor(updatedField.style.color || '#ffffff'),
+      fontSize: normalizeFontSize(updatedField.style.fontSize || '18px'),
+      fontWeight: updatedField.style.fontWeight || '600',
+      borderRadius: updatedField.style.borderRadius || '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      width: updatedField.style.fullWidth === false ? 'auto' : '100%'
+    };
+  }
+  
+  return updatedField;
+};
+
 export const generateFormFieldClassName = (field: FormField) => {
   return cn(
     "codform-field",
@@ -675,3 +764,52 @@ export const formTemplates = [
     ]
   }
 ];
+
+// تحسين دالة إنشاء حقل العنوان الافتراضي
+export const createDefaultTitleField = (title: string, description?: string): FormField => {
+  return {
+    type: 'form-title',
+    id: uuidv4(),
+    label: title || 'نموذج جديد',
+    helpText: description || '',
+    style: {
+      textAlign: 'center',
+      color: '#ffffff',
+      fontSize: '24px',
+      fontWeight: 'bold',
+      descriptionColor: '#ffffff',
+      descriptionFontSize: '14px',
+      backgroundColor: '#9b87f5',
+      display: 'block',
+      width: '100%'
+    }
+  };
+};
+
+// تحسين دالة إنشاء زر الإرسال الافتراضي
+export const createDefaultSubmitButton = (label?: string): FormField => {
+  return {
+    type: 'submit',
+    id: uuidv4(),
+    label: label || 'إرسال الطلب',
+    style: {
+      backgroundColor: '#9b87f5',
+      color: '#ffffff',
+      fontSize: '18px',
+      fontWeight: '600',
+      animation: true,
+      animationType: 'pulse',
+      showIcon: true,
+      icon: 'shopping-cart',
+      iconPosition: 'left',
+      borderRadius: '8px',
+      paddingY: '14px',
+      paddingX: '24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      width: '100%'
+    }
+  };
+};

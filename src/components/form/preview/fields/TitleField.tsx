@@ -36,48 +36,48 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   // استخدام نفس قيمة نصف القطر للحدود كما في المتجر
   const borderRadiusValue = formStyle.borderRadius || '0.5rem';
   
-  // نمط الخلفية بقيم متناسقة للمتجر والمعاينة
+  // نمط الخلفية بقيم متناسقة للمتجر والمعاينة - إضافة !important لضمان تطبيقها في المتجر
   const backgroundStyle: React.CSSProperties = {
-    backgroundColor: backgroundColor,
-    padding: '16px',
-    borderRadius: borderRadiusValue,
-    width: '100%',
-    boxSizing: 'border-box',
-    marginBottom: '16px',
-    textAlign: 'center',
-    display: 'block',
-    overflow: 'hidden',
+    backgroundColor: `${backgroundColor} !important`,
+    padding: '16px !important',
+    borderRadius: `${borderRadiusValue} !important`,
+    width: '100% !important',
+    boxSizing: 'border-box !important',
+    marginBottom: '16px !important',
+    textAlign: 'center !important',
+    display: 'block !important',
+    overflow: 'hidden !important',
   };
 
-  // أنماط العنوان بهامش صفر لمطابقة المعاينة
+  // أنماط العنوان بهامش صفر لمطابقة المعاينة - إضافة !important للخواص الحرجة
   const titleStyle: React.CSSProperties = {
-    color: fieldStyle.color || '#ffffff',
-    fontSize: fontSize,
-    textAlign: 'center',
-    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    color: `${fieldStyle.color || '#ffffff'} !important`,
+    fontSize: `${fontSize} !important`,
+    textAlign: 'center !important',
+    fontWeight: `${fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')} !important`,
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    margin: '0',
-    padding: '0',
-    lineHeight: '1.3',
-    display: 'block',
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important',
+    display: 'block !important',
     direction: textDirection,
-    width: '100%',
+    width: '100% !important',
   };
 
-  // أنماط الوصف بهامش علوي 6 بكسل تماماً لمطابقة المعاينة
+  // أنماط الوصف بهامش علوي 6 بكسل تماماً لمطابقة المعاينة - إضافة !important للخواص الحرجة
   const descriptionStyle: React.CSSProperties = {
-    color: fieldStyle.descriptionColor || '#ffffff',
-    fontSize: descriptionFontSize,
-    margin: '6px 0 0 0',
-    padding: '0',
-    textAlign: 'center',
+    color: `${fieldStyle.descriptionColor || '#ffffff'} !important`,
+    fontSize: `${descriptionFontSize} !important`,
+    margin: '6px 0 0 0 !important',
+    padding: '0 !important',
+    textAlign: 'center !important',
     fontFamily: fieldStyle.fontFamily || 'inherit',
-    fontWeight: 'normal',
-    lineHeight: '1.5',
-    opacity: '0.9',
+    fontWeight: 'normal !important',
+    lineHeight: '1.5 !important',
+    opacity: '0.9 !important',
     direction: textDirection,
-    width: '100%',
-    display: 'block',
+    width: '100% !important',
+    display: 'block !important',
   };
 
   // إنشاء معرف فريد لهذا الحقل لتجنب التعارضات
@@ -104,6 +104,10 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
       data-bg-color={backgroundColor}
       data-field-type={field.type}
       data-direction={textDirection}
+      data-title-font-size={fontSize}
+      data-description-font-size={descriptionFontSize}
+      data-title-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
+      data-description-color={fieldStyle.descriptionColor || '#ffffff'}
       dir={textDirection}
     >
       <div 
