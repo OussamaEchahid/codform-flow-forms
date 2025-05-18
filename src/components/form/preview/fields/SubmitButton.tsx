@@ -19,7 +19,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Get animation class if set - Fixed animation functionality
+  // Get animation class if set
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -36,32 +36,36 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Debug log to trace the background color being applied
-  console.log(`Submit button styling: bgColor=${style.backgroundColor || formStyle.primaryColor || '#9b87f5'}, animationType=${style.animationType || 'none'}`);
+  // CRITICAL FIX: Ensure button background color is properly set and prioritized
+  const buttonBackgroundColor = style.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Default button styling - ensure proper handling of pixel values
+  // Debug log to trace the background color being applied
+  console.log(`Submit button styling: bgColor=${buttonBackgroundColor}, animationType=${style.animationType || 'none'}`);
+  console.log('Full submit button style object:', JSON.stringify(style, null, 2));
+  
+  // Button styling with explicit color handling
   const buttonStyle = {
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    backgroundColor: buttonBackgroundColor,
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '19px', // Default fontSize is 19px
+    fontSize: style.fontSize || '19px',
     fontWeight: style.fontWeight || 'bold',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    paddingTop: style.paddingY || '15px', // Default paddingY is 15px 
-    paddingBottom: style.paddingY || '15px', // Default paddingY is 15px
+    paddingTop: style.paddingY || '15px',
+    paddingBottom: style.paddingY || '15px',
     paddingLeft: '20px',
     paddingRight: '20px',
     width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center', // Always center the content regardless of icon position
+    justifyContent: 'center',
     gap: '8px',
     fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    marginTop: '0px', // Removed margin completely to bring it closer to previous field
+    marginTop: '0px',
   };
   
   // Icon rendering with improved support for multiple icon types
@@ -103,7 +107,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
-      data-button-bg-color={buttonStyle.backgroundColor}
+      data-button-bg-color={buttonBackgroundColor} // Add explicit data attribute for background color
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

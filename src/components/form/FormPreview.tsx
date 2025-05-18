@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
@@ -42,13 +41,23 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideFloatingButtonPreview = false,
 }) => {
   const { language } = useI18n();
-  const [key] = useState(0);
+  // Force re-render by using a timestamp as a key
+  const [previewKey] = useState(Date.now());
+  
+  // Enhanced debugging for field styles, especially submit buttons
+  useEffect(() => {
+    console.log('FormPreview rendering with fields:', fields);
+    
+    const submitButton = fields.find(field => field.type === 'submit');
+    if (submitButton) {
+      console.log('Submit button in FormPreview:', JSON.stringify(submitButton, null, 2));
+      console.log('Submit button style:', submitButton.style);
+      console.log('Form style primaryColor:', formStyle.primaryColor);
+    }
+  }, [fields, formStyle]);
   
   // Clean up fields and properly display form title
   const sanitizedFields = React.useMemo(() => {
-    // Log field data to help debug style issues
-    console.log('FormPreview fields:', fields);
-    
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
       // Make a copy of the field to avoid mutation issues
@@ -74,11 +83,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
-      }
-
-      // Log the submit button styling for debugging
-      if (field.type === 'submit') {
-        console.log('Submit button field:', JSON.stringify(updatedField, null, 2));
       }
       
       return updatedField;
@@ -118,9 +122,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         id: `submit-${Date.now()}`,
         label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
         style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          backgroundColor: formStyle.primaryColor || '#9b87f5', // Make sure primary color is applied
           color: '#ffffff',
-          fontSize: '18px', // 1.2rem = 18px
+          fontSize: '18px',
           animation: true,
           animationType: 'pulse',
         },
@@ -133,13 +137,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   return (
     <div 
-      key={`form-preview-${Date.now()}`}
+      key={`form-preview-${previewKey}`}
       className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
       } as React.CSSProperties}
+      data-primary-color={formStyle.primaryColor} // Add data attribute for primary color
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -191,7 +196,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           <div className="space-y-2">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
-                key={`${field.id}-${Date.now()}`}
+                key={`${field.id}-${Date.now()}-${JSON.stringify(field.style || {})}`}
                 field={field} 
                 formStyle={formStyle}
               />

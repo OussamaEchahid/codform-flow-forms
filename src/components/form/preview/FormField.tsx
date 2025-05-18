@@ -44,7 +44,7 @@ const animationStyles = `
   }
   
   @keyframes wiggle-animation {
-    0%, 100% { transform: rotate(0); }
+    0% { transform: rotate(0); }
     25% { transform: rotate(-3deg); }
     75% { transform: rotate(3deg); }
   }
@@ -77,7 +77,7 @@ const animationStyles = `
 
 // Generate a key for FormField to force re-render when field properties change
 const getFieldKey = (field: FormFieldType) => {
-  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
+  return `field-${field.id}-${field.type}-${field.label || ''}-${field.placeholder || ''}-${JSON.stringify(field.style || {})}-${field.icon || 'none'}-${Date.now()}`;
 };
 
 // Remove memo to ensure component always updates when props change
@@ -116,17 +116,19 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType);
 
-  // Log animation data if this is a submit button
-  if (fieldType === 'submit' && normalizedField.style) {
-    const animationType = normalizedField.style.animationType || 'none';
-    const hasAnimation = !!normalizedField.style.animation;
+  // Additional logging especially for submit buttons
+  if (fieldType === 'submit') {
+    console.log('Submit button field object:', JSON.stringify(normalizedField, null, 2));
     
-    if (hasAnimation) {
-      console.log(`Submit button using animation: ${animationType}`);
+    // Enhanced debugging to track style properties
+    if (normalizedField.style) {
+      console.log('Submit button style properties:');
+      console.log('- backgroundColor:', normalizedField.style.backgroundColor || 'not set');
+      console.log('- color:', normalizedField.style.color || 'not set');
+      console.log('- fontSize:', normalizedField.style.fontSize || 'not set');
+      console.log('- animation:', normalizedField.style.animation ? 'true' : 'false');
+      console.log('- animationType:', normalizedField.style.animationType || 'not set');
     }
-    
-    // Debug log to help track button color issues
-    console.log(`Submit button style:`, JSON.stringify(normalizedField.style, null, 2));
   }
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {
@@ -135,7 +137,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
-    'form-title': TitleField, // Use TitleField component for form-title type
+    'form-title': TitleField, 
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
@@ -156,9 +158,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   const fieldKey = getFieldKey(field);
   
   // Adjust margins: use smaller margins for all fields, and make submit button very close to previous field
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // Changed from mt-1 to mt-0 for submit button
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1';
 
-  if (!isSupported && fieldType !== 'form-title') { // Don't show warning for form-title
+  if (!isSupported && fieldType !== 'form-title') {
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey}>
         <Component field={normalizedField} formStyle={formStyle} />
