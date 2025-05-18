@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,7 +10,7 @@ import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { FormField } from '@/lib/form-utils';
+import { FormField, FormFieldType } from '@/lib/form-utils';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -36,7 +37,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     
     // إضافة حقل عنوان النموذج
     fields.push({
-      type: 'form-title',
+      type: 'form-title' as FormFieldType,
       id: `form-title-${Date.now()}`,
       label: language === 'ar' ? 'نموذج جديد' : 'New Form',
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
@@ -53,7 +54,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     
     // إضافة حقل الاسم الكامل
     fields.push({
-      type: 'text',
+      type: 'text' as FormFieldType,
       id: `text-${Date.now()}-1`,
       label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
       placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
@@ -63,7 +64,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     
     // إضافة حقل رقم الهاتف
     fields.push({
-      type: 'phone',
+      type: 'phone' as FormFieldType,
       id: `phone-${Date.now()}-2`,
       label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
       placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
@@ -73,7 +74,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     
     // إضافة حقل المدينة بعد رقم الهاتف
     fields.push({
-      type: 'text',
+      type: 'text' as FormFieldType,
       id: `city-${Date.now()}`,
       label: language === 'ar' ? 'المدينة' : 'City',
       placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name',
@@ -83,7 +84,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     
     // إضافة حقل العنوان
     fields.push({
-      type: 'textarea',
+      type: 'textarea' as FormFieldType,
       id: `textarea-${Date.now()}`,
       label: language === 'ar' ? 'العنوان' : 'Address',
       placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
@@ -93,7 +94,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     // Update the submit button default styling in the dialog
     const submitButton: FormField = {
       id: `submit-button-${Date.now()}`,
-      type: 'submit',
+      type: 'submit' as FormFieldType,
       label: language === 'ar' ? 'الطلب مع الدفع عند الاستلام' : 'Buy with Cash on Delivery',
       style: {
         backgroundColor: '#9b87f5', // Use our default purple color
@@ -107,7 +108,6 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         borderWidth: '0px',
         paddingY: '15px', // Updated to 15px
         showIcon: true,
-        icon: 'shopping-cart',
         iconPosition: 'left', // Use this instead of 'icon' property
       }
     };

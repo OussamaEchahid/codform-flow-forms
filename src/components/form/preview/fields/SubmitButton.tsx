@@ -52,7 +52,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     marginTop: '14px',
     position: 'relative' as const, // Cast to const to satisfy TypeScript Position type
     lineHeight: '1.2',
-    textAlign: 'center',
+    textAlign: 'center' as const, // Cast to const to satisfy TypeScript TextAlign type
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
   };
 
