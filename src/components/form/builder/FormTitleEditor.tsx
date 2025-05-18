@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { Card } from '@/components/ui/card';
@@ -6,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { ColorPicker } from '@/components/ui/color-picker';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, AlignCenter, AlignLeft, AlignRight, Palette } from 'lucide-react';

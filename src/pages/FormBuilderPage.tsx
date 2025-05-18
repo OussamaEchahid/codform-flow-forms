@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -61,7 +60,7 @@ const FormBuilderPage = () => {
         const defaultForm = await getDefaultForm(shop);
         
         if (isMounted) {
-          // Check if defaultForm exists, not the function result itself
+          // Fixed: Only log the defaultForm if it exists
           if (defaultForm) {
             console.log('Default form found:', defaultForm.id);
           } else {
@@ -83,7 +82,7 @@ const FormBuilderPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [shop, getDefaultForm]); // Removed isCheckingDefaultForm from dependencies to prevent loop
+  }, [shop, getDefaultForm]);
 
   // Fetch associated products for current form - with cleanup to prevent memory leaks
   useEffect(() => {
