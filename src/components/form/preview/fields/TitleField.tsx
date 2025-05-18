@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -28,7 +28,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
   
-  // الحصول على محاذاة النص - تحقق من titleAlignment أولاً، ثم الرجوع إلى textAlign
+  // Get text alignment - check for titleAlignment first, then fall back to textAlign
   const textAlign = field.style?.titleAlignment || field.style?.textAlign || 'center';
   const descriptionAlign = field.style?.descriptionAlignment || field.style?.textAlign || 'center';
   
@@ -38,24 +38,18 @@ const TitleField: React.FC<TitleFieldProps> = ({
   const showDescription = field.style?.showDescription !== false;
   const showTitle = field.style?.showTitle !== false;
   
-  // تسجيل معلومات التصحيح للمساعدة في تتبع المشكلات
-  useEffect(() => {
-    console.log(`[TitleField] Rendering title field with ID: ${field.id}`);
-    console.log(`[TitleField] Background color: ${backgroundColor}`);
-    console.log(`[TitleField] Text color: ${textColor}`);
-    console.log(`[TitleField] Direction: ${direction}`);
-    console.log(`[TitleField] Text alignment: ${textAlign}`);
-  }, [field.id, backgroundColor, textColor, direction, textAlign]);
-  
   if (!showTitle) {
     return null;
   }
   
+  // Debug direction
+  console.log(`Title field direction: ${direction} for field ${field.id}`);
+  
   return (
     <div
-      className="form-title-field w-full my-2 codform-title-container"
+      className="form-title-field w-full my-2"
       style={{
-        backgroundColor: backgroundColor,
+        backgroundColor,
         borderRadius: formStyle.borderRadius || '0.5rem',
         padding: '0.75rem',
         direction,
@@ -63,10 +57,8 @@ const TitleField: React.FC<TitleFieldProps> = ({
       dir={direction}
       data-form-direction={direction}
       data-field-type="title"
-      data-testid="title-field"
     >
       <h2
-        className="codform-form-title"
         style={{
           color: textColor,
           textAlign: textAlign as any,
@@ -80,7 +72,6 @@ const TitleField: React.FC<TitleFieldProps> = ({
       
       {showDescription && field.helpText && (
         <p
-          className="codform-title-description"
           style={{
             color: descriptionColor,
             textAlign: descriptionAlign as any,
