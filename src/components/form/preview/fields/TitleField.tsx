@@ -20,10 +20,10 @@ const TitleField: React.FC<TitleFieldProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Use correct text direction
+  // تأكد من توجيه النص الصحيح
   const direction = formDirection || field.style?.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Use style from field or fallback to defaults with !important
+  // استخدم النمط من الحقل أو القيم الافتراضية
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
@@ -42,56 +42,41 @@ const TitleField: React.FC<TitleFieldProps> = ({
     return null;
   }
   
-  // Use inline styles with !important to force the correct display
-  const containerStyle: React.CSSProperties = {
-    backgroundColor: `${backgroundColor} !important`,
-    borderRadius: `${formStyle.borderRadius || '0.5rem'} !important`,
-    padding: '0.75rem !important',
-    direction,
-    width: '100% !important',
-    display: 'block !important',
-    boxSizing: 'border-box' as 'border-box',
-    margin: '0.5rem 0 !important',
-    overflow: 'hidden !important'
-  };
-  
-  const titleStyle = {
-    color: `${textColor} !important`,
-    textAlign: textAlign as any,
-    fontWeight: fontWeight as any,
-    fontSize: titleFontSize,
-    margin: '0 !important',
-    padding: '0 !important',
-    lineHeight: '1.3 !important',
-    width: '100% !important',
-    display: 'block !important'
-  };
-  
-  const descriptionStyle = {
-    color: `${descriptionColor} !important`,
-    textAlign: descriptionAlign as any,
-    fontSize: descriptionFontSize,
-    margin: '0.25rem 0 0 0 !important',
-    width: '100% !important',
-    display: 'block !important'
-  };
-  
   return (
     <div
-      className="form-title-field w-full my-2 codform-title-container"
-      style={containerStyle}
+      className="form-title-field w-full my-2"
+      style={{
+        backgroundColor,
+        borderRadius: formStyle.borderRadius || '0.5rem',
+        padding: '0.75rem',
+        direction,
+      }}
       dir={direction}
       data-form-direction={direction}
       data-field-type="title"
       data-testid="title-field"
-      data-background-color={backgroundColor}
     >
-      <h2 style={titleStyle} className="codform-form-title">
+      <h2
+        style={{
+          color: textColor,
+          textAlign: textAlign as any,
+          fontWeight: fontWeight as any,
+          fontSize: titleFontSize,
+          margin: 0,
+        }}
+      >
         {field.label}
       </h2>
       
       {showDescription && field.helpText && (
-        <p style={descriptionStyle} className="codform-title-description">
+        <p
+          style={{
+            color: descriptionColor,
+            textAlign: descriptionAlign as any,
+            fontSize: descriptionFontSize,
+            margin: '0.25rem 0 0 0',
+          }}
+        >
           {field.helpText}
         </p>
       )}

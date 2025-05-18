@@ -75,10 +75,8 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
       case 'whatsapp-button':
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
 
-      case 'edit-form-title':
-        return <EditFormTitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
-        
       case 'form-title':
+      case 'edit-form-title':
       case 'title':
         return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
@@ -92,14 +90,9 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
     }
   };
 
-  // Add extra class for title field types to help with CSS specificity
-  const extraClass = field.type === 'title' || field.type === 'form-title' || field.type === 'edit-form-title' 
-    ? 'form-title-wrapper' 
-    : '';
-
   return (
     <div 
-      className={`form-field-wrapper ${directionClass} ${extraClass}`} 
+      className={`form-field-wrapper ${directionClass}`} 
       data-field-type={field.type}
       data-direction={formDirection}
       dir={formDirection}
