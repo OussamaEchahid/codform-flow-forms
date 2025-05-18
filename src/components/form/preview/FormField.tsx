@@ -124,6 +124,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     if (hasAnimation) {
       console.log(`Submit button using animation: ${animationType}`);
     }
+    
+    // Debug log to help track button color issues
+    console.log(`Submit button style:`, JSON.stringify(normalizedField.style, null, 2));
   }
 
   const components: { [key: string]: React.FC<FormFieldProps> } = {
@@ -174,5 +177,4 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   );
 };
 
-// Remove displayName since we're not using memo anymore
 export default FormField;

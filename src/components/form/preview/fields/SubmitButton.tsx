@@ -36,6 +36,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
+  // Debug log to trace the background color being applied
+  console.log(`Submit button styling: bgColor=${style.backgroundColor || formStyle.primaryColor || '#9b87f5'}, animationType=${style.animationType || 'none'}`);
+  
   // Default button styling - ensure proper handling of pixel values
   const buttonStyle = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
@@ -100,6 +103,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
+      data-button-bg-color={buttonStyle.backgroundColor}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

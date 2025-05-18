@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
   // Configuration
   const API_URL_BASE = 'https://mtyfuwdsshlzqwjujavp.functions.supabase.co';
@@ -758,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add WhatsApp icon
     const icon = document.createElement('span');
     icon.className = 'codform-whatsapp-icon';
-    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="M8.2 8.2c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-.5.5c-.3.3-.3.7 0 1l3 3c.3.3.7.3 1 0l.5-.5c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6l-1.5 1.5c-1.2 1.2-3.1 1.2-4.2 0L7 16.3c-1.2-1.2-1.2-3.1 0-4.2l1.2-1.9z"></path></svg>';
+    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l1.664 1.664M21 21l-1.5-1.5"></path><path d="M21 3l-3 3"></path><path d="M3 21l9-9"></path><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
     
     // Add button label
     const label = document.createElement('span');
@@ -1050,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return container;
   }
   
-  // Create submit button
+  // Create submit button - Updated to properly apply custom background colors
   function createSubmitButton(field, style, container) {
     const button = document.createElement('button');
     button.type = 'submit';
@@ -1059,10 +1058,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Apply label
     button.innerText = field.label || 'إرسال الطلب';
     
-    // Apply styling
-    const bgColor = field.style?.backgroundColor || style.primaryColor || '#9b87f5';
+    // Debug log for button styling
+    console.log('Creating submit button with styles:', field.style);
+    
+    // Apply styling - Explicitly use the field's backgroundColor if available
+    // This approach matches the working title background implementation
+    const bgColor = field.style && field.style.backgroundColor ? field.style.backgroundColor : (style.primaryColor || '#9b87f5');
     const textColor = field.style?.color || '#ffffff';
     const fontSize = field.style?.fontSize || '1.2rem';
+    
+    console.log(`Submit button background color: ${bgColor}`);
     
     button.style.backgroundColor = bgColor;
     button.style.color = textColor;
@@ -1080,7 +1085,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add animation if specified
     if (field.style && field.style.animation && field.style.animationType) {
       button.classList.add(`${field.style.animationType}-animation`);
+      console.log(`Adding animation: ${field.style.animationType}-animation`);
     }
+    
+    // Add data attributes for debugging
+    button.setAttribute('data-original-bg-color', bgColor);
     
     container.appendChild(button);
     return container;

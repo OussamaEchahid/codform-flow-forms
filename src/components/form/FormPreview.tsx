@@ -46,6 +46,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Clean up fields and properly display form title
   const sanitizedFields = React.useMemo(() => {
+    // Log field data to help debug style issues
+    console.log('FormPreview fields:', fields);
+    
     // Ensure cart-items and cart-summary have empty labels by default
     const updatedFields = fields.map(field => {
       // Make a copy of the field to avoid mutation issues
@@ -71,6 +74,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
+      }
+
+      // Log the submit button styling for debugging
+      if (field.type === 'submit') {
+        console.log('Submit button field:', JSON.stringify(updatedField, null, 2));
       }
       
       return updatedField;
