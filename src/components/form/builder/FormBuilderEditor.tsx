@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useFormStore } from '@/hooks/useFormStore';
+import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import { useI18n } from '@/lib/i18n';
@@ -11,14 +11,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface FormBuilderEditorProps {
   formId: string;
-}
-
-// Define custom FormStyle interface that was missing
-interface FormStyle {
-  primaryColor?: string;
-  borderRadius?: string;
-  fontSize?: string;
-  buttonStyle?: string;
 }
 
 const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
@@ -316,7 +308,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             }}
             initialFields={fields}
             onSave={handleSaveForm}
-            onPreviewRefresh={handleRefreshPreview}
+            onPreviewRefresh={() => setPreviewRefresh(prev => prev + 1)}
           />
           
           <FormElementEditor 
