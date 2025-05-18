@@ -42,41 +42,55 @@ const TitleField: React.FC<TitleFieldProps> = ({
     return null;
   }
   
+  // Create strongly-typed style objects for TypeScript
+  const containerStyle: React.CSSProperties = {
+    backgroundColor: backgroundColor,
+    borderRadius: formStyle.borderRadius || '0.5rem',
+    padding: '0.75rem',
+    direction: direction,
+    width: '100%',
+    display: 'block',
+    boxSizing: 'border-box' as 'border-box',
+    margin: '0.5rem 0',
+    overflow: 'hidden'
+  };
+  
+  const titleStyle: React.CSSProperties = {
+    color: textColor,
+    textAlign: textAlign as any,
+    fontWeight: fontWeight as any,
+    fontSize: titleFontSize,
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    display: 'block'
+  };
+  
+  const descriptionStyle: React.CSSProperties = {
+    color: descriptionColor,
+    textAlign: descriptionAlign as any,
+    fontSize: descriptionFontSize,
+    margin: '0.25rem 0 0 0',
+    padding: 0,
+    width: '100%',
+    display: 'block'
+  };
+  
   return (
     <div
-      className="form-title-field w-full my-2"
-      style={{
-        backgroundColor,
-        borderRadius: formStyle.borderRadius || '0.5rem',
-        padding: '0.75rem',
-        direction,
-      }}
+      className="form-title-field codform-title-field w-full my-2"
+      style={containerStyle}
       dir={direction}
       data-form-direction={direction}
       data-field-type="title"
       data-testid="title-field"
     >
-      <h2
-        style={{
-          color: textColor,
-          textAlign: textAlign as any,
-          fontWeight: fontWeight as any,
-          fontSize: titleFontSize,
-          margin: 0,
-        }}
-      >
+      <h2 style={titleStyle}>
         {field.label}
       </h2>
       
       {showDescription && field.helpText && (
-        <p
-          style={{
-            color: descriptionColor,
-            textAlign: descriptionAlign as any,
-            fontSize: descriptionFontSize,
-            margin: '0.25rem 0 0 0',
-          }}
-        >
+        <p style={descriptionStyle}>
           {field.helpText}
         </p>
       )}

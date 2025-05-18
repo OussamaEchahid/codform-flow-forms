@@ -76,7 +76,11 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle = {}, f
         return <WhatsAppButton field={field} formStyle={formStyle} formDirection={formDirection} />;
 
       case 'form-title':
+        return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
       case 'edit-form-title':
+        return <EditFormTitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
+        
       case 'title':
         return <TitleField field={field} formStyle={formStyle} formDirection={formDirection} />;
         
