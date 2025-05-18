@@ -41,40 +41,55 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // Force refresh when any prop changes to ensure live preview updates immediately
+  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // Process fields to normalize icon values - critical for preview display
+  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
-      // Create a new field object to avoid mutation issues
+      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
       
-      // Convert empty icon strings to 'none'
+      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Ensure proper showIcon handling
+      // ضمان معالجة showIcon بشكل صحيح
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Default showIcon to true unless explicitly set to false
+        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
+      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
+      if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
+        // تحويل rem إلى px للتناسق
+        if (updatedField.style.fontSize.includes('rem')) {
+          const remValue = parseFloat(updatedField.style.fontSize);
+          updatedField.style.fontSize = `${remValue * 16}px`;
+        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+        }
+      }
+      
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // Add internalRefreshKey to dependencies to ensure re-render
+  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+
+  // إنشاء معرف فريد لمكون المعاينة هذا
+  const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
-    <div>
+    <div id={previewPanelId}>
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>
@@ -93,6 +108,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         >
           <div></div>
         </FormPreview>
+      </div>
+      
+      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
+      <div className="mt-2 text-xs text-gray-500 p-2 rounded">
+        {language === 'ar' 
+          ? 'تأكد من أن جميع العناصر في المعاينة تظهر بنفس الشكل في متجر Shopify'
+          : 'Ensure all elements in the preview appear the same way in the Shopify store'}
       </div>
     </div>
   );
