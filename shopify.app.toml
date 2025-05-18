@@ -44,7 +44,7 @@ redirect_urls = [
 [pos]
 embedded = false
 
-# The important fix: Change extensions from object to array format
+# تنسيق امتدادات بتنسيق مصفوفة صحيح
 [[extensions]]
 type = "theme_app_extension"
 handle = "theme-extension-codform"
