@@ -47,7 +47,7 @@
   margin: 0 !important;
 }
 
-/* ��اوية النموذج الرئيسية - إزالة الخلفية البيضاء */
+/* حاوية النموذج الرئيسية - إزالة الخلفية البيضاء */
 .codform-form {
   margin-top: 14px;
   background-color: transparent !important;
@@ -257,8 +257,14 @@
   text-align: center !important;
 }
 
-/* تنسيقات خاصة لحقل Edit Form Title - جديد */
-.codform-edit-title-container {
+/* تنسيقات خاصة لحقل عناوين النماذج - UPDATED */
+.form-title-field,
+.codform-edit-title-container,
+.codform-title-container,
+div[data-testid="title-field"] > div,
+div[data-field-type="title"] > div,
+div[data-field-type="form-title"] > div {
+  background-color: #9b87f5 !important;
   padding: 16px !important;
   border-radius: 8px !important;
   margin-bottom: 16px !important;
@@ -276,6 +282,7 @@
   line-height: 1.3 !important;
   width: 100% !important;
   display: block !important;
+  color: #ffffff !important;
 }
 
 .codform-edit-description {
@@ -284,6 +291,7 @@
   line-height: 1.5 !important;
   width: 100% !important;
   display: block !important;
+  color: rgba(255,255,255,0.9) !important;
 }
 
 /* ضمان دائماً ظهور عناوين النماذج بخلفية ملونة */
@@ -293,14 +301,16 @@ div[data-testid="title-field"] .codform-title-container,
 div[data-testid="edit-form-title-field"] .codform-edit-title-container,
 div[data-field-type="form-title"] .codform-title-container,
 div[data-field-type="edit-form-title"] .codform-edit-title-container,
-div[data-field-type="title"] .codform-title-container {
+div[data-field-type="title"] .codform-title-container,
+.form-title-field {
+  background-color: #9b87f5 !important;
   padding: 16px !important;
   border-radius: 8px !important;
   margin-bottom: 16px !important;
   display: block !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  overflow: hidden !important; /* لمنع تجاوز المحتوى للخلفية */
+  overflow: hidden !important;
 }
 
 /* تنسيقات حقول العناوين - تطابق تام مع المعاينة */
@@ -327,6 +337,30 @@ div[data-field-type="title"] .codform-title-container {
   text-align: center !important;
   width: 100% !important;
   display: block !important;
+}
+
+/* إصلاح مشكلة خلفية العنوان - NEW STYLES */
+.form-title-field,
+div[data-field-type="title"],
+div[data-field-type="form-title"],
+div[data-testid="title-field"],
+div[data-testid="edit-form-title-field"] {
+  margin-bottom: 16px !important;
+}
+
+/* إصلاح مشكلة عرض خلفية عنوان النموذج - NEW FIXES */
+.codform-form .form-title-field {
+  background-color: #9b87f5 !important; 
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* تجاهل الخلفية الشفافة لعناصر العنوان - NEW OVERRIDES */
+.codform-form * .form-title-field,
+.codform-form * div[data-field-type="title"],
+.codform-form * div[data-field-type="form-title"] {
+  background-color: #9b87f5 !important;
 }
 
 /* اجبار محاذاة تسميات الحقول بشكل صحيح */
@@ -766,7 +800,7 @@ div[data-field-type="title"] .codform-title-container {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* التأكد من أن المدخلات مع الأيقونات لها مساحات مناسبة */
+/* التأكد من أن المدخلات مع ��لأيقونات لها مساحات مناسبة */
 .codform-input[data-icon-position="left"],
 .ltr .codform-input.with-icon {
   padding-left: 36px !important;
@@ -898,4 +932,59 @@ div[class*='codform-title-container'] {
 #codform-form-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem,
 .codform-form-container {
   background-color: #F9FAFB !important;
+}
+
+/* ضمان الحفاظ على الألوان المحددة في عناوين النماذج - IMPORTANT FIXES*/
+.codform-form .form-title-field,
+div[data-testid="title-field"],
+div[data-field-type="title"],
+div[data-field-type="form-title"] {
+  background-color: #9b87f5 !important;
+}
+
+/* اجباري تطبيق الخلفية على عناصر العناوين في النموذج */
+.form-title-field {
+  background-color: #9b87f5 !important;
+  display: block !important;
+  width: 100% !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+  overflow: hidden !important;
+}
+
+/* Fix for title backgrounds in Shopify store - NEW */
+div.codform-form div.space-y-2 > div:first-child {
+  background-color: #9b87f5 !important;
+  border-radius: 8px !important;
+}
+
+/* تأكيد على أن الخلفية لا تكون شفافة للعناوين - CRITICAL FIX */
+.codform-form .form-title-field,
+.codform-form div[data-field-type="form-title"],
+.codform-form div[data-field-type="title"] {
+  background-color: #9b87f5 !important;
+}
+
+/* تطبيق خلفية للعنوان بغض النظر عن الحاوية الأم - BACKGROUND ISOLATION */
+.form-title-field {
+  background-color: #9b87f5 !important;
+}
+
+/* سلسلة محددات قوية لضمان تطبيق خلفية العنوان - SUPER SELECTOR */
+.codform-container .codform-form .form-title-field,
+.codform-container .codform-form div[data-field-type="form-title"],
+.codform-container .codform-form div[data-field-type="title"],
+div[data-testid="title-field"],
+div[data-field-type="title"],
+div[data-field-type="form-title"],
+.form-title-field {
+  background-color: #9b87f5 !important;
+  border-radius: 8px !important;
+}
+
+/* Force all color styles to be !important to override any conflicting styles */
+div.form-title-field, 
+div.form-title-field[style] {
+  background-color: #9b87f5 !important;
 }

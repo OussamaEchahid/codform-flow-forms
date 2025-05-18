@@ -53,6 +53,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
       }}
       dir={direction}
       data-form-direction={direction}
+      data-field-type="edit-form-title"
     >
       <h2
         style={{

@@ -56,6 +56,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
       }}
       dir={direction}
       data-form-direction={direction}
+      data-field-type="title"
     >
       <h2
         style={{
