@@ -168,6 +168,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-show-icon': normalizedField.style?.showIcon ? 'true' : 'false',
     'data-icon': normalizedField.icon || 'none',
     'data-required': normalizedField.required ? 'true' : 'false',
+    'data-field-style': JSON.stringify(normalizedField.style || {}), // إضافة جميع خصائص التنسيق كسلسلة JSON
   };
 
   if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title

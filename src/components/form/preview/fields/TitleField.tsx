@@ -87,22 +87,29 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // إنشاء معرف فريد لهذا الحقل
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
+  // أضف سمات البيانات الإضافية لتمكين نقل جميع خصائص التنسيق إلى المتجر
+  const dataAttributes = {
+    'data-title-field-id': field.id,
+    'data-title-field-type': field.type,
+    'data-title-align': alignment,
+    'data-title-has-bg': 'true',
+    'data-title-color': fieldStyle.color || '#ffffff',
+    'data-title-bg-color': backgroundColor,
+    'data-title-font-family': fieldStyle.fontFamily || '',
+    'data-title-font-size': fieldStyle.fontSize || fontSize,
+    'data-title-font-weight': fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    'data-title-desc-color': fieldStyle.descriptionColor || '#ffffff',
+    'data-title-desc-font-size': fieldStyle.descriptionFontSize || descriptionFontSize,
+    'data-title-border-radius': formStyle.borderRadius || '8px',
+  };
+
   return (
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
-      data-title-align={alignment}
-      data-has-bg="true"
-      data-title-color={fieldStyle.color || '#ffffff'}
-      data-bg-color={backgroundColor}
-      data-font-family={fieldStyle.fontFamily || ''}
-      data-field-type={field.type}
-      data-font-size={fieldStyle.fontSize || fontSize}
-      data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
-      data-desc-font-weight='normal'
+      {...dataAttributes}
     >
       <div className="codform-title-container" style={backgroundStyle}>
         <h3 

@@ -41,10 +41,41 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
+  // إضافة وظيفة تسجيل للتغييرات
   useEffect(() => {
+    console.log('FormPreviewPanel: Refreshing preview with new data', { 
+      refreshKey,
+      fieldsCount: fields.length,
+      formTitle,
+      formStyle
+    });
+    
+    // رقم متتبع إضافي لقياس مدى استجابة المعاينة للتغييرات
+    const updateTracker = `update-${Date.now()}`;
+    console.log(`Preview refresh tracker: ${updateTracker}`);
+    
+    // تسجيل معلومات عن العنوان إذا كان موجوداً
+    const titleField = fields.find(f => f.type === 'form-title');
+    if (titleField) {
+      console.log('Title field found:', { 
+        id: titleField.id,
+        label: titleField.label,
+        backgroundColor: titleField.style?.backgroundColor,
+        textColor: titleField.style?.color
+      });
+    }
+    
+    // تسجيل معلومات عن الحقول ذات الأيقونات
+    const fieldsWithIcons = fields.filter(f => f.icon && f.icon !== 'none');
+    if (fieldsWithIcons.length > 0) {
+      console.log(`Fields with icons: ${fieldsWithIcons.length}`);
+      fieldsWithIcons.forEach(f => {
+        console.log(`Icon field: ${f.id}, type: ${f.type}, icon: ${f.icon}, showIcon: ${f.style?.showIcon !== false}`);
+      });
+    }
+    
     setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
   
   // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
@@ -81,15 +112,18 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }
       }
       
+      // إضافة سمة تتبع خاصة لتسهيل تحديد المشكلات
+      updatedField.trackingId = `${field.id}-${Date.now()}`;
+      
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields, internalRefreshKey]);
 
   // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
-    <div id={previewPanelId}>
+    <div id={previewPanelId} data-preview-refresh-key={internalRefreshKey}>
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>

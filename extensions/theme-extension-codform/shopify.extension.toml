@@ -49,3 +49,16 @@ ar = "تفعيل أيقونات الحقول"
 [settings.fields.info]
 en = "Show icons in form fields when available"
 ar = "عرض الأيقونات في حقول النموذج عند توفرها"
+
+[[settings.fields]]
+key = "title_style"
+type = "checkbox"
+default = true
+
+[settings.fields.label]
+en = "Use custom title styles"
+ar = "استخدام أنماط العنوان المخصصة"
+
+[settings.fields.info]
+en = "Apply custom background and text colors to form titles"
+ar = "تطبيق ألوان خلفية ونص مخصصة لعناوين النموذج"

@@ -89,7 +89,7 @@ serve(async (req: Request) => {
       // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات) - بدون عمود settings
       const { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published')
+        .select('id, title, description, data, style, is_published, settings')
         .eq('id', productSettings.form_id)
         .eq('is_published', true)
         .limit(1);
@@ -97,7 +97,7 @@ serve(async (req: Request) => {
       if (!formError && formData && formData.length > 0) {
         form = formData[0];
         // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
-        form.settings = form.settings || { enableIcons: true };
+        form.settings = form.settings || { enableIcons: true, titleStyle: true };
         console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
       } else if (formError) {
         console.log(`[${requestId}] Error fetching product-specific form: ${formError.message}. Will try default form.`);
@@ -113,10 +113,10 @@ serve(async (req: Request) => {
       console.log(`[${requestId}] Trying default form for shop ${shop}`);
       formSource = 'default';
       
-      // استرداد بيانات النموذج الافتراضي - بدون عمود settings
+      // استرداد بيانات النموذج الافتراضي مع إعدادات
       const { data: defaultForms, error: defaultError } = await supabase
         .from('forms')
-        .select('id, title, description, data, style, is_published')
+        .select('id, title, description, data, style, is_published, settings')
         .eq('shop_id', shop)
         .eq('is_published', true)
         .order('updated_at', { ascending: false })
@@ -125,7 +125,7 @@ serve(async (req: Request) => {
       if (!defaultError && defaultForms && defaultForms.length > 0) {
         form = defaultForms[0];
         // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
-        form.settings = form.settings || { enableIcons: true };
+        form.settings = form.settings || { enableIcons: true, titleStyle: true };
         console.log(`[${requestId}] Using default form: ${form.id}`);
       } else if (defaultError) {
         console.error(`[${requestId}] Error fetching default form:`, defaultError);
@@ -249,12 +249,15 @@ serve(async (req: Request) => {
     if (form) {
       // Make sure form has a settings object
       if (!form.settings) {
-        form.settings = { enableIcons: true };
+        form.settings = { enableIcons: true, titleStyle: true };
         console.log(`[${requestId}] Created default settings object for form`);
       }
       
       // Make sure enableIcons is set (default to true if not specified)
       form.settings.enableIcons = form.settings.enableIcons !== false;
+      
+      // Make sure titleStyle is set (default to true if not specified)
+      form.settings.titleStyle = form.settings.titleStyle !== false;
       
       // Add block_id to the form for reference
       form.block_id = actualBlockId;
@@ -280,7 +283,26 @@ serve(async (req: Request) => {
           // Make sure showIcon is properly defined if an icon exists
           if (processedField.icon && processedField.icon !== 'none') {
             processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
-              processedField.style.showIcon : true;
+              processedField.style.showIcon : 
+              (form.settings?.enableIcons !== false);  // Default to global enableIcons setting
+          }
+
+          // Special handling for title fields to ensure they have the right style
+          if (processedField.type === 'title' || processedField.type === 'form-title') {
+            // Log title field properties for debugging
+            console.log(`[${requestId}] Processing title field ${processedField.id}:`, {
+              color: processedField.style.color || '#ffffff',
+              backgroundColor: processedField.style.backgroundColor || form.style?.primaryColor || '#9b87f5',
+              fontSize: processedField.style.fontSize || '24px'
+            });
+            
+            // Ensure style properties are correctly applied even when titleStyle is disabled
+            if (!form.settings?.titleStyle) {
+              console.log(`[${requestId}] Custom title styles disabled, using default styles`);
+              // Use neutral background if custom styles are disabled
+              processedField.style.backgroundColor = '#f3f4f6';
+              processedField.style.color = '#374151';
+            }
           }
 
           // Special handling for submit buttons to ensure they have the right style
@@ -291,14 +313,14 @@ serve(async (req: Request) => {
               processedField.style.animationType = processedField.style.animationType || 'pulse';
             }
             // Ensure consistent colors
-            processedField.style.backgroundColor = processedField.style.backgroundColor || '#9b87f5';
+            processedField.style.backgroundColor = processedField.style.backgroundColor || form.style?.primaryColor || '#9b87f5';
             processedField.style.color = processedField.style.color || '#ffffff';
             processedField.style.fontSize = processedField.style.fontSize || '18px';
           }
           
           // Special handling for text inputs to ensure icon display is correct
           if (processedField.type === 'text' || processedField.type === 'phone' || processedField.type === 'email') {
-            if (processedField.icon && processedField.icon !== 'none') {
+            if (processedField.icon && processedField.icon !== 'none' && form.settings?.enableIcons !== false) {
               if (!processedField.style) processedField.style = {};
               processedField.style.showIcon = true;
             }
@@ -345,7 +367,9 @@ serve(async (req: Request) => {
       fieldsCount: form?.fields?.length || 0,
       fieldsWithIcons: form?.fields?.filter(f => f && f.icon && f.icon !== 'none').length || 0,
       iconsEnabled: form?.settings?.enableIcons !== false,
-      style: form?.style || null
+      titleStyleEnabled: form?.settings?.titleStyle !== false,
+      style: form?.style || null,
+      settings: form?.settings || null
     } : undefined;
 
     // Return form data
@@ -355,6 +379,18 @@ serve(async (req: Request) => {
       
       if (fieldsWithIcons.length > 0) {
         console.log(`[${requestId}] Icon types used: ${fieldsWithIcons.map(f => f.icon).join(', ')}`);
+      }
+      
+      // Log title fields specifically
+      const titleFields = form.fields?.filter(field => field && (field.type === 'title' || field.type === 'form-title')) || [];
+      if (titleFields.length > 0) {
+        console.log(`[${requestId}] Form has ${titleFields.length} title fields with styles:`, titleFields.map(f => ({
+          id: f.id,
+          label: f.label,
+          backgroundColor: f.style?.backgroundColor,
+          color: f.style?.color,
+          fontSize: f.style?.fontSize
+        })));
       }
       
       return new Response(

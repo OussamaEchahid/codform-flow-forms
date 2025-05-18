@@ -126,6 +126,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
+      data-icon-position={iconPosition}
     >
       {showLabel && (
         <label 
@@ -137,7 +138,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
             marginBottom: '8px',
-            textAlign: 'left'
+            textAlign: language === 'ar' ? 'right' : 'left'
           }}
           data-label-text={labelText}
         >
@@ -152,7 +153,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            className={`absolute transform -translate-y-1/2 text-gray-500 codform-field-icon ${iconPosition === 'right' ? 'right-icon' : 'left-icon'}`}
             style={{
               position: 'absolute',
               [iconPosition]: '12px',
@@ -177,7 +178,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
           name={field.id}
           placeholder={placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full outline-none transition-all codform-input"
+          className={`w-full outline-none transition-all codform-input ${showIcon && hasIcon ? 'with-icon' : ''}`}
           style={{
             color: textColor,
             fontSize: fontSize,
@@ -210,7 +211,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             marginTop: '4px',
             fontSize: '14px',
             color: '#6b7280',
-            textAlign: 'left'
+            textAlign: language === 'ar' ? 'right' : 'left'
           }}
         >
           {field.helpText}
@@ -225,7 +226,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             color: '#ef4444',
             fontSize: '14px',
             marginTop: '4px',
-            textAlign: 'left'
+            textAlign: language === 'ar' ? 'right' : 'left'
           }}
         >
           {field.errorMessage}
