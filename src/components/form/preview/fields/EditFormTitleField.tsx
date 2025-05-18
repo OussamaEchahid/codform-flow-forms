@@ -40,14 +40,14 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   const direction = formDirection || field.style?.formDirection || 'ltr';
   
   // Use inline styles with !important to force the correct display
-  const containerStyle = {
+  const containerStyle: React.CSSProperties = {
     backgroundColor: `${backgroundColor} !important`,
     borderRadius: `${formStyle.borderRadius || '0.5rem'} !important`,
     padding: '0.75rem !important',
     direction,
     width: '100% !important',
     display: 'block !important',
-    boxSizing: 'border-box !important',
+    boxSizing: 'border-box' as 'border-box',
     margin: '0.5rem 0 !important',
     overflow: 'hidden !important'
   };
