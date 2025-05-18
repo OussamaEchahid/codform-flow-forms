@@ -73,6 +73,17 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     });
   };
 
+  // Handle color change for submit button
+  const handleColorChange = (colorType: "backgroundColor" | "color", color: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        [colorType]: color
+      }
+    });
+  };
+
   const renderEditorByType = () => {
     switch (currentField.type) {
       case 'text':
@@ -349,6 +360,49 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     </FormItem>
                   )}
                 />
+                
+                {/* Color controls */}
+                <div className="space-y-4 border rounded-md p-4">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'ألوان الزر' : 'Button Colors'}
+                  </h4>
+                  
+                  <div className="grid gap-2">
+                    <FormLabel>{language === 'ar' ? 'لون الخلفية' : 'Background Color'}</FormLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={currentField.style?.backgroundColor || '#9b87f5'}
+                        onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        type="text"
+                        value={currentField.style?.backgroundColor || '#9b87f5'}
+                        onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <FormLabel>{language === 'ar' ? 'لون النص' : 'Text Color'}</FormLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={currentField.style?.color || '#ffffff'}
+                        onChange={(e) => handleColorChange('color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        type="text"
+                        value={currentField.style?.color || '#ffffff'}
+                        onChange={(e) => handleColorChange('color', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Animation controls */}
                 <div className="space-y-4 border rounded-md p-4">

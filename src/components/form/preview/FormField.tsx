@@ -76,16 +76,22 @@ const animationStyles = `
 `;
 
 // Generate a key for FormField to force re-render when field properties change
-// Include explicit tracking of backgroundColor for submit buttons
+// Include explicit tracking of backgroundColor and color for submit buttons
 const getFieldKey = (field: FormFieldType) => {
-  const styleKey = field.type === 'submit' ? 
-    `bg-${field.style?.backgroundColor || 'default'}-color-${field.style?.color || 'default'}-animation-${field.style?.animationType || 'none'}` : 
-    JSON.stringify(field.style || {});
+  // For submit buttons, create a more detailed key that includes color information
+  if (field.type === 'submit') {
+    const bgColor = field.style?.backgroundColor || 'default';
+    const textColor = field.style?.color || 'default';
+    const animation = field.style?.animationType || 'none';
+    return `field-${field.id}-${field.type}-${field.label || ''}-bg-${bgColor}-text-${textColor}-animation-${animation}-${Date.now()}`;
+  }
   
+  // For other fields, use the previous approach
+  const styleKey = JSON.stringify(field.style || {});
   return `field-${field.id}-${field.type}-${field.label || ''}-${styleKey}-${Date.now()}`;
 };
 
-// Remove memo to ensure component always updates when props change
+// Use a non-memoized component to ensure updates are always reflected
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);

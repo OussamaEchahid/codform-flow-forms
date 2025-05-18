@@ -36,11 +36,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // CRITICAL FIX: Explicitly set background color for both preview and Shopify store
-  // Use same approach as title fields that works well
+  // Priority order for background color:
+  // 1. Field style backgroundColor
+  // 2. Form style primaryColor
+  // 3. Default color
   const buttonBackgroundColor = style.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Critical debug logs to trace the color issue
+  // Debug logs to trace the color issue
   console.log(`Submit button ID: ${field.id}, type: ${field.type}`);
   console.log(`Submit button explicit backgroundColor: ${buttonBackgroundColor}`);
   console.log(`Submit button final style:`, JSON.stringify({
@@ -52,11 +54,9 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   }, null, 2));
   
   // Button styling with explicit CSS variable for background color
-  // This approach mirrors the one used for title fields which works correctly
   const buttonStyle = {
-    // Use CSS variable for background color (same approach as title field)
-    '--button-bg-color': buttonBackgroundColor,
-    backgroundColor: 'var(--button-bg-color)',
+    // Use explicit backgroundColor property for consistent rendering
+    backgroundColor: buttonBackgroundColor,
     color: style.color || '#ffffff',
     fontSize: style.fontSize || '19px',
     fontWeight: style.fontWeight || 'bold',
@@ -119,8 +119,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       data-animation-type={style.animationType || 'none'}
       data-button-style={formStyle.buttonStyle || 'rounded'}
       data-button-bg-color={buttonBackgroundColor}
-      // Add extra data attributes to ensure color is passed to Shopify
-      data-bg-color={buttonBackgroundColor.replace('#', '')} // Add hex color without # for Shopify
+      data-bg-color={buttonBackgroundColor.replace('#', '')}
+      data-text-color={style.color ? style.color.replace('#', '') : 'ffffff'}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
