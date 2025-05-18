@@ -39,41 +39,56 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   // Use formDirection from props or from field style or default to 'ltr'
   const direction = formDirection || field.style?.formDirection || 'ltr';
   
+  // Use inline styles with !important to force the correct display
+  const containerStyle = {
+    backgroundColor: `${backgroundColor} !important`,
+    borderRadius: `${formStyle.borderRadius || '0.5rem'} !important`,
+    padding: '0.75rem !important',
+    direction,
+    width: '100% !important',
+    display: 'block !important',
+    boxSizing: 'border-box !important',
+    margin: '0.5rem 0 !important',
+    overflow: 'hidden !important'
+  };
+  
+  const titleStyle = {
+    color: `${textColor} !important`,
+    textAlign: textAlign as any,
+    fontWeight: fontWeight as any,
+    fontSize: titleFontSize,
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important',
+    width: '100% !important',
+    display: 'block !important'
+  };
+  
+  const descriptionStyle = {
+    color: `${descriptionColor} !important`,
+    textAlign: descriptionAlign as any,
+    fontSize: descriptionFontSize,
+    margin: '0.25rem 0 0 0 !important',
+    width: '100% !important',
+    display: 'block !important'
+  };
+  
   return (
     <div
       className="form-title-field w-full my-2"
-      style={{
-        backgroundColor,
-        borderRadius: formStyle.borderRadius || '0.5rem',
-        padding: '0.75rem',
-        direction,
-      }}
+      style={containerStyle}
       dir={direction}
       data-form-direction={direction}
       data-field-type="edit-form-title"
       data-testid="edit-form-title-field"
+      data-background-color={backgroundColor}
     >
-      <h2
-        style={{
-          color: textColor,
-          textAlign: textAlign as any,
-          fontWeight: fontWeight as any,
-          fontSize: titleFontSize,
-          margin: 0,
-        }}
-      >
+      <h2 style={titleStyle}>
         {field.label}
       </h2>
       
       {showDescription && field.helpText && (
-        <p
-          style={{
-            color: descriptionColor,
-            textAlign: descriptionAlign as any,
-            fontSize: descriptionFontSize,
-            margin: '0.25rem 0 0 0',
-          }}
-        >
+        <p style={descriptionStyle}>
           {field.helpText}
         </p>
       )}

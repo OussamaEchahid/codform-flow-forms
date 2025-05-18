@@ -20,10 +20,10 @@ const TitleField: React.FC<TitleFieldProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // تأكد من توجيه النص الصحيح
+  // Use correct text direction
   const direction = formDirection || field.style?.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // استخدم النمط من الحقل أو القيم الافتراضية
+  // Use style from field or fallback to defaults with !important
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
@@ -42,41 +42,56 @@ const TitleField: React.FC<TitleFieldProps> = ({
     return null;
   }
   
+  // Use inline styles with !important to force the correct display
+  const containerStyle = {
+    backgroundColor: `${backgroundColor} !important`,
+    borderRadius: `${formStyle.borderRadius || '0.5rem'} !important`,
+    padding: '0.75rem !important',
+    direction,
+    width: '100% !important',
+    display: 'block !important',
+    boxSizing: 'border-box !important',
+    margin: '0.5rem 0 !important',
+    overflow: 'hidden !important'
+  };
+  
+  const titleStyle = {
+    color: `${textColor} !important`,
+    textAlign: textAlign as any,
+    fontWeight: fontWeight as any,
+    fontSize: titleFontSize,
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important',
+    width: '100% !important',
+    display: 'block !important'
+  };
+  
+  const descriptionStyle = {
+    color: `${descriptionColor} !important`,
+    textAlign: descriptionAlign as any,
+    fontSize: descriptionFontSize,
+    margin: '0.25rem 0 0 0 !important',
+    width: '100% !important',
+    display: 'block !important'
+  };
+  
   return (
     <div
       className="form-title-field w-full my-2"
-      style={{
-        backgroundColor,
-        borderRadius: formStyle.borderRadius || '0.5rem',
-        padding: '0.75rem',
-        direction,
-      }}
+      style={containerStyle}
       dir={direction}
       data-form-direction={direction}
       data-field-type="title"
       data-testid="title-field"
+      data-background-color={backgroundColor}
     >
-      <h2
-        style={{
-          color: textColor,
-          textAlign: textAlign as any,
-          fontWeight: fontWeight as any,
-          fontSize: titleFontSize,
-          margin: 0,
-        }}
-      >
+      <h2 style={titleStyle}>
         {field.label}
       </h2>
       
       {showDescription && field.helpText && (
-        <p
-          style={{
-            color: descriptionColor,
-            textAlign: descriptionAlign as any,
-            fontSize: descriptionFontSize,
-            margin: '0.25rem 0 0 0',
-          }}
-        >
+        <p style={descriptionStyle}>
           {field.helpText}
         </p>
       )}
