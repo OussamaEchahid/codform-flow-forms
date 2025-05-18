@@ -96,6 +96,13 @@ export interface FormFieldStyle {
   totalLabelColor?: string;
   totalValueFontSize?: string;
   totalValueColor?: string;
+  
+  // خصائص إضافية للتوافق مع المتجر
+  display?: string;
+  width?: string;
+  overflow?: string;
+  alignItems?: string;
+  justifyContent?: string;
 }
 
 export interface FormField {
@@ -261,7 +268,8 @@ export const prepareFieldStyleForStore = (field: FormField): FormField => {
       descriptionFontSize: normalizeFontSize(updatedField.style.descriptionFontSize || '14px'),
       backgroundColor: normalizeColor(updatedField.style.backgroundColor || '#9b87f5'),
       display: 'block',
-      width: '100%'
+      width: '100%',
+      overflow: 'hidden'
     };
   }
   
@@ -781,7 +789,8 @@ export const createDefaultTitleField = (title: string, description?: string): Fo
       descriptionFontSize: '14px',
       backgroundColor: '#9b87f5',
       display: 'block',
-      width: '100%'
+      width: '100%',
+      overflow: 'hidden'
     }
   };
 };

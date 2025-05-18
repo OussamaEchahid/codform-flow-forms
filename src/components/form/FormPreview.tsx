@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
+import { prepareFieldStyleForStore, createDefaultTitleField, createDefaultSubmitButton, normalizeFontSize } from '@/lib/form-utils';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -49,9 +51,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Improve field processing for consistent display
   const sanitizedFields = React.useMemo(() => {
-    // استخدام الوظائف المحسنة من form-utils
-    import { prepareFieldStyleForStore, createDefaultTitleField, normalizeFontSize } from '@/lib/form-utils';
-    
     // ضمان أن حقول العربة الخاصة بالبنود والملخص لها تسميات فارغة افتراضيًا
     const updatedFields = fields.map(field => {
       // استخدام وظيفة prepareFieldStyleForStore من form-utils

@@ -40,34 +40,34 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
 
   const animationClass = getAnimationClass();
   
-  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة وإضافة !important للخصائص الحرجة
+  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة
   const buttonStyle: React.CSSProperties = {
-    backgroundColor: `${style.backgroundColor || formStyle.primaryColor || '#9b87f5'} !important`,
-    color: `${style.color || '#ffffff'} !important`,
-    fontSize: `${style.fontSize || '18px'} !important`,
-    fontWeight: `${style.fontWeight || '600'} !important`,
-    borderRadius: `${style.borderRadius || formStyle.borderRadius || '8px'} !important`,
-    borderColor: `${style.borderColor || 'transparent'} !important`,
-    borderWidth: `${style.borderWidth || '0px'} !important`,
-    borderStyle: 'solid !important',
-    padding: '14px 24px !important',
-    paddingTop: `${style.paddingY || '14px'} !important`,
-    paddingBottom: `${style.paddingY || '14px'} !important`,
-    paddingLeft: `${style.paddingX || '24px'} !important`,
-    paddingRight: `${style.paddingX || '24px'} !important`,
-    width: style.fullWidth === false ? 'auto !important' : '100% !important',
-    display: 'flex !important',
-    alignItems: 'center !important',
-    justifyContent: 'center !important',
-    gap: '8px !important',
+    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    color: style.color || '#ffffff',
+    fontSize: style.fontSize || '18px',
+    fontWeight: style.fontWeight || '600',
+    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
+    borderColor: style.borderColor || 'transparent',
+    borderWidth: style.borderWidth || '0px',
+    borderStyle: 'solid',
+    padding: '14px 24px',
+    paddingTop: style.paddingY || '14px',
+    paddingBottom: style.paddingY || '14px',
+    paddingLeft: style.paddingX || '24px',
+    paddingRight: style.paddingX || '24px',
+    width: style.fullWidth === false ? 'auto' : '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
     fontFamily: style.fontFamily || 'inherit',
-    cursor: 'pointer !important',
-    transition: 'all 0.2s ease !important',
-    marginTop: '14px !important',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1) !important',
-    position: 'relative !important',
-    overflow: 'hidden !important',
-    textAlign: 'center !important'
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    marginTop: '14px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    position: 'relative',
+    overflow: 'hidden',
+    textAlign: 'center'
   };
   
   // تقديم الأيقونة بحجم وموضع متناسقين

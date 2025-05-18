@@ -168,9 +168,6 @@ export const useFormStore = create<FormStore>((set, get) => ({
           descriptionColor: foundField.style.descriptionColor || '#ffffff',
           descriptionFontSize: foundField.style.descriptionFontSize || '14px',
           backgroundColor: foundField.style.backgroundColor || defaultFormState.style?.primaryColor || '#9b87f5',
-          display: 'block', // إضافة خواص إضافية لضمان التوافق مع المتجر
-          width: '100%',
-          overflow: 'hidden'
         };
       } else if (fieldType === 'submit') {
         foundField.style = {
@@ -182,9 +179,6 @@ export const useFormStore = create<FormStore>((set, get) => ({
           borderRadius: foundField.style.borderRadius || defaultFormState.style?.borderRadius || '8px',
           paddingY: foundField.style.paddingY || '14px',
           paddingX: foundField.style.paddingX || '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: foundField.style.fullWidth === false ? 'auto' : '100%',
           textAlign: 'center'
         };
