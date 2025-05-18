@@ -35,8 +35,10 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   
   // استخدام نفس قيمة نصف القطر للحدود كما في المتجر
   const borderRadiusValue = formStyle.borderRadius || '0.5rem';
+
+  console.log(`Title field background color: ${backgroundColor}`);
   
-  // نمط الخلفية بقيم متناسقة للمتجر والمعاينة - إضافة data attributes بدلاً من !important
+  // نمط الخلفية بقيم متناسقة للمتجر والمعاينة - استخدام data attributes بدلاً من !important
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     padding: '16px',

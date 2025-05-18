@@ -2,10 +2,9 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
+import { FormField, FloatingButtonConfig, createDefaultTitleField, createDefaultSubmitButton, normalizeFontSize } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
-import { prepareFieldStyleForStore, createDefaultTitleField, createDefaultSubmitButton, normalizeFontSize } from '@/lib/form-utils';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -54,7 +53,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     // ضمان أن حقول العربة الخاصة بالبنود والملخص لها تسميات فارغة افتراضيًا
     const updatedFields = fields.map(field => {
       // استخدام وظيفة prepareFieldStyleForStore من form-utils
-      return prepareFieldStyleForStore(field);
+      const copyField = { ...field };
+      if (!copyField.style) {
+        copyField.style = {};
+      }
+      return copyField;
     });
     
     // إذا كان هناك بالفعل حقل عنوان نموذج، استخدمه
