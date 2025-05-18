@@ -38,7 +38,6 @@ interface FormFieldStyle {
   // Description properties
   descriptionColor?: string;
   descriptionFontSize?: string;
-  // Note: descriptionFontWeight is removed as it's not needed
   
   // Border properties
   borderRadius?: string;
@@ -54,6 +53,11 @@ interface FormFieldStyle {
   icon?: string;
   fullWidth?: boolean;
   fontFamily?: string;
+  
+  // Display properties
+  showIcon?: boolean;
+  showTitle?: boolean;
+  showDescription?: boolean;
   
   // Cart item and summary specific properties
   priceFontSize?: string;
@@ -104,7 +108,7 @@ interface FloatingButtonConfig {
   backgroundColor?: string;
   
   // Position properties
-  position?: 'bottom' | 'top' | 'left' | 'right';
+  position?: 'bottom' | 'top' | 'left' | 'right' | 'center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   showOnMobile?: boolean;
   showOnDesktop?: boolean;
   

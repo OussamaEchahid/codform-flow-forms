@@ -74,6 +74,17 @@ export interface FormFieldStyle {
   // خصائص عناصر السلة والملخص
   priceFontSize?: string;
   priceColor?: string;
+  valueFontSize?: string;
+  valueColor?: string;
+  totalLabelFontSize?: string;
+  totalLabelColor?: string;
+  totalValueFontSize?: string;
+  totalValueColor?: string;
+  
+  // خصائص إضافية للحقول
+  fullWidth?: boolean;
+  fontFamily?: string;
+  icon?: string;
   
   // خصائص التأثيرات الحركية
   animation?: boolean;
@@ -129,22 +140,26 @@ export interface FormStep {
 export interface FloatingButtonConfig {
   enabled: boolean;
   text?: string;
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center' | 'bottom' | 'top' | 'left' | 'right';
   color?: string;
   backgroundColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  paddingY?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  fontFamily?: string;
   icon?: string;
+  showIcon?: boolean;
+  marginBottom?: string;
   action?: 'scroll-to-form' | 'open-popup' | 'whatsapp';
   whatsappNumber?: string;
   whatsappMessage?: string;
-  style?: {
-    borderRadius?: string;
-    fontSize?: string;
-    fontWeight?: string;
-    boxShadow?: string;
-    animation?: boolean;
-    animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
-    padding?: string;
-  };
+  animation?: string;
+  showOnMobile?: boolean;
+  showOnDesktop?: boolean;
 }
 
 // تعريف النموذج
@@ -470,6 +485,187 @@ export const createEmptyForm = (language: 'en' | 'ar' = 'en'): Form => {
     ]
   };
 };
+
+// Add the form templates export
+export const formTemplates = [
+  {
+    id: 1,
+    title: "نموذج طلب منتج",
+    description: "نموذج بسيط لطلب منتج",
+    data: [
+      {
+        id: "1",
+        title: "معلومات الطلب",
+        fields: [
+          {
+            id: "form-title-1",
+            type: "form-title",
+            label: "طلب منتج",
+            helpText: "يرجى ملء البيانات التالية لإتمام الطلب",
+            style: {
+              backgroundColor: "#9b87f5",
+              color: "#ffffff",
+              fontSize: "24px",
+              textAlign: "right",
+              fontWeight: "bold",
+              descriptionColor: "#ffffff",
+              descriptionFontSize: "14px",
+              showTitle: true,
+              showDescription: true
+            }
+          },
+          {
+            id: "cart-items-1",
+            type: "cart-items",
+            label: "المنتج المختار",
+            required: true
+          },
+          {
+            id: "text-1",
+            type: "text",
+            label: "الاسم الكامل",
+            placeholder: "أدخل اسمك الكامل",
+            required: true,
+            icon: "user"
+          },
+          {
+            id: "phone-1",
+            type: "phone",
+            label: "رقم الهاتف",
+            placeholder: "أدخل رقم الهاتف",
+            required: true,
+            icon: "phone"
+          },
+          {
+            id: "text-2",
+            type: "text",
+            label: "المدينة",
+            placeholder: "أدخل اسم المدينة",
+            required: true,
+            icon: "map-pin"
+          },
+          {
+            id: "textarea-1",
+            type: "textarea",
+            label: "العنوان التفصيلي",
+            placeholder: "أدخل العنوان التفصيلي",
+            required: true,
+            icon: "home"
+          },
+          {
+            id: "cart-summary-1",
+            type: "cart-summary",
+            label: "ملخص الطلب"
+          },
+          {
+            id: "submit-1",
+            type: "submit",
+            label: "إرسال الطلب",
+            style: {
+              backgroundColor: "#9b87f5",
+              color: "#ffffff",
+              fontSize: "18px",
+              animation: true,
+              animationType: "pulse"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: "نموذج التواصل",
+    description: "نموذج للتواصل معك",
+    data: [
+      {
+        id: "1",
+        title: "معلومات التواصل",
+        fields: [
+          {
+            id: "form-title-1",
+            type: "form-title",
+            label: "تواصل معنا",
+            helpText: "يرجى ملء البيانات التالية وسنقوم بالرد عليك في أقرب وقت ممكن",
+            style: {
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              fontSize: "24px",
+              textAlign: "right",
+              fontWeight: "bold",
+              descriptionColor: "#ffffff",
+              descriptionFontSize: "14px",
+              showTitle: true,
+              showDescription: true
+            }
+          },
+          {
+            id: "text-1",
+            type: "text",
+            label: "الاسم الكامل",
+            placeholder: "أدخل اسمك الكامل",
+            required: true,
+            icon: "user"
+          },
+          {
+            id: "email-1",
+            type: "email",
+            label: "البريد الإلكتروني",
+            placeholder: "أدخل بريدك الإلكتروني",
+            required: true,
+            icon: "mail"
+          },
+          {
+            id: "phone-1",
+            type: "phone",
+            label: "رقم الهاتف",
+            placeholder: "أدخل رقم الهاتف",
+            icon: "phone"
+          },
+          {
+            id: "select-1",
+            type: "select",
+            label: "موضوع الرسالة",
+            placeholder: "اختر موضوع الرسالة",
+            required: true,
+            options: [
+              { value: "inquiry", label: "استفسار" },
+              { value: "feedback", label: "اقتراح" },
+              { value: "complaint", label: "شكوى" },
+              { value: "other", label: "أخرى" }
+            ]
+          },
+          {
+            id: "textarea-1",
+            type: "textarea",
+            label: "الرسالة",
+            placeholder: "اكتب رسالتك هنا",
+            required: true,
+            rows: 5
+          },
+          {
+            id: "submit-1",
+            type: "submit",
+            label: "إرسال الرسالة",
+            style: {
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              fontSize: "18px",
+              animation: true,
+              animationType: "pulse"
+            }
+          }
+        ]
+      }
+    ]
+  }
+];
+
+// Define createDefaultForm as an alias to createEmptyForm for compatibility
+export const createDefaultForm = createEmptyForm;
+
+// Define createEmptyField as an alias to createNewField for compatibility
+export const createEmptyField = createNewField;
 
 // وظائف مساعدة أخرى
 export const duplicateField = (field: FormField): FormField => {
