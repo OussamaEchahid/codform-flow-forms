@@ -13,7 +13,7 @@ interface FormTitleEditorProps {
   onFormTitleChange?: (title: string) => void;
   onFormDescriptionChange?: (description: string) => void;
   onAddTitleField?: () => void;
-  isDraggable?: boolean; // Added the isDraggable property to the props interface
+  isDraggable?: boolean;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -24,7 +24,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onFormTitleChange,
   onFormDescriptionChange,
   onAddTitleField,
-  isDraggable = false // Default value is false if not provided
+  isDraggable = false
 }) => {
   const { language } = useI18n();
 
@@ -37,7 +37,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
   const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '14px');
-  // إضافة متغير حالة للون الخلفية
+  // إضافة متغير حالة للون الخلفية بشكل واضح
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
 
   // تحديث الحالة المحلية عند تغير formTitleField
@@ -49,7 +49,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleWeight(formTitleField.style.fontWeight || 'bold');
       setDescColor(formTitleField.style.descriptionColor || '#ffffff');
       setDescSize(formTitleField.style.descriptionFontSize || '14px');
+      // تحديث لون الخلفية من الحقل المستلم
       setBackgroundColor(formTitleField.style.backgroundColor || '#9b87f5');
+      
+      console.log("FormTitleEditor - تم تحديث النمط من الخارج:", {
+        backgroundColor: formTitleField.style.backgroundColor,
+        localBackgroundColor: backgroundColor
+      });
     }
   }, [formTitleField, language]);
 
@@ -58,6 +64,19 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (!formTitleField) return;
     
     console.log(`تحديث نمط العنوان - الخاصية: ${property}، القيمة: ${value}`);
+    
+    // تحديث المتغيرات المحلية أولاً لضمان تحديث واجهة المستخدم
+    if (property === 'color') setTitleColor(value);
+    if (property === 'textAlign') setTitleAlignment(value);
+    if (property === 'fontSize') setTitleSize(value);
+    if (property === 'fontWeight') setTitleWeight(value);
+    if (property === 'descriptionColor') setDescColor(value);
+    if (property === 'descriptionFontSize') setDescSize(value);
+    // مهم: تحديث لون الخلفية في الحالة المحلية
+    if (property === 'backgroundColor') {
+      console.log(`تحديث لون الخلفية في المحرر إلى: ${value}`);
+      setBackgroundColor(value);
+    }
     
     // إنشاء نسخة محدثة من الحقل مع الخاصية الجديدة
     const updatedField = {
@@ -68,18 +87,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       }
     };
     
-    // تحديث المتغيرات المحلية لضمان تحديث واجهة المستخدم
-    if (property === 'color') setTitleColor(value);
-    if (property === 'textAlign') setTitleAlignment(value);
-    if (property === 'fontSize') setTitleSize(value);
-    if (property === 'fontWeight') setTitleWeight(value);
-    if (property === 'descriptionColor') setDescColor(value);
-    if (property === 'descriptionFontSize') setDescSize(value);
-    // مهم: تحديث لون الخلفية
-    if (property === 'backgroundColor') {
-      console.log(`تحديث لون الخلفية إلى: ${value}`);
-      setBackgroundColor(value);
-    }
+    console.log("إرسال الحقل المحدث:", updatedField);
     
     // إرسال الحقل المحدث إلى المكون الأب
     onUpdateTitleField(updatedField);
@@ -199,7 +207,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             </h3>
             
             <div className="space-y-3">
-              {/* إضافة اختيار لون الخلفية */}
+              {/* إضافة اختيار لون الخلفية كأول خيار للتأكيد على أهميته */}
               {renderBackgroundColorPicker()}
               
               {/* منتقي لون العنوان */}

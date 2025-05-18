@@ -1,9 +1,7 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
-import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlignLeft, AlignRight } from 'lucide-react'; 
 
@@ -73,10 +71,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return savedDir || (language === 'ar' ? 'rtl' : 'ltr');
   });
   
-  // مفتاح تحديث داخلي لفرض إعادة الرسم عند الحاجة - يستخدم Date.now() لضمان قيمة فريدة في كل مرة
+  // مفتاح تحديث داخلي لفرض إعادة الرسم عند الحاجة
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   
-  // دالة لإعادة الرسم بمفتاح جديد
+  // دالة لإعادة الرسم بمفتاح جديد - تأكد من أنها تولد مفتاحًا فريدًا في كل مرة
   const forceRefresh = useCallback(() => {
     const newKey = Date.now() + Math.random();
     console.log(`إجبار إعادة الرسم بمفتاح جديد: ${newKey}`);
@@ -88,17 +86,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     const newDirection = language === 'ar' ? 'rtl' : 'ltr';
     setDirection(newDirection);
     saveDirection(newDirection);
-  }, [language]);
+    // إعادة الرسم لضمان استخدام الاتجاه الجديد
+    forceRefresh();
+  }, [language, forceRefresh]);
   
   // تحديث عند تغير أي من الخصائص
   useEffect(() => {
-    // فحص ما إذا كان هناك حقل عنوان وتسجيل لون خلفيته للتصحيح
+    // تحقق مما إذا كان هناك حقل عنوان وتسجيل خصائصه
     const titleField = fields.find(f => f.type === 'form-title' || f.type === 'title');
     if (titleField && titleField.style) {
-      console.log(`FormPreviewPanel: حقل العنوان لديه لون خلفية: ${titleField.style.backgroundColor || 'غير محدد'}`);
+      console.log(`FormPreviewPanel: حقل العنوان ${titleField.id} مع لون خلفية: ${titleField.style.backgroundColor || 'غير محدد'}`);
     }
     
-    // إعادة الرسم الإجبارية لضمان عرض التغييرات
+    // إعادة رسم إجبارية لضمان عرض التغييرات
     forceRefresh();
   }, [fields, formStyle, formTitle, formDescription, refreshKey, direction, forceRefresh]);
   
@@ -121,7 +121,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
+      // التأكد من تعريف خصائص النمط الأساسية لجميع الحقول
+      if (!updatedField.style) {
+        updatedField.style = {};
+      }
+      
+      // تحويل قيم حجم الخط إلى بكسل
+      if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
@@ -130,15 +136,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }
       }
       
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        if (!updatedField.style) {
-          updatedField.style = {};
+      // تحويل قيم حجم خط الوصف إلى بكسل
+      if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
+        if (updatedField.style.descriptionFontSize.includes('rem')) {
+          const remValue = parseFloat(updatedField.style.descriptionFontSize);
+          updatedField.style.descriptionFontSize = `${remValue * 16}px`;
+        } else if (!isNaN(parseFloat(updatedField.style.descriptionFontSize))) {
+          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
         }
-        // توحيد محاذاة النص للعناوين
+      }
+      
+      // بالنسبة لحقول العنوان، التأكد من وجود خصائص النمط الصحيحة
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         updatedField.style.textAlign = 'center';
-        
-        // تأكد من أن لون الخلفية محدد
-        console.log(`FormPreviewPanel: معالجة حقل العنوان ${updatedField.id} مع لون خلفية: ${updatedField.style.backgroundColor || 'غير محدد'}`);
       }
       
       return updatedField;

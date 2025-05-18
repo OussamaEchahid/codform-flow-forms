@@ -30,8 +30,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const fontSize = fieldStyle.fontSize || (isFormTitle ? '24px' : '20px');
   const descriptionFontSize = fieldStyle.descriptionFontSize || '14px';
   
-  // تعديل مهم: الحصول على لون الخلفية مباشرة من النمط، قبل اللجوء إلى القيم الافتراضية
-  // هذا ضروري لضمان تطبيق التغييرات المباشرة من محرر العنوان
+  // مهم جداً: الحصول على لون الخلفية مباشرة من الحقل قبل استخدام أي قيم افتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   console.log("TitleField - تطبيق لون الخلفية:", backgroundColor);
@@ -42,7 +41,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   
   // نمط الخلفية بقيم متناسقة للمتجر والمعاينة
   const backgroundStyle: React.CSSProperties = {
-    backgroundColor: backgroundColor, // تطبيق لون الخلفية المستلم مباشرة
+    backgroundColor: backgroundColor, // استخدام لون الخلفية المحدد مباشرة
     padding: '16px',
     borderRadius: borderRadiusValue,
     width: '100%',
