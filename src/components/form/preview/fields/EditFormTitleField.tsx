@@ -21,7 +21,11 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
-  const textAlign = field.style?.textAlign || 'center';
+  
+  // Get text alignment - check for titleAlignment first, then fall back to textAlign
+  const textAlign = field.style?.titleAlignment || field.style?.textAlign || 'center';
+  const descriptionAlign = field.style?.descriptionAlignment || field.style?.textAlign || 'center';
+  
   const fontWeight = field.style?.fontWeight || 'bold';
   const titleFontSize = field.style?.titleFontSize || '24px';
   const descriptionFontSize = field.style?.descriptionFontSize || '14px';
@@ -32,8 +36,11 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
     return null;
   }
   
-  // Use formDirection from props or from field style
+  // Use formDirection from props or from field style or default to 'ltr'
   const direction = formDirection || field.style?.formDirection || 'ltr';
+  
+  // Debug direction
+  console.log(`Form title direction: ${direction} for field ${field.id}`);
   
   return (
     <div
@@ -45,6 +52,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
         direction,
       }}
       dir={direction}
+      data-form-direction={direction}
     >
       <h2
         style={{
@@ -62,7 +70,7 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
         <p
           style={{
             color: descriptionColor,
-            textAlign: textAlign as any,
+            textAlign: descriptionAlign as any,
             fontSize: descriptionFontSize,
             margin: '0.25rem 0 0 0',
           }}

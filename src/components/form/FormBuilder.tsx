@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,7 +44,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     setPreviewRefresh,
     formStyle,
     handleStyleChange,
-    addFieldToStep
+    addFieldToStep,
+    formDirection,
+    toggleFormDirection
   } = useFormBuilder({ initialFormData });
   
   // UI state management
@@ -226,6 +227,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                   setFormTitle={setFormTitle}
                   formDescription={formDescription}
                   setFormDescription={setFormDescription}
+                  formDirection={formDirection}
+                  onToggleDirection={toggleFormDirection}
                 />
               </TabsContent>
               
@@ -235,6 +238,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                   setFormTitle={setFormTitle}
                   formDescription={formDescription}
                   setFormDescription={setFormDescription}
+                  formDirection={formDirection}
+                  onToggleDirection={toggleFormDirection}
                 />
               </TabsContent>
             </Tabs>
@@ -257,6 +262,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
             totalSteps={formSteps.length}
             formStyle={formStyle}
             fields={formSteps[currentPreviewStep - 1]?.fields || []}
+            formDirection={formDirection}
           >
             <div></div>
           </FormPreview>

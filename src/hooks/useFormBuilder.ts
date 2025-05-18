@@ -19,11 +19,19 @@ export const useFormBuilder = ({ initialFormData }: UseFormBuilderProps) => {
   const [currentEditStep, setCurrentEditStep] = useState(0);
   const [previewRefresh, setPreviewRefresh] = useState(0);
   const [formStyle, setFormStyle] = useState({
-    primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
+    primaryColor: initialFormData.primaryColor || '#9b87f5',
+    borderRadius: initialFormData.borderRadius || '0.5rem',
+    fontSize: initialFormData.fontSize || '1rem',
+    buttonStyle: initialFormData.buttonStyle || 'rounded',
   });
+  
+  // Default form direction based on language - Arabic is RTL, other languages are LTR
+  const [formDirection, setFormDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
+  
+  // Update form direction when language changes
+  useEffect(() => {
+    setFormDirection(language === 'ar' ? 'rtl' : 'ltr');
+  }, [language]);
   
   // Function to handle style changes
   const handleStyleChange = (key: string, value: string) => {
@@ -31,6 +39,12 @@ export const useFormBuilder = ({ initialFormData }: UseFormBuilderProps) => {
       ...formStyle,
       [key]: value
     });
+    setPreviewRefresh(prev => prev + 1);
+  };
+  
+  // Function to toggle form direction
+  const toggleFormDirection = () => {
+    setFormDirection(prev => prev === 'ltr' ? 'rtl' : 'ltr');
     setPreviewRefresh(prev => prev + 1);
   };
   
@@ -98,96 +112,6 @@ export const useFormBuilder = ({ initialFormData }: UseFormBuilderProps) => {
     return newField;
   };
   
-  // Create default form fields with all required fields
-  const createCompleteDefaultForm = (): FormStep[] => {
-    const defaultFields: FormField[] = [];
-    
-    // Add name field
-    defaultFields.push({
-      type: 'text',
-      id: uuidv4(),
-      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
-      required: true,
-      icon: 'user',
-    });
-    
-    // Add phone field
-    defaultFields.push({
-      type: 'phone',
-      id: uuidv4(),
-      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
-      required: true,
-      icon: 'phone',
-    });
-    
-    // Add address field
-    defaultFields.push({
-      type: 'textarea',
-      id: uuidv4(),
-      label: language === 'ar' ? 'العنوان' : 'Address',
-      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
-      required: true,
-    });
-    
-    // Add submit button
-    defaultFields.push({
-      type: 'submit',
-      id: uuidv4(),
-      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-      style: {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '18px',
-        animation: true,
-        animationType: 'pulse',
-      },
-    });
-    
-    const defaultStep: FormStep = {
-      id: '1',
-      title: language === 'ar' ? 'الخطوة الرئيسية' : 'Main Step',
-      fields: defaultFields
-    };
-    
-    return [defaultStep];
-  };
-  
-  // Effect to initialize the form with default fields if needed
-  useEffect(() => {
-    // If the data is empty, we create a default form with all required fields
-    if (initialFormData.data.length === 0) {
-      const completeDefaultForm = createCompleteDefaultForm();
-      setFormSteps(completeDefaultForm);
-      setPreviewRefresh(prev => prev + 1);
-    } else if (initialFormData.data.length > 0) {
-      // Check if the form has all required fields
-      const allFields = initialFormData.data.flatMap(step => step.fields);
-      const hasName = allFields.some(f => f.type === 'text' && f.label.includes(language === 'ar' ? 'اسم' : 'name'));
-      const hasPhone = allFields.some(f => f.type === 'phone');
-      const hasAddress = allFields.some(f => f.type === 'textarea' && f.label.includes(language === 'ar' ? 'عنوان' : 'address'));
-      const hasSubmit = allFields.some(f => f.type === 'submit');
-      
-      // If missing any required field, add the complete default form
-      if (!hasName || !hasPhone || !hasAddress || !hasSubmit) {
-        const completeDefaultForm = createCompleteDefaultForm();
-        setFormSteps(completeDefaultForm);
-        setPreviewRefresh(prev => prev + 1);
-      } else {
-        // Filter out any title fields from existing forms
-        const updatedSteps = formSteps.map(step => {
-          return {
-            ...step,
-            fields: step.fields.filter(field => field.type !== 'form-title' && field.type !== 'title' && field.type !== 'edit-form-title')
-          };
-        });
-        setFormSteps(updatedSteps);
-        setPreviewRefresh(prev => prev + 1);
-      }
-    }
-  }, [initialFormData]); // Removed language dependency to prevent re-running
-
   return {
     formTitle,
     setFormTitle,
@@ -203,7 +127,10 @@ export const useFormBuilder = ({ initialFormData }: UseFormBuilderProps) => {
     setPreviewRefresh,
     formStyle,
     handleStyleChange,
-    addFieldToStep
+    addFieldToStep,
+    formDirection,
+    setFormDirection,
+    toggleFormDirection,
   };
 };
 

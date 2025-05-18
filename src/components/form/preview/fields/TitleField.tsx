@@ -27,7 +27,11 @@ const TitleField: React.FC<TitleFieldProps> = ({
   const backgroundColor = field.style?.backgroundColor || '#9b87f5';
   const textColor = field.style?.color || '#ffffff';
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
-  const textAlign = field.style?.textAlign || 'center';
+  
+  // Get text alignment - check for titleAlignment first, then fall back to textAlign
+  const textAlign = field.style?.titleAlignment || field.style?.textAlign || 'center';
+  const descriptionAlign = field.style?.descriptionAlignment || field.style?.textAlign || 'center';
+  
   const fontWeight = field.style?.fontWeight || 'bold';
   const titleFontSize = field.style?.titleFontSize || '24px';
   const descriptionFontSize = field.style?.descriptionFontSize || '14px';
@@ -37,6 +41,9 @@ const TitleField: React.FC<TitleFieldProps> = ({
   if (!showTitle) {
     return null;
   }
+  
+  // Debug direction
+  console.log(`Title field direction: ${direction} for field ${field.id}`);
   
   return (
     <div
@@ -48,6 +55,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
         direction,
       }}
       dir={direction}
+      data-form-direction={direction}
     >
       <h2
         style={{
@@ -65,7 +73,7 @@ const TitleField: React.FC<TitleFieldProps> = ({
         <p
           style={{
             color: descriptionColor,
-            textAlign: textAlign as any,
+            textAlign: descriptionAlign as any,
             fontSize: descriptionFontSize,
             margin: '0.25rem 0 0 0',
           }}
