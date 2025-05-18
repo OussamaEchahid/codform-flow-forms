@@ -148,65 +148,28 @@ serve(async (req: Request) => {
   }
 });
 
-// Upload the CSS file to the theme assets
+// Upload the CSS file to the theme assets with improved title field styling
 async function uploadCSSFile(shop: string, accessToken: string, themeId: number): Promise<void> {
-  // CSS content - we're embedding it here for simplicity
+  // CSS content - improved version for better title field display
   const cssContent = `/* CODFORM - نماذج الدفع عند الاستلام */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
 
-/* ===== تنسيقات حقل العنوان ===== */
-/* هذه الأنماط الأساسية مباشرة وبسيطة */
-.form-title-field,
-.codform-title-field,
-div[data-field-type="title"],
-div[data-field-type="form-title"],
-div[data-field-type="edit-form-title"],
-div[data-testid="title-field"],
-div[data-testid="edit-form-title-field"],
-.codform-form .space-y-2 > div:first-child {
-  background-color: #9b87f5 !important;
-  padding: 16px !important;
-  border-radius: 8px !important;
-  margin-bottom: 16px !important;
-  width: 100% !important;
-  display: block !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-.form-title-field h2,
-.codform-title-field h2,
-div[data-field-type="title"] h2,
-div[data-field-type="form-title"] h2,
-div[data-field-type="edit-form-title"] h2,
-div[data-testid="title-field"] h2,
-div[data-testid="edit-form-title-field"] h2,
-.codform-form .space-y-2 > div:first-child h2 {
-  color: #ffffff !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  font-size: 24px !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
-}
-
-.form-title-field p,
-.codform-title-field p,
-div[data-field-type="title"] p,
-div[data-field-type="form-title"] p,
-div[data-field-type="edit-form-title"] p,
-div[data-testid="title-field"] p,
-div[data-testid="edit-form-title-field"] p,
-.codform-form .space-y-2 > div:first-child p {
-  color: rgba(255, 255, 255, 0.9) !important;
-  margin-top: 6px !important;
-  margin-bottom: 0 !important;
-  font-size: 14px !important;
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
+/* تكوين أساسي للحاوية الرئيسية */
+.codform-container {
+  font-family: 'Cairo', sans-serif;
+  margin: 20px 0;
+  padding: 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #F9FAFB !important;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ترويسة النموذج */
@@ -244,6 +207,73 @@ div[data-testid="edit-form-title-field"] p,
   padding: 16px;
   box-shadow: none !important;
   border: none !important;
+}
+
+/* ===== تنسيقات حقل العنوان - تحسين جذري لضمان ظهور الخلفية ===== */
+.form-title-field,
+.codform-title-field,
+div[data-field-type="title"],
+div[data-field-type="form-title"],
+div[data-field-type="edit-form-title"],
+div[data-testid="title-field"],
+div[data-testid="edit-form-title-field"],
+.form-title-wrapper > div,
+.space-y-2 > div:first-child {
+  background-color: #9b87f5 !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 16px !important;
+  width: 100% !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.form-title-field h2,
+div[data-field-type="title"] h2,
+div[data-field-type="form-title"] h2,
+div[data-testid="title-field"] h2,
+div[data-testid="edit-form-title-field"] h2,
+.form-title-wrapper h2,
+.space-y-2 > div:first-child h2 {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.3 !important;
+  width: 100% !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+.form-title-field p,
+div[data-field-type="title"] p,
+div[data-field-type="form-title"] p,
+div[data-testid="title-field"] p,
+div[data-testid="edit-form-title-field"] p,
+.form-title-wrapper p,
+.space-y-2 > div:first-child p {
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-top: 6px !important;
+  margin-bottom: 0 !important;
+  line-height: 1.5 !important;
+  width: 100% !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+/* أسلوب خلفية قوية للعنصر الأول في النموذج دائمًا */
+.codform-form .space-y-2 > div:first-child {
+  background-color: #9b87f5 !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+}
+
+/* Ensure that .form-title-field has the proper styles */
+.form-title-wrapper {
+  background-color: transparent !important;
 }
 
 /* تنسيق الحقول */
@@ -352,6 +382,15 @@ div[data-testid="edit-form-title-field"] p,
 [dir="ltr"] .codform-help-text,
 [dir="ltr"] .codform-title-description {
   text-align: left;
+}
+
+/* ضمان ظهور العنوان والوصف بشكل صحيح */
+.codform-title-container h3,
+.codform-title-container p {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  text-align: center !important;
 }
 
 /* محاذاة لRTL و LTR */
@@ -662,7 +701,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     templateContent = modifiedContent;
   }
   
-  // Create a simpler snippet with direct inline styles for the title
+  // Create the snippet with support for RTL direction and improved title styling
   const snippetContent = `{% comment %}
   CODFORM - نماذج الدفع عند الاستلام
   
@@ -678,16 +717,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     </div>
 
     <div id="codform-form-{{ block_id }}" class="codform-form" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
-      <!-- سيتم إضافة عنوان النموذج هنا يدوياً بأنماط مباشرة -->
-      <div class="form-title-field codform-title-field" style="background-color: #9b87f5 !important; padding: 16px !important; border-radius: 8px !important; margin-bottom: 16px !important; width: 100% !important; display: block !important; box-sizing: border-box !important; overflow: hidden !important;">
-        <h2 style="color: #ffffff !important; font-size: 24px !important; font-weight: bold !important; margin: 0 !important; padding: 0 !important; text-align: center !important; width: 100% !important; display: block !important;">
-          <!-- سيتم استبدال هذا النص بعنوان النموذج -->
-        </h2>
-        <p style="color: rgba(255, 255, 255, 0.9) !important; font-size: 14px !important; margin-top: 6px !important; margin-bottom: 0 !important; text-align: center !important; width: 100% !important; display: block !important;">
-          <!-- سيتم استبدال هذا النص بوصف النموذج -->
-        </p>
-      </div>
-      <!-- بقية النموذج سيتم تحميلها ديناميكيًا -->
+      <!-- النموذج سيتم تحميله ديناميكيًا هنا -->
     </div>
 
     <div id="codform-success-{{ block_id }}" class="codform-success" style="display: none;" dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}">
@@ -763,61 +793,7 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
 {{ 'codform.css' | asset_url | stylesheet_tag }}
 
 <style>
-  /* أنماط أساسية للعنوان تعمل دائمًا */
-  .form-title-field,
-  .codform-title-field,
-  div[data-field-type="title"],
-  div[data-field-type="form-title"],
-  div[data-field-type="edit-form-title"],
-  div[data-testid="title-field"],
-  div[data-testid="edit-form-title-field"],
-  .codform-form .space-y-2 > div:first-child {
-    background-color: #9b87f5 !important;
-    padding: 16px !important;
-    border-radius: 8px !important;
-    margin-bottom: 16px !important;
-    width: 100% !important;
-    display: block !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-  }
-
-  .form-title-field h2,
-  .codform-title-field h2,
-  div[data-field-type="title"] h2,
-  div[data-field-type="form-title"] h2,
-  div[data-field-type="edit-form-title"] h2,
-  div[data-testid="title-field"] h2,
-  div[data-testid="edit-form-title-field"] h2,
-  .codform-form .space-y-2 > div:first-child h2 {
-    color: #ffffff !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    font-size: 24px !important;
-    font-weight: bold !important;
-    text-align: center !important;
-    width: 100% !important;
-    display: block !important;
-  }
-
-  .form-title-field p,
-  .codform-title-field p,
-  div[data-field-type="title"] p,
-  div[data-field-type="form-title"] p,
-  div[data-field-type="edit-form-title"] p,
-  div[data-testid="title-field"] p,
-  div[data-testid="edit-form-title-field"] p,
-  .codform-form .space-y-2 > div:first-child p {
-    color: rgba(255, 255, 255, 0.9) !important;
-    margin-top: 6px !important;
-    margin-bottom: 0 !important;
-    font-size: 14px !important;
-    text-align: center !important;
-    width: 100% !important;
-    display: block !important;
-  }
-  
-  /* Basic styles for the loader */
+  /* Basic styles for quick loading (will be overridden by external CSS) */
   .codform-container {
     margin: 2rem 0;
     padding: 1.5rem;
@@ -848,16 +824,127 @@ async function processTraditionalTemplate(shop: string, accessToken: string, the
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+  
+  /* ===== تنسيقات حقل العنوان - إصلاح فوري في حالة تأخر تحميل ملف CSS الخارجي ===== */
+  .form-title-field,
+  .codform-title-field,
+  div[data-field-type="title"],
+  div[data-field-type="form-title"],
+  div[data-field-type="edit-form-title"],
+  div[data-testid="title-field"],
+  div[data-testid="edit-form-title-field"],
+  .form-title-wrapper > div,
+  .space-y-2 > div:first-child {
+    background-color: #9b87f5 !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+  }
+  
+  .form-title-field h2,
+  .codform-title-field h2,
+  div[data-field-type="title"] h2,
+  div[data-field-type="form-title"] h2,
+  div[data-field-type="edit-form-title"] h2,
+  div[data-testid="title-field"] h2,
+  div[data-testid="edit-form-title-field"] h2,
+  .form-title-wrapper h2,
+  .space-y-2 > div:first-child h2 {
+    color: #ffffff !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .form-title-field p,
+  .codform-title-field p,
+  div[data-field-type="title"] p,
+  div[data-field-type="form-title"] p,
+  div[data-field-type="edit-form-title"] p,
+  div[data-testid="title-field"] p,
+  div[data-testid="edit-form-title-field"] p,
+  .form-title-wrapper p,
+  .space-y-2 > div:first-child p {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  /* تطبيق خلفية على العنصر الأول في النموذج دائمًا */
+  .codform-form .space-y-2 > *:first-child,
+  .form-field-wrapper.form-title-wrapper > div {
+    background-color: #9b87f5 !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+  }
 </style>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     console.log('CODFORM element found with ID: {{ block_id }}');
     console.log('Direction: {% if is_rtl %}rtl{% else %}ltr{% endif %}');
+    
+    // هذه الدالة تضمن أن العنوان يظهر بالألوان الصحيحة
+    function forceTitleStyles() {
+      // استهداف جميع عناصر العنوان المحتملة
+      const titleSelectors = [
+        '.form-title-field', 
+        '.codform-title-field', 
+        '[data-field-type="title"]', 
+        '[data-field-type="form-title"]',
+        '[data-field-type="edit-form-title"]',
+        '[data-testid="title-field"]', 
+        '[data-testid="edit-form-title-field"]',
+        '.form-title-wrapper > div',
+        '.space-y-2 > div:first-child'
+      ];
+      
+      titleSelectors.forEach(function(selector) {
+        const elements = document.querySelectorAll(selector);
+        
+        elements.forEach(function(element) {
+          // تطبيق الخلفية والتنسيقات بشكل مباشر
+          element.style.backgroundColor = '#9b87f5';
+          element.style.padding = '16px';
+          element.style.borderRadius = '8px';
+          element.style.marginBottom = '16px';
+          element.style.width = '100%';
+          element.style.display = 'block';
+          
+          // تطبيق التنسيقات على العناوين
+          const titles = element.querySelectorAll('h2');
+          titles.forEach(function(title) {
+            title.style.color = '#ffffff';
+            title.style.margin = '0';
+            title.style.padding = '0';
+            title.style.fontWeight = 'bold';
+          });
+          
+          // تطبيق التنسيقات على الوصف
+          const descriptions = element.querySelectorAll('p');
+          descriptions.forEach(function(desc) {
+            desc.style.color = 'rgba(255, 255, 255, 0.9)';
+          });
+        });
+      });
+    }
+    
+    // تطبيق التنسيقات فورًا
+    forceTitleStyles();
+    
+    // تطبيق التنسيقات مرة أخرى بعد تحميل النموذج (للتحميل الديناميكي)
+    setTimeout(forceTitleStyles, 500);
+    setTimeout(forceTitleStyles, 1000);
+    setTimeout(forceTitleStyles, 2000);
+    
+    // متابعة تطبيق التنسيقات بشكل دوري للتأكد من ظهورها بشكل صحيح
+    setInterval(forceTitleStyles, 3000);
   });
 </script>
 {% endif %}`;
-  
+
   // Upload the snippet with the updated style fixes
   const snippetResponse = await fetch(`https://${shop}/admin/api/2023-07/themes/${themeId}/assets.json`, {
     method: 'PUT',

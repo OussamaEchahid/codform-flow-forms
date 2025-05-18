@@ -46,8 +46,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Use the formDirection prop if provided, otherwise fall back to language-based direction
   const direction = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Improve field processing for consistent display - MODIFIED to not filter out title fields
+  // Ensure field processing for consistent display - DO NOT filter out title fields
   const sanitizedFields = React.useMemo(() => {
+    // Add specific CSS classes for better styling
+    const formTitleBgColor = formStyle.primaryColor || '#9b87f5';
+    
     // Ensure cart items and cart summary fields have empty labels by default
     const updatedFields = fields.map(field => {
       // Copy field to avoid direct mutation issues
@@ -56,6 +59,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       // Set empty default label for cart items and summary
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         updatedField.label = '';
+      }
+      
+      // Special handling for title fields to ensure background color renders correctly
+      if (field.type === 'form-title' || field.type === 'edit-form-title' || field.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        // Set explicit background color if not already set
+        if (!updatedField.style.backgroundColor) {
+          updatedField.style.backgroundColor = formTitleBgColor;
+        }
       }
       
       // Convert empty icon to 'none' for consistent handling
@@ -124,6 +138,64 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Direction class for the form
   const dirClass = direction === 'rtl' ? 'rtl' : 'ltr';
+  
+  // Apply specific styling for title fields via style tag to ensure specificity
+  React.useEffect(() => {
+    // Create a style element to inject high-specificity CSS
+    const styleEl = document.createElement('style');
+    styleEl.setAttribute('data-form-title-styles', formId);
+    styleEl.textContent = `
+      /* High-specificity selectors for title fields */
+      .codform-form .form-title-field,
+      .codform-form [data-field-type="title"],
+      .codform-form [data-field-type="form-title"],
+      .codform-form [data-field-type="edit-form-title"],
+      .codform-form [data-testid="title-field"],
+      .codform-form [data-testid="edit-form-title-field"] {
+        background-color: ${formStyle.primaryColor || '#9b87f5'} !important;
+        border-radius: ${formStyle.borderRadius || '0.5rem'} !important;
+        padding: 0.75rem !important;
+        margin-bottom: 1rem !important;
+        width: 100% !important;
+        display: block !important;
+        box-sizing: border-box !important;
+      }
+      
+      .codform-form .form-title-field h2,
+      .codform-form [data-field-type="title"] h2,
+      .codform-form [data-field-type="form-title"] h2,
+      .codform-form [data-testid="title-field"] h2,
+      .codform-form [data-testid="edit-form-title-field"] h2 {
+        color: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.3 !important;
+        width: 100% !important;
+        display: block !important;
+      }
+      
+      .codform-form .form-title-field p,
+      .codform-form [data-field-type="title"] p,
+      .codform-form [data-field-type="form-title"] p,
+      .codform-form [data-testid="title-field"] p,
+      .codform-form [data-testid="edit-form-title-field"] p {
+        color: rgba(255, 255, 255, 0.9) !important;
+        margin: 0.25rem 0 0 0 !important;
+        width: 100% !important;
+        display: block !important;
+      }
+    `;
+    
+    document.head.appendChild(styleEl);
+    
+    return () => {
+      // Clean up on unmount
+      const existingStyle = document.querySelector(`style[data-form-title-styles="${formId}"]`);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, [formId, formStyle.primaryColor, formStyle.borderRadius]);
   
   return (
     <div 

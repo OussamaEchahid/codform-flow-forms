@@ -39,48 +39,49 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   // Use formDirection from props or from field style or default to 'ltr'
   const direction = formDirection || field.style?.formDirection || 'ltr';
   
-  // Create strongly-typed style objects for TypeScript
+  // Use inline styles with !important to force the correct display
   const containerStyle: React.CSSProperties = {
-    backgroundColor: backgroundColor,
-    borderRadius: formStyle.borderRadius || '0.5rem',
-    padding: '0.75rem',
-    direction: direction,
-    width: '100%',
-    display: 'block',
+    backgroundColor: `${backgroundColor} !important`,
+    borderRadius: `${formStyle.borderRadius || '0.5rem'} !important`,
+    padding: '0.75rem !important',
+    direction,
+    width: '100% !important',
+    display: 'block !important',
     boxSizing: 'border-box' as 'border-box',
-    margin: '0.5rem 0',
-    overflow: 'hidden'
+    margin: '0.5rem 0 !important',
+    overflow: 'hidden !important'
   };
   
-  const titleStyle: React.CSSProperties = {
-    color: textColor,
+  const titleStyle = {
+    color: `${textColor} !important`,
     textAlign: textAlign as any,
     fontWeight: fontWeight as any,
     fontSize: titleFontSize,
-    margin: 0,
-    padding: 0,
-    width: '100%',
-    display: 'block'
+    margin: '0 !important',
+    padding: '0 !important',
+    lineHeight: '1.3 !important',
+    width: '100% !important',
+    display: 'block !important'
   };
   
-  const descriptionStyle: React.CSSProperties = {
-    color: descriptionColor,
+  const descriptionStyle = {
+    color: `${descriptionColor} !important`,
     textAlign: descriptionAlign as any,
     fontSize: descriptionFontSize,
-    margin: '0.25rem 0 0 0',
-    padding: 0,
-    width: '100%',
-    display: 'block'
+    margin: '0.25rem 0 0 0 !important',
+    width: '100% !important',
+    display: 'block !important'
   };
   
   return (
     <div
-      className="form-title-field codform-title-field w-full my-2"
+      className="form-title-field w-full my-2"
       style={containerStyle}
       dir={direction}
       data-form-direction={direction}
       data-field-type="edit-form-title"
       data-testid="edit-form-title-field"
+      data-background-color={backgroundColor}
     >
       <h2 style={titleStyle}>
         {field.label}
