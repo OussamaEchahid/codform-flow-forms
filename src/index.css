@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -178,5 +179,61 @@
   [dir="ltr"] .codform-title-field .codform-title-description {
     text-align: left !important;
     direction: ltr !important;
+  }
+  
+  /* تأكد من تطبيق الألوان بشكل صحيح */
+  .codform-title-field[data-has-bg="true"] .codform-title-container {
+    background-color: attr(data-bg-color) !important;
+  }
+  
+  .codform-title-field[data-title-color] .codform-form-title,
+  .codform-title-field[data-title-color] .codform-section-title {
+    color: attr(data-title-color) !important;
+  }
+  
+  /* تحسين المحاذاة */
+  .codform-title-field[data-title-align="right"] .codform-title-container,
+  .codform-title-field[data-title-align="right"] .codform-form-title,
+  .codform-title-field[data-title-align="right"] .codform-section-title,
+  .codform-title-field[data-title-align="right"] .codform-title-description {
+    text-align: right !important;
+  }
+  
+  .codform-title-field[data-title-align="left"] .codform-title-container,
+  .codform-title-field[data-title-align="left"] .codform-form-title,
+  .codform-title-field[data-title-align="left"] .codform-section-title,
+  .codform-title-field[data-title-align="left"] .codform-title-description {
+    text-align: left !important;
+  }
+  
+  .codform-title-field[data-title-align="center"] .codform-title-container,
+  .codform-title-field[data-title-align="center"] .codform-form-title,
+  .codform-title-field[data-title-align="center"] .codform-section-title,
+  .codform-title-field[data-title-align="center"] .codform-title-description {
+    text-align: center !important;
+  }
+  
+  .codform-title-field[data-direction="rtl"] .codform-title-container,
+  .codform-title-field[data-direction="rtl"] .codform-form-title,
+  .codform-title-field[data-direction="rtl"] .codform-section-title,
+  .codform-title-field[data-direction="rtl"] .codform-title-description {
+    direction: rtl !important;
+  }
+  
+  .codform-title-field[data-direction="ltr"] .codform-title-container,
+  .codform-title-field[data-direction="ltr"] .codform-form-title,
+  .codform-title-field[data-direction="ltr"] .codform-section-title,
+  .codform-title-field[data-direction="ltr"] .codform-title-description {
+    direction: ltr !important;
+  }
+  
+  /* تعزيز اعدادات العنوان بشكل إضافي */
+  .codform-title-container {
+    background-color: #9b87f5 !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 16px !important;
   }
 }

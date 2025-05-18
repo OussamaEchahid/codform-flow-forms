@@ -86,20 +86,20 @@ function ensureTitleFieldsDisplay() {
     
     // Force background color with !important
     const bgColor = field.getAttribute('data-bg-color') || '#9b87f5';
-    container.style.backgroundColor = bgColor + ' !important';
-    container.style.padding = '16px !important';
-    container.style.borderRadius = '8px !important';
-    container.style.width = '100% !important';
-    container.style.boxSizing = 'border-box !important';
-    container.style.marginBottom = '16px !important';
+    container.style.setProperty('background-color', bgColor, 'important');
+    container.style.setProperty('padding', '16px', 'important');
+    container.style.setProperty('border-radius', '8px', 'important');
+    container.style.setProperty('width', '100%', 'important');
+    container.style.setProperty('box-sizing', 'border-box', 'important');
+    container.style.setProperty('margin-bottom', '16px', 'important');
     
     // Set text alignment based on data attribute
     const alignment = field.getAttribute('data-title-align') || 'left';
-    container.style.textAlign = alignment + ' !important';
+    container.style.setProperty('text-align', alignment, 'important');
     
     // Set direction based on data attribute
     const direction = field.getAttribute('data-direction') || 'ltr';
-    container.style.direction = direction + ' !important';
+    container.style.setProperty('direction', direction, 'important');
     
     // Style the title element
     const title = container.querySelector('h3');
@@ -108,42 +108,73 @@ function ensureTitleFieldsDisplay() {
       const fontSize = field.getAttribute('data-font-size') || '24px';
       const fontWeight = field.getAttribute('data-font-weight') || 'bold';
       
-      title.style.color = color + ' !important';
-      title.style.fontSize = fontSize + ' !important';
-      title.style.fontWeight = fontWeight + ' !important';
-      title.style.textAlign = alignment + ' !important';
-      title.style.margin = '0 !important';
-      title.style.padding = '0 !important';
-      title.style.lineHeight = '1.3 !important';
-      title.style.display = 'block !important';
-      title.style.direction = direction + ' !important';
+      title.style.setProperty('color', color, 'important');
+      title.style.setProperty('font-size', fontSize, 'important');
+      title.style.setProperty('font-weight', fontWeight, 'important');
+      title.style.setProperty('text-align', alignment, 'important');
+      title.style.setProperty('margin', '0', 'important');
+      title.style.setProperty('padding', '0', 'important');
+      title.style.setProperty('line-height', '1.3', 'important');
+      title.style.setProperty('display', 'block', 'important');
+      title.style.setProperty('direction', direction, 'important');
     }
     
     // Style the description element
     const desc = container.querySelector('.codform-title-description');
     if (desc) {
-      const descColor = field.getAttribute('data-desc-color') || '#ffffff';
+      const descColor = field.getAttribute('data-desc-color') || 'rgba(255, 255, 255, 0.9)';
       const descFontSize = field.getAttribute('data-desc-font-size') || '14px';
       
-      desc.style.color = descColor + ' !important';
-      desc.style.fontSize = descFontSize + ' !important';
-      desc.style.opacity = '0.9 !important';
-      desc.style.margin = '6px 0 0 0 !important';
-      desc.style.padding = '0 !important';
-      desc.style.textAlign = alignment + ' !important';
-      desc.style.lineHeight = '1.5 !important';
-      desc.style.direction = direction + ' !important';
+      desc.style.setProperty('color', descColor, 'important');
+      desc.style.setProperty('font-size', descFontSize, 'important');
+      desc.style.setProperty('opacity', '0.9', 'important');
+      desc.style.setProperty('margin', '6px 0 0 0', 'important');
+      desc.style.setProperty('padding', '0', 'important');
+      desc.style.setProperty('text-align', alignment, 'important');
+      desc.style.setProperty('line-height', '1.5', 'important');
+      desc.style.setProperty('direction', direction, 'important');
     }
   });
 }
 
-// Run after DOM is loaded and periodically to ensure styles are applied
+// Use MutationObserver to ensure styles are applied even when DOM changes
+function setupTitleFieldObserver() {
+  const observer = new MutationObserver((mutations) => {
+    ensureTitleFieldsDisplay();
+  });
+  
+  // Start observing the document for DOM changes
+  observer.observe(document.body, { 
+    childList: true,
+    subtree: true 
+  });
+  
+  // Initial run
+  ensureTitleFieldsDisplay();
+}
+
+// Run after DOM is loaded and setup observer
 document.addEventListener('DOMContentLoaded', () => {
   ensureTitleFieldsDisplay();
-  // Re-run every 300ms for the first 3 seconds to ensure styles are applied
-  const interval = setInterval(ensureTitleFieldsDisplay, 300);
-  setTimeout(() => clearInterval(interval), 3000);
+  setupTitleFieldObserver();
+  
+  // Also re-run periodically for the first few seconds as a fallback
+  const interval = setInterval(ensureTitleFieldsDisplay, 500);
+  setTimeout(() => clearInterval(interval), 5000);
 });
+
+// Helper function to convert rem to pixels
+function remToPxExact(value) {
+  if (!value) return '16px';
+  if (value.includes('rem')) {
+    const remValue = parseFloat(value);
+    return Math.round(remValue * 16) + 'px';
+  }
+  if (!value.includes('px') && !isNaN(parseFloat(value))) {
+    return value + 'px';
+  }
+  return value;
+}
 
 ` + minifiedContent;
 
