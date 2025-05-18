@@ -64,7 +64,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const defaultTitleSize = isFormTitle ? '24px' : '20px';
   const defaultDescSize = '14px';
   
-  // Convert all size values to pixels
+  // Convert all size values to pixels - extremely important for consistency
   const fontSize = remToPx(fieldStyle.fontSize, defaultTitleSize);
   const descriptionFontSize = remToPx(fieldStyle.descriptionFontSize, defaultDescSize);
   
@@ -108,7 +108,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     opacity: '0.9',
   };
 
-  // Create unique ID for this field
+  // Create unique ID for this field - ensures field is updated on changes
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
   return (

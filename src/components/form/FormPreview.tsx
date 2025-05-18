@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -102,6 +101,34 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       // تأكد من تحديد حجم خط الوصف بشكل صريح بالبكسل
       if (updatedField.style.descriptionFontSize) {
         updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
+      }
+      
+      // For title fields, ensure all necessary style properties are explicitly set with !important
+      if (updatedField.type === 'title' || updatedField.type === 'form-title') {
+        // Ensure style object exists
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Set color to white if not specified
+        if (!updatedField.style.color) {
+          updatedField.style.color = '#ffffff';
+        }
+        
+        // Set background color if not specified
+        if (!updatedField.style.backgroundColor) {
+          updatedField.style.backgroundColor = formStyle.primaryColor || '#9b87f5';
+        }
+        
+        // Set explicit font weights based on field type
+        if (!updatedField.style.fontWeight) {
+          updatedField.style.fontWeight = updatedField.type === 'form-title' ? 'bold' : 'medium';
+        }
+        
+        // Set explicit text alignment based on language if not specified
+        if (!updatedField.style.textAlign) {
+          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
+        }
       }
       
       return updatedField;

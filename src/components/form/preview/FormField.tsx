@@ -82,11 +82,11 @@ const ensureFieldType = (type: string | FieldType): FieldType => {
 };
 
 // Helper function to convert rem to px for consistent styling
-const remToPx = (value: string): string => {
+const remToPx = (value: string | undefined): string => {
   if (!value) return '';
   if (value.includes('rem')) {
     const remValue = parseFloat(value);
-    return `${remValue * 16}px`;
+    return `${Math.round(remValue * 16)}px`;
   }
   if (!value.includes('px') && !isNaN(parseFloat(value))) {
     return `${value}px`;
@@ -106,14 +106,27 @@ const normalizeFieldStyle = (field: FormFieldType): FormFieldType => {
   
   const normalizedStyle = { ...field.style };
   
-  // Convert all font size values to px
+  // Convert all font size values to px - CRITICAL for store matching
   if (normalizedStyle.fontSize) {
     normalizedStyle.fontSize = remToPx(normalizedStyle.fontSize);
   }
   
-  // Convert description font size to px
+  // Convert description font size to px - CRITICAL for store matching
   if (normalizedStyle.descriptionFontSize) {
     normalizedStyle.descriptionFontSize = remToPx(normalizedStyle.descriptionFontSize);
+  }
+  
+  // For title fields, ensure all necessary style properties are explicitly set
+  if (field.type === 'title' || field.type === 'form-title') {
+    // Default text color to white if not specified
+    if (!normalizedStyle.color) {
+      normalizedStyle.color = '#ffffff';
+    }
+    
+    // Set default font weights based on field type
+    if (!normalizedStyle.fontWeight) {
+      normalizedStyle.fontWeight = field.type === 'form-title' ? 'bold' : 'medium';
+    }
   }
   
   return {
@@ -204,7 +217,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   const fieldKey = getFieldKey(field);
   
   // ضبط الهوامش: استخدام هوامش أصغر لجميع الحقول، وجعل زر الإرسال قريب جدًا من الحقل السابق
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1'; // تغيير من mt-1 إلى mt-0 لزر الإرسال
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-1';
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {

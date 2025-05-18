@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -19,29 +20,37 @@ const originalContent = fs.readFileSync(jsFilePath, 'utf8');
 const originalSize = Buffer.byteLength(originalContent, 'utf8');
 console.log(`Original size: ${originalSize} bytes (${(originalSize / 1024).toFixed(2)} KB)`);
 
-// More careful optimizations to preserve style functionality
+// Be more careful with optimizations to preserve style functionality
 console.log('Applying optimizations...');
 
-// Remove comments (but keep any commented out code that might be important)
+// Remove ONLY block comments, not line comments which might contain important code
 let optimizedContent = originalContent.replace(/\/\*[\s\S]*?\*\//g, '');
 
-// Remove console.logs except those that might be important for debugging
-optimizedContent = optimizedContent.replace(/console\.log\(['"](?!Error|Important|Critical|Warn|Debug).*?\);?/g, '');
+// Preserve all console.logs related to style and important debugging
+const preservedConsolePatterns = [
+  'Error', 'Important', 'Critical', 'Warn', 'Debug', 
+  'Style', 'Title', 'Field', 'Animation'
+];
+const consolePattern = new RegExp(
+  `console\\.log\\(['"]((?!${preservedConsolePatterns.join('|')}).*?)['"](.*?)\\);?`, 'g'
+);
+optimizedContent = optimizedContent.replace(consolePattern, '');
 
-// Be careful with whitespace - preserve functional whitespace
+// Extremely careful with whitespace - preserve ALL functional whitespace
+// Only compress very obvious extra spaces
 let minifiedContent = optimizedContent
-  .replace(/\s*{\s*/g, ' { ')
+  .replace(/\s{2,}/g, ' ') // Multiple spaces to single space
+  .replace(/\s*{\s*/g, ' { ') // Space around braces
   .replace(/\s*}\s*/g, ' } ')
   .replace(/\s*:\s*/g, ': ')
   .replace(/\s*;\s*/g, '; ')
   .replace(/\s*,\s*/g, ', ');
 
-// Restore any essential style properties that might have been mangled
-// We need to be particularly careful with style properties
+// Restore any essential styling CSS properties that might have been mangled
 const styleProperties = [
   'color', 'backgroundColor', 'fontSize', 'fontFamily', 'fontWeight', 
   'textAlign', 'borderRadius', 'margin', 'padding', 'lineHeight',
-  'opacity', 'boxSizing'
+  'opacity', 'boxSizing', 'display', 'width', 'height'
 ];
 
 // Ensure style properties have proper spacing
@@ -52,6 +61,9 @@ styleProperties.forEach(prop => {
 
 // Make sure that !important stays attached to the property value
 minifiedContent = minifiedContent.replace(/;\s*!/g, ' !');
+
+// Preserve all important style properties with !important
+minifiedContent = minifiedContent.replace(/(backgroundColor|color|fontSize|fontWeight|textAlign):(.*?);/g, '$1:$2 !important;');
 
 const optimizedSize = Buffer.byteLength(minifiedContent, 'utf8');
 console.log(`Optimized size: ${optimizedSize} bytes (${(optimizedSize / 1024).toFixed(2)} KB)`);

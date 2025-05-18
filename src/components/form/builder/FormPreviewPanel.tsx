@@ -85,7 +85,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      // Ensure font size uses consistent px units
+      // Ensure font size uses consistent px units - CRITICAL for store matching
       if (updatedField.style?.fontSize) {
         updatedField.style.fontSize = remToPx(updatedField.style.fontSize, '16px');
       }
@@ -95,9 +95,26 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         updatedField.style.descriptionFontSize = remToPx(updatedField.style.descriptionFontSize, '14px');
       }
       
+      // Ensure form-title fields have consistent settings
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // Set explicit font weights if not defined
+        if (!updatedField.style.fontWeight) {
+          updatedField.style.fontWeight = updatedField.type === 'form-title' ? 'bold' : 'medium';
+        }
+        
+        // Set consistent text alignment if not defined
+        if (!updatedField.style.textAlign) {
+          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
+        }
+      }
+      
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // Add internalRefreshKey to dependencies to ensure re-render
+  }, [fields, internalRefreshKey, language]); // Add internalRefreshKey and language to dependencies
 
   // Create unique id for this preview component
   const previewPanelId = `preview-panel-${Date.now()}`;
