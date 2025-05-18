@@ -52,7 +52,7 @@ const FormBuilderPage = () => {
     // Fix for infinite loop - only run when shop changes and not already checking
     let isMounted = true;
     
-    async function checkForDefaultForm() {
+    const checkForDefaultForm = async () => {
       if (!shop || isCheckingDefaultForm) return;
       
       setIsCheckingDefaultForm(true);
@@ -61,7 +61,6 @@ const FormBuilderPage = () => {
         const result = await getDefaultForm(shop);
         
         if (isMounted) {
-          // Fixed: Only check the result, not the function itself
           if (result) {
             console.log('Default form found:', result.id);
           } else {
@@ -75,8 +74,9 @@ const FormBuilderPage = () => {
           setIsCheckingDefaultForm(false);
         }
       }
-    }
+    };
     
+    // Run the function immediately
     checkForDefaultForm();
     
     // Cleanup function to prevent state updates after unmount
