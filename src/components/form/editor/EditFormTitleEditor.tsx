@@ -26,6 +26,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
   const [showDescription, setShowDescription] = useState(field.style?.showDescription !== false);
   const [titleFontSize, setTitleFontSize] = useState(field.style?.titleFontSize || '24px');
   const [descriptionFontSize, setDescriptionFontSize] = useState(field.style?.descriptionFontSize || '14px');
+  const formDirection = field.style?.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   const handleUpdate = () => {
     const updatedField = {
@@ -41,7 +42,8 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
         showTitle,
         showDescription,
         titleFontSize,
-        descriptionFontSize
+        descriptionFontSize,
+        formDirection
       }
     };
     onChange(updatedField);
@@ -64,7 +66,7 @@ const EditFormTitleEditor: React.FC<EditFormTitleEditorProps> = ({
         showDescription={showDescription}
         titleFontSize={titleFontSize}
         descriptionFontSize={descriptionFontSize}
-        formDirection={field.style?.formDirection}
+        formDirection={formDirection}
         onTitleChange={setLabel}
         onDescriptionChange={setHelpText}
         onBackgroundColorChange={setBackgroundColor}

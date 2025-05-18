@@ -31,6 +31,10 @@ const TitlePreview: React.FC<TitlePreviewProps> = ({
   // تحديد الاتجاه بناء على القيمة المرسلة أو القيمة الافتراضية ltr
   const direction = formDirection || 'ltr';
   
+  if (!showTitle) {
+    return null;
+  }
+  
   return (
     <div
       className="w-full my-2 rounded-lg overflow-hidden"
@@ -41,19 +45,17 @@ const TitlePreview: React.FC<TitlePreviewProps> = ({
       }}
       dir={direction}
     >
-      {showTitle && (
-        <h2
-          style={{
-            color: textColor,
-            textAlign: textAlign as any,
-            fontWeight: 'bold',
-            fontSize: titleFontSize,
-            margin: 0,
-          }}
-        >
-          {title}
-        </h2>
-      )}
+      <h2
+        style={{
+          color: textColor,
+          textAlign: textAlign as any,
+          fontWeight: 'bold',
+          fontSize: titleFontSize,
+          margin: 0,
+        }}
+      >
+        {title}
+      </h2>
       
       {showDescription && description && (
         <p

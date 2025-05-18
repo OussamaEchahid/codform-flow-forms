@@ -66,6 +66,12 @@ interface FormFieldStyle {
   totalLabelColor?: string;
   totalValueFontSize?: string;
   totalValueColor?: string;
+  
+  // Title field specific properties
+  showTitle?: boolean;
+  showDescription?: boolean;
+  titleFontSize?: string;
+  formDirection?: 'ltr' | 'rtl';
 }
 
 // Form field extended properties

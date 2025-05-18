@@ -106,7 +106,7 @@ const TitleEditorForm: React.FC<TitleEditorFormProps> = ({
                   id="show-title"
                   checked={showTitle}
                   onCheckedChange={onShowTitleChange}
-                  size="sm"
+                  className="ml-2"
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ const TitleEditorForm: React.FC<TitleEditorFormProps> = ({
                   id="show-description"
                   checked={showDescription}
                   onCheckedChange={onShowDescriptionChange}
-                  size="sm"
+                  className="ml-2"
                   disabled={!showTitle}
                 />
               </div>

@@ -23,9 +23,17 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   const descriptionColor = field.style?.descriptionColor || '#ffffff';
   const textAlign = field.style?.textAlign || 'center';
   const fontWeight = field.style?.fontWeight || 'bold';
-  const fontSize = field.style?.fontSize || '1.5rem';
-  const descriptionFontSize = field.style?.descriptionFontSize || '0.875rem';
+  const titleFontSize = field.style?.titleFontSize || '24px';
+  const descriptionFontSize = field.style?.descriptionFontSize || '14px';
   const showDescription = field.style?.showDescription !== false;
+  const showTitle = field.style?.showTitle !== false;
+  
+  if (!showTitle) {
+    return null;
+  }
+  
+  // Use formDirection from props or from field style
+  const direction = formDirection || field.style?.formDirection || 'ltr';
   
   return (
     <div
@@ -34,16 +42,16 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
         backgroundColor,
         borderRadius: formStyle.borderRadius || '0.5rem',
         padding: '0.75rem',
-        direction: formDirection,
+        direction,
       }}
-      dir={formDirection}
+      dir={direction}
     >
       <h2
         style={{
           color: textColor,
           textAlign: textAlign as any,
           fontWeight: fontWeight as any,
-          fontSize,
+          fontSize: titleFontSize,
           margin: 0,
         }}
       >
