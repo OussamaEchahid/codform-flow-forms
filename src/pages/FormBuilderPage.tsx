@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -57,12 +58,12 @@ const FormBuilderPage = () => {
       setIsCheckingDefaultForm(true);
       try {
         // Store the result and check it properly
-        const defaultForm = await getDefaultForm(shop);
+        const result = await getDefaultForm(shop);
         
         if (isMounted) {
-          // Fixed: Only log the defaultForm if it exists
-          if (defaultForm) {
-            console.log('Default form found:', defaultForm.id);
+          // Fixed: Only check the result, not the function itself
+          if (result) {
+            console.log('Default form found:', result.id);
           } else {
             console.log('No default form found, will create one when needed');
           }
