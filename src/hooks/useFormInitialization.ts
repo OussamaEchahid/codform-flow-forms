@@ -24,12 +24,11 @@ export const useFormInitialization = (formId: string | undefined) => {
         // Only fetch forms once and filter out title fields
         const forms = await fetchForms();
         // Filter out title fields from fetched forms if needed
-        if (forms) {
-          // The filtering will happen in the FormBuilderEditor component
-        }
+        // Don't check the result of void function
       } else {
         setActiveTab('dashboard');
-        fetchForms();
+        // Don't check the result of the fetchForms function
+        await fetchForms();
       }
     }
     
