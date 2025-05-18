@@ -10,7 +10,9 @@ type BoxSizing = 'border-box' | 'content-box';
 
 /**
  * مثال لتنفيذ حقل العنوان في TitleField.tsx
+ * تم تحويله إلى تعليق على شكل سلسلة نصية لتجنب أخطاء JSX في ملف TS
  */
+const renderTitleExample = `
 const renderTitle = (field, formStyle, language) => {
   // استخراج القيم من خصائص النمط
   const fieldStyle = field.style || {};
@@ -54,7 +56,7 @@ const renderTitle = (field, formStyle, language) => {
   
   return (
     <div 
-      className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
+      className={\`mb-4 \${isFormTitle ? 'codform-title' : ''}\`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       data-testid="title-field"
       data-bg-color={backgroundColor}
@@ -79,11 +81,13 @@ const renderTitle = (field, formStyle, language) => {
     </div>
   );
 };
+`;
 
 /**
  * مثال لتنفيذ معالج تحديث الأنماط في FormTitleEditor.tsx
  */
-const handleUpdateStyleExample = (property, value, formTitleField, onUpdateTitleField) => {
+const handleUpdateStyleExample = `
+const handleUpdateStyle = (property, value, formTitleField, onUpdateTitleField) => {
   if (!formTitleField) return;
   
   // إنشاء نسخة محدثة من الحقل مع الخاصية الجديدة
@@ -102,10 +106,12 @@ const handleUpdateStyleExample = (property, value, formTitleField, onUpdateTitle
   // إرسال الحقل المحدث إلى المكون الأب
   onUpdateTitleField(updatedField);
 };
+`;
 
 /**
  * مثال لتطبيق آلية تحديث المعاينة في FormBuilderEditor.tsx
  */
+const previewRefreshExample = `
 const previewRefreshExample = () => {
   // تعريف مفتاح التحديث
   const [previewRefresh, setPreviewRefresh] = useState(0);
@@ -134,6 +140,7 @@ const previewRefreshExample = () => {
     />
   );
 };
+`;
 
 /**
  * CSS المستخدم في المتجر لضمان تطبيق الأنماط بشكل صحيح
@@ -167,4 +174,4 @@ const shopifyFormCSS = `
 }
 `;
 
-export { renderTitle, handleUpdateStyleExample, previewRefreshExample, shopifyFormCSS };
+export { renderTitleExample, handleUpdateStyleExample, previewRefreshExample, shopifyFormCSS };
