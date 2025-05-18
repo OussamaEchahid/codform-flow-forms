@@ -27,10 +27,13 @@ interface FormFieldProps {
 }
 
 const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDirection }) => {
-  // Determine field class based on direction
+  // تحديد فئة الحقل بناءً على الاتجاه
   const directionClass = formDirection === 'rtl' ? 'rtl' : 'ltr';
   
-  // Get the field component based on type
+  // تسجيل معلومات التصحيح عند تقديم الحقل
+  console.log(`Rendering field type: ${field.type}, id: ${field.id}, direction: ${formDirection}`, field.style);
+  
+  // الحصول على مكون الحقل بناءً على النوع
   const getFieldComponent = () => {
     switch (field.type) {
       case 'text':
@@ -90,6 +93,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({ field, formStyle, formDi
       className={`form-field-wrapper ${directionClass}`} 
       data-field-type={field.type}
       data-direction={formDirection}
+      data-field-id={field.id}
       dir={formDirection}
     >
       {getFieldComponent()}

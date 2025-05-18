@@ -20,10 +20,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
   const { language } = useI18n();
   const style = field.style || {};
   
-  // Determine direction based on formDirection prop or language
+  // تحديد الاتجاه بناءً على خاصية formDirection أو اللغة
   const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // Get animation class if set
+  // الحصول على فئة الرسوم المتحركة إذا تم تعيينها
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -40,7 +40,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
 
   const animationClass = getAnimationClass();
   
-  // Default button styling with exact pixel values matching preview
+  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
@@ -53,8 +53,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
     padding: '14px 24px',
     paddingTop: style.paddingY || '14px',
     paddingBottom: style.paddingY || '14px',
-    paddingLeft: '24px',
-    paddingRight: '24px',
+    paddingLeft: style.paddingX || '24px',
+    paddingRight: style.paddingX || '24px',
     width: style.fullWidth === false ? 'auto' : '100%',
     display: 'flex',
     alignItems: 'center',
@@ -70,11 +70,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
     textAlign: 'center'
   };
   
-  // Icon rendering with consistent sizing and positioning
+  // تقديم الأيقونة بحجم وموضع متناسقين
   const renderIcon = () => {
     if (!style.showIcon) return null;
     
-    // Add specific styling for the icon to match preview exactly
+    // إضافة نمط محدد للأيقونة لمطابقة المعاينة بالضبط
     const iconStyle = {
       width: '18px',
       height: '18px',
@@ -83,7 +83,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
       justifyContent: 'center'
     };
     
-    // Return Lucide React icon components based on icon name
+    // إرجاع مكونات أيقونة Lucide React بناءً على اسم الأيقونة
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
@@ -101,14 +101,26 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
       case 'phone':
         return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       default:
-        return null;
+        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
     }
   };
 
-  // Determine the content and order based on icon position
+  // تحديد المحتوى والترتيب بناءً على موضع الأيقونة
   const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
   const icon = renderIcon();
   
+  console.log(`Rendering SubmitButton with styles:`, { 
+    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    color: style.color || '#ffffff',
+    fontSize: style.fontSize || '18px',
+    fontWeight: style.fontWeight || '600',
+    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
+    animation: style.animation ? style.animationType : 'none',
+    iconPosition,
+    hasIcon: style.showIcon,
+    direction: textDir
+  });
+
   return (
     <button
       type="button"
@@ -125,9 +137,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
       data-icon-position={iconPosition}
       data-has-icon={style.showIcon ? 'true' : 'false'}
       data-direction={textDir}
+      data-button-id={field.id}
     >
       {iconPosition === 'left' && icon}
-      <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
+      <span className="btn-text">{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
       {iconPosition === 'right' && icon}
     </button>
   );
