@@ -39,10 +39,6 @@ const EditFormTitleField: React.FC<EditFormTitleFieldProps> = ({
   // Use formDirection from props or from field style or default to 'ltr'
   const direction = formDirection || field.style?.formDirection || 'ltr';
   
-  // Debug direction and styling
-  console.log(`Form title direction: ${direction} for field ${field.id}`);
-  console.log(`Edit form title styling: backgroundColor=${backgroundColor}, textColor=${textColor}, textAlign=${textAlign}`);
-  
   return (
     <div
       className="form-title-field w-full my-2"

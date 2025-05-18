@@ -258,351 +258,134 @@
   text-align: center !important;
 }
 
-/* إصلاح مشكلة خلفية العنوان - تطبيق خلفية قوية للعناوين */
+/* ===== حل مشكلة خلفية العنوان بشكل نهائي وجذري ===== */
+/* هذه قواعد CSS قوية جداً لضمان ظهور خلفية العنوان بشكل صحيح في المتجر */
+
+/* تطبيق الخلفية على جميع عناصر العنوان المحتملة */
 .form-title-field,
 .codform-title-field,
-div[data-field-type="title"] > div,
-div[data-field-type="edit-form-title"] > div,
-div[data-field-type="form-title"] > div,
-div[data-testid="title-field"] > div,
-div[data-testid="edit-form-title-field"] > div {
+div[data-field-type="title"],
+div[data-field-type="edit-form-title"],
+div[data-field-type="form-title"],
+div[data-testid="title-field"],
+div[data-testid="edit-form-title-field"],
+.codform-form .space-y-2 > div:first-child {
   background-color: #9b87f5 !important;
   padding: 16px !important;
   border-radius: 8px !important;
   margin-bottom: 16px !important;
-  width: 100% !important;
   display: block !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
+  width: 100% !important;
 }
 
-/* تنسيقات عناصر العنوان */
+/* تطبيق الخلفية على جميع حاويات العنوان المحتملة */
+.codform-title-container,
+.codform-header,
+.codform-form-title-container {
+  background-color: #9b87f5 !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 16px !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* تنسيق عناصر العنوان والوصف */
 .form-title-field h2,
 div[data-field-type="title"] h2,
 div[data-field-type="form-title"] h2,
 div[data-testid="title-field"] h2,
 div[data-testid="edit-form-title-field"] h2,
 h2.codform-form-title,
-h2.codform-edit-title {
+h2.codform-edit-title,
+.codform-title-container h3,
+.codform-header h3 {
+  color: #ffffff !important;
   font-size: 24px !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
   margin: 0 !important;
   padding: 0 !important;
   line-height: 1.3 !important;
   text-align: center !important;
   width: 100% !important;
-  display: block !important;
 }
 
-/* تنسيقات عناصر وصف العنوان */
 .form-title-field p,
 div[data-field-type="title"] p,
 div[data-field-type="form-title"] p,
 div[data-testid="title-field"] p,
 div[data-testid="edit-form-title-field"] p,
 p.codform-title-description,
-p.codform-edit-description {
-  font-size: 14px !important;
+p.codform-edit-description,
+.codform-title-container p,
+.codform-header p {
   color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px !important;
   margin-top: 6px !important;
   margin-bottom: 0 !important;
   line-height: 1.5 !important;
   text-align: center !important;
   width: 100% !important;
-  display: block !important;
 }
 
-/* إصلاح مشكلة الخلفية للعناوين في نماذج المتجر - تطبيق محدد قوي */
-.codform-form .space-y-2 > div:first-child,
-.codform-form .space-y-2 > div[data-field-type="title"],
-.codform-form .space-y-2 > div[data-field-type="form-title"],
-.codform-form .form-title-field,
-.codform-form div[data-testid="title-field"],
-.codform-form div[data-field-type="edit-form-title"] {
-  background-color: #9b87f5 !important;
-  border-radius: 8px !important;
-  padding: 16px !important;
-  margin-bottom: 16px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+/* ضمان أن الأيقونات تظهر باللون الصحيح */
+.codform-field-icon {
+  color: #6b7280 !important;
 }
 
-/* تجاوز خاصية الخلفية الشفافة لعناصر العنوان */
-.codform-form > div > div > div:first-child {
-  background-color: #9b87f5 !important;
+.codform-field-icon svg {
+  color: #6b7280 !important;
+  stroke: #6b7280 !important;
+  fill: none !important;
 }
 
-/* تحسين محاذاة التسميات بناءً على الصنف أو السمة */
-[dir="rtl"] .codform-field label,
-.rtl .codform-field label {
-  text-align: right !important;
+/* إضافة كود JavaScript ينفذ بعد تحميل الصفحة لفرض تطبيق الخلفية */
+.js-title-background-fix {
+  display: none !important;
 }
 
-[dir="ltr"] .codform-field label,
-.ltr .codform-field label {
-  text-align: left !important;
+/* إضافة قواعد للتأكد من عدم تأثر العناصر الأخرى بالتنسيقات */
+.codform-field:not([data-field-type="title"]):not([data-field-type="form-title"]):not([data-field-type="edit-form-title"]) {
+  background-color: transparent !important;
 }
 
-/* تعديل الهوامش بين الحقول */
-.codform-field {
-  margin-bottom: 14px !important;
+.codform-form input,
+.codform-form textarea,
+.codform-form select {
+  background-color: #ffffff !important;
 }
 
-/* تحسين تنسيق نص المساعدة والرسائل الخطأ في RTL و LTR */
-[dir="rtl"] .codform-help-text,
-.rtl .codform-help-text {
-  text-align: right !important;
+/* إصلاح مشكلة عرض الأيقونات */
+.codform-icon,
+.codform-field-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke: #6b7280 !important;
+  fill: none !important;
 }
 
-[dir="ltr"] .codform-help-text,
-.ltr .codform-help-text {
-  text-align: left !important;
-}
-
-[dir="rtl"] .codform-error-message,
-.rtl .codform-error-message {
-  text-align: right !important;
-}
-
-[dir="ltr"] .codform-error-message,
-.ltr .codform-error-message {
-  text-align: left !important;
-}
-
-/* تطبيق محاذاة خاصة لحقول العنوان والوصف */
-h2[style*="text-align: left"],
-p[style*="text-align: left"] {
-  text-align: left !important;
-}
-
-h2[style*="text-align: right"],
-p[style*="text-align: right"] {
-  text-align: right !important;
-}
-
-h2[style*="text-align: center"],
-p[style*="text-align: center"] {
-  text-align: center !important;
-}
-
-/* تحسين عرض العلامة النجمية للحقول المطلوبة */
-[dir="rtl"] .codform-field label .text-red-500,
-[dir="rtl"] .codform-field label .codform-required,
-.rtl .codform-field label .text-red-500,
-.rtl .codform-field label .codform-required {
-  margin-right: 4px !important;
-  margin-left: 0 !important;
-}
-
-[dir="ltr"] .codform-field label .text-red-500,
-[dir="ltr"] .codform-field label .codform-required,
-.ltr .codform-field label .text-red-500,
-.ltr .codform-field label .codform-required {
-  margin-left: 4px !important;
-  margin-right: 0 !important;
-}
-
-/* Animations and Other Styles - Keep Existing */
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* ضمان إعادة تعيين الألوان بعد التحميل */
+@media all {
+  .codform-field-icon,
+  .codform-field-icon svg {
+    color: #6b7280 !important;
+    stroke: #6b7280 !important;
+    fill: none !important;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .form-title-field,
+  .codform-title-field,
+  div[data-field-type="title"],
+  div[data-field-type="edit-form-title"],
+  div[data-field-type="form-title"],
+  div[data-testid="title-field"],
+  div[data-testid="edit-form-title-field"],
+  .codform-form .space-y-2 > div:first-child {
+    background-color: #9b87f5 !important;
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-/* Button animations - Enhanced for consistent behavior */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
-  }
-  
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-  }
-  
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-  }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-6px); }
-  40%, 60% { transform: translateX(6px); }
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
-}
-
-@keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg); }
-  50% { transform: rotate(0deg); }
-  75% { transform: rotate(5deg); }
-}
-
-@keyframes flash {
-  0%, 50%, 100% { opacity: 1; }
-  25%, 75% { opacity: 0.5; }
-}
-
-/* Apply animations to button in preview mode */
-.pulse-animation {
-  animation: pulse 2s infinite !important;
-}
-
-.shake-animation {
-  animation: shake 0.8s infinite !important;
-}
-
-.bounce-animation {
-  animation: bounce 2s infinite !important;
-}
-
-.wiggle-animation {
-  animation: wiggle 0.7s ease-in-out infinite !important;
-}
-
-.flash-animation {
-  animation: flash 3s infinite !important;
-}
-
-/* Animation Preview Section */
-.animation-preview-section {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 0.8rem;
-  margin-top: 0.8rem;
-}
-
-.animation-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.animation-preview-item {
-  padding: 0.5rem;
-  background-color: #f9fafb;
-  border-radius: 0.25rem;
-  text-align: center;
-  cursor: pointer;
-}
-
-.animation-preview-item:hover {
-  background-color: #f3f4f6;
-}
-
-.animation-preview-item.selected {
-  border: 2px solid var(--form-primary-color, #9b87f5);
-}
-
-/* Animation examples */
-.animation-example {
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--form-primary-color, #9b87f5);
-  color: white;
-  font-size: 0.75rem;
-  border-radius: 0.25rem;
-}
-
-/* Fixed animation for buttons in preview */
-.pulse-animation, .shake-animation, .bounce-animation, .wiggle-animation, .flash-animation {
-  animation-duration: 2s !important;
-  animation-iteration-count: infinite !important;
-  animation-timing-function: ease-in-out !important;
-  animation-fill-mode: both !important;
-  display: inline-flex !important;
-}
-
-/* تحسين محاذاة أيقونة وزر الإرسال */
-.codform-submit-button {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0.5rem !important;
-  line-height: 1.5 !important;
-}
-
-.codform-submit-button svg {
-  flex-shrink: 0;
-}
-
-/* محاذاة عناصر RTL بشكل صحيح */
-[dir="rtl"] .codform-submit-button {
-  flex-direction: row-reverse;
-}
-
-/* تحسين أنماط زر الإرسال لتتوافق مع المتجر */
-.codform-submit-btn {
-  width: 100%;
-  padding: 16px 20px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-radius: 8px;
-  margin: 14px 0 4px 0;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  background-color: #9b87f5;
-  color: white;
-  border: none;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  gap: 10px;
-  position: relative;
-  overflow: hidden;
-}
-
-.codform-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  opacity: 0.95;
-}
-
-/* محاذاة عناصر RTL بشكل صحيح */
-[dir="rtl"] .codform-submit-btn {
-  flex-direction: row-reverse;
-}
-
-.codform-submit-btn span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Fixed animation for buttons in preview */
-.pulse-animation, .shake-animation, .bounce-animation, .wiggle-animation, .flash-animation {
-  animation-duration: 2s !important;
-  animation-iteration-count: infinite !important;
-  animation-timing-function: ease-in-out !important;
-  animation-fill-mode: both !important;
-}
-
-/* تحسين المسافات بين حقول النموذج في المعاينة */
+/* تحسين المساحات بين حقول النموذج في المعاينة */
 .space-y-4 {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
@@ -631,351 +414,72 @@ p[style*="text-align: center"] {
   margin-bottom: 0;
 }
 
-/* تحسين تنسيق النموذج لتطابق تماما مع المعاينة */
-.codform-form {
-  background-color: #F9FAFB !important;
-  border-radius: 8px;
-  margin: 0;
-}
-
-/* تصحيح موضع الأيقونات ومحاذاة حقول الإدخال */
-.codform-field-icon {
-  top: 50% !important;
-}
-
-[dir="ltr"] .codform-field-icon {
-  left: 12px !important;
-  right: auto !important;
-}
-
-[dir="rtl"] .codform-field-icon {
-  right: 12px !important;
-  left: auto !important;
-}
-
-/* محاذاة تسميات الحقول بشكل صحيح */
-.codform-field label {
-  text-align: left !important;
-}
-
-[dir="rtl"] .codform-field label {
-  text-align: right !important;
-}
-
-/* إزالة الخلفية البيضاء من داخل النموذج */
-.codform-container,
-.codform-form,
-.codform-form > div {
-  background-color: #F9FAFB !important;
-}
-
-/* تصحيح الهوامش بين الحقول */
-.codform-field {
-  margin-bottom: 12px !important;
-}
-
-/* تنسيقات زر الواتساب - مطابقة تماما للمعاينة */
-.codform-whatsapp-button {
-  background-color: #25D366 !important;
-  color: white !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  padding: 14px 20px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  font-size: 18px !important;
-  text-decoration: none !important;
-  width: 100% !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  font-family: 'Cairo', sans-serif !important;
-  margin-top: 14px !important;
-  margin-bottom: 8px !important;
-  text-align: center !important;
-}
-
-.codform-whatsapp-button:hover {
-  background-color: #20bd5a !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-}
-
-.codform-whatsapp-icon {
-  width: 18px !important;
-  height: 18px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-/* تعديلات للتوافق مع المعاينة والشاشات الصغيرة */
-@media (max-width: 768px) {
-  .codform-container {
-    padding: 12px;
-    margin: 12px 0;
+/* كود جافاسكريبت سيتم إضافته لإصلاح مشكلة خلفية العنوان */
+/* سيتم تنفيذ هذا الكود بعد تحميل الصفحة لضمان تطبيق الخلفية */
+document.addEventListener('DOMContentLoaded', function() {
+  // وظيفة لإصلاح مشكلة خلفية العنوان
+  function fixFormTitleBackground() {
+    // تحديد جميع عناصر العنوان المحتملة
+    const titleElements = document.querySelectorAll('.form-title-field, .codform-title-field, [data-field-type="title"], [data-field-type="edit-form-title"], [data-field-type="form-title"], [data-testid="title-field"], [data-testid="edit-form-title-field"], .codform-form .space-y-2 > div:first-child, .codform-title-container, .codform-header');
+    
+    // تطبيق الخلفية على جميع العناصر
+    titleElements.forEach(function(el) {
+      el.style.backgroundColor = '#9b87f5';
+      el.style.padding = '16px';
+      el.style.borderRadius = '8px';
+      el.style.marginBottom = '16px';
+      el.style.display = 'block';
+      el.style.width = '100%';
+      
+      // التأكد من أن العنصر ليس له خلفية شفافة
+      el.style.backgroundImage = 'none';
+      
+      // البحث عن عناصر العنوان والوصف داخل هذا العنصر
+      const headings = el.querySelectorAll('h2, h3');
+      const paragraphs = el.querySelectorAll('p');
+      
+      // تطبيق التنسيقات على العناوين
+      headings.forEach(function(heading) {
+        heading.style.color = '#ffffff';
+        heading.style.fontSize = '24px';
+        heading.style.fontWeight = '700';
+        heading.style.margin = '0';
+        heading.style.padding = '0';
+        heading.style.lineHeight = '1.3';
+        heading.style.textAlign = 'center';
+        heading.style.width = '100%';
+      });
+      
+      // تطبيق التنسيقات على الفقرات
+      paragraphs.forEach(function(para) {
+        para.style.color = 'rgba(255, 255, 255, 0.9)';
+        para.style.fontSize = '14px';
+        para.style.marginTop = '6px';
+        para.style.marginBottom = '0';
+        para.style.lineHeight = '1.5';
+        para.style.textAlign = 'center';
+        para.style.width = '100%';
+      });
+    });
+    
+    // إصلاح الأيقونات
+    const icons = document.querySelectorAll('.codform-field-icon, .codform-field-icon svg');
+    icons.forEach(function(icon) {
+      icon.style.color = '#6b7280';
+      if (icon.tagName === 'svg') {
+        icon.setAttribute('stroke', '#6b7280');
+        icon.setAttribute('fill', 'none');
+      }
+    });
   }
-
-  .codform-title-container {
-    padding: 12px !important;
-  }
-
-  .codform-form-title {
-    font-size: 22px !important;
-  }
-}
-
-/* ضبط box-sizing للتناسق */
-.codform-container *,
-.codform-form * {
-  box-sizing: border-box !important;
-}
-
-/* تحسين مظهر الأيقونات */
-.codform-icon {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 18px !important;
-  height: 18px !important;
-  flex-shrink: 0 !important;
-  stroke-width: 2px !important;
-}
-
-.codform-submit-btn svg,
-.codform-whatsapp-button svg {
-  width: 18px !important;
-  height: 18px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-}
-
-/* تحسين أيقونات الإدخال - إزالة الخلفية البيضاء */
-.codform-input {
-  width: 100% !important;
-  padding: 10px 12px !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* التأكد من أن المدخلات مع الأيقونات لها مساحات مناسبة */
-.codform-input[data-icon-position="left"],
-.ltr .codform-input.with-icon {
-  padding-left: 36px !important;
-  padding-right: 12px !important;
-}
-
-.codform-input[data-icon-position="right"],
-.rtl .codform-input.with-icon {
-  padding-left: 12px !important;
-  padding-right: 36px !important;
-}
-
-/* تأكيد على أن الحقول والأزرار تظهر بشكل جيد */
-.codform-form {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-}
-
-/* تحسين عرض العلامة النجمية للحقول المطلوبة */
-.codform-field label .text-red-500,
-.codform-field label .codform-required {
-  color: #ef4444 !important;
-  margin-left: 4px !important;
-}
-
-/* RTL-specific required field styling */
-[dir="rtl"] .codform-field label .text-red-500,
-[dir="rtl"] .codform-field label .codform-required,
-.rtl .codform-field label .text-red-500,
-.rtl .codform-field label .codform-required {
-  margin-right: 4px !important;
-  margin-left: 0 !important;
-}
-
-/* ضمان الحفاظ على الألوان المحددة في عناوين النماذج */
-/* إزالة جميع إعدادات الألوان الثابتة واستخدام المتغيرات بدلا من ذلك */
-.codform-title-container,
-.codform-form-title-container,
-.codform-header,
-div[class*='codform-title-container'] {
-  padding: 16px !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-  display: block !important;
-}
-
-/* تأكد من أن خلفية النموذج شفافة */
-.codform-form, 
-.codform-form > div,
-.codform-form-container,
-.codform-form-element,
-.codform-container,
-.codform-form .space-y-2,
-.codform-container > div:not(.codform-title-container),
-.codform-form-container > div:not(.codform-title-container),
-.codform-form > div:not(.codform-title-container),
-.codform-form-element,
-.codform-form-container .codform-form,
-#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-/* Ensure white background ONLY for specific input elements */
-.codform-input,
-.codform-textarea {
-  background-color: #ffffff !important;
-}
-
-/* Space between form elements */
-.space-y-2 > * {
-  margin-bottom: 8px !important;
-}
-
-/* اجبار محاذاة تسميات الحقول بشكل صحيح */
-.codform-field label {
-  display: block !important;
-}
-
-/* Fix label alignment based on class or attribute - تعزيز محاذاة التسميات */
-[dir="rtl"] .codform-field label,
-.rtl .codform-field label {
-  text-align: right !important;
-}
-
-[dir="ltr"] .codform-field label,
-.ltr .codform-field label {
-  text-align: left !important;
-}
-
-/* ضمان ظهور العنوان والوصف بشكل صحيح في الإطار بغض النظر عن الاتجاه */
-.codform-title-container h3,
-.codform-title-container p {
-  width: 100% !important;
-  display: block !important;
-  box-sizing: border-box !important;
-}
-
-/* ضمان محاذاة العنوان والوصف للمركز دائمًا في العناوين */
-.codform-title-container h3,
-.codform-title-container p {
-  text-align: center !important;
-}
-
-/* خلفية حاوية النموذج */
-.codform-form-container, 
-#codform-form-element-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem {
-  background-color: #F9FAFB !important;
-}
-
-/* CSS إضافي خاص بالاتجاه */
-.codform-form.rtl,
-.codform-form-container[dir="rtl"],
-.codform-form[dir="rtl"] {
-  direction: rtl !important;
-}
-
-.codform-form.ltr,
-.codform-form-container[dir="ltr"],
-.codform-form[dir="ltr"] {
-  direction: ltr !important;
-}
-
-/* إصلاح مرة أخرى للون الخلفية للعنصر الجذر */
-#codform-form-AOTk2dWd6YUZIbmZie__codform_cod_forms_codform_form_ARWzem,
-.codform-form-container {
-  background-color: #F9FAFB !important;
-}
-
-/* ===== إصلاحات جذرية جديدة لضمان عرض خلفية العنوان على جميع المتصفحات وفي المتجر ===== */
-
-/* هذا محدد قوة للتأكد من أن خلفية العنوان دائما بنفسجية */
-.form-title-field,
-.codform-title-field,
-.form-title-field.w-full,
-.codform-title-field.w-full,
-div[data-field-type="title"],
-div[data-field-type="edit-form-title"],
-div[data-field-type="form-title"],
-div[data-testid="title-field"],
-div[data-testid="edit-form-title-field"] {
-  background-color: #9b87f5 !important;
-  padding: 16px !important;
-  border-radius: 8px !important;
-  margin-bottom: 16px !important;
-  width: 100% !important;
-  display: block !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-/* تطبيق خلفية على العنصر الرئيسي في الـ Shopify */
-div.codform-form div.space-y-2 > div:first-child,
-div.space-y-2 > div.form-title-field,
-.codform-form .space-y-2 > div.form-title-field,
-div.space-y-2 > div[data-field-type="title"],
-div.space-y-2 > div[data-field-type="form-title"],
-div.space-y-2 > div[data-field-type="edit-form-title"] {
-  background-color: #9b87f5 !important;
-  color: #ffffff !important;
-}
-
-/* قم بتجاوز تنسيقات العناوين بشكل أساسي */
-div.form-title-field h2,
-div.codform-title-field h2,
-div[data-field-type="title"] h2,
-div[data-field-type="form-title"] h2,
-div[data-field-type="edit-form-title"] h2 {
-  color: #ffffff !important;
-  font-size: 24px !important;
-  font-weight: bold !important;
-}
-
-div.form-title-field p,
-div.codform-title-field p,
-div[data-field-type="title"] p,
-div[data-field-type="form-title"] p,
-div[data-field-type="edit-form-title"] p {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-size: 14px !important;
-}
-
-/* تصحيحات جوهرية لمقتطف Shopify - بتاريخ تحديث 2025-05-18 */
-.form-title-field:not([style*="background"]),
-.codform-title-field:not([style*="background"]) {
-  background-color: #9b87f5 !important;
-}
-
-div[data-field-type="title"] > div:not([style*="background"]),
-div[data-field-type="form-title"] > div:not([style*="background"]),
-div[data-field-type="edit-form-title"] > div:not([style*="background"]) {
-  background-color: #9b87f5 !important;
-}
-
-/* أولوية قصوى لضمان تطبيق خلفية العنوان */
-.form-title-field[style],
-.codform-title-field[style],
-div[data-field-type="title"][style] > div,
-div[data-field-type="form-title"][style] > div,
-div[data-field-type="edit-form-title"][style] > div {
-  background-color: #9b87f5 !important;
-}
-
-/* إصلاح للمقتطف في Shopify - أضف خلفية لعناصر العنوان الأولى */
-.codform-form .space-y-2 > *:first-child {
-  background-color: #9b87f5 !important;
-  border-radius: 8px !important;
-  padding: 16px !important;
-}
+  
+  // تنفيذ الإصلاح عند تحميل الصفحة
+  fixFormTitleBackground();
+  
+  // تنفيذ الإصلاح بعد نصف ثانية للتأكد من تحميل جميع العناصر
+  setTimeout(fixFormTitleBackground, 500);
+  
+  // تنفيذ الإصلاح عند تغيير المحتوى
+  const observer = new MutationObserver(fixFormTitleBackground);
+  observer.observe(document.body, { childList: true, subtree: true });
+});

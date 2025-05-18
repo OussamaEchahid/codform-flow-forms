@@ -42,10 +42,6 @@ const TitleField: React.FC<TitleFieldProps> = ({
     return null;
   }
   
-  // Debug direction
-  console.log(`Title field direction: ${direction} for field ${field.id}`);
-  console.log(`Title field styling: backgroundColor=${backgroundColor}, textColor=${textColor}, textAlign=${textAlign}`);
-  
   return (
     <div
       className="form-title-field w-full my-2"
