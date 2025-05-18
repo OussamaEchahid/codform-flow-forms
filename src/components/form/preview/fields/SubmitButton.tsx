@@ -20,10 +20,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
   const { language } = useI18n();
   const style = field.style || {};
   
-  // تحديد الاتجاه بناءً على خاصية formDirection أو اللغة
+  // تحديد الاتجاه
   const textDir = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // الحصول على فئة الرسوم المتحركة إذا تم تعيينها
+  // الحصول على فئة الرسوم المتحركة
   const getAnimationClass = () => {
     if (style.animation !== true) return '';
     
@@ -40,7 +40,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
 
   const animationClass = getAnimationClass();
   
-  // نمط الزر الافتراضي مع قيم بكسل دقيقة مطابقة للمعاينة
+  // نمط الزر المحسن
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
@@ -70,11 +70,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
     textAlign: 'center'
   };
   
-  // تقديم الأيقونة بحجم وموضع متناسقين
+  // تقديم الأيقونة
   const renderIcon = () => {
     if (!style.showIcon) return null;
     
-    // إضافة نمط محدد للأيقونة لمطابقة المعاينة بالضبط
+    // أنماط الأيقونة
     const iconStyle = {
       width: '18px',
       height: '18px',
@@ -83,7 +83,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
       justifyContent: 'center'
     };
     
-    // إرجاع مكونات أيقونة Lucide React بناءً على اسم الأيقونة
+    // إرجاع الأيقونة المناسبة
     switch (style.icon?.toLowerCase()) {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
@@ -105,7 +105,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, formDirec
     }
   };
 
-  // تحديد المحتوى والترتيب بناءً على موضع الأيقونة
+  // موضع الأيقونة
   const iconPosition = style.iconPosition || (textDir === 'rtl' ? 'left' : 'right');
   const icon = renderIcon();
   

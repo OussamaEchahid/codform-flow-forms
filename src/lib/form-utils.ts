@@ -44,7 +44,6 @@ export interface FormFieldOption {
   label: string;
 }
 
-// تحسين واجهة نمط الحقل لتضمين جميع الخصائص المطلوبة
 export interface FormFieldStyle {
   // الخصائص الأساسية
   color?: string;
@@ -62,7 +61,7 @@ export interface FormFieldStyle {
   borderColor?: string;
   borderWidth?: string;
   
-  // خصائص الرسوم المتحركة - تصحيح نوع animationType ليكون قيمة محددة
+  // خصائص الرسوم المتحركة
   animation?: boolean;
   animationType?: 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none';
   
@@ -97,12 +96,14 @@ export interface FormFieldStyle {
   totalValueFontSize?: string;
   totalValueColor?: string;
   
-  // خصائص إضافية للتوافق مع المتجر
+  // خصائص CSS متقدمة لدعم التنسيق
   display?: string;
   width?: string;
   overflow?: string;
   alignItems?: string;
   justifyContent?: string;
+  boxSizing?: string;
+  position?: string;
 }
 
 export interface FormField {
@@ -208,23 +209,19 @@ export const validatePhone = (phone: string): boolean => {
   return phoneRegex.test(phone);
 };
 
-export const validateAnimationType = (type: string): 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none' => {
-  const validTypes = ['pulse', 'shake', 'bounce', 'wiggle', 'flash', 'none'] as const;
-  return validTypes.includes(type as any) 
-    ? (type as 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none')
-    : 'pulse'; // Default to 'pulse' if invalid
-};
-
+/**
+ * تحويل قيم حجم الخط من rem إلى px للتوافق مع المتجر
+ */
 export const normalizeFontSize = (fontSize: string | undefined): string => {
   if (!fontSize) return '';
   
-  // إذا كانت القيمة تحتوي على وحدة rem
+  // تحويل rem إلى px
   if (fontSize.includes('rem')) {
     const remValue = parseFloat(fontSize);
     return `${remValue * 16}px`;
   }
   
-  // إذا كانت القيمة رقمية فقط
+  // إضافة وحدة px إذا كان الإدخال رقمي فقط
   if (!isNaN(parseFloat(fontSize)) && !fontSize.match(/[a-z%]/i)) {
     return `${fontSize}px`;
   }
@@ -232,6 +229,9 @@ export const normalizeFontSize = (fontSize: string | undefined): string => {
   return fontSize;
 };
 
+/**
+ * تحويل الألوان إلى صيغة hex كاملة
+ */
 export const normalizeColor = (color: string | undefined): string => {
   if (!color) return '';
   
@@ -246,6 +246,9 @@ export const normalizeColor = (color: string | undefined): string => {
   return color;
 };
 
+/**
+ * إعداد حقل ليكون متوافقًا مع المتجر والمعاينة
+ */
 export const prepareFieldStyleForStore = (field: FormField): FormField => {
   if (!field) return field;
   
@@ -269,7 +272,8 @@ export const prepareFieldStyleForStore = (field: FormField): FormField => {
       backgroundColor: normalizeColor(updatedField.style.backgroundColor || '#9b87f5'),
       display: 'block',
       width: '100%',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxSizing: 'border-box'
     };
   }
   
@@ -291,7 +295,8 @@ export const prepareFieldStyleForStore = (field: FormField): FormField => {
       alignItems: 'center',
       justifyContent: 'center',
       textAlign: 'center',
-      width: updatedField.style.fullWidth === false ? 'auto' : '100%'
+      width: updatedField.style.fullWidth === false ? 'auto' : '100%',
+      position: 'relative'
     };
   }
   
@@ -790,7 +795,8 @@ export const createDefaultTitleField = (title: string, description?: string): Fo
       backgroundColor: '#9b87f5',
       display: 'block',
       width: '100%',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxSizing: 'border-box'
     }
   };
 };
@@ -818,7 +824,18 @@ export const createDefaultSubmitButton = (label?: string): FormField => {
       alignItems: 'center',
       justifyContent: 'center',
       textAlign: 'center',
-      width: '100%'
+      width: '100%',
+      position: 'relative'
     }
   };
+};
+
+/**
+ * تحديد نوع الرسوم المتحركة المستخدمة 
+ */
+export const validateAnimationType = (type: string): 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none' => {
+  const validTypes = ['pulse', 'shake', 'bounce', 'wiggle', 'flash', 'none'] as const;
+  return validTypes.includes(type as any) 
+    ? (type as 'pulse' | 'shake' | 'bounce' | 'wiggle' | 'flash' | 'none')
+    : 'pulse'; // Default to 'pulse' if invalid
 };

@@ -28,7 +28,7 @@ interface FormStore {
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
   
-  // إضافة تكوين للزر العائم
+  // تكوين الزر العائم
   floatingButton: {
     enabled: boolean;
     text: string;
@@ -50,23 +50,23 @@ interface FormStore {
     showOnDesktop?: boolean;
   };
   
-  // إضافة دالة لتحديث تكوين الزر العائم
+  // دالة لتحديث تكوين الزر العائم
   updateFloatingButton: (config: any) => void;
   
-  // إضافة حالة متزامنة للتتبع
+  // حالة متزامنة للتتبع
   syncState: {
     lastSynced: string | null;
     isInSync: boolean;
     syncErrors: string[];
   };
   
-  // إضافة دالة لتحديث حالة التزامن
+  // دالة لتحديث حالة التزامن
   updateSyncState: (state: Partial<FormStore['syncState']>) => void;
   
-  // إضافة وظيفة للتحقق من أن الحقل يحتوي على جميع الخصائص المطلوبة
+  // وظيفة للتحقق من أن الحقل يحتوي على جميع الخصائص المطلوبة
   ensureFieldStyle: (fieldId: string, fieldType: string, defaultStyle?: Partial<FormFieldStyle>) => void;
   
-  // إضافة وظيفة جديدة لتنسيق قيم الأنماط لضمان توافقها مع المتجر
+  // وظيفة لتنسيق قيم الأنماط
   normalizeStyleValues: (style?: Record<string, any>) => Record<string, any>;
 }
 
@@ -84,7 +84,7 @@ const defaultFormState: FormState = {
     buttonStyle: 'rounded',
   },
   formDirection: 'rtl',
-  styleVersion: 2, // إصدار النمط الجديد لتتبع التحديثات
+  styleVersion: 2,
 };
 
 export const useFormStore = create<FormStore>((set, get) => ({
@@ -97,7 +97,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
   })),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
-  // تهيئة تكوين الزر العائم مع كل الخصائص المطلوبة
+  // تهيئة تكوين الزر العائم
   floatingButton: {
     enabled: false,
     text: 'Order Now',
@@ -119,7 +119,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
     animation: 'none',
   },
   
-  // إضافة طريقة لتحديث الزر العائم
+  // طريقة تحديث الزر العائم
   updateFloatingButton: (config) => set((state) => ({
     floatingButton: {
       ...state.floatingButton,
@@ -134,7 +134,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
     syncErrors: [],
   },
   
-  // إضافة دالة لتحديث حالة التزامن
+  // دالة لتحديث حالة التزامن
   updateSyncState: (state) => set((currentState) => ({
     syncState: {
       ...currentState.syncState,
@@ -142,7 +142,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
     }
   })),
   
-  // إضافة وظيفة للتحقق من الحقل وتحديثه للتأكد من أنه يحتوي على جميع الخصائص المطلوبة
+  // وظيفة للتحقق من الحقل وتحديثه
   ensureFieldStyle: (fieldId, fieldType, defaultStyle = {}) => {
     const { formState } = get();
     
@@ -161,7 +161,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
       if (fieldType === 'form-title' || fieldType === 'title') {
         foundField.style = {
           ...foundField.style,
-          textAlign: 'center', // دائمًا مركزية للتوافق مع عرض المتجر
+          textAlign: 'center',
           color: foundField.style.color || '#ffffff',
           fontSize: foundField.style.fontSize || (fieldType === 'form-title' ? '24px' : '20px'),
           fontWeight: foundField.style.fontWeight || 'bold',
@@ -201,11 +201,11 @@ export const useFormStore = create<FormStore>((set, get) => ({
     }
   },
   
-  // إضافة وظيفة جديدة لتنسيق قيم الأنماط لضمان توافقها مع المتجر
+  // وظيفة لتنسيق قيم الأنماط
   normalizeStyleValues: (style = {}) => {
     const normalizedStyle = { ...style };
     
-    // تحويل قيم rem إلى px إذا لزم الأمر
+    // تحويل قيم rem إلى px
     if (normalizedStyle.fontSize && normalizedStyle.fontSize.includes('rem')) {
       const remValue = parseFloat(normalizedStyle.fontSize);
       normalizedStyle.fontSize = `${remValue * 16}px`;
@@ -216,7 +216,7 @@ export const useFormStore = create<FormStore>((set, get) => ({
       normalizedStyle.descriptionFontSize = `${remValue * 16}px`;
     }
     
-    // تأكد من أن جميع الألوان تستخدم صيغة hex كاملة
+    // تنسيق الألوان
     ['color', 'backgroundColor', 'descriptionColor', 'borderColor'].forEach(colorProp => {
       if (normalizedStyle[colorProp] && normalizedStyle[colorProp].startsWith('#') && normalizedStyle[colorProp].length === 4) {
         // تحويل #rgb إلى #rrggbb

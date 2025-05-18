@@ -17,28 +17,28 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // استخراج الوصف من الحقل نفسه
+  // استخراج الوصف من الحقل
   const description = field.helpText || '';
   
-  // الحصول على اتجاه اللغة بناءً على اللغة المستخدمة
+  // الحصول على اتجاه اللغة
   const textDirection = formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // استخدام قيم بكسل دقيقة بدلاً من rem لضمان حجم متناسق
+  // تحديد نوع العنوان
   const isFormTitle = field.type === 'form-title';
   
   // تحديد حجم الخط بشكل دقيق
   const fontSize = fieldStyle.fontSize || (isFormTitle ? '24px' : '20px');
   const descriptionFontSize = fieldStyle.descriptionFontSize || '14px';
   
-  // الحصول على لون الخلفية من نمط الحقل، أو استخدام اللون الأساسي في النموذج، ثم الافتراضي
+  // الحصول على لون الخلفية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // استخدام نفس قيمة نصف القطر للحدود كما في المتجر
+  // استخدام نفس قيمة نصف القطر للحدود
   const borderRadiusValue = formStyle.borderRadius || '0.5rem';
 
   console.log(`Title field background color: ${backgroundColor}`);
   
-  // نمط الخلفية بقيم متناسقة للمتجر والمعاينة - استخدام data attributes بدلاً من !important
+  // تحسين الأنماط باستخدام سمات البيانات بدلاً من !important
   const backgroundStyle: React.CSSProperties = {
     backgroundColor: backgroundColor,
     padding: '16px',
@@ -51,7 +51,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     overflow: 'hidden',
   };
 
-  // أنماط العنوان بهامش صفر لمطابقة المعاينة
+  // أنماط العنوان
   const titleStyle: React.CSSProperties = {
     color: fieldStyle.color || '#ffffff',
     fontSize: fontSize,
@@ -66,7 +66,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     width: '100%',
   };
 
-  // أنماط الوصف بهامش علوي 6 بكسل تماماً لمطابقة المعاينة
+  // أنماط الوصف
   const descriptionStyle: React.CSSProperties = {
     color: fieldStyle.descriptionColor || '#ffffff',
     fontSize: descriptionFontSize,
@@ -82,7 +82,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, formDirection
     display: 'block',
   };
 
-  // إنشاء معرف فريد لهذا الحقل لتجنب التعارضات
+  // معرف فريد للحقل
   const titleFieldId = `title-field-${field.id}`;
 
   console.log(`Rendering TitleField with styles:`, { 
