@@ -58,44 +58,44 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Set content direction based on language
   const contentDirection = language === 'ar' ? 'rtl' : 'ltr';
   
-  // Use !important on all style properties for consistent rendering
+  // Use standard CSS properties without "!important" for React styles
   const backgroundStyle: React.CSSProperties = {
-    backgroundColor: `${backgroundColor} !important`,
-    padding: '16px !important',
-    borderRadius: `${formStyle.borderRadius || '8px'} !important`,
-    width: '100% !important',
-    boxSizing: 'border-box !important',
-    marginBottom: '16px !important',
+    backgroundColor: backgroundColor,
+    padding: '16px',
+    borderRadius: formStyle.borderRadius || '8px',
+    width: '100%',
+    boxSizing: 'border-box' as 'border-box', // Fix the type issue
+    marginBottom: '16px',
     textAlign: alignment as React.CSSProperties['textAlign'],
     direction: contentDirection as any,
   };
 
-  // Title styles with !important flags
+  // Title styles with fixed type
   const titleStyle: React.CSSProperties = {
-    color: `${fieldStyle.color || '#ffffff'} !important`,
-    fontSize: `${fontSize} !important`,
-    textAlign: `${alignment} !important` as React.CSSProperties['textAlign'],
-    fontWeight: `${fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')} !important`,
-    fontFamily: `${fieldStyle.fontFamily || 'inherit'} !important`,
-    margin: '0 !important',
-    padding: '0 !important',
-    lineHeight: '1.3 !important',
-    display: showTitle ? 'block !important' : 'none !important',
+    color: fieldStyle.color || '#ffffff',
+    fontSize: fontSize,
+    textAlign: alignment as React.CSSProperties['textAlign'],
+    fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
+    fontFamily: fieldStyle.fontFamily || 'inherit',
+    margin: '0',
+    padding: '0',
+    lineHeight: '1.3',
+    display: showTitle ? 'block' : 'none',
     direction: contentDirection as any,
   };
 
-  // Description styles with !important flags
+  // Description styles with fixed type
   const descriptionStyle: React.CSSProperties = {
-    color: `${fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'} !important`,
-    fontSize: `${descriptionFontSize} !important`,
-    margin: '6px 0 0 0 !important',
-    padding: '0 !important',
-    textAlign: `${alignment} !important` as React.CSSProperties['textAlign'],
-    fontFamily: `${fieldStyle.fontFamily || 'inherit'} !important`,
-    fontWeight: 'normal !important',
-    lineHeight: '1.5 !important',
-    opacity: '0.9 !important',
-    display: showDescription ? 'block !important' : 'none !important',
+    color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
+    fontSize: descriptionFontSize,
+    margin: '6px 0 0 0',
+    padding: '0',
+    textAlign: alignment as React.CSSProperties['textAlign'],
+    fontFamily: fieldStyle.fontFamily || 'inherit',
+    fontWeight: 'normal',
+    lineHeight: '1.5',
+    opacity: '0.9',
+    display: showDescription ? 'block' : 'none',
     direction: contentDirection as any,
   };
 

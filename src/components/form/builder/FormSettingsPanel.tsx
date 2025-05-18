@@ -8,13 +8,21 @@ import {
   Type, FileText, PanelLeft, Layout
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FormField, FormStyle } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import TitleSettings from '@/components/form/settings/TitleSettings';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+
+// Define FormStyle interface here since it's not exported from form-utils
+interface FormStyle {
+  primaryColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  buttonStyle?: string;
+}
 
 interface FormSettingsPanelProps {
   formId: string;

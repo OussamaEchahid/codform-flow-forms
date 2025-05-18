@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useFormStore } from '@/hooks/useFormStore';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -7,17 +6,25 @@ import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
 import FormSettingsPanel from '@/components/form/builder/FormSettingsPanel';
-import { createEmptyField, FormField } from '@/lib/form-utils';
+import { createEmptyField, FormField, FormStep } from '@/lib/form-utils';
 import { v4 as uuidv4 } from 'uuid';
 
 interface FormBuilderEditorProps {
   formId: string;
 }
 
+// Define custom FormStyle interface that was missing
+interface FormStyle {
+  primaryColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  buttonStyle?: string;
+}
+
 const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const { language } = useI18n();
   const { formState, setFormState, resetFormState } = useFormStore();
-  const { getForm, saveForm, publishForm } = useFormTemplates();
+  const { forms, fetchForms, saveForm, publishForm } = useFormTemplates();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,13 +32,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [previewRefresh, setPreviewRefresh] = useState(0);
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   
-  // Load form data from API
+  // Load form data from forms array instead of using a non-existent getForm method
   useEffect(() => {
     const loadFormData = async () => {
       setLoading(true);
       
       try {
-        const formData = await getForm(formId);
+        await fetchForms();
+        const formData = forms.find(form => form.id === formId);
+        
         if (formData) {
           // Ensure form has all required data
           const processedForm = processFormData(formData);
@@ -45,10 +54,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             isPublished: formData.is_published,
             shop_id: formData.shop_id,
             style: {
-              primaryColor: formData.primaryColor || formData.style?.primaryColor || '#9b87f5',
-              borderRadius: formData.borderRadius || formData.style?.borderRadius || '0.5rem',
-              fontSize: formData.fontSize || formData.style?.fontSize || '1rem',
-              buttonStyle: formData.buttonStyle || formData.style?.buttonStyle || 'rounded'
+              primaryColor: formData.style?.primaryColor || '#9b87f5',
+              borderRadius: formData.style?.borderRadius || '0.5rem',
+              fontSize: formData.style?.fontSize || '1rem',
+              buttonStyle: formData.style?.buttonStyle || 'rounded'
             }
           });
           
@@ -69,7 +78,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     };
     
     loadFormData();
-  }, [formId, getForm, language, setFormState]);
+  }, [formId, fetchForms, language, setFormState, forms]);
   
   // Process form data to ensure it has all required fields
   const processFormData = (form: FormData): FormData => {
@@ -86,7 +95,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         helpText: form.description || '',
         style: {
           color: '#ffffff',
-          backgroundColor: form.style?.primaryColor || form.primaryColor || '#9b87f5',
+          backgroundColor: form.style?.primaryColor || '#9b87f5',
           fontSize: '24px',
           fontWeight: 'bold',
           textAlign: language === 'ar' ? 'right' : 'left',
@@ -108,12 +117,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const handleSaveForm = async (data: {
     title: string;
     description: string;
-    style: {
-      primaryColor: string;
-      borderRadius: string;
-      fontSize: string;
-      buttonStyle: string;
-    };
+    style: FormStyle;
     fields: FormField[];
   }) => {
     setSaving(true);
@@ -142,14 +146,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         }
       }
       
+      // Use only properties compatible with FormData type for saveForm
       const success = await saveForm(formId, {
         title: data.title,
         description: data.description,
         data: updatedData,
-        primaryColor: data.style.primaryColor,
-        borderRadius: data.style.borderRadius,
-        fontSize: data.style.fontSize,
-        buttonStyle: data.style.buttonStyle
+        style: {
+          primaryColor: data.style.primaryColor,
+          borderRadius: data.style.borderRadius,
+          fontSize: data.style.fontSize,
+          buttonStyle: data.style.buttonStyle
+        }
       });
       
       if (success) {
