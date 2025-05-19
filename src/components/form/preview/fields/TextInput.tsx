@@ -128,19 +128,28 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       {showLabel && (
         <label 
           htmlFor={inputId} 
-          className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
+          className={`block mb-2 ${field.required ? 'relative' : ''}`}
           style={{ 
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
-            marginBottom: '8px'
+            marginBottom: '8px',
+            display: 'flex'
           }}
           data-label-text={labelText}
         >
           {labelText}
           {field.required && (
-            <span className="text-red-500 absolute" style={{left: language === 'ar' ? 'auto' : '-12px', right: language === 'ar' ? '-12px' : 'auto'}}>*</span>
+            <span 
+              className="text-red-500" 
+              style={{
+                marginRight: language === 'ar' ? '0' : '4px',
+                marginLeft: language === 'ar' ? '4px' : '0',
+              }}
+            >
+              *
+            </span>
           )}
         </label>
       )}
@@ -192,7 +201,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',
-            lineHeight: 1.5
+            lineHeight: 1.5,
+            minHeight: '44px'
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           required={field.required}

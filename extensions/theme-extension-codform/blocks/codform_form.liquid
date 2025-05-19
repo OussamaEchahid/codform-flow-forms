@@ -300,7 +300,7 @@
       const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
       const primaryColor = formData.settings?.primaryColor || '#9b87f5';
       const borderRadius = formData.settings?.borderRadius || '0.5rem';
-      const fontSize = formData.settings?.fontSize || '1rem';
+      const fontSize = formData.settings?.fontSize || '16px';
       const buttonStyle = formData.settings?.buttonStyle || 'rounded';
       
       // إنشاء CSS المحسن
@@ -386,6 +386,7 @@
           position: relative;
         }
 
+        /* تحسينات لحجم الحقول ومظهرها */
         .codform-input, .codform-textarea {
           width: 100%;
           padding: 10px 12px;
@@ -398,25 +399,38 @@
           font-family: inherit;
           background-color: #ffffff;
           box-sizing: border-box;
+          min-height: 44px; /* زيادة الارتفاع للحقول */
+        }
+
+        .codform-textarea {
+          min-height: 100px; /* زيادة الارتفاع لمساحات النص */
         }
 
         .codform-input.with-icon {
           ${isRTL ? 'padding-right: 36px !important;' : 'padding-left: 36px !important;'}
         }
 
-        /* تنسيق تسميات الحقول - تحسين حجم الخط */
+        /* تحسين تنسيق تسميات الحقول وحجم الخط */
         .codform-field-label {
           color: #333; 
           font-size: 16px;
           font-weight: 600;
           font-family: inherit;
           margin-bottom: 8px;
-          display: block;
+          display: flex;
+          align-items: center;
+        }
+
+        /* علامة الحقول المطلوبة محسنة */
+        .codform-required {
+          color: #ef4444;
+          ${isRTL ? 'margin-right: 4px;' : 'margin-left: 4px;'}
+          display: inline-block;
         }
 
         /* موضع الأيقونات في الحقول */
         .codform-field-icon {
-          position: absolute;
+          position: absolute !important;
           ${isRTL ? 'right: 12px;' : 'left: 12px;'}
           top: 50%;
           transform: translateY(-50%);
@@ -426,12 +440,6 @@
           justify-content: center;
           z-index: 2;
           pointer-events: none;
-        }
-
-        /* علامة الحقول المطلوبة */
-        .codform-required {
-          color: #ef4444;
-          margin-${isRTL ? 'right' : 'left'}: 4px;
         }
         
         /* حاوية المدخلات النسبية للأيقونات */
@@ -460,6 +468,13 @@
           outline: none;
           text-decoration: none;
           position: relative;
+          min-height: 50px; /* زيادة ارتفاع الزر */
+        }
+
+        /* تعديل أحجام النص البديل (placeholder) */
+        ::placeholder {
+          font-size: ${fontSize};
+          opacity: 0.7;
         }
       </style>
 
@@ -523,10 +538,11 @@
               const labelColor = style.labelColor || '#333';
               const labelFontSize = style.labelFontSize || '16px';
               const labelFontWeight = style.labelFontWeight || '600';
+              const fontSize = style.fontSize || fontSize || '16px';
               
               html += `
               <div class="codform-field" data-field-type="${field.type}" data-field-id="${field.id}">
-                <label for="${field.id}-input" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight};">
+                <label for="${field.id}-input" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight}; display: flex; align-items: center;">
                   ${field.label || ''}
                   ${field.required ? '<span class="codform-required">*</span>' : ''}
                 </label>
@@ -541,6 +557,7 @@
                     placeholder="${field.placeholder || ''}" 
                     aria-label="${field.label || ''}" 
                     class="codform-input ${hasIcon ? 'with-icon' : ''}" 
+                    style="font-size: ${fontSize}; min-height: 44px;"
                     ${field.required ? 'required' : ''}
                   >
                 </div>
@@ -553,10 +570,11 @@
               const labelColor = style.labelColor || '#333';
               const labelFontSize = style.labelFontSize || '16px';
               const labelFontWeight = style.labelFontWeight || '600';
+              const fontSize = style.fontSize || fontSize || '16px';
               
               html += `
               <div class="codform-field" data-field-type="textarea" data-field-id="${field.id}">
-                <label for="${field.id}" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight};">
+                <label for="${field.id}" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight}; display: flex; align-items: center;">
                   ${field.label || ''}
                   ${field.required ? '<span class="codform-required">*</span>' : ''}
                 </label>
@@ -565,6 +583,7 @@
                   rows="${field.rows || 4}" 
                   placeholder="${field.placeholder || ''}" 
                   class="codform-textarea" 
+                  style="font-size: ${fontSize}; min-height: 100px;"
                   ${field.required ? 'required' : ''}
                   name="${field.id}"
                 ></textarea>
@@ -592,7 +611,7 @@
                 <button 
                   type="submit" 
                   class="codform-submit-btn ${hasAnimation ? `${animationType}-animation` : ''}" 
-                  style="background-color: ${bgColor}; color: ${textColor}; font-size: ${fontSize}; font-weight: ${fontWeight}; border-radius: ${borderRadius}; border-color: ${borderColor}; border-width: ${borderWidth}; border-style: solid; padding: ${padding}; gap: 8px;"
+                  style="background-color: ${bgColor}; color: ${textColor}; font-size: ${fontSize}; font-weight: ${fontWeight}; border-radius: ${borderRadius}; border-color: ${borderColor}; border-width: ${borderWidth}; border-style: solid; padding: ${padding}; gap: 8px; min-height: 50px;"
                 >
                   ${iconPosition === 'left' && hasIcon ? `<span class="submit-icon-left">${getIconSvg(iconType)}</span>` : ''}
                   <span>${field.label || 'Buy with Cash on Delivery'}</span>
@@ -792,6 +811,7 @@
   /* علامة الحقول المطلوبة */
   .codform-required {
     color: #ef4444;
+    display: inline-block;
   }
   
   [dir="rtl"] .codform-required {
@@ -816,6 +836,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-height: 50px;
   }
   
   /* أنماط الحركة */
@@ -890,5 +911,23 @@
   
   .codform-field-label {
     font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* تحسين حجم النص البديل */
+  ::placeholder {
+    font-size: 16px !important;
+    opacity: 0.7 !important;
+  }
+
+  /* ضمان الحجم المناسب للحقول */
+  .codform-input, .codform-textarea {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  .codform-textarea {
+    min-height: 100px !important;
   }
 </style>
