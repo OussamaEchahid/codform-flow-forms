@@ -10,6 +10,7 @@ interface TitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  direction?: 'ltr' | 'rtl'; // Add direction prop
 }
 
 // Define valid text alignment options
@@ -52,8 +53,11 @@ const ensurePixelUnit = (value: string): string => {
 };
 
 // Helper function to ensure we always have consistent style properties
-const ensureStyleDefaults = (field: FormField): FormField => {
+const ensureStyleDefaults = (field: FormField, direction?: 'ltr' | 'rtl'): FormField => {
   const style = field.style || {};
+  
+  // Default text alignment based on direction
+  const defaultAlignment = direction === 'rtl' ? 'right' : 'left';
   
   // Create a new field with ensured style properties
   return {
@@ -65,23 +69,27 @@ const ensureStyleDefaults = (field: FormField): FormField => {
       descriptionColor: style.descriptionColor || 'rgba(255, 255, 255, 0.9)',
       fontSize: style.fontSize || '24px',
       descriptionFontSize: style.descriptionFontSize || '14px',
-      fontWeight: style.fontWeight || 'bold'
+      fontWeight: style.fontWeight || 'bold',
+      textAlign: style.textAlign || defaultAlignment // Use direction-aware default alignment
     }
   };
 };
 
-const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
+const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   
+  // Use provided direction or fallback to language-based direction
+  const effectiveDirection = direction || (language === 'ar' ? 'rtl' : 'ltr');
+  
   // Apply style defaults to ensure consistency
-  const safeField = ensureStyleDefaults(field);
+  const safeField = ensureStyleDefaults(field, effectiveDirection);
   const fieldStyle = safeField.style || {};
   
   // Extract description from the field
   const description = field.helpText || '';
   
-  // Get text alignment based on field style or default based on language
-  const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
+  // Get text alignment based on field style or default based on direction
+  const defaultAlignment: TextAlign = effectiveDirection === 'rtl' ? 'right' : 'left';
   
   // Convert string alignment to TextAlign type with validation
   const getValidAlignment = (align?: string): TextAlign => {
@@ -156,7 +164,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={effectiveDirection}
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"

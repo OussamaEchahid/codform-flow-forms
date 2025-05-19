@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -22,6 +21,7 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
+  direction?: 'ltr' | 'rtl'; // New prop for text direction
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -40,6 +40,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
+  direction = 'ltr', // Default direction is left-to-right
 }) => {
   const { language } = useI18n();
   
@@ -215,10 +216,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       <div 
         className="codform-form-content" 
         style={{
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: direction, // Use the new direction prop
           padding: '0', // إزالة التباعد من المحتوى الداخلي
         }}
-        data-direction={language === 'ar' ? 'rtl' : 'ltr'}
+        data-direction={direction}
       >
         {sanitizedFields.length > 0 ? (
           <div className="space-y-4">

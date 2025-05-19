@@ -17,6 +17,12 @@ interface FormElementEditorProps {
   onReorderElements: (reorderedElements: FormField[]) => void;
 }
 
+// Helper function to perform deep clone of field objects to prevent style loss during drag and drop
+const deepCloneField = (field: FormField): FormField => {
+  // Use JSON parse/stringify for deep cloning to avoid reference issues
+  return JSON.parse(JSON.stringify(field));
+};
+
 // SortableElement component to handle individual items
 const SortableElement = ({ 
   field, 
@@ -47,8 +53,8 @@ const SortableElement = ({
   } = useSortable({ 
     id: field.id,
     data: {
-      // Include full field data to preserve all properties during drag and drop
-      field: JSON.parse(JSON.stringify(field))
+      // Deep clone the field data to preserve all properties during drag and drop
+      field: deepCloneField(field)
     }
   });
 
