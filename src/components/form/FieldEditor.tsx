@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -8,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
 import WhatsAppFieldEditor from './editor/WhatsAppFieldEditor';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface FieldEditorProps {
   field: FormField;
@@ -25,6 +27,7 @@ interface FieldFormValues {
 const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const { language } = useI18n();
   const [currentField, setCurrentField] = useState<FormField>(field);
+  const [activeTab, setActiveTab] = useState<string>("basic");
 
   const form = useForm<FieldFormValues>({
     defaultValues: {
@@ -73,6 +76,39 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     });
   };
 
+  // Handle label color change
+  const handleLabelColorChange = (color: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        labelColor: color
+      }
+    });
+  };
+
+  // Handle label font size change
+  const handleLabelFontSizeChange = (fontSize: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        labelFontSize: fontSize
+      }
+    });
+  };
+
+  // Handle label font weight change
+  const handleLabelFontWeightChange = (fontWeight: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        labelFontWeight: fontWeight
+      }
+    });
+  };
+
   const renderEditorByType = () => {
     switch (currentField.type) {
       case 'text':
@@ -85,73 +121,156 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
               {language === 'ar' ? 'تعديل الحقل' : 'Edit Field'}
             </h3>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <UIFormField
-                  control={form.control}
-                  name="label"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="placeholder"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'النص البديل' : 'Placeholder'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'مثال' : 'Example'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="required"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">{language === 'ar' ? 'أساسي' : 'Basic'}</TabsTrigger>
+                <TabsTrigger value="styling">{language === 'ar' ? 'تنسيق' : 'Styling'}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <UIFormField
+                      control={form.control}
+                      name="label"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="placeholder"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'النص البديل' : 'Placeholder'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'مثال' : 'Example'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="required"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="helpText"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                      <Button type="button" variant="outline" onClick={onClose}>
+                        {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                      <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="styling">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-md">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'تنسيق تسمية الحقل' : 'Label Styling'}
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'لون التسمية' : 'Label Color'}</FormLabel>
+                      <div className="flex mt-1 gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="w-12 h-8 p-1"
                         />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                        <Input
+                          type="text"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="flex-1"
+                        />
                       </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="helpText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </Button>
-                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontSize || '16px'}
+                        onValueChange={handleLabelFontSizeChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="12px">12px - {language === 'ar' ? 'صغير جدا' : 'Very Small'}</SelectItem>
+                          <SelectItem value="14px">14px - {language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                          <SelectItem value="16px">16px - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="18px">18px - {language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                          <SelectItem value="20px">20px - {language === 'ar' ? 'كبير جدا' : 'Very Large'}</SelectItem>
+                          <SelectItem value="24px">24px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'وزن خط التسمية' : 'Label Font Weight'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontWeight || '600'}
+                        onValueChange={handleLabelFontWeightChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="400">400 - {language === 'ar' ? 'عادي' : 'Normal'}</SelectItem>
+                          <SelectItem value="500">500 - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="600">600 - {language === 'ar' ? 'شبه غامق' : 'Semi Bold'}</SelectItem>
+                          <SelectItem value="700">700 - {language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
+                          <SelectItem value="800">800 - {language === 'ar' ? 'أكثر غمقا' : 'Extra Bold'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                    <Button onClick={() => handleSaveField(currentField)}>{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                  </div>
                 </div>
-              </form>
-            </Form>
+              </TabsContent>
+            </Tabs>
           </div>
         );
       
@@ -171,152 +290,273 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
               {language === 'ar' ? 'تعديل حقل الصورة' : 'Edit Image Field'}
             </h3>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <UIFormField
-                  control={form.control}
-                  name="label"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="required"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">{language === 'ar' ? 'أساسي' : 'Basic'}</TabsTrigger>
+                <TabsTrigger value="styling">{language === 'ar' ? 'تنسيق' : 'Styling'}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <UIFormField
+                      control={form.control}
+                      name="label"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="required"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rtl:space-x-reverse">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="helpText"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                      <Button type="button" variant="outline" onClick={onClose}>
+                        {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                      <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="styling">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-md">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'تنسيق تسمية الحقل' : 'Label Styling'}
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'لون التسمية' : 'Label Color'}</FormLabel>
+                      <div className="flex mt-1 gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="w-12 h-8 p-1"
                         />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>{language === 'ar' ? 'مطلوب' : 'Required'}</FormLabel>
+                        <Input
+                          type="text"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="flex-1"
+                        />
                       </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="helpText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </Button>
-                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontSize || '16px'}
+                        onValueChange={handleLabelFontSizeChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="12px">12px - {language === 'ar' ? 'صغير جدا' : 'Very Small'}</SelectItem>
+                          <SelectItem value="14px">14px - {language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                          <SelectItem value="16px">16px - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="18px">18px - {language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                          <SelectItem value="20px">20px - {language === 'ar' ? 'كبير جدا' : 'Very Large'}</SelectItem>
+                          <SelectItem value="24px">24px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'وزن خط التسمية' : 'Label Font Weight'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontWeight || '600'}
+                        onValueChange={handleLabelFontWeightChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="400">400 - {language === 'ar' ? 'عادي' : 'Normal'}</SelectItem>
+                          <SelectItem value="500">500 - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="600">600 - {language === 'ar' ? 'شبه غامق' : 'Semi Bold'}</SelectItem>
+                          <SelectItem value="700">700 - {language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
+                          <SelectItem value="800">800 - {language === 'ar' ? 'أكثر غمقا' : 'Extra Bold'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                    <Button onClick={() => handleSaveField(currentField)}>{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                  </div>
                 </div>
-              </form>
-            </Form>
+              </TabsContent>
+            </Tabs>
           </div>
         );
         
       case 'cart-items':
-        return (
-          <div className="p-4">
-            <h3 className="text-lg font-medium mb-4">
-              {language === 'ar' ? 'تعديل عنصر المنتج المختار' : 'Edit Selected Product Component'}
-            </h3>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <UIFormField
-                  control={form.control}
-                  name="label"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'المنتج المختار' : 'Selected Product'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="helpText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </Button>
-                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
-                </div>
-              </form>
-            </Form>
-          </div>
-        );
-        
       case 'cart-summary':
         return (
           <div className="p-4">
             <h3 className="text-lg font-medium mb-4">
-              {language === 'ar' ? 'تعديل ملخص الطلب' : 'Edit Order Summary'}
+              {language === 'ar' ? `تعديل ${currentField.type === 'cart-items' ? 'عنصر المنتج المختار' : 'ملخص الطلب'}` : `Edit ${currentField.type === 'cart-items' ? 'Selected Product Component' : 'Order Summary'}`}
             </h3>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <UIFormField
-                  control={form.control}
-                  name="label"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'ملخص الطلب' : 'Order Summary'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <UIFormField
-                  control={form.control}
-                  name="helpText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </Button>
-                  <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">{language === 'ar' ? 'أساسي' : 'Basic'}</TabsTrigger>
+                <TabsTrigger value="styling">{language === 'ar' ? 'تنسيق' : 'Styling'}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <UIFormField
+                      control={form.control}
+                      name="label"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'العنوان' : 'Label'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'عنوان الحقل' : 'Field label'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="helpText"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'نص المساعدة' : 'Help Text'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي للمستخدم' : 'Explanatory text for user'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                      <Button type="button" variant="outline" onClick={onClose}>
+                        {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                      <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="styling">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-md">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'تنسيق تسمية الحقل' : 'Label Styling'}
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'لون التسمية' : 'Label Color'}</FormLabel>
+                      <div className="flex mt-1 gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="w-12 h-8 p-1"
+                        />
+                        <Input
+                          type="text"
+                          value={currentField.style?.labelColor || '#333333'}
+                          onChange={(e) => handleLabelColorChange(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontSize || '16px'}
+                        onValueChange={handleLabelFontSizeChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="12px">12px - {language === 'ar' ? 'صغير جدا' : 'Very Small'}</SelectItem>
+                          <SelectItem value="14px">14px - {language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                          <SelectItem value="16px">16px - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="18px">18px - {language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                          <SelectItem value="20px">20px - {language === 'ar' ? 'كبير جدا' : 'Very Large'}</SelectItem>
+                          <SelectItem value="24px">24px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'وزن خط التسمية' : 'Label Font Weight'}</FormLabel>
+                      <Select
+                        value={currentField.style?.labelFontWeight || '600'}
+                        onValueChange={handleLabelFontWeightChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="400">400 - {language === 'ar' ? 'عادي' : 'Normal'}</SelectItem>
+                          <SelectItem value="500">500 - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="600">600 - {language === 'ar' ? 'شبه غامق' : 'Semi Bold'}</SelectItem>
+                          <SelectItem value="700">700 - {language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
+                          <SelectItem value="800">800 - {language === 'ar' ? 'أكثر غمقا' : 'Extra Bold'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                    <Button onClick={() => handleSaveField(currentField)}>{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                  </div>
                 </div>
-              </form>
-            </Form>
+              </TabsContent>
+            </Tabs>
           </div>
         );
         

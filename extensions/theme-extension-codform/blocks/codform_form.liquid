@@ -305,23 +305,8 @@
       
       // إنشاء الحاوية الخارجية الكاملة للنموذج بنفس الأسلوب كما في المعاينة
       let html = `
-      <div class="rounded-lg border shadow-sm overflow-hidden bg-white codform-form" 
-           data-form-preview-id="form-preview-${Date.now()}" 
-           data-primary-color="${primaryColor}" 
-           data-border-radius="${borderRadius}" 
-           data-font-size="${fontSize}" 
-           data-button-style="${buttonStyle}" 
-           style="font-size: ${fontSize}; --form-primary-color: ${primaryColor}; border-radius: ${borderRadius};">
-        <div class="p-3" 
-             data-direction="${isRTL ? 'rtl' : 'ltr'}" 
-             style="border-radius: 0px 0px ${borderRadius} ${borderRadius}; direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: rgb(245, 245, 245);">
-          <div class="space-y-2">
-      `;
-      
-      // إضافة الأنماط للرسوم المتحركة والعناصر المخصصة
-      html += `
       <style>
-        /* أنماط الحركة */
+        /* أنماط الرسوم المتحركة */
         @keyframes pulse-animation {
           0% { transform: scale(1); }
           50% { transform: scale(1.05); }
@@ -370,7 +355,36 @@
           animation: flash-animation 2s infinite ease-in-out !important;
         }
 
+        /* الحاوية الخارجية للنموذج بالكامل */
+        .codform-form-wrapper {
+          background-color: #ffffff;
+          border-radius: ${borderRadius};
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          margin: 0 auto 20px;
+          overflow: hidden;
+          font-family: inherit;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        
+        /* منطقة المحتوى الداخلية */
+        .codform-form-content {
+          background-color: rgb(245, 245, 245);
+          padding: 20px;
+          border-radius: 0 0 ${borderRadius} ${borderRadius};
+        }
+
         /* تنسيقات حقول النموذج */
+        .codform-field {
+          background-color: #ffffff;
+          padding: 16px;
+          border-radius: ${borderRadius};
+          margin-bottom: 16px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
         .codform-input, .codform-textarea {
           width: 100%;
           padding: 10px 12px;
@@ -419,22 +433,24 @@
           margin-${isRTL ? 'right' : 'left'}: 4px;
         }
         
-        /* حاوية الحقل مع الخلفية البيضاء */
-        .codform-field {
-          background-color: #ffffff;
-          padding: 12px;
-          border-radius: ${borderRadius};
-          margin-bottom: 16px;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-        
         /* حاوية المدخلات النسبية للأيقونات */
         .codform-input-container {
           position: relative;
           width: 100%;
         }
       </style>
+
+      <div class="codform-form-wrapper" 
+           data-form-preview-id="form-preview-${Date.now()}" 
+           data-primary-color="${primaryColor}" 
+           data-border-radius="${borderRadius}" 
+           data-font-size="${fontSize}" 
+           data-button-style="${buttonStyle}" 
+           style="--form-primary-color: ${primaryColor};">
+           
+        <div class="codform-form-content" 
+             data-direction="${isRTL ? 'rtl' : 'ltr'}" 
+             style="direction: ${isRTL ? 'rtl' : 'ltr'};">
       `;
       
       // إنشاء نموذج داخل الحاوية
@@ -482,7 +498,7 @@
               const hasIcon = field.icon && field.icon !== 'none' && style.showIcon !== false;
               let iconType = field.icon || (field.type === 'email' ? 'mail' : field.type === 'phone' ? 'phone' : 'user');
               const labelColor = style.labelColor || '#333';
-              const labelFontSize = style.labelFontSize || fontSize;
+              const labelFontSize = style.labelFontSize || fontSize || '1rem';
               const labelFontWeight = style.labelFontWeight || '600';
               
               html += `
@@ -514,7 +530,7 @@
               // الحصول على الإعدادات من field.style إن وجدت
               const style = field.style || {};
               const labelColor = style.labelColor || '#333';
-              const labelFontSize = style.labelFontSize || fontSize;
+              const labelFontSize = style.labelFontSize || fontSize || '1rem';
               const labelFontWeight = style.labelFontWeight || '600';
               
               html += `
@@ -583,7 +599,7 @@
       }
       
       // إغلاق عناصر النموذج
-      html += `</form></div></div></div>`;
+      html += `</form></div></div>`;
       
       return html;
     }
@@ -745,10 +761,8 @@
   
   /* الحاوية الرئيسية للنموذج */
   .codform-form {
-    background-color: rgb(245, 245, 245);
-    border-radius: 0.5rem;
+    background-color: transparent;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
   /* الحقول وأنماطها */
@@ -866,6 +880,26 @@
     padding: 0;
     line-height: 1.5;
     opacity: 0.9;
+  }
+  
+  /* الحاوية الخارجية للنموذج */
+  .codform-form-wrapper {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 20px;
+    overflow: hidden;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* منطقة المحتوى الداخلية */
+  .codform-form-content {
+    background-color: rgb(245, 245, 245);
+    padding: 20px;
+    border-radius: 0 0 0.5rem 0.5rem;
   }
   
   /* أنماط الحركة */

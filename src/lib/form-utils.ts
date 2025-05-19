@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -267,18 +268,38 @@ export const createEmptyField = (type: FormFieldType): FormField => {
     case 'text':
       newField.label = 'حقل نص';
       newField.placeholder = 'أدخل نصًا هنا';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'email':
       newField.label = 'بريد إلكتروني';
       newField.placeholder = 'أدخل البريد الإلكتروني';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'phone':
       newField.label = 'رقم هاتف';
       newField.placeholder = 'أدخل رقم الهاتف';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'textarea':
       newField.label = 'نص متعدد الأسطر';
       newField.placeholder = 'أدخل نصًا هنا';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'select':
       newField.label = 'قائمة منسدلة';
@@ -287,6 +308,11 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         { value: 'option2', label: 'الخيار الثاني' },
         { value: 'option3', label: 'الخيار الثالث' }
       ];
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'checkbox':
       newField.label = 'خانة اختيار';
@@ -295,6 +321,11 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         { value: 'option2', label: 'الخيار الثاني' },
         { value: 'option3', label: 'الخيار الثالث' }
       ];
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'radio':
       newField.label = 'زر راديو';
@@ -303,12 +334,27 @@ export const createEmptyField = (type: FormFieldType): FormField => {
         { value: 'option2', label: 'الخيار الثاني' },
         { value: 'option3', label: 'الخيار الثالث' }
       ];
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'cart-items':
       newField.label = 'المنتج المختار';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'cart-summary':
       newField.label = 'ملخص الطلب';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'submit':
       newField.label = 'إرسال الطلب';
@@ -323,22 +369,45 @@ export const createEmptyField = (type: FormFieldType): FormField => {
     case 'text/html':
       newField.label = 'نص/HTML';
       newField.content = '<p>محتوى HTML</p>';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'title':
       newField.label = 'عنوان قسم';
       newField.style = {
         fontWeight: 'bold',
         fontSize: '20px',
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
       };
       break;
     case 'whatsapp':
       newField.label = 'طلب عبر الواتساب';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     case 'image':
       newField.label = 'صورة';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
     default:
       newField.label = 'حقل جديد';
+      newField.style = {
+        labelColor: '#333333',
+        labelFontSize: '16px',
+        labelFontWeight: '600',
+      };
       break;
   }
 
@@ -374,6 +443,11 @@ export const createDefaultForm = (): FormStep[] => {
     placeholder: 'أدخل الاسم الكامل',
     required: true,
     icon: 'user',
+    style: {
+      labelColor: '#333333',
+      labelFontSize: '16px',
+      labelFontWeight: '600',
+    }
   });
   
   // Add phone field
@@ -384,6 +458,11 @@ export const createDefaultForm = (): FormStep[] => {
     placeholder: 'أدخل رقم الهاتف',
     required: true,
     icon: 'phone',
+    style: {
+      labelColor: '#333333',
+      labelFontSize: '16px',
+      labelFontWeight: '600',
+    }
   });
   
   // Add city field
@@ -394,6 +473,11 @@ export const createDefaultForm = (): FormStep[] => {
     placeholder: 'أدخل اسم المدينة',
     required: true,
     icon: 'map-pin',
+    style: {
+      labelColor: '#333333',
+      labelFontSize: '16px',
+      labelFontWeight: '600',
+    }
   });
   
   // Add address field
@@ -403,6 +487,11 @@ export const createDefaultForm = (): FormStep[] => {
     label: 'العنوان',
     placeholder: 'أدخل العنوان الكامل',
     required: true,
+    style: {
+      labelColor: '#333333',
+      labelFontSize: '16px',
+      labelFontWeight: '600',
+    }
   });
   
   // Add submit button with updated configuration
@@ -466,21 +555,36 @@ export const formTemplates = [
             type: 'text' as FormFieldType,
             label: 'Name',
             placeholder: 'Your name',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'email-1',
             type: 'email' as FormFieldType,
             label: 'Email',
             placeholder: 'Your email address',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'message-1',
             type: 'textarea' as FormFieldType,
             label: 'Message',
             placeholder: 'Your message',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'submit-1',
@@ -522,33 +626,58 @@ export const formTemplates = [
           {
             id: 'cart-items-1',
             type: 'cart-items' as FormFieldType,
-            label: ''
+            label: '',
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'cart-summary-1',
             type: 'cart-summary' as FormFieldType,
-            label: ''
+            label: '',
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'customer-name',
             type: 'text' as FormFieldType,
             label: 'Full Name',
             placeholder: 'Your full name',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'customer-phone',
             type: 'phone' as FormFieldType,
             label: 'Phone Number',
             placeholder: 'Your phone number',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'customer-address',
             type: 'textarea' as FormFieldType,
             label: 'Delivery Address',
             placeholder: 'Your complete address',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'submit-2',
@@ -594,21 +723,36 @@ export const formTemplates = [
             type: 'text' as FormFieldType,
             label: 'Full Name',
             placeholder: 'Your full name',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'customer-email-3',
             type: 'email' as FormFieldType,
             label: 'Email Address',
             placeholder: 'Your email address',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'customer-phone-3',
             type: 'phone' as FormFieldType,
             label: 'Phone Number',
             placeholder: 'Your phone number',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           }
         ]
       },
@@ -620,13 +764,23 @@ export const formTemplates = [
             id: 'appointment-date',
             type: 'date' as FormFieldType,
             label: 'Preferred Date',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'appointment-time',
             type: 'time' as FormFieldType,
             label: 'Preferred Time',
-            required: true
+            required: true,
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'appointment-service',
@@ -637,13 +791,23 @@ export const formTemplates = [
               { label: 'Consultation', value: 'consultation' },
               { label: 'Follow-up', value: 'follow-up' },
               { label: 'Treatment', value: 'treatment' }
-            ]
+            ],
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'appointment-notes',
             type: 'textarea' as FormFieldType,
             label: 'Additional Notes',
-            placeholder: 'Any specific requirements or concerns'
+            placeholder: 'Any specific requirements or concerns',
+            style: {
+              labelColor: '#333333',
+              labelFontSize: '16px',
+              labelFontWeight: '600',
+            }
           },
           {
             id: 'submit-3',
