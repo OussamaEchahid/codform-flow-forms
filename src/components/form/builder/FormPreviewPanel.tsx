@@ -25,12 +25,12 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Simple deep clone function that preserves field IDs
+// Deep clone function that preserves field IDs
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    // Start with a complete copy of all first-level properties
+    // Start with a complete copy of all properties
     const newField = { ...field };
     
     // Always preserve the exact ID
@@ -73,7 +73,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     if (refreshKey > internalRefreshKey) {
       setInternalRefreshKey(refreshKey);
     }
-  }, [refreshKey]);
+  }, [refreshKey, internalRefreshKey]);
   
   // Process fields - separate form title from regular fields
   const processedFields = useMemo(() => {
@@ -89,8 +89,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return clonedFields.filter(field => field.type !== 'form-title');
   }, [fields, internalRefreshKey]);
 
-  // Extract title field information
+  // Extract title field information - this is critical for maintaining title settings
   const titleFieldInfo = useMemo(() => {
+    // Important: Look for a title field first
     const titleField = fields.find(f => f.type === 'form-title');
     
     if (titleField) {
@@ -107,6 +108,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       };
     }
     
+    // If no title field is found, use the default values
     return {
       title: formTitle,
       description: formDescription,

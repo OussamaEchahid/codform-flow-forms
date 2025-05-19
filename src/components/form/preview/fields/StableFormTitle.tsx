@@ -39,7 +39,7 @@ const ensurePixelUnit = (value: string | undefined): string => {
   return `${value}px`;
 };
 
-const StableFormTitle: React.FC<StableFormTitleProps> = ({ 
+const StableFormTitle: React.FC<StableFormTitleProps> = React.memo(({ 
   title, 
   description, 
   backgroundColor = '#9b87f5', 
@@ -128,6 +128,8 @@ const StableFormTitle: React.FC<StableFormTitleProps> = ({
       </div>
     </div>
   );
-};
+});
 
-export default React.memo(StableFormTitle);
+StableFormTitle.displayName = 'StableFormTitle';
+
+export default StableFormTitle;

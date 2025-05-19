@@ -149,36 +149,26 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     toast.success(language === 'ar' ? 'تم تحويل العنوان إلى قابل للتعديل بنجاح' : 'Title converted to editable successfully');
   };
 
-  // تحديث حقل عنوان النموذج
+  // تحديث حقل عنوان النموذج - تم تحسينه للحفاظ على الإعدادات
   const updateFormTitleField = (updatedField: FormField) => {
-    const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
-    if (fieldIndex === -1) return;
-
-    // تأكد من أن خلفية العنوان دائمًا بنفسجية
-    if (!updatedField.style?.backgroundColor) {
-      updatedField.style = {
-        ...updatedField.style,
-        backgroundColor: '#9b87f5'
-      };
-    }
-
-    // تحديث لون النص والوصف للتباين إذا لم يكن محددًا
-    if (!updatedField.style?.color) {
-      updatedField.style = {
-        ...updatedField.style,
-        color: '#ffffff'
-      };
-    }
-
-    if (!updatedField.style?.descriptionColor) {
-      updatedField.style = {
-        ...updatedField.style,
-        descriptionColor: '#ffffff'
-      };
-    }
-
-    const updatedElements = [...formElements];
-    updatedElements[fieldIndex] = updatedField;
+    // نسخ عميق لقائمة الحقول لضمان عدم التأثير على حالة React
+    const updatedElements = formElements.map(field => {
+      if (field.id === updatedField.id) {
+        // نضمن الاحتفاظ بجميع خصائص الحقل المحدث
+        return {
+          ...updatedField,
+          // التأكد من أن لون الخلفية موجود
+          style: {
+            ...updatedField.style,
+            backgroundColor: updatedField.style?.backgroundColor || '#9b87f5',
+            color: updatedField.style?.color || '#ffffff',
+            descriptionColor: updatedField.style?.descriptionColor || '#ffffff',
+          }
+        };
+      }
+      return field;
+    });
+    
     setFormElements(updatedElements);
     setRefreshKey(prev => prev + 1);
   };

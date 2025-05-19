@@ -17,7 +17,7 @@ interface FormElementEditorProps {
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
-// Simple deep copy function that preserves IDs
+// Deep copy function that preserves IDs
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
