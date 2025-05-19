@@ -85,6 +85,9 @@ export interface FormFieldStyle {
   showIcon?: boolean;
   paddingY?: string;
   
+  // Direction control property
+  ignoreFormDirection?: boolean; // Added to fix TypeScript error
+  
   // Cart item and summary specific properties
   priceFontSize?: string;
   priceColor?: string;
