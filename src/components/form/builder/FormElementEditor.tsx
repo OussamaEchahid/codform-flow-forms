@@ -1,10 +1,10 @@
+
 import React, { useCallback } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
-import { toast } from 'sonner';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -17,22 +17,22 @@ interface FormElementEditorProps {
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
-// Improved deep copy function that preserves IDs and doesn't use Date.now()
+// Simple deep copy function that preserves IDs
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
   // Create a complete copy of all properties
   const copy = { ...element };
   
-  // Preserve the ID exactly as it was - critical for drag and drop stability
+  // Preserve the ID exactly as it was
   copy.id = element.id;
   
-  // Deep copy the style object to prevent reference issues
+  // Deep copy the style object
   if (element.style) {
     copy.style = { ...element.style };
   }
   
-  // Special handling for options array (used in select, radio, checkbox)
+  // Deep copy options array if it exists
   if (element.options && Array.isArray(element.options)) {
     copy.options = element.options.map(option => ({ ...option }));
   }
@@ -52,6 +52,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   
+  // Configure sensors for drag and drop
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
       distance: 8
@@ -60,6 +61,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
+  // Handle drag end events
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -71,18 +73,18 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = elements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
-      // Create exact deep copies of each element to preserve all properties
+      // Create exact deep copies of each element
       const newElementsArray = elements.map(element => deepCopyElement(element));
       
-      // Use arrayMove to reorder elements but maintain their exact properties
+      // Use arrayMove to reorder elements
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Now trigger the parent's reorder callback
+      // Trigger the parent's reorder callback
       onReorderElements(reorderedElements);
     }
   }, [elements, onReorderElements]);
   
-  // Handle element updates when they are edited directly from the SortableField
+  // Handle element updates
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
     if (index < 0 || index >= elements.length) {
       console.error(`Invalid element index: ${index}`);
@@ -92,7 +94,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     // Create deep copy to avoid modifying the original element
     const updatedField = deepCopyElement(field);
     
-    // Preserve the original ID to ensure consistent references
+    // Preserve the original ID
     updatedField.id = elements[index].id;
     
     // Special handling for submit button
@@ -101,7 +103,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         updatedField.style = {};
       }
       
-      // Make sure submit button style properties are preserved
+      // Ensure submit button styles are preserved
       updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
       updatedField.style.color = updatedField.style.color || '#ffffff';
       
@@ -118,12 +120,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   }, [elements, onUpdateElement, language]);
   
-  // Property to determine if there are elements to display
-  const hasElements = elements.length > 0;
-
   return (
     <div className="space-y-4">
-      {!hasElements && (
+      {elements.length === 0 && (
         <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
           <p className="text-gray-500">
             {language === 'ar' 
@@ -152,5 +151,4 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   );
 };
 
-// Wrap the component with React.memo to prevent unnecessary re-renders
 export default React.memo(FormElementEditor);

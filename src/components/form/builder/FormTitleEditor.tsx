@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -43,7 +44,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
-  // Set up sortable functionality if the component is draggable
+  // Set up sortable functionality
   const {
     attributes,
     listeners,
@@ -73,7 +74,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleColor(formTitleField.style?.color || '#ffffff');
       setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
       
-      // التأكد من استخدام وحدات بيكسل متسقة
+      // Ensure consistent pixel units
       const fontSize = formTitleField.style?.fontSize || '24px';
       setTitleSize(fontSize.endsWith('rem') ? 
         `${Math.round(parseFloat(fontSize.replace('rem', '')) * 16)}px` : 
@@ -82,7 +83,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
       
-      // التأكد من استخدام وحدات بيكسل متسقة للوصف
+      // Ensure consistent pixel units for descriptions
       const descFontSize = formTitleField.style?.descriptionFontSize || '14px';
       setDescSize(descFontSize.endsWith('rem') ?
         `${Math.round(parseFloat(descFontSize.replace('rem', '')) * 16)}px` :
@@ -92,6 +93,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     }
   }, [formTitleField, language]);
 
+  // Handle updating style properties
   const handleUpdateStyle = (property: string, value: string) => {
     if (!formTitleField) return;
     
@@ -114,6 +116,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     onUpdateTitleField(updatedField);
   };
 
+  // Handle updating title label
   const handleUpdateLabel = (value: string) => {
     if (!formTitleField) {
       onFormTitleChange(value);
@@ -129,6 +132,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     onFormTitleChange(value);
   };
 
+  // Handle updating description
   const handleUpdateDescription = (value: string) => {
     if (!formTitleField) {
       onFormDescriptionChange(value);
@@ -376,20 +380,6 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         <option value="14px">{language === 'ar' ? 'صغير' : 'Small'}</option>
                         <option value="16px">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
                         <option value="18px">{language === 'ar' ? 'كبير' : 'Large'}</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="desc-weight" className={language === 'ar' ? 'text-right block' : ''}>
-                        {language === 'ar' ? 'سمك الوصف' : 'Description Weight'}
-                      </Label>
-                      <select
-                        id="desc-weight"
-                        value="normal"
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                        disabled
-                      >
-                        <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
                       </select>
                     </div>
                   </div>

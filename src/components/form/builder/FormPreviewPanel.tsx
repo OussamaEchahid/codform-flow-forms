@@ -25,7 +25,7 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Improved deep clone function that preserves IDs and doesn't use Date.now()
+// Simple deep clone function that preserves field IDs
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
@@ -33,7 +33,7 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Start with a complete copy of all first-level properties
     const newField = { ...field };
     
-    // Critical: Always preserve exact ID
+    // Always preserve the exact ID
     newField.id = field.id;
     
     // Deep clone style object if it exists
@@ -65,28 +65,27 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Use a stable internalRefreshKey that doesn't update with every props change
+  // Use internal refresh key to prevent rendering loops
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Only update the internal refresh key when refreshKey increases to prevent render loops
+  // Update internal key only when refresh key increases
   useEffect(() => {
     if (refreshKey > internalRefreshKey) {
       setInternalRefreshKey(refreshKey);
     }
-    // We intentionally omit refreshKey from dependencies to prevent infinite loops
   }, [refreshKey]);
   
-  // Filter out form-title from fields - we'll handle it separately
+  // Process fields - separate form title from regular fields
   const processedFields = useMemo(() => {
-    // Make a deep copy of fields to prevent unintended mutations
+    // Create deep copy of fields to prevent mutations
     let clonedFields = deepCloneFields(fields);
     
-    // Check if fields are empty or undefined
+    // Check if fields exist
     if (!clonedFields || clonedFields.length === 0) {
       return [];
     }
     
-    // Remove any form-title fields from the array (we'll handle them separately)
+    // Remove any form-title fields (handled separately)
     return clonedFields.filter(field => field.type !== 'form-title');
   }, [fields, internalRefreshKey]);
 
@@ -95,16 +94,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     const titleField = fields.find(f => f.type === 'form-title');
     
     if (titleField) {
-      // Make sure textAlign is properly typed
-      const textAlignment = titleField.style?.textAlign as 'left' | 'center' | 'right' | 'justify' | undefined;
-      
       return {
         title: titleField.label || formTitle,
         description: titleField.helpText || formDescription,
         backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
         textColor: titleField.style?.color || '#ffffff',
         descriptionColor: titleField.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-        textAlign: textAlignment,
+        textAlign: titleField.style?.textAlign as 'left' | 'center' | 'right' | 'justify' | undefined,
         fontSize: titleField.style?.fontSize || '24px',
         descriptionFontSize: titleField.style?.descriptionFontSize || '14px',
         id: titleField.id
@@ -123,11 +119,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     };
   }, [fields, formTitle, formDescription, formStyle.primaryColor, language]);
 
-  // Create a stable ID for this preview panel instance
-  const previewPanelId = useMemo(() => `preview-panel-stable`, []);
-
   return (
-    <div id={previewPanelId}>
+    <div>
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>

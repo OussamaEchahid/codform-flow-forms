@@ -59,19 +59,18 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Improve field processing and setup correctly
+  // Process fields for display
   const sanitizedFields = useMemo(() => {
-    // Ensure cart items and cart summary fields have empty labels by default
+    // Update fields with default values
     const updatedFields = fields.map(field => {
-      // Copy the field to avoid direct modification issues
       const updatedField = { ...field };
       
-      // Set empty label by default for cart items and summary
+      // Set empty label for cart items and summary
       if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
         updatedField.label = '';
       }
       
-      // Convert empty icon to 'none' for consistent handling
+      // Handle icon properties
       if (field.icon === '') {
         updatedField.icon = 'none';
       }
@@ -82,7 +81,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           updatedField.style = {};
         }
         
-        // Set showIcon to true by default if icon exists and not explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
@@ -93,30 +91,25 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style = {};
       }
       
-      // Make sure font size is explicitly specified in pixels
+      // Normalize font sizes to pixels
       if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // Convert rem to px if needed
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // If a number without unit, assume pixels
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
-      // Ensure label font size is explicitly specified
+      // Normalize label font size
       if (updatedField.style.labelFontSize && !updatedField.style.labelFontSize.includes('px')) {
-        // Convert rem to px if needed
         if (updatedField.style.labelFontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.labelFontSize);
           updatedField.style.labelFontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.labelFontSize))) {
-          // If a number without unit, assume pixels
           updatedField.style.labelFontSize = `${updatedField.style.labelFontSize}px`;
         }
       } else if (!updatedField.style.labelFontSize) {
-        // Set default label font size if not specified
         updatedField.style.labelFontSize = '16px';
       }
       
@@ -128,7 +121,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     let result = [...updatedFields];
     
-    // If there is no submit button, add one
+    // Add default submit button if needed
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
@@ -137,7 +130,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
-          fontSize: '18px', // Use fixed pixels
+          fontSize: '18px',
           animation: true,
           animationType: 'pulse',
         },
@@ -147,9 +140,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     return result;
   }, [fields, language, formStyle.primaryColor]);
-  
-  // Create unique ID for this form to ensure correct updates
-  const formId = useMemo(() => `form-preview-stable`, []);
   
   // Get title field information
   const titleInfo = titleFieldInfo || {
@@ -170,10 +160,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#f5f5f5', // Change background color to light gray to match store
-        padding: '20px', // Add inner padding to outer container
+        backgroundColor: '#f5f5f5',
+        padding: '20px',
       } as React.CSSProperties}
-      data-form-preview-id={formId}
+      data-form-preview-id="form-preview-stable"
       data-primary-color={formStyle.primaryColor}
       data-border-radius={formStyle.borderRadius}
       data-font-size={formStyle.fontSize}
@@ -222,7 +212,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         className="codform-form-content" 
         style={{
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          padding: '0', // Remove padding from inner content
+          padding: '0',
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
@@ -255,7 +245,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         )}
       </div>
 
-      {/* Show floating button if enabled and not hidden for preview purposes */}
+      {/* Show floating button if enabled and not hidden */}
       {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
         <FloatingButton config={floatingButton} isPreview={true} />
       )}
@@ -263,5 +253,4 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   );
 };
 
-// Use React.memo to prevent unnecessary re-renders
 export default React.memo(FormPreview);
