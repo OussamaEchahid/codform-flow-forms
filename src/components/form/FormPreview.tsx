@@ -67,7 +67,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }
         
         // تعيين showIcon إلى true افتراضيًا إذا كانت الأيقونة موجودة ولم يتم تعيينها صراحة إلى false
-        updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
@@ -149,7 +149,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#e5e7eb', // تغيير لون الخلفية من أبيض إلى رمادي فاتح
+        backgroundColor: '#f5f5f5', // تغيير لون الخلفية إلى رمادي فاتح للتطابق مع المتجر
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
@@ -201,7 +201,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: '#e5e7eb', // تغيير لون الخلفية من أبيض إلى رمادي فاتح
+          backgroundColor: '#f5f5f5', // تغيير لون الخلفية من أبيض إلى رمادي فاتح للتطابق مع المتجر
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
