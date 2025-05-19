@@ -95,39 +95,38 @@ const FormField: React.FC<FormFieldProps> = ({
     return null;
   }
 
-  // التحقق مما إذا كان يجب تجاهل اتجاه النموذج لهذا النوع من الحقول
-  // مهم جدًا: يضمن هذا أن العناوين وأزرار الإرسال تحتفظ بإعداداتها الخاصة
+  // Check if this field type should ignore the form direction
   const shouldIgnoreDirection = ignoreDirectionForTypes.includes(field.type);
 
-  // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
+  // Normalize field properties - ensure icon settings are applied correctly
   const normalizedField = {
     ...field,
-    // تحويل الأيقونة الفارغة إلى 'none'
+    // Convert empty icon to 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
       ...field.style,
-      // تعيين showIcon افتراضيًا إلى true إذا كانت الأيقونة موجودة وليست 'none'
+      // Set showIcon default to true if icon exists and is not 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
         (field.icon && field.icon !== 'none'),
-      // تعيين القيم الافتراضية للون التسمية وحجم الخط إذا لم يتم تحديدها
+      // Set default values for label color and font size if not specified
       labelColor: field.style?.labelColor || '#333',
       labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
       labelFontWeight: field.style?.labelFontWeight || '600',
-      // ضمان تمرير backgroundColor لزر الإرسال
+      // Ensure backgroundColor is passed for submit button
       backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
     }
   };
 
-  // معالجة خاصة لأنواع حقول البريد الإلكتروني والهاتف
+  // Special handling for email and phone field types
   let fieldType = normalizedField.type;
   
-  // تعيين البريد الإلكتروني والهاتف كإدخالات نصية
+  // Map email and phone to text inputs
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
 
-  // التحقق مما إذا كان نوع الحقل هذا مدعومًا في معاينة المتجر
+  // Check if this field type is supported in the store preview
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
     'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
@@ -136,7 +135,7 @@ const FormField: React.FC<FormFieldProps> = ({
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
 
-  // تسجيل بيانات الرسوم المتحركة إذا كان هذا زر إرسال
+  // Log animation data if this is a submit button
   if (fieldType === 'submit' && normalizedField.style) {
     const animationType = normalizedField.style.animationType || 'none';
     const hasAnimation = !!normalizedField.style.animation;
@@ -145,7 +144,7 @@ const FormField: React.FC<FormFieldProps> = ({
       console.log(`Submit button using animation: ${animationType}`);
     }
     
-    // تسجيل لون الزر أيضًا للتصحيح
+    // Also log button color for debugging
     console.log(`Submit button color: ${normalizedField.style.backgroundColor || formStyle.primaryColor || '#9b87f5'}`);
   }
 
@@ -174,13 +173,13 @@ const FormField: React.FC<FormFieldProps> = ({
     return null;
   }
 
-  // إنشاء مفتاح فريد لهذه النسخة من الحقل لفرض إعادة العرض عند تغيير الخصائص
+  // Create a unique key for this field instance to force re-render when properties change
   const fieldKey = getFieldKey(field);
   
-  // تعيين الهوامش: استخدام هوامش محسنة بناءً على نوع الحقل
+  // Set margins: use optimized margins based on field type
   const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
 
-  // إضافة سمات البيانات للمساعدة في ضمان اتساق العرض بين المعاينة والمتجر
+  // Add data attributes to help ensure display consistency between preview and store
   const dataAttributes = {
     'data-field-type': normalizedField.type,
     'data-field-id': normalizedField.id,

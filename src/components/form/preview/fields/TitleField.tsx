@@ -10,7 +10,7 @@ interface TitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  direction?: 'ltr' | 'rtl'; // أضفنا خاصية الاتجاه ولكن سنتجاهلها في هذا المكون
+  direction?: 'ltr' | 'rtl'; // Add direction prop
 }
 
 // Define valid text alignment options
@@ -56,11 +56,10 @@ const ensurePixelUnit = (value: string): string => {
 const ensureStyleDefaults = (field: FormField): FormField => {
   const style = field.style || {};
   
-  // استخدام محاذاة النص مباشرة من نمط الحقل، وليس بناءً على الاتجاه
-  // هذه هي النقطة الرئيسية: حقل العنوان يحتفظ بمحاذاته الخاصة بغض النظر عن اتجاه النموذج
+  // Use the textAlign property directly from field style, not based on direction
   const textAlignment = style.textAlign || 'left';
   
-  // إنشاء حقل جديد بخصائص نمط مضمونة
+  // Create a new field with ensured style properties
   return {
     ...field,
     style: {
@@ -71,7 +70,7 @@ const ensureStyleDefaults = (field: FormField): FormField => {
       fontSize: style.fontSize || '24px',
       descriptionFontSize: style.descriptionFontSize || '14px',
       fontWeight: style.fontWeight || 'bold',
-      textAlign: textAlignment // استخدام خاصية textAlign الخاصة بالحقل
+      textAlign: textAlignment // Use field's own textAlign property
     }
   };
 };
@@ -79,48 +78,48 @@ const ensureStyleDefaults = (field: FormField): FormField => {
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   
-  // تطبيق الإعدادات الافتراضية لضمان الاتساق
-  // مهم: نحن نتجاهل وسيط الاتجاه هنا تمامًا!
+  // Apply style defaults to ensure consistency
+  // Important: We ignore the direction parameter here!
   const safeField = ensureStyleDefaults(field);
   const fieldStyle = safeField.style || {};
   
-  // استخراج الوصف من الحقل
+  // Extract description from the field
   const description = field.helpText || '';
   
-  // الحصول على محاذاة النص مباشرة من نمط الحقل، وليس بناءً على الاتجاه
+  // Get text alignment directly from field style, not based on direction
   const alignment: TextAlign = (fieldStyle.textAlign as TextAlign) || 'left';
   
-  // استخدام قيم بكسل دقيقة بدلاً من rem للحصول على حجم متسق عبر البيئات
+  // Use precise pixel values instead of rem for consistent sizing across environments
   const isFormTitle = field.type === 'form-title';
   
-  // إعداد حجم الخط مع ضمان وحدات px
-  let titleFontSize = isFormTitle ? '24px' : '20px'; // قيمة افتراضية
+  // Prepare font size ensuring px units
+  let titleFontSize = isFormTitle ? '24px' : '20px'; // Default value
   if (fieldStyle.fontSize) {
-    // ضمان تحويل وحدات rem إلى px والحفاظ على وحدات px
+    // Ensure rem units are converted to px and px units are preserved
     titleFontSize = ensurePixelUnit(fieldStyle.fontSize);
   }
   
-  // إعداد حجم خط الوصف مع ضمان وحدات px
-  let descriptionFontSize = '14px'; // قيمة افتراضية
+  // Prepare description font size ensuring px units
+  let descriptionFontSize = '14px'; // Default value
   if (fieldStyle.descriptionFontSize) {
     descriptionFontSize = ensurePixelUnit(fieldStyle.descriptionFontSize);
   }
   
-  // الحصول على لون الخلفية مع القيمة الافتراضية
+  // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // نمط الخلفية مع قيم بكسل ثابتة للاتساق
+  // Background style with fixed pixel values for padding
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
+    padding: '16px', // Precise values for consistency between preview and store
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
+    marginBottom: '16px', // Precise values for consistency between preview and store
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // أنماط العنوان
+  // Title styles
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: titleFontSize,
@@ -129,35 +128,35 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle, direction }) 
     fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3', // قيمة متسقة
+    lineHeight: '1.3', // Consistent value
     display: 'block',
   };
 
-  // أنماط الوصف
+  // Description styles
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
     fontSize: descriptionFontSize,
-    margin: '6px 0 0 0', // قيمة دقيقة للاتساق
+    margin: '6px 0 0 0', // Precise value for consistency
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
     fontWeight: 'normal',
-    lineHeight: '1.5', // قيمة متسقة
+    lineHeight: '1.5', // Consistent value
     opacity: '0.9',
   };
 
-  // إنشاء معرف فريد لهذا الحقل
+  // Create unique ID for this field
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
-  // مهم: يتم تحديد السمة "dir" لحقل العنوان الآن بواسطة قيمة المحاذاة
-  // بدلاً من اتجاه النموذج الأصلي
+  // Important: The title field's "dir" attribute is now determined by the alignment value 
+  // rather than the parent form's direction
   const titleDirection = alignment === 'right' ? 'rtl' : 'ltr';
 
   return (
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={titleDirection} // استخدام اتجاه العنوان الخاص به بناءً على محاذاته
+      dir={titleDirection} // Use title's own direction based on its alignment
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"
