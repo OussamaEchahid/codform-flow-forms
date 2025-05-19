@@ -10,15 +10,14 @@ interface TextAreaProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  direction?: 'ltr' | 'rtl'; // Direction prop
+  direction?: 'ltr' | 'rtl'; // Add direction prop
 }
 
 const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Determine the effective direction - ALWAYS prefer passed direction from form
-  // Only fallback to language-based direction if no direction is provided
+  // Determine the effective direction - prefer passed direction, fallback to language-based
   const effectiveDirection = direction || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Set default values for styling
@@ -33,16 +32,11 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   // Set default rows
   const rows = field.rows || 4;
   
-  // Determine if RTL based on effective direction
+  // Determine if RTL
   const isRTL = effectiveDirection === 'rtl';
   
   return (
-    <div 
-      className="mb-4" 
-      dir={effectiveDirection}
-      data-field-type="textarea"
-      data-respects-form-direction="true"
-    >
+    <div className="mb-4" dir={effectiveDirection}>
       <label 
         htmlFor={field.id} 
         className={`block mb-2 ${field.required ? 'relative' : ''}`}

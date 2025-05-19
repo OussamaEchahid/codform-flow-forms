@@ -106,15 +106,22 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style.labelFontSize = '16px';
       }
       
-      // IMPORTANT: Title fields should preserve their own textAlign settings
-      // Do NOT override based on form direction
+      // IMPORTANT: For title and submit fields, preserve their own textAlign and don't
+      // override based on form direction
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        // Only set a default if no textAlign exists
+        // Keep the existing textAlign if it's already set
         if (!updatedField.style.textAlign) {
+          // Only set a default if one doesn't exist
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
-        // For title fields, don't modify the textAlign based on form direction
-        // This is crucial - title alignment is independent of form direction
+        // For title fields, don't inherit the direction from the form
+        // They should use their own specific alignment
+      }
+      
+      // For submit buttons, also preserve their styling
+      if (updatedField.type === 'submit') {
+        // Submit buttons should maintain their own styling
+        // No need to change anything based on direction
       }
       
       return updatedField;
@@ -126,7 +133,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     // If there's no form title, add one at the beginning with fixed pixel sizes
-    // IMPORTANT: Title alignment is based on language, not form direction
+    // The title field should use its own default alignment, not inherited from direction
     const formTitleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
@@ -243,8 +250,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 field={field} 
                 formStyle={formStyle}
                 direction={direction} // Pass direction to FormFieldComponent
-                // IMPORTANT: List ALL field types that should ignore form direction
-                ignoreDirectionForTypes={['form-title', 'title', 'submit']} 
+                ignoreDirectionForTypes={['form-title', 'title', 'submit']} // Specify fields that should ignore form direction
               />
             ))}
           </div>

@@ -10,7 +10,7 @@ interface TitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
   };
-  direction?: 'ltr' | 'rtl'; // We accept direction but COMPLETELY ignore it for TitleField
+  direction?: 'ltr' | 'rtl'; // We accept direction but ignore it intentionally
 }
 
 // Define valid text alignment options
@@ -56,7 +56,7 @@ const ensurePixelUnit = (value: string): string => {
 const ensureStyleDefaults = (field: FormField): FormField => {
   const style = field.style || {};
   
-  // IMPORTANT: Use the text alignment directly from the field style
+  // Use the text alignment directly from the field style, not based on direction
   // This is the key point: title field maintains its own alignment regardless of form direction
   const textAlignment = style.textAlign || 'left';
   
@@ -80,14 +80,14 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   
   // Apply default settings to ensure consistency
-  // IMPORTANT: We completely ignore the direction parameter here!
+  // Important: We completely ignore the direction parameter here!
   const safeField = ensureStyleDefaults(field);
   const fieldStyle = safeField.style || {};
   
   // Extract description from the field
   const description = field.helpText || '';
   
-  // Get text alignment directly from the field style, not based on form direction
+  // Get text alignment directly from the field style, not based on direction
   const alignment: TextAlign = (fieldStyle.textAlign as TextAlign) || 'left';
   
   // Use precise pixel values instead of rem for consistent sizing across environments
@@ -149,7 +149,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Create unique id for this field
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
-  // IMPORTANT: Set the dir attribute for title field based on alignment value
+  // Important: Set the dir attribute for title field now based on alignment value
   // instead of original form direction
   const titleDirection = alignment === 'right' ? 'rtl' : 'ltr';
 
@@ -170,7 +170,6 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-desc-font-size={descriptionFontSize}
       data-desc-color={fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'}
       data-desc-font-weight='normal'
-      data-ignore-form-direction="true" // Add explicit data attribute to indicate this field ignores form direction
     >
       <div className="codform-title-container" style={backgroundStyle}>
         <h3 
