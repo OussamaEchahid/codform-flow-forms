@@ -41,8 +41,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const isFormTitle = field.type === 'form-title';
   
   // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
-  const fontSize = fieldStyle.fontSize || (isFormTitle ? '24px' : '20px'); 
-  const descriptionFontSize = fieldStyle.descriptionFontSize || '14px';
+  const fontSize = isFormTitle ? '24px' : '20px'; 
+  const descriptionFontSize = '14px';
   
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
@@ -61,7 +61,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط العنوان
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
-    fontSize: fontSize,
+    fontSize: fieldStyle.fontSize || fontSize,
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
@@ -74,7 +74,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-    fontSize: descriptionFontSize,
+    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
     margin: '6px 0 0 0', // قيمة دقيقة للتطابق
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
@@ -99,9 +99,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fontSize}
+      data-font-size={fieldStyle.fontSize || fontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-desc-font-size={descriptionFontSize}
+      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
       data-desc-color={fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'}
       data-desc-font-weight='normal'
     >
