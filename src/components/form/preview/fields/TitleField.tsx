@@ -12,64 +12,65 @@ interface TitleFieldProps {
   };
 }
 
-// تحديد خيارات محاذاة النص الصالحة
+// Define valid text alignment options
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
-// تحديد قيم box-sizing الصالحة
+// Define valid box-sizing values
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
-// دالة مساعدة لتحويل وحدات rem إلى وحدات px
+// Helper function to convert rem units to px units
 const convertRemToPx = (remValue: string): string => {
   if (remValue.endsWith('rem')) {
-    // استخراج القيمة الرقمية من rem
+    // Extract the numeric value from rem
     const numValue = parseFloat(remValue.replace('rem', ''));
-    // تحويل rem إلى px (1rem = 16px عادةً)
+    // Convert rem to px (1rem = 16px typically)
     return `${Math.round(numValue * 16)}px`;
   }
   return remValue;
 };
 
-// دالة مساعدة للتأكد من أن القيمة تنتهي بوحدة px
+// Helper function to ensure value ends with px unit
 const ensurePixelUnit = (value: string): string => {
   if (!value) return '';
   
-  // إذا كان مجرد رقم، أضف "px"
+  // If just a number, add "px"
   if (!isNaN(Number(value))) {
     return `${value}px`;
   }
   
-  // إذا كانت تنتهي بـ rem، قم بتحويلها إلى px
+  // If ends with rem, convert to px
   if (value.endsWith('rem')) {
     return convertRemToPx(value);
   }
   
-  // إذا كانت تنتهي بالفعل بـ px، أعدها كما هي
+  // If already ends with px, return as is
   if (value.endsWith('px')) {
     return value;
   }
   
-  // في الحالات الأخرى، أضف px
+  // In other cases, add px
   return `${value}px`;
 };
 
-const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
+// Use React.memo to prevent unnecessary re-renders
+const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) => {
   const { language } = useI18n();
   
-  // تأكد من وجود خصائص الحقل ولو كانت فارغة
+  // Ensure field properties exist even if empty
   if (!field || !field.id) {
     console.error("Missing field properties in TitleField:", field);
     return null;
   }
   
-  // استخدام نمط الحقل المتوفر أو إنشاء كائن فارغ
+  // Use available field style or create empty object
   const fieldStyle = field.style || {};
   
-  // استخراج الوصف من الحقل نفسه
+  // Extract description from field itself
   const description = field.helpText || '';
   
-  // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
+  // Get alignment from field style or default based on language
   const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
-  // تحويل سلسلة المحاذاة إلى نوع TextAlign مع التحقق
+  // Convert alignment string to TextAlign type with validation
   const getValidAlignment = (align?: string): TextAlign => {
     if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
       return align as TextAlign;
@@ -79,37 +80,37 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // استخدام قيم بكسل دقيقة بدلاً من rem للحجم المتسق عبر البيئات
+  // Use precise pixel values instead of rem for consistent sizing across environments
   const isFormTitle = field.type === 'form-title';
   
-  // تحضير حجم الخط مع وحدات px
-  let titleFontSize = isFormTitle ? '24px' : '20px'; // القيمة الافتراضية
+  // Prepare font size with px units
+  let titleFontSize = isFormTitle ? '24px' : '20px'; // Default value
   if (fieldStyle.fontSize) {
-    // التأكد من تحويل وحدات rem إلى px والحفاظ على وحدات px
+    // Ensure rem units are converted to px and px units are preserved
     titleFontSize = ensurePixelUnit(fieldStyle.fontSize);
   }
   
-  // تحضير حجم خط الوصف مع وحدات px
-  let descriptionFontSize = '14px'; // القيمة الافتراضية
+  // Prepare description font size with px units
+  let descriptionFontSize = '14px'; // Default value
   if (fieldStyle.descriptionFontSize) {
     descriptionFontSize = ensurePixelUnit(fieldStyle.descriptionFontSize);
   }
   
-  // الحصول على لون الخلفية مع الافتراضي
+  // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // نمط الخلفية مع قيم بكسل دقيقة للتباعد
+  // Background style with precise pixel values for spacing
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
+    padding: '16px', // Precise values for consistency between preview and store
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
+    marginBottom: '16px', // Precise values for consistency between preview and store
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // أنماط العنوان
+  // Title styles
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: titleFontSize,
@@ -118,24 +119,24 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3', // قيمة متسقة
+    lineHeight: '1.3', // Consistent value
     display: 'block',
   };
 
-  // أنماط الوصف
+  // Description styles
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
     fontSize: descriptionFontSize,
-    margin: '6px 0 0 0', // قيمة دقيقة للاتساق
+    margin: '6px 0 0 0', // Precise value for consistency
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
     fontWeight: 'normal',
-    lineHeight: '1.5', // قيمة متسقة
+    lineHeight: '1.5', // Consistent value
     opacity: '0.9',
   };
 
-  // استخدم معرف الحقل المستقر مباشرة - ضروري لعمليات السحب والإفلات
+  // Use stable field ID - critical for drag and drop operations
   const titleFieldId = `title-field-${field.id}`;
 
   return (
@@ -150,6 +151,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
+      data-field-id={field.id}
       data-font-size={titleFontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
       data-desc-font-size={descriptionFontSize}
@@ -175,6 +177,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       </div>
     </div>
   );
-};
+});
+
+TitleField.displayName = 'TitleField';
 
 export default TitleField;

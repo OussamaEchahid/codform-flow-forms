@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -39,16 +39,20 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   }));
   
   // Deep copy function for preserving all properties including nested objects
-  const deepCopyElement = (element: FormField): FormField => {
-    // Use JSON parse/stringify for deep copying to preserve all nested properties
-    return JSON.parse(JSON.stringify(element));
-  };
+  const deepCopyElement = useCallback((element: FormField): FormField => {
+    if (!element) return element;
+    // Use JSON parse/stringify for deep copying, but ensure we handle any potential circular references
+    try {
+      return JSON.parse(JSON.stringify(element));
+    } catch (error) {
+      console.error("Error creating deep copy:", error);
+      // Fallback to a simple copy if JSON serialization fails
+      return { ...element, style: element.style ? { ...element.style } : undefined };
+    }
+  }, []);
   
-  const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
     
     if (!over || active.id === over.id) {
       return;
@@ -58,33 +62,30 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = elements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
-      // Preserve original elements by creating exact deep copies
+      // Create exact copies of each element to preserve all properties
       const newElementsArray = elements.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements but maintain their exact properties
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Log for debugging
       console.log(`Reordering element from index ${oldIndex} to ${newIndex}`);
       console.log(`Element being moved: ${elements[oldIndex].type} (ID: ${elements[oldIndex].id})`);
       
-      // Ensure element IDs are preserved exactly as they were
+      // Verify that all element IDs are preserved exactly as they were
       reorderedElements.forEach((element, idx) => {
-        // Verify ID preservation
-        if (element.id !== newElementsArray[idx === oldIndex ? newIndex : (idx >= newIndex && idx < oldIndex ? idx + 1 : (idx <= oldIndex && idx > newIndex ? idx - 1 : idx))].id) {
-          console.warn('ID mismatch detected during reordering. Preserving original ID.');
-          // This should never happen with arrayMove, but added as a safeguard
-          element.id = newElementsArray[idx === oldIndex ? newIndex : (idx >= newIndex && idx < oldIndex ? idx + 1 : (idx <= oldIndex && idx > newIndex ? idx - 1 : idx))].id;
+        const originalElement = elements.find(e => e.id === element.id);
+        if (!originalElement) {
+          console.warn(`Unable to find original element for ID ${element.id}`);
         }
       });
       
       onReorderElements(reorderedElements);
       toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
-  };
+  }, [elements, onReorderElements, deepCopyElement, language]);
   
   // Handle element updates when they are edited directly from the SortableField
-  const handleElementUpdate = (index: number, field: FormField) => {
+  const handleElementUpdate = useCallback((index: number, field: FormField) => {
     if (index < 0 || index >= elements.length) {
       console.error(`Invalid element index: ${index}`);
       return;
@@ -131,7 +132,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       updatedField.style.color = updatedField.style.color || '#ffffff';
       updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
       
-      // تحويل وحدات rem إلى px لضمان التوافق
+      // Convert rem units to px for compatibility
       if (updatedField.style.fontSize) {
         if (updatedField.style.fontSize.endsWith('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize.replace('rem', ''));
@@ -176,12 +177,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     if (onUpdateElement) {
       onUpdateElement(index, updatedField);
     }
-    
-    // Force refresh the preview
-    onSelectElement(index);
-  };
+  }, [elements, onUpdateElement, deepCopyElement, language]);
   
-  // خاصية لمعرفة ما إذا كان هناك عناصر للعرض
+  // Property to determine if there are elements to display
   const hasElements = elements.length > 0;
 
   return (
@@ -214,4 +212,5 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   );
 };
 
-export default FormElementEditor;
+// Wrap the component with React.memo to prevent unnecessary re-renders
+export default React.memo(FormElementEditor);

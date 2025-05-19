@@ -40,19 +40,22 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // استخدام قيمة ثابتة لمفتاح التحديث الداخلي لتجنب التحديثات المتكررة
+  // Use a stable internalRefreshKey that doesn't update with every props change
+  // This will only update when explicitly told to via a new refreshKey value that's larger than before
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // منع التحديث المتكرر - فقط تحديث عند التغييرات الهامة
+  // Only update the internal refresh key when refreshKey increases
   useEffect(() => {
-    // تثبيت القيمة من خلال استخدام الدالة التالية للتأكد من عدم تحديث القيمة بشكل متكرر
-    setInternalRefreshKey(prevKey => Math.max(refreshKey, prevKey));
-    // إزالة refreshKey من التبعيات لمنع التحديثات المتكررة
-  }, []);
+    if (refreshKey > internalRefreshKey) {
+      setInternalRefreshKey(refreshKey);
+    }
+    // We intentionally omit refreshKey from dependencies to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
   
-  // استخدام useMemo لتجنب إعادة معالجة الحقول في كل تحديث
+  // Use useMemo with stable dependencies to prevent unnecessary recalculations
   const processedFields = useMemo(() => {
-    // فحص إذا كانت الحقول فارغة أو غير معرفة
+    // Check if fields are empty or undefined
     if (!fields || fields.length === 0) {
       return [];
     }
@@ -63,51 +66,51 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         return field;
       }
       
-      // إنشاء نسخة جديدة من الحقل لتجنب مشاكل التعديل المباشر
+      // Create a new copy of the field to avoid direct modification issues
       const updatedField = { ...field };
       
-      // الحفاظ على معرف الحقل الأصلي - مهم جداً لاستقرار السحب والإفلات
+      // Preserve the original field ID - critical for drag and drop stability
       updatedField.id = field.id;
       
-      // تحويل الأيقونات الفارغة إلى 'none'
+      // Convert empty icons to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // معالجة الأيقونات بطريقة صحيحة
+      // Handle icons properly
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon إلى true بشكل افتراضي ما لم يتم تعيينه بشكل صريح إلى false
+        // Set showIcon to true by default unless explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // معالجة خاصة لحقول العنوان
+      // Special handling for title fields
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // ضمان تعيين محاذاة النص
+        // Ensure text alignment is set
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // ضمان لون الخلفية والنص
+        // Ensure background color and text color
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
         updatedField.style.color = updatedField.style.color || '#ffffff';
         
-        // ضمان أن أحجام الخطوط لها وحدات بيكسل
+        // Ensure font sizes have pixel units
         if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
           if (updatedField.style.fontSize.includes('rem')) {
             const remValue = parseFloat(updatedField.style.fontSize);
             updatedField.style.fontSize = `${remValue * 16}px`;
           } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-            // إذا كان رقماً بدون وحدة، نفترض البيكسل
+            // If a number without unit, assume pixels
             updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
           }
         }
@@ -126,9 +129,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
+    // Use stable dependencies to prevent unnecessary recalculations
+    // We intentionally use a more focused dependency array to prevent infinite updates
   }, [fields, language]);
 
-  // إنشاء معرف ثابت لمكون لوحة المعاينة هذا
+  // Create a stable ID for this preview panel instance
   const previewPanelId = useMemo(() => `preview-panel-${Math.floor(Math.random() * 1000)}`, []);
 
   return (
@@ -162,4 +167,4 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   );
 };
 
-export default FormPreviewPanel;
+export default React.memo(FormPreviewPanel);
