@@ -298,9 +298,11 @@
       const hideHeader = true;
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
       const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
+      
+      // تعريف المتغيرات الأساسية قبل استخدامها
       const primaryColor = formData.settings?.primaryColor || '#9b87f5';
       const borderRadius = formData.settings?.borderRadius || '0.5rem';
-      const fontSize = formData.settings?.fontSize || '16px';
+      const formFontSize = formData.settings?.fontSize || '16px'; // تغيير اسم المتغير لتجنب التداخل
       const buttonStyle = formData.settings?.buttonStyle || 'rounded';
       
       // إنشاء CSS المحسن
@@ -392,7 +394,7 @@
           padding: 10px 12px;
           border: 1px solid #d1d5db;
           border-radius: ${borderRadius};
-          font-size: ${fontSize};
+          font-size: ${formFontSize};
           color: rgb(31, 41, 55);
           box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
           line-height: 1.5;
@@ -473,7 +475,7 @@
 
         /* تعديل أحجام النص البديل (placeholder) */
         ::placeholder {
-          font-size: ${fontSize};
+          font-size: ${formFontSize};
           opacity: 0.7;
         }
       </style>
@@ -482,7 +484,7 @@
            data-form-preview-id="form-preview-${Date.now()}" 
            data-primary-color="${primaryColor}" 
            data-border-radius="${borderRadius}" 
-           data-font-size="${fontSize}" 
+           data-font-size="${formFontSize}" 
            data-button-style="${buttonStyle}" 
            style="--form-primary-color: ${primaryColor};">
            
@@ -538,7 +540,7 @@
               const labelColor = style.labelColor || '#333';
               const labelFontSize = style.labelFontSize || '16px';
               const labelFontWeight = style.labelFontWeight || '600';
-              const fontSize = style.fontSize || fontSize || '16px';
+              const inputFontSize = style.fontSize || formFontSize;
               
               html += `
               <div class="codform-field" data-field-type="${field.type}" data-field-id="${field.id}">
@@ -557,7 +559,7 @@
                     placeholder="${field.placeholder || ''}" 
                     aria-label="${field.label || ''}" 
                     class="codform-input ${hasIcon ? 'with-icon' : ''}" 
-                    style="font-size: ${fontSize}; min-height: 44px;"
+                    style="font-size: ${inputFontSize}; min-height: 44px;"
                     ${field.required ? 'required' : ''}
                   >
                 </div>
@@ -570,7 +572,7 @@
               const labelColor = style.labelColor || '#333';
               const labelFontSize = style.labelFontSize || '16px';
               const labelFontWeight = style.labelFontWeight || '600';
-              const fontSize = style.fontSize || fontSize || '16px';
+              const textareaFontSize = style.fontSize || formFontSize;
               
               html += `
               <div class="codform-field" data-field-type="textarea" data-field-id="${field.id}">
@@ -583,7 +585,7 @@
                   rows="${field.rows || 4}" 
                   placeholder="${field.placeholder || ''}" 
                   class="codform-textarea" 
-                  style="font-size: ${fontSize}; min-height: 100px;"
+                  style="font-size: ${textareaFontSize}; min-height: 100px;"
                   ${field.required ? 'required' : ''}
                   name="${field.id}"
                 ></textarea>
@@ -931,3 +933,4 @@
     min-height: 100px !important;
   }
 </style>
+
