@@ -149,7 +149,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#ffffff', // تثبيت لون خلفية
+        backgroundColor: '#e5e7eb', // تغيير لون الخلفية من أبيض إلى رمادي فاتح
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
@@ -201,7 +201,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: '#ffffff', // تثبيت لون خلفية
+          backgroundColor: '#e5e7eb', // تغيير لون الخلفية من أبيض إلى رمادي فاتح
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
