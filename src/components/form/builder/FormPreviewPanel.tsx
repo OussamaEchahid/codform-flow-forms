@@ -95,13 +95,16 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     const titleField = fields.find(f => f.type === 'form-title');
     
     if (titleField) {
+      // Make sure textAlign is properly typed
+      const textAlignment = titleField.style?.textAlign as 'left' | 'center' | 'right' | 'justify' | undefined;
+      
       return {
         title: titleField.label || formTitle,
         description: titleField.helpText || formDescription,
         backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
         textColor: titleField.style?.color || '#ffffff',
         descriptionColor: titleField.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-        textAlign: titleField.style?.textAlign,
+        textAlign: textAlignment,
         fontSize: titleField.style?.fontSize || '24px',
         descriptionFontSize: titleField.style?.descriptionFontSize || '14px',
         id: titleField.id
@@ -114,7 +117,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       backgroundColor: formStyle.primaryColor,
       textColor: '#ffffff',
       descriptionColor: 'rgba(255, 255, 255, 0.9)',
-      textAlign: language === 'ar' ? 'right' : 'left',
+      textAlign: language === 'ar' ? 'right' : 'left' as 'left' | 'right',
       fontSize: '24px',
       descriptionFontSize: '14px'
     };

@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -144,7 +143,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-              disabled={element.type === 'form-title'} // Disable sorting for form-title
+              disabled={element.type === 'form-title'} 
             />
           ))}
         </SortableContext>

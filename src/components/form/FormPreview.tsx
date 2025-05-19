@@ -16,6 +16,7 @@ interface TitleFieldInfo {
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   fontSize?: string;
   descriptionFontSize?: string;
+  borderRadius?: string;
   id?: string;
 }
 

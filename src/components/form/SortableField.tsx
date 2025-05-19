@@ -20,6 +20,7 @@ interface SortableFieldProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onFieldUpdate?: (updatedField: FormField) => void;
+  disabled?: boolean; // Added disabled prop
 }
 
 const SortableField: React.FC<SortableFieldProps> = ({
