@@ -50,7 +50,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // معالجة الحقول مع الحفاظ على محاذاة العناوين بغض النظر عن اتجاه النموذج
+  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
       // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
@@ -73,19 +73,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      // مهم جدًا: حقول العنوان تحتفظ بمحاذاتها الخاصة - لا تتأثر باتجاه النموذج
+      // معالجة خاصة لحقول العنوان
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // فقط إذا لم تكن المحاذاة محددة بالفعل - استخدم افتراضي
-        if (updatedField.style.textAlign === undefined) {
-          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
-        }
-        
-        // لا تغير أبدًا محاذاة العنوان بناءً على اتجاه النموذج - حافظ على قيمة محاذاة العنوان المحددة
-        // هذا تغيير مهم جدًا لحل المشكلة
+        // ضمان تعيين محاذاة النص بناءً على اتجاه النموذج المحدد
+        updatedField.style.textAlign = formDirection === 'rtl' ? 'right' : 'left';
         
         // ضمان تعيين لون الخلفية ولون النص
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
@@ -115,7 +110,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, language, internalRefreshKey]); // إزالة formDirection من التبعيات
+  }, [fields, language, internalRefreshKey, formDirection]); // إضافة formDirection للتبعيات
 
   // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;

@@ -84,10 +84,9 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
 };
 
-// CRITICAL: This function determines which field types should ignore form direction
-const shouldIgnoreFormDirection = (fieldType: string, ignoreTypes: string[], fieldStyle?: any): boolean => {
-  // Always ignore direction for form-title and title fields regardless of what's passed in ignoreTypes
-  // This is the most important fix to ensure titles always maintain their own alignment
+// IMPORTANT: This function determines which field types should ignore form direction
+const shouldIgnoreFormDirection = (fieldType: string, ignoreTypes: string[]): boolean => {
+  // Always ignore direction for form-title and title fields - they use their own text alignment
   if (fieldType === 'form-title' || fieldType === 'title') {
     return true;
   }
@@ -109,7 +108,7 @@ const FormField: React.FC<FormFieldProps> = ({
 
   // Check if this field type should ignore the form direction
   // Very important: This ensures titles and submit buttons maintain their own settings
-  const ignoreDirection = shouldIgnoreFormDirection(field.type, ignoreDirectionForTypes, field.style);
+  const ignoreDirection = shouldIgnoreFormDirection(field.type, ignoreDirectionForTypes);
 
   // Normalize field properties - ensure icon settings are applied correctly
   const normalizedField = {
@@ -208,7 +207,6 @@ const FormField: React.FC<FormFieldProps> = ({
     'data-border-width': normalizedField.style?.borderWidth,
     'data-ignores-direction': ignoreDirection ? 'true' : 'false',
     'data-direction': ignoreDirection ? undefined : direction,
-    'data-text-align': normalizedField.style?.textAlign || '',
   };
 
   if (!isSupported && fieldType !== 'form-title') {
@@ -232,8 +230,7 @@ const FormField: React.FC<FormFieldProps> = ({
       <Component 
         field={normalizedField} 
         formStyle={formStyle} 
-        // CRITICAL: Only pass direction prop to components that should respect form direction
-        // For title fields, we explicitly pass undefined to ensure they use their own alignment
+        // IMPORTANT: Only pass direction prop to components that should respect form direction
         direction={ignoreDirection ? undefined : direction} 
       />
     </div>
