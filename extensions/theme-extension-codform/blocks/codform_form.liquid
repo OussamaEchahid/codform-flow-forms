@@ -292,9 +292,9 @@
       }
     }
     
-    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق هيكل المعاينة بالضبط ومع استخدام قيم ديناميكية
+    // وظيفة لإنشاء HTML للنموذج - محدثة لتطابق هيكل المعاينة بالضبط وتطبيق أنماط ديناميكية
     function createFormHtml(formData, blockId) {
-      // دائمًا تفعيل خاصية إخفاء العنوان
+      // إعداد متغيرات تكوين النموذج الأساسية
       const hideHeader = true;
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
       const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
@@ -311,16 +311,17 @@
            data-border-radius="${borderRadius}" 
            data-font-size="${fontSize}" 
            data-button-style="${buttonStyle}" 
-           style="font-size: ${fontSize}; --form-primary-color: ${primaryColor}; border-radius: ${borderRadius}; background-color: rgb(245, 245, 245);">
+           style="font-size: ${fontSize}; --form-primary-color: ${primaryColor}; border-radius: ${borderRadius};">
         <div class="p-3" 
              data-direction="${isRTL ? 'rtl' : 'ltr'}" 
              style="border-radius: 0px 0px ${borderRadius} ${borderRadius}; direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: rgb(245, 245, 245);">
           <div class="space-y-2">
       `;
       
-      // إضافة الأنماط للرسوم المتحركة
+      // إضافة الأنماط للرسوم المتحركة والعناصر المخصصة
       html += `
       <style>
+        /* أنماط الحركة */
         @keyframes pulse-animation {
           0% { transform: scale(1); }
           50% { transform: scale(1.05); }
@@ -369,35 +370,39 @@
           animation: flash-animation 2s infinite ease-in-out !important;
         }
 
-        /* تنسيقات إضافية للنموذج */
+        /* تنسيقات حقول النموذج */
         .codform-input, .codform-textarea {
           width: 100%;
           padding: 10px 12px;
           border: 1px solid #d1d5db;
-          border-radius: 0.5rem;
-          font-size: 16px;
+          border-radius: ${borderRadius};
+          font-size: ${fontSize};
           color: rgb(31, 41, 55);
           box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
           line-height: 1.5;
           font-family: inherit;
+          background-color: #ffffff;
+          box-sizing: border-box;
         }
 
         .codform-input.with-icon {
-          padding-left: 36px !important;
+          ${isRTL ? 'padding-right: 36px !important;' : 'padding-left: 36px !important;'}
         }
 
-        label {
-          color: rgb(51, 65, 85);
-          font-size: 1rem;
+        /* تنسيق تسميات الحقول */
+        .codform-field-label {
+          color: #333; /* اللون الافتراضي */
+          font-size: ${fontSize};
           font-weight: 600;
           font-family: inherit;
           margin-bottom: 8px;
           display: block;
         }
 
+        /* موضع الأيقونات في الحقول */
         .codform-field-icon {
           position: absolute;
-          left: 12px;
+          ${isRTL ? 'right: 12px;' : 'left: 12px;'}
           top: 50%;
           transform: translateY(-50%);
           color: #9ca3af;
@@ -408,15 +413,32 @@
           pointer-events: none;
         }
 
+        /* علامة الحقول المطلوبة */
         .codform-required {
           color: #ef4444;
-          margin-left: 4px;
+          margin-${isRTL ? 'right' : 'left'}: 4px;
+        }
+        
+        /* حاوية الحقل مع الخلفية البيضاء */
+        .codform-field {
+          background-color: #ffffff;
+          padding: 12px;
+          border-radius: ${borderRadius};
+          margin-bottom: 16px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* حاوية المدخلات النسبية للأيقونات */
+        .codform-input-container {
+          position: relative;
+          width: 100%;
         }
       </style>
       `;
       
       // إنشاء نموذج داخل الحاوية
-      html += `<form id="codform-form-element-${blockId}" style="display: block;">`;
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="display: block;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
@@ -425,7 +447,7 @@
             // إنشاء عنصر العنوان بشكل ديناميكي باستخدام قيم من field.style
             if (field.type === 'form-title' || field.type === 'title') {
               const style = field.style || {};
-              // استخدام القيم الديناميكية من field.style أو القيم الافتراضية إذا لم تكن محددة
+              // استخدام القيم الديناميكية من field.style
               const titleAlign = style.textAlign || (isRTL ? 'right' : 'center');
               const bgColor = style.backgroundColor || primaryColor || '#9b87f5';
               const titleColor = style.color || '#ffffff';
@@ -438,55 +460,6 @@
               
               html += `
               <div class="mb-4" data-field-type="${field.type}" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="false">
-                <style>
-                  @keyframes pulse-animation {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                  }
-                  
-                  @keyframes shake-animation {
-                    0%, 100% { transform: translateX(0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                    20%, 40%, 60%, 80% { transform: translateX(5px); }
-                  }
-                  
-                  @keyframes bounce-animation {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
-                  }
-                  
-                  @keyframes wiggle-animation {
-                    0%, 100% { transform: rotate(0); }
-                    25% { transform: rotate(-3deg); }
-                    75% { transform: rotate(3deg); }
-                  }
-                  
-                  @keyframes flash-animation {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                  }
-                  
-                  .pulse-animation {
-                    animation: pulse-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .shake-animation {
-                    animation: shake-animation 0.8s infinite ease-in-out !important;
-                  }
-                  
-                  .bounce-animation {
-                    animation: bounce-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .wiggle-animation {
-                    animation: wiggle-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .flash-animation {
-                    animation: flash-animation 2s infinite ease-in-out !important;
-                  }
-                </style>
                 <div id="title-field-${field.id}-${Date.now()}" class="mb-4 ${field.type === 'form-title' ? 'codform-title' : ''}" dir="${isRTL ? 'rtl' : 'ltr'}" data-testid="title-field" data-title-align="${titleAlign}" data-has-bg="true" data-title-color="${titleColor}" data-bg-color="${bgColor}" data-font-family="${fontFamily}" data-field-type="${field.type}" data-font-size="${titleFontSize}" data-font-weight="${fontWeight}" data-desc-font-size="${descFontSize}" data-desc-color="${descColor}" data-desc-font-weight="${descFontWeight}">
                   <div class="codform-title-container" style="background-color: ${bgColor}; padding: 16px; border-radius: ${borderRadius}; width: 100%; box-sizing: border-box; margin-bottom: 16px; text-align: ${titleAlign};">
                     <h3 class="${field.type === 'form-title' ? 'codform-form-title' : ''}" style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block;">
@@ -504,152 +477,61 @@
             
             // حقول النص والإدخال
             if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
-              const hasIcon = field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
-              let iconType = field.icon || 'user';
-              if (field.type === 'email') iconType = 'mail';
-              if (field.type === 'phone') iconType = 'phone';
+              // الحصول على الإعدادات من field.style إن وجدت
+              const style = field.style || {};
+              const hasIcon = field.icon && field.icon !== 'none' && style.showIcon !== false;
+              let iconType = field.icon || (field.type === 'email' ? 'mail' : field.type === 'phone' ? 'phone' : 'user');
+              const labelColor = style.labelColor || '#333';
+              const labelFontSize = style.labelFontSize || fontSize;
+              const labelFontWeight = style.labelFontWeight || '600';
               
               html += `
-              <div class="mb-4" data-field-type="${field.type}" data-field-id="${field.id}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon="${iconType}" data-required="${field.required ? 'true' : 'false'}">
-                <style>
-                  @keyframes pulse-animation {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                  }
-                  
-                  @keyframes shake-animation {
-                    0%, 100% { transform: translateX(0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                    20%, 40%, 60%, 80% { transform: translateX(5px); }
-                  }
-                  
-                  @keyframes bounce-animation {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
-                  }
-                  
-                  @keyframes wiggle-animation {
-                    0%, 100% { transform: rotate(0); }
-                    25% { transform: rotate(-3deg); }
-                    75% { transform: rotate(3deg); }
-                  }
-                  
-                  @keyframes flash-animation {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                  }
-                  
-                  .pulse-animation {
-                    animation: pulse-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .shake-animation {
-                    animation: shake-animation 0.8s infinite ease-in-out !important;
-                  }
-                  
-                  .bounce-animation {
-                    animation: bounce-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .wiggle-animation {
-                    animation: wiggle-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .flash-animation {
-                    animation: flash-animation 2s infinite ease-in-out !important;
-                  }
-                </style>
-                <div class="mb-4 p-3 bg-white rounded-lg border border-gray-200" data-component="TextInput" data-field-type="${field.type}" data-field-id="${field.id}" data-show-label="true" data-label-text="${field.label || ''}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon-type="${iconType}" data-required="${field.required ? 'true' : 'false'}" data-font-family="inherit" data-font-size="1rem" data-border-radius="0.5rem" data-input-id="${field.id}-input" dir="${isRTL ? 'rtl' : 'ltr'}">
-                  <label for="${field.id}-input" class="block mb-2 relative" data-label-text="${field.label || ''}" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
-                    ${field.label || ''}
-                    ${field.required ? '<span class="codform-required">*</span>' : ''}
-                  </label>
-                  <div class="relative">
-                    ${hasIcon ? `<div class="codform-field-icon" data-icon-type="${iconType}" data-icon-visible="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; z-index: 2;">
-                      ${getIconSvg(iconType)}
-                    </div>` : ''}
-                    <input 
-                      type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}" 
-                      id="${field.id}-input" 
-                      name="${field.id}" 
-                      placeholder="${field.placeholder || ''}" 
-                      aria-label="${field.label || ''}" 
-                      class="codform-input ${hasIcon ? 'with-icon' : ''}" 
-                      data-has-icon="${hasIcon ? 'true' : 'false'}" 
-                      ${field.required ? 'required' : ''}
-                    >
-                  </div>
+              <div class="codform-field" data-field-type="${field.type}" data-field-id="${field.id}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon="${iconType}" data-required="${field.required ? 'true' : 'false'}">
+                <label for="${field.id}-input" class="codform-field-label" data-label-text="${field.label || ''}" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight};">
+                  ${field.label || ''}
+                  ${field.required ? '<span class="codform-required">*</span>' : ''}
+                </label>
+                <div class="codform-input-container">
+                  ${hasIcon ? `<div class="codform-field-icon" data-icon-type="${iconType}" data-icon-visible="true">
+                    ${getIconSvg(iconType)}
+                  </div>` : ''}
+                  <input 
+                    type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}" 
+                    id="${field.id}-input" 
+                    name="${field.id}" 
+                    placeholder="${field.placeholder || ''}" 
+                    aria-label="${field.label || ''}" 
+                    class="codform-input ${hasIcon ? 'with-icon' : ''}" 
+                    data-has-icon="${hasIcon ? 'true' : 'false'}" 
+                    ${field.required ? 'required' : ''}
+                    style="${style.inputStyles || ''}"
+                  >
                 </div>
               </div>`;
             } 
             // حقل المناطق النصية
             else if (field.type === 'textarea') {
+              // الحصول على الإعدادات من field.style إن وجدت
+              const style = field.style || {};
+              const labelColor = style.labelColor || '#333';
+              const labelFontSize = style.labelFontSize || fontSize;
+              const labelFontWeight = style.labelFontWeight || '600';
+              
               html += `
-              <div class="mb-4" data-field-type="textarea" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="${field.required ? 'true' : 'false'}">
-                <style>
-                  @keyframes pulse-animation {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                  }
-                  
-                  @keyframes shake-animation {
-                    0%, 100% { transform: translateX(0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                    20%, 40%, 60%, 80% { transform: translateX(5px); }
-                  }
-                  
-                  @keyframes bounce-animation {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
-                  }
-                  
-                  @keyframes wiggle-animation {
-                    0%, 100% { transform: rotate(0); }
-                    25% { transform: rotate(-3deg); }
-                    75% { transform: rotate(3deg); }
-                  }
-                  
-                  @keyframes flash-animation {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                  }
-                  
-                  .pulse-animation {
-                    animation: pulse-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .shake-animation {
-                    animation: shake-animation 0.8s infinite ease-in-out !important;
-                  }
-                  
-                  .bounce-animation {
-                    animation: bounce-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .wiggle-animation {
-                    animation: wiggle-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .flash-animation {
-                    animation: flash-animation 2s infinite ease-in-out !important;
-                  }
-                </style>
-                <div class="mb-4 p-3 bg-white rounded-lg border border-gray-200">
-                  <label for="${field.id}" class="block mb-2 relative" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
-                    ${field.label || ''}
-                    ${field.required ? '<span class="codform-required">*</span>' : ''}
-                  </label>
-                  <textarea 
-                    id="${field.id}" 
-                    rows="${field.rows || 4}" 
-                    placeholder="${field.placeholder || ''}" 
-                    class="codform-textarea" 
-                    ${field.required ? 'required' : ''}
-                    name="${field.id}">
-                  </textarea>
-                </div>
+              <div class="codform-field" data-field-type="textarea" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="${field.required ? 'true' : 'false'}">
+                <label for="${field.id}" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight};">
+                  ${field.label || ''}
+                  ${field.required ? '<span class="codform-required">*</span>' : ''}
+                </label>
+                <textarea 
+                  id="${field.id}" 
+                  rows="${field.rows || 4}" 
+                  placeholder="${field.placeholder || ''}" 
+                  class="codform-textarea" 
+                  ${field.required ? 'required' : ''}
+                  name="${field.id}"
+                  style="${style.inputStyles || ''}">
+                </textarea>
               </div>`;
             } 
             // حقل الإرسال (الزر)
@@ -671,55 +553,6 @@
               
               html += `
               <div class="mt-0" data-field-type="submit" data-field-id="${field.id}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon="${iconType}" data-required="false">
-                <style>
-                  @keyframes pulse-animation {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                  }
-                  
-                  @keyframes shake-animation {
-                    0%, 100% { transform: translateX(0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                    20%, 40%, 60%, 80% { transform: translateX(5px); }
-                  }
-                  
-                  @keyframes bounce-animation {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
-                  }
-                  
-                  @keyframes wiggle-animation {
-                    0%, 100% { transform: rotate(0); }
-                    25% { transform: rotate(-3deg); }
-                    75% { transform: rotate(3deg); }
-                  }
-                  
-                  @keyframes flash-animation {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                  }
-                  
-                  .pulse-animation {
-                    animation: pulse-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .shake-animation {
-                    animation: shake-animation 0.8s infinite ease-in-out !important;
-                  }
-                  
-                  .bounce-animation {
-                    animation: bounce-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .wiggle-animation {
-                    animation: wiggle-animation 2s infinite ease-in-out !important;
-                  }
-                  
-                  .flash-animation {
-                    animation: flash-animation 2s infinite ease-in-out !important;
-                  }
-                </style>
                 <button 
                   type="submit" 
                   class="codform-submit-btn ${hasAnimation ? `${animationType}-animation` : ''}" 
@@ -740,6 +573,8 @@
                 </button>
               </div>`;
             }
+            
+            // يمكن إضافة أنواع حقول أخرى مدعومة هنا...
           }
         });
       } else {
@@ -842,7 +677,7 @@
 </script>
 
 <style>
-  /* تحديث أنماط CSS لضمان توافق العرض */
+  /* تنسيقات أساسية للنموذج */
   .codform-container {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 20px 0;
@@ -853,6 +688,7 @@
     width: 100%;
     font-size: 16px;
     line-height: 1.5;
+    padding: 0 15px;
   }
   
   /* أنماط الزر */
@@ -907,61 +743,132 @@
     background-color: #ff3b30;
   }
   
-  /* التحسينات النموذج */
-  .codform-input, .codform-textarea {
-    width: 100% !important;
-    padding: 10px 12px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-    color: rgb(31, 41, 55) !important;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px !important;
-    line-height: 1.5 !important;
-    font-family: inherit !important;
+  /* الحاوية الرئيسية للنموذج */
+  .codform-form {
+    background-color: rgb(245, 245, 245);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
-  .codform-input.with-icon {
+  /* الحقول وأنماطها */
+  .codform-field {
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 0.5rem;
+    margin-bottom: 16px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .codform-field-label {
+    color: #333; /* اللون الافتراضي */
+    font-size: 1rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+  }
+  
+  .codform-input, .codform-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 16px;
+    background-color: #ffffff;
+    color: #1f2937;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .codform-input-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  /* موضع الأيقونات */
+  .codform-field-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  
+  /* تعديلات RTL */
+  [dir="rtl"] .codform-field-icon {
+    right: 12px;
+    left: auto;
+  }
+  
+  [dir="ltr"] .codform-field-icon {
+    left: 12px;
+    right: auto;
+  }
+  
+  [dir="rtl"] .codform-input.with-icon {
+    padding-right: 36px !important;
+  }
+  
+  [dir="ltr"] .codform-input.with-icon {
     padding-left: 36px !important;
   }
   
-  .codform-field {
-    position: relative !important;
-    margin-bottom: 16px !important;
-    background-color: #ffffff !important;
-    border-radius: 8px !important;
-    padding: 12px !important;
-    border: 1px solid #e5e7eb !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  }
-  
-  .codform-field label {
-    color: rgb(51, 65, 85) !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    font-family: inherit !important;
-    margin-bottom: 8px !important;
-    display: block !important;
-  }
-  
-  .codform-field-icon {
-    position: absolute !important;
-    left: 12px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    color: #9ca3af !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 2 !important;
-    pointer-events: none !important;
-  }
-  
+  /* علامة الحقول المطلوبة */
   .codform-required {
-    color: #ef4444 !important;
-    margin-left: 4px !important;
+    color: #ef4444;
   }
   
-  /* أنماط رسومات متحركة */
+  [dir="rtl"] .codform-required {
+    margin-right: 4px;
+  }
+  
+  [dir="ltr"] .codform-required {
+    margin-left: 4px;
+  }
+  
+  /* تنسيقات زر الإرسال */
+  .codform-submit-btn {
+    width: 100%;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 14px;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 4px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  /* تنسيقات عنوان النموذج */
+  .codform-title-container {
+    padding: 16px;
+    margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .codform-form-title {
+    margin: 0;
+    padding: 0;
+    line-height: 1.3;
+    display: block;
+  }
+  
+  .codform-title-description {
+    margin: 6px 0 0;
+    padding: 0;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+  
+  /* أنماط الحركة */
   @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -976,12 +883,58 @@
     40%, 60% { transform: translateX(6px); }
   }
   
-  .shake-animation {
-    animation: shake 0.8s ease-in-out infinite !important;
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    50% { transform: rotate(0); }
+    75% { transform: rotate(5deg); }
+  }
+  
+  @keyframes flash {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
   }
   
   .pulse-animation {
-    animation: pulse 2s ease-in-out infinite !important;
+    animation: pulse 2s infinite ease-in-out !important;
+  }
+  
+  .shake-animation {
+    animation: shake 0.8s infinite ease-in-out !important;
+  }
+  
+  .bounce-animation {
+    animation: bounce 2s infinite ease-in-out !important;
+  }
+  
+  .wiggle-animation {
+    animation: wiggle 0.7s ease-in-out infinite !important;
+  }
+  
+  .flash-animation {
+    animation: flash 3s infinite ease-in-out !important;
+  }
+  
+  /* تعديلات لتحسين التوافقية مع الأجهزة المختلفة */
+  @media (max-width: 768px) {
+    .codform-container {
+      padding: 0 12px;
+      margin: 12px 0;
+    }
+    
+    .codform-title-container {
+      padding: 12px !important;
+    }
+    
+    .codform-form-title {
+      font-size: 22px !important;
+    }
   }
 </style>
 

@@ -98,7 +98,11 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
       // تعيين showIcon افتراضيًا إلى true إذا كانت الأيقونة موجودة وليست 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
-        (field.icon && field.icon !== 'none')
+        (field.icon && field.icon !== 'none'),
+      // تعيين القيم الافتراضية للون التسمية وحجم الخط إذا لم تكن محددة
+      labelColor: field.style?.labelColor || '#333',
+      labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '1rem',
+      labelFontWeight: field.style?.labelFontWeight || '600',
     }
   };
 
@@ -168,6 +172,9 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-show-icon': normalizedField.style?.showIcon ? 'true' : 'false',
     'data-icon': normalizedField.icon || 'none',
     'data-required': normalizedField.required ? 'true' : 'false',
+    'data-label-color': normalizedField.style?.labelColor || '#333',
+    'data-label-font-size': normalizedField.style?.labelFontSize || formStyle.fontSize || '1rem',
+    'data-label-font-weight': normalizedField.style?.labelFontWeight || '600',
   };
 
   if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title
