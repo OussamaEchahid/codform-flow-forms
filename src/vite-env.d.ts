@@ -57,9 +57,6 @@ interface FormFieldStyle {
   icon?: string;
   fullWidth?: boolean;
   fontFamily?: string;
-
-  // Direction control property
-  ignoreFormDirection?: boolean; // Added to fix TypeScript error
   
   // Cart item and summary specific properties
   priceFontSize?: string;

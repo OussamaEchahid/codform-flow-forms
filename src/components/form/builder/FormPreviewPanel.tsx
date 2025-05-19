@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
@@ -44,86 +44,86 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
   const [formDirection, setFormDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
-  const previousFieldsRef = useRef<string>('');
   
-  // Log field information for debugging
+  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
-    console.log('FormPreviewPanel fields:', fields.map(f => ({ id: f.id, type: f.type, label: f.label })));
-  }, [fields]);
-  
-  // Update internal refresh key when props change to ensure preview updates
-  useEffect(() => {
-    console.log('FormPreviewPanel: Refreshing with key:', refreshKey);
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
-  // Process fields to maintain title alignment regardless of form direction
+  // معالجة الحقول مع الحفاظ على محاذاة العناوين بغض النظر عن اتجاه النموذج
   const processedFields = React.useMemo(() => {
-    const currentFieldsJson = JSON.stringify(fields);
-    
-    // Only reprocess if fields have changed
-    if (previousFieldsRef.current === currentFieldsJson) {
-      return fields;
-    }
-    
-    previousFieldsRef.current = currentFieldsJson;
-    console.log('FormPreviewPanel: Processing fields for direction and alignment');
-    
     return fields.map(field => {
-      // Create a new field object to avoid direct mutations
+      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
       
-      // Deep clone the style to avoid mutations
-      updatedField.style = { ...(field.style || {}) };
-      
-      // Handle empty icon strings
+      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Set showIcon properly if field has an icon
+      // ضمان معالجة showIcon بشكل صحيح
       if (updatedField.icon && updatedField.icon !== 'none') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Handle title fields specifically to maintain their own alignment
+      // مهم جدًا: حقول العنوان تحتفظ بمحاذاتها الخاصة - لا تتأثر باتجاه النموذج
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        // Set default text alignment if not already specified
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // فقط إذا لم تكن المحاذاة محددة بالفعل - استخدم افتراضي
         if (updatedField.style.textAlign === undefined) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // Flag to indicate this field should ignore form direction
-        updatedField.style.ignoreFormDirection = true;
+        // لا تغير أبدًا محاذاة العنوان بناءً على اتجاه النموذج - حافظ على قيمة محاذاة العنوان المحددة
+        // هذا تغيير مهم جدًا لحل المشكلة
         
-        // Set background and text colors with defaults
+        // ضمان تعيين لون الخلفية ولون النص
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
         updatedField.style.color = updatedField.style.color || '#ffffff';
+        
+        // ضمان تحديد أحجام الخط بوحدات بكسل
+        if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
+          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+        }
+        
+        if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
+          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
+        }
       }
       
-      // Ensure font size uses px units for consistency
+      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
+        // تحويل rem إلى px للتناسق
         if (updatedField.style.fontSize.includes('rem')) {
           const remValue = parseFloat(updatedField.style.fontSize);
           updatedField.style.fontSize = `${remValue * 16}px`;
         } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
       
       return updatedField;
     });
-  }, [fields, language, internalRefreshKey]);
+  }, [fields, language, internalRefreshKey]); // إزالة formDirection من التبعيات
 
-  // Create unique ID for this preview panel
+  // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
     <div id={previewPanelId}>
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+        <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">
             {language === 'ar' ? 'اتجاه النموذج:' : 'Form Direction:'}
           </span>
@@ -157,7 +157,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
-          direction={formDirection}
+          direction={formDirection} // Pass the direction to FormPreview
         >
           <div></div>
         </FormPreview>

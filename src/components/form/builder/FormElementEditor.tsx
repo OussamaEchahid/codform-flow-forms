@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { useSortable } from '@dnd-kit/sortable';
@@ -42,8 +42,6 @@ const SortableElement = ({
   onDuplicate: () => void;
 }) => {
   const { language } = useI18n();
-  // Generate a stable ID for the sortable element
-  const fieldId = field.id; 
   
   const { 
     attributes, 
@@ -53,12 +51,10 @@ const SortableElement = ({
     transition,
     isDragging
   } = useSortable({ 
-    id: fieldId,
+    id: field.id,
     data: {
       // Deep clone the field data to preserve all properties during drag and drop
-      field: deepCloneField(field),
-      type: field.type,
-      index: index
+      field: deepCloneField(field)
     }
   });
 
@@ -121,9 +117,8 @@ const SortableElement = ({
       }} 
       className={`rounded-md p-3 mb-2 cursor-pointer hover:bg-gray-50 transition-colors group`}
       onClick={onSelect}
-      data-field-id={fieldId}
+      data-field-id={field.id}
       data-field-type={field.type}
-      data-field-index={index}
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
@@ -143,13 +138,13 @@ const SortableElement = ({
         </div>
         
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(); }} data-field-edit-id={fieldId}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
             <Edit size={16} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} data-field-duplicate-id={fieldId}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
             <Copy size={16} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(); }} data-field-delete-id={fieldId}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
             <Trash size={16} />
           </Button>
         </div>
@@ -168,20 +163,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Debug log to help track elements and their IDs
-  const logElementsInfo = useCallback(() => {
-    console.log("Form elements:", elements.map(e => ({ 
-      id: e.id, 
-      type: e.type, 
-      label: e.label 
-    })));
-  }, [elements]);
-  
-  // For debugging purposes
-  React.useEffect(() => {
-    logElementsInfo();
-  }, [elements, logElementsInfo]);
-  
   if (elements.length === 0) {
     return (
       <div className="text-center py-8 border rounded-lg">
@@ -199,7 +180,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     <div className="space-y-1">
       {elements.map((element, index) => (
         <SortableElement
-          key={`${element.id}-${index}`}
+          key={element.id}
           field={element}
           index={index}
           isSelected={selectedIndex === index}

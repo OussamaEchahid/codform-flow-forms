@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
@@ -31,8 +31,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
 }) => {
   const { language } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [editedField, setEditedField] = useState<FormField>({...field});
-  const fieldId = field.id; // Store field id to ensure we update the right field
+  const [editedField, setEditedField] = useState<FormField>(field);
   
   const {
     attributes,
@@ -46,11 +45,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
     transition: {
       duration: 150,
       easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-    },
-    data: {
-      type: field.type,
-      id: field.id,
-      originalField: field
     }
   });
 
@@ -67,15 +61,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
   
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
-    // Deep clone to avoid reference issues
-    const clonedField = JSON.parse(JSON.stringify(field));
-    console.log(`SortableField updated with field ID: ${fieldId}, type: ${field.type}, label: ${field.label}`);
-    setEditedField(clonedField);
-  }, [field, fieldId]);
+    setEditedField(JSON.parse(JSON.stringify(field)));
+  }, [field]);
 
-  const handleFieldChange = useCallback((property: string, value: any) => {
-    console.log(`Updating field ${fieldId} (${field.type}) property: ${property} with value:`, value);
-    
+  const handleFieldChange = (property: string, value: any) => {
     // Create a new field object with the updated property
     const updatedField = {
       ...editedField,
@@ -85,31 +74,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Update the local state
     setEditedField(updatedField);
     
-    // Apply changes immediately by creating a new copy to update the original field
-    // This ensures we don't modify the field reference directly
+    // Apply changes immediately by updating the original field
+    field[property] = value;
+    
+    // Propagate changes to parent for immediate preview update
     if (onFieldUpdate) {
-      const fieldToUpdate = {...updatedField, id: fieldId};
-      console.log(`Applying field update for field ID: ${fieldId}, property: ${property}`);
-      onFieldUpdate(fieldToUpdate);
+      onFieldUpdate({...updatedField});
     }
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
-  }, [editedField, fieldId, field.type, language, onFieldUpdate]);
+  };
 
-  const handleStyleChange = useCallback((property: string, value: any) => {
-    console.log(`Updating field ${fieldId} (${field.type}) style property: ${property} with value:`, value);
-    
+  const handleStyleChange = (property: string, value: any) => {
     // Create a new style object with the updated property
     const updatedStyle = {
       ...editedField.style || {},
       [property]: value
     };
-    
-    // If this is a title field and we're changing text alignment, make sure ignoreFormDirection is set
-    if ((field.type === 'form-title' || field.type === 'title') && property === 'textAlign') {
-      updatedStyle.ignoreFormDirection = true;
-    }
     
     // Create a new field object with the updated style
     const updatedField = {
@@ -120,16 +102,18 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Update the local state
     setEditedField(updatedField);
     
-    // Apply changes immediately to the original field
+    // Apply changes immediately by updating the original field
+    if (!field.style) field.style = {};
+    field.style[property] = value;
+    
+    // Propagate changes to parent for immediate preview update
     if (onFieldUpdate) {
-      const fieldToUpdate = {...updatedField, id: fieldId};
-      console.log(`Applying style update for field ID: ${fieldId}, style property: ${property}`);
-      onFieldUpdate(fieldToUpdate);
+      onFieldUpdate({...updatedField});
     }
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
-  }, [editedField, fieldId, field.type, language, onFieldUpdate]);
+  };
 
   // Font family options
   const fontFamilies = [
@@ -194,8 +178,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
         "border rounded-lg mb-3 overflow-hidden",
         isDragging ? "shadow-lg" : ""
       )}
-      data-field-id={fieldId}
-      data-field-type={field.type}
     >
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={field.id} className="border-0">
@@ -232,27 +214,14 @@ const SortableField: React.FC<SortableFieldProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 {/* Left column */}
                 <div className="space-y-4">
-                  {/* Label text */}
-                  <div className="space-y-1">
-                    <Label htmlFor={`field-label-${fieldId}`}>
-                      {language === 'ar' ? 'نص التسمية' : 'Label text'}
-                    </Label>
-                    <Input
-                      id={`field-label-${fieldId}`}
-                      value={editedField.label || ''}
-                      onChange={(e) => handleFieldChange('label', e.target.value)}
-                      className={language === 'ar' ? 'text-right' : ''}
-                    />
-                  </div>
-
                   {/* Placeholder - hide for submit button */}
                   {!shouldShowSubmitSpecificSettings && (
                     <div className="space-y-1">
-                      <Label htmlFor={`field-placeholder-${fieldId}`}>
+                      <Label htmlFor={`field-placeholder-${field.id}`}>
                         {language === 'ar' ? 'مكان النص' : 'Placeholder'}
                       </Label>
                       <Input
-                        id={`field-placeholder-${fieldId}`}
+                        id={`field-placeholder-${field.id}`}
                         value={editedField.placeholder || ''}
                         onChange={(e) => handleFieldChange('placeholder', e.target.value)}
                         className={language === 'ar' ? 'text-right' : ''}
@@ -263,12 +232,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   {/* Required field */}
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Switch 
-                      id={`field-required-${fieldId}`} 
+                      id={`field-required-${field.id}`} 
                       checked={editedField.required || false}
                       onCheckedChange={(checked) => handleFieldChange('required', checked)}
                     />
                     <Label 
-                      htmlFor={`field-required-${fieldId}`}
+                      htmlFor={`field-required-${field.id}`}
                       className={language === 'ar' ? 'text-right' : ''}
                     >
                       {language === 'ar' ? 'مطلوب' : 'Required'}
@@ -348,64 +317,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       />
                     </div>
                   </div>
-
-                  {/* Animation - only for submit button */}
-                  {shouldShowSubmitSpecificSettings && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'تحريك الزر' : 'Button animation'}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                        <Switch 
-                          id={`field-animation-${fieldId}`}
-                          checked={editedField.style?.animation !== false}
-                          onCheckedChange={(checked) => handleStyleChange('animation', checked)}
-                        />
-                        <Label 
-                          htmlFor={`field-animation-${fieldId}`}
-                        >
-                          {language === 'ar' ? 'تفعيل التحريك' : 'Enable animation'}
-                        </Label>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Animation type - only for submit button with animation */}
-                  {shouldShowSubmitSpecificSettings && editedField.style?.animation !== false && (
-                    <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'نوع التحريك' : 'Animation type'}</Label>
-                      <Select
-                        value={editedField.style?.animationType || 'pulse'}
-                        onValueChange={(value) => handleStyleChange('animationType', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر نوع التحريك' : 'Select animation type'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {animationTypes.map(animation => (
-                            <SelectItem key={animation.value} value={animation.value}>{animation.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Right column */}
-                <div className="space-y-4">
-                  {/* Show label */}
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Switch 
-                      id={`field-show-label-${fieldId}`}
-                      checked={editedField.style?.showLabel !== false}
-                      onCheckedChange={(checked) => handleStyleChange('showLabel', checked)}
-                    />
-                    <Label 
-                      htmlFor={`field-show-label-${fieldId}`}
-                    >
-                      {language === 'ar' ? 'إظهار التسمية' : 'Show label'}
-                    </Label>
-                  </div>
                   
                   {/* Font size */}
                   <div className="space-y-1">
@@ -421,6 +332,120 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       onChange={(e) => handleStyleChange('fontSize', `${e.target.value}px`)}
                       className="w-full"
                     />
+                  </div>
+                  
+                  {/* Padding-Y */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
+                      <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
+                    </div>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={parseInt(editedField.style?.paddingY || '8')}
+                      onChange={(e) => handleStyleChange('paddingY', `${e.target.value}px`)}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  {/* Animation settings for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-animation-${field.id}`}
+                          checked={editedField.style?.animation || false}
+                          onCheckedChange={(checked) => handleStyleChange('animation', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-animation-${field.id}`}
+                        >
+                          {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
+                        </Label>
+                      </div>
+                      
+                      {editedField.style?.animation && (
+                        <div className="mt-2">
+                          <Label>{language === 'ar' ? 'نوع الرسوم المتحركة' : 'Animation Type'}</Label>
+                          <Select
+                            value={editedField.style?.animationType || 'pulse'}
+                            onValueChange={(value) => handleStyleChange('animationType', value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {animationTypes.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Right column */}
+                <div className="space-y-4">
+                  {/* Input for - hide for submit button */}
+                  {!shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-input-for-${field.id}`}>
+                        {language === 'ar' ? 'حقل الإدخال المرتبط' : 'Input for'}
+                      </Label>
+                      <Input
+                        id={`field-input-for-${field.id}`}
+                        value={editedField.inputFor || ''}
+                        onChange={(e) => handleFieldChange('inputFor', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Error message - hide for submit button */}
+                  {!shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-error-message-${field.id}`}>
+                        {language === 'ar' ? 'رسالة الخطأ' : 'Error message'}
+                      </Label>
+                      <Input
+                        id={`field-error-message-${field.id}`}
+                        value={editedField.errorMessage || ''}
+                        onChange={(e) => handleFieldChange('errorMessage', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                        placeholder={language === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required'}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Label text */}
+                  <div className="space-y-1">
+                    <Label htmlFor={`field-label-${field.id}`}>
+                      {language === 'ar' ? 'نص التسمية' : 'Label text'}
+                    </Label>
+                    <Input
+                      id={`field-label-${field.id}`}
+                      value={editedField.label || ''}
+                      onChange={(e) => handleFieldChange('label', e.target.value)}
+                      className={language === 'ar' ? 'text-right' : ''}
+                    />
+                  </div>
+                  
+                  {/* Show label */}
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <Switch 
+                      id={`field-show-label-${field.id}`}
+                      checked={editedField.style?.showLabel !== false}
+                      onCheckedChange={(checked) => handleStyleChange('showLabel', checked)}
+                    />
+                    <Label 
+                      htmlFor={`field-show-label-${field.id}`}
+                    >
+                      {language === 'ar' ? 'إظهار التسمية' : 'Show label'}
+                    </Label>
                   </div>
                   
                   {/* Label weight */}
@@ -468,31 +493,49 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Border radius */}
+                  {/* Border width */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
-                      <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
+                      <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
+                      <span className="text-sm">{editedField.style?.borderWidth || '1'}px</span>
                     </div>
                     <Input
                       type="number"
                       min="0"
-                      max="50"
-                      value={parseInt(editedField.style?.borderRadius || '8')}
-                      onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                      max="10"
+                      value={parseInt(editedField.style?.borderWidth || '1')}
+                      onChange={(e) => handleStyleChange('borderWidth', `${e.target.value}px`)}
                       className="w-full"
                     />
                   </div>
                   
+                  {/* Border radius - only for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
+                        <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={parseInt(editedField.style?.borderRadius || '8')}
+                        onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                  
                   {/* Show icon in Live Preview */}
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Switch 
-                      id={`field-show-icon-${fieldId}`}
+                      id={`field-show-icon-${field.id}`}
                       checked={editedField.style?.showIcon || false}
                       onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
                     />
                     <Label 
-                      htmlFor={`field-show-icon-${fieldId}`}
+                      htmlFor={`field-show-icon-${field.id}`}
                     >
                       {language === 'ar' ? 'إظهار الأيقونة في المعاينة' : 'Show icon in preview'}
                     </Label>
@@ -526,21 +569,21 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </Select>
                   </div>
                   
-                  {/* Text alignment for titles */}
-                  {(field.type === 'form-title' || field.type === 'title') && (
+                  {/* Icon position - for submit button */}
+                  {shouldShowSubmitSpecificSettings && editedField.style?.showIcon && (
                     <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'محاذاة النص' : 'Text alignment'}</Label>
+                      <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon position'}</Label>
                       <Select
-                        value={editedField.style?.textAlign || (language === 'ar' ? 'right' : 'left')}
-                        onValueChange={(value) => handleStyleChange('textAlign', value)}
+                        value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
+                        onValueChange={(value) => handleStyleChange('iconPosition', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر محاذاة النص' : 'Select text alignment'} />
+                          <SelectValue placeholder={language === 'ar' ? 'اختر موضع الأيقونة' : 'Select icon position'} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
-                          <SelectItem value="center">{language === 'ar' ? 'وسط' : 'Center'}</SelectItem>
-                          <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                          {iconPositions.map(position => (
+                            <SelectItem key={position.value} value={position.value}>{position.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

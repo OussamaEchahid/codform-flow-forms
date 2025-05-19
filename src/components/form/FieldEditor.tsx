@@ -29,9 +29,6 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const [currentField, setCurrentField] = useState<FormField>(field);
   const [activeTab, setActiveTab] = useState<string>("basic");
 
-  // Ensure field.style exists
-  const initialStyle = field.style || {};
-
   const form = useForm<FieldFormValues>({
     defaultValues: {
       label: field.label || '',
@@ -650,9 +647,6 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
               {language === 'ar' ? 'تعديل الحقل' : 'Edit Field'}
             </h3>
             <p>{language === 'ar' ? 'لا يوجد محرر لهذا النوع من الحقول' : 'No editor available for this field type'}</p>
-            <Button className="mt-4" onClick={onClose}>
-              {language === 'ar' ? 'إغلاق' : 'Close'}
-            </Button>
           </div>
         );
     }
