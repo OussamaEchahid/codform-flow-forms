@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
 import FormHeader from '@/components/form/builder/FormHeader';
-import { useFormTemplates, useFormTemplate } from '@/lib/hooks/useFormTemplates';
+import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
 import { useFormStore } from '@/hooks/useFormStore';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -31,17 +32,22 @@ const defaultFormStyle = {
 
 const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   const { language } = useI18n();
-  const { saveForm } = useFormTemplates();
-  const { form, setForm } = useFormStore();
+  const { saveForm, getFormById } = useFormTemplates();
+  const formStore = useFormStore();
   const { floatingButton, updateFloatingButton } = useFormStore();
-  const { data: initialForm, isLoading } = useFormTemplate(formId);
-  const { title, description, data, style } = form;
-  const [cachedTitle, setCachedTitle] = useState(title);
-  const [cachedDescription, setCachedDescription] = useState(description || '');
+  const [form, setForm] = useState<any>({ 
+    title: 'New Form', 
+    description: '', 
+    data: [], 
+    style: defaultFormStyle 
+  });
+  const [cachedTitle, setCachedTitle] = useState(form.title);
+  const [cachedDescription, setCachedDescription] = useState(form.description || '');
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add new state for stable title configuration
   const [titleConfig, setTitleConfig] = useState<TitleConfig>({
@@ -55,19 +61,35 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     descriptionFontSize: '14px'
   });
 
+  // Fetch the form data when component mounts
   useEffect(() => {
-    if (initialForm) {
-      setForm(initialForm);
-    }
-  }, [initialForm, setForm]);
+    const fetchForm = async () => {
+      if (formId) {
+        setIsLoading(true);
+        try {
+          const formData = await getFormById(formId);
+          if (formData) {
+            setForm(formData);
+          }
+        } catch (error) {
+          console.error('Error fetching form:', error);
+          toast.error(language === 'ar' ? 'حدث خطأ أثناء جلب بيانات النموذج' : 'Error fetching form data');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchForm();
+  }, [formId, getFormById, language]);
 
   // Add effect to initialize title config when form data is loaded
   useEffect(() => {
     if (form && !isLoading) {
       // Try to find existing form-title field
       const existingTitleField = form.data
-        .flatMap(step => step.fields)
-        .find(field => field.type === 'form-title');
+        .flatMap((step: any) => step.fields)
+        .find((field: FormField) => field.type === 'form-title');
       
       if (existingTitleField) {
         setTitleConfig({
@@ -100,10 +122,19 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     }
   }, [form, isLoading, language]);
 
-  const currentStepFields = data[currentStep - 1]?.fields || [];
+  const currentStepFields = form.data[currentStep - 1]?.fields || [];
 
-  const handleAddElement = (element: FormField) => {
-    const updatedData = [...data];
+  const handleAddElement = (elementType: string) => {
+    // Create a new element based on the type
+    const newElement: FormField = {
+      id: `field-${Date.now()}`,
+      type: elementType,
+      label: language === 'ar' ? 'عنصر جديد' : 'New Element',
+      required: false,
+      // Add any other default properties needed based on element type
+    };
+    
+    const updatedData = [...form.data];
     if (!updatedData[currentStep - 1]) {
       updatedData[currentStep - 1] = {
         id: currentStep.toString(),
@@ -111,13 +142,13 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
         fields: []
       };
     }
-    updatedData[currentStep - 1].fields.push(element);
+    updatedData[currentStep - 1].fields.push(newElement);
     setForm({ ...form, data: updatedData });
     setPreviewRefreshKey(prev => prev + 1);
   };
 
   const handleElementReorder = (newElements: FormField[]) => {
-    const updatedData = [...data];
+    const updatedData = [...form.data];
     updatedData[currentStep - 1] = {
       ...updatedData[currentStep - 1],
       fields: newElements
@@ -131,7 +162,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   };
 
   const deleteElement = (index: number) => {
-    const updatedData = [...data];
+    const updatedData = [...form.data];
     updatedData[currentStep - 1].fields.splice(index, 1);
     setForm({ ...form, data: updatedData });
     setSelectedElementIndex(null);
@@ -139,7 +170,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   };
 
   const duplicateElement = (index: number) => {
-    const updatedData = [...data];
+    const updatedData = [...form.data];
     const elementToDuplicate = updatedData[currentStep - 1].fields[index];
     const duplicatedElement = { ...elementToDuplicate };
     updatedData[currentStep - 1].fields.splice(index + 1, 0, duplicatedElement);
@@ -148,7 +179,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   };
 
   const updateElement = (index: number, updatedElement: FormField) => {
-    const updatedData = [...data];
+    const updatedData = [...form.data];
     updatedData[currentStep - 1].fields[index] = updatedElement;
     setForm({ ...form, data: updatedData });
     setSelectedElementIndex(null);
@@ -165,7 +196,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     });
     // Trigger preview refresh
     setPreviewRefreshKey(prev => prev + 1);
-  }, [form, setForm]);
+  }, [form]);
 
   // Handle form data saving with title config
   const handleFormSave = async () => {
@@ -180,9 +211,9 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
       formToSave.description = titleConfig.description;
       
       // Remove any existing form-title fields from all steps
-      formToSave.data = formToSave.data.map(step => ({
+      formToSave.data = formToSave.data.map((step: any) => ({
         ...step,
-        fields: step.fields.filter(field => field.type !== 'form-title')
+        fields: step.fields.filter((field: FormField) => field.type !== 'form-title')
       }));
       
       // Save the updated form
@@ -217,10 +248,14 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   return (
     <div className="p-4 md:p-6 max-w-screen-2xl mx-auto">
       <FormHeader 
-        title={cachedTitle}
-        description={cachedDescription}
-        isSaving={isSaving}
         onSave={handleFormSave}
+        onPublish={() => {}}
+        onStyleOpen={() => {}}
+        onTemplateOpen={() => {}}
+        onFloatingButtonOpen={() => {}}
+        isSaving={isSaving}
+        isPublishing={false}
+        isPublished={false}
       />
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -234,8 +269,9 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
           />
           
           <FormStyleEditor 
-            style={style || defaultFormStyle}
+            formStyle={form.style || defaultFormStyle}
             onStyleChange={handleStyleChange}
+            onSave={handleFormSave}
           />
 
           <Card>
@@ -282,7 +318,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
 
           <FloatingButtonEditor 
             floatingButton={floatingButton}
-            onUpdate={handleFloatingButtonUpdate}
+            onFloatingButtonChange={handleFloatingButtonUpdate}
           />
           
           <ShopifyIntegration 
