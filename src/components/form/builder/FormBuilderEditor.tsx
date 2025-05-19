@@ -276,6 +276,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
           <FormStyleEditor 
             formStyle={form.style || defaultFormStyle}
             onStyleChange={handleStyleChange}
+            onSave={handleFormSave}
           />
 
           <Card>
