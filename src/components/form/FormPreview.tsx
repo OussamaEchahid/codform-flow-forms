@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -114,8 +113,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           // Only set a default if one doesn't exist
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
-        // For title fields, don't inherit the direction from the form
-        // They should use their own specific alignment
       }
       
       // For submit buttons, also preserve their styling
@@ -193,7 +190,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-border-radius={formStyle.borderRadius}
       data-font-size={formStyle.fontSize}
       data-button-style={formStyle.buttonStyle}
-      data-form-direction={direction}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">

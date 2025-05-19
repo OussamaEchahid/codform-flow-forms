@@ -95,39 +95,39 @@ const FormField: React.FC<FormFieldProps> = ({
     return null;
   }
 
-  // Check if this field type should ignore the form direction
-  // Very important: This ensures titles and submit buttons maintain their own settings
+  // التحقق مما إذا كان يجب تجاهل اتجاه النموذج لهذا النوع من الحقول
+  // مهم جدًا: يضمن هذا أن العناوين وأزرار الإرسال تحتفظ بإعداداتها الخاصة
   const shouldIgnoreDirection = ignoreDirectionForTypes.includes(field.type);
 
-  // Normalize field properties - ensure icon settings are applied correctly
+  // تطبيع خصائص الحقل - ضمان تطبيق إعدادات الأيقونة بشكل صحيح
   const normalizedField = {
     ...field,
-    // Convert empty icon to 'none'
+    // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
       ...field.style,
-      // Set showIcon to true by default if icon exists and is not 'none'
+      // تعيين showIcon افتراضيًا إلى true إذا كانت الأيقونة موجودة وليست 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
         (field.icon && field.icon !== 'none'),
-      // Set default values for label color and font size if not specified
+      // تعيين القيم الافتراضية للون التسمية وحجم الخط إذا لم يتم تحديدها
       labelColor: field.style?.labelColor || '#333',
       labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
       labelFontWeight: field.style?.labelFontWeight || '600',
-      // Ensure backgroundColor is passed for submit button
+      // ضمان تمرير backgroundColor لزر الإرسال
       backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
     }
   };
 
-  // Special handling for email and phone field types
+  // معالجة خاصة لأنواع حقول البريد الإلكتروني والهاتف
   let fieldType = normalizedField.type;
   
-  // Set email and phone as text inputs
+  // تعيين البريد الإلكتروني والهاتف كإدخالات نصية
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
 
-  // Check if this field type is supported in the store preview
+  // التحقق مما إذا كان نوع الحقل هذا مدعومًا في معاينة المتجر
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
     'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
@@ -136,7 +136,7 @@ const FormField: React.FC<FormFieldProps> = ({
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
 
-  // Log animation data if this is a submit button
+  // تسجيل بيانات الرسوم المتحركة إذا كان هذا زر إرسال
   if (fieldType === 'submit' && normalizedField.style) {
     const animationType = normalizedField.style.animationType || 'none';
     const hasAnimation = !!normalizedField.style.animation;
@@ -145,7 +145,7 @@ const FormField: React.FC<FormFieldProps> = ({
       console.log(`Submit button using animation: ${animationType}`);
     }
     
-    // Also log button color for debugging
+    // تسجيل لون الزر أيضًا للتصحيح
     console.log(`Submit button color: ${normalizedField.style.backgroundColor || formStyle.primaryColor || '#9b87f5'}`);
   }
 
@@ -174,13 +174,13 @@ const FormField: React.FC<FormFieldProps> = ({
     return null;
   }
 
-  // Create unique key for this instance of the field to force re-render when properties change
+  // إنشاء مفتاح فريد لهذه النسخة من الحقل لفرض إعادة العرض عند تغيير الخصائص
   const fieldKey = getFieldKey(field);
   
-  // Set margins: use optimized margins based on field type
+  // تعيين الهوامش: استخدام هوامش محسنة بناءً على نوع الحقل
   const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
 
-  // Add data attributes to help ensure consistent display between preview and store
+  // إضافة سمات البيانات للمساعدة في ضمان اتساق العرض بين المعاينة والمتجر
   const dataAttributes = {
     'data-field-type': normalizedField.type,
     'data-field-id': normalizedField.id,
@@ -195,7 +195,6 @@ const FormField: React.FC<FormFieldProps> = ({
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
     'data-ignores-direction': shouldIgnoreDirection ? 'true' : 'false',
-    'data-direction': shouldIgnoreDirection ? undefined : direction,
   };
 
   if (!isSupported && fieldType !== 'form-title') {
