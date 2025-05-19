@@ -32,7 +32,7 @@ const defaultFormStyle = {
 
 const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
   const { language } = useI18n();
-  const { saveForm, getFormById } = useFormTemplates();
+  const { saveForm, forms } = useFormTemplates();
   const formStore = useFormStore();
   const { floatingButton, updateFloatingButton } = useFormStore();
   const [form, setForm] = useState<any>({ 
@@ -67,9 +67,14 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
       if (formId) {
         setIsLoading(true);
         try {
-          const formData = await getFormById(formId);
+          // Find the form in the forms array using the formId
+          const formData = forms.find(f => f.id === formId);
+          
           if (formData) {
             setForm(formData);
+          } else {
+            console.error('Form not found with ID:', formId);
+            toast.error(language === 'ar' ? 'لم يتم العثور على النموذج' : 'Form not found');
           }
         } catch (error) {
           console.error('Error fetching form:', error);
@@ -81,7 +86,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
     };
 
     fetchForm();
-  }, [formId, getFormById, language]);
+  }, [formId, forms, language]);
 
   // Add effect to initialize title config when form data is loaded
   useEffect(() => {
@@ -216,8 +221,8 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
         fields: step.fields.filter((field: FormField) => field.type !== 'form-title')
       }));
       
-      // Save the updated form
-      await saveForm(formToSave);
+      // Save the updated form - fixed to pass formId as first parameter
+      await saveForm(formId, formToSave);
       
       setCachedTitle(formToSave.title);
       setCachedDescription(formToSave.description || '');
@@ -271,7 +276,6 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
           <FormStyleEditor 
             formStyle={form.style || defaultFormStyle}
             onStyleChange={handleStyleChange}
-            onSave={handleFormSave}
           />
 
           <Card>
@@ -318,7 +322,7 @@ const FormBuilderEditor = ({ formId }: FormBuilderEditorProps) => {
 
           <FloatingButtonEditor 
             floatingButton={floatingButton}
-            onFloatingButtonChange={handleFloatingButtonUpdate}
+            onChange={handleFloatingButtonUpdate}
           />
           
           <ShopifyIntegration 
