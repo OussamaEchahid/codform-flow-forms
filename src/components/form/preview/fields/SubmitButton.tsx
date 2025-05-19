@@ -3,7 +3,20 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send, Phone, Mail, MessageSquare, Image, User } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  ArrowRight, 
+  Check, 
+  Send, 
+  Phone, 
+  Mail, 
+  MessageSquare, 
+  Image, 
+  User, 
+  CreditCard,
+  DollarSign,
+  Truck
+} from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -36,17 +49,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   const animationClass = getAnimationClass();
   
-  // Default button styling - اجعل جميع القياسات بالبكسل لضمان التطابق
+  // Default button styling with fixed pixel measurements
   const buttonStyle: React.CSSProperties = {
     backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px', // استخدام بكسل ثابت
+    fontSize: style.fontSize || '18px',
     fontWeight: style.fontWeight || '600',
     borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
     borderColor: style.borderColor || 'transparent',
     borderWidth: style.borderWidth || '0px',
     borderStyle: 'solid',
-    padding: '14px 24px', // استخدام بكسل ثابت
+    padding: '14px 24px',
     paddingTop: style.paddingY || '14px',
     paddingBottom: style.paddingY || '14px',
     paddingLeft: '24px',
@@ -60,13 +73,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     marginTop: '14px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    boxShadow: style.boxShadow || '0 2px 4px rgba(0, 0, 0, 0.1)',
     position: 'relative' as 'relative',
     overflow: 'hidden',
     textAlign: 'center'
   };
   
-  // Icon rendering
+  // Icon rendering with more payment-related options
   const renderIcon = () => {
     if (!style.showIcon && !field.icon) return null;
     
@@ -108,6 +121,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         return <Image size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'user':
         return <User size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'credit-card':
+      case 'payment':
+        return <CreditCard size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'cash':
+      case 'cash-on-delivery':
+      case 'dollar':
+      case 'dollar-sign':
+        return <DollarSign size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'delivery':
+      case 'truck':
+        return <Truck size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       default:
         return null;
     }
@@ -131,11 +155,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       data-button-style={formStyle.buttonStyle || 'rounded'}
       data-has-animation={style.animation ? 'true' : 'false'}
       data-icon-position={iconPosition}
-      data-has-icon={style.showIcon ? 'true' : 'false'}
+      data-has-icon={icon ? 'true' : 'false'}
       data-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
       data-text-color={style.color || '#ffffff'}
       data-font-size={style.fontSize || '18px'}
       data-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
+      data-border-color={style.borderColor || 'transparent'}
+      data-border-width={style.borderWidth || '0px'}
     >
       {iconPosition === 'left' && icon}
       <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>

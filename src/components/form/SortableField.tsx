@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -11,7 +11,6 @@ import { useI18n } from '@/lib/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
@@ -62,7 +61,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
   
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
-    setEditedField({...field});
+    setEditedField(JSON.parse(JSON.stringify(field)));
   }, [field]);
 
   const handleFieldChange = (property: string, value: any) => {
@@ -76,7 +75,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     setEditedField(updatedField);
     
     // Apply changes immediately by updating the original field
-    Object.assign(field, updatedField);
+    field[property] = value;
     
     // Propagate changes to parent for immediate preview update
     if (onFieldUpdate) {
@@ -104,17 +103,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
     setEditedField(updatedField);
     
     // Apply changes immediately by updating the original field
-    field.style = {...updatedStyle};
-    
-    // Fix for Label Color - only apply animation if this is specifically for animation
-    if (property === 'animation' || property === 'animationType') {
-      // Do nothing special, this is correct behavior
-    } else if (property === 'labelColor') {
-      // For labelColor, make sure we don't affect the animation setting
-      if (field.style.animation !== undefined) {
-        field.style.animation = updatedStyle.animation;
-      }
-    }
+    if (!field.style) field.style = {};
+    field.style[property] = value;
     
     // Propagate changes to parent for immediate preview update
     if (onFieldUpdate) {
@@ -145,9 +135,15 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
     { value: 'mail', label: language === 'ar' ? 'بريد' : 'Email', component: <Mail size={16} /> },
     { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
-    { value: 'check-square', label: language === 'ar' ? 'تحقق' : 'Check', component: <CheckSquare size={16} /> },
+    { value: 'check', label: language === 'ar' ? 'تحقق' : 'Check', component: <Check size={16} /> },
+    { value: 'shopping-cart', label: language === 'ar' ? 'عربة تسوق' : 'Shopping Cart', component: <ShoppingCart size={16} /> },
+    { value: 'arrow-right', label: language === 'ar' ? 'سهم' : 'Arrow', component: <ArrowRight size={16} /> },
+    { value: 'send', label: language === 'ar' ? 'إرسال' : 'Send', component: <Send size={16} /> },
     { value: 'image', label: language === 'ar' ? 'صورة' : 'Image', component: <Image size={16} /> },
     { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: <FileText size={16} /> },
+    { value: 'credit-card', label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card', component: <CreditCard size={16} /> },
+    { value: 'dollar-sign', label: language === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery', component: <DollarSign size={16} /> },
+    { value: 'truck', label: language === 'ar' ? 'شحن' : 'Delivery', component: <Truck size={16} /> },
   ];
   
   // Find the icon component for current value
@@ -166,6 +162,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: "bounce", label: language === 'ar' ? 'ارتداد' : 'Bounce' },
     { value: "wiggle", label: language === 'ar' ? 'تمايل' : 'Wiggle' },
     { value: "flash", label: language === 'ar' ? 'وميض' : 'Flash' }
+  ];
+  
+  // Icon positions
+  const iconPositions = [
+    { value: "left", label: language === 'ar' ? 'يسار' : 'Left' },
+    { value: "right", label: language === 'ar' ? 'يمين' : 'Right' }
   ];
 
   return (
@@ -278,6 +280,26 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </Select>
                   </div>
                   
+                  {/* Background color - only for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={editedField.style?.backgroundColor || '#9b87f5'}
+                          onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                          className="w-9 h-9 p-1"
+                        />
+                        <Input
+                          value={editedField.style?.backgroundColor || '#9b87f5'}
+                          onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Text color */}
                   <div className="space-y-1">
                     <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
@@ -296,7 +318,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Font size - using text input to fix the issue */}
+                  {/* Font size */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
@@ -306,13 +328,13 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       type="number"
                       min="8"
                       max="72"
-                      value={parseFloat(editedField.style?.fontSize || '16')}
+                      value={parseInt(editedField.style?.fontSize || '16')}
                       onChange={(e) => handleStyleChange('fontSize', `${e.target.value}px`)}
                       className="w-full"
                     />
                   </div>
                   
-                  {/* Padding-Y - using text input to fix the issue */}
+                  {/* Padding-Y */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
@@ -426,7 +448,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </Label>
                   </div>
                   
-                  {/* Label weight - using text input to fix the issue */}
+                  {/* Label weight */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'وزن خط التسمية' : 'Label weight'}</Label>
@@ -471,7 +493,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Border width - using text input to fix the issue */}
+                  {/* Border width */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
@@ -487,7 +509,25 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     />
                   </div>
                   
-                  {/* Show icon in Live Preview ONLY */}
+                  {/* Border radius - only for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
+                        <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={parseInt(editedField.style?.borderRadius || '8')}
+                        onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Show icon in Live Preview */}
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Switch 
                       id={`field-show-icon-${field.id}`}
@@ -528,10 +568,30 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Icon position - for submit button */}
+                  {shouldShowSubmitSpecificSettings && editedField.style?.showIcon && (
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon position'}</Label>
+                      <Select
+                        value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
+                        onValueChange={(value) => handleStyleChange('iconPosition', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر موضع الأيقونة' : 'Select icon position'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {iconPositions.map(position => (
+                            <SelectItem key={position.value} value={position.value}>{position.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
               
-              {/* Action buttons - Reduced to just Delete and Duplicate */}
+              {/* Action buttons */}
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4 border-t mt-4">
                 <Button 
                   variant="outline" 
