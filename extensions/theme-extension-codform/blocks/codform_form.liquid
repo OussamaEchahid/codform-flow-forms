@@ -145,12 +145,6 @@
       "id": "floating_border_color",
       "label": "لون حدود الزر العائم",
       "default": "#000000"
-    },
-    {
-      "type": "checkbox",
-      "id": "is_rtl",
-      "label": "اتجاه النص من اليمين لليسار",
-      "default": true
     }
   ]
 }
@@ -297,7 +291,7 @@
       // إعداد متغيرات تكوين النموذج الأساسية
       const hideHeader = true;
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
-      const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
+      const isRTL = formData.settings?.direction === 'rtl';
       
       // تعريف المتغيرات الأساسية قبل استخدامها
       const primaryColor = formData.settings?.primaryColor || '#9b87f5';
@@ -513,6 +507,9 @@
               const fontWeight = style.fontWeight || 'bold';
               const descFontWeight = style.descriptionFontWeight || 'normal';
               const fontFamily = style.fontFamily || 'inherit';
+              
+              // الحفاظ على محاذاة العنوان الأصلية بغض النظر عن اتجاه النموذج
+              const titleDirection = titleAlign === 'right' ? 'rtl' : 'ltr';
               
               html += `
               <div class="codform-title-wrapper" data-field-type="${field.type}" data-field-id="${field.id}">
@@ -933,4 +930,3 @@
     min-height: 100px !important;
   }
 </style>
-
