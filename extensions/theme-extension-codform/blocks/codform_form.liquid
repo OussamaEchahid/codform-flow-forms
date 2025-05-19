@@ -292,7 +292,7 @@
       }
     }
     
-    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق هيكل المعاينة بالضبط
+    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق هيكل المعاينة بالضبط ومع استخدام قيم ديناميكية
     function createFormHtml(formData, blockId) {
       // دائمًا تفعيل خاصية إخفاء العنوان
       const hideHeader = true;
@@ -368,23 +368,68 @@
         .flash-animation {
           animation: flash-animation 2s infinite ease-in-out !important;
         }
+
+        /* تنسيقات إضافية للنموذج */
+        .codform-input, .codform-textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 0.5rem;
+          font-size: 16px;
+          color: rgb(31, 41, 55);
+          box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+          line-height: 1.5;
+          font-family: inherit;
+        }
+
+        .codform-input.with-icon {
+          padding-left: 36px !important;
+        }
+
+        label {
+          color: rgb(51, 65, 85);
+          font-size: 1rem;
+          font-weight: 600;
+          font-family: inherit;
+          margin-bottom: 8px;
+          display: block;
+        }
+
+        .codform-field-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #9ca3af;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+          pointer-events: none;
+        }
+
+        .codform-required {
+          color: #ef4444;
+          margin-left: 4px;
+        }
       </style>
       `;
       
       // إنشاء نموذج داخل الحاوية
-      html += `<form id="codform-form-element-${blockId}" style="display: contents;">`;
+      html += `<form id="codform-form-element-${blockId}" style="display: block;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
         formData.fields.forEach(field => {
           if (field && field.type) {
-            // إنشاء عنصر العنوان بالضبط كما في المعاينة
-            if (field.type === 'form-title') {
+            // إنشاء عنصر العنوان بشكل ديناميكي باستخدام قيم من field.style
+            if (field.type === 'form-title' || field.type === 'title') {
               const style = field.style || {};
-              const titleAlign = style.textAlign || 'center';
-              const bgColor = style.backgroundColor || '#2c00f0';
+              // استخدام القيم الديناميكية من field.style أو القيم الافتراضية إذا لم تكن محددة
+              const titleAlign = style.textAlign || (isRTL ? 'right' : 'center');
+              const bgColor = style.backgroundColor || primaryColor || '#9b87f5';
               const titleColor = style.color || '#ffffff';
-              const descColor = style.descriptionColor || '#ffffff';
+              const descColor = style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
               const titleFontSize = style.fontSize || '24px';
               const descFontSize = style.descriptionFontSize || '14px';
               const fontWeight = style.fontWeight || 'bold';
@@ -392,7 +437,7 @@
               const fontFamily = style.fontFamily || 'inherit';
               
               html += `
-              <div class="mb-4" data-field-type="form-title" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="false">
+              <div class="mb-4" data-field-type="${field.type}" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="false">
                 <style>
                   @keyframes pulse-animation {
                     0% { transform: scale(1); }
@@ -442,14 +487,15 @@
                     animation: flash-animation 2s infinite ease-in-out !important;
                   }
                 </style>
-                <div id="title-field-${field.id}-${Date.now()}" class="mb-4 codform-title" dir="${isRTL ? 'rtl' : 'ltr'}" data-testid="title-field" data-title-align="${titleAlign}" data-has-bg="true" data-title-color="${titleColor}" data-bg-color="${bgColor}" data-font-family="${fontFamily}" data-field-type="form-title" data-font-size="${titleFontSize}" data-font-weight="${fontWeight}" data-desc-font-size="${descFontSize}" data-desc-color="${descColor}" data-desc-font-weight="${descFontWeight}">
+                <div id="title-field-${field.id}-${Date.now()}" class="mb-4 ${field.type === 'form-title' ? 'codform-title' : ''}" dir="${isRTL ? 'rtl' : 'ltr'}" data-testid="title-field" data-title-align="${titleAlign}" data-has-bg="true" data-title-color="${titleColor}" data-bg-color="${bgColor}" data-font-family="${fontFamily}" data-field-type="${field.type}" data-font-size="${titleFontSize}" data-font-weight="${fontWeight}" data-desc-font-size="${descFontSize}" data-desc-color="${descColor}" data-desc-font-weight="${descFontWeight}">
                   <div class="codform-title-container" style="background-color: ${bgColor}; padding: 16px; border-radius: ${borderRadius}; width: 100%; box-sizing: border-box; margin-bottom: 16px; text-align: ${titleAlign};">
-                    <h3 class="codform-form-title" style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block;">
+                    <h3 class="${field.type === 'form-title' ? 'codform-form-title' : ''}" style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block;">
                       ${field.label || ''}
                     </h3>
+                    ${field.helpText ? `
                     <p class="codform-title-description" style="color: ${descColor}; font-size: ${descFontSize}; margin: 6px 0px 0px; padding: 0px; text-align: ${titleAlign}; font-family: ${fontFamily}; font-weight: ${descFontWeight}; line-height: 1.5; opacity: 0.9;">
-                      ${field.helpText || ''}
-                    </p>
+                      ${field.helpText}
+                    </p>` : ''}
                   </div>
                 </div>
               </div>`;
@@ -514,13 +560,13 @@
                     animation: flash-animation 2s infinite ease-in-out !important;
                   }
                 </style>
-                <div class="mb-4" data-component="TextInput" data-field-type="${field.type}" data-field-id="${field.id}" data-show-label="true" data-label-text="${field.label || ''}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon-type="${iconType}" data-required="${field.required ? 'true' : 'false'}" data-font-family="inherit" data-font-size="1rem" data-border-radius="0.5rem" data-input-id="${field.id}-input" dir="${isRTL ? 'rtl' : 'ltr'}">
-                  <label for="${field.id}-input" class="block mb-2 relative pr-2" data-label-text="${field.label || ''}" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
+                <div class="mb-4 p-3 bg-white rounded-lg border border-gray-200" data-component="TextInput" data-field-type="${field.type}" data-field-id="${field.id}" data-show-label="true" data-label-text="${field.label || ''}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon-type="${iconType}" data-required="${field.required ? 'true' : 'false'}" data-font-family="inherit" data-font-size="1rem" data-border-radius="0.5rem" data-input-id="${field.id}-input" dir="${isRTL ? 'rtl' : 'ltr'}">
+                  <label for="${field.id}-input" class="block mb-2 relative" data-label-text="${field.label || ''}" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
                     ${field.label || ''}
-                    ${field.required ? '<span class="text-red-500 absolute" style="left: -12px; right: auto;">*</span>' : ''}
+                    ${field.required ? '<span class="codform-required">*</span>' : ''}
                   </label>
                   <div class="relative">
-                    ${hasIcon ? `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" data-icon-type="${iconType}" data-icon-visible="true" style="position: absolute; left: 12px; right: auto; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 2;">
+                    ${hasIcon ? `<div class="codform-field-icon" data-icon-type="${iconType}" data-icon-visible="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; z-index: 2;">
                       ${getIconSvg(iconType)}
                     </div>` : ''}
                     <input 
@@ -529,10 +575,10 @@
                       name="${field.id}" 
                       placeholder="${field.placeholder || ''}" 
                       aria-label="${field.label || ''}" 
-                      class="w-full outline-none transition-all codform-input" 
+                      class="codform-input ${hasIcon ? 'with-icon' : ''}" 
                       data-has-icon="${hasIcon ? 'true' : 'false'}" 
-                      ${field.required ? 'required' : ''} 
-                      style="color: rgb(31, 41, 55); font-size: 1rem; font-weight: 400; font-family: inherit; background-color: rgb(255, 255, 255); border-color: rgb(209, 213, 219); border-radius: 0.5rem; border-width: 1px; border-style: solid; padding: 10px 12px 10px ${hasIcon ? '36px' : '12px'}; box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px; width: 100%; height: auto; line-height: 1.5;">
+                      ${field.required ? 'required' : ''}
+                    >
                   </div>
                 </div>
               </div>`;
@@ -590,17 +636,16 @@
                     animation: flash-animation 2s infinite ease-in-out !important;
                   }
                 </style>
-                <div class="mb-4">
-                  <label for="${field.id}" class="block mb-2 relative pr-2" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 500;">
+                <div class="mb-4 p-3 bg-white rounded-lg border border-gray-200">
+                  <label for="${field.id}" class="block mb-2 relative" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
                     ${field.label || ''}
-                    ${field.required ? '<span class="text-red-500 absolute right-0 top-0">*</span>' : ''}
+                    ${field.required ? '<span class="codform-required">*</span>' : ''}
                   </label>
                   <textarea 
                     id="${field.id}" 
                     rows="${field.rows || 4}" 
                     placeholder="${field.placeholder || ''}" 
-                    class="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all" 
-                    style="color: rgb(31, 41, 55); font-size: 1rem; border-color: rgb(209, 213, 219); border-radius: 0.5rem; border-width: 1px; box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;"
+                    class="codform-textarea" 
                     ${field.required ? 'required' : ''}
                     name="${field.id}">
                   </textarea>
@@ -615,15 +660,17 @@
               const fontSize = style.fontSize || '19px';
               const fontWeight = style.fontWeight || '500';
               const textColor = style.color || '#ffffff';
-              const padding = '15px 24px';
+              const padding = style.padding || '15px 24px';
               const borderWidth = style.borderWidth || '0px';
               const borderColor = style.borderColor || '#eaeaff';
               const animationType = style.animationType || 'shake';
               const iconPosition = style.iconPosition || 'left';
+              const hasAnimation = style.animation !== false;
               const hasIcon = style.showIcon !== false;
+              const iconType = style.icon || 'shopping-cart';
               
               html += `
-              <div class="mt-0" data-field-type="submit" data-field-id="${field.id}" data-has-icon="false" data-show-icon="true" data-icon="none" data-required="false">
+              <div class="mt-0" data-field-type="submit" data-field-id="${field.id}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon="${iconType}" data-required="false">
                 <style>
                   @keyframes pulse-animation {
                     0% { transform: scale(1); }
@@ -675,11 +722,11 @@
                 </style>
                 <button 
                   type="submit" 
-                  class="codform-submit-btn ${animationType}-animation" 
+                  class="codform-submit-btn ${hasAnimation ? `${animationType}-animation` : ''}" 
                   dir="${isRTL ? 'rtl' : 'ltr'}" 
                   data-animation-type="${animationType}" 
                   data-button-style="rounded" 
-                  data-has-animation="true" 
+                  data-has-animation="${hasAnimation ? 'true' : 'false'}" 
                   data-icon-position="${iconPosition}" 
                   data-has-icon="${hasIcon ? 'true' : 'false'}" 
                   data-bg-color="${bgColor}" 
@@ -687,9 +734,9 @@
                   data-font-size="${fontSize}" 
                   data-border-radius="${borderRadius}" 
                   style="background-color: ${bgColor}; color: ${textColor}; font-size: ${fontSize}; font-weight: ${fontWeight}; border-radius: ${borderRadius}; border-color: ${borderColor}; border-width: ${borderWidth}; border-style: solid; padding: ${padding}; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; cursor: pointer; transition: 0.2s; margin-top: 14px; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 4px; position: relative; overflow: hidden; text-align: center;">
-                  ${iconPosition === 'left' ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
+                  ${iconPosition === 'left' && hasIcon ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-${iconType}" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
                   <span>${field.label || 'Buy with Cash on Delivery'}</span>
-                  ${iconPosition === 'right' ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
+                  ${iconPosition === 'right' && hasIcon ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-${iconType}" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
                 </button>
               </div>`;
             }
@@ -711,9 +758,6 @@
       const formElement = document.querySelector(`#codform-form-element-${blockId}`);
       
       if (formElement) {
-        // تحويل إلى نموذج فعلي بدلاً من عرض محتويات فقط
-        formElement.style.display = 'block';
-        
         formElement.addEventListener('submit', function(event) {
           event.preventDefault();
           
@@ -779,15 +823,16 @@
     function getIconSvg(iconName) {
       // مجموعة من الأيقونات SVG الشائعة
       const icons = {
-        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-user" data-icon-name="user" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
-        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-mail" data-icon-name="mail" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
-        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-phone" data-icon-name="phone" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
-        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-home" data-icon-name="home" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
-        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-map-pin" data-icon-name="map-pin" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>',
-        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-building" data-icon-name="building" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
-        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-shopping-cart" data-icon-name="shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 1-2 1.61h9.72a2 2 0 0 1 2-1.61L23 6H6"></path></svg>',
-        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-send" data-icon-name="send" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
-        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-package" data-icon-name="package" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
+        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
+        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 1-2 1.61h9.72a2 2 0 0 1 2-1.61L23 6H6"></path></svg>',
+        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+        'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>'
       };
       
       // إرجاع أيقونة SVG أو أيقونة المستخدم الافتراضية
@@ -799,13 +844,8 @@
 <style>
   /* تحديث أنماط CSS لضمان توافق العرض */
   .codform-container {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background-color: #ffffff;
     max-width: 800px;
     margin-left: auto;
     margin-right: auto;
@@ -813,131 +853,115 @@
     width: 100%;
     font-size: 16px;
     line-height: 1.5;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
-  /* إضافة أنماط للنموذج الخارجي */
-  .codform-form {
-    margin-top: 14px;
-    background-color: #f5f5f5 !important;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* أنماط الزر */
+  .codform-button {
+    background-color: #9b87f5;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
   }
   
-  /* تحسين عرض الحقول */
-  .codform-field {
-    margin-bottom: 16px !important;
-    display: block !important;
-    background-color: #ffffff !important;
-    padding: 12px !important;
-    border-radius: 8px !important;
-    border: 1px solid #e5e7eb !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  .codform-button:hover {
+    opacity: 0.9;
   }
   
-  /* تنسيق التسميات */
-  .codform-field label {
-    display: block !important;
-    margin-bottom: 8px !important;
-    font-weight: 600 !important;
-    color: #374151 !important;
-    font-size: 16px !important;
+  /* أيقونة التحميل */
+  .codform-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #9b87f5;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
   }
   
-  /* تنسيق حقول الإدخال */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* أيقونات النجاح والخطأ */
+  .codform-success-icon, .codform-error-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    color: white;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .codform-success-icon {
+    background-color: #34c759;
+  }
+  
+  .codform-error-icon {
+    background-color: #ff3b30;
+  }
+  
+  /* التحسينات النموذج */
   .codform-input, .codform-textarea {
     width: 100% !important;
     padding: 10px 12px !important;
     border: 1px solid #d1d5db !important;
     border-radius: 8px !important;
     font-size: 16px !important;
-    transition: all 0.2s ease-in-out !important;
-    font-family: 'Cairo', sans-serif !important;
-    background-color: #ffffff !important;
-    color: #1f2937 !important;
-    box-sizing: border-box !important;
-    height: auto !important;
+    color: rgb(31, 41, 55) !important;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px !important;
     line-height: 1.5 !important;
-    margin: 0 !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    font-family: inherit !important;
   }
   
-  /* تحسين موضع الأيقونات */
-  .codform-field-icon {
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    color: #9ca3af !important;
-    width: 18px !important;
-    height: 18px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    pointer-events: none !important;
-    z-index: 2 !important;
-  }
-  
-  /* تنسيق زر الإرسال */
-  .codform-submit-btn {
-    background-color: #9b87f5 !important;
-    color: white !important;
-    border: none !important;
-    padding: 14px 24px !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-size: 18px !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease-in-out !important;
-    width: 100% !important;
-    margin-top: 14px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  /* تنسيق حقل العنوان */
-  .codform-title-container {
-    background-color: #9b87f5 !important;
-    color: white !important;
-    padding: 16px !important;
-    border-radius: 8px !important;
-    margin-bottom: 16px !important;
-    text-align: center !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  .codform-form-title {
-    margin: 0 !important;
-    padding: 0 !important;
-    font-size: 24px !important;
-    font-weight: bold !important;
-    color: white !important;
-    text-align: center !important;
-    line-height: 1.3 !important;
-    display: block !important;
-  }
-  
-  .codform-title-description {
-    margin: 6px 0 0 0 !important;
-    padding: 0 !important;
-    font-size: 14px !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-    text-align: center !important;
-    font-weight: normal !important;
-    line-height: 1.5 !important;
-    opacity: 0.9 !important;
-  }
-  
-  /* تحسين للمدخلات مع الأيقونات */
   .codform-input.with-icon {
     padding-left: 36px !important;
   }
   
-  /* تنسيق الحركات */
+  .codform-field {
+    position: relative !important;
+    margin-bottom: 16px !important;
+    background-color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  .codform-field label {
+    color: rgb(51, 65, 85) !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    font-family: inherit !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+  }
+  
+  .codform-field-icon {
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #9ca3af !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+  }
+  
+  .codform-required {
+    color: #ef4444 !important;
+    margin-left: 4px !important;
+  }
+  
+  /* أنماط رسومات متحركة */
   @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -960,3 +984,4 @@
     animation: pulse 2s ease-in-out infinite !important;
   }
 </style>
+
