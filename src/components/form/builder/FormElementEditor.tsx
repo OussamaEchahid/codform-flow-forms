@@ -38,6 +38,12 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
+  // Create a deep copy function to ensure all properties are preserved
+  const deepCopyElement = (element: FormField): FormField => {
+    // Use JSON parse/stringify for deep copying to preserve all nested properties
+    return JSON.parse(JSON.stringify(element));
+  };
+  
   const handleDragEnd = (event: DragEndEvent) => {
     const {
       active,
@@ -52,54 +58,80 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = elements.findIndex(item => item.id === over.id);
     
     if (onReorderElements) {
-      const newElements = arrayMove(elements, oldIndex, newIndex);
+      // Create deep copies of elements to prevent reference issues
+      const newElementsArray = elements.map(element => deepCopyElement(element));
+      const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // تحليل العناصر للحفاظ على تنسيق العناوين المخصصة
-      const processedElements = newElements.map(element => {
-        // إذا كان العنصر هو عنوان أو عنوان نموذج، نتأكد من الحفاظ على جميع خصائص التنسيق
+      // Process each element to ensure proper formatting is preserved
+      const processedElements = reorderedElements.map(element => {
+        // Handle title fields specifically to preserve all formatting
         if (element.type === 'form-title' || element.type === 'title') {
+          // Ensure style object exists
           if (!element.style) {
             element.style = {};
           }
           
-          // التأكد من تطبيق تنسيق صحيح للعنوان
-          // تحويل وحدات rem إلى px إذا لزم الأمر
-          if (element.style.fontSize && element.style.fontSize.endsWith('rem')) {
-            const remValue = parseFloat(element.style.fontSize.replace('rem', ''));
-            element.style.fontSize = `${Math.round(remValue * 16)}px`;
-          }
+          // Always preserve these properties exactly as they were
+          // No default values should overwrite user customizations
           
-          // التأكد من وجود حجم خط للعنوان
-          if (!element.style.fontSize) {
+          // Ensure fontSize is properly formatted (px format)
+          if (element.style.fontSize) {
+            if (element.style.fontSize.endsWith('rem')) {
+              const remValue = parseFloat(element.style.fontSize.replace('rem', ''));
+              element.style.fontSize = `${Math.round(remValue * 16)}px`;
+            } else if (!element.style.fontSize.endsWith('px')) {
+              element.style.fontSize = `${element.style.fontSize}px`;
+            }
+          } else {
             element.style.fontSize = element.type === 'form-title' ? '24px' : '20px';
           }
           
-          // التأكد من وجود لون للعنوان
-          if (!element.style.color) {
-            element.style.color = '#ffffff';
-          }
+          // Ensure all other title styling properties are preserved
+          element.style.color = element.style.color || '#ffffff';
+          element.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
+          element.style.textAlign = element.style.textAlign || (language === 'ar' ? 'right' : 'left');
           
-          // التأكد من وجود لون خلفية للعنوان
-          if (!element.style.backgroundColor) {
-            element.style.backgroundColor = '#9b87f5';
-          }
-          
-          // التأكد من وجود محاذاة للعنوان
-          if (!element.style.textAlign) {
-            element.style.textAlign = language === 'ar' ? 'right' : 'left';
-          }
-          
-          // التأكد من وجود حجم خط للوصف
-          if (!element.style.descriptionFontSize) {
+          // Handle description font size
+          if (element.style.descriptionFontSize) {
+            if (element.style.descriptionFontSize.endsWith('rem')) {
+              const remValue = parseFloat(element.style.descriptionFontSize.replace('rem', ''));
+              element.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
+            } else if (!element.style.descriptionFontSize.endsWith('px')) {
+              element.style.descriptionFontSize = `${element.style.descriptionFontSize}px`;
+            }
+          } else {
             element.style.descriptionFontSize = '14px';
-          } else if (element.style.descriptionFontSize.endsWith('rem')) {
-            const remValue = parseFloat(element.style.descriptionFontSize.replace('rem', ''));
-            element.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
           }
           
-          // التأكد من وجود لون للوصف
-          if (!element.style.descriptionColor) {
-            element.style.descriptionColor = 'rgba(255, 255, 255, 0.9)';
+          // Description color
+          element.style.descriptionColor = element.style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+        }
+        
+        // Handle submit button fields
+        if (element.type === 'submit') {
+          if (!element.style) {
+            element.style = {};
+          }
+          
+          // Preserve submit button styling
+          element.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
+          element.style.color = element.style.color || '#ffffff';
+          element.style.fontSize = element.style.fontSize || '18px';
+          element.style.fontWeight = element.style.fontWeight || '600';
+          element.style.borderRadius = element.style.borderRadius || '8px';
+          element.style.borderColor = element.style.borderColor || 'transparent';
+          
+          // Preserve icon settings
+          if (element.icon && element.icon !== 'none') {
+            element.style.showIcon = element.style.showIcon !== undefined 
+              ? element.style.showIcon 
+              : true;
+            element.style.iconPosition = element.style.iconPosition || (language === 'ar' ? 'right' : 'left');
+          }
+          
+          // Preserve animation settings
+          if (element.style.animation) {
+            element.style.animationType = element.style.animationType || 'pulse';
           }
         }
         
@@ -150,6 +182,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         if (field.style.fontSize.endsWith('rem')) {
           const remValue = parseFloat(field.style.fontSize.replace('rem', ''));
           field.style.fontSize = `${Math.round(remValue * 16)}px`;
+        } else if (!field.style.fontSize.endsWith('px')) {
+          field.style.fontSize = `${field.style.fontSize}px`;
         }
       } else {
         field.style.fontSize = field.type === 'form-title' ? '24px' : '20px';
@@ -159,9 +193,28 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         if (field.style.descriptionFontSize.endsWith('rem')) {
           const remValue = parseFloat(field.style.descriptionFontSize.replace('rem', ''));
           field.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
+        } else if (!field.style.descriptionFontSize.endsWith('px')) {
+          field.style.descriptionFontSize = `${field.style.descriptionFontSize}px`;
         }
       } else {
         field.style.descriptionFontSize = '14px';
+      }
+    }
+
+    // Special handling for submit button
+    if (field.type === 'submit') {
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Make sure submit button style properties are preserved
+      field.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
+      field.style.color = field.style.color || '#ffffff';
+      
+      // Ensure icon settings are properly handled
+      if (field.icon && field.icon !== 'none') {
+        field.style.showIcon = field.style.showIcon !== undefined ? field.style.showIcon : true;
+        field.style.iconPosition = field.style.iconPosition || (language === 'ar' ? 'right' : 'left');
       }
     }
     

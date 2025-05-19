@@ -28,6 +28,29 @@ const convertRemToPx = (remValue: string): string => {
   return remValue;
 };
 
+// وظيفة مساعدة لضمان أن القيمة تنتهي بـ px
+const ensurePixelUnit = (value: string): string => {
+  if (!value) return '';
+  
+  // إذا كانت رقم فقط، أضف "px"
+  if (!isNaN(Number(value))) {
+    return `${value}px`;
+  }
+  
+  // إذا كانت تنتهي بـ rem، حول إلى px
+  if (value.endsWith('rem')) {
+    return convertRemToPx(value);
+  }
+  
+  // إذا كانت تنتهي بـ px، أعدها كما هي
+  if (value.endsWith('px')) {
+    return value;
+  }
+  
+  // في حالات أخرى، أضف px
+  return `${value}px`;
+};
+
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
@@ -51,16 +74,17 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // استخدام قيم بكسل دقيقة بدلاً من rem للحصول على حجم متسق عبر البيئات
   const isFormTitle = field.type === 'form-title';
   
-  // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
-  // تحويل وحدات rem إلى px إذا كانت موجودة
-  let titleFontSize = isFormTitle ? '24px' : '20px';
+  // تجهيز حجم الخط مع ضمان استخدام وحدات px
+  let titleFontSize = isFormTitle ? '24px' : '20px'; // القيمة الافتراضية
   if (fieldStyle.fontSize) {
-    titleFontSize = convertRemToPx(fieldStyle.fontSize);
+    // تأكد من تحويل وحدات rem إلى px والمحافظة على وحدات px
+    titleFontSize = ensurePixelUnit(fieldStyle.fontSize);
   }
   
-  let descriptionFontSize = '14px';
+  // تجهيز حجم خط الوصف مع ضمان استخدام وحدات px
+  let descriptionFontSize = '14px'; // القيمة الافتراضية
   if (fieldStyle.descriptionFontSize) {
-    descriptionFontSize = convertRemToPx(fieldStyle.descriptionFontSize);
+    descriptionFontSize = ensurePixelUnit(fieldStyle.descriptionFontSize);
   }
   
   // الحصول على لون الخلفية مع القيمة الافتراضية

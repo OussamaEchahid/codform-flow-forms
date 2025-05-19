@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ArrowRight, Check, Send, Phone } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Check, Send, Phone, Mail, MessageSquare, Image, User } from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -68,7 +68,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   
   // Icon rendering
   const renderIcon = () => {
-    if (!style.showIcon && !style.icon) return null;
+    if (!style.showIcon && !field.icon) return null;
     
     // Add specific styling for the icon
     const iconStyle = {
@@ -80,7 +80,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     };
     
     // Return Lucide React icon components
-    switch (style.icon?.toLowerCase()) {
+    const iconName = field.icon?.toLowerCase() || style.icon?.toLowerCase();
+    if (!iconName) return null;
+    
+    switch (iconName) {
       case 'shopping-cart':
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'arrow-right':
@@ -96,6 +99,15 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       case 'phone':
         return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'mail':
+        return <Mail size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'message':
+      case 'message-square':
+        return <MessageSquare size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'image':
+        return <Image size={18} color={style.color || '#ffffff'} style={iconStyle} />;
+      case 'user':
+        return <User size={18} color={style.color || '#ffffff'} style={iconStyle} />;
       default:
         return null;
     }
