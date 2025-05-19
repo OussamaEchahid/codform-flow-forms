@@ -89,6 +89,21 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }
       }
       
+      // التأكد من تحديد حجم الخط للتسميات بشكل صريح
+      if (updatedField.style.labelFontSize && !updatedField.style.labelFontSize.includes('px')) {
+        // تحويل rem إلى px إذا لزم الأمر
+        if (updatedField.style.labelFontSize.includes('rem')) {
+          const remValue = parseFloat(updatedField.style.labelFontSize);
+          updatedField.style.labelFontSize = `${remValue * 16}px`;
+        } else if (!isNaN(parseFloat(updatedField.style.labelFontSize))) {
+          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+          updatedField.style.labelFontSize = `${updatedField.style.labelFontSize}px`;
+        }
+      } else if (!updatedField.style.labelFontSize) {
+        // تعيين حجم خط افتراضي للتسمية إذا لم يكن محددًا
+        updatedField.style.labelFontSize = '16px';
+      }
+      
       return updatedField;
     });
     
@@ -150,6 +165,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
         backgroundColor: '#f5f5f5', // تغيير لون الخلفية إلى رمادي فاتح للتطابق مع المتجر
+        padding: '20px', // إضافة تباعد داخلي للحاوية الخارجية
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
@@ -197,16 +213,15 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       )}
       
       <div 
-        className="p-3" 
+        className="codform-form-content" 
         style={{
-          borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: '#f5f5f5', // تغيير لون الخلفية من أبيض إلى رمادي فاتح للتطابق مع المتجر
+          padding: '0', // إزالة التباعد من المحتوى الداخلي
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}

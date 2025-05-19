@@ -101,7 +101,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
         (field.icon && field.icon !== 'none'),
       // تعيين القيم الافتراضية للون التسمية وحجم الخط إذا لم تكن محددة
       labelColor: field.style?.labelColor || '#333',
-      labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '1rem',
+      labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
       labelFontWeight: field.style?.labelFontWeight || '600',
     }
   };
@@ -173,7 +173,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-icon': normalizedField.icon || 'none',
     'data-required': normalizedField.required ? 'true' : 'false',
     'data-label-color': normalizedField.style?.labelColor || '#333',
-    'data-label-font-size': normalizedField.style?.labelFontSize || formStyle.fontSize || '1rem',
+    'data-label-font-size': normalizedField.style?.labelFontSize || formStyle.fontSize || '16px',
     'data-label-font-weight': normalizedField.style?.labelFontWeight || '600',
   };
 
