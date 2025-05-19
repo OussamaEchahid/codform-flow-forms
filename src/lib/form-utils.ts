@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -827,3 +826,15 @@ export const formTemplates = [
     ]
   }
 ];
+
+// Add this new interface for title configuration
+export interface TitleConfig {
+  title: string;
+  description: string;
+  backgroundColor: string;
+  textColor: string;
+  descriptionColor: string;
+  textAlign: 'left' | 'center' | 'right';
+  fontSize: string;
+  descriptionFontSize: string;
+}
