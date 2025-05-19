@@ -45,6 +45,9 @@ interface FormFieldStyle {
   borderColor?: string;
   borderWidth?: string;
   
+  // Shadow property
+  boxShadow?: string;  // Added boxShadow property
+  
   // Animation properties
   animation?: boolean;
   animationType?: string;
