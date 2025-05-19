@@ -292,44 +292,406 @@
       }
     }
     
-    // وظيفة لإنشاء HTML للنموذج
+    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق هيكل المعاينة بالضبط
     function createFormHtml(formData, blockId) {
       // دائمًا تفعيل خاصية إخفاء العنوان
       const hideHeader = true;
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
       const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
-      let html = '';
+      const primaryColor = formData.settings?.primaryColor || '#9b87f5';
+      const borderRadius = formData.settings?.borderRadius || '0.5rem';
+      const fontSize = formData.settings?.fontSize || '1rem';
+      const buttonStyle = formData.settings?.buttonStyle || 'rounded';
       
-      // بداية النموذج مع ضمان استخدام نفس لون الخلفية كما في المعاينة
-      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #f5f5f5;">`;
+      // إنشاء الحاوية الخارجية الكاملة للنموذج بنفس الأسلوب كما في المعاينة
+      let html = `
+      <div class="rounded-lg border shadow-sm overflow-hidden bg-white codform-form" 
+           data-form-preview-id="form-preview-${Date.now()}" 
+           data-primary-color="${primaryColor}" 
+           data-border-radius="${borderRadius}" 
+           data-font-size="${fontSize}" 
+           data-button-style="${buttonStyle}" 
+           style="font-size: ${fontSize}; --form-primary-color: ${primaryColor}; border-radius: ${borderRadius}; background-color: rgb(245, 245, 245);">
+        <div class="p-3" 
+             data-direction="${isRTL ? 'rtl' : 'ltr'}" 
+             style="border-radius: 0px 0px ${borderRadius} ${borderRadius}; direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: rgb(245, 245, 245);">
+          <div class="space-y-2">
+      `;
+      
+      // إضافة الأنماط للرسوم المتحركة
+      html += `
+      <style>
+        @keyframes pulse-animation {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        
+        @keyframes shake-animation {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        @keyframes bounce-animation {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        
+        @keyframes wiggle-animation {
+          0%, 100% { transform: rotate(0); }
+          25% { transform: rotate(-3deg); }
+          75% { transform: rotate(3deg); }
+        }
+        
+        @keyframes flash-animation {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        
+        .pulse-animation {
+          animation: pulse-animation 2s infinite ease-in-out !important;
+        }
+        
+        .shake-animation {
+          animation: shake-animation 0.8s infinite ease-in-out !important;
+        }
+        
+        .bounce-animation {
+          animation: bounce-animation 2s infinite ease-in-out !important;
+        }
+        
+        .wiggle-animation {
+          animation: wiggle-animation 2s infinite ease-in-out !important;
+        }
+        
+        .flash-animation {
+          animation: flash-animation 2s infinite ease-in-out !important;
+        }
+      </style>
+      `;
+      
+      // إنشاء نموذج داخل الحاوية
+      html += `<form id="codform-form-element-${blockId}" style="display: contents;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
         formData.fields.forEach(field => {
           if (field && field.type) {
+            // إنشاء عنصر العنوان بالضبط كما في المعاينة
             if (field.type === 'form-title') {
-              html += createTitleField(field);
+              const style = field.style || {};
+              const titleAlign = style.textAlign || 'center';
+              const bgColor = style.backgroundColor || '#2c00f0';
+              const titleColor = style.color || '#ffffff';
+              const descColor = style.descriptionColor || '#ffffff';
+              const titleFontSize = style.fontSize || '24px';
+              const descFontSize = style.descriptionFontSize || '14px';
+              const fontWeight = style.fontWeight || 'bold';
+              const descFontWeight = style.descriptionFontWeight || 'normal';
+              const fontFamily = style.fontFamily || 'inherit';
+              
+              html += `
+              <div class="mb-4" data-field-type="form-title" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="false">
+                <style>
+                  @keyframes pulse-animation {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                  }
+                  
+                  @keyframes shake-animation {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                  }
+                  
+                  @keyframes bounce-animation {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                  }
+                  
+                  @keyframes wiggle-animation {
+                    0%, 100% { transform: rotate(0); }
+                    25% { transform: rotate(-3deg); }
+                    75% { transform: rotate(3deg); }
+                  }
+                  
+                  @keyframes flash-animation {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                  }
+                  
+                  .pulse-animation {
+                    animation: pulse-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .shake-animation {
+                    animation: shake-animation 0.8s infinite ease-in-out !important;
+                  }
+                  
+                  .bounce-animation {
+                    animation: bounce-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .wiggle-animation {
+                    animation: wiggle-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .flash-animation {
+                    animation: flash-animation 2s infinite ease-in-out !important;
+                  }
+                </style>
+                <div id="title-field-${field.id}-${Date.now()}" class="mb-4 codform-title" dir="${isRTL ? 'rtl' : 'ltr'}" data-testid="title-field" data-title-align="${titleAlign}" data-has-bg="true" data-title-color="${titleColor}" data-bg-color="${bgColor}" data-font-family="${fontFamily}" data-field-type="form-title" data-font-size="${titleFontSize}" data-font-weight="${fontWeight}" data-desc-font-size="${descFontSize}" data-desc-color="${descColor}" data-desc-font-weight="${descFontWeight}">
+                  <div class="codform-title-container" style="background-color: ${bgColor}; padding: 16px; border-radius: ${borderRadius}; width: 100%; box-sizing: border-box; margin-bottom: 16px; text-align: ${titleAlign};">
+                    <h3 class="codform-form-title" style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block;">
+                      ${field.label || ''}
+                    </h3>
+                    <p class="codform-title-description" style="color: ${descColor}; font-size: ${descFontSize}; margin: 6px 0px 0px; padding: 0px; text-align: ${titleAlign}; font-family: ${fontFamily}; font-weight: ${descFontWeight}; line-height: 1.5; opacity: 0.9;">
+                      ${field.helpText || ''}
+                    </p>
+                  </div>
+                </div>
+              </div>`;
               return;
             }
             
+            // حقول النص والإدخال
             if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
-              html += createInputField(field, isRTL, enableIcons);
-            } else if (field.type === 'textarea') {
-              html += createTextareaField(field, isRTL, enableIcons);
-            } else if (field.type === 'radio') {
-              html += createRadioField(field);
-            } else if (field.type === 'checkbox') {
-              html += createCheckboxField(field);
-            } else if (field.type === 'submit') {
-              html += createSubmitButton(field, formData.settings);
-            } else if (field.type === 'text/html') {
-              html += createHtmlContent(field);
-            } else if (field.type === 'whatsapp') {
-              html += createWhatsAppButton(field);
-            } else if (field.type === 'image') {
-              html += createImageField(field);
-            } else if (field.type === 'title') {
-              html += createTitleField(field);
+              const hasIcon = field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
+              let iconType = field.icon || 'user';
+              if (field.type === 'email') iconType = 'mail';
+              if (field.type === 'phone') iconType = 'phone';
+              
+              html += `
+              <div class="mb-4" data-field-type="${field.type}" data-field-id="${field.id}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon="${iconType}" data-required="${field.required ? 'true' : 'false'}">
+                <style>
+                  @keyframes pulse-animation {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                  }
+                  
+                  @keyframes shake-animation {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                  }
+                  
+                  @keyframes bounce-animation {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                  }
+                  
+                  @keyframes wiggle-animation {
+                    0%, 100% { transform: rotate(0); }
+                    25% { transform: rotate(-3deg); }
+                    75% { transform: rotate(3deg); }
+                  }
+                  
+                  @keyframes flash-animation {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                  }
+                  
+                  .pulse-animation {
+                    animation: pulse-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .shake-animation {
+                    animation: shake-animation 0.8s infinite ease-in-out !important;
+                  }
+                  
+                  .bounce-animation {
+                    animation: bounce-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .wiggle-animation {
+                    animation: wiggle-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .flash-animation {
+                    animation: flash-animation 2s infinite ease-in-out !important;
+                  }
+                </style>
+                <div class="mb-4" data-component="TextInput" data-field-type="${field.type}" data-field-id="${field.id}" data-show-label="true" data-label-text="${field.label || ''}" data-has-icon="${hasIcon ? 'true' : 'false'}" data-show-icon="${hasIcon ? 'true' : 'false'}" data-icon-type="${iconType}" data-required="${field.required ? 'true' : 'false'}" data-font-family="inherit" data-font-size="1rem" data-border-radius="0.5rem" data-input-id="${field.id}-input" dir="${isRTL ? 'rtl' : 'ltr'}">
+                  <label for="${field.id}-input" class="block mb-2 relative pr-2" data-label-text="${field.label || ''}" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 600; font-family: inherit; margin-bottom: 8px;">
+                    ${field.label || ''}
+                    ${field.required ? '<span class="text-red-500 absolute" style="left: -12px; right: auto;">*</span>' : ''}
+                  </label>
+                  <div class="relative">
+                    ${hasIcon ? `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" data-icon-type="${iconType}" data-icon-visible="true" style="position: absolute; left: 12px; right: auto; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 2;">
+                      ${getIconSvg(iconType)}
+                    </div>` : ''}
+                    <input 
+                      type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}" 
+                      id="${field.id}-input" 
+                      name="${field.id}" 
+                      placeholder="${field.placeholder || ''}" 
+                      aria-label="${field.label || ''}" 
+                      class="w-full outline-none transition-all codform-input" 
+                      data-has-icon="${hasIcon ? 'true' : 'false'}" 
+                      ${field.required ? 'required' : ''} 
+                      style="color: rgb(31, 41, 55); font-size: 1rem; font-weight: 400; font-family: inherit; background-color: rgb(255, 255, 255); border-color: rgb(209, 213, 219); border-radius: 0.5rem; border-width: 1px; border-style: solid; padding: 10px 12px 10px ${hasIcon ? '36px' : '12px'}; box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px; width: 100%; height: auto; line-height: 1.5;">
+                  </div>
+                </div>
+              </div>`;
+            } 
+            // حقل المناطق النصية
+            else if (field.type === 'textarea') {
+              html += `
+              <div class="mb-4" data-field-type="textarea" data-field-id="${field.id}" data-has-icon="false" data-show-icon="false" data-icon="none" data-required="${field.required ? 'true' : 'false'}">
+                <style>
+                  @keyframes pulse-animation {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                  }
+                  
+                  @keyframes shake-animation {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                  }
+                  
+                  @keyframes bounce-animation {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                  }
+                  
+                  @keyframes wiggle-animation {
+                    0%, 100% { transform: rotate(0); }
+                    25% { transform: rotate(-3deg); }
+                    75% { transform: rotate(3deg); }
+                  }
+                  
+                  @keyframes flash-animation {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                  }
+                  
+                  .pulse-animation {
+                    animation: pulse-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .shake-animation {
+                    animation: shake-animation 0.8s infinite ease-in-out !important;
+                  }
+                  
+                  .bounce-animation {
+                    animation: bounce-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .wiggle-animation {
+                    animation: wiggle-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .flash-animation {
+                    animation: flash-animation 2s infinite ease-in-out !important;
+                  }
+                </style>
+                <div class="mb-4">
+                  <label for="${field.id}" class="block mb-2 relative pr-2" style="color: rgb(51, 65, 85); font-size: 1rem; font-weight: 500;">
+                    ${field.label || ''}
+                    ${field.required ? '<span class="text-red-500 absolute right-0 top-0">*</span>' : ''}
+                  </label>
+                  <textarea 
+                    id="${field.id}" 
+                    rows="${field.rows || 4}" 
+                    placeholder="${field.placeholder || ''}" 
+                    class="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all" 
+                    style="color: rgb(31, 41, 55); font-size: 1rem; border-color: rgb(209, 213, 219); border-radius: 0.5rem; border-width: 1px; box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;"
+                    ${field.required ? 'required' : ''}
+                    name="${field.id}">
+                  </textarea>
+                </div>
+              </div>`;
+            } 
+            // حقل الإرسال (الزر)
+            else if (field.type === 'submit') {
+              const style = field.style || {};
+              const bgColor = style.backgroundColor || primaryColor;
+              const borderRadius = style.borderRadius || '6px';
+              const fontSize = style.fontSize || '19px';
+              const fontWeight = style.fontWeight || '500';
+              const textColor = style.color || '#ffffff';
+              const padding = '15px 24px';
+              const borderWidth = style.borderWidth || '0px';
+              const borderColor = style.borderColor || '#eaeaff';
+              const animationType = style.animationType || 'shake';
+              const iconPosition = style.iconPosition || 'left';
+              const hasIcon = style.showIcon !== false;
+              
+              html += `
+              <div class="mt-0" data-field-type="submit" data-field-id="${field.id}" data-has-icon="false" data-show-icon="true" data-icon="none" data-required="false">
+                <style>
+                  @keyframes pulse-animation {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                  }
+                  
+                  @keyframes shake-animation {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                  }
+                  
+                  @keyframes bounce-animation {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                  }
+                  
+                  @keyframes wiggle-animation {
+                    0%, 100% { transform: rotate(0); }
+                    25% { transform: rotate(-3deg); }
+                    75% { transform: rotate(3deg); }
+                  }
+                  
+                  @keyframes flash-animation {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                  }
+                  
+                  .pulse-animation {
+                    animation: pulse-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .shake-animation {
+                    animation: shake-animation 0.8s infinite ease-in-out !important;
+                  }
+                  
+                  .bounce-animation {
+                    animation: bounce-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .wiggle-animation {
+                    animation: wiggle-animation 2s infinite ease-in-out !important;
+                  }
+                  
+                  .flash-animation {
+                    animation: flash-animation 2s infinite ease-in-out !important;
+                  }
+                </style>
+                <button 
+                  type="submit" 
+                  class="codform-submit-btn ${animationType}-animation" 
+                  dir="${isRTL ? 'rtl' : 'ltr'}" 
+                  data-animation-type="${animationType}" 
+                  data-button-style="rounded" 
+                  data-has-animation="true" 
+                  data-icon-position="${iconPosition}" 
+                  data-has-icon="${hasIcon ? 'true' : 'false'}" 
+                  data-bg-color="${bgColor}" 
+                  data-text-color="${textColor}" 
+                  data-font-size="${fontSize}" 
+                  data-border-radius="${borderRadius}" 
+                  style="background-color: ${bgColor}; color: ${textColor}; font-size: ${fontSize}; font-weight: ${fontWeight}; border-radius: ${borderRadius}; border-color: ${borderColor}; border-width: ${borderWidth}; border-style: solid; padding: ${padding}; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; cursor: pointer; transition: 0.2s; margin-top: 14px; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 4px; position: relative; overflow: hidden; text-align: center;">
+                  ${iconPosition === 'left' ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
+                  <span>${field.label || 'Buy with Cash on Delivery'}</span>
+                  ${iconPosition === 'right' ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>` : ''}
+                </button>
+              </div>`;
             }
           }
         });
@@ -338,22 +700,25 @@
         html += '<div style="padding: 15px; text-align: center; color: #e32;">لا توجد حقول في هذا النموذج</div>';
       }
       
-      // نهاية النموذج
-      html += '</form>';
+      // إغلاق عناصر النموذج
+      html += `</form></div></div></div>`;
       
       return html;
     }
     
     // وظيفة لإعداد معالجات الأحداث للنموذج
     function setupFormHandlers(formData, blockId) {
-      const form = document.getElementById(`codform-form-element-${blockId}`);
+      const formElement = document.querySelector(`#codform-form-element-${blockId}`);
       
-      if (form) {
-        form.addEventListener('submit', function(event) {
+      if (formElement) {
+        // تحويل إلى نموذج فعلي بدلاً من عرض محتويات فقط
+        formElement.style.display = 'block';
+        
+        formElement.addEventListener('submit', function(event) {
           event.preventDefault();
           
           // جمع بيانات النموذج
-          const formData = new FormData(form);
+          const formData = new FormData(formElement);
           const formDataObj = {};
           formData.forEach((value, key) => {
             formDataObj[key] = value;
@@ -410,347 +775,19 @@
       });
     }
     
-    // وظيفة لإنشاء حقل إدخال - مع تحسين موضع الأيقونات للتطابق مع المعاينة
-    function createInputField(field, isRTL, enableIcons) {
-      const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
-      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''} ${isRTL ? 'rtl' : ''}`;
-      let iconSvg = '';
-      
-      // الحصول على SVG للأيقونة إذا لزم الأمر
-      if (hasIcon) {
-        iconSvg = getIconSvg(field.icon);
-      }
-      
-      const translatedLabel = field.label || '';
-      const translatedPlaceholder = field.placeholder || '';
-      
-      return `
-        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          <label for="codform-field-${field.id}">
-            ${translatedLabel}
-            ${field.required ? '<span class="codform-required">*</span>' : ''}
-          </label>
-          <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 50%; transform: translateY(-50%); z-index: 2; color: #9ca3af;">${iconSvg}</div>` : ''}
-            <input 
-              type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
-              id="codform-field-${field.id}"
-              name="${field.id}"
-              placeholder="${translatedPlaceholder}"
-              ${field.required ? 'required' : ''}
-              class="codform-input ${hasIcon ? 'with-icon' : ''}"
-              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px; width: 100%; border: 1px solid #d1d5db; border-radius: 8px; line-height: 1.5; font-size: 16px; height: 42px;"
-            />
-          </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء منطقة نص - مع تحسين موضع الأيقونات للتطابق مع المعاينة
-    function createTextareaField(field, isRTL, enableIcons) {
-      const hasIcon = enableIcons && field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
-      const fieldClassContainer = `codform-field ${hasIcon ? 'codform-field-with-icon' : ''} ${isRTL ? 'rtl' : ''}`;
-      let iconSvg = '';
-      
-      // الحصول على SVG للأيقونة إذا لزم الأمر
-      if (hasIcon) {
-        iconSvg = getIconSvg(field.icon);
-      }
-      
-      const translatedLabel = field.label || '';
-      const translatedPlaceholder = field.placeholder || '';
-      
-      return `
-        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          <label for="codform-field-${field.id}">
-            ${translatedLabel}
-            ${field.required ? '<span class="codform-required">*</span>' : ''}
-          </label>
-          <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 15px; z-index: 2; color: #9ca3af;">${iconSvg}</div>` : ''}
-            <textarea
-              id="codform-field-${field.id}"
-              name="${field.id}"
-              placeholder="${translatedPlaceholder}"
-              ${field.required ? 'required' : ''}
-              rows="${field.rows || 4}"
-              class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
-              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px; width: 100%; border: 1px solid #d1d5db; border-radius: 8px; line-height: 1.5; font-size: 16px;"
-            ></textarea>
-          </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء مجموعة أزرار راديو
-    function createRadioField(field) {
-      const translatedLabel = field.label || '';
-      
-      let html = `
-        <div class="codform-field" style="margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          <label>
-            ${translatedLabel}
-            ${field.required ? '<span class="codform-required">*</span>' : ''}
-          </label>
-          <div class="codform-radio-group">
-      `;
-      
-      if (field.options && field.options.length) {
-        field.options.forEach((option, index) => {
-          const translatedOptionLabel = option.label || '';
-          
-          html += `
-            <div class="codform-radio-container">
-              <input
-                type="radio"
-                id="codform-field-${field.id}-${index}"
-                name="${field.id}"
-                value="${option.value || ''}"
-                ${field.required && index === 0 ? 'required' : ''}
-                ${option.selected ? 'checked' : ''}
-              />
-              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
-            </div>
-          `;
-        });
-      }
-      
-      html += `
-          </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
-        </div>
-      `;
-      
-      return html;
-    }
-    
-    // وظيفة لإنشاء مجموعة مربعات اختيار
-    function createCheckboxField(field) {
-      const translatedLabel = field.label || '';
-      
-      let html = `
-        <div class="codform-field" style="margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          <label>
-            ${translatedLabel}
-            ${field.required ? '<span class="codform-required">*</span>' : ''}
-          </label>
-          <div class="codform-checkbox-group">
-      `;
-      
-      if (field.options && field.options.length) {
-        field.options.forEach((option, index) => {
-          const translatedOptionLabel = option.label || '';
-          
-          html += `
-            <div class="codform-checkbox-container">
-              <input
-                type="checkbox"
-                id="codform-field-${field.id}-${index}"
-                name="${field.id}[]"
-                value="${option.value || ''}"
-                ${option.selected ? 'checked' : ''}
-              />
-              <label for="codform-field-${field.id}-${index}">${translatedOptionLabel}</label>
-            </div>
-          `;
-        });
-      }
-      
-      html += `
-          </div>
-          ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
-        </div>
-      `;
-      
-      return html;
-    }
-    
-    // وظيفة لإنشاء زر إرسال - مع تحسين الهوامش والتنسيق للتطابق مع المعاينة
-    function createSubmitButton(field, formSettings) {
-      const buttonStyle = field.style || {};
-      const backgroundColor = buttonStyle.backgroundColor || formSettings?.primaryColor || '#9b87f5';
-      const borderRadius = buttonStyle.borderRadius || '8px';
-      const fontSize = buttonStyle.fontSize || '18px';
-      const fontWeight = buttonStyle.fontWeight || '600';
-      const color = buttonStyle.color || '#ffffff';
-      const padding = buttonStyle.paddingY ? `${buttonStyle.paddingY} 20px` : '14px 20px';
-      const borderWidth = buttonStyle.borderWidth || '0px';
-      const borderColor = buttonStyle.borderColor || backgroundColor;
-      
-      // فئة الرسوم المتحركة
-      const animationType = buttonStyle.animation && buttonStyle.animationType ? buttonStyle.animationType : 'none';
-      const animationClass = animationType !== 'none' ? `${animationType}-animation` : '';
-      
-      // معالجة الأيقونة
-      const showIcon = buttonStyle.showIcon !== false && buttonStyle.icon;
-      let iconHtml = '';
-      
-      if (showIcon) {
-        const iconSvg = getIconSvg(buttonStyle.icon || 'shopping-cart');
-        iconHtml = `<span class="codform-icon" style="display: inline-flex; align-items: center; margin-${buttonStyle.iconPosition === 'right' ? 'right' : 'left'}: 8px;">${iconSvg}</span>`;
-      }
-      
-      const translatedLabel = field.label || 'إرسال الطلب';
-      
-      return `
-        <div class="codform-field" style="margin-top: 16px; background-color: transparent; padding: 0; border: none; box-shadow: none;">
-          <button
-            type="submit"
-            class="codform-submit-btn ${animationClass}"
-            style="
-              background-color: ${backgroundColor};
-              border-radius: ${borderRadius};
-              font-size: ${fontSize};
-              font-weight: ${fontWeight};
-              color: ${color};
-              padding: ${padding};
-              border: ${borderWidth} solid ${borderColor};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-              width: 100%;
-              cursor: pointer;
-              margin-top: 14px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            "
-          >
-            ${buttonStyle.iconPosition !== 'right' ? iconHtml : ''}
-            <span>${translatedLabel}</span>
-            ${buttonStyle.iconPosition === 'right' ? iconHtml : ''}
-          </button>
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء حقل العنوان - تحسين تطابق العرض مع معاينة النموذج
-    function createTitleField(field) {
-      const style = field.style || {};
-      const backgroundColor = style.backgroundColor || '#9b87f5';
-      const color = style.color || '#ffffff';
-      const descriptionColor = style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
-      const fontSize = style.fontSize || (field.type === 'form-title' ? '24px' : '20px');
-      const descriptionFontSize = style.descriptionFontSize || '14px';
-      const textAlign = style.textAlign || 'right';
-      const fontWeight = style.fontWeight || (field.type === 'form-title' ? 'bold' : 'medium');
-      const fontFamily = style.fontFamily || 'inherit';
-      const isFormTitle = field.type === 'form-title';
-      
-      const translatedLabel = field.label || '';
-      const translatedHelp = field.helpText || '';
-      
-      return `
-        <div class="codform-title-field" style="margin-bottom: 16px;">
-          <div class="codform-title-container" style="background-color: ${backgroundColor}; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: ${textAlign}; width: 100%; box-sizing: border-box;">
-            <h3 class="codform-form-title" style="margin: 0; padding: 0; color: ${color}; font-size: ${fontSize}; font-weight: ${fontWeight}; font-family: ${fontFamily}; line-height: 1.3; display: block; text-align: ${textAlign};">
-              ${translatedLabel}
-            </h3>
-            ${translatedHelp ? `<p class="codform-title-description" style="margin: 6px 0 0 0; padding: 0; color: ${descriptionColor}; opacity: 0.9; font-size: ${descriptionFontSize}; font-weight: normal; line-height: 1.5; text-align: ${textAlign};">${translatedHelp}</p>` : ''}
-          </div>
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء محتوى HTML
-    function createHtmlContent(field) {
-      return `
-        <div class="codform-field codform-html-content" style="margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          ${field.content || ''}
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء زر واتساب - مع تحسين المسافات للتطابق مع المعاينة
-    function createWhatsAppButton(field) {
-      const style = field.style || {};
-      const backgroundColor = style.backgroundColor || '#25D366';
-      const color = style.color || '#ffffff';
-      const borderRadius = style.borderRadius || '8px';
-      const phone = field.whatsappNumber || '';
-      const message = encodeURIComponent(field.message || '');
-      
-      const translatedLabel = field.label || 'واتساب';
-      
-      // أيقونة واتساب SVG
-      const whatsappIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path></svg>`;
-      
-      const url = `https://wa.me/${phone}${message ? `?text=${message}` : ''}`;
-      
-      return `
-        <div class="codform-field" style="margin-bottom: 16px; background-color: transparent; padding: 0; border: none; box-shadow: none;">
-          <a 
-            href="${url}" 
-            target="_blank" 
-            class="codform-whatsapp-button" 
-            style="
-              background-color: ${backgroundColor};
-              border-radius: ${borderRadius};
-              color: ${color};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 10px;
-              padding: 14px 20px;
-              text-decoration: none;
-              width: 100%;
-              font-size: 16px;
-              font-weight: 600;
-              margin-top: 14px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            "
-          >
-            <span class="codform-whatsapp-icon">${whatsappIcon}</span>
-            <span>${translatedLabel}</span>
-          </a>
-        </div>
-      `;
-    }
-    
-    // وظيفة لإنشاء حقل صورة
-    function createImageField(field) {
-      const style = field.style || {};
-      
-      return `
-        <div class="codform-field codform-image-field" style="margin-bottom: 16px; background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb;">
-          <div class="codform-image-container">
-            <img 
-              src="${field.image || ''}"
-              alt="${field.alt || field.label || ''}"
-              class="codform-image"
-              style="
-                border-radius: ${style.borderRadius || '8px'};
-                ${style.maxHeight ? `max-height: ${style.maxHeight};` : ''}
-                ${style.maxWidth ? `max-width: ${style.maxWidth};` : ''}
-                width: 100%;
-                height: auto;
-                display: block;
-              "
-            />
-          </div>
-          ${field.caption ? `<div class="codform-image-caption" style="margin-top: 8px; text-align: center; font-size: 14px; color: #6B7280;">${field.caption}</div>` : ''}
-        </div>
-      `;
-    }
-    
     // وظيفة للحصول على SVG للأيقونة
     function getIconSvg(iconName) {
       // مجموعة من الأيقونات SVG الشائعة
       const icons = {
-        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
-        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
-        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
-        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
-        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
-        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
-        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 1-2 1.61h9.72a2 2 0 0 1 2-1.61L23 6H6"></path></svg>',
-        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
-        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
-        'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"></path><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>',
-        'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
-        'check': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
-        'email': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-user" data-icon-name="user" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-mail" data-icon-name="mail" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-phone" data-icon-name="phone" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-home" data-icon-name="home" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-map-pin" data-icon-name="map-pin" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-building" data-icon-name="building" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
+        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-shopping-cart" data-icon-name="shopping-cart" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 1-2 1.61h9.72a2 2 0 0 1 2-1.61L23 6H6"></path></svg>',
+        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-send" data-icon-name="send" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package text-gray-500 codform-icon" aria-hidden="true" data-testid="icon-package" data-icon-name="package" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
       };
       
       // إرجاع أيقونة SVG أو أيقونة المستخدم الافتراضية
@@ -758,3 +795,168 @@
     }
   });
 </script>
+
+<style>
+  /* تحديث أنماط CSS لضمان توافق العرض */
+  .codform-container {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #ffffff;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    width: 100%;
+    font-size: 16px;
+    line-height: 1.5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* إضافة أنماط للنموذج الخارجي */
+  .codform-form {
+    margin-top: 14px;
+    background-color: #f5f5f5 !important;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* تحسين عرض الحقول */
+  .codform-field {
+    margin-bottom: 16px !important;
+    display: block !important;
+    background-color: #ffffff !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* تنسيق التسميات */
+  .codform-field label {
+    display: block !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    font-size: 16px !important;
+  }
+  
+  /* تنسيق حقول الإدخال */
+  .codform-input, .codform-textarea {
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    transition: all 0.2s ease-in-out !important;
+    font-family: 'Cairo', sans-serif !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* تحسين موضع الأيقونات */
+  .codform-field-icon {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #9ca3af !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+  }
+  
+  /* تنسيق زر الإرسال */
+  .codform-submit-btn {
+    background-color: #9b87f5 !important;
+    color: white !important;
+    border: none !important;
+    padding: 14px 24px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    width: 100% !important;
+    margin-top: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* تنسيق حقل العنوان */
+  .codform-title-container {
+    background-color: #9b87f5 !important;
+    color: white !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
+    text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .codform-form-title {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    color: white !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    display: block !important;
+  }
+  
+  .codform-title-description {
+    margin: 6px 0 0 0 !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    text-align: center !important;
+    font-weight: normal !important;
+    line-height: 1.5 !important;
+    opacity: 0.9 !important;
+  }
+  
+  /* تحسين للمدخلات مع الأيقونات */
+  .codform-input.with-icon {
+    padding-left: 36px !important;
+  }
+  
+  /* تنسيق الحركات */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+  
+  .shake-animation {
+    animation: shake 0.8s ease-in-out infinite !important;
+  }
+  
+  .pulse-animation {
+    animation: pulse 2s ease-in-out infinite !important;
+  }
+</style>
