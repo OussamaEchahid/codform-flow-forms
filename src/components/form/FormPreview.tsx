@@ -5,6 +5,19 @@ import { useI18n } from '@/lib/i18n';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
+import StableFormTitle from './preview/fields/StableFormTitle';
+
+interface TitleFieldInfo {
+  title: string;
+  description?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  descriptionColor?: string;
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  fontSize?: string;
+  descriptionFontSize?: string;
+  id?: string;
+}
 
 interface FormPreviewProps {
   formTitle: string;
@@ -22,6 +35,7 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
+  titleFieldInfo?: TitleFieldInfo;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -40,6 +54,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
+  titleFieldInfo
 }) => {
   const { language } = useI18n();
   
@@ -107,38 +122,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return updatedField;
     });
     
-    // If there is already a form title, use it
-    if (updatedFields.some(field => field.type === 'form-title')) {
-      return updatedFields;
-    }
-    
-    // If there is no form title, add one at the beginning with specific pixel sizes
-    const formTitleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '24px', // Use fixed pixels
-        descriptionColor: 'rgba(255, 255, 255, 0.9)',
-        descriptionFontSize: '14px', // Use fixed pixels
-        backgroundColor: formStyle.primaryColor || '#9b87f5', // Primary background color
-      }
-    };
-    
     // Check if there is already a submit button
     const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
     
-    let result = [formTitleField, ...updatedFields.filter(f => f.type !== 'form-title')];
+    let result = [...updatedFields];
     
     // If there is no submit button, add one
     if (!hasSubmitButton) {
       const submitButton: FormField = {
         type: 'submit',
-        id: `submit-${Date.now()}`,
+        id: `submit-stable`,
         label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
@@ -152,10 +145,22 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, formTitle, formDescription, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor]);
   
   // Create unique ID for this form to ensure correct updates
-  const formId = useMemo(() => `form-preview-${Date.now()}`, []);
+  const formId = useMemo(() => `form-preview-stable`, []);
+  
+  // Get title field information
+  const titleInfo = titleFieldInfo || {
+    title: formTitle,
+    description: formDescription,
+    backgroundColor: formStyle.primaryColor,
+    textColor: '#ffffff',
+    descriptionColor: 'rgba(255, 255, 255, 0.9)',
+    textAlign: language === 'ar' ? 'right' : 'left',
+    fontSize: '24px',
+    descriptionFontSize: '14px'
+  };
   
   return (
     <div 
@@ -220,6 +225,20 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
+        {/* Render the stable form title component */}
+        <StableFormTitle
+          title={titleInfo.title}
+          description={titleInfo.description}
+          backgroundColor={titleInfo.backgroundColor}
+          textColor={titleInfo.textColor}
+          descriptionColor={titleInfo.descriptionColor}
+          textAlign={titleInfo.textAlign}
+          fontSize={titleInfo.fontSize}
+          descriptionFontSize={titleInfo.descriptionFontSize}
+          borderRadius={formStyle.borderRadius}
+          id={titleInfo.id}
+        />
+        
         {sanitizedFields.length > 0 ? (
           <div className="space-y-4">
             {sanitizedFields.map(field => (

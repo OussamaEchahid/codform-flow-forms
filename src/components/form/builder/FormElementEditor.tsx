@@ -18,7 +18,7 @@ interface FormElementEditorProps {
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
-// Improved deep copy function to ensure all nested properties are preserved exactly
+// Improved deep copy function that preserves IDs and doesn't use Date.now()
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
@@ -31,17 +31,6 @@ const deepCopyElement = (element: FormField): FormField => {
   // Deep copy the style object to prevent reference issues
   if (element.style) {
     copy.style = { ...element.style };
-    
-    // Special handling for form-title and title fields
-    if (element.type === 'form-title' || element.type === 'title') {
-      // Ensure critical style properties are preserved exactly
-      copy.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
-      copy.style.color = element.style.color || '#ffffff';
-      copy.style.textAlign = element.style.textAlign;
-      copy.style.fontSize = element.style.fontSize;
-      copy.style.descriptionColor = element.style.descriptionColor;
-      copy.style.descriptionFontSize = element.style.descriptionFontSize;
-    }
   }
   
   // Special handling for options array (used in select, radio, checkbox)
@@ -89,28 +78,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       // Use arrayMove to reorder elements but maintain their exact properties
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Special handling for form-title fields to ensure their properties are preserved
-      reorderedElements.forEach((element, idx) => {
-        // Find the original element by ID to preserve critical properties
-        const originalElement = elements.find(e => e.id === element.id);
-        
-        if (originalElement && (originalElement.type === 'form-title' || originalElement.type === 'title')) {
-          // Ensure all style properties are preserved exactly
-          if (!element.style) element.style = {};
-          
-          // Copy all style properties from the original element
-          element.style = { ...originalElement.style };
-          
-          // Ensure these critical properties exist
-          element.style.backgroundColor = originalElement.style?.backgroundColor || '#9b87f5';
-          element.style.color = originalElement.style?.color || '#ffffff';
-          
-          // Preserve the label and helpText exactly
-          element.label = originalElement.label;
-          element.helpText = originalElement.helpText;
-        }
-      });
-      
+      // Now trigger the parent's reorder callback
       onReorderElements(reorderedElements);
     }
   }, [elements, onReorderElements]);
@@ -128,22 +96,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     // Preserve the original ID to ensure consistent references
     updatedField.id = elements[index].id;
     
-    // Special handling for form-title and title fields
-    if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-      
-      // Ensure text alignment is set
-      if (!updatedField.style.textAlign) {
-        updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
-      }
-      
-      // Ensure color and background color are set
-      updatedField.style.color = updatedField.style.color || '#ffffff';
-      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
-    }
-
     // Special handling for submit button
     if (updatedField.type === 'submit') {
       if (!updatedField.style) {
@@ -192,6 +144,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
+              disabled={element.type === 'form-title'} // Disable sorting for form-title
             />
           ))}
         </SortableContext>

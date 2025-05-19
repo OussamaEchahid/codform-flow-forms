@@ -25,13 +25,16 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Improved deep clone function to preserve ALL field properties exactly
+// Improved deep clone function that preserves IDs and doesn't use Date.now()
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
     // Start with a complete copy of all first-level properties
-    const newField = { ...field, id: field.id };
+    const newField = { ...field };
+    
+    // Critical: Always preserve exact ID
+    newField.id = field.id;
     
     // Deep clone style object if it exists
     if (field.style) {
@@ -41,19 +44,6 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Deep clone options array if it exists
     if (field.options && Array.isArray(field.options)) {
       newField.options = field.options.map(option => ({ ...option }));
-    }
-    
-    // Special handling for form-title fields to ensure styles are preserved
-    if (field.type === 'form-title' || field.type === 'title') {
-      if (!newField.style) newField.style = {};
-      
-      // Ensure critical style properties are preserved
-      newField.style.backgroundColor = field.style?.backgroundColor || '#9b87f5';
-      newField.style.color = field.style?.color || '#ffffff';
-      newField.style.textAlign = field.style?.textAlign || 'left';
-      newField.style.fontSize = field.style?.fontSize || '24px';
-      newField.style.descriptionColor = field.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)';
-      newField.style.descriptionFontSize = field.style?.descriptionFontSize || '14px';
     }
     
     return newField;
@@ -86,96 +76,52 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // We intentionally omit refreshKey from dependencies to prevent infinite loops
   }, [refreshKey]);
   
-  // Use useMemo with proper dependencies to prevent unnecessary recalculations
+  // Filter out form-title from fields - we'll handle it separately
   const processedFields = useMemo(() => {
     // Make a deep copy of fields to prevent unintended mutations
-    const clonedFields = deepCloneFields(fields);
+    let clonedFields = deepCloneFields(fields);
     
     // Check if fields are empty or undefined
     if (!clonedFields || clonedFields.length === 0) {
       return [];
     }
     
-    return clonedFields.map(field => {
-      if (!field || !field.id) {
-        console.warn("Encountered invalid field:", field);
-        return field;
-      }
-      
-      // Important: Preserve the EXACT original field ID - critical for drag and drop stability
-      const originalId = field.id;
-      const updatedField = { ...field, id: originalId };
-      
-      // Convert empty icons to 'none'
-      if (updatedField.icon === '') {
-        updatedField.icon = 'none';
-      }
-      
-      // Handle icons properly
-      if (updatedField.icon && updatedField.icon !== 'none') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        // Set showIcon to true by default unless explicitly set to false
-        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
-          ? updatedField.style.showIcon 
-          : true;
-      }
-      
-      // Special handling for title fields - preserve ALL style properties
-      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        // Ensure all style properties are preserved exactly as they were
-        // Only set defaults if the property doesn't exist at all
-        if (!updatedField.style.textAlign) {
-          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
-        }
-        
-        if (!updatedField.style.backgroundColor) {
-          updatedField.style.backgroundColor = '#9b87f5';
-        }
-        
-        if (!updatedField.style.color) {
-          updatedField.style.color = '#ffffff';
-        }
-        
-        // Handle font sizes with careful preservation of existing values
-        if (!updatedField.style.fontSize) {
-          updatedField.style.fontSize = updatedField.type === 'form-title' ? '24px' : '20px';
-        } else if (!updatedField.style.fontSize.includes('px')) {
-          // Convert to pixels if needed
-          if (updatedField.style.fontSize.includes('rem')) {
-            const remValue = parseFloat(updatedField.style.fontSize);
-            updatedField.style.fontSize = `${remValue * 16}px`;
-          } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-            // If a number without unit, assume pixels
-            updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-          }
-        }
-        
-        if (!updatedField.style.descriptionFontSize) {
-          updatedField.style.descriptionFontSize = '14px';
-        } else if (!updatedField.style.descriptionFontSize.includes('px')) {
-          // Convert to pixels if needed
-          if (updatedField.style.descriptionFontSize.includes('rem')) {
-            const remValue = parseFloat(updatedField.style.descriptionFontSize);
-            updatedField.style.descriptionFontSize = `${remValue * 16}px`;
-          } else if (!isNaN(parseFloat(updatedField.style.descriptionFontSize))) {
-            updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
-          }
-        }
-      }
-      
-      return updatedField;
-    });
-  }, [fields, language, internalRefreshKey]);
+    // Remove any form-title fields from the array (we'll handle them separately)
+    return clonedFields.filter(field => field.type !== 'form-title');
+  }, [fields, internalRefreshKey]);
+
+  // Extract title field information
+  const titleFieldInfo = useMemo(() => {
+    const titleField = fields.find(f => f.type === 'form-title');
+    
+    if (titleField) {
+      return {
+        title: titleField.label || formTitle,
+        description: titleField.helpText || formDescription,
+        backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
+        textColor: titleField.style?.color || '#ffffff',
+        descriptionColor: titleField.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)',
+        textAlign: titleField.style?.textAlign,
+        fontSize: titleField.style?.fontSize || '24px',
+        descriptionFontSize: titleField.style?.descriptionFontSize || '14px',
+        id: titleField.id
+      };
+    }
+    
+    return {
+      title: formTitle,
+      description: formDescription,
+      backgroundColor: formStyle.primaryColor,
+      textColor: '#ffffff',
+      descriptionColor: 'rgba(255, 255, 255, 0.9)',
+      textAlign: language === 'ar' ? 'right' : 'left',
+      fontSize: '24px',
+      descriptionFontSize: '14px'
+    };
+  }, [fields, formTitle, formDescription, formStyle.primaryColor, language]);
 
   // Create a stable ID for this preview panel instance
-  const previewPanelId = useMemo(() => `preview-panel-${Math.floor(Math.random() * 1000)}`, []);
+  const previewPanelId = useMemo(() => `preview-panel-stable`, []);
 
   return (
     <div id={previewPanelId}>
@@ -194,6 +140,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
+          titleFieldInfo={titleFieldInfo}
         >
           <div></div>
         </FormPreview>

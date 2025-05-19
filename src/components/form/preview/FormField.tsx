@@ -100,14 +100,6 @@ const deepCloneField = (field: FormFieldType): FormFieldType => {
   // Deep clone style object if it exists
   if (field.style) {
     clonedField.style = { ...field.style };
-    
-    // Special handling for title fields
-    if ((field.type === 'form-title' || field.type === 'title') && field.style) {
-      clonedField.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
-      clonedField.style.color = field.style.color || '#ffffff';
-      clonedField.style.textAlign = field.style.textAlign;
-      clonedField.style.fontSize = field.style.fontSize;
-    }
   }
   
   // Deep clone options array if it exists
@@ -123,6 +115,11 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   // Validate field data
   if (!field || !field.type || !field.id) {
     console.warn('Invalid field:', field);
+    return null;
+  }
+
+  // Skip form-title fields since they're now handled separately
+  if (field.type === 'form-title') {
     return null;
   }
 
@@ -148,13 +145,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
         labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
         labelFontWeight: field.style?.labelFontWeight || '600',
         // Ensure backgroundColor is passed for submit button
-        backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
-        // For title fields, ensure proper style values
-        ...(field.type === 'form-title' || field.type === 'title' ? {
-          textAlign: field.style?.textAlign,
-          color: field.style?.color,
-          fontWeight: field.style?.fontWeight
-        } : {})
+        backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined)
       }
     };
   }, [field, formStyle]);
