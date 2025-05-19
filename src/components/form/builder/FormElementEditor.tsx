@@ -38,7 +38,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // Create a deep copy function to ensure all properties are preserved
+  // Deep copy function for preserving all properties including nested objects
   const deepCopyElement = (element: FormField): FormField => {
     // Use JSON parse/stringify for deep copying to preserve all nested properties
     return JSON.parse(JSON.stringify(element));
@@ -57,170 +57,124 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const oldIndex = elements.findIndex(item => item.id === active.id);
     const newIndex = elements.findIndex(item => item.id === over.id);
     
-    if (onReorderElements) {
-      // Create deep copies of elements to prevent reference issues
+    if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
+      // Preserve original elements by creating exact deep copies
       const newElementsArray = elements.map(element => deepCopyElement(element));
+      
+      // Use arrayMove to reorder elements but maintain their exact properties
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Process each element to ensure proper formatting is preserved
-      const processedElements = reorderedElements.map(element => {
-        // Handle title fields specifically to preserve all formatting
-        if (element.type === 'form-title' || element.type === 'title') {
-          // Ensure style object exists
-          if (!element.style) {
-            element.style = {};
-          }
-          
-          // Always preserve these properties exactly as they were
-          // No default values should overwrite user customizations
-          
-          // Ensure fontSize is properly formatted (px format)
-          if (element.style.fontSize) {
-            if (element.style.fontSize.endsWith('rem')) {
-              const remValue = parseFloat(element.style.fontSize.replace('rem', ''));
-              element.style.fontSize = `${Math.round(remValue * 16)}px`;
-            } else if (!element.style.fontSize.endsWith('px')) {
-              element.style.fontSize = `${element.style.fontSize}px`;
-            }
-          } else {
-            element.style.fontSize = element.type === 'form-title' ? '24px' : '20px';
-          }
-          
-          // Ensure all other title styling properties are preserved
-          element.style.color = element.style.color || '#ffffff';
-          element.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
-          element.style.textAlign = element.style.textAlign || (language === 'ar' ? 'right' : 'left');
-          
-          // Handle description font size
-          if (element.style.descriptionFontSize) {
-            if (element.style.descriptionFontSize.endsWith('rem')) {
-              const remValue = parseFloat(element.style.descriptionFontSize.replace('rem', ''));
-              element.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
-            } else if (!element.style.descriptionFontSize.endsWith('px')) {
-              element.style.descriptionFontSize = `${element.style.descriptionFontSize}px`;
-            }
-          } else {
-            element.style.descriptionFontSize = '14px';
-          }
-          
-          // Description color
-          element.style.descriptionColor = element.style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+      // Log for debugging
+      console.log(`Reordering element from index ${oldIndex} to ${newIndex}`);
+      console.log(`Element being moved: ${elements[oldIndex].type} (ID: ${elements[oldIndex].id})`);
+      
+      // Ensure element IDs are preserved exactly as they were
+      reorderedElements.forEach((element, idx) => {
+        // Verify ID preservation
+        if (element.id !== newElementsArray[idx === oldIndex ? newIndex : (idx >= newIndex && idx < oldIndex ? idx + 1 : (idx <= oldIndex && idx > newIndex ? idx - 1 : idx))].id) {
+          console.warn('ID mismatch detected during reordering. Preserving original ID.');
+          // This should never happen with arrayMove, but added as a safeguard
+          element.id = newElementsArray[idx === oldIndex ? newIndex : (idx >= newIndex && idx < oldIndex ? idx + 1 : (idx <= oldIndex && idx > newIndex ? idx - 1 : idx))].id;
         }
-        
-        // Handle submit button fields
-        if (element.type === 'submit') {
-          if (!element.style) {
-            element.style = {};
-          }
-          
-          // Preserve submit button styling
-          element.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
-          element.style.color = element.style.color || '#ffffff';
-          element.style.fontSize = element.style.fontSize || '18px';
-          element.style.fontWeight = element.style.fontWeight || '600';
-          element.style.borderRadius = element.style.borderRadius || '8px';
-          element.style.borderColor = element.style.borderColor || 'transparent';
-          
-          // Preserve icon settings
-          if (element.icon && element.icon !== 'none') {
-            element.style.showIcon = element.style.showIcon !== undefined 
-              ? element.style.showIcon 
-              : true;
-            element.style.iconPosition = element.style.iconPosition || (language === 'ar' ? 'right' : 'left');
-          }
-          
-          // Preserve animation settings
-          if (element.style.animation) {
-            element.style.animationType = element.style.animationType || 'pulse';
-          }
-        }
-        
-        return element;
       });
       
-      onReorderElements(processedElements);
+      onReorderElements(reorderedElements);
       toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
   };
   
   // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = (index: number, field: FormField) => {
+    if (index < 0 || index >= elements.length) {
+      console.error(`Invalid element index: ${index}`);
+      return;
+    }
+    
+    // Create deep copy to avoid modifying the original element
+    const updatedField = deepCopyElement(field);
+    
+    // Preserve the original ID to ensure consistent references
+    updatedField.id = elements[index].id;
+    
+    // Log the update for debugging
+    console.log(`Updating element at index ${index}:`, updatedField);
+    
     // Normalize icon value (convert empty string to 'none')
-    if (field.icon === '') {
-      field.icon = 'none';
+    if (updatedField.icon === '') {
+      updatedField.icon = 'none';
     }
     
     // Ensure proper icon settings
-    if (field.icon && field.icon !== 'none') {
-      if (!field.style) {
-        field.style = {};
+    if (updatedField.icon && updatedField.icon !== 'none') {
+      if (!updatedField.style) {
+        updatedField.style = {};
       }
       
       // Set showIcon based on existing value or default to true if icon exists
-      field.style.showIcon = field.style.showIcon !== undefined 
-        ? field.style.showIcon 
+      updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
+        ? updatedField.style.showIcon 
         : true;
     }
 
     // Special handling for form-title and title fields
-    if (field.type === 'form-title' || field.type === 'title') {
-      if (!field.style) {
-        field.style = {};
+    if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+      if (!updatedField.style) {
+        updatedField.style = {};
       }
       
       // Ensure text alignment is set
-      if (!field.style.textAlign) {
-        field.style.textAlign = language === 'ar' ? 'right' : 'left';
+      if (!updatedField.style.textAlign) {
+        updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
       }
       
       // Ensure color and background color are set
-      field.style.color = field.style.color || '#ffffff';
-      field.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
+      updatedField.style.color = updatedField.style.color || '#ffffff';
+      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
       
       // تحويل وحدات rem إلى px لضمان التوافق
-      if (field.style.fontSize) {
-        if (field.style.fontSize.endsWith('rem')) {
-          const remValue = parseFloat(field.style.fontSize.replace('rem', ''));
-          field.style.fontSize = `${Math.round(remValue * 16)}px`;
-        } else if (!field.style.fontSize.endsWith('px')) {
-          field.style.fontSize = `${field.style.fontSize}px`;
+      if (updatedField.style.fontSize) {
+        if (updatedField.style.fontSize.endsWith('rem')) {
+          const remValue = parseFloat(updatedField.style.fontSize.replace('rem', ''));
+          updatedField.style.fontSize = `${Math.round(remValue * 16)}px`;
+        } else if (!updatedField.style.fontSize.endsWith('px')) {
+          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       } else {
-        field.style.fontSize = field.type === 'form-title' ? '24px' : '20px';
+        updatedField.style.fontSize = updatedField.type === 'form-title' ? '24px' : '20px';
       }
       
-      if (field.style.descriptionFontSize) {
-        if (field.style.descriptionFontSize.endsWith('rem')) {
-          const remValue = parseFloat(field.style.descriptionFontSize.replace('rem', ''));
-          field.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
-        } else if (!field.style.descriptionFontSize.endsWith('px')) {
-          field.style.descriptionFontSize = `${field.style.descriptionFontSize}px`;
+      if (updatedField.style.descriptionFontSize) {
+        if (updatedField.style.descriptionFontSize.endsWith('rem')) {
+          const remValue = parseFloat(updatedField.style.descriptionFontSize.replace('rem', ''));
+          updatedField.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
+        } else if (!updatedField.style.descriptionFontSize.endsWith('px')) {
+          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
         }
       } else {
-        field.style.descriptionFontSize = '14px';
+        updatedField.style.descriptionFontSize = '14px';
       }
     }
 
     // Special handling for submit button
-    if (field.type === 'submit') {
-      if (!field.style) {
-        field.style = {};
+    if (updatedField.type === 'submit') {
+      if (!updatedField.style) {
+        updatedField.style = {};
       }
       
       // Make sure submit button style properties are preserved
-      field.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
-      field.style.color = field.style.color || '#ffffff';
+      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
+      updatedField.style.color = updatedField.style.color || '#ffffff';
       
       // Ensure icon settings are properly handled
-      if (field.icon && field.icon !== 'none') {
-        field.style.showIcon = field.style.showIcon !== undefined ? field.style.showIcon : true;
-        field.style.iconPosition = field.style.iconPosition || (language === 'ar' ? 'right' : 'left');
+      if (updatedField.icon && updatedField.icon !== 'none') {
+        updatedField.style.showIcon = updatedField.style.showIcon !== undefined ? updatedField.style.showIcon : true;
+        updatedField.style.iconPosition = updatedField.style.iconPosition || (language === 'ar' ? 'right' : 'left');
       }
     }
     
     // Notify parent component about the update
     if (onUpdateElement) {
-      onUpdateElement(index, field);
+      onUpdateElement(index, updatedField);
     }
     
     // Force refresh the preview

@@ -39,18 +39,22 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
-  const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
+  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
   // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
-    setInternalRefreshKey(Date.now());
-  }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
+    // Use a number for consistent rendering instead of Date.now()
+    setInternalRefreshKey(prevKey => prevKey + 1);
+  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
   
   // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
   const processedFields = React.useMemo(() => {
     return fields.map(field => {
       // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
       const updatedField = { ...field };
+      
+      // Preserve the original ID
+      updatedField.id = field.id;
       
       // تحويل سلاسل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
@@ -86,23 +90,24 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         
         // ضمان تحديد أحجام الخط بوحدات بكسل
         if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+          if (updatedField.style.fontSize.includes('rem')) {
+            const remValue = parseFloat(updatedField.style.fontSize);
+            updatedField.style.fontSize = `${remValue * 16}px`;
+          } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
+            // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+            updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+          }
         }
         
         if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
-          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
-        }
-      }
-      
-      // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
-      if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
-        // تحويل rem إلى px للتناسق
-        if (updatedField.style.fontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize);
-          updatedField.style.fontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+          if (updatedField.style.descriptionFontSize.includes('rem')) {
+            const remValue = parseFloat(updatedField.style.descriptionFontSize);
+            updatedField.style.descriptionFontSize = `${remValue * 16}px`;
+          } else if (!isNaN(parseFloat(updatedField.style.descriptionFontSize))) {
+            updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
+          }
+        } else if (!updatedField.style.descriptionFontSize) {
+          updatedField.style.descriptionFontSize = '14px';
         }
       }
       
@@ -110,8 +115,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     });
   }, [fields, language, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
 
-  // إنشاء معرف فريد لمكون المعاينة هذا
-  const previewPanelId = `preview-panel-${Date.now()}`;
+  // إنشاء معرف فريد لمكون المعاينة هذا - Using a stable ID instead of Date.now()
+  const previewPanelId = `preview-panel-${internalRefreshKey}`;
 
   return (
     <div id={previewPanelId}>

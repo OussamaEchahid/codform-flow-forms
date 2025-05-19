@@ -76,10 +76,16 @@ const animationStyles = `
   }
 `;
 
-// Create a unique key for the form field to force re-render when field properties change
+// Create a unique key for the form field based on field ID and core properties,
+// NOT using Date.now() which was causing regeneration on each render
 const getFieldKey = (field: FormFieldType) => {
-  // Include more properties in the key to ensure any change will trigger a re-render
-  return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
+  if (!field || !field.id) {
+    console.warn('Field missing ID:', field);
+    return `field-unknown-${Math.random()}`;
+  }
+  
+  // Use only stable properties that don't change during normal field interactions
+  return `field-${field.id}-${field.type}`;
 };
 
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
@@ -163,7 +169,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  // Create a unique key for this field instance to force re-render when properties change
+  // Create a stable key for this field instance based only on ID and type
   const fieldKey = getFieldKey(field);
   
   // Set margins: use optimized margins based on field type

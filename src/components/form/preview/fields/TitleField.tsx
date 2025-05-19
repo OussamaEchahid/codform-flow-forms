@@ -127,8 +127,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     opacity: '0.9',
   };
 
-  // إنشاء معرف فريد لهذا الحقل
-  const titleFieldId = `title-field-${field.id}-${Date.now()}`;
+  // Use the stable field ID directly instead of generating a new one
+  // This is crucial for preserving field identity during drag operations
+  const titleFieldId = `title-field-${field.id}`;
 
   return (
     <div 
