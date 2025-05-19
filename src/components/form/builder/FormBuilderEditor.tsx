@@ -110,18 +110,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
   
-  // Update FormTitleEditor related functions to be more consistent
-
-  // Update the getFormTitleField function to be more robust
+  // تحسين وظيفة البحث عن حقل عنوان النموذج
   const getFormTitleField = (): FormField | undefined => {
-    // Find and return the form title field, ensuring it's the correct type
-    const titleField = formElements.find(f => f.type === 'form-title');
-    return titleField;
+    return formElements.find(f => f.type === 'form-title');
   };
 
-  // Update addFormTitleField function to ensure consistent styling
+  // تحويل عنوان النموذج إلى حقل قابل للتعديل مع الخلفية البنفسجية
   const addFormTitleField = () => {
-    // Check if title field already exists
+    // التحقق مما إذا كان حقل العنوان موجودًا بالفعل
     const existingTitleField = getFormTitleField();
     
     if (existingTitleField) {
@@ -129,69 +125,65 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return;
     }
 
-    // Create new title field with consistent styling
+    // إنشاء حقل عنوان جديد دائمًا بخلفية بنفسجية
     const titleField: FormField = {
       type: 'form-title',
       id: `form-title-${Date.now()}`,
       label: formTitle,
       helpText: formDescription,
       style: {
-        color: '#ffffff',
+        color: '#ffffff', // نص أبيض للتباين
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
-        fontSize: '24px', // Use consistent pixel units
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px', // Use consistent pixel units
-        backgroundColor: '#9b87f5',
+        fontSize: '1.5rem',
+        descriptionColor: '#ffffff', // وصف أبيض للتباين
+        descriptionFontSize: '0.875rem',
+        backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
       }
     };
 
-    // Add title field to beginning of elements array
+    // إضافة حقل العنوان في بداية النموذج
     const updatedElements = [titleField, ...formElements.filter(f => f.type !== 'form-title')];
     setFormElements(updatedElements);
     setRefreshKey(prev => prev + 1);
     toast.success(language === 'ar' ? 'تم تحويل العنوان إلى قابل للتعديل بنجاح' : 'Title converted to editable successfully');
   };
 
-  // Ensure updateFormTitleField always preserves necessary styling properties
+  // تحديث حقل عنوان النموذج
   const updateFormTitleField = (updatedField: FormField) => {
     const fieldIndex = formElements.findIndex(f => f.id === updatedField.id);
     if (fieldIndex === -1) return;
 
-    // Ensure title field always has required styling properties
-    const ensuredField = {
-      ...updatedField,
-      style: {
+    // تأكد من أن خلفية العنوان دائمًا بنفسجية
+    if (!updatedField.style?.backgroundColor) {
+      updatedField.style = {
         ...updatedField.style,
-        // Always maintain these properties
-        backgroundColor: updatedField.style?.backgroundColor || '#9b87f5',
-        color: updatedField.style?.color || '#ffffff',
-        descriptionColor: updatedField.style?.descriptionColor || '#ffffff',
-      }
-    };
+        backgroundColor: '#9b87f5'
+      };
+    }
+
+    // تحديث لون النص والوصف للتباين إذا لم يكن محددًا
+    if (!updatedField.style?.color) {
+      updatedField.style = {
+        ...updatedField.style,
+        color: '#ffffff'
+      };
+    }
+
+    if (!updatedField.style?.descriptionColor) {
+      updatedField.style = {
+        ...updatedField.style,
+        descriptionColor: '#ffffff'
+      };
+    }
 
     const updatedElements = [...formElements];
-    updatedElements[fieldIndex] = ensuredField;
+    updatedElements[fieldIndex] = updatedField;
     setFormElements(updatedElements);
     setRefreshKey(prev => prev + 1);
   };
 
-  // Update handleReorderElements function to preserve title field properties
-  const handleReorderElements = (reorderedElements: FormField[]) => {
-    // Create deep copies of all elements to prevent reference issues
-    const deepCopiedElements = reorderedElements.map(element => ({
-      ...element,
-      style: element.style ? {...element.style} : undefined
-    }));
-    
-    setFormElements(deepCopiedElements);
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-      toast.success(language === 'ar' ? 'تم إعادة ترتيب العناصر' : 'Elements reordered');
-    }, 100);
-  };
-
-  // إنشاء نموذج افتراضي جديد مع الحقول المطلوب��
+  // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
@@ -761,25 +753,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       return;
     }
     
-    // Store title field information before reordering
-    const titleField = formElements.find(el => el.type === 'form-title');
-    
     setFormElements((items) => {
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
       
-      // Create a deep copy of the array to avoid reference issues
-      const newItems = items.map(item => ({...item, style: item.style ? {...item.style} : undefined}));
-      
-      // Perform the array move operation on the copied array
-      const reorderedItems = arrayMove(newItems, oldIndex, newIndex);
-      
-      return reorderedItems;
+      return arrayMove(items, oldIndex, newIndex);
     });
 
     setTimeout(() => {
       setSelectedElementIndex(null);
       setRefreshKey(prev => prev + 1);
+    }, 100);
+  };
+
+  const handleReorderElements = (reorderedElements: FormField[]) => {
+    setFormElements(reorderedElements);
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      toast.success(language === 'ar' ? 'تم إعادة ترتيب العناصر' : 'Elements reordered');
     }, 100);
   };
 

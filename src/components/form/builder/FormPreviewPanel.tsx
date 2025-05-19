@@ -3,9 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { AlignLeft, AlignRight } from 'lucide-react';
 
 interface FormStyle {
   primaryColor: string;
@@ -43,7 +40,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(Date.now());
-  const [formDirection, setFormDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
   
   // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
   useEffect(() => {
@@ -79,8 +75,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           updatedField.style = {};
         }
         
-        // ضمان تعيين محاذاة النص بناءً على اتجاه النموذج المحدد
-        updatedField.style.textAlign = formDirection === 'rtl' ? 'right' : 'left';
+        // ضمان تعيين محاذاة النص
+        if (!updatedField.style.textAlign) {
+          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
+        }
         
         // ضمان تعيين لون الخلفية ولون النص
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
@@ -110,36 +108,16 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, language, internalRefreshKey, formDirection]); // إضافة formDirection للتبعيات
+  }, [fields, language, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
 
   // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
 
   return (
     <div id={previewPanelId}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">
-            {language === 'ar' ? 'اتجاه النموذج:' : 'Form Direction:'}
-          </span>
-          <ToggleGroup 
-            type="single" 
-            value={formDirection} 
-            onValueChange={(value) => value && setFormDirection(value as 'ltr' | 'rtl')}
-            className="border rounded-md"
-          >
-            <ToggleGroupItem value="ltr" aria-label="Left to right" title={language === 'ar' ? 'يسار إلى يمين' : 'Left to right'}>
-              <AlignLeft className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="rtl" aria-label="Right to left" title={language === 'ar' ? 'يمين إلى يسار' : 'Right to left'}>
-              <AlignRight className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-        <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
-          {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
-        </h3>
-      </div>
+      <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
+        {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+      </h3>
       
       <div className="border rounded-lg p-3 bg-gray-50">
         <FormPreview 
@@ -152,12 +130,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
-          direction={formDirection} // Pass the direction to FormPreview
         >
           <div></div>
         </FormPreview>
       </div>
       
+      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
         {language === 'ar' 
           ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'
