@@ -25,6 +25,27 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Deep clone function to preserve all field properties exactly
+const deepCloneFields = (fields: FormField[]): FormField[] => {
+  if (!fields) return [];
+  
+  return fields.map(field => {
+    const newField = { ...field };
+    
+    // Deep clone style object if it exists
+    if (field.style) {
+      newField.style = { ...field.style };
+    }
+    
+    // Deep clone options array if it exists
+    if (field.options && Array.isArray(field.options)) {
+      newField.options = field.options.map(option => ({ ...option }));
+    }
+    
+    return newField;
+  });
+};
+
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
   formDescription,
@@ -41,7 +62,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   
   // Use a stable internalRefreshKey that doesn't update with every props change
-  // This will only update when explicitly told to via a new refreshKey value that's larger than before
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
   // Only update the internal refresh key when refreshKey increases
@@ -50,27 +70,27 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       setInternalRefreshKey(refreshKey);
     }
     // We intentionally omit refreshKey from dependencies to prevent infinite loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
   
   // Use useMemo with stable dependencies to prevent unnecessary recalculations
   const processedFields = useMemo(() => {
+    // Make a deep copy of fields to prevent unintended mutations
+    const clonedFields = deepCloneFields(fields);
+    
     // Check if fields are empty or undefined
-    if (!fields || fields.length === 0) {
+    if (!clonedFields || clonedFields.length === 0) {
       return [];
     }
     
-    return fields.map(field => {
+    return clonedFields.map(field => {
       if (!field || !field.id) {
         console.warn("Encountered invalid field:", field);
         return field;
       }
       
-      // Create a new copy of the field to avoid direct modification issues
-      const updatedField = { ...field };
-      
       // Preserve the original field ID - critical for drag and drop stability
-      updatedField.id = field.id;
+      const originalId = field.id;
+      const updatedField = { ...field, id: originalId };
       
       // Convert empty icons to 'none'
       if (updatedField.icon === '') {
@@ -100,12 +120,20 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // Ensure background color and text color
-        updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
-        updatedField.style.color = updatedField.style.color || '#ffffff';
+        // Ensure background color and text color - preserve original values if available
+        if (!updatedField.style.backgroundColor) {
+          updatedField.style.backgroundColor = '#9b87f5';
+        }
         
-        // Ensure font sizes have pixel units
-        if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
+        if (!updatedField.style.color) {
+          updatedField.style.color = '#ffffff';
+        }
+        
+        // Preserve font sizes if already set
+        if (!updatedField.style.fontSize) {
+          updatedField.style.fontSize = updatedField.type === 'form-title' ? '24px' : '20px';
+        } else if (!updatedField.style.fontSize.includes('px')) {
+          // Convert to pixels if needed
           if (updatedField.style.fontSize.includes('rem')) {
             const remValue = parseFloat(updatedField.style.fontSize);
             updatedField.style.fontSize = `${remValue * 16}px`;
@@ -115,23 +143,22 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           }
         }
         
-        if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
+        if (!updatedField.style.descriptionFontSize) {
+          updatedField.style.descriptionFontSize = '14px';
+        } else if (!updatedField.style.descriptionFontSize.includes('px')) {
+          // Convert to pixels if needed
           if (updatedField.style.descriptionFontSize.includes('rem')) {
             const remValue = parseFloat(updatedField.style.descriptionFontSize);
             updatedField.style.descriptionFontSize = `${remValue * 16}px`;
           } else if (!isNaN(parseFloat(updatedField.style.descriptionFontSize))) {
             updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
           }
-        } else if (!updatedField.style.descriptionFontSize) {
-          updatedField.style.descriptionFontSize = '14px';
         }
       }
       
       return updatedField;
     });
-    // Use stable dependencies to prevent unnecessary recalculations
-    // We intentionally use a more focused dependency array to prevent infinite updates
-  }, [fields, language]);
+  }, [fields, language, internalRefreshKey]);
 
   // Create a stable ID for this preview panel instance
   const previewPanelId = useMemo(() => `preview-panel-${Math.floor(Math.random() * 1000)}`, []);

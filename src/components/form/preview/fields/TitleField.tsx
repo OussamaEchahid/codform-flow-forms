@@ -61,7 +61,7 @@ const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) 
     return null;
   }
   
-  // Use available field style or create empty object
+  // IMPORTANT: Ensure we have a proper style object even if none is provided
   const fieldStyle = field.style || {};
   
   // Extract description from field itself
@@ -83,7 +83,7 @@ const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) 
   // Use precise pixel values instead of rem for consistent sizing across environments
   const isFormTitle = field.type === 'form-title';
   
-  // Prepare font size with px units
+  // Prepare font size with px units - ensure we use field values if available
   let titleFontSize = isFormTitle ? '24px' : '20px'; // Default value
   if (fieldStyle.fontSize) {
     // Ensure rem units are converted to px and px units are preserved
@@ -96,7 +96,7 @@ const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) 
     descriptionFontSize = ensurePixelUnit(fieldStyle.descriptionFontSize);
   }
   
-  // Get background color with default
+  // IMPORTANT: Always use the field's backgroundColor if available, otherwise use formStyle
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Background style with precise pixel values for spacing
@@ -110,7 +110,7 @@ const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) 
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // Title styles
+  // Title styles - use field values as priority
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: titleFontSize,
@@ -123,7 +123,7 @@ const TitleField: React.FC<TitleFieldProps> = React.memo(({ field, formStyle }) 
     display: 'block',
   };
 
-  // Description styles
+  // Description styles - use field values as priority
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
     fontSize: descriptionFontSize,

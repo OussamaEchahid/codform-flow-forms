@@ -38,17 +38,24 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // Deep copy function for preserving all properties including nested objects
+  // Improved deep copy function to ensure all nested properties are preserved exactly
   const deepCopyElement = useCallback((element: FormField): FormField => {
     if (!element) return element;
-    // Use JSON parse/stringify for deep copying, but ensure we handle any potential circular references
-    try {
-      return JSON.parse(JSON.stringify(element));
-    } catch (error) {
-      console.error("Error creating deep copy:", error);
-      // Fallback to a simple copy if JSON serialization fails
-      return { ...element, style: element.style ? { ...element.style } : undefined };
+    // Create a new object with all properties from the original
+    const copy = { ...element };
+    
+    // Special handling for style object - make sure it's properly deep copied
+    if (element.style) {
+      copy.style = { ...element.style };
     }
+    
+    // Special handling for options array (used in select, radio, checkbox)
+    if (element.options && Array.isArray(element.options)) {
+      copy.options = element.options.map(option => ({ ...option }));
+    }
+    
+    // Ensure all other properties are copied
+    return copy;
   }, []);
   
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -68,21 +75,20 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       // Use arrayMove to reorder elements but maintain their exact properties
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      console.log(`Reordering element from index ${oldIndex} to ${newIndex}`);
-      console.log(`Element being moved: ${elements[oldIndex].type} (ID: ${elements[oldIndex].id})`);
-      
-      // Verify that all element IDs are preserved exactly as they were
+      // Preserve critical properties for special fields
       reorderedElements.forEach((element, idx) => {
         const originalElement = elements.find(e => e.id === element.id);
-        if (!originalElement) {
-          console.warn(`Unable to find original element for ID ${element.id}`);
+        if (originalElement && originalElement.type === 'form-title') {
+          // Ensure form-title fields maintain their complete style properties
+          element.style = { ...originalElement.style };
+          element.label = originalElement.label;
+          element.helpText = originalElement.helpText;
         }
       });
       
       onReorderElements(reorderedElements);
-      toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
-  }, [elements, onReorderElements, deepCopyElement, language]);
+  }, [elements, onReorderElements, deepCopyElement]);
   
   // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
@@ -97,26 +103,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     // Preserve the original ID to ensure consistent references
     updatedField.id = elements[index].id;
     
-    // Log the update for debugging
-    console.log(`Updating element at index ${index}:`, updatedField);
-    
-    // Normalize icon value (convert empty string to 'none')
-    if (updatedField.icon === '') {
-      updatedField.icon = 'none';
-    }
-    
-    // Ensure proper icon settings
-    if (updatedField.icon && updatedField.icon !== 'none') {
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-      
-      // Set showIcon based on existing value or default to true if icon exists
-      updatedField.style.showIcon = updatedField.style.showIcon !== undefined 
-        ? updatedField.style.showIcon 
-        : true;
-    }
-
     // Special handling for form-title and title fields
     if (updatedField.type === 'form-title' || updatedField.type === 'title') {
       if (!updatedField.style) {
@@ -131,29 +117,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       // Ensure color and background color are set
       updatedField.style.color = updatedField.style.color || '#ffffff';
       updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
-      
-      // Convert rem units to px for compatibility
-      if (updatedField.style.fontSize) {
-        if (updatedField.style.fontSize.endsWith('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize.replace('rem', ''));
-          updatedField.style.fontSize = `${Math.round(remValue * 16)}px`;
-        } else if (!updatedField.style.fontSize.endsWith('px')) {
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
-      } else {
-        updatedField.style.fontSize = updatedField.type === 'form-title' ? '24px' : '20px';
-      }
-      
-      if (updatedField.style.descriptionFontSize) {
-        if (updatedField.style.descriptionFontSize.endsWith('rem')) {
-          const remValue = parseFloat(updatedField.style.descriptionFontSize.replace('rem', ''));
-          updatedField.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
-        } else if (!updatedField.style.descriptionFontSize.endsWith('px')) {
-          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
-        }
-      } else {
-        updatedField.style.descriptionFontSize = '14px';
-      }
     }
 
     // Special handling for submit button

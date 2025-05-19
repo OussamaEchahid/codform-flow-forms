@@ -87,6 +87,25 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}`;
 };
 
+// Deep clone function to preserve all field properties
+const deepCloneField = (field: FormFieldType): FormFieldType => {
+  if (!field) return field;
+  
+  const clonedField = { ...field };
+  
+  // Deep clone style object if it exists
+  if (field.style) {
+    clonedField.style = { ...field.style };
+  }
+  
+  // Deep clone options array if it exists
+  if (field.options && Array.isArray(field.options)) {
+    clonedField.options = field.options.map(option => ({ ...option }));
+  }
+  
+  return clonedField;
+};
+
 // Use React.memo to prevent unnecessary re-renders
 const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   // Validate field data
@@ -95,13 +114,18 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
     return null;
   }
 
+  // Create a deep clone of the field to prevent unintended mutations
+  const clonedField = deepCloneField(field);
+  
   // Normalize field properties - ensure icon settings are applied correctly
   const normalizedField = {
-    ...field,
+    ...clonedField,
+    // Preserve the original field ID
+    id: field.id,
     // Convert empty icon to 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
-      ...field.style,
+      ...clonedField.style,
       // Set default showIcon to true if icon exists and isn't 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
@@ -112,6 +136,12 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
       labelFontWeight: field.style?.labelFontWeight || '600',
       // Ensure backgroundColor is passed for submit button
       backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
+      // For title fields, ensure proper style values
+      ...(field.type === 'form-title' || field.type === 'title' ? {
+        textAlign: field.style?.textAlign,
+        color: field.style?.color,
+        fontWeight: field.style?.fontWeight
+      } : {})
     }
   };
 
@@ -131,19 +161,6 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
-
-  // Log animation data if this is a submit button
-  if (fieldType === 'submit' && normalizedField.style) {
-    const animationType = normalizedField.style.animationType || 'none';
-    const hasAnimation = !!normalizedField.style.animation;
-    
-    if (hasAnimation) {
-      console.log(`Submit button using animation: ${animationType}`);
-    }
-    
-    // Also log button color for debugging
-    console.log(`Submit button color: ${normalizedField.style.backgroundColor || formStyle.primaryColor || '#9b87f5'}`);
-  }
 
   const components: { [key: string]: React.FC<any> } = {
     'text': TextInput,
