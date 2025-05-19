@@ -23,6 +23,8 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  direction?: 'ltr' | 'rtl'; // Add direction prop
+  ignoreDirectionForTypes?: string[]; // Add types that should ignore form direction
 }
 
 // Define animation styles to ensure consistency
@@ -82,11 +84,19 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
 };
 
-const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
+const FormField: React.FC<FormFieldProps> = ({ 
+  field, 
+  formStyle, 
+  direction = 'ltr', 
+  ignoreDirectionForTypes = ['form-title', 'title', 'submit'] 
+}) => {
   if (!field || !field.type) {
     console.warn('Invalid field:', field);
     return null;
   }
+
+  // Check if this field type should ignore the form direction
+  const shouldIgnoreDirection = ignoreDirectionForTypes.includes(field.type);
 
   // Normalize field properties - ensure icon settings are applied correctly
   const normalizedField = {
@@ -183,12 +193,17 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' ? formStyle.primaryColor : undefined),
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
+    'data-ignores-direction': shouldIgnoreDirection ? 'true' : 'false',
   };
 
   if (!isSupported && fieldType !== 'form-title') {
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
-        <Component field={normalizedField} formStyle={formStyle} />
+        <Component 
+          field={normalizedField} 
+          formStyle={formStyle} 
+          direction={shouldIgnoreDirection ? undefined : direction} 
+        />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
         </div>
@@ -199,7 +214,11 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   return (
     <div className={marginClass} key={fieldKey} {...dataAttributes}>
       <style>{animationStyles}</style>
-      <Component field={normalizedField} formStyle={formStyle} />
+      <Component 
+        field={normalizedField} 
+        formStyle={formStyle} 
+        direction={shouldIgnoreDirection ? undefined : direction} 
+      />
     </div>
   );
 };
