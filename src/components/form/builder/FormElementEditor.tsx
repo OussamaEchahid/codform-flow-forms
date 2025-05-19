@@ -76,6 +76,31 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         ? field.style.showIcon 
         : true;
     }
+
+    // Special handling for form-title and title fields
+    if (field.type === 'form-title' || field.type === 'title') {
+      if (!field.style) {
+        field.style = {};
+      }
+      
+      // Ensure text alignment is set
+      if (!field.style.textAlign) {
+        field.style.textAlign = language === 'ar' ? 'right' : 'left';
+      }
+      
+      // Ensure color and background color are set
+      field.style.color = field.style.color || '#ffffff';
+      field.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
+      
+      // Ensure font sizes are specified with px units
+      if (field.style.fontSize && !field.style.fontSize.includes('px')) {
+        field.style.fontSize = `${field.style.fontSize}px`;
+      }
+      
+      if (field.style.descriptionFontSize && !field.style.descriptionFontSize.includes('px')) {
+        field.style.descriptionFontSize = `${field.style.descriptionFontSize}px`;
+      }
+    }
     
     // Notify parent component about the update
     if (onUpdateElement) {

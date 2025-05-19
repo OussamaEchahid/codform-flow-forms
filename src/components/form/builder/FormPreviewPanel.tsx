@@ -69,6 +69,31 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
+      // معالجة خاصة لحقول العنوان
+      if (updatedField.type === 'form-title' || updatedField.type === 'title') {
+        if (!updatedField.style) {
+          updatedField.style = {};
+        }
+        
+        // ضمان تعيين محاذاة النص
+        if (!updatedField.style.textAlign) {
+          updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
+        }
+        
+        // ضمان تعيين لون الخلفية ولون النص
+        updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
+        updatedField.style.color = updatedField.style.color || '#ffffff';
+        
+        // ضمان تحديد أحجام الخط بوحدات بكسل
+        if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
+          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
+        }
+        
+        if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
+          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
+        }
+      }
+      
       // التأكد من أن حجم الخط يستخدم وحدات px المتسقة
       if (updatedField.style?.fontSize && !updatedField.style.fontSize.includes('px')) {
         // تحويل rem إلى px للتناسق
@@ -83,7 +108,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields, language, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
 
   // إنشاء معرف فريد لمكون المعاينة هذا
   const previewPanelId = `preview-panel-${Date.now()}`;
