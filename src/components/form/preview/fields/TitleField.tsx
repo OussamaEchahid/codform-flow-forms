@@ -17,6 +17,17 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // تحديد قيم box-sizing الصالحة
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
+// وظيفة مساعدة لتحويل وحدات rem إلى وحدات px
+const convertRemToPx = (remValue: string): string => {
+  if (remValue.endsWith('rem')) {
+    // استخراج القيمة العددية من rem
+    const numValue = parseFloat(remValue.replace('rem', ''));
+    // تحويل rem إلى px (1rem = 16px عادة)
+    return `${Math.round(numValue * 16)}px`;
+  }
+  return remValue;
+};
+
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
@@ -41,8 +52,16 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const isFormTitle = field.type === 'form-title';
   
   // استخدم قيم بكسل متسقة بدلاً من rem لضمان تطابق الحجم الدقيق
-  const fontSize = isFormTitle ? '24px' : '20px'; 
-  const descriptionFontSize = '14px';
+  // تحويل وحدات rem إلى px إذا كانت موجودة
+  let titleFontSize = isFormTitle ? '24px' : '20px';
+  if (fieldStyle.fontSize) {
+    titleFontSize = convertRemToPx(fieldStyle.fontSize);
+  }
+  
+  let descriptionFontSize = '14px';
+  if (fieldStyle.descriptionFontSize) {
+    descriptionFontSize = convertRemToPx(fieldStyle.descriptionFontSize);
+  }
   
   // الحصول على لون الخلفية مع القيمة الافتراضية
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
@@ -61,7 +80,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط العنوان
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
-    fontSize: fieldStyle.fontSize || fontSize,
+    fontSize: titleFontSize,
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontWeight: fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium'),
     fontFamily: fieldStyle.fontFamily || 'inherit',
@@ -74,7 +93,7 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-    fontSize: fieldStyle.descriptionFontSize || descriptionFontSize,
+    fontSize: descriptionFontSize,
     margin: '6px 0 0 0', // قيمة دقيقة للتطابق
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
@@ -99,9 +118,9 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-bg-color={backgroundColor}
       data-font-family={fieldStyle.fontFamily || ''}
       data-field-type={field.type}
-      data-font-size={fieldStyle.fontSize || fontSize}
+      data-font-size={titleFontSize}
       data-font-weight={fieldStyle.fontWeight || (isFormTitle ? 'bold' : 'medium')}
-      data-desc-font-size={fieldStyle.descriptionFontSize || descriptionFontSize}
+      data-desc-font-size={descriptionFontSize}
       data-desc-color={fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'}
       data-desc-font-weight='normal'
     >

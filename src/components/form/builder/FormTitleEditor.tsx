@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -37,10 +36,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [titleAlignment, setTitleAlignment] = useState(
     formTitleField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
   );
-  const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '1.5rem');
+  const [titleSize, setTitleSize] = useState(formTitleField?.style?.fontSize || '24px');
   const [titleWeight, setTitleWeight] = useState(formTitleField?.style?.fontWeight || 'bold');
   const [descColor, setDescColor] = useState(formTitleField?.style?.descriptionColor || '#ffffff');
-  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '0.875rem');
+  const [descSize, setDescSize] = useState(formTitleField?.style?.descriptionFontSize || '14px');
   const [backgroundColor, setBackgroundColor] = useState(formTitleField?.style?.backgroundColor || '#9b87f5');
   const [isOpen, setIsOpen] = useState(true);
 
@@ -73,10 +72,22 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (formTitleField) {
       setTitleColor(formTitleField.style?.color || '#ffffff');
       setTitleAlignment(formTitleField.style?.textAlign || (language === 'ar' ? 'right' : 'left'));
-      setTitleSize(formTitleField.style?.fontSize || '1.5rem');
+      
+      // التأكد من استخدام وحدات بيكسل متسقة
+      const fontSize = formTitleField.style?.fontSize || '24px';
+      setTitleSize(fontSize.endsWith('rem') ? 
+        `${Math.round(parseFloat(fontSize.replace('rem', '')) * 16)}px` : 
+        fontSize);
+      
       setTitleWeight(formTitleField.style?.fontWeight || 'bold');
       setDescColor(formTitleField.style?.descriptionColor || '#ffffff');
-      setDescSize(formTitleField.style?.descriptionFontSize || '0.875rem');
+      
+      // التأكد من استخدام وحدات بيكسل متسقة للوصف
+      const descFontSize = formTitleField.style?.descriptionFontSize || '14px';
+      setDescSize(descFontSize.endsWith('rem') ?
+        `${Math.round(parseFloat(descFontSize.replace('rem', '')) * 16)}px` :
+        descFontSize);
+      
       setBackgroundColor(formTitleField.style?.backgroundColor || '#9b87f5');
     }
   }, [formTitleField, language]);
@@ -269,10 +280,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         onChange={(e) => handleUpdateStyle('fontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
-                        <option value="1rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
-                        <option value="1.25rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="1.5rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
-                        <option value="2rem">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
+                        <option value="16px">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="20px">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="24px">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                        <option value="32px">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</option>
                       </select>
                     </div>
 
@@ -361,10 +372,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                         onChange={(e) => handleUpdateStyle('descriptionFontSize', e.target.value)}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
-                        <option value="0.75rem">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
-                        <option value="0.875rem">{language === 'ar' ? 'صغير' : 'Small'}</option>
-                        <option value="1rem">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
-                        <option value="1.125rem">{language === 'ar' ? 'كبير' : 'Large'}</option>
+                        <option value="12px">{language === 'ar' ? 'صغير جداً' : 'Extra Small'}</option>
+                        <option value="14px">{language === 'ar' ? 'صغير' : 'Small'}</option>
+                        <option value="16px">{language === 'ar' ? 'متوسط' : 'Medium'}</option>
+                        <option value="18px">{language === 'ar' ? 'كبير' : 'Large'}</option>
                       </select>
                     </div>
                     

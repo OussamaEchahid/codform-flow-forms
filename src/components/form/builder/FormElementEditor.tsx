@@ -53,7 +53,60 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     
     if (onReorderElements) {
       const newElements = arrayMove(elements, oldIndex, newIndex);
-      onReorderElements(newElements);
+      
+      // تحليل العناصر للحفاظ على تنسيق العناوين المخصصة
+      const processedElements = newElements.map(element => {
+        // إذا كان العنصر هو عنوان أو عنوان نموذج، نتأكد من الحفاظ على جميع خصائص التنسيق
+        if (element.type === 'form-title' || element.type === 'title') {
+          if (!element.style) {
+            element.style = {};
+          }
+          
+          // التأكد من تطبيق تنسيق صحيح للعنوان
+          // تحويل وحدات rem إلى px إذا لزم الأمر
+          if (element.style.fontSize && element.style.fontSize.endsWith('rem')) {
+            const remValue = parseFloat(element.style.fontSize.replace('rem', ''));
+            element.style.fontSize = `${Math.round(remValue * 16)}px`;
+          }
+          
+          // التأكد من وجود حجم خط للعنوان
+          if (!element.style.fontSize) {
+            element.style.fontSize = element.type === 'form-title' ? '24px' : '20px';
+          }
+          
+          // التأكد من وجود لون للعنوان
+          if (!element.style.color) {
+            element.style.color = '#ffffff';
+          }
+          
+          // التأكد من وجود لون خلفية للعنوان
+          if (!element.style.backgroundColor) {
+            element.style.backgroundColor = '#9b87f5';
+          }
+          
+          // التأكد من وجود محاذاة للعنوان
+          if (!element.style.textAlign) {
+            element.style.textAlign = language === 'ar' ? 'right' : 'left';
+          }
+          
+          // التأكد من وجود حجم خط للوصف
+          if (!element.style.descriptionFontSize) {
+            element.style.descriptionFontSize = '14px';
+          } else if (element.style.descriptionFontSize.endsWith('rem')) {
+            const remValue = parseFloat(element.style.descriptionFontSize.replace('rem', ''));
+            element.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
+          }
+          
+          // التأكد من وجود لون للوصف
+          if (!element.style.descriptionColor) {
+            element.style.descriptionColor = 'rgba(255, 255, 255, 0.9)';
+          }
+        }
+        
+        return element;
+      });
+      
+      onReorderElements(processedElements);
       toast.success(language === 'ar' ? "تم إعادة ترتيب العناصر بنجاح" : "Elements reordered successfully");
     }
   };
@@ -92,13 +145,23 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       field.style.color = field.style.color || '#ffffff';
       field.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
       
-      // Ensure font sizes are specified with px units
-      if (field.style.fontSize && !field.style.fontSize.includes('px')) {
-        field.style.fontSize = `${field.style.fontSize}px`;
+      // تحويل وحدات rem إلى px لضمان التوافق
+      if (field.style.fontSize) {
+        if (field.style.fontSize.endsWith('rem')) {
+          const remValue = parseFloat(field.style.fontSize.replace('rem', ''));
+          field.style.fontSize = `${Math.round(remValue * 16)}px`;
+        }
+      } else {
+        field.style.fontSize = field.type === 'form-title' ? '24px' : '20px';
       }
       
-      if (field.style.descriptionFontSize && !field.style.descriptionFontSize.includes('px')) {
-        field.style.descriptionFontSize = `${field.style.descriptionFontSize}px`;
+      if (field.style.descriptionFontSize) {
+        if (field.style.descriptionFontSize.endsWith('rem')) {
+          const remValue = parseFloat(field.style.descriptionFontSize.replace('rem', ''));
+          field.style.descriptionFontSize = `${Math.round(remValue * 16)}px`;
+        }
+      } else {
+        field.style.descriptionFontSize = '14px';
       }
     }
     
