@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -70,7 +71,8 @@ const ensureStyleDefaults = (field: FormField): FormField => {
       fontSize: style.fontSize || '24px',
       descriptionFontSize: style.descriptionFontSize || '14px',
       fontWeight: style.fontWeight || 'bold',
-      textAlign: textAlignment // Always use field's own textAlign property
+      textAlign: textAlignment, // Always use field's own textAlign property
+      ignoreFormDirection: true // Explicitly set this flag
     }
   };
 };
