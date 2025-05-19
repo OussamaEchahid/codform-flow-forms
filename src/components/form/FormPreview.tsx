@@ -88,14 +88,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
         }
       }
-
-      // تحسين لون تسميات الحقول وتعيين وزن الخط للتناسق
-      if (!updatedField.style.labelColor) {
-        updatedField.style.labelColor = '#374151';
-      }
-      if (!updatedField.style.labelFontWeight) {
-        updatedField.style.labelFontWeight = '600';
-      }
       
       return updatedField;
     });
@@ -157,7 +149,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#F5F5F5', // تم تحديث لون الخلفية
+        backgroundColor: '#F5F5F5', // تم تغيير لون الخلفية حسب الطلب
       } as React.CSSProperties}
       data-form-preview-id={formId}
       data-primary-color={formStyle.primaryColor}
@@ -209,12 +201,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           borderRadius: `0 0 ${formStyle.borderRadius} ${formStyle.borderRadius}`,
           direction: language === 'ar' ? 'rtl' : 'ltr',
-          backgroundColor: '#F5F5F5', // تم تحديث لون الخلفية
+          backgroundColor: '#F5F5F5', // تم تغيير لون الخلفية حسب الطلب
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={`${field.id}-${Date.now()}`}

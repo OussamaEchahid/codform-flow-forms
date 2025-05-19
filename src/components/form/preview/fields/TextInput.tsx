@@ -54,6 +54,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
+    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
+    console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
+    
     // إضافة سمات إضافية للتشخيص
     const iconProps = { 
       size: 18,

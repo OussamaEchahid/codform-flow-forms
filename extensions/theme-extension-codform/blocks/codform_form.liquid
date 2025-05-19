@@ -1,4 +1,3 @@
-
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -163,7 +162,6 @@
   data-block-id="{{ block.id }}"
   data-hide-header="true"
   data-enable-icons="true"
-  style="background-color: #F5F5F5;" 
 >
   <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; padding: 20px;">
     <div class="codform-spinner"></div>
@@ -427,12 +425,12 @@
       
       return `
         <div class="${fieldClassContainer}">
-          <label for="codform-field-${field.id}" style="font-weight: 600; color: #374151; font-size: 16px; margin-bottom: 10px;">
+          <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center;">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
@@ -440,7 +438,6 @@
               placeholder="${translatedPlaceholder}"
               ${field.required ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
-              style="padding: 12px; ${hasIcon ? 'padding-right: 40px;' : ''}"
             />
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -464,12 +461,12 @@
       
       return `
         <div class="${fieldClassContainer}">
-          <label for="codform-field-${field.id}" style="font-weight: 600; color: #374151; font-size: 16px; margin-bottom: 10px;">
+          <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
           <div class="codform-field-wrapper">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; right: 14px; top: 25px;">${iconSvg}</div>` : ''}
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
@@ -477,7 +474,6 @@
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
-              style="padding: 12px; ${hasIcon ? 'padding-right: 40px;' : ''}"
             ></textarea>
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -491,7 +487,7 @@
       
       let html = `
         <div class="codform-field">
-          <label style="font-weight: 600; color: #374151; font-size: 16px; margin-bottom: 10px;">
+          <label>
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
@@ -532,8 +528,8 @@
       const translatedLabel = field.label || '';
       
       let html = `
-        <div class="codform-field" style="margin-bottom: 20px;">
-          <label style="font-weight: 600; color: #374151; font-size: 16px; margin-bottom: 10px;">
+        <div class="codform-field" style="margin-bottom: 16px;">
+          <label>
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
@@ -576,7 +572,7 @@
       const fontSize = buttonStyle.fontSize || '18px';
       const fontWeight = buttonStyle.fontWeight || '600';
       const color = buttonStyle.color || '#ffffff';
-      const padding = buttonStyle.paddingY ? `${buttonStyle.paddingY} 20px` : '16px 20px';
+      const padding = buttonStyle.paddingY ? `${buttonStyle.paddingY} 20px` : '14px 20px';
       const borderWidth = buttonStyle.borderWidth || '0px';
       const borderColor = buttonStyle.borderColor || backgroundColor;
       
@@ -683,7 +679,6 @@
             href="${url}" 
             target="_blank" 
             class="codform-whatsapp-button" 
-            style="margin-top: 20px; padding: 16px 20px;"
           >
             <span class="codform-whatsapp-icon">${whatsappIcon}</span>
             <span>${translatedLabel}</span>
@@ -738,4 +733,6 @@
       return icons[iconName] || icons['user'];
     }
   });
+</script>
+
 </script>
