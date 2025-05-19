@@ -293,14 +293,14 @@
     
     // وظيفة لإنشاء HTML للنموذج
     function createFormHtml(formData, blockId) {
-      // دائمًا تفعيل خاصية إخفاء العن��ان
+      // دائمًا تفعيل خاصية إخفاء العنوان
       const hideHeader = true;
       const enableIcons = container.getAttribute('data-enable-icons') === 'true';
       const isRTL = formData.settings?.direction === 'rtl' || {{ block.settings.is_rtl | json }};
       let html = '';
       
-      // بداية النموذج مع تحديد خلفية رمادية فاتحة
-      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #e5e7eb;">`;
+      // بداية النموذج مع تحديد خلفية
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="direction: ${isRTL ? 'rtl' : 'ltr'}; background-color: #F5F5F5;">`;
       
       // إضافة الحقول
       if (formData.fields && formData.fields.length) {
@@ -424,13 +424,13 @@
       const translatedPlaceholder = field.placeholder || '';
       
       return `
-        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px;">
+        <div class="${fieldClassContainer}">
           <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 50%; transform: translateY(-50%); z-index: 2;">${iconSvg}</div>` : ''}
+          <div class="codform-field-wrapper">
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <input 
               type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}"
               id="codform-field-${field.id}"
@@ -438,7 +438,6 @@
               placeholder="${translatedPlaceholder}"
               ${field.required ? 'required' : ''}
               class="codform-input ${hasIcon ? 'with-icon' : ''}"
-              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px; width: 100%; border: 1px solid #ccc; border-radius: 4px; line-height: 1.5; font-size: 16px; height: 42px;"
             />
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -461,13 +460,13 @@
       const translatedPlaceholder = field.placeholder || '';
       
       return `
-        <div class="${fieldClassContainer}" style="position: relative; margin-bottom: 16px;">
+        <div class="${fieldClassContainer}">
           <label for="codform-field-${field.id}">
             ${translatedLabel}
             ${field.required ? '<span class="codform-required">*</span>' : ''}
           </label>
-          <div class="codform-field-wrapper" style="position: relative;">
-            ${hasIcon ? `<div class="codform-field-icon" style="position: absolute; ${isRTL ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'} top: 15px; z-index: 2;">${iconSvg}</div>` : ''}
+          <div class="codform-field-wrapper">
+            ${hasIcon ? `<div class="codform-field-icon">${iconSvg}</div>` : ''}
             <textarea
               id="codform-field-${field.id}"
               name="${field.id}"
@@ -475,7 +474,6 @@
               ${field.required ? 'required' : ''}
               rows="${field.rows || 4}"
               class="codform-textarea ${hasIcon ? 'with-icon' : ''}"
-              style="padding-${isRTL ? 'right' : 'left'}: ${hasIcon ? '36px' : '12px'}; padding-${isRTL ? 'left' : 'right'}: 12px; width: 100%; border: 1px solid #ccc; border-radius: 4px; line-height: 1.5; font-size: 16px;"
             ></textarea>
           </div>
           ${field.helpText ? `<div class="codform-help-text">${field.helpText}</div>` : ''}
@@ -485,7 +483,6 @@
     
     // وظيفة لإنشاء مجموعة أزرار راديو
     function createRadioField(field) {
-      // ... keep existing code
       const translatedLabel = field.label || '';
       
       let html = `
@@ -528,7 +525,6 @@
     
     // وظيفة لإنشاء مجموعة مربعات اختيار
     function createCheckboxField(field) {
-      // ... keep existing code
       const translatedLabel = field.label || '';
       
       let html = `
@@ -655,7 +651,7 @@
     // وظيفة لإنشاء محتوى HTML
     function createHtmlContent(field) {
       return `
-        <div class="codform-field codform-html-content" style="margin-bottom: 16px;">
+        <div class="codform-field codform-html-content">
           ${field.content || ''}
         </div>
       `;
@@ -678,25 +674,11 @@
       const url = `https://wa.me/${phone}${message ? `?text=${message}` : ''}`;
       
       return `
-        <div class="codform-field" style="margin-bottom: 16px;">
+        <div class="codform-field">
           <a 
             href="${url}" 
             target="_blank" 
             class="codform-whatsapp-button" 
-            style="
-              background-color: ${backgroundColor};
-              border-radius: ${borderRadius};
-              color: ${color};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 10px;
-              padding: 14px 20px;
-              text-decoration: none;
-              width: 100%;
-              font-size: 16px;
-              font-weight: 600;
-            "
           >
             <span class="codform-whatsapp-icon">${whatsappIcon}</span>
             <span>${translatedLabel}</span>
@@ -710,7 +692,7 @@
       const style = field.style || {};
       
       return `
-        <div class="codform-field codform-image-field" style="margin-bottom: 16px;">
+        <div class="codform-field codform-image-field">
           <div class="codform-image-container">
             <img 
               src="${field.image || ''}"
@@ -720,9 +702,6 @@
                 border-radius: ${style.borderRadius || '8px'};
                 ${style.maxHeight ? `max-height: ${style.maxHeight};` : ''}
                 ${style.maxWidth ? `max-width: ${style.maxWidth};` : ''}
-                width: 100%;
-                height: auto;
-                display: block;
               "
             />
           </div>
