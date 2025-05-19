@@ -157,8 +157,14 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   // إنشاء مفتاح فريد لمثيل هذا الحقل لفرض إعادة العرض عند تغيير الخصائص
   const fieldKey = getFieldKey(field);
   
-  // ضبط الهوامش: استخدام هوامش محسنة بناءً على نوع الحقل
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
+  // ضبط الهوامش: إضافة المزيد من المساحة بين المكونات للحصول على مظهر أفضل
+  const marginClass = fieldType === 'submit' ? 'mt-4' : 'mb-5';
+  
+  // هوامش إضافية لزر الواتساب بعد زر الإرسال
+  let additionalStyles = {};
+  if (fieldType === 'whatsapp') {
+    additionalStyles = { marginTop: '14px' };
+  }
 
   // إضافة سمات البيانات للمساعدة في ضمان تطابق العرض بين المعاينة والمتجر
   const dataAttributes = {
@@ -172,7 +178,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
 
   if (!isSupported && fieldType !== 'form-title') { // لا تظهر تحذيرًا لـ form-title
     return (
-      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
+      <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes} style={additionalStyles}>
         <Component field={normalizedField} formStyle={formStyle} />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
@@ -182,7 +188,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   }
 
   return (
-    <div className={marginClass} key={fieldKey} {...dataAttributes}>
+    <div className={marginClass} key={fieldKey} {...dataAttributes} style={additionalStyles}>
       <style>{animationStyles}</style>
       <Component field={normalizedField} formStyle={formStyle} />
     </div>

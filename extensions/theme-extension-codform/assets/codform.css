@@ -11,7 +11,7 @@
   padding: 15px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: #F5F5F5; /* تم تغيير لون الخلفية حسب الطلب */
+  background-color: #F5F5F5; /* تم تحديث لون الخلفية كما طلبت */
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -52,7 +52,7 @@
 /* حاوية النموذج الرئيسية */
 .codform-form {
   margin-top: 14px;
-  background-color: #F5F5F5;  /* تم تغيير لون الخلفية حسب الطلب */
+  background-color: #F5F5F5; /* تم تحديث لون الخلفية كما طلبت */
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -60,10 +60,10 @@
 
 /* تنسيق الحقول */
 .codform-field {
-  margin-bottom: 16px !important;
+  margin-bottom: 20px !important; /* زيادة المسافة بين الحقول */
   display: block !important;
   background-color: #ffffff !important; /* تعيين خلفية بيضاء للحقول */
-  padding: 12px !important;
+  padding: 16px !important; /* زيادة الحشو لمساحات أكبر */
   border-radius: 8px !important;
   border: 1px solid #e5e7eb !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
@@ -72,7 +72,7 @@
 
 .codform-field label {
   display: block !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 10px !important; /* زيادة المسافة بين التسمية وحقل الإدخال */
   font-weight: 600 !important;
   color: #374151 !important;
   font-size: 16px !important;
@@ -85,8 +85,8 @@
 .codform-field textarea,
 .codform-field select {
   width: 100% !important;
-  padding: 10px 12px !important;
-  padding-right: 36px !important; /* مساحة للأيقونة */
+  padding: 12px !important; /* زيادة الحشو للحقل نفسه */
+  padding-right: 40px !important; /* مساحة أكبر للأيقونة */
   padding-left: 12px !important;
   border: 1px solid #d1d5db !important;
   border-radius: 8px !important;
@@ -113,7 +113,7 @@
 /* تحسين عرض الأيقونات داخل الحقول */
 .codform-field-icon {
   position: absolute !important;
-  right: 12px !important;
+  right: 14px !important; /* زيادة المسافة من اليمين */
   left: auto !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
@@ -136,11 +136,11 @@
 .codform-checkbox-container {
   display: flex;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px; /* زيادة المسافة بين العناصر */
 }
 
 .codform-checkbox-container input[type="checkbox"] {
-  margin-left: 8px;
+  margin-left: 10px; /* زيادة المسافة */
   width: 18px;
   height: 18px;
   accent-color: #9b87f5;
@@ -150,17 +150,17 @@
 .codform-radio-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px; /* زيادة المسافة بين الخيارات */
 }
 
 .codform-radio-container {
   display: flex;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .codform-radio-container input[type="radio"] {
-  margin-left: 8px;
+  margin-left: 10px;
   width: 18px;
   height: 18px;
   accent-color: #9b87f5;
@@ -170,13 +170,13 @@
 .codform-help-text {
   font-size: 14px !important;
   color: #6b7280;
-  margin-top: 4px;
+  margin-top: 6px; /* زيادة المسافة */
 }
 
 /* علامة الحقول المطلوبة */
 .codform-required {
   color: #ef4444;
-  margin-right: 3px;
+  margin-right: 4px;
 }
 
 /* أزرار الإرسال والتنقل بين الخطوات */
@@ -187,14 +187,14 @@
   background-color: #9b87f5 !important;
   color: white !important;
   border: none !important;
-  padding: 14px 24px !important;
+  padding: 16px 24px !important; /* زيادة الحشو */
   border-radius: 8px !important;
   font-weight: 600 !important;
   font-size: 18px !important;
   cursor: pointer !important;
   transition: all 0.2s ease-in-out !important;
   width: 100% !important;
-  margin-top: 14px !important;
+  margin-top: 16px !important; /* زيادة المسافة */
   font-family: 'Cairo', sans-serif !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   position: relative !important;
@@ -309,7 +309,7 @@
   background-color: #9b87f5 !important;
   color: white !important;
   border: none !important;
-  padding: 14px 24px !important;
+  padding: 16px 24px !important; /* زيادة الحشو */
   border-radius: 8px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -508,7 +508,7 @@
   align-items: center !important;
   justify-content: center !important;
   gap: 10px !important;
-  padding: 14px 20px !important;
+  padding: 16px 20px !important; /* زيادة الحشو */
   border-radius: 8px !important;
   font-weight: 600 !important;
   font-size: 18px !important;
@@ -518,7 +518,7 @@
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   font-family: 'Cairo', sans-serif !important;
-  margin-top: 14px !important;
+  margin-top: 20px !important; /* زيادة المسافة بين زر الواتساب وما يسبقه */
   margin-bottom: 8px !important;
   text-align: center !important;
 }
@@ -664,17 +664,20 @@
   padding: 16px !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 8px !important;
-  background-color: #F5F5F5 !important; /* تم تغيير لون الخلفية حسب الطلب */
+  background-color: #F5F5F5 !important; /* تم تحديث لون الخلفية كما طلبت */
 }
 
 /* إضافة أحدث تعديلات */
 .codform-field-icon {
   position: absolute !important;
-  right: 10px !important;
+  right: 14px !important; /* زيادة المسافة من اليمين */
   top: 50% !important;
   transform: translateY(-50%) !important;
   pointer-events: none !important;
   z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .codform-field-wrapper {
@@ -683,10 +686,24 @@
 
 .codform-field-with-icon input,
 .codform-field-with-icon textarea {
-  padding-right: 36px !important;
+  padding-right: 40px !important; /* زيادة المسافة للأيقونة */
 }
 
 /* تثبيت الأيقونات في الحقول النصية */
 .codform-field textarea + .codform-field-icon {
   top: 25px !important; /* تصحيح موضع الأيقونة في مناطق النص */
+}
+
+/* ضمان مسافة كافية بين زر الإرسال وزر الواتساب */
+.codform-field + .codform-field {
+  margin-top: 16px !important;
+}
+
+/* تحسين تباعد الأزرار */
+.codform-submit-btn + .codform-whatsapp-button {
+  margin-top: 20px !important;
+}
+
+.codform-whatsapp-button {
+  margin-top: 20px !important;
 }
